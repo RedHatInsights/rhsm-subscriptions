@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.util.Collections;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -34,6 +35,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
+import org.springframework.security.web.authentication.preauth.PreAuthenticatedCredentialsNotFoundException;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedGrantedAuthoritiesWebAuthenticationDetails;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -50,6 +52,8 @@ class IdentityHeaderAuthenticationProviderTest {
   @Autowired
   @Qualifier("identityHeaderAuthenticationProvider")
   AuthenticationProvider manager;
+
+  IdentityHeaderAuthoritiesMapper authoritiesMapper = new IdentityHeaderAuthoritiesMapper();
 
   @Test
   void testMissingOrgId() {
@@ -74,6 +78,55 @@ class IdentityHeaderAuthenticationProviderTest {
         .thenReturn(new User("N/A", "N/A", Collections.emptyList()));
     Authentication result = manager.authenticate(token("123", "acct"));
     assertTrue(result.isAuthenticated());
+  }
+
+  @Test
+  void validPskPrincipalIsAuthenticated() {
+    AuthProperties authProperties = new AuthProperties();
+    PskClientPrincipal principal = new PskClientPrincipal();
+    principal.setPreSharedKey("c9a98753-2092-4617-b226-5c2653330b3d");
+    authProperties.setSwatchPsks(Map.of("source", "c9a98753-2092-4617-b226-5c2653330b3d"));
+    IdentityHeaderAuthenticationProvider provider =
+        new IdentityHeaderAuthenticationProvider(detailsService, authoritiesMapper, authProperties);
+    Authentication authentication = new PreAuthenticatedAuthenticationToken(principal, null, null);
+    var result = provider.authenticate(authentication);
+    assertTrue(result.isAuthenticated());
+    assertEquals("source", result.getPrincipal());
+  }
+
+  @Test
+  void invalidPskPrincipalThrowsException() {
+    AuthProperties authProperties = new AuthProperties();
+    String pskEncoded = "{\"source\":\"c9a98753-2092-4617-b226-5c2653330b3d\"}";
+    PskClientPrincipal principal = new PskClientPrincipal();
+    principal.setPreSharedKey("e88bc49f-e395-48c0-8665-c87b251c30cf");
+    authProperties.setSwatchPsks(Map.of("source", "c9a98753-2092-4617-b226-5c2653330b3d"));
+    IdentityHeaderAuthenticationProvider provider =
+        new IdentityHeaderAuthenticationProvider(detailsService, authoritiesMapper, authProperties);
+    Authentication authentication = new PreAuthenticatedAuthenticationToken(principal, null, null);
+
+    assertThrows(
+        PreAuthenticatedCredentialsNotFoundException.class,
+        () -> {
+          provider.authenticate(authentication);
+        });
+  }
+
+  @Test
+  void emptyPskPrincipalThrowsException() {
+    AuthProperties authProperties = new AuthProperties();
+    String pskEncoded = "{\"source\":\"c9a98753-2092-4617-b226-5c2653330b3d\"}";
+    PskClientPrincipal principal = new PskClientPrincipal();
+    authProperties.setSwatchPsks(Map.of("source", "c9a98753-2092-4617-b226-5c2653330b3d"));
+    IdentityHeaderAuthenticationProvider provider =
+        new IdentityHeaderAuthenticationProvider(detailsService, authoritiesMapper, authProperties);
+    Authentication authentication = new PreAuthenticatedAuthenticationToken(principal, null, null);
+
+    assertThrows(
+        PreAuthenticatedCredentialsNotFoundException.class,
+        () -> {
+          provider.authenticate(authentication);
+        });
   }
 
   private PreAuthenticatedAuthenticationToken token(String org, String account) {

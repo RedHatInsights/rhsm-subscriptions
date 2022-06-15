@@ -34,19 +34,21 @@ import javax.validation.constraints.Min;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import org.candlepin.subscriptions.db.HostRepository;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyHostView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.utilization.api.model.HostReport;
 import org.candlepin.subscriptions.utilization.api.model.HostReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
 import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReport;
-import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReportMeta;
+import org.candlepin.subscriptions.utilization.api.model.MetaCount;
 import org.candlepin.subscriptions.utilization.api.model.PageLinks;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
@@ -86,6 +88,7 @@ public class HostsResource implements HostsApi {
 
   public static final Map<HostReportSort, Measurement.Uom> SORT_TO_UOM_MAP =
       ImmutableMap.copyOf(getSortToUomMap());
+  public static final String BILLING_ACCOUNT_ID = "_ANY";
 
   private static Map<HostReportSort, Measurement.Uom> getSortToUomMap() {
     return Arrays.stream(Measurement.Uom.values())
@@ -108,11 +111,14 @@ public class HostsResource implements HostsApi {
 
   private final HostRepository repository;
   private final PageLinkCreator pageLinkCreator;
+  private final TagProfile tagProfile;
   @Context UriInfo uriInfo;
 
-  public HostsResource(HostRepository repository, PageLinkCreator pageLinkCreator) {
+  public HostsResource(
+      HostRepository repository, PageLinkCreator pageLinkCreator, TagProfile tagProfile) {
     this.repository = repository;
     this.pageLinkCreator = pageLinkCreator;
+    this.tagProfile = tagProfile;
   }
 
   @SuppressWarnings("java:S3776")
@@ -153,13 +159,9 @@ public class HostsResource implements HostsApi {
     String sanitizedDisplayNameSubstring =
         Objects.nonNull(displayNameContains) ? displayNameContains : "";
 
-    boolean isSpecial =
-        Objects.equals(productId, ProductId.OPENSHIFT_DEDICATED_METRICS)
-            || Objects.equals(productId, ProductId.OPENSHIFT_METRICS);
-
     List<org.candlepin.subscriptions.utilization.api.model.Host> payload;
     Page<?> hosts;
-    if (isSpecial) {
+    if (tagProfile.isProductPAYGEligible(productId.toString())) {
       if (sort != null) {
         Sort.Order userDefinedOrder =
             new Sort.Order(dirValue, INSTANCE_SORT_PARAM_MAPPING.get(sort));
@@ -190,6 +192,8 @@ public class HostsResource implements HostsApi {
               minSockets,
               month,
               referenceUom,
+              BillingProvider._ANY,
+              BILLING_ACCOUNT_ID,
               page);
       payload =
           ((Page<Host>) hosts)
@@ -208,6 +212,8 @@ public class HostsResource implements HostsApi {
               productId.toString(),
               sanitizedSla,
               sanitizedUsage,
+              BillingProvider._ANY,
+              BILLING_ACCOUNT_ID,
               sanitizedDisplayNameSubstring,
               minCores,
               minSockets,
@@ -262,7 +268,7 @@ public class HostsResource implements HostsApi {
 
     return new HypervisorGuestReport()
         .links(links)
-        .meta(new HypervisorGuestReportMeta().count((int) guests.getTotalElements()))
+        .meta(new MetaCount().count((int) guests.getTotalElements()))
         .data(guests.getContent().stream().map(Host::asApiHost).collect(Collectors.toList()));
   }
 }

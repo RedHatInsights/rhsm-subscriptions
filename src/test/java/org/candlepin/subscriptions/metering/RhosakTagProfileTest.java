@@ -20,8 +20,7 @@
  */
 package org.candlepin.subscriptions.metering;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Map;
 import java.util.Optional;
@@ -33,6 +32,7 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.json.TallyMeasurement;
+import org.candlepin.subscriptions.registry.BillingWindow;
 import org.candlepin.subscriptions.registry.TagMetaData;
 import org.candlepin.subscriptions.registry.TagMetric;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -65,7 +65,9 @@ class RhosakTagProfileTest {
             TagMetric.builder()
                 .tag("rhosak")
                 .metricId("redhat.com:rhosak:storage_gb")
+                .rhmMetricId("redhat.com:rhosak:storage_gb")
                 .uom(Uom.STORAGE_GIBIBYTES)
+                .billingWindow(BillingWindow.HOURLY)
                 .queryKey("default")
                 .accountQueryKey("default")
                 .queryParams(
@@ -81,7 +83,10 @@ class RhosakTagProfileTest {
             TagMetric.builder()
                 .tag("rhosak")
                 .metricId("redhat.com:rhosak:transfer_gb")
+                .rhmMetricId("redhat.com:rhosak:transfer_gb")
+                .awsDimension("transfer_gb")
                 .uom(Uom.TRANSFER_GIBIBYTES)
+                .billingWindow(BillingWindow.MONTHLY)
                 .queryKey("default")
                 .accountQueryKey("default")
                 .queryParams(
@@ -99,14 +104,37 @@ class RhosakTagProfileTest {
             TagMetric.builder()
                 .tag("rhosak")
                 .metricId("redhat.com:rhosak:cluster_hour")
+                .rhmMetricId("redhat.com:rhosak:cluster_hour")
+                .awsDimension("cluster_hour")
                 .uom(Uom.INSTANCE_HOURS)
                 .queryKey("default")
+                .billingWindow(BillingWindow.MONTHLY)
                 .accountQueryKey("default")
                 .queryParams(
                     Map.of(
                         "product", "rhosak",
                         "prometheusMetric", "kafka_id:strimzi_resource_state:max_over_time1h",
                         "prometheusMetadataMetric", "subscription_labels"))
+                .build()),
+        Arguments.of(
+            "rhosak",
+            Uom.STORAGE_GIBIBYTE_MONTHS,
+            TagMetric.builder()
+                .tag("rhosak")
+                .metricId("redhat.com:rhosak:storage_gib_months")
+                .awsDimension("storage_gb")
+                .uom(Uom.STORAGE_GIBIBYTE_MONTHS)
+                .billingWindow(BillingWindow.MONTHLY)
+                .queryKey("default")
+                .accountQueryKey("default")
+                .queryParams(
+                    Map.of(
+                        "product",
+                        "rhosak",
+                        "prometheusMetric",
+                        "kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibyte_months",
+                        "prometheusMetadataMetric",
+                        "subscription_labels"))
                 .build()));
   }
 
@@ -128,6 +156,7 @@ class RhosakTagProfileTest {
                 .serviceType("Kafka Cluster")
                 .defaultUsage(Usage.PRODUCTION)
                 .tags(Set.of("rhosak"))
+                .billingModel("PAYG")
                 .build()));
   }
 
@@ -135,7 +164,7 @@ class RhosakTagProfileTest {
   @MethodSource("promethuesEnabledLookupArgs")
   void testPrometueusEnabledMeasurements(String tag, TallyMeasurement.Uom uom, String exMetricId) {
     assertTrue(tagProfile.getTagsWithPrometheusEnabledLookup().contains(tag));
-    assertEquals(exMetricId, tagProfile.metricIdForTagAndUom(tag, uom));
+    assertEquals(exMetricId, tagProfile.rhmMetricIdForTagAndUom(tag, uom));
   }
 
   static Stream<Arguments> promethuesEnabledLookupArgs() {

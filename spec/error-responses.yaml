@@ -1,0 +1,55 @@
+$id: error-responses.yaml
+$schema: http://json-schema.org/draft-04/schema#
+$defs:
+  InternalServerError:
+    description: "An internal server error has occurred and is not recoverable."
+    content:
+      application/vnd.api+json:
+        schema:
+          $ref: "error-responses.yaml#/$defs/Errors"
+  BadRequest:
+    description: "The server could could not process the current request."
+    content:
+      application/vnd.api+json:
+        schema:
+          $ref: "error-responses.yaml#/$defs/Errors"
+  Forbidden:
+    description: "The request was valid, but the request was refused by the server."
+    content:
+      application/vnd.api+json:
+        schema:
+          $ref: "error-responses.yaml#/$defs/Errors"
+  ResourceNotFound:
+    description: "The requested resource was not found."
+    content:
+      application/vnd.api+json:
+        schema:
+          $ref: "error-responses.yaml#/$defs/Errors"
+  ServiceUnavailable:
+    description: "The server is currently unavailable."
+    content:
+      application/vnd.api+json:
+        schema:
+          $ref: "error-responses.yaml#/$defs/Errors"
+  Errors:
+    required:
+      - errors
+    properties:
+      errors:
+        type: array
+        items:
+          $ref: "error-responses.yaml#/$defs/Error"
+  Error:
+    required:
+      - status
+      - code
+      - title
+    properties:
+      status:
+        type: string
+      code:
+        type: string
+      title:
+        type: string
+      detail:
+        type: string

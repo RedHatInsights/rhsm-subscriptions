@@ -21,12 +21,15 @@
 package org.candlepin.subscriptions.tally.tasks;
 
 import java.util.List;
+import javax.validation.constraints.Size;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.task.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.validation.annotation.Validated;
 
 /** Updates the usage snapshots for a given account. */
+@Validated
 public class UpdateAccountSnapshotsTask implements Task {
   private static final Logger log = LoggerFactory.getLogger(UpdateAccountSnapshotsTask.class);
 
@@ -34,14 +37,16 @@ public class UpdateAccountSnapshotsTask implements Task {
   private final TallySnapshotController snapshotController;
 
   public UpdateAccountSnapshotsTask(
-      TallySnapshotController snapshotController, List<String> accountNumbers) {
+      TallySnapshotController snapshotController,
+      @Size(min = 1, max = 1) List<String> accountNumbers) {
     this.snapshotController = snapshotController;
     this.accountNumbers = accountNumbers;
   }
 
   @Override
   public void execute() {
-    log.info("Updating snapshots for {} accounts.", accountNumbers.size());
-    snapshotController.produceSnapshotsForAccounts(accountNumbers);
+    String account = accountNumbers.get(0);
+    log.info("Updating snapshots for account {}.", account);
+    snapshotController.produceSnapshotsForAccount(account);
   }
 }

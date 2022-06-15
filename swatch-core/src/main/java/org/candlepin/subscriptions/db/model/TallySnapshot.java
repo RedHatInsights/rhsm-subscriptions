@@ -86,11 +86,20 @@ public class TallySnapshot implements Serializable {
   @Column(name = "usage")
   private Usage usage = Usage._ANY;
 
+  @Builder.Default
+  @Column(name = "billing_provider")
+  private BillingProvider billingProvider = BillingProvider._ANY;
+
+  @Column(name = "billing_account_id")
+  private String billingAccountId;
+
   @Enumerated(EnumType.STRING)
   @Column(name = "granularity")
   private Granularity granularity;
 
-  /** @deprecated use tallyMeasurements instead */
+  /**
+   * @deprecated use tallyMeasurements instead
+   */
   @Deprecated(forRemoval = true)
   @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(name = "hardware_measurements", joinColumns = @JoinColumn(name = "snapshot_id"))
@@ -116,7 +125,9 @@ public class TallySnapshot implements Serializable {
     return hardwareMeasurements.get(type);
   }
 
-  /** @deprecated use setMeasurement instead */
+  /**
+   * @deprecated use setMeasurement instead
+   */
   @Deprecated(forRemoval = true)
   public void setHardwareMeasurement(
       HardwareMeasurementType type, HardwareMeasurement measurement) {
@@ -230,12 +241,22 @@ public class TallySnapshot implements Serializable {
         && Objects.equals(accountNumber, that.accountNumber)
         && serviceLevel == that.serviceLevel
         && usage == that.usage
-        && granularity == that.granularity;
+        && granularity == that.granularity
+        && billingProvider == that.billingProvider
+        && Objects.equals(billingAccountId, that.billingAccountId);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
-        snapshotDate, productId, ownerId, accountNumber, serviceLevel, usage, granularity);
+        snapshotDate,
+        productId,
+        ownerId,
+        accountNumber,
+        serviceLevel,
+        usage,
+        granularity,
+        billingProvider,
+        billingAccountId);
   }
 }

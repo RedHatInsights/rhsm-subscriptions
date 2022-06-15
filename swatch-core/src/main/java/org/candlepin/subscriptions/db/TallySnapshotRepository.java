@@ -24,13 +24,17 @@ import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,28 +43,64 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
 
   // suppress line length and params arguments, can't help either easily b/c this is a spring data
   // method
-  @SuppressWarnings({"linelength", "java:S107"})
-  Page<TallySnapshot>
-      findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
-          String accountNumber,
-          String productId,
-          Granularity granularity,
-          ServiceLevel serviceLevel,
-          Usage usage,
-          OffsetDateTime beginning,
-          OffsetDateTime ending,
-          Pageable pageable);
+
+  @Query(
+      "SELECT t FROM TallySnapshot t where "
+          + "t.accountNumber = :accountNumber and "
+          + "t.productId = :productId and "
+          + "t.granularity = :granularity  and "
+          + "t.serviceLevel = :serviceLevel and "
+          + "t.usage = :usage and "
+          + "t.billingProvider = :billingProvider and "
+          + "t.billingAccountId = :billingAcctId and "
+          + "t.snapshotDate between :beginning and :ending "
+          + "order by t.snapshotDate")
+  Page<TallySnapshot> findSnapshot( // NOSONAR
+      @Param("accountNumber") String accountNumber,
+      @Param("productId") String productId,
+      @Param("granularity") Granularity granularity,
+      @Param("serviceLevel") ServiceLevel serviceLevel,
+      @Param("usage") Usage usage,
+      @Param("billingProvider") BillingProvider billingProvider,
+      @Param("billingAcctId") String billingAccountId,
+      @Param("beginning") OffsetDateTime beginning,
+      @Param("ending") OffsetDateTime ending,
+      @Param("pageable") Pageable pageable);
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   void deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(
       String accountNumber, Granularity granularity, OffsetDateTime cutoffDate);
 
-  Stream<TallySnapshot> findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
-      Collection<String> accountNumbers,
+  Stream<TallySnapshot> findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
+      String accountNumber,
       Collection<String> productIds,
       Granularity granularity,
       OffsetDateTime beginning,
       OffsetDateTime ending);
 
   void deleteByAccountNumber(String accountNumber);
+
+  @SuppressWarnings("java:S107") // repository method has a lot of params, deal with it
+  @Query(
+      "select coalesce(sum(VALUE(m)), 0.0) from TallySnapshot s "
+          + "left join s.tallyMeasurements m on key(m) = :measurementKey "
+          + "where s.accountNumber = :accountNumber and "
+          + "s.productId = :productId and "
+          + "s.granularity = :granularity and "
+          + "s.serviceLevel = :serviceLevel and "
+          + "s.usage = :usage and "
+          + "s.billingProvider = :billingProvider and "
+          + "s.billingAccountId = :billingAcctId and "
+          + "s.snapshotDate >= :beginning and s.snapshotDate <= :ending")
+  Double sumMeasurementValueForPeriod(
+      @Param("accountNumber") String accountNumber,
+      @Param("productId") String productId,
+      @Param("granularity") Granularity granularity,
+      @Param("serviceLevel") ServiceLevel serviceLevel,
+      @Param("usage") Usage usage,
+      @Param("billingProvider") BillingProvider billingProvider,
+      @Param("billingAcctId") String billingAccountId,
+      @Param("beginning") OffsetDateTime beginning,
+      @Param("ending") OffsetDateTime ending,
+      @Param("measurementKey") TallyMeasurementKey measurementKey);
 }

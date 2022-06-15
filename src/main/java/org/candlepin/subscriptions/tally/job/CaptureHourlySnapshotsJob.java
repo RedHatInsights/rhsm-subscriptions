@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.job;
 
+import java.util.Optional;
 import org.candlepin.subscriptions.exception.JobFailureException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -40,7 +41,7 @@ public class CaptureHourlySnapshotsJob implements Runnable {
   @Scheduled(cron = "${rhsm-subscriptions.jobs.capture-hourly-snapshot-schedule}")
   public void run() {
     try {
-      tasks.updateHourlySnapshotsForAllAccounts();
+      tasks.updateHourlySnapshotsForAllAccounts(Optional.empty());
     } catch (Exception e) {
       throw new JobFailureException("Failed to run CaptureHourlySnapshotsJob.", e);
     }

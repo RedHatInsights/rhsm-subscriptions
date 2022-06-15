@@ -21,12 +21,15 @@
 package org.candlepin.subscriptions.rhmarketplace;
 
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration;
+import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
@@ -56,6 +59,7 @@ public class RhMarketplaceWorkerConfiguration {
   }
 
   @Bean
+  @Qualifier("rhMarketplaceTallySummaryConsumerFactory")
   ConsumerFactory<String, TallySummary> tallySummaryConsumerFactory(
       KafkaProperties kafkaProperties) {
     return new DefaultKafkaConsumerFactory<>(
@@ -73,11 +77,51 @@ public class RhMarketplaceWorkerConfiguration {
   @Bean
   ConcurrentKafkaListenerContainerFactory<String, TallySummary>
       kafkaTallySummaryListenerContainerFactory(
-          ConsumerFactory<String, TallySummary> consumerFactory,
+          @Qualifier("rhMarketplaceTallySummaryConsumerFactory")
+              ConsumerFactory<String, TallySummary> consumerFactory,
           KafkaProperties kafkaProperties,
           KafkaConsumerRegistry registry) {
 
     var factory = new ConcurrentKafkaListenerContainerFactory<String, TallySummary>();
+    factory.setConsumerFactory(consumerFactory);
+    // Concurrency should be set to the number of partitions for the target topic.
+    factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
+    if (kafkaProperties.getListener().getIdleEventInterval() != null) {
+      factory
+          .getContainerProperties()
+          .setIdleEventInterval(kafkaProperties.getListener().getIdleEventInterval().toMillis());
+    }
+    // hack to track the Kafka consumers, so SeekableKafkaConsumer can commit when needed
+    factory.getContainerProperties().setConsumerRebalanceListener(registry);
+    return factory;
+  }
+
+  @Bean
+  @Qualifier("rhMarketplaceBillableUsageTopicProperties")
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.rh-marketplace.billable-usage.incoming")
+  TaskQueueProperties rhmBillableUsageTopicProperties() {
+    return new TaskQueueProperties();
+  }
+
+  @Bean
+  @Qualifier("rhMarketplaceBillableUsageConsumerFactory")
+  ConsumerFactory<String, BillableUsage> billableUsageConsumerFactory(
+      KafkaProperties kafkaProperties) {
+    return new DefaultKafkaConsumerFactory<>(
+        kafkaProperties.buildConsumerProperties(),
+        new StringDeserializer(),
+        new JsonDeserializer<>(BillableUsage.class));
+  }
+
+  @Bean
+  ConcurrentKafkaListenerContainerFactory<String, BillableUsage>
+      kafkaBillableUsageListenerContainerFactory(
+          @Qualifier("rhMarketplaceBillableUsageConsumerFactory")
+              ConsumerFactory<String, BillableUsage> consumerFactory,
+          KafkaProperties kafkaProperties,
+          KafkaConsumerRegistry registry) {
+
+    var factory = new ConcurrentKafkaListenerContainerFactory<String, BillableUsage>();
     factory.setConsumerFactory(consumerFactory);
     // Concurrency should be set to the number of partitions for the target topic.
     factory.setConcurrency(kafkaProperties.getListener().getConcurrency());

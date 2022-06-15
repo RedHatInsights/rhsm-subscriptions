@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import javax.validation.constraints.NotNull;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostBucketKey_;
 import org.candlepin.subscriptions.db.model.HostTallyBucket_;
@@ -57,6 +58,8 @@ public interface HostRepository
    * @param productId The bucket product ID to filter Host by (pass null to ignore).
    * @param sla The bucket service level to filter Hosts by (pass null to ignore).
    * @param usage The bucket usage to filter Hosts by (pass null to ignore).
+   * @param billingProvider The bucket billingProvider to filter Hosts by (pass null to ignore).
+   * @param billingAccountId The bucket billingAccountId to filter Hosts by (pass null to ignore).
    * @param displayNameSubstring Case-insensitive string to filter Hosts' display name by (pass null
    *     or empty string to ignore)
    * @param minCores Filter to Hosts with at least this number of cores.
@@ -71,6 +74,8 @@ public interface HostRepository
               + "h.accountNumber = :account and "
               + "b.key.productId = :product and "
               + "b.key.sla = :sla and b.key.usage = :usage and "
+              + "b.key.billingProvider = :billingProvider and "
+              + "b.key.billingAccountId = :billingAccountId and "
               +
               // Have to do the null check first, otherwise the lower in the LIKE clause has issues
               // with datatypes
@@ -84,6 +89,9 @@ public interface HostRepository
               + "h.accountNumber = :account and "
               + "b.key.productId = :product and "
               + "b.key.sla = :sla and b.key.usage = :usage and "
+              + "b.key.sla = :sla and b.key.usage = :usage and "
+              + "b.key.billingProvider = :billingProvider and "
+              + "b.key.billingAccountId = :billingAccountId and "
               + "((lower(h.displayName) LIKE lower(concat('%', :displayNameSubstring,'%')))) and "
               + "b.cores >= :minCores and b.sockets >= :minSockets")
   Page<TallyHostView> getTallyHostViews(
@@ -91,6 +99,8 @@ public interface HostRepository
       @Param("product") String productId,
       @Param("sla") ServiceLevel sla,
       @Param("usage") Usage usage,
+      @Param("billingProvider") BillingProvider billingProvider,
+      @Param("billingAccountId") String billingAccountId,
       @NotNull @Param("displayNameSubstring") String displayNameSubstring,
       @Param("minCores") int minCores,
       @Param("minSockets") int minSockets,
@@ -128,6 +138,8 @@ public interface HostRepository
       @Param("minSockets") int minSockets,
       String month,
       Uom referenceUom,
+      BillingProvider billingProvider,
+      String billingAccountId,
       Pageable pageable) {
 
     HostSpecification searchCriteria = new HostSpecification();
@@ -138,6 +150,14 @@ public interface HostRepository
         new SearchCriteria(HostBucketKey_.PRODUCT_ID, productId, SearchOperation.EQUAL));
     searchCriteria.add(new SearchCriteria(HostBucketKey_.SLA, sla, SearchOperation.EQUAL));
     searchCriteria.add(new SearchCriteria(HostBucketKey_.USAGE, usage, SearchOperation.EQUAL));
+
+    searchCriteria.add(
+        new SearchCriteria(
+            HostBucketKey_.BILLING_PROVIDER, billingProvider, SearchOperation.EQUAL));
+    searchCriteria.add(
+        new SearchCriteria(
+            HostBucketKey_.BILLING_ACCOUNT_ID, billingAccountId, SearchOperation.EQUAL));
+
     searchCriteria.add(
         new SearchCriteria(Host_.DISPLAY_NAME, displayNameSubstring, SearchOperation.CONTAINS));
     searchCriteria.add(

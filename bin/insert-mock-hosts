@@ -13,7 +13,7 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
                   subscription_manager_id=None, cores=None, sockets=None, is_guest=None, hypervisor_uuid=None,
                   hardware_type=None, measurement_type=None, num_of_guests=None, last_seen=None, product=None,
                   sla=None, usage=None, is_unmapped_guest=None, is_hypervisor=None, cloud_provider=None,
-                  skip_buckets=False, is_hbi=False, is_marketplace=False, host_type=None):
+                  skip_buckets=False, is_hbi=False, is_marketplace=False, host_type=None, billing_provider=None, billing_account_id=None):
     account = account_number or "account123"
     host_id = uuid.uuid4()
     inventory_id = inventory_id or uuid.uuid4()
@@ -72,12 +72,15 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
             'last_seen': last_seen or '1993-03-26',
             'is_unmapped_guest': is_unmapped_guest or False,
             'is_hypervisor': is_hypervisor or False,
-            'cloud_provider': cloud_provider or None
+            'cloud_provider': cloud_provider or None,
+            'billing_provider' : billing_provider or None,
+            'billing_account_id' : billing_account_id or None
         }
 
     _generate_insert('hosts', **host_fields)
     if not is_hbi and not skip_buckets:
-        _generate_buckets(host_id, product, sla, usage, cores=cores, sockets=sockets, measurement_type=measurement_type)
+        _generate_buckets(host_id, product, sla, usage, cores=cores, sockets=sockets, measurement_type=measurement_type,
+        billing_provider=billing_provider, billing_account_id=billing_account_id)
     return host_fields
 
 
@@ -101,7 +104,7 @@ def _generate_insert(table, **host_fields):
 
 
 def _generate_buckets(host_id, product, sla, usage, as_hypervisor=False, measurement_type=None, cores=None,
-                      sockets=None):
+                      sockets=None, billing_provider=None, billing_account_id=None):
     sla = sla or 'Premium'
     usage = usage or 'Production'
     bucket_fields = {
@@ -111,6 +114,8 @@ def _generate_buckets(host_id, product, sla, usage, as_hypervisor=False, measure
         'measurement_type': measurement_type,
         'cores': cores,
         'sockets': sockets,
+        'billing_provider': billing_provider,
+        'billing_account_id': billing_account_id
     }
 
     sla_vals = ["_ANY", sla]
@@ -187,6 +192,10 @@ parser.add_argument('--marketplace', action='store_true', dest='is_marketplace',
 parser.add_argument('--host-type',
                     default=None,
                     help='Set host type of the system to be inserted')
+parser.add_argument('--billing-provider',
+                    help='Set the billing_provider for the inserted records')
+parser.add_argument('--billing-account-id',
+                    help='Set the billing_account_id for the inserted records')
 
 args = parser.parse_args()
 if args.is_hbi:
@@ -227,17 +236,19 @@ for i in range(args.num_accounts):
     product = args.product or "RHEL"
 
     for i in range(args.num_aws):
-        generate_host(account_number=account, hardware_type='VIRTUAL', measurement_type='CLOUD',
+        generate_host(account_number=account, hardware_type='VIRTUALIZED', measurement_type='AWS',
                       product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
                       is_hbi=args.is_hbi,
-                      cloud_provider='AWS', is_marketplace=args.is_marketplace, host_type=args.host_type)
+                      cloud_provider='AWS', is_marketplace=args.is_marketplace, host_type=args.host_type,
+                      billing_provider=args.billing_provider, billing_account_id=args.billing_account_id)
 
     for i in range(args.num_physical):
         generate_host(account_number=account, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
                       product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
                       is_hbi=args.is_hbi,
                       is_marketplace=args.is_marketplace,
-                      host_type=args.host_type)
+                      host_type=args.host_type,
+                      billing_provider=args.billing_provider, billing_account_id=args.billing_account_id)
 
     hypervisor = None
     for i in range(args.num_hypervisors):
@@ -246,14 +257,16 @@ for i in range(args.num_accounts):
                                    sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
                                    is_hypervisor=True, is_hbi=args.is_hbi,
                                    is_marketplace=args.is_marketplace,
-                                   host_type=args.host_type)
+                                   host_type=args.host_type,
+                                   billing_provider=args.billing_provider, billing_account_id=args.billing_account_id)
         # create a physical entry for the host as well.
         generate_host(account_number=account, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
                       product=args.product,
                       sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hypervisor=True,
                       is_hbi=args.is_hbi,
                       is_marketplace=args.is_marketplace,
-                      host_type=args.host_type)
+                      host_type=args.host_type,
+                     billing_provider=args.billing_provider, billing_account_id=args.billing_account_id)
 
     create_unmapped = args.unmapped_guests
     for i in range(args.num_guests):
@@ -273,7 +286,8 @@ for i in range(args.num_accounts):
                       product=args.product, sla=args.sla, usage=args.usage, hypervisor_uuid=hypervisor_uuid,
                       cores=args.cores, sockets=args.sockets, is_unmapped_guest=create_unmapped,
                       skip_buckets=skip_buckets, is_hbi=args.is_hbi,
-                      is_marketplace=args.is_marketplace, host_type=args.host_type)
+                      is_marketplace=args.is_marketplace, host_type=args.host_type,
+                      billing_provider=args.billing_provider, billing_account_id=args.billing_account_id)
 
 output.write('commit;')
 

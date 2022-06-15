@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.tally.tasks;
 
-import static org.mockito.BDDMockito.eq;
-
 import java.util.Arrays;
 import java.util.List;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
@@ -38,9 +36,9 @@ class UpdateAccountSnapshotsTaskTest {
 
   @Test
   void testExecute() {
-    List<String> accounts = Arrays.asList("a1", "a2");
+    List<String> accounts = Arrays.asList("a1");
     UpdateAccountSnapshotsTask task = new UpdateAccountSnapshotsTask(snapshotController, accounts);
     task.execute();
-    Mockito.verify(snapshotController).produceSnapshotsForAccounts(eq(accounts));
+    Mockito.verify(snapshotController).produceSnapshotsForAccount("a1");
   }
 }

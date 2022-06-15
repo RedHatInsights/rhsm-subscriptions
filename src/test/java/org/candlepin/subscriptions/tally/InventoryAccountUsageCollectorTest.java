@@ -20,15 +20,19 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.*;
-import static org.candlepin.subscriptions.tally.collector.Assertions.*;
-import static org.hamcrest.MatcherAssert.*;
+import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createGuest;
+import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createHypervisor;
+import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createRhsmHost;
+import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createSystemProfileHost;
+import static org.candlepin.subscriptions.tally.collector.Assertions.assertHypervisorTotalsCalculation;
+import static org.candlepin.subscriptions.tally.collector.Assertions.assertPhysicalTotalsCalculation;
+import static org.candlepin.subscriptions.tally.collector.Assertions.assertTotalsCalculation;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collection;
@@ -45,26 +49,20 @@ import java.util.stream.Stream;
 import java.util.stream.Stream.Builder;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
-import org.candlepin.subscriptions.db.model.AccountServiceInventory;
-import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
-import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.Host;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
-public class InventoryAccountUsageCollectorTest {
+class InventoryAccountUsageCollectorTest {
 
   private static final String TEST_PRODUCT = "RHEL";
   public static final Integer TEST_PRODUCT_ID = 1;
@@ -73,8 +71,8 @@ public class InventoryAccountUsageCollectorTest {
 
   public static final Set<String> RHEL_PRODUCTS = new HashSet<>(Arrays.asList(TEST_PRODUCT));
   public static final Set<String> NON_RHEL_PRODUCTS = new HashSet<>(Arrays.asList(NON_RHEL));
+  private static final String BILLING_ACCOUNT_ID_ANY = "_ANY";
 
-  @MockBean private BuildProperties buildProperties;
   @MockBean private InventoryRepository inventoryRepo;
   @MockBean private HostRepository hostRepo;
   @MockBean private AccountServiceInventoryRepository accountServiceInventoryRepository;
@@ -82,7 +80,7 @@ public class InventoryAccountUsageCollectorTest {
   @Autowired private MeterRegistry meterRegistry;
 
   @Test
-  public void hypervisorCountsIgnoredForNonRhelProduct() {
+  void hypervisorCountsIgnoredForNonRhelProduct() {
     String account = "A1";
 
     InventoryHostFacts hypervisor = createHypervisor("A1", "O1", NON_RHEL_PRODUCT_ID);
@@ -110,7 +108,7 @@ public class InventoryAccountUsageCollectorTest {
   }
 
   @Test
-  public void hypervisorTotalsForRHEL() {
+  void hypervisorTotalsForRHEL() {
     String account = "A1";
 
     InventoryHostFacts hypervisor = createHypervisor("A1", "O1", TEST_PRODUCT_ID);
@@ -141,7 +139,7 @@ public class InventoryAccountUsageCollectorTest {
   }
 
   @Test
-  public void guestWithKnownHypervisorNotAddedToTotalsForRHEL() {
+  void guestWithKnownHypervisorNotAddedToTotalsForRHEL() {
     String account = "A1";
 
     InventoryHostFacts guest = createGuest("hyper-1", "A1", "O1", TEST_PRODUCT_ID);
@@ -164,7 +162,7 @@ public class InventoryAccountUsageCollectorTest {
   }
 
   @Test
-  public void guestUnknownHypervisorTotalsForRHEL() {
+  void guestUnknownHypervisorTotalsForRHEL() {
     String account = "A1";
     InventoryHostFacts guest = createGuest(null, "A1", "O1", TEST_PRODUCT_ID);
     guest.setSystemProfileCoresPerSocket(4);
@@ -190,7 +188,7 @@ public class InventoryAccountUsageCollectorTest {
   }
 
   @Test
-  public void physicalSystemTotalsForRHEL() {
+  void physicalSystemTotalsForRHEL() {
     String account = "A1";
     List<Integer> products = Arrays.asList(TEST_PRODUCT_ID);
 
@@ -216,7 +214,7 @@ public class InventoryAccountUsageCollectorTest {
   }
 
   @Test
-  public void testTallyCoresAndSocketsOfRhelWhenInventoryFoundForAccount() throws Exception {
+  void testTallyCoresAndSocketsOfRhelWhenInventoryFoundForAccount() throws Exception {
     List<String> accounts = List.of("A1", "A2");
     List<Integer> products = Arrays.asList(TEST_PRODUCT_ID);
 
@@ -328,11 +326,42 @@ public class InventoryAccountUsageCollectorTest {
     AccountUsageCalculation a1Calc = calcs.get("A1");
     assertEquals(1, a1Calc.getProducts().size());
     checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", 16, 16, 2);
-    checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", ServiceLevel.EMPTY, Usage._ANY, 16, 16, 2);
     checkTotalsCalculation(
-        a1Calc, "A1", "O1", "RHEL", ServiceLevel.EMPTY, Usage.DEVELOPMENT_TEST, 6, 6, 1);
+        a1Calc,
+        "A1",
+        "O1",
+        "RHEL",
+        ServiceLevel.EMPTY,
+        Usage._ANY,
+        BillingProvider._ANY,
+        BILLING_ACCOUNT_ID_ANY,
+        16,
+        16,
+        2);
     checkTotalsCalculation(
-        a1Calc, "A1", "O1", "RHEL", ServiceLevel.EMPTY, Usage.PRODUCTION, 10, 10, 1);
+        a1Calc,
+        "A1",
+        "O1",
+        "RHEL",
+        ServiceLevel.EMPTY,
+        Usage.DEVELOPMENT_TEST,
+        BillingProvider._ANY,
+        BILLING_ACCOUNT_ID_ANY,
+        6,
+        6,
+        1);
+    checkTotalsCalculation(
+        a1Calc,
+        "A1",
+        "O1",
+        "RHEL",
+        ServiceLevel.EMPTY,
+        Usage.PRODUCTION,
+        BillingProvider._ANY,
+        BILLING_ACCOUNT_ID_ANY,
+        10,
+        10,
+        1);
   }
 
   @Test
@@ -369,7 +398,7 @@ public class InventoryAccountUsageCollectorTest {
   }
 
   @Test
-  public void testCalculationDoesNotIncludeHostWhenProductDoesntMatch() throws IOException {
+  void testCalculationDoesNotIncludeHostWhenProductDoesntMatch() {
     String account = "A1";
 
     InventoryHostFacts h1 =
@@ -397,8 +426,7 @@ public class InventoryAccountUsageCollectorTest {
   }
 
   @Test
-  public void throwsISEOnAttemptToCalculateFactsBelongingToADifferentOwnerForSameAccount()
-      throws IOException {
+  void throwsISEOnAttemptToCalculateFactsBelongingToADifferentOwnerForSameAccount() {
     String account = "A1";
 
     InventoryHostFacts h1 =
@@ -422,7 +450,7 @@ public class InventoryAccountUsageCollectorTest {
   }
 
   @Test
-  public void testTallyCoresAndSocketsOfRhelForPhysicalSystems() {
+  void testTallyCoresAndSocketsOfRhelForPhysicalSystems() {
     List<String> accounts = List.of("A1", "A2");
     InventoryHostFacts host1 =
         createRhsmHost("A1", "O1", Arrays.asList(TEST_PRODUCT_ID), "", OffsetDateTime.now());
@@ -468,7 +496,7 @@ public class InventoryAccountUsageCollectorTest {
   }
 
   @Test
-  public void testHypervisorCalculationsWhenMapped() {
+  void testHypervisorCalculationsWhenMapped() {
     String account = "A1";
 
     InventoryHostFacts hypervisor = createHypervisor("A1", "O1", TEST_PRODUCT_ID);
@@ -507,7 +535,7 @@ public class InventoryAccountUsageCollectorTest {
   }
 
   @Test
-  public void testHypervisorCalculationsWhenMappedWithNoProductsOnHypervisor() {
+  void testHypervisorCalculationsWhenMappedWithNoProductsOnHypervisor() {
     String account = "A1";
 
     InventoryHostFacts hypervisor = createHypervisor("A1", "O1", null);
@@ -713,7 +741,17 @@ public class InventoryAccountUsageCollectorTest {
       int instances) {
 
     checkTotalsCalculation(
-        calc, account, owner, product, serviceLevel, Usage._ANY, cores, sockets, instances);
+        calc,
+        account,
+        owner,
+        product,
+        serviceLevel,
+        Usage._ANY,
+        BillingProvider._ANY,
+        BILLING_ACCOUNT_ID_ANY,
+        cores,
+        sockets,
+        instances);
   }
 
   private void checkTotalsCalculation(
@@ -723,17 +761,25 @@ public class InventoryAccountUsageCollectorTest {
       String product,
       ServiceLevel serviceLevel,
       Usage usage,
+      BillingProvider billingProvider,
+      String billingAccountId,
       int cores,
       int sockets,
       int instances) {
     assertEquals(account, calc.getAccount());
     assertEquals(owner, calc.getOwner());
-    assertTrue(calc.containsCalculation(createUsageKey(product, serviceLevel, usage)));
+    assertTrue(
+        calc.containsCalculation(
+            createUsageKey(product, serviceLevel, usage, billingProvider, billingAccountId)));
 
-    UsageCalculation prodCalc = calc.getCalculation(createUsageKey(product, serviceLevel, usage));
+    UsageCalculation prodCalc =
+        calc.getCalculation(
+            createUsageKey(product, serviceLevel, usage, billingProvider, billingAccountId));
 
     assertEquals(product, prodCalc.getProductId());
     assertEquals(serviceLevel, prodCalc.getSla());
+    assertEquals(billingProvider, prodCalc.getBillingProvider());
+    assertEquals(billingAccountId, prodCalc.getBillingAccountId());
     assertTotalsCalculation(prodCalc, sockets, cores, instances);
   }
 
@@ -776,11 +822,17 @@ public class InventoryAccountUsageCollectorTest {
   }
 
   private UsageCalculation.Key createUsageKey(String product, ServiceLevel sla) {
-    return new UsageCalculation.Key(product, sla, Usage._ANY);
+    return new UsageCalculation.Key(
+        product, sla, Usage._ANY, BillingProvider._ANY, BILLING_ACCOUNT_ID_ANY);
   }
 
-  private UsageCalculation.Key createUsageKey(String product, ServiceLevel sla, Usage usage) {
-    return new UsageCalculation.Key(product, sla, usage);
+  private UsageCalculation.Key createUsageKey(
+      String product,
+      ServiceLevel sla,
+      Usage usage,
+      BillingProvider billingProvider,
+      String billingAcctId) {
+    return new UsageCalculation.Key(product, sla, usage, billingProvider, billingAcctId);
   }
 
   private void mockReportedHypervisors(String account, Map<String, String> expectedHypervisorMap) {
@@ -793,6 +845,6 @@ public class InventoryAccountUsageCollectorTest {
     for (Entry<String, String> entry : expectedHypervisorMap.entrySet()) {
       streamBuilder.accept(new Object[] {entry.getKey(), entry.getValue()});
     }
-    when(inventoryRepo.getReportedHypervisors(eq(accounts))).thenReturn(streamBuilder.build());
+    when(inventoryRepo.getReportedHypervisors(accounts)).thenReturn(streamBuilder.build());
   }
 }

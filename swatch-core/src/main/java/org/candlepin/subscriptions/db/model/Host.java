@@ -92,11 +92,15 @@ public class Host implements Serializable {
   @Column(name = "subscription_manager_id")
   private String subscriptionManagerId;
 
-  /** @deprecated use measurements instead */
+  /**
+   * @deprecated use measurements instead
+   */
   @Deprecated(forRemoval = true)
   private Integer cores;
 
-  /** @deprecated use measurements instead */
+  /**
+   * @deprecated use measurements instead
+   */
   @Deprecated(forRemoval = true)
   private Integer sockets;
 
@@ -150,6 +154,16 @@ public class Host implements Serializable {
   @Column(name = "instance_type")
   private String instanceType;
 
+  /*
+   * We have billingProvider and  billingAccountId redundantly here, anticipating that we will want
+   * to display a host's billing provider when the billing provider filter is set to _ANY
+   */
+  @Column(name = "billing_provider")
+  private BillingProvider billingProvider;
+
+  @Column(name = "billing_account_id")
+  private String billingAccountId;
+
   public Host() {}
 
   public Host(
@@ -174,7 +188,9 @@ public class Host implements Serializable {
         .orElse(cores);
   }
 
-  /** @deprecated use setMeasurement(Measurement.Uom.CORES, value) instead */
+  /**
+   * @deprecated use setMeasurement(Measurement.Uom.CORES, value) instead
+   */
   @Deprecated(forRemoval = true)
   public void setCores(Integer cores) {
     this.cores = cores;
@@ -191,7 +207,9 @@ public class Host implements Serializable {
         .orElse(sockets);
   }
 
-  /** @deprecated use setMeasurement(Measurement.Uom.SOCKETS, value) instead */
+  /**
+   * @deprecated use setMeasurement(Measurement.Uom.SOCKETS, value) instead
+   */
   @Deprecated(forRemoval = true)
   public void setSockets(Integer sockets) {
     this.sockets = sockets;
@@ -205,10 +223,12 @@ public class Host implements Serializable {
     measurements.put(uom, value);
   }
 
-  public HostTallyBucket addBucket(
+  public HostTallyBucket addBucket( // NOSONAR
       String productId,
       ServiceLevel sla,
       Usage usage,
+      BillingProvider billingProvider,
+      String billingAccountId,
       Boolean asHypervisor,
       int sockets,
       int cores,
@@ -216,7 +236,16 @@ public class Host implements Serializable {
 
     HostTallyBucket bucket =
         new HostTallyBucket(
-            this, productId, sla, usage, asHypervisor, cores, sockets, measurementType);
+            this,
+            productId,
+            sla,
+            usage,
+            billingProvider,
+            billingAccountId,
+            asHypervisor,
+            cores,
+            sockets,
+            measurementType);
     addBucket(bucket);
     return bucket;
   }
@@ -314,7 +343,8 @@ public class Host implements Serializable {
         && Objects.equals(lastSeen, host.lastSeen)
         && Objects.equals(buckets, host.buckets)
         && Objects.equals(cloudProvider, host.cloudProvider)
-        && Objects.equals(instanceId, host.instanceId);
+        && Objects.equals(instanceId, host.instanceId)
+        && Objects.equals(billingAccountId, host.billingAccountId);
   }
 
   @Override
@@ -339,7 +369,8 @@ public class Host implements Serializable {
         isHypervisor,
         cloudProvider,
         instanceId,
-        instanceType);
+        instanceType,
+        billingAccountId);
   }
 
   public org.candlepin.subscriptions.utilization.api.model.Host asTallyHostViewApiHost(

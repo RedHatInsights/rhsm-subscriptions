@@ -44,7 +44,7 @@ parameters:
   - name: CPU_LIMIT
     value: 1900m
   - name: SPLUNK_FORWARDER_IMAGE
-    value: quay.io/cloudservices/rhsm-splunk-forwarder:036c5e0
+    value: quay.io/cloudservices/rhsm-splunk-forwarder:19bd22d
   - name: SPLUNK_FORWARDER_MEMORY_REQUEST
     value: 128Mi
   - name: SPLUNK_FORWARDER_MEMORY_LIMIT
@@ -87,6 +87,14 @@ parameters:
     value: 'false'
   - name: ENABLE_ACCOUNT_RESET
     value: 'false'
+  - name: TALLY_SUMMARY_PRODUCER_MAX_ATTEMPTS
+    value: '5'
+  - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_MAX_INTERVAL
+    value: 1m
+  - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_INITIAL_INTERVAL
+    value: 1s
+  - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_MULTIPLIER
+    value: '2'
 
 objects:
   - apiVersion: v1
@@ -252,6 +260,11 @@ objects:
                     secretKeyRef:
                       name: cloudigrade-psk
                       key: psk
+                - name: SWATCH_SELF_PSK
+                  valueFrom:
+                    secretKeyRef:
+                      name: swatch-psks
+                      key: self
                 - name: USER_HOST
                   value: ${USER_HOST}
                 - name: USER_MAX_CONNECTIONS
@@ -264,6 +277,14 @@ objects:
                   value: ${USER_BACK_OFF_INITIAL_INTERVAL}
                 - name: USER_BACK_OFF_MULTIPLIER
                   value: ${USER_BACK_OFF_MULTIPLIER}
+                - name: TALLY_SUMMARY_PRODUCER_MAX_ATTEMPTS
+                  value: ${TALLY_SUMMARY_PRODUCER_MAX_ATTEMPTS}
+                - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_MAX_INTERVAL
+                  value: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_MAX_INTERVAL}
+                - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_INITIAL_INTERVAL
+                  value: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_INITIAL_INTERVAL}
+                - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_MULTIPLIER
+                  value: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_MULTIPLIER}
                 - name: RHSM_KEYSTORE_PASSWORD
                   valueFrom:
                     secretKeyRef:
@@ -278,7 +299,7 @@ objects:
               livenessProbe:
                 failureThreshold: 3
                 httpGet:
-                  path: /health
+                  path: /health/liveness
                   port: 9000
                   scheme: HTTP
                 initialDelaySeconds: 90
@@ -345,6 +366,18 @@ objects:
           - name: quay-cloudservices-pull
       triggers:
         - type: ConfigChange
+
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: rhsm-subscriptions-worker
+    spec:
+      ports:
+        - port: 8000
+          protocol: TCP
+          targetPort: web
+      selector:
+        deploymentconfig: rhsm-subscriptions-worker
 
   - apiVersion: v1
     kind: Service

@@ -22,12 +22,18 @@ package org.candlepin.subscriptions.resource;
 
 import com.google.common.collect.ImmutableMap;
 import java.time.OffsetDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import org.candlepin.subscriptions.db.HostRepository;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -35,7 +41,16 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
-import org.candlepin.subscriptions.utilization.api.model.*;
+import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.model.InstanceData;
+import org.candlepin.subscriptions.utilization.api.model.InstanceMeta;
+import org.candlepin.subscriptions.utilization.api.model.InstanceReportSort;
+import org.candlepin.subscriptions.utilization.api.model.InstanceResponse;
+import org.candlepin.subscriptions.utilization.api.model.PageLinks;
+import org.candlepin.subscriptions.utilization.api.model.ProductId;
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
+import org.candlepin.subscriptions.utilization.api.model.SortDirection;
+import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.resources.InstancesApi;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -55,6 +70,7 @@ public class InstancesResource implements InstancesApi {
       ImmutableMap.<InstanceReportSort, String>builder()
           .put(InstanceReportSort.DISPLAY_NAME, "displayName")
           .put(InstanceReportSort.LAST_SEEN, "lastSeen")
+          .put(InstanceReportSort.BILLING_PROVIDER, "billingProvider")
           .putAll(getUomSorts())
           .build();
 
@@ -78,6 +94,8 @@ public class InstancesResource implements InstancesApi {
       Integer limit,
       ServiceLevelType sla,
       UsageType usage,
+      BillingProviderType billingProviderType,
+      String billingAccountId,
       String displayNameContains,
       OffsetDateTime beginning,
       OffsetDateTime ending,
@@ -96,6 +114,10 @@ public class InstancesResource implements InstancesApi {
     String accountNumber = ResourceUtils.getAccountNumber();
     ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
     Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
+    BillingProvider sanitizedBillingProvider =
+        ResourceUtils.sanitizeBillingProvider(billingProviderType);
+    String sanitizedBillingAccountId = ResourceUtils.sanitizeBillingAccountId(billingAccountId);
+
     String sanitizedDisplayNameSubstring =
         Objects.nonNull(displayNameContains) ? displayNameContains : "";
 
@@ -133,6 +155,8 @@ public class InstancesResource implements InstancesApi {
             minSockets,
             month,
             referenceUom,
+            sanitizedBillingProvider,
+            sanitizedBillingAccountId,
             page);
     payload =
         hosts.getContent().stream()
@@ -154,6 +178,8 @@ public class InstancesResource implements InstancesApi {
                 .product(productId)
                 .serviceLevel(sla)
                 .usage(usage)
+                .billingProvider(billingProviderType)
+                .billingAccountId(billingAccountId)
                 .measurements(measurements))
         .data(payload);
   }
@@ -174,9 +200,16 @@ public class InstancesResource implements InstancesApi {
     instance.setId(host.getInstanceId());
     instance.setDisplayName(host.getDisplayName());
 
-    for (String uom : measurements) {
-      measurementList.add(host.getMonthlyTotal(monthId, Measurement.Uom.fromValue(uom)));
+    if (Objects.nonNull(host.getBillingProvider())) {
+      instance.setBillingProvider(host.getBillingProvider().asOpenApiEnum());
     }
+
+    for (String uom : measurements) {
+      measurementList.add(
+          Optional.ofNullable(host.getMonthlyTotal(monthId, Measurement.Uom.fromValue(uom)))
+              .orElse(0.0));
+    }
+    instance.setBillingAccountId(host.getBillingAccountId());
     instance.setMeasurements(measurementList);
     instance.setLastSeen(host.getLastSeen());
 

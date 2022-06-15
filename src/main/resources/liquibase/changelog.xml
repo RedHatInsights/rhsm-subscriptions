@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <databaseChangeLog
-        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
     <include file="liquibase/201906181633-create-schema.xml"/>
@@ -54,5 +54,16 @@
     <include file="liquibase/202112171721-add-subscription-indexes.xml" />
     <include file="liquibase/202202041415-add-unlimited-usage-column-to-offering-table.xml" />
     <include file="liquibase/202202211433-add-billing-provider-column-to-subscription-table.xml" />
+    <include file="liquibase/202203161423-add-billing-provider-column-to-host-table.xml" />
+    <include file="liquibase/202203241102-add-billing-provider-column-to-tally-snapshots.xml" />
+    <include file="liquibase/202204081020-add-billing-account-id-column-to-subscriptions.xml" />
+    <include file="liquibase/202204131346-add-billing-account-id-column-to-hosts.xml" />
+    <include file="liquibase/202204041547-add-billing-account-id-column-to-snapshot-table.xml" />
+    <include file="liquibase/202205021439-add-billingProvider-and-billingAccountId-columns-to-host-tally-buckets.xml" />
+    <include file="liquibase/202205191543-recreate-billing-columns.xml"/>
+    <include file="liquibase/202205161446-update-index-on-host-tally-bucket.xml"/>
+    <include file="liquibase/202205171157-update-billing-account-and-billing-provider-columns-in-snapshot-and-host-tally-bucket-tables.xml"/>
+    <include file="liquibase/202205231334-create-billable-usage-tracking-table.xml"/>
+    <include file="liquibase/202206021315-add-version-to-billable-usage-tracking-table.xml"/>
 </databaseChangeLog>
-<!-- vim: set expandtab sts=4 sw=4 ai: -->
+  <!-- vim: set expandtab sts=4 sw=4 ai: -->

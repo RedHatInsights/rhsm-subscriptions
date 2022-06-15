@@ -20,66 +20,39 @@
  */
 package org.candlepin.subscriptions.metering.job;
 
-import java.time.Duration;
-import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.exception.JobFailureException;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.registry.TagProfile;
-import org.candlepin.subscriptions.util.ApplicationClock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 
 /** A cron job that sends a task message to capture metrics from prometheus for metering. */
 public class MeteringJob implements Runnable {
 
-  private static final Logger log = LoggerFactory.getLogger(MeteringJob.class);
-
   private PrometheusMetricsTaskManager tasks;
-  private ApplicationClock clock;
   private final TagProfile tagProfile;
-  private ApplicationProperties appProps;
   private MetricProperties metricProperties;
   private RetryTemplate retryTemplate;
 
   public MeteringJob(
       PrometheusMetricsTaskManager tasks,
-      ApplicationClock clock,
       TagProfile tagProfile,
       MetricProperties metricProperties,
-      ApplicationProperties appProps,
       RetryTemplate retryTemplate) {
     this.tasks = tasks;
-    this.clock = clock;
     this.tagProfile = tagProfile;
     this.metricProperties = metricProperties;
-    this.appProps = appProps;
     this.retryTemplate = retryTemplate;
   }
 
   @Override
   @Scheduled(cron = "${rhsm-subscriptions.jobs.metering-schedule}")
   public void run() {
-    Duration latency = appProps.getPrometheusLatencyDuration();
+    int range = metricProperties.getRangeInMinutes();
     for (String productTag : tagProfile.getTagsWithPrometheusEnabledLookup()) {
-      int range = metricProperties.getRangeInMinutes();
-      OffsetDateTime startDate = clock.startOfHour(clock.now().minus(latency).minusMinutes(range));
-      // Minus 1 minute to ensure that we use the last hour's maximum time. If the end
-      // time is 6:00:00, taking the last of that hour would give the range an extra hour
-      // (6:59:59.999999) which is not what we want. We subtract to break the even boundary before
-      // finding the last minute. We need to do this because our queries are date inclusive
-      // (greater/less than OR equal to).
-      OffsetDateTime endDate =
-          clock.endOfHour(
-              startDate.plusMinutes(range).truncatedTo(ChronoUnit.HOURS).minusMinutes(1));
-
-      log.info("Queuing {} metric updates for range: {} -> {}", productTag, startDate, endDate);
       try {
-        tasks.updateMetricsForAllAccounts(productTag, startDate, endDate, retryTemplate);
+        tasks.updateMetricsForAllAccounts(productTag, range, retryTemplate);
       } catch (Exception e) {
         throw new JobFailureException("Unable to run MeteringJob.", e);
       }

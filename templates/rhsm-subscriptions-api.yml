@@ -38,7 +38,7 @@ parameters:
   - name: CPU_LIMIT
     value: 300m
   - name: SPLUNK_FORWARDER_IMAGE
-    value: quay.io/cloudservices/rhsm-splunk-forwarder:036c5e0
+    value: quay.io/cloudservices/rhsm-splunk-forwarder:19bd22d
   - name: SPLUNK_FORWARDER_MEMORY_REQUEST
     value: 128Mi
   - name: SPLUNK_FORWARDER_MEMORY_LIMIT
@@ -188,10 +188,15 @@ objects:
                     secretKeyRef:
                       name: host-inventory-db-readonly
                       key: db.password
+                - name: SWATCH_SELF_PSK
+                  valueFrom:
+                    secretKeyRef:
+                      name: swatch-psks
+                      key: self
               livenessProbe:
                 failureThreshold: 3
                 httpGet:
-                  path: /health
+                  path: /health/liveness
                   port: 9000
                   scheme: HTTP
                 initialDelaySeconds: 90

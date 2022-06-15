@@ -21,10 +21,8 @@
 package org.candlepin.subscriptions.security;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -61,14 +59,14 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
 
   @Test
   void testAdminRoleGranted() throws Exception {
-    when(rbacApi.getCurrentUserAccess(eq("subscriptions")))
+    when(rbacApi.getCurrentUserAccess("subscriptions"))
         .thenReturn(Arrays.asList(new Access().permission("subscriptions:*:*")));
     assertThat(extractRoles(false), Matchers.contains(RoleProvider.SWATCH_ADMIN_ROLE));
   }
 
   @Test
   void testReportReaderRoleGranted() throws RbacApiException {
-    when(rbacApi.getCurrentUserAccess(eq("subscriptions")))
+    when(rbacApi.getCurrentUserAccess("subscriptions"))
         .thenReturn(List.of(new Access().permission("subscriptions:reports:read")));
     assertThat(extractRoles(false), Matchers.contains(RoleProvider.SWATCH_REPORT_READER));
   }

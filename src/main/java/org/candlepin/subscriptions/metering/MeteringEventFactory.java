@@ -71,6 +71,7 @@ public class MeteringEventFactory {
       OffsetDateTime expired,
       String serviceType,
       String billingProvider,
+      String billingAccountId,
       Uom measuredMetric,
       Double measuredValue) {
     Event event = new Event();
@@ -86,6 +87,7 @@ public class MeteringEventFactory {
         expired,
         serviceType,
         billingProvider,
+        billingAccountId,
         measuredMetric,
         measuredValue);
     return event;
@@ -104,6 +106,7 @@ public class MeteringEventFactory {
       OffsetDateTime expired,
       String serviceType,
       String billingProvider,
+      String billingAccountId,
       Uom measuredMetric,
       Double measuredValue) {
     toUpdate
@@ -118,6 +121,7 @@ public class MeteringEventFactory {
         .withSla(getSla(serviceLevel, accountNumber, instanceId))
         .withUsage(getUsage(usage, accountNumber, instanceId))
         .withBillingProvider(getBillingProvider(billingProvider, accountNumber, instanceId))
+        .withBillingAccountId(Optional.ofNullable(billingAccountId))
         .withMeasurements(
             List.of(new Measurement().withUom(measuredMetric).withValue(measuredValue)))
         .withRole(getRole(role, accountNumber, instanceId));
@@ -183,8 +187,8 @@ public class MeteringEventFactory {
 
   private static BillingProvider getBillingProvider(
       String billingProvider, String account, String clusterId) {
-    if (billingProvider == null) {
-      return null;
+    if (billingProvider == null || billingProvider.equals(BillingProvider.__EMPTY__.value())) {
+      return BillingProvider.RED_HAT;
     }
 
     try {

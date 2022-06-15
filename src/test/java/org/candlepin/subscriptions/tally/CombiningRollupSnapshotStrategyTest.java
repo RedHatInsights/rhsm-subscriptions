@@ -20,31 +20,24 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.any;
 
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.Granularity;
-import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
-import org.candlepin.subscriptions.db.model.TallySnapshot;
-import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.registry.TagProfile;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -69,11 +62,16 @@ class CombiningRollupSnapshotStrategyTest {
 
   @Test
   void testConsecutiveHoursAddedTogether() {
-    when(repo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), any(), any(), any()))
         .then(invocation -> Stream.empty());
     UsageCalculation.Key usageKey =
-        new UsageCalculation.Key(OPEN_SHIFT_HOURLY, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+        new UsageCalculation.Key(
+            OPEN_SHIFT_HOURLY,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "_ANY");
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
     AccountUsageCalculation noonUsage = createAccountUsageCalculation(usageKey, 4.0);
     AccountUsageCalculation afternoonUsage = createAccountUsageCalculation(usageKey, 3.0);
@@ -118,11 +116,16 @@ class CombiningRollupSnapshotStrategyTest {
     OffsetDateTime hourlyTimestamp2 = OffsetDateTime.parse("2021-02-26T11:00:00Z");
     OffsetDateTime dailyTimestamp1 = OffsetDateTime.parse("2021-02-25T00:00:00Z");
     OffsetDateTime dailyTimestamp2 = OffsetDateTime.parse("2021-02-26T00:00:00Z");
-    when(repo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), any(), any(), any()))
         .then(invocation -> Stream.empty());
     UsageCalculation.Key usageKey =
-        new UsageCalculation.Key(OPEN_SHIFT_HOURLY, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+        new UsageCalculation.Key(
+            OPEN_SHIFT_HOURLY,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "_ANY");
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
     AccountUsageCalculation day1Usage = createAccountUsageCalculation(usageKey, 4.0);
     AccountUsageCalculation day2Usage = createAccountUsageCalculation(usageKey, 3.0);
@@ -178,14 +181,19 @@ class CombiningRollupSnapshotStrategyTest {
     TallySnapshot noonSnapshot =
         createTallySnapshot(Granularity.HOURLY, "2021-02-25T12:00:00Z", 4.0);
     noonSnapshot.setId(UUID.randomUUID());
-    when(repo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), eq(Granularity.HOURLY), any(), any()))
         .thenReturn(Stream.of(noonSnapshot));
-    when(repo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), eq(Granularity.DAILY), any(), any()))
         .thenReturn(Stream.empty());
     UsageCalculation.Key usageKey =
-        new UsageCalculation.Key(OPEN_SHIFT_HOURLY, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+        new UsageCalculation.Key(
+            OPEN_SHIFT_HOURLY,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "_ANY");
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
     AccountUsageCalculation noonUsage = createAccountUsageCalculation(usageKey, 4.0);
     AccountUsageCalculation afternoonUsage = createAccountUsageCalculation(usageKey, 3.0);
@@ -225,14 +233,19 @@ class CombiningRollupSnapshotStrategyTest {
     TallySnapshot dailySnapshot =
         createTallySnapshot(Granularity.DAILY, "2021-02-25T00:00:00Z", 7.0);
     dailySnapshot.setId(UUID.randomUUID());
-    when(repo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), eq(Granularity.HOURLY), any(), any()))
         .thenReturn(Stream.empty());
-    when(repo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), eq(Granularity.DAILY), any(), any()))
         .thenReturn(Stream.of(dailySnapshot));
     UsageCalculation.Key usageKey =
-        new UsageCalculation.Key(OPEN_SHIFT_HOURLY, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+        new UsageCalculation.Key(
+            OPEN_SHIFT_HOURLY,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "_ANY");
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
 
     AccountUsageCalculation noonUsage = createAccountUsageCalculation(usageKey, 4.0);
@@ -271,8 +284,6 @@ class CombiningRollupSnapshotStrategyTest {
 
   @Test
   void testFinestGranularitySnapsZeroOutOldMeasurementsWhenDataNoLongerFound() {
-    ApplicationClock clock = new FixedClockConfiguration().fixedClock();
-
     TallySnapshot noonSnapshot =
         createTallySnapshot(Granularity.HOURLY, "2021-02-25T12:00:00Z", 4.0);
     TallySnapshot afternoonSnapshot =
@@ -280,18 +291,23 @@ class CombiningRollupSnapshotStrategyTest {
     TallySnapshot dailySnapshot =
         createTallySnapshot(Granularity.DAILY, "2021-02-25T00:00:00Z", 7.0);
 
-    when(repo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), eq(Granularity.HOURLY), any(), any()))
-        .thenReturn(Arrays.asList(noonSnapshot, afternoonSnapshot).stream());
+        .thenReturn(Stream.of(noonSnapshot, afternoonSnapshot));
 
-    when(repo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), eq(Granularity.DAILY), any(), any()))
-        .thenReturn(Arrays.asList(dailySnapshot).stream());
+        .thenReturn(Stream.of(dailySnapshot));
 
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
 
     UsageCalculation.Key usageKey =
-        new UsageCalculation.Key(OPEN_SHIFT_HOURLY, ServiceLevel.PREMIUM, Usage.PRODUCTION);
+        new UsageCalculation.Key(
+            OPEN_SHIFT_HOURLY,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "_ANY");
 
     AccountUsageCalculation afternoonUsage = createAccountUsageCalculation(usageKey, 3.0);
 
@@ -325,6 +341,102 @@ class CombiningRollupSnapshotStrategyTest {
     dailySnapshot.getTallyMeasurements().values().forEach(v -> assertEquals(3.0, v));
   }
 
+  @Test
+  void testNaturalKeyFilteringWhileUpdatingAndDeletingExistingSnapshots() {
+    // Create a snapshot based on default usage key setup.
+    TallySnapshot existingHourlySnapshot1 =
+        createTallySnapshot(Granularity.HOURLY, "2021-02-25T12:00:00Z", 4.0);
+    existingHourlySnapshot1.setId(UUID.randomUUID());
+
+    TallySnapshot existingHourlySnapshot2 =
+        createTallySnapshot(Granularity.HOURLY, "2021-02-25T12:00:00Z", 6.0);
+    existingHourlySnapshot2.setId(UUID.randomUUID());
+    existingHourlySnapshot2.setBillingProvider(BillingProvider.AWS);
+
+    // This snapshot will no longer be reported.
+    TallySnapshot existingHourlySnapshot3 =
+        createTallySnapshot(Granularity.HOURLY, "2021-02-25T13:00:00Z", 10.0);
+    existingHourlySnapshot3.setId(UUID.randomUUID());
+    existingHourlySnapshot3.setBillingProvider(BillingProvider.AWS);
+
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
+            any(), any(), eq(Granularity.HOURLY), any(), any()))
+        .thenReturn(
+            Stream.of(existingHourlySnapshot1, existingHourlySnapshot2, existingHourlySnapshot3));
+
+    TallySnapshot existingDailySnapshot1 =
+        createTallySnapshot(Granularity.DAILY, "2021-02-25T00:00:00Z", 4.0);
+    existingDailySnapshot1.setId(UUID.randomUUID());
+
+    TallySnapshot existingDailySnapshot2 =
+        createTallySnapshot(Granularity.DAILY, "2021-02-25T00:00:00Z", 16.0);
+    existingDailySnapshot2.setId(UUID.randomUUID());
+    existingDailySnapshot2.setBillingProvider(BillingProvider.AWS);
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
+            any(), any(), eq(Granularity.DAILY), any(), any()))
+        .thenReturn(Stream.of(existingDailySnapshot1, existingDailySnapshot2));
+
+    UsageCalculation.Key usageKey =
+        new UsageCalculation.Key(
+            OPEN_SHIFT_HOURLY,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            "awsAccount1");
+    UsageCalculation.Key snapUsageKey1 =
+        UsageCalculation.Key.fromTallySnapshot(existingHourlySnapshot1);
+    UsageCalculation.Key snapUsageKey2 =
+        UsageCalculation.Key.fromTallySnapshot(existingHourlySnapshot2);
+
+    AccountUsageCalculation accountCalc = createAccountUsageCalculation(snapUsageKey1, 1.0);
+    accountCalc.addUsage(snapUsageKey2, HardwareMeasurementType.PHYSICAL, Uom.CORES, 2.0);
+
+    when(repo.save(any())).then(invocation -> invocation.getArgument(0));
+
+    combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
+        "account123",
+        new DateRange(
+            OffsetDateTime.parse("2021-02-24T12:00:00Z"),
+            OffsetDateTime.parse("2021-02-26T12:00:00Z")),
+        tagProfile.getTagsWithPrometheusEnabledLookup(),
+        Map.of(existingHourlySnapshot1.getSnapshotDate(), accountCalc),
+        Granularity.HOURLY,
+        Double::sum);
+
+    // Daily rolled snaphot
+    TallySnapshot expectedHourly1 =
+        createTallySnapshot(Granularity.HOURLY, "2021-02-25T12:00:00Z", 1.0);
+    expectedHourly1.setId(existingHourlySnapshot1.getId());
+    TallySnapshot expectedDaily1 =
+        createTallySnapshot(Granularity.DAILY, "2021-02-25T00:00:00Z", 1.0);
+    expectedDaily1.setId(existingDailySnapshot1.getId());
+
+    TallySnapshot expectedHourly2 =
+        createTallySnapshot(Granularity.HOURLY, "2021-02-25T12:00:00Z", 2.0);
+    expectedHourly2.setId(existingHourlySnapshot2.getId());
+    expectedHourly2.setBillingProvider(existingHourlySnapshot2.getBillingProvider());
+
+    TallySnapshot expectedHourly3 =
+        createTallySnapshot(Granularity.HOURLY, "2021-02-25T13:00:00Z", 0.0);
+    // Was not included in update, so tally measurements should be cleared.
+    expectedHourly3.getTallyMeasurements().clear();
+    expectedHourly3.setId(existingHourlySnapshot3.getId());
+    expectedHourly3.setBillingProvider(existingHourlySnapshot3.getBillingProvider());
+
+    TallySnapshot expectedDaily2 =
+        createTallySnapshot(Granularity.DAILY, "2021-02-25T00:00:00Z", 2.0);
+    expectedDaily2.setBillingProvider(existingDailySnapshot2.getBillingProvider());
+    expectedDaily2.setId(existingDailySnapshot2.getId());
+
+    ArgumentCaptor<TallySnapshot> talliesSavedCaptor = ArgumentCaptor.forClass(TallySnapshot.class);
+    verify(repo, times(5)).save(talliesSavedCaptor.capture());
+    List<TallySnapshot> talliesSaved = talliesSavedCaptor.getAllValues();
+    assertThat(
+        talliesSaved,
+        containsInAnyOrder(
+            expectedHourly1, expectedHourly2, expectedHourly3, expectedDaily1, expectedDaily2));
+  }
+
   private AccountUsageCalculation createAccountUsageCalculation(
       UsageCalculation.Key usageKey, double v) {
     AccountUsageCalculation usage = new AccountUsageCalculation("account123");
@@ -354,6 +466,8 @@ class CombiningRollupSnapshotStrategyTest {
         .granularity(granularity)
         .serviceLevel(ServiceLevel.PREMIUM)
         .usage(Usage.PRODUCTION)
+        .billingProvider(BillingProvider._ANY)
+        .billingAccountId("_ANY")
         .build();
   }
 }

@@ -29,6 +29,9 @@ public class StubAccountApi extends AccountApi {
 
   @Override
   public Account findAccount(AccountSearch accountSearch) throws ApiException {
+    if ("123".equals(accountSearch.getBy().getId())) {
+      return new Account().ebsAccountNumber("123").id("123");
+    }
     return new Account().ebsAccountNumber("account123").id("org123");
   }
 }

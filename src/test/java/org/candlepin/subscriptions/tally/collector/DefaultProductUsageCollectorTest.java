@@ -20,11 +20,18 @@
  */
 package org.candlepin.subscriptions.tally.collector;
 
-import static org.candlepin.subscriptions.tally.collector.Assertions.*;
-import static org.candlepin.subscriptions.tally.collector.TestHelper.*;
+import static org.candlepin.subscriptions.tally.collector.Assertions.assertHardwareMeasurementTotals;
+import static org.candlepin.subscriptions.tally.collector.Assertions.assertNullExcept;
+import static org.candlepin.subscriptions.tally.collector.Assertions.assertPhysicalTotalsCalculation;
+import static org.candlepin.subscriptions.tally.collector.Assertions.assertTotalsCalculation;
+import static org.candlepin.subscriptions.tally.collector.TestHelper.cloudMachineFacts;
+import static org.candlepin.subscriptions.tally.collector.TestHelper.guestFacts;
+import static org.candlepin.subscriptions.tally.collector.TestHelper.hypervisorFacts;
+import static org.candlepin.subscriptions.tally.collector.TestHelper.physicalNonHypervisor;
 
 import java.util.LinkedList;
 import java.util.List;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -32,7 +39,7 @@ import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 import org.junit.jupiter.api.Test;
 
-public class DefaultProductUsageCollectorTest {
+class DefaultProductUsageCollectorTest {
 
   private DefaultProductUsageCollector collector;
 
@@ -41,7 +48,7 @@ public class DefaultProductUsageCollectorTest {
   }
 
   @Test
-  public void testCountsForHypervisor() {
+  void testCountsForHypervisor() {
     // By default hypervisors are not tracked at all and therefor
     // it is considered to be a physical machine.
     NormalizedFacts facts = hypervisorFacts(4, 12);
@@ -54,7 +61,7 @@ public class DefaultProductUsageCollectorTest {
   }
 
   @Test
-  public void testCountsForGuestWithUnknownHypervisor() {
+  void testCountsForGuestWithUnknownHypervisor() {
     NormalizedFacts facts = guestFacts(3, 12, false);
 
     UsageCalculation calc = new UsageCalculation(createUsageKey());
@@ -67,7 +74,7 @@ public class DefaultProductUsageCollectorTest {
   }
 
   @Test
-  public void testCountsForGuestWithKnownHypervisor() {
+  void testCountsForGuestWithKnownHypervisor() {
     NormalizedFacts facts = guestFacts(3, 12, true);
 
     UsageCalculation calc = new UsageCalculation(createUsageKey());
@@ -80,7 +87,7 @@ public class DefaultProductUsageCollectorTest {
   }
 
   @Test
-  public void testCountsForPhysicalSystem() {
+  void testCountsForPhysicalSystem() {
     NormalizedFacts facts = physicalNonHypervisor(4, 12);
 
     UsageCalculation calc = new UsageCalculation(createUsageKey());
@@ -92,7 +99,7 @@ public class DefaultProductUsageCollectorTest {
   }
 
   @Test
-  public void testCountsForCloudProvider() {
+  void testCountsForCloudProvider() {
     // Cloud provider host should contribute to the matched supported cloud provider,
     // as well as the overall total. A cloud host should only ever contribute 1 socket
     // along with its cores.
@@ -131,6 +138,7 @@ public class DefaultProductUsageCollectorTest {
   }
 
   private UsageCalculation.Key createUsageKey() {
-    return new UsageCalculation.Key("NON_RHEL", ServiceLevel.EMPTY, Usage.EMPTY);
+    return new UsageCalculation.Key(
+        "NON_RHEL", ServiceLevel.EMPTY, Usage.EMPTY, BillingProvider.EMPTY, "_ANY");
   }
 }

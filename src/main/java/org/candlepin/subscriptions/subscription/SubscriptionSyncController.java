@@ -26,33 +26,50 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.persistence.EntityNotFoundException;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
+import org.candlepin.subscriptions.db.model.ReportCriteria;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Subscription_;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
+import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
+import org.candlepin.subscriptions.user.AccountService;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.Sort;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 
 /** Update subscriptions from subscription service responses. */
 @Component
 @Slf4j
 public class SubscriptionSyncController {
+
   private SubscriptionRepository subscriptionRepository;
   private OrgConfigRepository orgRepository;
   private OfferingRepository offeringRepository;
@@ -63,6 +80,8 @@ public class SubscriptionSyncController {
   private Timer syncTimer;
   private Timer enqueueAllTimer;
   private KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate;
+  private final TagProfile tagProfile;
+  private final AccountService accountService;
   private String syncSubscriptionsTopic;
   private final ObjectMapper objectMapper;
   private final ProductWhitelist productWhitelist;
@@ -80,7 +99,9 @@ public class SubscriptionSyncController {
       KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate,
       ProductWhitelist productWhitelist,
       ObjectMapper objectMapper,
-      @Qualifier("syncSubscriptionTasks") TaskQueueProperties props) {
+      @Qualifier("syncSubscriptionTasks") TaskQueueProperties props,
+      TagProfile tagProfile,
+      AccountService accountService) {
     this.subscriptionRepository = subscriptionRepository;
     this.orgRepository = orgRepository;
     this.offeringRepository = offeringRepository;
@@ -94,14 +115,25 @@ public class SubscriptionSyncController {
     this.objectMapper = objectMapper;
     this.syncSubscriptionsTopic = props.getTopic();
     this.syncSubscriptionsByOrgKafkaTemplate = syncSubscriptionsByOrgKafkaTemplate;
+    this.tagProfile = tagProfile;
+    this.accountService = accountService;
   }
 
   @Transactional
   public void syncSubscription(Subscription subscription) {
+    syncSubscription(
+        subscription,
+        subscriptionRepository.findActiveSubscription(String.valueOf(subscription.getId())));
+  }
+
+  @Transactional
+  public void syncSubscription(
+      Subscription subscription,
+      Optional<org.candlepin.subscriptions.db.model.Subscription> subscriptionOptional) {
     String sku = sku(subscription);
 
     if (!productWhitelist.productIdMatches(sku)) {
-      log.info(
+      log.debug(
           "Sku {} not on allowlist, skipping subscription sync for subscriptionId: {} in org: {} ",
           sku,
           subscription.getId(),
@@ -109,8 +141,10 @@ public class SubscriptionSyncController {
       return;
     }
 
-    if (!offeringRepository.existsById(sku)) {
-      log.info(
+    // NOTE: we do not need to check if the offering exists if there is an existing DB record for
+    // the subscription that uses that offering
+    if (subscriptionOptional.isEmpty() && !offeringRepository.existsById(sku)) {
+      log.debug(
           "Sku={} not in Offering repository, skipping subscription sync for subscriptionId={} in org={}",
           sku,
           subscription.getId(),
@@ -119,41 +153,51 @@ public class SubscriptionSyncController {
     }
 
     log.debug("Syncing subscription from external service={}", subscription);
-    // TODO: https://issues.redhat.com/browse/ENT-4029 //NOSONAR
-    final Optional<org.candlepin.subscriptions.db.model.Subscription> subscriptionOptional =
-        subscriptionRepository.findActiveSubscription(String.valueOf(subscription.getId()));
-
     final org.candlepin.subscriptions.db.model.Subscription newOrUpdated = convertDto(subscription);
     log.debug("New subscription that will need to be saved={}", newOrUpdated);
+
+    if (newOrUpdated.getBillingProvider() == null
+        || newOrUpdated.getBillingProvider().equals(BillingProvider.EMPTY)) {
+      var isPAYGEligible =
+          offeringRepository.findBySku(newOrUpdated.getSku()).getProductIds().stream()
+              .anyMatch(id -> tagProfile.isProductPAYGEligible(id.toString()));
+      if (isPAYGEligible) {
+        log.warn(
+            "PAYG eligible subscription with subscriptionId:{} has no billing provider.",
+            newOrUpdated.getSubscriptionId());
+      }
+    }
 
     if (subscriptionOptional.isPresent()) {
       final org.candlepin.subscriptions.db.model.Subscription existingSubscription =
           subscriptionOptional.get();
       log.debug("Existing subscription in DB={}", existingSubscription);
-      if (!existingSubscription.equals(newOrUpdated)) {
-        if (existingSubscription.quantityHasChanged(newOrUpdated.getQuantity())) {
-          existingSubscription.endSubscription();
-          subscriptionRepository.save(existingSubscription);
-          final org.candlepin.subscriptions.db.model.Subscription newSub =
-              org.candlepin.subscriptions.db.model.Subscription.builder()
-                  .subscriptionId(existingSubscription.getSubscriptionId())
-                  .sku(existingSubscription.getSku())
-                  .ownerId(existingSubscription.getOwnerId())
-                  .accountNumber(existingSubscription.getAccountNumber())
-                  .quantity(subscription.getQuantity())
-                  .startDate(OffsetDateTime.now())
-                  .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
-                  .billingProviderId(SubscriptionDtoUtil.extractRhMarketplaceId(subscription))
-                  .subscriptionNumber(subscription.getSubscriptionNumber())
-                  .billingProvider(SubscriptionDtoUtil.populateBillingProvider(subscription))
-                  .build();
-          subscriptionRepository.save(newSub);
-        } else {
-          updateSubscription(subscription, existingSubscription);
-          subscriptionRepository.save(existingSubscription);
-        }
-        capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
+      if (existingSubscription.equals(newOrUpdated)) {
+        return; // we have nothing to do as the DB and the subs service have the same info
       }
+      if (existingSubscription.quantityHasChanged(newOrUpdated.getQuantity())) {
+        existingSubscription.endSubscription();
+        subscriptionRepository.save(existingSubscription);
+        final org.candlepin.subscriptions.db.model.Subscription newSub =
+            org.candlepin.subscriptions.db.model.Subscription.builder()
+                .subscriptionId(existingSubscription.getSubscriptionId())
+                .sku(existingSubscription.getSku())
+                .ownerId(existingSubscription.getOwnerId())
+                .accountNumber(existingSubscription.getAccountNumber())
+                .quantity(subscription.getQuantity())
+                .startDate(OffsetDateTime.now())
+                .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
+                .billingProviderId(SubscriptionDtoUtil.extractBillingProviderId(subscription))
+                .billingAccountId(SubscriptionDtoUtil.extractBillingAccountId(subscription))
+                .subscriptionNumber(subscription.getSubscriptionNumber())
+                .billingProvider(SubscriptionDtoUtil.populateBillingProvider(subscription))
+                .build();
+        subscriptionRepository.save(newSub);
+      } else {
+        updateSubscription(subscription, existingSubscription);
+        subscriptionRepository.save(existingSubscription);
+      }
+      capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
     } else {
       subscriptionRepository.save(newOrUpdated);
       capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
@@ -267,8 +311,9 @@ public class SubscriptionSyncController {
         .quantity(subscription.getQuantity())
         .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))
         .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
-        .billingProviderId(SubscriptionDtoUtil.extractRhMarketplaceId(subscription))
+        .billingProviderId(SubscriptionDtoUtil.extractBillingProviderId(subscription))
         .billingProvider(SubscriptionDtoUtil.populateBillingProvider(subscription))
+        .billingAccountId(SubscriptionDtoUtil.extractBillingAccountId(subscription))
         .build();
   }
 
@@ -314,5 +359,140 @@ public class SubscriptionSyncController {
 
   public void deleteSubscription(String subscriptionId) {
     subscriptionRepository.deleteBySubscriptionId(subscriptionId);
+  }
+
+  @Transactional
+  public String terminateSubscription(String subscriptionId, OffsetDateTime terminationDate) {
+    var subscription =
+        subscriptionRepository
+            .findActiveSubscription(subscriptionId)
+            .orElseThrow(EntityNotFoundException::new);
+
+    var offering =
+        offeringRepository
+            .findById(subscription.getSku())
+            .orElseThrow(EntityNotFoundException::new);
+
+    // Wait until after we are sure there's an offering for this subscription before setting the
+    // end date.  We want validation to occur before we start mutating data.
+    subscription.setEndDate(terminationDate);
+
+    OffsetDateTime now = OffsetDateTime.now();
+    // The calculation returns a whole number, representing the number of complete units
+    // between the two temporals. For example, the amount in hours between the times 11:30 and
+    // 12:29 will zero hours as it is one minute short of an hour.
+    var delta = Math.abs(ChronoUnit.HOURS.between(terminationDate, now));
+    var productTag = tagProfile.tagForOfferingProductName(offering.getProductName());
+    if (tagProfile.isProductPAYGEligible(productTag) && delta > 0) {
+      var msg =
+          String.format(
+              "Subscription %s terminated at %s with out of range termination date %s.",
+              subscriptionId, now, terminationDate);
+      log.warn(msg);
+      return msg;
+    }
+    return String.format("Subscription %s terminated at %s.", subscriptionId, terminationDate);
+  }
+
+  @Async
+  @Transactional
+  public void forceSyncSubscriptionsForOrgAsync(String orgId) {
+    forceSyncSubscriptionsForOrg(orgId, false);
+  }
+
+  @Transactional
+  public void forceSyncSubscriptionsForOrg(String orgId, boolean paygOnly) {
+    log.info("Starting force sync for orgId: {}", orgId);
+    var subscriptions = subscriptionService.getSubscriptionsByOrgId(orgId);
+
+    // Filter out non PAYG subscriptions for faster processing when they are not needed.
+    // Slow processing was causing: https://issues.redhat.com/browse/ENT-5083
+    if (paygOnly) {
+      subscriptions =
+          subscriptions.stream()
+              .filter(
+                  subscription ->
+                      SubscriptionDtoUtil.extractBillingProviderId(subscription) != null)
+              .collect(Collectors.toList());
+    }
+
+    var subscriptionMap =
+        getActiveSubscriptionsForOrg(orgId)
+            .collect(
+                Collectors.toMap(
+                    org.candlepin.subscriptions.db.model.Subscription::getSubscriptionId,
+                    sub -> sub));
+
+    subscriptions.forEach(
+        subscription ->
+            syncSubscription(
+                subscription,
+                Optional.ofNullable(subscriptionMap.get(String.valueOf(subscription.getId())))));
+
+    log.info("Finished force sync for orgId: {}", orgId);
+  }
+
+  private Stream<org.candlepin.subscriptions.db.model.Subscription> getActiveSubscriptionsForOrg(
+      String orgId) {
+    return subscriptionRepository
+        .findByOwnerIdAndEndDateAfter(orgId, OffsetDateTime.now())
+        .stream();
+  }
+
+  @Transactional
+  public List<org.candlepin.subscriptions.db.model.Subscription> findSubscriptionsAndSyncIfNeeded(
+      String accountNumber,
+      Optional<String> orgId,
+      Key usageKey,
+      OffsetDateTime rangeStart,
+      OffsetDateTime rangeEnd,
+      boolean paygOnly) {
+    Assert.isTrue(Usage._ANY != usageKey.getUsage(), "Usage cannot be _ANY");
+    Assert.isTrue(ServiceLevel._ANY != usageKey.getSla(), "Service Level cannot be _ANY");
+
+    String productId = usageKey.getProductId();
+    Set<String> productNames = tagProfile.getOfferingProductNamesForTag(productId);
+    if (productNames.isEmpty()) {
+      log.warn("No product names configured for tag: {}", productId);
+      return Collections.emptyList();
+    }
+
+    ReportCriteria subscriptionCriteria =
+        ReportCriteria.builder()
+            .accountNumber(accountNumber)
+            .productNames(productNames)
+            .serviceLevel(usageKey.getSla())
+            .usage(usageKey.getUsage())
+            .billingProvider(usageKey.getBillingProvider())
+            .billingAccountId(usageKey.getBillingAccountId())
+            .payg(true)
+            .beginning(rangeStart)
+            .ending(rangeEnd)
+            .build();
+    List<org.candlepin.subscriptions.db.model.Subscription> result =
+        subscriptionRepository.findByCriteria(
+            subscriptionCriteria, Sort.by(Subscription_.START_DATE).descending());
+
+    if (result.isEmpty()) {
+      /* If we are missing the subscription, call out to the RhMarketplaceSubscriptionCollector
+      to fetch from Marketplace.  Sync all those subscriptions. Query again. */
+      if (orgId.isEmpty()) {
+        orgId = Optional.of(accountService.lookupOrgId(accountNumber));
+      }
+      log.info("Syncing subscriptions for account {} using orgId {}", accountNumber, orgId.get());
+      forceSyncSubscriptionsForOrg(orgId.get(), paygOnly);
+      result =
+          subscriptionRepository.findByCriteria(
+              subscriptionCriteria, Sort.by(Subscription_.START_DATE).descending());
+    }
+
+    if (result.isEmpty()) {
+      log.error(
+          "No subscription found for account {} with criteria {}",
+          accountNumber,
+          subscriptionCriteria);
+    }
+
+    return result;
   }
 }

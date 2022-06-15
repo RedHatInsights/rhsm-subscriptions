@@ -1,0 +1,60 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: BillableUsage
+required:
+  - account_number
+properties:
+  account_number:
+    description: Account identifier for the relevant account.
+    type: string
+  org_id:
+    description: Preferred identifier for the relevant account (if present).
+    type: string
+  id:
+    description: Tally snapshot ID that resulted in this billable usage (for tracking).
+    type: string
+    format: uuid
+  billing_provider:
+    type: string
+    enum:
+      - red hat
+      - aws
+      - gcp
+      - azure
+      - oracle
+  billing_account_id:
+    type: string
+  snapshot_date:
+    type: string
+    format: date-time
+  product_id:
+    type: string
+  sla:
+    description: Service level for the subject.
+    type: string
+    enum:
+      - ''  # UNSPECIFIED
+      - Premium
+      - Standard
+      - Self-Support
+  usage:
+    description: Intended usage for the subject.
+    type: string
+    enum:
+      - ''  # UNSPECIFIED
+      - Production
+      - Development/Test
+      - Disaster Recovery
+  uom:
+    description: Preferred unit of measure for the subject (for products with multiple possible UOM).
+    type: string
+    enum:
+      - ''  # UNSPECIFIED
+      - Cores
+      - Sockets
+      - Instance-hours
+      - Storage-gibibytes
+      - Transfer-gibibytes
+      - Storage-gibibyte-months
+  value:
+    description: Measurement value.
+    type: number

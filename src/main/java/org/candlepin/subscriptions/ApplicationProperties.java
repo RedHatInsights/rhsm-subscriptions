@@ -103,7 +103,7 @@ public class ApplicationProperties {
    * Offsets the range to look at metrics to account for delay in prometheus having metrics
    * available
    */
-  private Duration prometheusLatencyDuration = Duration.ofHours(4L);
+  private Duration prometheusLatencyDuration = Duration.ofHours(0L);
 
   /**
    * Amount of time from current timestamp to start looking for metrics during a tally, independent

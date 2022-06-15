@@ -38,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -65,8 +66,21 @@ public class OptInController {
     this.accountService = accountService;
   }
 
-  @Transactional
+  // Separate isolated transaction needed in order to prevent opt-in errors rolling back metrics
+  // updates
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public OptInConfig optIn(
+      String accountNumber,
+      String orgId,
+      OptInType optInType,
+      boolean enableTallySync,
+      boolean enableTallyReporting,
+      boolean enableConduitSync) {
+    return performOptIn(
+        accountNumber, orgId, optInType, enableTallySync, enableTallyReporting, enableConduitSync);
+  }
+
+  private OptInConfig performOptIn(
       String accountNumber,
       String orgId,
       OptInType optInType,
@@ -86,7 +100,9 @@ public class OptInController {
         buildOptInOrgDTO(orgData));
   }
 
-  @Transactional
+  // Separate isolated transaction needed in order to prevent opt-in errors rolling back metrics
+  // updates
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void optInByAccountNumber(
       String accountNumber,
       OptInType optInType,
@@ -98,11 +114,13 @@ public class OptInController {
     }
     String orgId = accountService.lookupOrgId(accountNumber);
     log.info("Opting in account/orgId: {}/{}", accountNumber, orgId);
-    optIn(
+    performOptIn(
         accountNumber, orgId, optInType, enableTallySync, enableTallyReporting, enableConduitSync);
   }
 
-  @Transactional
+  // Separate isolated transaction needed in order to prevent opt-in errors rolling back metrics
+  // updates
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void optInByOrgId(
       String orgId,
       OptInType optInType,
@@ -114,7 +132,7 @@ public class OptInController {
     }
     String accountNumber = accountService.lookupAccountNumber(orgId);
     log.info("Opting in account/orgId: {}/{}", accountNumber, orgId);
-    optIn(
+    performOptIn(
         accountNumber, orgId, optInType, enableTallySync, enableTallyReporting, enableConduitSync);
   }
 

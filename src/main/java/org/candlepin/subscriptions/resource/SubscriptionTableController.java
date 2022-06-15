@@ -24,10 +24,17 @@ import static org.candlepin.subscriptions.resource.ResourceUtils.*;
 
 import java.time.OffsetDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 import javax.validation.constraints.Min;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
+import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.Offering;
+import org.candlepin.subscriptions.db.model.ReportCriteria;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -35,6 +42,7 @@ import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -42,15 +50,21 @@ import org.springframework.stereotype.Service;
 public class SubscriptionTableController {
 
   private final SubscriptionCapacityViewRepository subscriptionCapacityViewRepository;
+  private final SubscriptionRepository subscriptionRepository;
+  private final OfferingRepository offeringRepository;
   private final ApplicationClock clock;
   private final TagProfile tagProfile;
 
   @Autowired
   SubscriptionTableController(
       SubscriptionCapacityViewRepository subscriptionCapacityViewRepository,
+      SubscriptionRepository subscriptionRepository,
+      OfferingRepository offeringRepository,
       TagProfile tagProfile,
       ApplicationClock clock) {
     this.subscriptionCapacityViewRepository = subscriptionCapacityViewRepository;
+    this.subscriptionRepository = subscriptionRepository;
+    this.offeringRepository = offeringRepository;
     this.tagProfile = tagProfile;
     this.clock = clock;
   }
@@ -61,6 +75,8 @@ public class SubscriptionTableController {
       @Min(1) Integer limit,
       ServiceLevelType serviceLevel,
       UsageType usage,
+      BillingProviderType billingProviderType,
+      String billingAccountId,
       Uom uom,
       SkuCapacityReportSort sort,
       SortDirection dir) {
@@ -77,6 +93,8 @@ public class SubscriptionTableController {
     OffsetDateTime reportStart = clock.now();
     ServiceLevel sanitizedServiceLevel = sanitizeServiceLevel(serviceLevel);
     Usage sanitizedUsage = sanitizeUsage(usage);
+    BillingProvider sanitizedBillingProvider = sanitizeBillingProvider(billingProviderType);
+    String sanitiziedBillingAccountId = sanitizeBillingAccountId(billingAccountId);
 
     log.info(
         "Finding all subscription capacities for "
@@ -115,6 +133,23 @@ public class SubscriptionTableController {
     }
 
     List<SkuCapacity> reportItems = new ArrayList<>(inventories.values());
+
+    boolean isOnDemand = tagProfile.tagIsPrometheusEnabled(productId.toString());
+    SubscriptionType subscriptionType =
+        isOnDemand ? SubscriptionType.ON_DEMAND : SubscriptionType.ANNUAL;
+
+    if (isOnDemand && reportItems.isEmpty()) {
+      reportItems.addAll(
+          getOnDemandSkuCapacities(
+              productId,
+              sanitizedServiceLevel,
+              sanitizedUsage,
+              sanitizedBillingProvider,
+              sanitiziedBillingAccountId,
+              reportStart,
+              reportEnd));
+    }
+
     int reportItemCount = reportItems.size();
     // The pagination and sorting of capacities is done in memory and can cause performance
     // issues
@@ -122,10 +157,6 @@ public class SubscriptionTableController {
     Pageable pageable = ResourceUtils.getPageable(offset, limit);
     reportItems = paginate(reportItems, pageable);
     sortCapacities(reportItems, sort, dir);
-
-    boolean isOnDemand = tagProfile.tagIsPrometheusEnabled(productId.toString());
-    SubscriptionType subscriptionType =
-        isOnDemand ? SubscriptionType.ON_DEMAND : SubscriptionType.ANNUAL;
 
     return new SkuCapacityReport()
         .data(reportItems)
@@ -146,6 +177,48 @@ public class SubscriptionTableController {
     int offset = pageable.getPageNumber() * pageable.getPageSize();
     int lastIndex = Math.min(capacities.size(), offset + pageable.getPageSize());
     return capacities.subList(offset, lastIndex);
+  }
+
+  private Collection<SkuCapacity> getOnDemandSkuCapacities(
+      ProductId productId,
+      ServiceLevel serviceLevel,
+      Usage usage,
+      BillingProvider billingProvider,
+      String billingAccountId,
+      OffsetDateTime reportStart,
+      OffsetDateTime reportEnd) {
+    var productNames = tagProfile.getOfferingProductNamesForTag(productId.toString());
+    Map<String, SkuCapacity> inventories = new HashMap<>();
+    Map<String, Offering> skuOfferings =
+        productNames.stream()
+            .map(offeringRepository::findByProductName)
+            .flatMap(List::stream)
+            .collect(Collectors.toMap(Offering::getSku, offering -> offering));
+
+    var subscriptions =
+        subscriptionRepository.findByCriteria(
+            ReportCriteria.builder()
+                .orgId(getOwnerId())
+                .productNames(productNames)
+                .serviceLevel(serviceLevel)
+                .usage(usage)
+                .billingProvider(billingProvider)
+                .billingAccountId(billingAccountId)
+                .beginning(reportStart)
+                .ending(reportEnd)
+                .payg(true)
+                .build(),
+            Sort.unsorted());
+
+    subscriptions.forEach(
+        sub -> {
+          final SkuCapacity inventory =
+              inventories.computeIfAbsent(
+                  sub.getSku(),
+                  key -> initializeOnDemandSkuCapacity(sub, skuOfferings.get(sub.getSku())));
+          addOnDemandSubscriptionInformation(sub, inventory);
+        });
+    return inventories.values();
   }
 
   public SkuCapacity initializeDefaultSkuCapacity(
@@ -178,6 +251,18 @@ public class SubscriptionTableController {
     return inv;
   }
 
+  public SkuCapacity initializeOnDemandSkuCapacity(Subscription subscription, Offering offering) {
+    var inv = new SkuCapacity();
+    inv.setSku(subscription.getSku());
+    inv.setProductName(offering.getProductName());
+    inv.setServiceLevel(
+        Optional.ofNullable(offering.getServiceLevel()).orElse(ServiceLevel.EMPTY).asOpenApiEnum());
+    inv.setUsage(Optional.ofNullable(offering.getUsage()).orElse(Usage.EMPTY).asOpenApiEnum());
+    inv.setHasInfiniteQuantity(offering.getHasUnlimitedUsage());
+    inv.setQuantity(0);
+    return inv;
+  }
+
   public void calculateNextEvent(
       SubscriptionCapacityView subscriptionCapacityView,
       SkuCapacity skuCapacity,
@@ -188,6 +273,22 @@ public class SubscriptionTableController {
     if (subEnd != null
         && now.isBefore(subEnd)
         && (nearestEventDate == null || subEnd.isBefore(nearestEventDate))) {
+      nearestEventDate = subEnd;
+      skuCapacity.setNextEventDate(nearestEventDate);
+      skuCapacity.setNextEventType(SubscriptionEventType.END);
+    }
+  }
+
+  public void addOnDemandSubscriptionInformation(
+      Subscription subscription, SkuCapacity skuCapacity) {
+    var invSub = new SkuCapacitySubscription();
+    invSub.setId(subscription.getSubscriptionId());
+    Optional.ofNullable(subscription.getSubscriptionNumber()).ifPresent(invSub::setNumber);
+    skuCapacity.getSubscriptions().add(invSub);
+    skuCapacity.setQuantity(skuCapacity.getQuantity() + (int) subscription.getQuantity());
+    OffsetDateTime subEnd = subscription.getEndDate();
+    OffsetDateTime nearestEventDate = skuCapacity.getNextEventDate();
+    if (subEnd != null && (nearestEventDate == null || subEnd.isBefore(nearestEventDate))) {
       nearestEventDate = subEnd;
       skuCapacity.setNextEventDate(nearestEventDate);
       skuCapacity.setNextEventType(SubscriptionEventType.END);
@@ -274,7 +375,7 @@ public class SubscriptionTableController {
               diff = left.getNextEventType().compareTo(right.getNextEventType());
               break;
             case TOTAL_CAPACITY:
-              diff = left.getTotalCapacity().compareTo(right.getTotalCapacity());
+              diff = compareTotalCapacity(left, right);
               break;
             case PRODUCT_NAME:
               diff = left.getProductName().compareTo(right.getProductName());
@@ -288,5 +389,18 @@ public class SubscriptionTableController {
 
           return diff * sortDir;
         });
+  }
+
+  private static int compareTotalCapacity(SkuCapacity left, SkuCapacity right) {
+    // unlimited capacity subscriptions are greater than non-unlimited
+    if (!Objects.equals(left.getHasInfiniteQuantity(), right.getHasInfiniteQuantity())) {
+      if (Boolean.TRUE.equals(left.getHasInfiniteQuantity())) {
+        return 1;
+      }
+      if (Boolean.TRUE.equals(right.getHasInfiniteQuantity())) {
+        return -1;
+      }
+    }
+    return left.getTotalCapacity().compareTo(right.getTotalCapacity());
   }
 }

@@ -41,7 +41,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/VersionInfo"
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
   /opt-in:
     description: "Endpoint for opting into subscription watch."
     get:
@@ -74,13 +74,13 @@ paths:
                   account_number: 12345
                   org_id: 1111
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
         '404':
-          $ref: '#/components/responses/ResourceNotFound'
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
     put:
       summary: "Create/Update an account's opt-in configuration. Account and Org ID are defined by the
                 identity header. If no parameters are specified, all everything will be enabled."
@@ -131,13 +131,13 @@ paths:
                   account_number: 12345
                   org_id: 1111
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
         '404':
-          $ref: '#/components/responses/ResourceNotFound'
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
     delete:
       summary: "Delete an opt-in config for the associated account/org. The account number and org ID are
                 pulled from the identity header."
@@ -146,14 +146,13 @@ paths:
         '204':
           description: "Successfully deleted the opt-in configuration for the accociated account/org"
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
         '404':
-          $ref: '#/components/responses/ResourceNotFound'
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
-          $ref: '#/components/responses/InternalServerError'
-
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
   /tally/products/{product_id}/{metric_id}:
     description: "Operations on a data set of a given tally report."
     parameters:
@@ -190,6 +189,16 @@ paths:
         schema:
           $ref: '#/components/schemas/UsageType'
         description: "Include only report data matching the specified usage."
+      - name: billing_provider
+        in: query
+        schema:
+          $ref: '#/components/schemas/BillingProviderType'
+        description: "Include only report data matching the specified billing provider"
+      - name:  billing_account_id
+        in: query
+        schema:
+          $ref: '#/components/schemas/BillingAccountId'
+        description: "Include only report data matching the specified billing account"
       - name: beginning
         in: query
         required: true
@@ -229,16 +238,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/TallyReportData"
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
         '404':
-          $ref: '#/components/responses/ResourceNotFound'
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - tally
-
   /tally/products/{product_id}:
     description: "Operations for a tally report of a specific account and product."
     parameters:
@@ -360,13 +368,13 @@ paths:
                   service_level: Premium
                   usage: Production
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
         '404':
-          $ref: '#/components/responses/ResourceNotFound'
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - tally
   /capacity/products/{product_id}:
@@ -470,13 +478,13 @@ paths:
                   granularity: Daily
                   service_level: Premium
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
         '404':
-          $ref: '#/components/responses/ResourceNotFound'
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - capacity
   /hosts/products/{product_id}:
@@ -589,13 +597,13 @@ paths:
                   service_level: Premium
                   usage: Production
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
         '404':
-          $ref: '#/components/responses/ResourceNotFound'
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - hosts
   /hosts/{hypervisor_uuid}/guests:
@@ -647,13 +655,13 @@ paths:
                 meta:
                   count: 10
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
         '404':
-          $ref: '#/components/responses/ResourceNotFound'
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - hosts
   /instances/products/{product_id}:
@@ -689,6 +697,16 @@ paths:
           schema:
             $ref: '#/components/schemas/UsageType'
           description: "Include only hosts for the specified usage level."
+        - name: billing_provider
+          in: query
+          schema:
+            $ref: '#/components/schemas/BillingProviderType'
+          description: "Include only hosts for the specified billing provider."
+        - name: billing_account_id
+          description: Include only hosts containing the specified billing account ID.
+          schema:
+            type: string
+          in: query
         - name: display_name_contains
           description: Include only hosts containing the specified display name. Passing an empty string behaves the same way as passing null
           schema:
@@ -768,6 +786,16 @@ paths:
           schema:
             $ref: '#/components/schemas/UsageType'
           description: "Include only capacity for the specified usage level."
+        - name: billing_provider
+          in: query
+          schema:
+            $ref: '#/components/schemas/BillingProviderType'
+          description: "Include only report data matching the specified billing provider"
+        - name: billing_account_id
+          in: query
+          schema:
+            $ref: '#/components/schemas/BillingAccountId'
+          description: "Include only report data matching the specified billing account"
         - name: beginning
           in: query
           schema:
@@ -863,41 +891,19 @@ paths:
                 meta:
                   count: 3
         '400':
-          $ref: '#/components/responses/BadRequest'
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
-          $ref: '#/components/responses/Forbidden'
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
         '404':
-          $ref: '#/components/responses/ResourceNotFound'
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
-          $ref: '#/components/responses/InternalServerError'
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - subscriptions
   /openapi.json:
-    get:
-      description: "Get the OpenAPI spec in JSON format."
-      operationId: getOpenApiJson
-      tags:
-        - root
-      responses:
-        '200':
-          description: "The request to get the OpenAPI JSON was successful."
-          content:
-            application/json:
-              schema:
-                type: string
+    $ref: "../spec/openapi-paths.yaml#/openapi-json"
   /openapi.yaml:
-    get:
-      description: "Get the OpenAPI spec in YAML format."
-      operationId: getOpenApiYaml
-      tags:
-        - root
-      responses:
-        '200':
-          description: "The request to get the OpenAPI YAML was successful."
-          content:
-            application/x-yaml:
-              schema:
-                type: string
+    $ref: "../spec/openapi-paths.yaml#/openapi-yaml"
 
 components:
   securitySchemes:
@@ -924,48 +930,28 @@ components:
         ```
         Encoded (via `base64 -w0`):
         `eyJpZGVudGl0eSI6eyJhY2NvdW50X251bWJlciI6ImFjY291bnQxMjMiLCJ0eXBlIjoiVXNlciIsInVzZXIiOnsiaXNfb3JnX2FkbWluIjp0cnVlfSwiaW50ZXJuYWwiOnsib3JnX2lkIjoib3JnMTIzIn19fQo=`
-  responses:
-    InternalServerError:
-      description: "An internal server error has occurred and is not recoverable."
-      content:
-        application/vnd.api+json:
-          schema:
-            $ref: "#/components/schemas/Errors"
-    BadRequest:
-      description: "The server could could not process the current request."
-      content:
-        application/vnd.api+json:
-          schema:
-            $ref: "#/components/schemas/Errors"
-    Forbidden:
-      description: "The request was valid, but the request was refused by the server."
-      content:
-        application/vnd.api+json:
-          schema:
-            $ref: "#/components/schemas/Errors"
-    ResourceNotFound:
-      description: "The requested resource was not found."
-      content:
-        application/vnd.api+json:
-          schema:
-            $ref: "#/components/schemas/Errors"
-    ServiceUnavailable:
-      description: "The server is currently unavailable."
-      content:
-        application/vnd.api+json:
-          schema:
-            $ref: "#/components/schemas/Errors"
+
   schemas:
     # Schemas ending in "Type" are intentionally named to prevent naming conflicts with db model classes
     GranularityType:
+      description: "Describes the significance of each date in the snapshot list. For example if the
+          granularity is set to 'weekly', the dates in the snapshot list will represent the start
+          of a seven day period."
       type: string
       enum: [ Hourly, Daily, Weekly, Monthly, Quarterly, Yearly ]
     ServiceLevelType:
+      description: "Describes the service level that the report was made against. Not set if it
+          wasn't specified as a query parameter."
       type: string
       enum: [ "", Premium, Standard, Self-Support, _ANY ]
     UsageType:
+      description: "Describes the usage that the report was made against. Not set if it wasn't
+          specified as a query parameter."
       type: string
       enum: [ "", Production, Development/Test, Disaster Recovery, _ANY ]
+    BillingProviderType:
+      type: string
+      enum: [ "", red hat, aws, gcp, azure, oracle, _ANY ]
     ProductId:
       type: string
       enum:
@@ -992,6 +978,7 @@ components:
         - Sockets
         - Core-seconds
         - Instance-hours
+        - Storage-gibibyte-months
         - Storage-gibibytes
         - Transfer-gibibytes
     ReportCategory:
@@ -1000,7 +987,10 @@ components:
         - physical
         - virtual
         - cloud
+    BillingAccountId:
+      type: string
     Uom:
+      description: "The unit-of-measure for the capacity."
       type: string
       enum:
         - cores
@@ -1023,6 +1013,12 @@ components:
               type: string
             group:
               type: string
+    MetaCount:
+      required:
+        - count
+      properties:
+        count:
+          type: integer
     OptInConfig:
       required:
         - meta
@@ -1135,6 +1131,10 @@ components:
               $ref: '#/components/schemas/UsageType'
             granularity:
               $ref: '#/components/schemas/GranularityType'
+            billing_provider:
+              $ref: '#/components/schemas/BillingProviderType'
+            billing_acount_id:
+              type: string
           required:
             - count
             - product
@@ -1179,17 +1179,10 @@ components:
               $ref: '#/components/schemas/ProductId'
             service_level:
               $ref: '#/components/schemas/ServiceLevelType'
-              description: "Describes the service level that the report was made against. Not set if it wasn't
-                specified as a query parameter."
             usage:
               $ref: '#/components/schemas/UsageType'
-              description: "Describes the usage that the report was made against. Not set if it wasn't
-                            specified as a query parameter."
             granularity:
               $ref: '#/components/schemas/GranularityType'
-              description: "Describes the significance of each date in the TallySnapshot list. For example if the
-                              granularity is set to 'weekly', the dates in the TallySnapshot list will represent the start of a
-                              seven day period."
           required:
             - count
             - product
@@ -1316,17 +1309,10 @@ components:
               $ref: '#/components/schemas/ProductId'
             granularity:
               $ref: '#/components/schemas/GranularityType'
-              description: "Describes the significance of each date in the CapacitySnapshot list. For example if the
-                granularity is set to 'weekly', the dates in the CapacitySnapshot list will represent the start of a
-                seven day period."
             service_level:
               $ref: '#/components/schemas/ServiceLevelType'
-              description: "Describes the service level that the report was made against. Not set if it wasn't
-                specified as a query parameter."
             usage:
               $ref: '#/components/schemas/UsageType'
-              description: "Describes the usages that the report was made against. Not set if it wasn't
-               specified as a query parameter."
           required:
             - count
             - product
@@ -1405,13 +1391,8 @@ components:
               $ref: '#/components/schemas/ProductId'
             service_level:
               $ref: '#/components/schemas/ServiceLevelType'
-              description: "Describes the service level that the report was made against. Not set if it wasn't
-                    specified as a query parameter."
-              type: string
             usage:
               $ref: '#/components/schemas/UsageType'
-              description: "Describes the usages that the report was made against. Not set if it wasn't
-                   specified as a query parameter."
             uom:
               $ref: '#/components/schemas/Uom'
           required:
@@ -1426,12 +1407,7 @@ components:
         links:
           $ref: "#/components/schemas/PageLinks"
         meta:
-          type: object
-          properties:
-            count:
-              type: integer
-          required:
-            - count
+          $ref: "#/components/schemas/MetaCount"
     Host:
       required:
         - display_name
@@ -1489,6 +1465,10 @@ components:
         cloud_provider:
           description: If applicable, the cloud provider for this host.
           type: string
+        billing_provider:
+          $ref: '#/components/schemas/BillingProviderType'
+        billing_account_id:
+          type: string
     InstanceMeta:
       title: Root Type for InstanceMeta
       description: The details of the entire list of InstanceData
@@ -1503,6 +1483,10 @@ components:
           $ref: '#/components/schemas/ServiceLevelType'
         usage:
           $ref: '#/components/schemas/UsageType'
+        billing_provider:
+          $ref: '#/components/schemas/BillingProviderType'
+        billing_account_id:
+          type: string
         measurements:
           type: array
           items:
@@ -1529,10 +1513,6 @@ components:
           $ref: '#/components/schemas/PageLinks'
         meta:
           $ref: '#/components/schemas/InstanceMeta'
-          properties:
-            count:
-              format: int32
-              type: integer
       example:
         data:
           - inventory_id: d6214a0b-b344-4778-831c-d53dcacb2da3
@@ -1559,7 +1539,9 @@ components:
         - Core-seconds
         - Instance-hours
         - Storage-gibibytes
+        - Storage-gibibyte-months
         - Transfer-gibibytes
+        - billing_provider
     InstanceData:
       title: Root Type for Instance
       description: The representation of a product cluster data
@@ -1568,6 +1550,10 @@ components:
         id:
           type: string
         display_name:
+          type: string
+        billing_provider:
+          $ref: '#/components/schemas/BillingProviderType'
+        billing_account_id:
           type: string
         measurements:
           description: >-
@@ -1633,28 +1619,6 @@ components:
       properties:
         productId:
           type: string
-    Errors:
-      required:
-        - errors
-      properties:
-        errors:
-          type: array
-          items:
-            $ref: "#/components/schemas/Error"
-    Error:
-      required:
-        - status
-        - code
-        - title
-      properties:
-        status:
-          type: string
-        code:
-          type: string
-        title:
-          type: string
-        detail:
-          type: string
 
     SubscriptionType:
       type: string
@@ -1663,6 +1627,7 @@ components:
         - Annual
 
     SubscriptionEventType:
+      description: "The most immediate subscription event, such as a subscription beginning or ending."
       type: string
       enum:
         - Subscription Start
@@ -1697,7 +1662,6 @@ components:
           type: string
           format: date-time
         next_event_type:
-          description: "The most immediate subscription event, such as a subscription beginning or ending."
           $ref: "#/components/schemas/SubscriptionEventType"
         quantity:
           description: "The summed subscription quantities across the active subscriptions for the offering."
@@ -1719,7 +1683,6 @@ components:
           description: "Denotes unlimited capacity for the offering when true."
           type: boolean
         uom:
-          description: "The unit-of-measure for the capacity."
           $ref: "#/components/schemas/Uom"
 
     SkuCapacityReportSort:
@@ -1751,11 +1714,8 @@ components:
               $ref: '#/components/schemas/ProductId'
             service_level:
               $ref: '#/components/schemas/ServiceLevelType'
-              description: "The service level that the report was made against. Not set if it wasn't specified as a query parameter."
-              type: string
             usage:
               $ref: '#/components/schemas/UsageType'
-              description: "The usage that the report was made against. Not set if it wasn't specified as a query parameter."
             uom:
               $ref: '#/components/schemas/Uom'
             subscription_type:

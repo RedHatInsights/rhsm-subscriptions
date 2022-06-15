@@ -20,31 +20,43 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.IntStream;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.registry.TagProfile;
+import org.candlepin.subscriptions.subscription.api.model.ExternalReference;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
+import org.candlepin.subscriptions.tally.UsageCalculation;
+import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +73,8 @@ import org.springframework.test.context.ActiveProfiles;
 class SubscriptionSyncControllerTest {
 
   private static final OffsetDateTime NOW = OffsetDateTime.now();
+  public static final String BILLING_ACCOUNT_ID_ANY = "_ANY";
+  public static final String PAYG_PRODUCT_NAME = "OpenShift Dedicated";
 
   @Autowired SubscriptionSyncController subscriptionSyncController;
 
@@ -80,9 +94,20 @@ class SubscriptionSyncControllerTest {
 
   @MockBean KafkaTemplate<String, SyncSubscriptionsTask> subscriptionsKafkaTemplate;
 
+  @MockBean private TagProfile mockProfile;
+
+  private OffsetDateTime rangeStart = OffsetDateTime.now().minusDays(5);
+  private OffsetDateTime rangeEnd = OffsetDateTime.now().plusDays(5);
+
   @Autowired
   @Qualifier("syncSubscriptionTasks")
   private TaskQueueProperties taskQueueProperties;
+
+  @BeforeEach
+  void setUp() {
+    Mockito.when(offeringRepository.findBySku(Mockito.anyString()))
+        .thenReturn(Offering.builder().productIds(new HashSet<>(Arrays.asList(68))).build());
+  }
 
   @Test
   void shouldCreateNewRecordOnQuantityChange() {
@@ -141,7 +166,7 @@ class SubscriptionSyncControllerTest {
     var dto = createDto("456", 10);
     Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
     subscriptionSyncController.syncSubscription(dto.getId().toString());
-    verifyNoInteractions(subscriptionRepository);
+    verify(subscriptionRepository, never()).save(any());
   }
 
   @Test
@@ -150,7 +175,7 @@ class SubscriptionSyncControllerTest {
     var dto = createDto("456", 10);
     Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
     subscriptionSyncController.syncSubscription(dto.getId().toString());
-    verifyNoInteractions(subscriptionRepository);
+    verify(subscriptionRepository, never()).save(any());
   }
 
   @Test
@@ -288,6 +313,208 @@ class SubscriptionSyncControllerTest {
     verifyNoInteractions(capacityReconciliationController);
   }
 
+  @Test
+  void shouldForceSubscriptionSyncForOrg() {
+    var dto1 = createDto("234", 3);
+    var dto2 = createDto("345", 3);
+    var subList = Arrays.asList(dto1, dto2);
+    when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(subList);
+    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(offeringRepository.existsById(any())).thenReturn(true);
+    subscriptionSyncController.forceSyncSubscriptionsForOrg("123", false);
+    verify(subscriptionRepository, times(2)).save(any());
+  }
+
+  @Test
+  void shouldForcePAYGSubscriptionsOnlySyncForOrg() {
+    var dto1 = createDto("234", 3);
+    var dto2 = createDto("345", 3);
+    var externalReferences = new HashMap<String, ExternalReference>();
+    var externalReference = new ExternalReference();
+    externalReference.setSubscriptionID("testBillingProvider");
+    externalReferences.put(SubscriptionDtoUtil.IBMMARKETPLACE, externalReference);
+    dto2.setExternalReferences(externalReferences);
+    var subList = Arrays.asList(dto1, dto2);
+    when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(subList);
+    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(offeringRepository.existsById(any())).thenReturn(true);
+    subscriptionSyncController.forceSyncSubscriptionsForOrg("123", true);
+    verify(subscriptionRepository, times(1)).save(any());
+  }
+
+  @Test
+  void shouldForceSubscriptionSyncForOrgWithExistingSubs() {
+    var dto1 = createDto("234", 3);
+    var dto2 = createDto("345", 3);
+    var subList = Arrays.asList(dto1, dto2);
+    var subDaoList = Arrays.asList(convertDto(dto1), convertDto(dto2));
+    when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(subList);
+    when(subscriptionRepository.findByOwnerIdAndEndDateAfter(eq("123"), any()))
+        .thenReturn(subDaoList);
+    subscriptionSyncController.forceSyncSubscriptionsForOrg("123", false);
+    verify(subscriptionRepository).findByOwnerIdAndEndDateAfter(eq("123"), any());
+    verify(subscriptionRepository, never()).findActiveSubscription(any());
+  }
+
+  @Test
+  void doesNotAllowReservedValuesInKey() {
+    UsageCalculation.Key key1 =
+        new Key(
+            String.valueOf(1),
+            ServiceLevel._ANY,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            BILLING_ACCOUNT_ID_ANY);
+    UsageCalculation.Key key2 =
+        new Key(
+            String.valueOf(1),
+            ServiceLevel.STANDARD,
+            Usage._ANY,
+            BillingProvider._ANY,
+            BILLING_ACCOUNT_ID_ANY);
+    Optional<String> orgId = Optional.of("org1000");
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
+                "1000", orgId, key1, rangeStart, rangeEnd, false));
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
+                "1000", orgId, key2, rangeStart, rangeEnd, false));
+  }
+
+  @Test
+  void findsSubscriptionId() {
+    UsageCalculation.Key key =
+        new Key(
+            String.valueOf(1),
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            "xyz");
+    Subscription s = new Subscription();
+    s.setStartDate(OffsetDateTime.now().minusDays(7));
+    s.setEndDate(OffsetDateTime.now().plusDays(7));
+    s.setBillingProvider(BillingProvider.RED_HAT);
+    s.setBillingProviderId("xyz");
+    List<Subscription> result = Collections.singletonList(s);
+
+    Set<String> productNames = Set.of("OpenShift Container Platform");
+    when(mockProfile.getOfferingProductNamesForTag(any())).thenReturn(productNames);
+    when(subscriptionRepository.findByCriteria(any(), any()))
+        .thenReturn(new ArrayList<>())
+        .thenReturn(result);
+
+    List<Subscription> actual =
+        subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
+            "1000", Optional.of("org1000"), key, rangeStart, rangeEnd, false);
+    assertEquals(1, actual.size());
+    assertEquals("xyz", actual.get(0).getBillingProviderId());
+  }
+
+  @Test
+  void memoizesSubscriptionId() {
+    UsageCalculation.Key key =
+        new Key(
+            String.valueOf(1),
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            "abc");
+    Subscription s = new Subscription();
+    s.setStartDate(OffsetDateTime.now().minusDays(7));
+    s.setEndDate(OffsetDateTime.now().plusDays(7));
+    s.setBillingProvider(BillingProvider.RED_HAT);
+    s.setBillingProviderId("abc");
+    List<Subscription> result = Collections.singletonList(s);
+
+    Set<String> productNames = Set.of("OpenShift Container Platform");
+    when(mockProfile.getOfferingProductNamesForTag(anyString())).thenReturn(productNames);
+    when(subscriptionRepository.findByCriteria(any(), any()))
+        .thenReturn(new ArrayList<>())
+        .thenReturn(result);
+
+    List<Subscription> actual =
+        subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
+            "1000", Optional.of("org1000"), key, rangeStart, rangeEnd, false);
+    assertEquals(1, actual.size());
+    assertEquals("abc", actual.get(0).getBillingProviderId());
+    verify(subscriptionService, times(1)).getSubscriptionsByOrgId("org1000");
+  }
+
+  @Test
+  void terminateActivePAYGSubscriptionTest() {
+    Subscription s = createSubscription("123", "testsku", "456");
+    Offering o = new Offering();
+    o.setProductName(PAYG_PRODUCT_NAME);
+    when(offeringRepository.findById("testsku")).thenReturn(Optional.of(o));
+    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
+    when(mockProfile.isProductPAYGEligible("testsku")).thenReturn(true);
+
+    var termination = OffsetDateTime.now();
+    var result = subscriptionSyncController.terminateSubscription("456", termination);
+    assertThat(result, matchesPattern("Subscription 456 terminated at .*\\."));
+    assertEquals(termination, s.getEndDate());
+  }
+
+  @Test
+  void lateTerminateActivePAYGSubscriptionTest() {
+    Subscription s = createSubscription("123", "testsku", "456");
+    Offering o = new Offering();
+    o.setProductName(PAYG_PRODUCT_NAME);
+    when(offeringRepository.findById("testsku")).thenReturn(Optional.of(o));
+    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
+    when(mockProfile.tagForOfferingProductName(PAYG_PRODUCT_NAME))
+        .thenReturn("OpenShift-dedicated-metrics");
+    when(mockProfile.isProductPAYGEligible("OpenShift-dedicated-metrics")).thenReturn(true);
+
+    var termination = OffsetDateTime.now().minusDays(1);
+    var result = subscriptionSyncController.terminateSubscription("456", termination);
+    assertThat(
+        result,
+        matchesPattern("Subscription 456 terminated at .* with out of range termination date .*"));
+    assertEquals(termination, s.getEndDate());
+  }
+
+  @Test
+  void terminateInTheFutureActivePAYGSubscriptionTest() {
+    Subscription s = createSubscription("123", "testsku", "456");
+    Offering o = new Offering();
+    o.setProductName(PAYG_PRODUCT_NAME);
+    when(offeringRepository.findById("testsku")).thenReturn(Optional.of(o));
+    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
+
+    when(mockProfile.tagForOfferingProductName(PAYG_PRODUCT_NAME))
+        .thenReturn("OpenShift-dedicated-metrics");
+    when(mockProfile.isProductPAYGEligible("OpenShift-dedicated-metrics")).thenReturn(true);
+
+    var termination = OffsetDateTime.now().plusDays(1);
+    var result = subscriptionSyncController.terminateSubscription("456", termination);
+    assertThat(
+        result,
+        matchesPattern("Subscription 456 terminated at .* with out of range termination date .*"));
+    assertEquals(termination, s.getEndDate());
+  }
+
+  @Test
+  void terminateActiveNonPAYGSubscriptionTest() {
+    Subscription s = createSubscription("123", "testsku", "456");
+    Offering o = new Offering();
+    o.setProductName("Random Product");
+    when(offeringRepository.findById("testsku")).thenReturn(Optional.of(o));
+    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
+    when(mockProfile.tagForOfferingProductName("Random Product")).thenReturn("random");
+    when(mockProfile.isProductPAYGEligible("random")).thenReturn(false);
+
+    var termination = OffsetDateTime.now();
+    var result = subscriptionSyncController.terminateSubscription("456", termination);
+    assertThat(result, matchesPattern("Subscription 456 terminated at .*\\."));
+    assertEquals(termination, s.getEndDate());
+  }
+
   private Subscription createSubscription(String orgId, String sku, String subId) {
     final Subscription subscription = new Subscription();
     subscription.setSubscriptionId(subId);
@@ -334,7 +561,7 @@ class SubscriptionSyncControllerTest {
         .quantity(subscription.getQuantity())
         .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))
         .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
-        .billingProviderId(SubscriptionDtoUtil.extractRhMarketplaceId(subscription))
+        .billingProviderId(SubscriptionDtoUtil.extractBillingProviderId(subscription))
         .billingProvider(SubscriptionDtoUtil.populateBillingProvider(subscription))
         .build();
   }

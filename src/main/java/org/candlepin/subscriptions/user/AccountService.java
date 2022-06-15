@@ -22,11 +22,13 @@ package org.candlepin.subscriptions.user;
 
 import java.util.Optional;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.user.api.model.AccountCriteria;
 import org.candlepin.subscriptions.user.api.model.AccountSearch;
 import org.candlepin.subscriptions.user.api.resources.AccountApi;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.retry.support.RetryTemplate;
@@ -53,17 +55,21 @@ public class AccountService {
 
   private String tryLookupOrgId(String accountNumber) {
     try {
-      return Optional.ofNullable(
+      // If the account isn't found, the service returns a 204 which comes back to us as a null
+      var account =
+          Optional.ofNullable(
               accountApi.findAccount(
-                  new AccountSearch().by(new AccountCriteria().ebsAccountNumber(accountNumber))))
-          .orElseThrow(
-              () ->
-                  new SubscriptionsException(
-                      ErrorCode.REQUEST_PROCESSING_ERROR,
-                      Response.Status.INTERNAL_SERVER_ERROR,
-                      String.format("Account number %s not found", accountNumber),
-                      (String) null))
-          .getId();
+                  new AccountSearch().by(new AccountCriteria().ebsAccountNumber(accountNumber))));
+      if (account.isEmpty()) {
+        // Don't log a stacktrace
+        MDC.put("ACCOUNT_LOOKUP_FAILED", Boolean.TRUE.toString());
+        throw new SubscriptionsException(
+            ErrorCode.ACCOUNT_SERVICE_LOOKUP_ERROR,
+            Status.NO_CONTENT,
+            String.format("Account number %s not found", accountNumber),
+            (String) null);
+      }
+      return account.get().getId();
     } catch (ApiException e) {
       throw new SubscriptionsException(
           ErrorCode.REQUEST_PROCESSING_ERROR,
@@ -79,18 +85,23 @@ public class AccountService {
 
   private String tryLookupAccountNumber(String orgId) {
     try {
-      return Optional.ofNullable(
-              Optional.ofNullable(
-                      accountApi.findAccount(
-                          new AccountSearch().by(new AccountCriteria().id(orgId))))
-                  .orElseThrow(
-                      () ->
-                          new SubscriptionsException(
-                              ErrorCode.REQUEST_PROCESSING_ERROR,
-                              Response.Status.INTERNAL_SERVER_ERROR,
-                              String.format("Account w/ orgId %s not found", orgId),
-                              (String) null))
-                  .getEbsAccountNumber())
+      // If the account isn't found, the service returns a 204 which comes back to us as a null
+      var account =
+          Optional.ofNullable(
+              accountApi.findAccount(new AccountSearch().by(new AccountCriteria().id(orgId))));
+      if (account.isEmpty()) {
+        // Don't log a stacktrace
+        MDC.put("ACCOUNT_LOOKUP_FAILED", Boolean.TRUE.toString());
+        throw new SubscriptionsException(
+            ErrorCode.ACCOUNT_SERVICE_LOOKUP_ERROR,
+            Status.NO_CONTENT,
+            String.format("Account w/ orgId %s not found", orgId),
+            (String) null);
+      }
+
+      // The generated Account object marks getEbsAccountNumber with the Nonnull annotation but I
+      // don't trust the deserialization that far.
+      return Optional.ofNullable(account.get().getEbsAccountNumber()) // NOSONAR
           .orElseThrow(
               () ->
                   new SubscriptionsException(

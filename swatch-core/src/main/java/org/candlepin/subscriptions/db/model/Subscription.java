@@ -64,11 +64,14 @@ public class Subscription {
   @Column(name = "billing_provider_id")
   private String billingProviderId;
 
+  @Column(name = "billing_account_id")
+  private String billingAccountId;
+
   @Column(name = "account_number")
   private String accountNumber;
 
   @Column(name = "billing_provider")
-  private String billingProvider;
+  private BillingProvider billingProvider;
 
   /** Composite ID class for Subscription entities. */
   @EqualsAndHashCode

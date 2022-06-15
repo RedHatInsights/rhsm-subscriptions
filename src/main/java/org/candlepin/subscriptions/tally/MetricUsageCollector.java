@@ -29,19 +29,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
-import org.candlepin.subscriptions.db.model.AccountServiceInventory;
-import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
-import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.Host;
-import org.candlepin.subscriptions.db.model.HostBucketKey;
-import org.candlepin.subscriptions.db.model.HostHardwareType;
-import org.candlepin.subscriptions.db.model.HostTallyBucket;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.registry.TagMetaData;
@@ -215,7 +209,9 @@ public class MetricUsageCollector {
                               new UsageCalculation.Key(
                                   bucket.getKey().getProductId(),
                                   bucket.getKey().getSla(),
-                                  bucket.getKey().getUsage());
+                                  bucket.getKey().getUsage(),
+                                  bucket.getKey().getBillingProvider(),
+                                  bucket.getKey().getBillingAccountId());
                           instance
                               .getMeasurements()
                               .forEach(
@@ -231,31 +227,28 @@ public class MetricUsageCollector {
 
   private void updateInstanceFromEvent(
       Event event, Host instance, Optional<TagMetaData> serviceTypeMeta) {
+    // fields that we expect to always be present
     instance.setAccountNumber(event.getAccountNumber());
     instance.setInstanceType(event.getServiceType());
     instance.setInstanceId(event.getInstanceId());
-    Optional.ofNullable(event.getCloudProvider())
-        .map(this::getCloudProvider)
-        .map(HardwareMeasurementType::toString)
-        .ifPresent(instance::setCloudProvider);
-    Optional.ofNullable(event.getHardwareType())
-        .map(this::getHostHardwareType)
-        .ifPresent(instance::setHardwareType);
-    instance.setDisplayName(
-        Optional.ofNullable(event.getDisplayName())
-            .map(Optional::get)
-            .orElse(event.getInstanceId()));
+    instance.setDisplayName(event.getInstanceId()); // may be overridden later
     instance.setLastSeen(event.getTimestamp());
     instance.setGuest(instance.getHardwareType() == HostHardwareType.VIRTUALIZED);
-    Optional.ofNullable(event.getInventoryId())
-        .map(Optional::get)
-        .ifPresent(instance::setInventoryId);
-    Optional.ofNullable(event.getHypervisorUuid())
-        .map(Optional::get)
-        .ifPresent(instance::setHypervisorUuid);
-    Optional.ofNullable(event.getSubscriptionManagerId())
-        .map(Optional::get)
-        .ifPresent(instance::setSubscriptionManagerId);
+
+    // fields that are optional, see update/updateWithTransform method javadocs
+    update(instance::setBillingAccountId, event.getBillingAccountId());
+    updateWithTransform(
+        instance::setBillingProvider,
+        Optional.ofNullable(event.getBillingProvider()).orElse(Event.BillingProvider.RED_HAT),
+        this::getBillingProvider);
+    updateWithTransform(
+        instance::setCloudProvider, event.getCloudProvider(), this::getCloudProviderAsString);
+    updateWithTransform(
+        instance::setHardwareType, event.getHardwareType(), this::getHostHardwareType);
+    update(instance::setDisplayName, event.getDisplayName());
+    update(instance::setInventoryId, event.getInventoryId());
+    update(instance::setHypervisorUuid, event.getHypervisorUuid());
+    update(instance::setSubscriptionManagerId, event.getSubscriptionManagerId());
     Optional.ofNullable(event.getMeasurements())
         .orElse(Collections.emptyList())
         .forEach(
@@ -265,6 +258,41 @@ public class MetricUsageCollector {
                   event.getTimestamp(), measurement.getUom(), measurement.getValue());
             });
     addBucketsFromEvent(instance, event, serviceTypeMeta);
+  }
+
+  /**
+   * Transform and set a value, doing nothing for null values. This method is intended to be used
+   * for enum types and complex types.
+   *
+   * @param setter the setter to invoke when value is non-null
+   * @param value the value
+   * @param transform function to transform the value to the necessary type
+   * @param <T> original type, should be an enum
+   * @param <R> type the setter expects
+   */
+  private <T, R> void updateWithTransform(Consumer<R> setter, T value, Function<T, R> transform) {
+    if (value != null) {
+      R transformed = transform.apply(value);
+      setter.accept(transformed);
+    }
+  }
+
+  /**
+   * Set a value if the value is non-null.
+   *
+   * <p>Given how we deserialize JSON, here are the possibilities: 1. null if the JSON didn't
+   * include the field at all 2. Optional.empty() if the JSON had the field set to null 3.
+   * Optional.of($someValue) if the JSON had the field set to a non-null value
+   *
+   * <p>When the Optional is null, this means the source event does not know about the field, so we
+   * do nothing. Otherwise, we update the field
+   *
+   * @param setter the setter to invoke when value is non-null
+   * @param optional null or Optional to be unwrapped
+   * @param <T> type the setter expects
+   */
+  private <T> void update(Consumer<T> setter, Optional<T> optional) {
+    Optional.ofNullable(optional).ifPresent(value -> setter.accept(value.orElse(null)));
   }
 
   private HostHardwareType getHostHardwareType(Event.HardwareType hardwareType) {
@@ -325,6 +353,34 @@ public class MetricUsageCollector {
     }
   }
 
+  private String getCloudProviderAsString(Event.CloudProvider cloudProvider) {
+    HardwareMeasurementType hardwareMeasurementType = getCloudProvider(cloudProvider);
+    if (hardwareMeasurementType != null) {
+      return hardwareMeasurementType.toString();
+    }
+    return null;
+  }
+
+  private BillingProvider getBillingProvider(Event.BillingProvider billingProvider) {
+    switch (billingProvider) {
+      case __EMPTY__:
+        return null;
+      case AWS:
+        return BillingProvider.AWS;
+      case AZURE:
+        return BillingProvider.AZURE;
+      case ORACLE:
+        return BillingProvider.ORACLE;
+      case GCP:
+        return BillingProvider.GCP;
+      case RED_HAT:
+        return BillingProvider.RED_HAT;
+      default:
+        throw new IllegalArgumentException(
+            String.format("Unsupported value for billing provider: %s", billingProvider.value()));
+    }
+  }
+
   private void addBucketsFromEvent(Host host, Event event, Optional<TagMetaData> serviceTypeMeta) {
     ServiceLevel effectiveSla =
         Optional.ofNullable(event.getSla())
@@ -336,14 +392,28 @@ public class MetricUsageCollector {
             .map(Event.Usage::toString)
             .map(Usage::fromString)
             .orElse(serviceTypeMeta.map(TagMetaData::getDefaultUsage).orElse(Usage.EMPTY));
+    BillingProvider effectiveProvider =
+        Optional.ofNullable(event.getBillingProvider())
+            .map(Event.BillingProvider::toString)
+            .map(BillingProvider::fromString)
+            .orElse(BillingProvider.RED_HAT);
+    String effectiveBillingAcctId =
+        Optional.ofNullable(event.getBillingAccountId()).orElse(Optional.empty()).orElse("");
     Set<String> productIds = getProductIds(event);
+    Set<String> billingAcctIds = getBillingAccountIds(effectiveBillingAcctId);
 
     for (String productId : productIds) {
       for (ServiceLevel sla : Set.of(effectiveSla, ServiceLevel._ANY)) {
         for (Usage usage : Set.of(effectiveUsage, Usage._ANY)) {
-          HostTallyBucket bucket = new HostTallyBucket();
-          bucket.setKey(new HostBucketKey(host, productId, sla, usage, false));
-          host.addBucket(bucket);
+          for (BillingProvider billingProvider : Set.of(effectiveProvider, BillingProvider._ANY)) {
+            for (String billingAccountId : billingAcctIds) {
+              HostTallyBucket bucket = new HostTallyBucket();
+              bucket.setKey(
+                  new HostBucketKey(
+                      host, productId, sla, usage, billingProvider, billingAccountId, false));
+              host.addBucket(bucket);
+            }
+          }
         }
       }
     }
@@ -359,6 +429,15 @@ public class MetricUsageCollector {
         .forEach(productIds::addAll);
 
     return productIds;
+  }
+
+  private Set<String> getBillingAccountIds(String billingAcctId) {
+    Set<String> billingAcctIds = new HashSet<>();
+    billingAcctIds.add("_ANY");
+    if (billingAcctId != null) {
+      billingAcctIds.add(billingAcctId);
+    }
+    return billingAcctIds;
   }
 
   @AllArgsConstructor

@@ -40,7 +40,7 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles("test")
 @Import(StubResourceConfiguration.class)
-public class ReportingAccessRequiredTest {
+class ReportingAccessRequiredTest {
 
   @Autowired ApplicationContext context;
 

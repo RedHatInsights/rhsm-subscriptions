@@ -40,7 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 @ActiveProfiles({"api", "test"})
 @TestInstance(Lifecycle.PER_CLASS)
-public class YearlySnapshotRollerTest {
+class YearlySnapshotRollerTest {
 
   @Autowired private TallySnapshotRepository repository;
 
@@ -51,7 +51,7 @@ public class YearlySnapshotRollerTest {
   private SnapshotRollerTester<YearlySnapshotRoller> tester;
 
   @BeforeEach
-  public void setupTest() throws IOException {
+  void setupTest() throws IOException {
     this.clock = new FixedClockConfiguration().fixedClock();
     this.tester =
         new SnapshotRollerTester<>(
@@ -59,19 +59,19 @@ public class YearlySnapshotRollerTest {
   }
 
   @Test
-  public void testYearlySnapshotProduction() {
+  void testYearlySnapshotProduction() {
     this.tester.performBasicSnapshotRollerTest(
         Granularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear());
   }
 
   @Test
-  public void testYearlySnapIsUpdatedWhenItAlreadyExists() {
+  void testYearlySnapIsUpdatedWhenItAlreadyExists() {
     this.tester.performSnapshotUpdateTest(
         Granularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear());
   }
 
   @Test
-  public void ensureCurrentYearlyIsNotUpdatedWhenIncomingCalculationsAreLessThanTheExisting() {
+  void ensureCurrentYearlyIsNotUpdatedWhenIncomingCalculationsAreLessThanTheExisting() {
     this.tester.performUpdateWithLesserValueTest(
         Granularity.YEARLY, clock.startOfCurrentYear(), clock.endOfCurrentYear(), true);
   }

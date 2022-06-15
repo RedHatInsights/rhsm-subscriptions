@@ -28,16 +28,15 @@ import java.time.OffsetDateTime;
 import java.util.Random;
 import java.util.Set;
 import javax.transaction.Transactional;
-import org.candlepin.subscriptions.db.model.Offering;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.db.model.*;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
@@ -53,7 +52,7 @@ class SubscriptionRepositoryTest {
   @Transactional
   @Test
   void canInsertAndRetrieveSubscriptions() {
-    Subscription subscription = createSubscription("1", "1000", "testsku", "123");
+    Subscription subscription = createSubscription("1", "1000", "testsku", "123", "sellerAcctId");
     subscriptionRepo.saveAndFlush(subscription);
 
     Subscription retrieved = subscriptionRepo.findActiveSubscription("123").orElse(null);
@@ -76,7 +75,7 @@ class SubscriptionRepositoryTest {
   @Transactional
   @Test
   void canMatchOfferings() {
-    Subscription subscription = createSubscription("1", "1000", "testSku1", "123");
+    Subscription subscription = createSubscription("1", "1000", "testSku1", "123", "sellerAcctId");
     subscriptionRepo.saveAndFlush(subscription);
 
     Offering o1 =
@@ -86,11 +85,27 @@ class SubscriptionRepositoryTest {
         createOffering("testSku2", "Test SKU 2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
     offeringRepo.saveAndFlush(o2);
 
-    UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
+    UsageCalculation.Key key =
+        new Key(
+            String.valueOf(1),
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "sellerAcctId");
     Set<String> productNames = Set.of("Test SKU 1");
     var resultList =
-        subscriptionRepo.findByAccountAndProductNameAndServiceLevel(
-            "1000", key, productNames, NOW, NOW);
+        subscriptionRepo.findByCriteria(
+            ReportCriteria.builder()
+                .accountNumber("1000")
+                .productNames(productNames)
+                .serviceLevel(key.getSla())
+                .usage(key.getUsage())
+                .billingProvider(key.getBillingProvider())
+                .billingAccountId(key.getBillingAccountId())
+                .beginning(NOW)
+                .ending(NOW)
+                .build(),
+            Sort.by(Subscription_.START_DATE).descending());
     assertEquals(1, resultList.size());
 
     var result = resultList.get(0);
@@ -101,7 +116,7 @@ class SubscriptionRepositoryTest {
   @Transactional
   @Test
   void doesNotMatchMismatchedSkusOfferings() {
-    Subscription subscription = createSubscription("1", "1000", "testSku", "123");
+    Subscription subscription = createSubscription("1", "1000", "testSku", "123", "sellerAcctId");
     subscriptionRepo.saveAndFlush(subscription);
 
     Offering o1 =
@@ -113,34 +128,105 @@ class SubscriptionRepositoryTest {
             "otherSku2", "Other SKU 2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
     offeringRepo.saveAndFlush(o2);
 
-    UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
+    UsageCalculation.Key key =
+        new Key(
+            String.valueOf(1),
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "sellerAcctId");
     Set<String> productNames = Set.of("Other SKU 1", "Other SKU 2");
     var result =
-        subscriptionRepo.findByAccountAndProductNameAndServiceLevel(
-            "1000", key, productNames, NOW, NOW);
+        subscriptionRepo.findByCriteria(
+            ReportCriteria.builder()
+                .accountNumber("1000")
+                .productNames(productNames)
+                .serviceLevel(key.getSla())
+                .usage(key.getUsage())
+                .billingProvider(key.getBillingProvider())
+                .billingAccountId(key.getBillingAccountId())
+                .beginning(NOW)
+                .ending(NOW)
+                .build(),
+            Sort.by(Subscription_.START_DATE).descending());
     assertEquals(0, result.size());
+  }
+
+  @Transactional
+  @Test
+  void doesNotMatchMismatchedBillingAccountId() {
+    Subscription subscription = createSubscription("1", "1000", "testSku1", "123", "sellerAcctId");
+    subscriptionRepo.saveAndFlush(subscription);
+
+    Offering o1 =
+        createOffering("testSku1", "Test SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+    offeringRepo.save(o1);
+    Offering o2 =
+        createOffering("testSku2", "Test SKU 2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
+    offeringRepo.saveAndFlush(o2);
+
+    UsageCalculation.Key key =
+        new Key(
+            String.valueOf(1),
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "wrongSellerAccount");
+    Set<String> productNames = Set.of("Test SKU 1");
+    var resultList =
+        subscriptionRepo.findByCriteria(
+            ReportCriteria.builder()
+                .accountNumber("1000")
+                .productNames(productNames)
+                .serviceLevel(key.getSla())
+                .usage(key.getUsage())
+                .billingProvider(key.getBillingProvider())
+                .billingAccountId(key.getBillingAccountId())
+                .beginning(NOW)
+                .ending(NOW)
+                .build(),
+            Sort.by(Subscription_.START_DATE).descending());
+
+    assertEquals(0, resultList.size());
   }
 
   @Transactional
   @Test
   void removeAllButMostRecentMarketplaceSubscriptions() {
     Subscription subscription1 =
-        createSubscription("1", "1000", "testSku1", "123", NOW.minusDays(30), NOW.plusDays(10));
+        createSubscription(
+            "1", "1000", "testSku1", "123", "sellerAcctId", NOW.minusDays(30), NOW.plusDays(10));
     subscriptionRepo.saveAndFlush(subscription1);
     Subscription subscription2 =
-        createSubscription("1", "1000", "testSku1", "234", NOW, NOW.plusDays(30));
+        createSubscription("1", "1000", "testSku1", "234", "sellerAcctId", NOW, NOW.plusDays(30));
     subscriptionRepo.saveAndFlush(subscription2);
 
     Offering offering =
         createOffering("testSku1", "Test SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
     offeringRepo.save(offering);
 
-    UsageCalculation.Key key = new Key(String.valueOf(1), ServiceLevel.STANDARD, Usage.PRODUCTION);
+    UsageCalculation.Key key =
+        new Key(
+            String.valueOf(1),
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "sellerAcctId");
     Set<String> productNames = Set.of("Test SKU 1");
 
     var resultList =
-        subscriptionRepo.findByAccountAndProductNameAndServiceLevel(
-            "1000", key, productNames, NOW, NOW);
+        subscriptionRepo.findByCriteria(
+            ReportCriteria.builder()
+                .accountNumber("1000")
+                .productNames(productNames)
+                .serviceLevel(key.getSla())
+                .usage(key.getUsage())
+                .billingProvider(key.getBillingProvider())
+                .billingAccountId(key.getBillingAccountId())
+                .beginning(NOW)
+                .ending(NOW)
+                .build(),
+            Sort.by(Subscription_.START_DATE).descending());
 
     assertEquals(2, resultList.size());
 
@@ -156,13 +242,16 @@ class SubscriptionRepositoryTest {
 
     for (int i = 0; i < 5; i++) {
       Subscription subscription1 =
-          createSubscription("1", "1001", "MCT3718", String.valueOf(new Random().nextInt()));
+          createSubscription(
+              "1", "1001", "MCT3718", String.valueOf(new Random().nextInt()), "sellerAcctId");
       subscriptionRepo.saveAndFlush(subscription1);
       Subscription subscription2 =
-          createSubscription("1", "1001", "RH00798", String.valueOf(new Random().nextInt()));
+          createSubscription(
+              "1", "1001", "RH00798", String.valueOf(new Random().nextInt()), "sellerAcctId");
       subscriptionRepo.saveAndFlush(subscription2);
       Subscription subscription3 =
-          createSubscription("2", "1002", "MCT3718", String.valueOf(new Random().nextInt()));
+          createSubscription(
+              "2", "1002", "MCT3718", String.valueOf(new Random().nextInt()), "sellerAcctId");
       subscriptionRepo.saveAndFlush(subscription3);
     }
 
@@ -183,8 +272,9 @@ class SubscriptionRepositoryTest {
   }
 
   private Subscription createSubscription(
-      String orgId, String accountNumber, String sku, String subId) {
-    return createSubscription(orgId, accountNumber, sku, subId, NOW, NOW.plusDays(30));
+      String orgId, String accountNumber, String sku, String subId, String billingAccountId) {
+    return createSubscription(
+        orgId, accountNumber, sku, subId, billingAccountId, NOW, NOW.plusDays(30));
   }
 
   private Subscription createSubscription(
@@ -192,6 +282,7 @@ class SubscriptionRepositoryTest {
       String accountNumber,
       String sku,
       String subId,
+      String billingAccountId,
       OffsetDateTime startDate,
       OffsetDateTime endDate) {
 
@@ -205,7 +296,8 @@ class SubscriptionRepositoryTest {
     subscription.setStartDate(startDate);
     subscription.setEndDate(endDate);
     subscription.setSubscriptionNumber(subId + "1");
-    subscription.setBillingProvider("Test_Marketplace");
+    subscription.setBillingProvider(BillingProvider.RED_HAT);
+    subscription.setBillingAccountId(billingAccountId);
 
     return subscription;
   }

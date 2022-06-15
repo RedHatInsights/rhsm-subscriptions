@@ -20,38 +20,37 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 
-public class HardwareMeasurementTypeTest {
+class HardwareMeasurementTypeTest {
 
   @Test
-  public void testIsCloudProviderTypeCaseInsensitive() {
+  void testIsCloudProviderTypeCaseInsensitive() {
     assertTrue(HardwareMeasurementType.isSupportedCloudProvider("aws"));
     assertTrue(HardwareMeasurementType.isSupportedCloudProvider("AWS"));
   }
 
   @Test
-  public void testEmptyCloudProviderNotSupported() {
+  void testEmptyCloudProviderNotSupported() {
     assertFalse(HardwareMeasurementType.isSupportedCloudProvider(null));
     assertFalse(HardwareMeasurementType.isSupportedCloudProvider(""));
   }
 
   @Test
-  public void testUnsupportedIfNotInList() {
+  void testUnsupportedIfNotInList() {
     assertFalse(HardwareMeasurementType.isSupportedCloudProvider("unknown_type"));
   }
 
   @Test
-  public void testUnsupportedIfHardwareTypeButNotInList() {
+  void testUnsupportedIfHardwareTypeButNotInList() {
     assertFalse(
         HardwareMeasurementType.isSupportedCloudProvider(HardwareMeasurementType.PHYSICAL.name()));
   }
 
   @Test
-  public void ensureAllCloudProviderTypesAreConsideredSupported() {
+  void ensureAllCloudProviderTypesAreConsideredSupported() {
     HardwareMeasurementType.getCloudProviderTypes()
         .forEach(
             type -> {

@@ -1,0 +1,189 @@
+openapi: "3.0.2"
+info:
+  title: "internal-subscriptions-sync-api"
+  description: "REST interface for the internal-subscriptions-sync- service. Please note any deprecated APIs. Our current deprecation policy is to keep deprecated APIs around for at least 6 months."
+  version: 1.0.0
+
+servers:
+  - url: /{PATH_PREFIX}/{APP_NAME}/v1
+    variables:
+      PATH_PREFIX:
+        default: api
+      APP_NAME:
+        default: rhsm-subscriptions
+  - url: https://{HOSTNAME}/{PATH_PREFIX}/{APP_NAME}/v1
+    variables:
+      HOSTNAME:
+        enum:
+          - ci.cloud.redhat.com
+          - qa.cloud.redhat.com
+          - stage.cloud.redhat.com
+          - cloud.redhat.com
+        default: ci.cloud.redhat.com
+      PATH_PREFIX:
+        default: api
+      APP_NAME:
+        default: rhsm-subscriptions
+
+paths:
+  /internal/subscriptions/sync/org/{org_id}:
+    description: "Force sync of subscriptions for given org_id."
+    parameters:
+      - name: org_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: "The ID for the organization subscriptions to sync"
+    put:
+      summary: "Sync all subscriptions for given org_id."
+      operationId: forceSyncSubscriptionsForOrg
+      tags:
+        - internalSubscriptions
+      responses:
+        '202':
+          description: "The request for syncing organization's subscription is processing."
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Sync started.
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+  /internal/subscriptions/awsUsageContext:
+    description: "Get AWS usage context."
+    parameters:
+      - name: accountNumber
+        in: query
+        required: true
+        schema:
+          type: string
+        description: "Customer's Account Number"
+      - name: date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: productId
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: sla
+        in: query
+        schema:
+          type: string
+      - name: usage
+        in: query
+        schema:
+          type: string
+      - name: awsAccountId
+        in: query
+        schema:
+          type: string
+    get:
+      summary: "Lookup necessary info to submit a usage record to AWS"
+      operationId: getAwsUsageContext
+      responses:
+        '200':
+          description: "Found AWS usage context matching the criteria."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AwsUsageContext'
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - internalSubscriptions
+  /internal/subscriptions/terminate/{subscription_id}:
+    description: "Terminate a subscription with a given end date."
+    parameters:
+      - name: subscription_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: "Subscription ID to terminate."
+    post:
+      operationId: terminateSubscription
+      summary: "Terminate a subscription."
+      parameters:
+        - name: timestamp
+          description: "The termination timestamp to use."
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: "The termination request was successful"
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/TerminationRequest"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - internalSubscriptions
+  /internal-subscription-sync-openapi.json:
+    $ref: "../../../spec/openapi-paths.yaml#/openapi-json"
+  /internal-subscription-sync-openapi.yaml:
+    $ref: "../../../spec/openapi-paths.yaml#/openapi-yaml"
+
+components:
+  schemas:
+    AwsUsageContext:
+      description: Encapsulates all data needed to map tally snapshot usage to AWS UsageRecords.
+      properties:
+        rhSubscriptionId:
+          type: string
+        customerId:
+          type: string
+        productCode:
+          type: string
+        awsSellerAccountId:
+          type: string
+        subscriptionStartDate:
+          type: string
+          format: date-time
+    TerminationRequest:
+      properties:
+        data:
+          type: object
+          properties:
+            termination_message:
+              type: string
+  securitySchemes:
+    PskIdentity:
+      type: apiKey
+      in: header
+      name: x-rh-swatch-psk
+      description: |
+        Psk header containing Pre Shared Key. Contains an
+        UUID string:
+        ```
+        c9a98753-2092-4617-b226-5c2653330b3d
+        ```
+
+security:
+  - PskIdentity: []

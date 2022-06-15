@@ -9,6 +9,8 @@ metadata:
   name: rhsm-subscriptions-capacity-ingress
 
 parameters:
+  - name: CAPACITY_INGRESS_HAWTIO_BASE_PATH
+    value: /app/rhsm-capacity-ingress/hawtio
   - name: LOGGING_LEVEL_ROOT
     value: WARN
   - name: LOGGING_LEVEL
@@ -34,7 +36,7 @@ parameters:
   - name: CPU_LIMIT
     value: '900m'
   - name: SPLUNK_FORWARDER_IMAGE
-    value: quay.io/cloudservices/rhsm-splunk-forwarder:036c5e0
+    value: quay.io/cloudservices/rhsm-splunk-forwarder:19bd22d
   - name: SPLUNK_FORWARDER_MEMORY_REQUEST
     value: 128Mi
   - name: SPLUNK_FORWARDER_MEMORY_LIMIT
@@ -49,6 +51,8 @@ parameters:
     value: '10'
   - name: SUBSCRIPTION_SYNC_ENABLED
     value: 'true'
+  - name: SUBSCRIPTION_PAGE_SIZE
+    value: '500'
   - name: DEVTEST_SUBSCRIPTION_EDITING_ENABLED
     value: 'false'
   - name: SUBSCRIPTION_URL
@@ -59,6 +63,28 @@ parameters:
     value: 2m
   - name: PRODUCT_URL
     value: https://product.qa.api.redhat.com/svcrest/product/v3
+  - name: SUBSCRIPTION_MAX_CONNECTIONS
+    value: '100'
+  - name: SUBSCRIPTION_MAX_RETRY_ATTEMPTS
+    value: '4'
+  - name: SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL
+    value: 1s
+  - name: SUBSCRIPTION_BACK_OFF_MAX_INTERVAL
+    value: 64s
+  - name: SUBSCRIPTION_BACK_OFF_MULTIPLIER
+    value: '2'
+  - name: USER_HOST
+    required: true
+  - name: USER_MAX_CONNECTIONS
+    value: '100'
+  - name: USER_MAX_ATTEMPTS
+    value: '10'
+  - name: USER_BACK_OFF_MAX_INTERVAL
+    value: 64s
+  - name: USER_BACK_OFF_INITIAL_INTERVAL
+    value: 1s
+  - name: USER_BACK_OFF_MULTIPLIER
+    value: '2'
 
 objects:
   - apiVersion: v1
@@ -130,6 +156,8 @@ objects:
                 # turn off built-in jolokia, so that the spring boot jolokia actuator will work
                 - name: AB_JOLOKIA_OFF
                   value: 'true'
+                - name: HAWTIO_BASE_PATH
+                  value: ${CAPACITY_INGRESS_HAWTIO_BASE_PATH}
                 - name: LOG_FILE
                   value: /logs/server.log
                 - name: SPRING_PROFILES_ACTIVE
@@ -177,6 +205,8 @@ objects:
                   value: ${DATABASE_MAX_POOL_SIZE}
                 - name: SUBSCRIPTION_SYNC_ENABLED
                   value: ${SUBSCRIPTION_SYNC_ENABLED}
+                - name: SUBSCRIPTION_PAGE_SIZE
+                  value: ${SUBSCRIPTION_PAGE_SIZE}
                 - name: INVENTORY_DATABASE_HOST
                   valueFrom:
                     secretKeyRef:
@@ -210,6 +240,16 @@ objects:
                   value: /service-certs/keystore.jks
                 - name: SUBSCRIPTION_URL
                   value: ${SUBSCRIPTION_URL}
+                - name: SUBSCRIPTION_MAX_CONNECTIONS
+                  value: ${SUBSCRIPTION_MAX_CONNECTIONS}
+                - name: SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL
+                  value: ${SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL}
+                - name: SUBSCRIPTION_BACK_OFF_MAX_INTERVAL
+                  value: ${SUBSCRIPTION_BACK_OFF_MAX_INTERVAL}
+                - name: SUBSCRIPTION_BACK_OFF_MULTIPLIER
+                  value: ${SUBSCRIPTION_BACK_OFF_MULTIPLIER}
+                - name: SUBSCRIPTION_MAX_RETRY_ATTEMPTS
+                  value: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS}
                 - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
                   value: ${SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN}
                 - name: SUBSCRIPTION_IGNORE_STARTING_LATER_THAN
@@ -221,10 +261,34 @@ objects:
                     secretKeyRef:
                       name: tls
                       key: keystore_password
+                - name: SWATCH_SELF_PSK
+                  valueFrom:
+                    secretKeyRef:
+                      name: swatch-psks
+                      key: self
+                - name: USER_HOST
+                  value: ${USER_HOST}
+                - name: USER_MAX_CONNECTIONS
+                  value: ${USER_MAX_CONNECTIONS}
+                - name: USER_MAX_ATTEMPTS
+                  value: ${USER_MAX_ATTEMPTS}
+                - name: USER_BACK_OFF_MAX_INTERVAL
+                  value: ${USER_BACK_OFF_MAX_INTERVAL}
+                - name: USER_BACK_OFF_INITIAL_INTERVAL
+                  value: ${USER_BACK_OFF_INITIAL_INTERVAL}
+                - name: USER_BACK_OFF_MULTIPLIER
+                  value: ${USER_BACK_OFF_MULTIPLIER}
+                - name: RHSM_KEYSTORE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: tls
+                      key: keystore_password
+                - name: RHSM_KEYSTORE
+                  value: /service-certs/keystore.jks
               livenessProbe:
                 failureThreshold: 3
                 httpGet:
-                  path: /health
+                  path: /health/liveness
                   port: 9000
                   scheme: HTTP
                 initialDelaySeconds: 90
@@ -306,7 +370,6 @@ objects:
           terminationGracePeriodSeconds: 75
           imagePullSecrets:
           - name: ${IMAGE_PULL_SECRET}
-          - name: quay-cloudservices-pull
       triggers:
         - type: ConfigChange
 
@@ -316,9 +379,9 @@ objects:
       name: rhsm-subscriptions-capacity-ingress
     spec:
       ports:
-        - port: 8443
+        - port: 8000
           protocol: TCP
-          targetPort: web-secure
+          targetPort: web
       selector:
         deploymentconfig: rhsm-subscriptions-capacity-ingress
 

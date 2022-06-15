@@ -85,6 +85,7 @@ properties:
             - Instance-hours
             - Storage-gibibytes
             - Transfer-gibibytes
+            - Storage-gibibyte-months
     required: false
   cloud_provider:
     description: Identifier for the cloud provider of the subject.
@@ -155,7 +156,7 @@ properties:
       - Sockets
     required: false
   billing_provider:
-    description: Billing provider of the service.
+    description: Billing provider used for billing.
     type: string
     enum:
       - ''  # UNSPECIFIED
@@ -164,4 +165,9 @@ properties:
       - gcp
       - azure
       - oracle
+    required: false
+  billing_account_id:
+    description: The account ID used for billing.
+    type: string
+    existingJavaType: java.util.Optional<String>
     required: false

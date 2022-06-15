@@ -23,11 +23,13 @@ package org.candlepin.subscriptions.resource;
 import java.util.Objects;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.core.Response;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.security.InsightsUserPrincipal;
+import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.springframework.data.domain.PageRequest;
@@ -141,5 +143,25 @@ public class ResourceUtils {
    */
   public static ServiceLevel sanitizeServiceLevel(ServiceLevelType sla) {
     return Objects.isNull(sla) ? ServiceLevel._ANY : ServiceLevel.fromString(sla.toString());
+  }
+
+  /**
+   * Uses BillingProvider.ANY for a null value, otherwise returns db model equivalent of
+   * BillingProviderType generated enum
+   *
+   * @param billingProvider string form of billing provider
+   * @return BilligProvider enum
+   */
+  public static BillingProvider sanitizeBillingProvider(BillingProviderType billingProvider) {
+    return Objects.isNull(billingProvider)
+        ? BillingProvider._ANY
+        : BillingProvider.fromString(billingProvider.toString());
+  }
+
+  public static String sanitizeBillingAccountId(String billingAccountId) {
+
+    return Objects.isNull(billingAccountId) || billingAccountId.isBlank()
+        ? "_ANY"
+        : billingAccountId;
   }
 }

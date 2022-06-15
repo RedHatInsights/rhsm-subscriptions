@@ -1,0 +1,48 @@
+@startuml
+
+entity "RH Account" as rhAccount {
+  * **webCustomerId**
+  --
+  **ebsAccountNumber**
+}
+
+entity "AWS Account" as awsAccount {
+  * **awsCustomerAccountId**
+}
+
+entity "RH IT Subscription" as rhSub {
+  * subscriptionId
+  --
+  * **webCustomerId**
+    **ebsAccountNumber**
+  * sku
+  * startDate
+  * endDate
+  * **awsCustomerAccountId**
+    (customer selects
+    during service provisioning)
+  * **awsSellerAccount**
+  * **awsProductCode**
+    (generated during
+    product definition)
+  * **awsCustomerId**
+    (generated per-product
+    when customer subscribes)
+}
+
+entity "Service Instance\n\
+(e.g. RHOSAK cluster)" as serviceInstance {
+  * instanceID
+  --
+  **ebsAccountNumber**
+  * **webCustomerId**
+  * **awsCustomerAccountId**
+}
+
+rhAccount --|{ rhSub
+rhAccount --|{ awsAccount
+rhAccount --|{ serviceInstance
+rhSub }|-- awsAccount
+serviceInstance }|-- awsAccount
+
+@enduml

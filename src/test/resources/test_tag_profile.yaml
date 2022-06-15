@@ -148,6 +148,7 @@ tagMetrics:
   - tag: OpenShift-dedicated-metrics
     metricId: redhat.com:openshift_dedicated:4cpu_hour
     uom: CORES
+    billingWindow: HOURLY
     queryKey: 5mSamples
     queryParams:
       product: osd
@@ -156,6 +157,7 @@ tagMetrics:
   - tag: OpenShift-dedicated-metrics
     metricId: redhat.com:openshift_dedicated:cluster_hour
     uom: INSTANCE_HOURS
+    billingWindow: HOURLY
     queryKey: 5mSamples
     queryParams:
       product: osd
@@ -166,6 +168,7 @@ tagMetrics:
   - tag: rhosak
     metricId: redhat.com:rhosak:storage_gb
     uom: STORAGE_GIBIBYTES
+    billingWindow: HOURLY
     queryParams:
       product: rhosak
       prometheusMetric: kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibytes
@@ -174,6 +177,7 @@ tagMetrics:
     # when we update this metricId to not mirror RHM ids, make sure GiB is reflected
     metricId: redhat.com:rhosak:transfer_gb
     uom: TRANSFER_GIBIBYTES
+    billingWindow: HOURLY
     queryParams:
       product: rhosak
       prometheusMetric: kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes
@@ -181,6 +185,7 @@ tagMetrics:
   - tag: rhosak
     metricId: redhat.com:rhosak:cluster_hour
     uom: INSTANCE_HOURS
+    billingWindow: HOURLY
     queryParams:
       product: rhosak
       prometheusMetric: kafka_id:strimzi_resource_state:max_over_time1h
@@ -218,9 +223,11 @@ tagMetaData:
     finestGranularity: HOURLY
     defaultSla: PREMIUM
     defaultUsage: PRODUCTION
+    billingModel: PAYG
   - tags:
       - rhosak
     serviceType: Kafka Cluster
     finestGranularity: HOURLY
     defaultSla: PREMIUM
     defaultUsage: PRODUCTION
+    billingModel: PAYG

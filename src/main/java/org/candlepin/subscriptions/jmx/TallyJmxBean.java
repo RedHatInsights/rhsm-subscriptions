@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.jmx;
 
+import java.util.Optional;
 import javax.validation.constraints.NotNull;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
@@ -31,6 +32,7 @@ import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedOperationParameter;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 
 /** Exposes the ability to trigger a tally for an account from JMX. */
@@ -87,11 +89,39 @@ public class TallyJmxBean {
     tasks.tallyAccountByHourly(accountNumber, tallyRange);
   }
 
-  @ManagedOperation(description = "Trigger hourly tally for all configured accounts")
-  public void tallyAllAccountsByHourly() {
-    log.info(
-        "Hourly tally for all accounts triggered over JMX by {}", ResourceUtils.getPrincipal());
+  @ManagedOperation(
+      description =
+          "Trigger hourly tally for all configured accounts for the specified range. The 'start' and "
+              + "'end' parameters MUST be specified as a pair to complete a range. If they are left empty, "
+              + "a date range is used based on NOW with the configured offsets applied (identical to if "
+              + " the job was run).")
+  @ManagedOperationParameter(
+      name = "start",
+      description =
+          "The start date for the tally (e.g. 22-05-03T10:00:00Z). Must be specified along with the end parameter.")
+  @ManagedOperationParameter(
+      name = "end",
+      description =
+          "The end date for the tally (e.g. 22-05-03T16:00:00Z). Must be specified along with the start parameter.")
+  public void tallyAllAccountsByHourly(String start, String end) throws IllegalArgumentException {
 
-    tasks.updateHourlySnapshotsForAllAccounts();
+    DateRange range = null;
+    if (StringUtils.hasText(start) || StringUtils.hasText(end)) {
+      try {
+        range = DateRange.fromStrings(start, end);
+        log.info(
+            "Hourly tally for all accounts triggered for range {} over JMX by {}",
+            range,
+            ResourceUtils.getPrincipal());
+      } catch (Exception e) {
+        throw new IllegalArgumentException(
+            "Both startDateTime and endDateTime must be set to " + "valid date Strings.");
+      }
+    } else {
+      log.info(
+          "Hourly tally for all accounts triggered over JMX by {}", ResourceUtils.getPrincipal());
+    }
+
+    tasks.updateHourlySnapshotsForAllAccounts(Optional.ofNullable(range));
   }
 }

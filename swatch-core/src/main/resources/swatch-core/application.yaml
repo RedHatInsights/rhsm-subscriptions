@@ -148,8 +148,6 @@ rhsm-subscriptions:
     hikari:
       connection-timeout: ${DATABASE_CONNECTION_TIMEOUT_MS}
       maximum-pool-size: ${DATABASE_MAX_POOL_SIZE}
-  product-profile:
-    product-profile-registry-resource-location: classpath:product_profile_registry.yaml
   product:
     useStub: ${PRODUCT_USE_STUB:false}
     url: ${PRODUCT_URL:https://product.qa.api.redhat.com/svcrest/product/v3}
@@ -159,3 +157,6 @@ rhsm-subscriptions:
     tasks:
       topic: platform.rhsm-subscriptions.offering-sync
       kafka-group-id: offering-worker
+  auth:
+    swatchPsks:
+      self: ${SWATCH_SELF_PSK:dummy}

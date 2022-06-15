@@ -1,0 +1,3175 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "description": "The API for Role Based Access Control.",
+    "version": "1.0.0",
+    "title": "Role Based Access Control",
+    "license": {
+      "name": "AGPL-3.0",
+      "url": "https://opensource.org/licenses/AGPL-3.0"
+    }
+  },
+  "security": [
+    {
+      "basic_auth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Principal",
+      "description": "Operations about principals"
+    },
+    {
+      "name": "Group",
+      "description": "Operations about groups"
+    },
+    {
+      "name": "Role",
+      "description": "Operations about roles"
+    },
+    {
+      "name": "Policy",
+      "description": "Operations about policies"
+    },
+    {
+      "name": "Access",
+      "description": "Operations about access"
+    },
+    {
+      "name": "Status",
+      "description": "Operations about status"
+    }
+  ],
+  "paths": {
+    "/status/": {
+      "get": {
+        "tags": [
+          "Status"
+        ],
+        "summary": "Obtain server status",
+        "operationId": "getStatus",
+        "responses": {
+          "200": {
+            "description": "An object describing the server status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Status"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/principals/": {
+      "get": {
+        "tags": [
+          "Principal"
+        ],
+        "summary": "List the principals for a tenant",
+        "description": "By default, responses are sorted in ascending order by username",
+        "operationId": "listPrincipals",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/QueryLimit"
+          },
+          {
+            "$ref": "#/components/parameters/QueryOffset"
+          },
+          {
+            "in": "query",
+            "name": "match_criteria",
+            "required": false,
+            "description": "Parameter for specifying the matching criteria for an object's name or email.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "partial",
+                "exact"
+              ],
+              "default": "exact"
+            }
+          },
+          {
+            "name": "usernames",
+            "in": "query",
+            "description": "Comma separated usernames of principals to get. If match_criteria is specified, only the first username will be picked up for search.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "userA,userB"
+            }
+          },
+
+          {
+            "name": "sort_order",
+            "in": "query",
+            "description": "The sort order of the query, either ascending or descending. Defaults to ascending.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["asc", "desc"]
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "description": "E-mail address of principal to search for. Could be combined with match_criteria for searching.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Set the status of users to get back. Could not be used with: usernames, email, admin_only",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "enabled",
+                "disabled",
+                "all"
+              ],
+              "default": "enabled"
+            }
+          },
+          {
+            "name": "admin_only",
+            "in": "query",
+            "description": "Get only admin users within an account. Setting this would ignore the parameters: usernames, email",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "false"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order_by",
+            "required": false,
+            "description": "Parameter for ordering principals by value. For inverse ordering, supply '-' before the param value, such as: ?order_by=-username",
+            "schema": {
+              "type": "string",
+              "enum": ["username"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A paginated list of principals",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrincipalPagination"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient permissions to list principals",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups/": {
+      "post": {
+        "tags": [
+          "Group"
+        ],
+        "summary": "Create a group in a tenant",
+        "operationId": "createGroup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Group"
+              }
+            }
+          },
+          "description": "Group to create in tenant",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "An object describing the group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient permissions to create group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Group"
+        ],
+        "summary": "List the groups for a tenant",
+        "description": "By default, responses are sorted in ascending order by group name",
+        "operationId": "listGroups",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/QueryLimit"
+          },
+          {
+            "$ref": "#/components/parameters/QueryOffset"
+          },
+          {
+            "$ref": "#/components/parameters/NameFilter"
+          },
+          {
+            "$ref": "#/components/parameters/NameMatchCriteria"
+          },
+          {
+            "$ref": "#/components/parameters/ScopeFilter"
+          },
+          {
+            "name": "username",
+            "in": "query",
+            "description": "A username for a principal to filter for groups",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "uuid",
+            "in": "query",
+            "description": "A list of UUIDs to filter listed groups.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "explode": false,
+            "style": "form"
+          },
+          {
+            "name": "role_names",
+            "in": "query",
+            "description": "List of role name to filter for groups. It is exact match but case-insensitive",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "explode": false,
+            "style": "form"
+          },
+          {
+            "name": "role_discriminator",
+            "in": "query",
+            "description": "Discriminator that works with role_names to indicate matching all/any of the role names",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["all", "any"]
+            }
+          },
+          {
+            "in": "query",
+            "name": "order_by",
+            "required": false,
+            "description": "Parameter for ordering groups by value. For inverse ordering, supply '-' before the param value, such as: ?order_by=-name",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "name",
+                "modified",
+                "principalCount",
+                "policyCount"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A paginated list of group objects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupPagination"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient permissions to list groups",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups/{uuid}/": {
+      "get": {
+        "tags": [
+          "Group"
+        ],
+        "summary": "Get a group in the tenant",
+        "operationId": "getGroup",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "ID of group to get",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A Group object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupWithPrincipalsAndRoles"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient permissions to get group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Group"
+        ],
+        "summary": "Udate a group in the tenant",
+        "operationId": "updateGroup",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "ID of group to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Group"
+              }
+            }
+          },
+          "description": "Group to update in tenant",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Group updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient permissions to update group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Group"
+        ],
+        "summary": "Delete a group in the tenant",
+        "operationId": "deleteGroup",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "ID of group to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Group deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient permissions to delete group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups/{uuid}/principals/": {
+      "post": {
+        "tags": [
+          "Group"
+        ],
+        "summary": "Add a principal to a group in the tenant",
+        "operationId": "addPrincipalToGroup",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "ID of group to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GroupPrincipalIn"
+        },
+        "responses": {
+          "200": {
+            "description": "Group updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupWithPrincipalsAndRoles"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Input"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient permissions to update principals in group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Group"
+        ],
+        "summary": "Get a list of principals from a group in the tenant",
+        "description": "By default, responses are sorted in ascending order by username",
+        "operationId": "getPrincipalsFromGroup",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "ID of group from which to get principals",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "principal_username",
+            "in": "query",
+            "required": false,
+            "description": "Parameter for filtering group principals by principal `username` using string contains search.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/QueryLimit"
+          },
+          {
+            "$ref": "#/components/parameters/QueryOffset"
+          },
+          {
+            "in": "query",
+            "name": "order_by",
+            "required": false,
+            "description": "Parameter for ordering principals by value. For inverse ordering, supply '-' before the param value, such as: ?order_by=-username",
+            "schema": {
+              "type": "string",
+              "enum": ["username"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of principals attached to group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrincipalPagination"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Input"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Group"
+        ],
+        "summary": "Remove a principal from a group in the tenant",
+        "operationId": "deletePrincipalFromGroup",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "ID of group to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "usernames",
+            "in": "query",
+            "description": "A comma separated list of usernames for principals to remove from the group",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Principals removed from group"
+          },
+          "400": {
+            "description": "Bad Input"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient permissions to remove principals from group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups/{uuid}/roles/": {
+      "get": {
+        "tags": [
+          "Group"
+        ],
+        "summary": "List the roles for a group in the tenant",
+        "description": "By default, responses are sorted in ascending order by role name",
+        "operationId": "listRolesForGroup",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "ID of group",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "exclude",
+            "in": "query",
+            "description": "If this is set to true, the result would be roles excluding the ones in the group",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "role_name",
+            "in": "query",
+            "required": false,
+            "description": "Parameter for filtering group roles by role `name` using string contains search.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role_display_name",
+            "in": "query",
+            "required": false,
+            "description": "Parameter for filtering group roles by role `display_name` using string contains search.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role_description",
+            "in": "query",
+            "required": false,
+            "description": "Parameter for filtering group roles by role `description` using string contains search.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/QueryLimit"
+          },
+          {
+            "$ref": "#/components/parameters/QueryOffset"
+          },
+          {
+            "in": "query",
+            "name": "order_by",
+            "required": false,
+            "description": "Parameter for ordering roles by value. For inverse ordering, supply '-' before the param value, such as: ?order_by=-name",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "name",
+                "display_name",
+                "modified",
+                "policyCount"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of roles for a group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupRolesPagination"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient permissions to list roles for group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Group"
+        ],
+        "summary": "Add a role to a group in the tenant",
+        "operationId": "addRoleToGroup",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "ID of group to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "$ref": "#/components/requestBodies/GroupRoleIn"
+        },
+        "responses": {
+          "200": {
+            "description": "Group updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RoleOut"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Input"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient permissions to update roles for group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Group"
+        ],
+        "summary": "Remove a role from a group in the tenant",
+        "operationId": "deleteRoleFromGroup",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "ID of group to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "roles",
+            "in": "query",
+            "description": "A comma separated list of role UUIDs for roles to remove from the group",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Roles removed from group"
+          },
+          "400": {
+            "description": "Bad Input"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient permissions to remove roles from group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/roles/": {
+      "post": {
+        "tags": [
+          "Role"
+        ],
+        "summary": "Create a roles for a tenant",
+        "operationId": "createRoles",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleIn"
+              }
+            }
+          },
+          "description": "Role to create",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "An object describing the role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleWithAccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient permissions to create role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Role"
+        ],
+        "summary": "List the roles for a tenant",
+        "description": "By default, responses are sorted in ascending order by role name",
+        "operationId": "listRoles",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/QueryLimit"
+          },
+          {
+            "$ref": "#/components/parameters/QueryOffset"
+          },
+          {
+            "$ref": "#/components/parameters/NameFilter"
+          },
+          {
+            "in": "query",
+            "name": "display_name",
+            "required": false,
+            "description": "Parameter for filtering resource by display_name using string contains search.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/NameMatchCriteria"
+          },
+          {
+            "$ref": "#/components/parameters/ScopeFilter"
+          },
+          {
+            "in": "query",
+            "name": "order_by",
+            "required": false,
+            "description": "Parameter for ordering roles by value. For inverse ordering, supply '-' before the param value, such as: ?order_by=-name",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "name",
+                "display_name",
+                "modified",
+                "policyCount"
+              ]
+            }
+          },
+          {
+            "name": "add_fields",
+            "in": "query",
+            "required": false,
+            "description": "Parameter for add list of fields to display for roles.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "groups_in",
+                  "groups_in_count"
+                ]
+              }
+            },
+            "explode": false,
+            "style": "form"
+          },
+          {
+            "name": "username",
+            "in": "query",
+            "description": "Unique username of the principal to obtain roles for (only available for admins, and if supplied, takes precedence over the identity header).",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "application",
+            "in": "query",
+            "description": "The application name(s) to filter roles by, from permissions. This is an exact match. You may also use a comma-separated list to match on multiple applications.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "permission",
+            "in": "query",
+            "description": "The permission(s) to filter roles by. This is an exact match. You may also use a comma-separated list to match on multiple permissions.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A paginated list of role objects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RolePaginationDynamic"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient permissions to list roles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/roles/{uuid}/": {
+      "get": {
+        "tags": [
+          "Role"
+        ],
+        "summary": "Get a role in the tenant",
+        "operationId": "getRole",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "ID of role to get",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/ScopeFilter"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A Role object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleWithAccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient permissions to get role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Role"
+        ],
+        "summary": "Delete a role in the tenant",
+        "operationId": "deleteRole",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "ID of role to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Role deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient permissions to delete role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Role"
+        ],
+        "summary": "Update a Role in the tenant",
+        "operationId": "updateRole",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "ID of role to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleWithAccess"
+              }
+            }
+          },
+          "description": "Update to a Role",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Role updated"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient permissions to update role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Role"
+        ],
+        "summary": "Patch a Role in the tenant",
+        "operationId": "patchRole",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "ID of role to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RolePatch"
+              }
+            }
+          },
+          "description": "Patch to a Role"
+        },
+        "responses": {
+          "200": {
+            "description": "Role patched",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleWithAccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient permissions to patch role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/roles/{uuid}/access/": {
+      "get": {
+        "tags": [
+          "Role"
+        ],
+        "summary": "Get access for a role in the tenant",
+        "operationId": "getRoleAccess",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "ID of the role",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/QueryLimit"
+          },
+          {
+            "$ref": "#/components/parameters/QueryOffset"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A paginated list of the access objects for a role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessPagination"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient permissions to get access for role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/policies/": {
+      "post": {
+        "tags": [
+          "Policy"
+        ],
+        "summary": "Create a policy in a tenant",
+        "operationId": "createPolicies",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PolicyIn"
+              }
+            }
+          },
+          "description": "Policy to create",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "An object describing the policy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyExtended"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Policy"
+        ],
+        "summary": "List the policies in the tenant",
+        "description": "By default, responses are sorted in ascending order by policy name",
+        "operationId": "listPolicies",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/QueryLimit"
+          },
+          {
+            "$ref": "#/components/parameters/QueryOffset"
+          },
+          {
+            "$ref": "#/components/parameters/NameFilter"
+          },
+          {
+            "$ref": "#/components/parameters/ScopeFilter"
+          },
+          {
+            "$ref": "#/components/parameters/GroupNameFilter"
+          },
+          {
+            "$ref": "#/components/parameters/GroupUUIDFilter"
+          },
+          {
+            "in": "query",
+            "name": "order_by",
+            "required": false,
+            "description": "Parameter for ordering policies by value. For inverse ordering, supply '-' before the param value, such as: ?order_by=-name",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "name",
+                "modified"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A paginated list of policy objects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyPagination"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/policies/{uuid}/": {
+      "get": {
+        "tags": [
+          "Policy"
+        ],
+        "summary": "Get a policy in the tenant",
+        "operationId": "getPolicy",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "ID of policy to get",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A Policy object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyExtended"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Policy"
+        ],
+        "summary": "Update a policy in the tenant",
+        "operationId": "updatePolicy",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "ID of policy to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PolicyIn"
+              }
+            }
+          },
+          "description": "Policy to update",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "A Policy object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyExtended"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Policy"
+        ],
+        "summary": "Delete a policy in the tenant",
+        "operationId": "deletePolicy",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "ID of policy to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Policy deleted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/access/": {
+      "get": {
+        "tags": [
+          "Access"
+        ],
+        "summary": "Get the permitted access for a principal in the tenant (defaults to principal from the identity header)",
+        "description": "Access responses are sorted in ascending order by an ID internal to the database",
+        "operationId": "getPrincipalAccess",
+        "parameters": [
+          {
+            "name": "application",
+            "in": "query",
+            "description": "The application name(s) to obtain access for the principal. This is an exact match. When no application is supplied, all permissions for the principal are returned. You may also use a comma-separated list to match on multiple applications.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "query",
+            "description": "Unique username of the principal to obtain access for (only available for admins, and if supplied, takes precedence over the identity header).",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/QueryLimit"
+          },
+          {
+            "$ref": "#/components/parameters/QueryOffset"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A paginated list of access objects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessPagination"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/permissions/": {
+      "get": {
+        "tags": [
+          "Permission"
+        ],
+        "summary": "List the permissions for a tenant",
+        "description": "By default, responses are sorted in ascending order by permission application.",
+        "operationId": "listPermissions",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/QueryLimit"
+          },
+          {
+            "$ref": "#/components/parameters/QueryOffset"
+          },
+          {
+            "in": "query",
+            "name": "order_by",
+            "required": false,
+            "description": "Parameter for ordering permissions by value. For inverse ordering, supply '-' before the param value, such as: ?order_by=-application",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "application",
+                "resource_type",
+                "verb",
+                "permission"
+              ]
+            }
+          },
+          {
+            "name": "application",
+            "in": "query",
+            "description": "Exact match for the application name of a permission. You may also use a comma-separated list to match on multiple applications.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resource_type",
+            "in": "query",
+            "description": "Exact match for the resource type name of a permission. You may also use a comma-separated list to match on multiple resource_types.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "verb",
+            "in": "query",
+            "description": "Exact match for the operation verb name of a permission You may also use a comma-separated list to match on multiple verbs.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "permission",
+            "in": "query",
+            "description": "Partial match for the aggregate permission value name of a permission object.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exclude_globals",
+            "in": "query",
+            "description": "If set to 'true', this will exclude any permission with a global allowance on either 'application', 'resource_type' or 'verb'. The default is 'false'.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "false",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A paginated list of permission objects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionPagination"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient permissions to list permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/permissions/options/": {
+      "get": {
+        "tags": [
+          "Permission"
+        ],
+        "summary": "List the available options for fields of permissions for a tenant",
+        "description": "By default, options of application is returned. And could be resource_type or verb on demand.",
+        "operationId": "listPermissionOptions",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/QueryLimit"
+          },
+          {
+            "$ref": "#/components/parameters/QueryOffset"
+          },
+          {
+            "name": "field",
+            "in": "query",
+            "description": "specify which fields of permission to display",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "application",
+                "resource_type",
+                "verb"
+              ]
+            }
+          },
+          {
+            "name": "application",
+            "in": "query",
+            "description": "Filter returned options based on application. You may also use a comma-separated list to filter on multiple applications.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resource_type",
+            "in": "query",
+            "description": "Filter returned options based on resource_type. You may also use a comma-separated list to filter on multiple resource_types.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "verb",
+            "in": "query",
+            "description": "Filter returned options based on verb. You may also use a comma-separated list to filter on multiple verbs.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of options for field of permission",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionOptionsPagination"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Insufficient permissions to list permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error403"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "/api/rbac/v1"
+    }
+  ],
+  "components": {
+    "parameters": {
+      "QueryOffset": {
+        "in": "query",
+        "name": "offset",
+        "required": false,
+        "description": "Parameter for selecting the offset of data.",
+        "schema": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        }
+      },
+      "QueryLimit": {
+        "in": "query",
+        "name": "limit",
+        "required": false,
+        "description": "Parameter for selecting the amount of data returned.",
+        "schema": {
+          "type": "integer",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 1000
+        }
+      },
+      "NameFilter": {
+        "in": "query",
+        "name": "name",
+        "required": false,
+        "description": "Parameter for filtering resource by name using string contains search.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "GroupNameFilter": {
+        "in": "query",
+        "name": "group_name",
+        "required": false,
+        "description": "Parameter for filtering resource by group name using string contains search.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "GroupUUIDFilter": {
+        "in": "query",
+        "name": "group_uuid",
+        "required": false,
+        "description": "Parameter for filtering resource by group uuid using UUID exact match.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "ScopeFilter": {
+        "in": "query",
+        "name": "scope",
+        "required": false,
+        "description": "Parameter for filtering resource by scope.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "account",
+            "principal"
+          ],
+          "default": "account"
+        }
+      },
+      "NameMatchCriteria": {
+        "in": "query",
+        "name": "name_match",
+        "required": false,
+        "description": "Parameter for specifying the matching criteria for an object's name or display_name.",
+        "schema": {
+          "type": "string",
+          "enum": ["partial", "exact"]
+        }
+      }
+    },
+    "requestBodies": {
+      "GroupPrincipalIn": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/GroupPrincipalIn"
+            }
+          }
+        },
+        "description": "Principal to add to a group",
+        "required": true
+      },
+      "GroupRoleIn": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/GroupRoleIn"
+            }
+          }
+        },
+        "description": "Role to add to a group",
+        "required": true
+      }
+    },
+    "securitySchemes": {
+      "basic_auth": {
+        "type": "http",
+        "description": "The userid/password is needed when accessing this API externally",
+        "scheme": "basic"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "required": [
+          "errors"
+        ],
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "detail": {
+                  "type": "string",
+                  "example": "Not found."
+                },
+                "status": {
+                  "type": "string",
+                  "example": "403"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Error403": {
+        "required": [
+          "errors"
+        ],
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "detail": {
+                  "type": "string",
+                  "example": "You do not have permission to perform this action."
+                },
+                "source": {
+                  "type": "string",
+                  "example": "detail"
+                },
+                "status": {
+                  "type": "string",
+                  "example": "403"
+                }
+              }
+            }
+          }
+        }
+      },
+      "UUID": {
+        "type": "object",
+        "required": [
+          "uuid"
+        ],
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "format": "uuid",
+            "example": "57e60f90-8c0c-4bd1-87a0-2143759aae1c"
+          }
+        }
+      },
+      "Timestamped": {
+        "type": "object",
+        "required": [
+          "created",
+          "modified"
+        ],
+        "properties": {
+          "created": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2019-01-21T17:32:28Z"
+          },
+          "modified": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2019-03-04T07:25:58Z"
+          }
+        }
+      },
+      "PaginationMeta": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int64",
+            "example": 30
+          }
+        }
+      },
+      "PaginationLinks": {
+        "properties": {
+          "first": {
+            "type": "string",
+            "format": "uri",
+            "example": "/api/v1/(resources)/?offset=0&limit=10"
+          },
+          "previous": {
+            "type": "string",
+            "format": "uri",
+            "example": "/api/v1/(resources)/?offset=20&limit=10"
+          },
+          "next": {
+            "type": "string",
+            "format": "uri",
+            "example": "/api/v1/(resources)/?offset=40&limit=10"
+          },
+          "last": {
+            "type": "string",
+            "format": "uri",
+            "example": "/api/v1/(resources)/?offset=90&limit=10"
+          }
+        }
+      },
+      "ListPagination": {
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMeta"
+          },
+          "links": {
+            "$ref": "#/components/schemas/PaginationLinks"
+          }
+        }
+      },
+      "Principal": {
+        "required": [
+          "username",
+          "email"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "smithj"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "smithj@mytechco.com"
+          },
+          "first_name": {
+            "type": "string",
+            "example": "John"
+          },
+          "last_name": {
+            "type": "string",
+            "example": "Smith"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "is_org_admin": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PrincipalIn": {
+        "required": [
+          "username"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "smithj"
+          }
+        }
+      },
+      "PrincipalOut": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Principal"
+          },
+          {
+            "$ref": "#/components/schemas/UUID"
+          }
+        ]
+      },
+      "PrincipalPagination": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ListPagination"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Principal"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Group": {
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "GroupA"
+          },
+          "description": {
+            "type": "string",
+            "example": "A description of GroupA"
+          }
+        }
+      },
+      "AdditionalGroup": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "GroupA"
+          },
+          "description": {
+            "type": "string",
+            "example": "GroupA Description"
+          },
+          "uuid": {
+            "type": "string",
+            "example": "234df936-abb4-4238-a1c9-d91fc540c702"
+          }
+        }
+      },
+      "GroupOut": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Group"
+          },
+          {
+            "$ref": "#/components/schemas/UUID"
+          },
+          {
+            "$ref": "#/components/schemas/Timestamped"
+          },
+          {
+            "properties": {
+              "principalCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "roleCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "system": {
+                "type": "boolean",
+                "default": false
+              },
+              "platform_default": {
+                "type": "boolean",
+                "default": false
+              }
+            }
+          }
+        ]
+      },
+      "GroupPrincipalIn": {
+        "required": [
+          "principals"
+        ],
+        "properties": {
+          "principals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrincipalIn"
+            }
+          }
+        }
+      },
+      "GroupRoleIn": {
+        "required": [
+          "roles"
+        ],
+        "properties": {
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "example": "94846f2f-cced-474f-b7f3-47e2ec51dd11"
+            }
+          }
+        }
+      },
+      "GroupWithPrincipals": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Group"
+          },
+          {
+            "$ref": "#/components/schemas/UUID"
+          },
+          {
+            "$ref": "#/components/schemas/Timestamped"
+          },
+          {
+            "type": "object",
+            "required": [
+              "principals"
+            ],
+            "properties": {
+              "principals": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Principal"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "GroupWithPrincipalsAndRoles": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Group"
+          },
+          {
+            "$ref": "#/components/schemas/UUID"
+          },
+          {
+            "$ref": "#/components/schemas/Timestamped"
+          },
+          {
+            "type": "object",
+            "required": [
+              "principals",
+              "roles"
+            ],
+            "properties": {
+              "principals": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Principal"
+                }
+              },
+              "roles": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RoleOut"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "GroupRolesPagination": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ListPagination"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RoleOut"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "GroupPagination": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ListPagination"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/GroupOut"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ResourceDefinitionFilter": {
+        "required": [
+          "key",
+          "operation",
+          "value"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "cost-management.aws.account"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "equal",
+              "in"
+            ]
+          },
+          "value": {
+            "type": "string",
+            "example": "123456"
+          }
+        }
+      },
+      "ResourceDefinition": {
+        "required": [
+          "attributeFilter"
+        ],
+        "properties": {
+          "attributeFilter": {
+            "$ref": "#/components/schemas/ResourceDefinitionFilter"
+          }
+        }
+      },
+      "Access": {
+        "required": [
+          "permission",
+          "resourceDefinitions"
+        ],
+        "properties": {
+          "permission": {
+            "type": "string",
+            "example": "cost-management:*:read"
+          },
+          "resourceDefinitions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResourceDefinition"
+            }
+          }
+        }
+      },
+      "Role": {
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "RoleA"
+          },
+          "display_name": {
+            "type": "string",
+            "example": "ARoleName"
+          },
+          "description": {
+            "type": "string",
+            "example": "A description of RoleA"
+          }
+        }
+      },
+      "RoleIn": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Role"
+          },
+          {
+            "type": "object",
+            "required": [
+              "access"
+            ],
+            "properties": {
+              "access": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Access"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "RolePagination": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ListPagination"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RoleOut"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "RolePaginationDynamic": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ListPagination"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RoleOutDynamic"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "RoleOut": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Role"
+          },
+          {
+            "$ref": "#/components/schemas/UUID"
+          },
+          {
+            "$ref": "#/components/schemas/Timestamped"
+          },
+          {
+            "properties": {
+              "policyCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "accessCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "applications": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "example": "catalog"
+                }
+              },
+              "system": {
+                "type": "boolean",
+                "default": false
+              },
+              "platform_default": {
+                "type": "boolean",
+                "default": false
+              }
+            }
+          }
+        ]
+      },
+      "RoleOutDynamic": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Role"
+          },
+          {
+            "$ref": "#/components/schemas/UUID"
+          },
+          {
+            "$ref": "#/components/schemas/Timestamped"
+          },
+          {
+            "type": "object",
+            "required": [
+              "policyCount",
+              "accessCount",
+              "applications",
+              "system",
+              "platform_default"
+            ],
+            "properties": {
+              "policyCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "accessCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "applications": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "example": "catalog"
+                }
+              },
+              "system": {
+                "type": "boolean",
+                "default": false
+              },
+              "platform_default": {
+                "type": "boolean",
+                "default": false
+              },
+              "groups_in_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "groups_in": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/AdditionalGroup"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "RolePatch": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "RoleA"
+          },
+          "display_name": {
+            "type": "string",
+            "example": "ARoleName"
+          },
+          "description": {
+            "type": "string",
+            "example": "A description of RoleA"
+          }
+        }
+      },
+      "RoleWithAccess": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RoleOut"
+          },
+          {
+            "type": "object",
+            "required": [
+              "access"
+            ],
+            "properties": {
+              "access": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Access"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Policy": {
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "PolicyA"
+          },
+          "description": {
+            "type": "string",
+            "example": "A description of PolicyA"
+          }
+        }
+      },
+      "PolicyIn": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Policy"
+          },
+          {
+            "type": "object",
+            "required": [
+              "group",
+              "roles"
+            ],
+            "properties": {
+              "group": {
+                "type": "string",
+                "format": "uuid",
+                "example": "83ee048e-3c1d-43ef-b945-108225ae52f4"
+              },
+              "roles": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid",
+                  "example": "94846f2f-cced-474f-b7f3-47e2ec51dd11"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "PolicyExtended": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Policy"
+          },
+          {
+            "$ref": "#/components/schemas/UUID"
+          },
+          {
+            "$ref": "#/components/schemas/Timestamped"
+          },
+          {
+            "type": "object",
+            "required": [
+              "group",
+              "roles"
+            ],
+            "properties": {
+              "group": {
+                "$ref": "#/components/schemas/GroupOut"
+              },
+              "roles": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RoleOut"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "PolicyPagination": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ListPagination"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PolicyExtended"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "AccessPagination": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ListPagination"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Access"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Status": {
+        "required": [
+          "api_version"
+        ],
+        "properties": {
+          "api_version": {
+            "type": "integer",
+            "format": "int64",
+            "example": 1
+          },
+          "commit": {
+            "type": "string",
+            "example": "178d2ea"
+          },
+          "server_address": {
+            "type": "string",
+            "example": "127.0.0.1:8000"
+          },
+          "platform_info": {
+            "type": "object",
+            "example": {
+              "system": "Darwin",
+              "node": "node-1.example.com",
+              "release": "17.5.0",
+              "version": "Darwin Kernel Version 17.5.0",
+              "machine": "x86_64",
+              "processor": "i386"
+            }
+          },
+          "python_version": {
+            "type": "string",
+            "example": "3.6.1"
+          },
+          "modules": {
+            "type": "object",
+            "example": {
+              "coverage": "4.5.1",
+              "coverage.version": "4.5.1",
+              "coverage.xmlreport": "4.5.1",
+              "cryptography": "2.0.3",
+              "ctypes": "1.1.0",
+              "ctypes.macholib": "1.0",
+              "decimal": "1.70",
+              "django": "1.11.5",
+              "django.utils.six": "1.10.0",
+              "django_filters": "1.0.4",
+              "http.server": "0.6"
+            }
+          }
+        }
+      },
+      "Permission": {
+        "properties": {
+          "application": {
+            "type": "string",
+            "example": "rbac"
+          },
+          "resource_type": {
+            "type": "string",
+            "example": "group"
+          },
+          "verb": {
+            "type": "string",
+            "example": "read"
+          },
+          "permission": {
+            "type": "string",
+            "example": "rbac:group:read"
+          },
+          "description": {
+            "type": "string",
+            "example": "Describe the usage of permission."
+          }
+        }
+      },
+      "PermissionPagination": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ListPagination"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Permission"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "PermissionOptionsPagination": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ListPagination"
+          },
+          {
+            "type": "object",
+            "required": [
+              "data"
+            ],
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

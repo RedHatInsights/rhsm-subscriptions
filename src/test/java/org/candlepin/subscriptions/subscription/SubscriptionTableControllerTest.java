@@ -170,7 +170,7 @@ class SubscriptionTableControllerTest {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, null, null);
+            productId, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the sub and appropriate
     // quantity and capacities.
@@ -206,7 +206,7 @@ class SubscriptionTableControllerTest {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, null, null);
+            productId, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the subs and appropriate
     // quantity and capacities.
@@ -254,7 +254,7 @@ class SubscriptionTableControllerTest {
     // When requesting a SKU capacity report for the eng product, sorted by SKU
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
+            productId, null, null, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
 
     // Then the report contains two inventory items containing a sub with appropriate
     // quantity and capacities, and RH00604F5 is listed first.
@@ -299,7 +299,7 @@ class SubscriptionTableControllerTest {
     // When requesting a SKU capacity report for an eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, null, null);
+            productId, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains no inventory items.
     assertEquals(0, actual.getData().size(), "An empty inventory list should be returned.");
@@ -330,7 +330,7 @@ class SubscriptionTableControllerTest {
 
     SkuCapacityReport report =
         subscriptionTableController.capacityReportBySku(
-            RHEL, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
+            RHEL, null, null, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
     assertEquals(1, report.getData().size());
   }
 
@@ -358,6 +358,8 @@ class SubscriptionTableControllerTest {
             ServiceLevelType.PREMIUM,
             null,
             null,
+            null,
+            null,
             SkuCapacityReportSort.SKU,
             null);
     assertEquals(0, reportForUnmatchedSLA.getData().size());
@@ -368,6 +370,8 @@ class SubscriptionTableControllerTest {
             null,
             null,
             ServiceLevelType.STANDARD,
+            null,
+            null,
             null,
             null,
             SkuCapacityReportSort.SKU,
@@ -400,6 +404,8 @@ class SubscriptionTableControllerTest {
             null,
             UsageType.DEVELOPMENT_TEST,
             null,
+            null,
+            null,
             SkuCapacityReportSort.SKU,
             null);
     assertEquals(0, reportForUnmatchedUsage.getData().size());
@@ -411,6 +417,8 @@ class SubscriptionTableControllerTest {
             null,
             null,
             UsageType.PRODUCTION,
+            null,
+            null,
             null,
             SkuCapacityReportSort.SKU,
             null);
@@ -466,7 +474,7 @@ class SubscriptionTableControllerTest {
 
     SkuCapacityReport reportWithOffsetAndLimit =
         subscriptionTableController.capacityReportBySku(
-            RHEL_SERVER, 0, 2, null, null, null, SkuCapacityReportSort.SKU, null);
+            RHEL_SERVER, 0, 2, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
     assertEquals(2, reportWithOffsetAndLimit.getData().size());
     assertEquals(5, reportWithOffsetAndLimit.getMeta().getCount());
   }
@@ -505,6 +513,8 @@ class SubscriptionTableControllerTest {
             null,
             ServiceLevelType.STANDARD,
             null,
+            null,
+            null,
             Uom.CORES,
             SkuCapacityReportSort.SKU,
             null);
@@ -516,6 +526,8 @@ class SubscriptionTableControllerTest {
             null,
             null,
             ServiceLevelType.STANDARD,
+            null,
+            null,
             null,
             Uom.SOCKETS,
             SkuCapacityReportSort.SKU,
@@ -536,6 +548,8 @@ class SubscriptionTableControllerTest {
                     null,
                     UsageType.PRODUCTION,
                     null,
+                    null,
+                    null,
                     SkuCapacityReportSort.SKU,
                     null));
     assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
@@ -549,7 +563,16 @@ class SubscriptionTableControllerTest {
 
     SkuCapacityReport report =
         subscriptionTableController.capacityReportBySku(
-            RHEL_SERVER, null, null, null, null, Uom.CORES, SkuCapacityReportSort.SKU, null);
+            RHEL_SERVER,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            Uom.CORES,
+            SkuCapacityReportSort.SKU,
+            null);
 
     assertEquals(SubscriptionType.ANNUAL, report.getMeta().getSubscriptionType());
   }
@@ -562,7 +585,16 @@ class SubscriptionTableControllerTest {
 
     SkuCapacityReport report =
         subscriptionTableController.capacityReportBySku(
-            OPENSHIFT_METRICS, null, null, null, null, Uom.CORES, SkuCapacityReportSort.SKU, null);
+            OPENSHIFT_METRICS,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            Uom.CORES,
+            SkuCapacityReportSort.SKU,
+            null);
 
     assertEquals(SubscriptionType.ON_DEMAND, report.getMeta().getSubscriptionType());
   }
@@ -583,13 +615,111 @@ class SubscriptionTableControllerTest {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, null, null);
+            productId, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the sub and HasInfiniteQuantity
     // should be true.
     assertEquals(1, actual.getData().size(), "Wrong number of items returned");
     SkuCapacity actualItem = actual.getData().get(0);
     assertTrue(actualItem.getHasInfiniteQuantity(), "HasInfiniteQuantity should be true");
+  }
+
+  @Test
+  void testShouldSortUnlimitedLastAscending() {
+    // Given an org with two active subs with different quantities for different SKUs,
+    // and the subs have an eng product with a socket capacity of 2,
+    // and the subs have different ending dates,
+    ProductId productId = RHEL_SERVER;
+    Sub expectedNewerSub = Sub.sub("1234", "1235", 4, 5, 7);
+    Sub expectedOlderSub = Sub.sub("1236", "1237", 5, 6, 6);
+    List<SubscriptionCapacityView> givenCapacities =
+        givenCapacities(
+            Org.STANDARD,
+            productId,
+            RH0180191.withSub(expectedNewerSub),
+            RH0180195_UNLIMITED_USAGE.withSub(expectedOlderSub));
+    when(subscriptionCapacityViewRepository.findAllBy(
+            any(), anyString(), any(), any(), any(), any(), any()))
+        .thenReturn(givenCapacities);
+
+    // When requesting a SKU capacity report for the eng product, sorted by quantity
+    SkuCapacityReport actual =
+        subscriptionTableController.capacityReportBySku(
+            productId,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            SkuCapacityReportSort.TOTAL_CAPACITY,
+            null);
+
+    // Then the report contains two inventory items containing a sub with appropriate
+    // quantity and capacities, and RH00604F5 is listed first.
+    assertEquals(
+        2,
+        actual.getData().size(),
+        "Both subs are for different SKUs so should collect into two capacity items.");
+
+    SkuCapacity actualItem = actual.getData().get(0);
+    assertEquals(RH0180191.sku, actualItem.getSku(), "Wrong SKU. (Incorrect ordering of SKUs?)");
+
+    actualItem = actual.getData().get(1);
+    assertEquals(
+        RH0180195_UNLIMITED_USAGE.sku,
+        actualItem.getSku(),
+        "Wrong SKU. (Incorrect ordering of SKUs?)");
+  }
+
+  @Test
+  void testShouldSortUnlimitedFirstDescending() {
+    // Given an org with two active subs with different quantities for different SKUs,
+    // and the subs have an eng product with a socket capacity of 2,
+    // and the subs have different ending dates,
+    ProductId productId = RHEL_SERVER;
+    Sub expectedNewerSub = Sub.sub("1234", "1235", 4, 5, 7);
+    Sub expectedOlderSub = Sub.sub("1236", "1237", 5, 6, 6);
+    List<SubscriptionCapacityView> givenCapacities =
+        givenCapacities(
+            Org.STANDARD,
+            productId,
+            RH0180191.withSub(expectedNewerSub),
+            RH0180195_UNLIMITED_USAGE.withSub(expectedOlderSub));
+    when(subscriptionCapacityViewRepository.findAllBy(
+            any(), anyString(), any(), any(), any(), any(), any()))
+        .thenReturn(givenCapacities);
+
+    // When requesting a SKU capacity report for the eng product, sorted by quantity
+    SkuCapacityReport actual =
+        subscriptionTableController.capacityReportBySku(
+            productId,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            SkuCapacityReportSort.TOTAL_CAPACITY,
+            SortDirection.DESC);
+
+    // Then the report contains two inventory items containing a sub with appropriate
+    // quantity and capacities, and RH0180195 is listed first.
+    assertEquals(
+        2,
+        actual.getData().size(),
+        "Both subs are for different SKUs so should collect into two capacity items.");
+
+    SkuCapacity actualItem = actual.getData().get(0);
+    assertEquals(
+        RH0180195_UNLIMITED_USAGE.sku,
+        actualItem.getSku(),
+        "Wrong SKU. (Incorrect ordering of SKUs?)");
+
+    actualItem = actual.getData().get(1);
+    assertEquals(RH0180191.sku, actualItem.getSku(), "Wrong SKU. (Incorrect ordering of SKUs?)");
   }
 
   private static void assertCapacities(

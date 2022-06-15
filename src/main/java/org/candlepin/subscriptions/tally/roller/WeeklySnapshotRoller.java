@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.roller;
 
-import static org.candlepin.subscriptions.db.model.Granularity.*;
+import static org.candlepin.subscriptions.db.model.Granularity.WEEKLY;
 
 import java.util.Collection;
 import java.util.List;
@@ -52,16 +52,18 @@ public class WeeklySnapshotRoller extends BaseSnapshotRoller {
   @Override
   @Transactional
   public Collection<TallySnapshot> rollSnapshots(
-      Collection<String> accounts, Collection<AccountUsageCalculation> accountCalcs) {
-    log.debug("Producing weekly snapshots for {} account(s).", accounts.size());
+      String account, Collection<AccountUsageCalculation> accountCalcs) {
+    log.debug("Producing weekly snapshots for account {}.", account);
 
     Map<String, List<TallySnapshot>> currentForWeek =
-        getCurrentSnapshotsByAccount(
-            accounts,
-            getApplicableProducts(accountCalcs, WEEKLY),
-            WEEKLY,
-            clock.startOfCurrentWeek(),
-            clock.endOfCurrentWeek());
+        Map.of(
+            account,
+            getCurrentSnapshotsByAccount(
+                account,
+                getApplicableProducts(accountCalcs, WEEKLY),
+                WEEKLY,
+                clock.startOfCurrentWeek(),
+                clock.endOfCurrentWeek()));
 
     return updateSnapshots(accountCalcs, currentForWeek, WEEKLY);
   }

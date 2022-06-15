@@ -67,12 +67,12 @@ public abstract class BaseSnapshotRoller {
   /**
    * Roll the snapshots for the given account.
    *
-   * @param accounts the accounts of the snapshots to roll.
+   * @param account the account of the snapshots to roll.
    * @param accountCalcs the current calculations from the host inventory.
    * @return collection of snapshots
    */
   public abstract Collection<TallySnapshot> rollSnapshots(
-      Collection<String> accounts, Collection<AccountUsageCalculation> accountCalcs);
+      String account, Collection<AccountUsageCalculation> accountCalcs);
 
   protected TallySnapshot createSnapshotFromProductUsageCalculation(
       String account, String owner, UsageCalculation productCalc, Granularity granularity) {
@@ -80,6 +80,8 @@ public abstract class BaseSnapshotRoller {
     snapshot.setProductId(productCalc.getProductId());
     snapshot.setServiceLevel(productCalc.getSla());
     snapshot.setUsage(productCalc.getUsage());
+    snapshot.setBillingProvider(productCalc.getBillingProvider());
+    snapshot.setBillingAccountId(productCalc.getBillingAccountId());
     snapshot.setGranularity(granularity);
     snapshot.setOwnerId(owner);
     snapshot.setAccountNumber(account);
@@ -127,16 +129,16 @@ public abstract class BaseSnapshotRoller {
   }
 
   @SuppressWarnings("indentation")
-  protected Map<String, List<TallySnapshot>> getCurrentSnapshotsByAccount(
-      Collection<String> accounts,
+  protected List<TallySnapshot> getCurrentSnapshotsByAccount(
+      String account,
       Collection<String> products,
       Granularity granularity,
       OffsetDateTime begin,
       OffsetDateTime end) {
     try (Stream<TallySnapshot> snapStream =
-        tallyRepo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
-            accounts, products, granularity, begin, end)) {
-      return snapStream.collect(Collectors.groupingBy(TallySnapshot::getAccountNumber));
+        tallyRepo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
+            account, products, granularity, begin, end)) {
+      return snapStream.collect(Collectors.toList());
     }
   }
 

@@ -28,6 +28,8 @@ import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
 import java.util.Set;
+import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -35,6 +37,7 @@ import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
+import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,7 +64,10 @@ class PrometheusMetricsTaskManagerTest {
   void setupTest() {
     when(queueProperties.getTopic()).thenReturn(TASK_TOPIC);
     when(tagProfile.getSupportedMetricsForProduct(any())).thenReturn(Set.of(Uom.CORES));
-    manager = new PrometheusMetricsTaskManager(queue, queueProperties, accountSource, tagProfile);
+    ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+    manager =
+        new PrometheusMetricsTaskManager(
+            queue, queueProperties, accountSource, tagProfile, clock, new ApplicationProperties());
   }
 
   @Test
@@ -87,7 +93,7 @@ class PrometheusMetricsTaskManagerTest {
     OffsetDateTime end = OffsetDateTime.now();
     OffsetDateTime start = end.minusDays(1);
 
-    when(accountSource.getMarketplaceAccounts(eq(TEST_PROFILE_ID), eq(Uom.CORES), any()))
+    when(accountSource.getMarketplaceAccounts(eq(TEST_PROFILE_ID), eq(Uom.CORES), any(), any()))
         .thenReturn(Set.of("a1", "a2"));
     TaskDescriptor account1Task =
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, TASK_TOPIC)

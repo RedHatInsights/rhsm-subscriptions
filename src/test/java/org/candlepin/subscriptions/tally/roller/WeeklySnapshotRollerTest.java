@@ -40,7 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 @ActiveProfiles({"api", "test"})
 @TestInstance(Lifecycle.PER_CLASS)
-public class WeeklySnapshotRollerTest {
+class WeeklySnapshotRollerTest {
 
   @Autowired private TallySnapshotRepository repository;
 
@@ -51,7 +51,7 @@ public class WeeklySnapshotRollerTest {
   private SnapshotRollerTester<WeeklySnapshotRoller> tester;
 
   @BeforeAll
-  public void setupAllTests() throws IOException {
+  void setupAllTests() throws IOException {
     this.clock = new FixedClockConfiguration().fixedClock();
     this.tester =
         new SnapshotRollerTester<>(
@@ -59,19 +59,19 @@ public class WeeklySnapshotRollerTest {
   }
 
   @Test
-  public void testWeeklySnapshotProduction() {
+  void testWeeklySnapshotProduction() {
     this.tester.performBasicSnapshotRollerTest(
         Granularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek());
   }
 
   @Test
-  public void testWeeklySnapIsUpdatedWhenItAlreadyExists() {
+  void testWeeklySnapIsUpdatedWhenItAlreadyExists() {
     this.tester.performSnapshotUpdateTest(
         Granularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek());
   }
 
   @Test
-  public void ensureCurrentWeeklyIsNotUpdatedWhenIncomingCalculationsAreLessThanTheExisting() {
+  void ensureCurrentWeeklyIsNotUpdatedWhenIncomingCalculationsAreLessThanTheExisting() {
     this.tester.performUpdateWithLesserValueTest(
         Granularity.WEEKLY, clock.startOfCurrentWeek(), clock.endOfCurrentWeek(), true);
   }

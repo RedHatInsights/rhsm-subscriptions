@@ -59,10 +59,21 @@ public class JolokiaActuatorConfiguration extends WebSecurityConfigurerAdapter {
   }
 
   @Bean
+  AuthProperties conduitAuthProperties() {
+    return new AuthProperties();
+  }
+
+  @Bean
+  public IdentityHeaderAuthoritiesMapper conduitIdentityHeaderAuthoritiesMapper() {
+    return new IdentityHeaderAuthoritiesMapper();
+  }
+
+  @Bean
   public AuthenticationProvider jolokiaIdentityHeaderAuthenticationProvider(
       @Qualifier("jolokiaIdentityHeaderAuthenticationDetailsService")
           IdentityHeaderAuthenticationDetailsService detailsService) {
-    return new IdentityHeaderAuthenticationProvider(detailsService);
+    return new IdentityHeaderAuthenticationProvider(
+        detailsService, conduitIdentityHeaderAuthoritiesMapper(), conduitAuthProperties());
   }
 
   @Bean
@@ -108,21 +119,14 @@ public class JolokiaActuatorConfiguration extends WebSecurityConfigurerAdapter {
     // See
     // https://docs.spring.io/spring-security/site/docs/current/reference/html5/#ns-custom-filters
     // for list of filters and their order
-    http.requestMatchers(
-            matchers -> matchers.antMatchers("/actuator/**/jolokia", "/actuator/**/jolokia/**"))
+    http.requestMatcher(EndpointRequest.to("jolokia"))
         .csrf()
         .disable()
         .addFilter(identityHeaderAuthenticationFilter())
         .addFilterAfter(mdcFilter(), IdentityHeaderAuthenticationFilter.class)
         .addFilterAt(getVerbIncludingAntiCsrfFilter(secProps, env), CsrfFilter.class)
         .authorizeRequests()
-        .requestMatchers(EndpointRequest.to("jolokia"))
-        .permitAll()
-        .and()
-        .anonymous() // Creates an anonymous user if no header is present at all. Prevents NPEs
-        .and()
-        .authorizeRequests()
         .anyRequest()
-        .permitAll();
+        .authenticated();
   }
 }

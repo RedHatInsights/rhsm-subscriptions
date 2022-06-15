@@ -1,0 +1,58 @@
+openapi: "3.0.2"
+info:
+  title: "rhsm-subscriptions internal tally API"
+  version: 1.0.0
+
+paths:
+  /internal/tally/resend:
+    description: 'Operations to resend specific tally snapshots to marketplaces'
+    post:
+      operationId: resendTally
+      summary: "Resend specific tally snapshots"
+      requestBody:
+        $ref: '#/components/requestBodies/UuidListBody'
+      responses:
+        '202':
+          description: "The request for resending the tally snapshots was accepted"
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/TallyResend"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - internalTally
+  /internal-tally-openapi.json:
+    $ref: "../../../spec/openapi-paths.yaml#/openapi-json"
+  /internal-tally-openapi.yaml:
+    $ref: "../../../spec/openapi-paths.yaml#/openapi-yaml"
+components:
+  requestBodies:
+    UuidListBody:
+      description: "A list of UUIDs"
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/UuidList"
+  schemas:
+    UuidList:
+      type: object
+      properties:
+        uuids:
+          type: array
+          items:
+            type: string
+    TallyResend:
+      properties:
+        data:
+          type: object
+          required:
+            - tallies_resent
+          properties:
+            tallies_resent:
+              type: integer

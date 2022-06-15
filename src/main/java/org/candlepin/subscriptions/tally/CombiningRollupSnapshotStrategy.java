@@ -153,7 +153,7 @@ public class CombiningRollupSnapshotStrategy {
 
     summaryProducer.produceTallySummaryMessages(totalSnapshots);
 
-    log.info("Finished producing finestGranularitySnapshots for all accounts.");
+    log.info("Finished producing finestGranularitySnapshots for account {}.", accountNumber);
   }
 
   private void catalogExistingSnapshots(
@@ -186,11 +186,7 @@ public class CombiningRollupSnapshotStrategy {
 
       var snapMap =
           getCurrentSnapshotsByAccount(
-              List.of(accountNumber),
-              swatchProductIds,
-              granularity,
-              effectiveStartTime,
-              effectiveEndTime);
+              accountNumber, swatchProductIds, granularity, effectiveStartTime, effectiveEndTime);
 
       List<TallySnapshot> existingSnapshots =
           snapMap.getOrDefault(accountNumber, Collections.emptyList());
@@ -214,14 +210,14 @@ public class CombiningRollupSnapshotStrategy {
 
   @SuppressWarnings("indentation")
   protected Map<String, List<TallySnapshot>> getCurrentSnapshotsByAccount(
-      Collection<String> accounts,
+      String account,
       Collection<String> products,
       Granularity granularity,
       OffsetDateTime begin,
       OffsetDateTime end) {
     try (Stream<TallySnapshot> snapStream =
-        tallyRepo.findByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween(
-            accounts, products, granularity, begin, end)) {
+        tallyRepo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
+            account, products, granularity, begin, end)) {
       return snapStream.collect(Collectors.groupingBy(TallySnapshot::getAccountNumber));
     }
   }
@@ -238,6 +234,8 @@ public class CombiningRollupSnapshotStrategy {
     snapshot.setGranularity(granularity);
     snapshot.setOwnerId(owner);
     snapshot.setAccountNumber(account);
+    snapshot.setBillingAccountId(productCalc.getBillingAccountId());
+    snapshot.setBillingProvider(productCalc.getBillingProvider());
 
     // Copy the calculated hardware measurements to the snapshots
     for (HardwareMeasurementType type : HardwareMeasurementType.values()) {
@@ -295,6 +293,8 @@ public class CombiningRollupSnapshotStrategy {
                     granularity,
                     usageKey.getSla(),
                     usageKey.getUsage(),
+                    usageKey.getBillingProvider(),
+                    usageKey.getBillingAccountId(),
                     offset);
 
             TallySnapshot existing = affectedSnaps.remove(snapshotKey);
@@ -365,7 +365,11 @@ public class CombiningRollupSnapshotStrategy {
         snapshot -> {
           var identifier =
               new UsageCalculation.Key(
-                  snapshot.getProductId(), snapshot.getServiceLevel(), snapshot.getUsage());
+                  snapshot.getProductId(),
+                  snapshot.getServiceLevel(),
+                  snapshot.getUsage(),
+                  snapshot.getBillingProvider(),
+                  snapshot.getBillingAccountId());
           reducedMeasurements.computeIfAbsent(identifier, i -> new HashMap<>());
           Map<TallyMeasurementKey, Double> measurements = reducedMeasurements.get(identifier);
 
@@ -415,6 +419,8 @@ public class CombiningRollupSnapshotStrategy {
                   granularity,
                   usageKey.getSla(),
                   usageKey.getUsage(),
+                  usageKey.getBillingProvider(),
+                  usageKey.getBillingAccountId(),
                   snapshotDate);
           TallySnapshot existing = existingSnapshotLookup.get(snapshotKey);
           TallySnapshot snapshot = Objects.requireNonNullElseGet(existing, TallySnapshot::new);
@@ -427,6 +433,8 @@ public class CombiningRollupSnapshotStrategy {
           snapshot.setGranularity(granularity);
           snapshot.setServiceLevel(usageKey.getSla());
           snapshot.setUsage(usageKey.getUsage());
+          snapshot.setBillingAccountId(usageKey.getBillingAccountId());
+          snapshot.setBillingProvider(usageKey.getBillingProvider());
           measurements.forEach(
               (measurementKey, value) ->
                   snapshot.setMeasurement(

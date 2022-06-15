@@ -33,6 +33,7 @@ config/
 .project
 .settings
 /**/bin/*
+!bin/import-events.py
 !bin/hawtio-proxy.sh
 !bin/build-images.sh
 !bin/insert-mock-hosts
@@ -45,7 +46,11 @@ config/
 deploy/secrets.yaml
 
 #created when running pr_check.sh locally
-.bonfire_venv/
+artifacts
+.bonfire_venv
 .cicd_bootstrap.sh
-.podman/
-bonfire/
+.podman
+bonfire
+.bonfire
+.docker
+.kube

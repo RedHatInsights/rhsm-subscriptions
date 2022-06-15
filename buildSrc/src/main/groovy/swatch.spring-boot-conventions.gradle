@@ -42,11 +42,8 @@ tasks.jar {
     enabled = false
 }
 
-tasks.bootJar {
-    mainClass.set "org.candlepin.subscriptions.BootApplication"
-}
-
 springBoot {
+    mainClass = "org.candlepin.subscriptions.BootApplication"
     buildInfo {
         properties {
             // Leave time empty: The default value is the instant at which the project is built. A

@@ -21,8 +21,8 @@
 package org.candlepin.subscriptions.subscription;
 
 import java.time.OffsetDateTime;
-import java.util.Collections;
 import java.util.List;
+import org.candlepin.subscriptions.subscription.api.model.ExternalReference;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
 import org.candlepin.subscriptions.subscription.api.resources.SearchApi;
@@ -32,27 +32,50 @@ public class StubSearchApi extends SearchApi {
 
   @Override
   public Subscription getSubscriptionById(String id) throws ApiException {
+    if ("789".equals(id)) {
+      return createAwsBillingProviderData();
+    }
     return createData();
   }
 
   @Override
   public List<Subscription> searchSubscriptionsByAccountNumber(
       String accountNumber, Integer index, Integer pageSize) throws ApiException {
-    return Collections.singletonList(createData());
+    return List.of(createData(), createAwsBillingProviderData());
   }
 
   @Override
   public List<Subscription> searchSubscriptionsByOrgId(
       String orgId, Integer index, Integer pageSize) throws ApiException {
-    return Collections.singletonList(createData());
+    return List.of(createData(), createAwsBillingProviderData());
   }
 
   private Subscription createData() {
-    var now = OffsetDateTime.now();
     return new Subscription()
         .subscriptionNumber("2253591")
-        .effectiveStartDate(now.minusYears(10).toEpochSecond() * 1000L)
-        .effectiveEndDate(now.plusYears(10).toEpochSecond() * 1000L)
+        .webCustomerId(123)
+        .oracleAccountNumber(123)
+        .quantity(1)
+        .effectiveStartDate(OffsetDateTime.parse("2011-01-01T01:02:33Z").toEpochSecond() * 1000L)
+        .effectiveEndDate(OffsetDateTime.parse("2031-01-01T01:02:33Z").toEpochSecond() * 1000L)
         .subscriptionProducts(List.of(new SubscriptionProduct().sku("sku")));
+  }
+
+  private Subscription createAwsBillingProviderData() {
+    ExternalReference awsRef = new ExternalReference();
+    awsRef.setCustomerID("customer123");
+    awsRef.setProductCode("testProductCode123");
+    awsRef.setSellerAccount("awsSellerAccountId");
+    awsRef.setCustomerAccountId("1234567891234");
+    return new Subscription()
+        .id(235252)
+        .quantity(1)
+        .webCustomerId(123)
+        .oracleAccountNumber(123)
+        .subscriptionNumber("4243626")
+        .effectiveStartDate(OffsetDateTime.parse("2011-01-01T01:02:33Z").toEpochSecond() * 1000L)
+        .effectiveEndDate(OffsetDateTime.parse("2031-01-01T01:02:33Z").toEpochSecond() * 1000L)
+        .putExternalReferencesItem("aws", awsRef)
+        .subscriptionProducts(List.of(new SubscriptionProduct().sku("MW01882")));
   }
 }

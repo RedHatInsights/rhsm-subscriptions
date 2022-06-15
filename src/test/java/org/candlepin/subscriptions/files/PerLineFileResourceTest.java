@@ -20,36 +20,38 @@
  */
 package org.candlepin.subscriptions.files;
 
-import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.FileSystemResourceLoader;
 
-public class PerLineFileResourceTest {
+class PerLineFileResourceTest {
 
   @Test
-  public void ensureOneProductPerLine() throws Exception {
+  void ensureOneProductPerLine() throws Exception {
     assertListFile("item_per_line.txt", Arrays.asList("I1", "I2", "I3"));
   }
 
   @Test
-  public void ensureEmptyLinesAreIgnored() throws Exception {
+  void ensureEmptyLinesAreIgnored() throws Exception {
     assertListFile("item_per_line_with_empty_lines.txt", Arrays.asList("I10", "I20", "I30"));
   }
 
   @Test
-  public void ensureExceptionWhenResourceNotFound() {
+  void ensureExceptionWhenResourceNotFound() {
+    var expectedLines = Collections.<String>emptyList();
     RuntimeException rte =
         assertThrows(
             RuntimeException.class,
             () -> {
-              assertListFile("bogus", Arrays.asList());
+              assertListFile("bogus", expectedLines);
             });
     assertEquals("Resource not found: class path resource [bogus]", rte.getMessage());
   }

@@ -28,6 +28,7 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountListSource;
@@ -39,6 +40,7 @@ import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskQueue;
 import org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskQueueConsumerFactory;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.DateRange;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -164,7 +166,7 @@ class CaptureSnapshotsTaskManagerTest {
             prometheusLatencyDuration);
     OffsetDateTime startDateTime = endDateTime.minus(metricRange);
 
-    manager.updateHourlySnapshotsForAllAccounts();
+    manager.updateHourlySnapshotsForAllAccounts(Optional.empty());
 
     expectedAccounts.forEach(
         accountNumber -> {
@@ -173,11 +175,34 @@ class CaptureSnapshotsTaskManagerTest {
                   TaskDescriptor.builder(
                           TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic())
                       .setSingleValuedArg("accountNumber", accountNumber)
-                      // 2019-05-24T12:35Z truncated to top of the hour - 4 hours prometheus latency
-                      // - 1 hour
-                      // tally latency - 1 hour metric range
-                      .setSingleValuedArg("startDateTime", "2019-05-24T05:00:00Z")
-                      .setSingleValuedArg("endDateTime", "2019-05-24T06:00:00Z")
+                      // 2019-05-24T12:35Z truncated to top of the hour - 1 hour tally range
+                      .setSingleValuedArg("startDateTime", "2019-05-24T10:00:00Z")
+                      .setSingleValuedArg("endDateTime", "2019-05-24T11:00:00Z")
+                      .build());
+        });
+  }
+
+  @Test
+  void testHourlySnapshotForAllAccountsForDateRange() throws Exception {
+    List<String> expectedAccounts = Arrays.asList("a1", "a2");
+    when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
+
+    DateRange range =
+        new DateRange(applicationClock.now().minusDays(10L), applicationClock.now().minusDays(5L));
+
+    manager.updateHourlySnapshotsForAllAccounts(Optional.of(range));
+
+    expectedAccounts.forEach(
+        accountNumber -> {
+          verify(queue, times(1))
+              .enqueue(
+                  TaskDescriptor.builder(
+                          TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic())
+                      .setSingleValuedArg("accountNumber", accountNumber)
+                      // 10 days less than the test clock at the top of the hour.
+                      .setSingleValuedArg("startDateTime", "2019-05-14T12:00:00Z")
+                      // 5 days less than the test clock at the top of the hour.
+                      .setSingleValuedArg("endDateTime", "2019-05-19T12:00:00Z")
                       .build());
         });
   }

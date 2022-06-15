@@ -39,7 +39,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class MeteringJmxBeanTest {
 
-  private static final String PRODUCT_PROFILE_ID = "OpenShift-metrics";
+  private static final String PRODUCT_TAG = "OpenShift-metrics";
 
   @Mock private PrometheusMetricsTaskManager tasks;
   @Mock private TagProfile tagProfile;
@@ -63,21 +63,34 @@ class MeteringJmxBeanTest {
     OffsetDateTime endDate = clock.startOfCurrentHour();
     OffsetDateTime startDate = endDate.minusMinutes(metricProps.getRangeInMinutes());
 
-    jmx.performMeteringForAccount(expectedAccount, PRODUCT_PROFILE_ID);
+    jmx.performMeteringForAccount(expectedAccount, PRODUCT_TAG);
 
-    verify(tasks).updateMetricsForAccount(expectedAccount, PRODUCT_PROFILE_ID, startDate, endDate);
+    verify(tasks).updateMetricsForAccount(expectedAccount, PRODUCT_TAG, startDate, endDate);
   }
 
   @Test
   void testCustomMeteringForAccount() {
     String expectedAccount = "test-account";
-    int rangeInMins = 20;
+    int rangeInMins = 60;
     OffsetDateTime endDate = clock.startOfCurrentHour();
     OffsetDateTime startDate = endDate.minusMinutes(rangeInMins);
     jmx.performCustomMeteringForAccount(
-        expectedAccount, PRODUCT_PROFILE_ID, clock.startOfCurrentHour().toString(), rangeInMins);
+        expectedAccount, PRODUCT_TAG, clock.startOfCurrentHour().toString(), rangeInMins);
 
-    verify(tasks).updateMetricsForAccount(expectedAccount, PRODUCT_PROFILE_ID, startDate, endDate);
+    verify(tasks).updateMetricsForAccount(expectedAccount, PRODUCT_TAG, startDate, endDate);
+  }
+
+  @Test
+  void testBadRangeThrowsException() {
+    String expectedAccount = "test-account";
+    int rangeInMins = 20;
+    OffsetDateTime endDate = clock.startOfCurrentHour();
+    String startDate = endDate.minusMinutes(rangeInMins).toString();
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          jmx.performCustomMeteringForAccount(expectedAccount, PRODUCT_TAG, startDate, rangeInMins);
+        });
   }
 
   @Test
@@ -87,7 +100,7 @@ class MeteringJmxBeanTest {
     Throwable e =
         assertThrows(
             IllegalArgumentException.class,
-            () -> jmx.performCustomMeteringForAccount(account, PRODUCT_PROFILE_ID, endDate, null));
+            () -> jmx.performCustomMeteringForAccount(account, PRODUCT_TAG, endDate, null));
     assertEquals("Required argument: rangeInMinutes", e.getMessage());
   }
 
@@ -98,7 +111,7 @@ class MeteringJmxBeanTest {
     Throwable e =
         assertThrows(
             IllegalArgumentException.class,
-            () -> jmx.performCustomMeteringForAccount(account, PRODUCT_PROFILE_ID, endDate, -1));
+            () -> jmx.performCustomMeteringForAccount(account, PRODUCT_TAG, endDate, -1));
     assertEquals("Invalid value specified (Must be >= 0): rangeInMinutes", e.getMessage());
   }
 
@@ -107,20 +120,19 @@ class MeteringJmxBeanTest {
     OffsetDateTime endDate = clock.startOfCurrentHour();
     OffsetDateTime startDate = endDate.minusMinutes(metricProps.getRangeInMinutes());
 
-    jmx.performMetering(PRODUCT_PROFILE_ID);
+    jmx.performMetering(PRODUCT_TAG);
 
-    verify(tasks).updateMetricsForAllAccounts(PRODUCT_PROFILE_ID, startDate, endDate);
+    verify(tasks).updateMetricsForAllAccounts(PRODUCT_TAG, 60);
   }
 
   @Test
   void testPerformCustomMeteringForAllAccounts() {
-    int rangeInMins = 20;
+    int rangeInMins = 60;
     OffsetDateTime endDate = clock.startOfCurrentHour();
     OffsetDateTime startDate = endDate.minusMinutes(rangeInMins);
-    jmx.performCustomMetering(
-        PRODUCT_PROFILE_ID, clock.startOfCurrentHour().toString(), rangeInMins);
+    jmx.performCustomMetering(PRODUCT_TAG, clock.startOfCurrentHour().toString(), rangeInMins);
 
-    verify(tasks).updateMetricsForAllAccounts(PRODUCT_PROFILE_ID, startDate, endDate);
+    verify(tasks).updateMetricsForAllAccounts(PRODUCT_TAG, startDate, endDate);
   }
 
   @Test
@@ -130,7 +142,7 @@ class MeteringJmxBeanTest {
     Throwable e =
         assertThrows(
             IllegalArgumentException.class,
-            () -> jmx.performCustomMeteringForAccount(account, PRODUCT_PROFILE_ID, endDate, 24));
+            () -> jmx.performCustomMeteringForAccount(account, PRODUCT_TAG, endDate, 24));
     assertEquals("Date must start at top of the hour: " + endDate, e.getMessage());
   }
 }

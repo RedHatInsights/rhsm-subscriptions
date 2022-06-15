@@ -108,13 +108,14 @@ public class PrometheusMeteringController {
           String.format("Unable to determine service type for tag %s.", tagMetric.get().getTag()));
     }
 
-    // Reset the start/end dates to ensure they span a complete hour.
-    // NOTE: If the prometheus query step changes, we will need to adjust this.
-    OffsetDateTime startDate = clock.startOfHour(start);
-    // Subtract 1 minute off the end date so that the date is guaranteed to never be
-    // at the top of an hour. Otherwise we would get an extra hour added onto the date
-    // when we moved it to the end of the hour.
-    OffsetDateTime endDate = clock.endOfHour(end.minusMinutes(1));
+    /* Adjust the range for the prometheus range query API. Range query returns a data point at the
+    startDate, and then an additional data point for each increment of `step` that is <= endDate.
+    Because our prometheus queries use a range vector (look back) of 1h, we need to add an hour to
+    the start of our range to get datapoints which represents the time range we're gathering data
+    for. We also ensure that the start of the range is on an hourly boundary (defensive programming
+    - it should already be)
+     */
+    OffsetDateTime startDate = clock.startOfHour(start).plusHours(1);
     log.debug("Ensuring marketplace account {} has been set up for syncing/reporting.", account);
     ensureOptIn(account);
     openshiftRetry.execute(
@@ -126,7 +127,7 @@ public class PrometheusMeteringController {
                 prometheusService.runRangeQuery(
                     buildPromQLForMetering(account, tagMetric.get()),
                     startDate,
-                    endDate,
+                    end,
                     metricProperties.getStep(),
                     metricProperties.getQueryTimeout());
 
@@ -145,7 +146,12 @@ public class PrometheusMeteringController {
                     // shift in the event start date when it is created. See note about eventDate
                     // below.
                     startDate.minusSeconds(metricProperties.getStep()),
-                    endDate.minusSeconds(metricProperties.getStep()));
+                    end);
+
+            log.debug(
+                "Looking for events in range [{}, {})",
+                startDate.minusSeconds(metricProperties.getStep()),
+                end);
             log.debug("Found {} existing events.", existing.size());
 
             Map<EventKey, Event> events = new HashMap<>();
@@ -158,7 +164,8 @@ public class PrometheusMeteringController {
               //       are NOT engineering or swatch product IDs. They map to the roles in the
               //       tag profile. For openshift, the values will be 'ocp' or 'osd'.
               String role = labels.get("product");
-              String billingProvider = labels.get("billing_provider");
+              String billingProvider = labels.get("billing_marketplace");
+              String billingAccountId = labels.get("billing_marketplace_account");
 
               // For the openshift metrics, we expect our results to be a 'matrix'
               // vector [(instant_time,value), ...] so we only look at the result's getValues()
@@ -186,6 +193,7 @@ public class PrometheusMeteringController {
                         eventTermDate,
                         tagMetaData.get().getServiceType(),
                         billingProvider,
+                        billingAccountId,
                         tagMetric.get().getUom(),
                         value);
                 events.putIfAbsent(EventKey.fromEvent(event), event);
@@ -235,6 +243,7 @@ public class PrometheusMeteringController {
       OffsetDateTime expired,
       String serviceType,
       String billingProvider,
+      String billingAccountId,
       Uom metric,
       BigDecimal value) {
     EventKey lookupKey =
@@ -260,6 +269,7 @@ public class PrometheusMeteringController {
         expired,
         serviceType,
         billingProvider,
+        billingAccountId,
         metric,
         value.doubleValue());
     return event;

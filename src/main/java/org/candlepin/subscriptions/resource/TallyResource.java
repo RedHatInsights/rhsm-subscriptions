@@ -37,11 +37,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.Granularity;
-import org.candlepin.subscriptions.db.model.HardwareMeasurement;
-import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -50,18 +46,8 @@ import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.tally.filler.ReportFiller;
 import org.candlepin.subscriptions.tally.filler.ReportFillerFactory;
 import org.candlepin.subscriptions.util.ApplicationClock;
-import org.candlepin.subscriptions.utilization.api.model.GranularityType;
-import org.candlepin.subscriptions.utilization.api.model.MetricId;
-import org.candlepin.subscriptions.utilization.api.model.ProductId;
-import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
-import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
-import org.candlepin.subscriptions.utilization.api.model.TallyReport;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportData;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportDataMeta;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportDataPoint;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportMeta;
+import org.candlepin.subscriptions.utilization.api.model.*;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
-import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.candlepin.subscriptions.utilization.api.resources.TallyApi;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -110,6 +96,8 @@ public class TallyResource implements TallyApi {
       ReportCategory category,
       ServiceLevelType sla,
       UsageType usageType,
+      BillingProviderType billingProviderType,
+      String billingAcctId,
       Integer offset,
       Integer limit) {
     ReportCriteria reportCriteria =
@@ -122,20 +110,23 @@ public class TallyResource implements TallyApi {
             category,
             sla,
             usageType,
+            billingProviderType,
+            billingAcctId,
             offset,
             limit);
 
     Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage =
-        repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
-                reportCriteria.getAccountNumber(),
-                reportCriteria.getProductId(),
-                reportCriteria.getGranularity(),
-                reportCriteria.getServiceLevel(),
-                reportCriteria.getUsage(),
-                reportCriteria.getBeginning(),
-                reportCriteria.getEnding(),
-                reportCriteria.getPageable());
+        repository.findSnapshot(
+            reportCriteria.getAccountNumber(),
+            reportCriteria.getProductId(),
+            reportCriteria.getGranularity(),
+            reportCriteria.getServiceLevel(),
+            reportCriteria.getUsage(),
+            reportCriteria.getBillingProvider(),
+            reportCriteria.getBillingAccountId(),
+            reportCriteria.getBeginning(),
+            reportCriteria.getEnding(),
+            reportCriteria.getPageable());
 
     Uom uom = Uom.fromValue(metricId.toString());
 
@@ -155,6 +146,13 @@ public class TallyResource implements TallyApi {
     report.getMeta().setMetricId(metricId.toString());
     report.getMeta().setServiceLevel(sla);
     report.getMeta().setUsage(usageType == null ? null : reportCriteria.getUsage().asOpenApiEnum());
+    report
+        .getMeta()
+        .setBillingProvider(
+            billingProviderType == null
+                ? null
+                : reportCriteria.getBillingProvider().asOpenApiEnum());
+    report.getMeta().setBillingAcountId(billingAcctId);
 
     // NOTE: rather than keep a separate monthly rollup, in order to avoid unnecessary storage and
     // DB round-trips, deserialization, etc., simply aggregate in-memory the monthly totals here.
@@ -270,6 +268,8 @@ public class TallyResource implements TallyApi {
       ReportCategory category,
       ServiceLevelType sla,
       UsageType usageType,
+      BillingProviderType billingProviderType,
+      String billingAccountId,
       Integer offset,
       Integer limit) {
     // When limit and offset are not specified, we will fill the report with dummy
@@ -279,9 +279,12 @@ public class TallyResource implements TallyApi {
       pageable = ResourceUtils.getPageable(offset, limit);
     }
 
+    // Sanitize null value as _ANY for optional fields to filter through snapshot table.
     ServiceLevel serviceLevel = ResourceUtils.sanitizeServiceLevel(sla);
     Usage effectiveUsage = ResourceUtils.sanitizeUsage(usageType);
     Granularity granularityFromValue = Granularity.fromString(granularityType.toString());
+    BillingProvider providerType = ResourceUtils.sanitizeBillingProvider(billingProviderType);
+    String sanitizedBillingAcctId = ResourceUtils.sanitizeBillingAccountId(billingAccountId);
 
     try {
       /* Throw an error if we are asked to return reports at a finer grain than what is supported by
@@ -302,6 +305,8 @@ public class TallyResource implements TallyApi {
         .reportCategory(category)
         .serviceLevel(serviceLevel)
         .usage(effectiveUsage)
+        .billingProvider(providerType)
+        .billingAccountId(sanitizedBillingAcctId)
         .pageable(pageable)
         .beginning(beginning)
         .ending(ending)
@@ -389,20 +394,23 @@ public class TallyResource implements TallyApi {
             null,
             sla,
             usageType,
+            null,
+            null,
             offset,
             limit);
 
     Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage =
-        repository
-            .findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsageAndSnapshotDateBetweenOrderBySnapshotDate(
-                reportCriteria.getAccountNumber(),
-                reportCriteria.getProductId(),
-                reportCriteria.getGranularity(),
-                reportCriteria.getServiceLevel(),
-                reportCriteria.getUsage(),
-                reportCriteria.getBeginning(),
-                reportCriteria.getEnding(),
-                reportCriteria.getPageable());
+        repository.findSnapshot(
+            reportCriteria.getAccountNumber(),
+            reportCriteria.getProductId(),
+            reportCriteria.getGranularity(),
+            reportCriteria.getServiceLevel(),
+            reportCriteria.getUsage(),
+            reportCriteria.getBillingProvider(),
+            reportCriteria.getBillingAccountId(),
+            reportCriteria.getBeginning(),
+            reportCriteria.getEnding(),
+            reportCriteria.getPageable());
 
     List<TallySnapshot> snaps =
         snapshotPage.stream()

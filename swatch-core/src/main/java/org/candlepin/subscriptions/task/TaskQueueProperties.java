@@ -36,4 +36,6 @@ public class TaskQueueProperties {
   private OffsetDateTime seekOverrideTimestamp = null;
 
   private boolean seekOverrideEnd = false;
+
+  private boolean enabled = true;
 }

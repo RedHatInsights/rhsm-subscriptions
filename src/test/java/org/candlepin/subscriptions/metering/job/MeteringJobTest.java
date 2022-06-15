@@ -61,7 +61,7 @@ class MeteringJobTest {
     appProps.setPrometheusLatencyDuration(Duration.ofHours(6L));
 
     clock = new FixedClockConfiguration().fixedClock();
-    job = new MeteringJob(tasks, clock, tagProfile, metricProps, appProps, retryTemplate);
+    job = new MeteringJob(tasks, tagProfile, metricProps, retryTemplate);
 
     when(tagProfile.getTagsWithPrometheusEnabledLookup()).thenReturn(Set.of("OpenShift-metrics"));
   }
@@ -79,7 +79,6 @@ class MeteringJobTest {
             expStartDate.plusMinutes(range).truncatedTo(ChronoUnit.HOURS).minusMinutes(1));
     job.run();
 
-    verify(tasks)
-        .updateMetricsForAllAccounts("OpenShift-metrics", expStartDate, expEndDate, retryTemplate);
+    verify(tasks).updateMetricsForAllAccounts("OpenShift-metrics", range, retryTemplate);
   }
 }

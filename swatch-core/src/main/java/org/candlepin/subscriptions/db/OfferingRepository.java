@@ -20,10 +20,14 @@
  */
 package org.candlepin.subscriptions.db;
 
+import java.util.List;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /** Repository interface for the Offering entity */
 public interface OfferingRepository extends JpaRepository<Offering, String> {
-  /* Intentionally left blank */
+
+  List<Offering> findByProductName(String productName);
+
+  Offering findBySku(String sku);
 }

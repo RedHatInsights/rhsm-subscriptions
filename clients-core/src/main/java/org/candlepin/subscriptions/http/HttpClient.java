@@ -83,8 +83,13 @@ public class HttpClient {
         serviceProperties.getConnectionTtl().getSeconds(), TimeUnit.SECONDS);
     apacheBuilder.setSSLContext(getSslContext(serviceProperties));
 
-    CloseableHttpClient httpClient = apacheBuilder.build();
+    // Ignore cookies. Not ignoring them results in error messages in the logs due to mismatches
+    // in domains.
+    RequestConfig cookieConfig =
+        RequestConfig.custom().setCookieSpec(CookieSpecs.IGNORE_COOKIES).build();
+    apacheBuilder.setDefaultRequestConfig(cookieConfig);
 
+    CloseableHttpClient httpClient = apacheBuilder.build();
     ClientHttpEngine engine = ApacheHttpClientEngine.create(httpClient);
 
     ClientConfiguration clientConfig =
@@ -96,12 +101,6 @@ public class HttpClient {
       clientConfig.register(org.jboss.logging.Logger.class);
     }
     ClientBuilder clientBuilder = ClientBuilder.newBuilder().withConfig(clientConfig);
-
-    // Ignore cookies. Not ignoring them results in error messages in the logs due to mismatches
-    // in domains.
-    RequestConfig cookieConfig =
-        RequestConfig.custom().setCookieSpec(CookieSpecs.IGNORE_COOKIES).build();
-    apacheBuilder.setDefaultRequestConfig(cookieConfig);
 
     return ((ResteasyClientBuilder) clientBuilder).httpEngine(engine).build();
   }

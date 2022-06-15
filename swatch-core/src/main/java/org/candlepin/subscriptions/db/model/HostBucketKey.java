@@ -47,15 +47,29 @@ public class HostBucketKey implements Serializable {
 
   private Usage usage;
 
+  @Column(name = "billing_provider")
+  private BillingProvider billingProvider;
+
+  @Column(name = "billing_account_id")
+  private String billingAccountId;
+
   @Column(name = "as_hypervisor")
   private Boolean asHypervisor;
 
   public HostBucketKey(
-      Host host, String productId, ServiceLevel sla, Usage usage, Boolean asHypervisor) {
+      Host host,
+      String productId,
+      ServiceLevel sla,
+      Usage usage,
+      BillingProvider billingProvider,
+      String billingAccountId,
+      Boolean asHypervisor) {
     this.hostId = host == null ? null : host.getId();
     this.productId = productId;
     this.sla = sla;
     this.usage = usage;
+    this.billingProvider = billingProvider;
+    this.billingAccountId = billingAccountId;
     this.asHypervisor = asHypervisor;
   }
 
@@ -81,6 +95,8 @@ public class HostBucketKey implements Serializable {
     return productId.equals(that.productId)
         && sla == that.sla
         && usage == that.usage
+        && billingProvider == that.billingProvider
+        && billingAccountId.equals(that.billingAccountId)
         && asHypervisor.equals(that.asHypervisor)
         && Objects.equals(hostId, that.hostId);
   }

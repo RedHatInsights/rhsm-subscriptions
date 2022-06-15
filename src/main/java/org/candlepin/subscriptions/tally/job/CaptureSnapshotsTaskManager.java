@@ -25,6 +25,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.ApplicationProperties;
@@ -151,19 +152,28 @@ public class CaptureSnapshotsTaskManager {
   }
 
   @Transactional
-  public void updateHourlySnapshotsForAllAccounts() {
+  public void updateHourlySnapshotsForAllAccounts(Optional<DateRange> dateRange) {
     try (Stream<String> accountStream = accountListSource.syncableAccounts()) {
       AtomicInteger count = new AtomicInteger(0);
 
-      Duration metricRange = appProperties.getMetricLookupRangeDuration();
-      Duration prometheusLatencyDuration = appProperties.getPrometheusLatencyDuration();
-      Duration hourlyTallyOffsetMinutes = appProperties.getHourlyTallyOffset();
+      OffsetDateTime startDateTime;
+      OffsetDateTime endDateTime;
+      if (dateRange.isEmpty()) {
+        // Default to NOW.
+        Duration metricRange = appProperties.getMetricLookupRangeDuration();
+        Duration prometheusLatencyDuration = appProperties.getPrometheusLatencyDuration();
+        Duration hourlyTallyOffsetMinutes = appProperties.getHourlyTallyOffset();
 
-      OffsetDateTime endDateTime =
-          adjustTimeForLatency(
-              applicationClock.startOfHour(applicationClock.now().minus(hourlyTallyOffsetMinutes)),
-              prometheusLatencyDuration);
-      OffsetDateTime startDateTime = applicationClock.startOfHour(endDateTime.minus(metricRange));
+        endDateTime =
+            adjustTimeForLatency(
+                applicationClock.startOfHour(
+                    applicationClock.now().minus(hourlyTallyOffsetMinutes)),
+                prometheusLatencyDuration);
+        startDateTime = applicationClock.startOfHour(endDateTime.minus(metricRange));
+      } else {
+        startDateTime = applicationClock.startOfHour(dateRange.get().getStartDate());
+        endDateTime = applicationClock.startOfHour(dateRange.get().getEndDate());
+      }
 
       accountStream.forEach(
           accountNumber -> {

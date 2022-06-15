@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.tally.filler;
 
 import static org.candlepin.subscriptions.tally.filler.Assertions.assertSnapshot;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -33,7 +33,7 @@ import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
 import org.junit.jupiter.api.Test;
 
-public class QuarterlyReportFillerTest {
+class QuarterlyReportFillerTest {
 
   private ApplicationClock clock;
   private ReportFiller filler;
@@ -44,7 +44,7 @@ public class QuarterlyReportFillerTest {
   }
 
   @Test
-  public void noExistingSnapsShouldFillWithQuarterlyGranularity() {
+  void noExistingSnapsShouldFillWithQuarterlyGranularity() {
     OffsetDateTime start = clock.startOfCurrentQuarter();
     OffsetDateTime end = start.plusYears(1);
     TallyReport report = new TallyReport();
@@ -60,7 +60,7 @@ public class QuarterlyReportFillerTest {
   }
 
   @Test
-  public void startAndEndDatesForQuarterlyAreResetWhenDateIsMidQuarter() {
+  void startAndEndDatesForQuarterlyAreResetWhenDateIsMidQuarter() {
     // Mid year start
     OffsetDateTime start = clock.now();
     // Mid year end
@@ -81,7 +81,7 @@ public class QuarterlyReportFillerTest {
   }
 
   @Test
-  public void testSnapshotsIgnoredWhenNoDatesSet() {
+  void testSnapshotsIgnoredWhenNoDatesSet() {
     OffsetDateTime start = clock.startOfCurrentQuarter();
     OffsetDateTime end = start.plusYears(1);
 
@@ -102,7 +102,7 @@ public class QuarterlyReportFillerTest {
   }
 
   @Test
-  public void shouldFillGapsBasedOnExistingSnapshotsForQuarterlyGranularity() {
+  void shouldFillGapsBasedOnExistingSnapshotsForQuarterlyGranularity() {
     OffsetDateTime start = clock.startOfCurrentQuarter();
     OffsetDateTime snap1Date = start.plusMonths(3);
     OffsetDateTime end = start.plusYears(1);

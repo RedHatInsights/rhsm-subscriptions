@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Service;
 
 /** Component that produces tally snapshot summary messages given a list of tally snapshots. */
@@ -44,12 +45,16 @@ public class SnapshotSummaryProducer {
 
   private final String tallySummaryTopic;
   private final KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate;
+  private final RetryTemplate kafkaRetryTemplate;
 
   @Autowired
   protected SnapshotSummaryProducer(
-      KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate,
+      @Qualifier("tallySummaryKafkaTemplate")
+          KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate,
+      @Qualifier("tallySummaryKafkaRetryTemplate") RetryTemplate kafkaRetryTemplate,
       @Qualifier("rhMarketplaceTasks") TaskQueueProperties props) {
     this.tallySummaryTopic = props.getTopic();
+    this.kafkaRetryTemplate = kafkaRetryTemplate;
     this.tallySummaryKafkaTemplate = tallySummaryKafkaTemplate;
   }
 
@@ -62,7 +67,8 @@ public class SnapshotSummaryProducer {
                 .forEach(
                     summary -> {
                       if (validateTallySummary(summary)) {
-                        tallySummaryKafkaTemplate.send(tallySummaryTopic, summary);
+                        kafkaRetryTemplate.execute(
+                            ctx -> tallySummaryKafkaTemplate.send(tallySummaryTopic, summary));
                         totalTallies.getAndIncrement();
                       }
                     }));
@@ -92,6 +98,10 @@ public class SnapshotSummaryProducer {
         org.candlepin.subscriptions.json.TallySnapshot.Usage.fromValue(
             tallySnapshot.getUsage().getValue());
 
+    var billingProvider =
+        org.candlepin.subscriptions.json.TallySnapshot.BillingProvider.fromValue(
+            tallySnapshot.getBillingProvider().getValue());
+
     return new org.candlepin.subscriptions.json.TallySnapshot()
         .withGranularity(granularity)
         .withId(tallySnapshot.getId())
@@ -99,6 +109,8 @@ public class SnapshotSummaryProducer {
         .withSnapshotDate(tallySnapshot.getSnapshotDate())
         .withSla(sla)
         .withUsage(usage)
+        .withBillingProvider(billingProvider)
+        .withBillingAccountId(tallySnapshot.getBillingAccountId())
         .withTallyMeasurements(mapMeasurements(tallySnapshot.getTallyMeasurements()));
   }
 

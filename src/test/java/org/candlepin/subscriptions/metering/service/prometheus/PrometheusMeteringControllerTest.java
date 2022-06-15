@@ -99,6 +99,7 @@ class PrometheusMeteringControllerTest {
   private final String expectedRole = "ocm";
   private final String expectedServiceType = "OpenShift Cluster";
   private final String expectedBillingProvider = "red hat";
+  private final String expectedBillingAccountId = "mktp-account";
   private final Uom expectedUom = Uom.CORES;
 
   private PrometheusMeteringController controller;
@@ -134,6 +135,7 @@ class PrometheusMeteringControllerTest {
             expectedSla,
             expectedUsage,
             expectedBillingProvider,
+            expectedBillingAccountId,
             List.of(List.of(new BigDecimal(12312.345), new BigDecimal(24))));
 
     when(service.runRangeQuery(anyString(), any(), any(), any(), any()))
@@ -157,6 +159,7 @@ class PrometheusMeteringControllerTest {
             expectedSla,
             expectedUsage,
             expectedBillingProvider,
+            expectedBillingAccountId,
             List.of(List.of(new BigDecimal(12312.345), new BigDecimal(24))));
     when(service.runRangeQuery(anyString(), any(), any(), any(), any())).thenReturn(data);
 
@@ -164,15 +167,15 @@ class PrometheusMeteringControllerTest {
     verify(service)
         .runRangeQuery(
             queries.expectedQuery("OpenShift-metrics", expectedAccount),
-            clock.startOfHour(start),
-            clock.endOfHour(end),
+            clock.startOfHour(start).plusHours(1),
+            end,
             metricProperties.getStep(),
             metricProperties.getQueryTimeout());
   }
 
   @Test
   void accountGetsOptedInWhenReportingMetrics() {
-    OffsetDateTime start = clock.now();
+    OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = start.plusHours(4);
     QueryResult data =
         buildOpenShiftClusterQueryResult(
@@ -181,6 +184,7 @@ class PrometheusMeteringControllerTest {
             expectedSla,
             expectedUsage,
             expectedBillingProvider,
+            expectedBillingAccountId,
             List.of(List.of(new BigDecimal(12312.345), new BigDecimal(24))));
     when(service.runRangeQuery(anyString(), any(), any(), any(), any())).thenReturn(data);
 
@@ -188,8 +192,8 @@ class PrometheusMeteringControllerTest {
     verify(service)
         .runRangeQuery(
             queries.expectedQuery("OpenShift-metrics", expectedAccount),
-            clock.startOfHour(start),
-            clock.endOfHour(end),
+            start.plusHours(1),
+            end,
             metricProperties.getStep(),
             metricProperties.getQueryTimeout());
     verify(optInController)
@@ -211,6 +215,7 @@ class PrometheusMeteringControllerTest {
             expectedSla,
             expectedUsage,
             expectedBillingProvider,
+            expectedBillingAccountId,
             List.of(List.of(time1, val1), List.of(time2, val2)));
     when(service.runRangeQuery(
             eq(queries.expectedQuery("OpenShift-metrics", expectedAccount)),
@@ -221,7 +226,7 @@ class PrometheusMeteringControllerTest {
         .thenReturn(data);
 
     OffsetDateTime start = clock.startOfCurrentHour();
-    OffsetDateTime end = clock.endOfHour(start.plusDays(1));
+    OffsetDateTime end = start.plusDays(1);
 
     List<Event> expectedEvents =
         List.of(
@@ -236,6 +241,7 @@ class PrometheusMeteringControllerTest {
                 clock.dateFromUnix(time1),
                 expectedServiceType,
                 expectedBillingProvider,
+                expectedBillingAccountId,
                 expectedUom,
                 val1.doubleValue()),
             MeteringEventFactory.createMetricEvent(
@@ -249,6 +255,7 @@ class PrometheusMeteringControllerTest {
                 clock.dateFromUnix(time2),
                 expectedServiceType,
                 expectedBillingProvider,
+                expectedBillingAccountId,
                 expectedUom,
                 val2.doubleValue()));
 
@@ -260,7 +267,7 @@ class PrometheusMeteringControllerTest {
     verify(service)
         .runRangeQuery(
             queries.expectedQuery("OpenShift-metrics", expectedAccount),
-            start,
+            start.plusHours(1),
             end,
             metricProperties.getStep(),
             metricProperties.getQueryTimeout());
@@ -287,6 +294,7 @@ class PrometheusMeteringControllerTest {
             expectedSla,
             expectedUsage,
             expectedBillingProvider,
+            expectedBillingAccountId,
             List.of(List.of(time1, val1), List.of(time2, val2)));
     when(service.runRangeQuery(
             eq(queries.expectedQuery("OpenShift-metrics", expectedAccount)),
@@ -297,7 +305,7 @@ class PrometheusMeteringControllerTest {
         .thenReturn(data);
 
     OffsetDateTime start = clock.startOfCurrentHour();
-    OffsetDateTime end = clock.endOfHour(start.plusDays(1));
+    OffsetDateTime end = start.plusDays(1);
 
     Event updatedEvent =
         MeteringEventFactory.createMetricEvent(
@@ -311,6 +319,7 @@ class PrometheusMeteringControllerTest {
             clock.dateFromUnix(time1),
             expectedServiceType,
             expectedBillingProvider,
+            expectedBillingAccountId,
             expectedUom,
             val1.doubleValue());
 
@@ -328,6 +337,7 @@ class PrometheusMeteringControllerTest {
                 clock.dateFromUnix(time2),
                 expectedServiceType,
                 expectedBillingProvider,
+                expectedBillingAccountId,
                 expectedUom,
                 val2.doubleValue()));
 
@@ -343,6 +353,7 @@ class PrometheusMeteringControllerTest {
             clock.dateFromUnix(time1),
             expectedServiceType,
             expectedBillingProvider,
+            expectedBillingAccountId,
             expectedUom,
             val1.doubleValue());
 
@@ -360,6 +371,7 @@ class PrometheusMeteringControllerTest {
                 updatedEvent.getExpiration().get(),
                 expectedServiceType,
                 expectedBillingProvider,
+                expectedBillingAccountId,
                 expectedUom,
                 144.4),
             // This event should get purged because prometheus did not report this cluster.
@@ -368,8 +380,8 @@ class PrometheusMeteringControllerTest {
             expectedAccount,
             MeteringEventFactory.EVENT_SOURCE,
             MeteringEventFactory.getEventType(expectedMetricId),
-            start.minusSeconds(metricProperties.getStep()),
-            end.minusSeconds(metricProperties.getStep())))
+            start,
+            end))
         .thenReturn(
             existingEvents.stream()
                 .collect(Collectors.toMap(EventKey::fromEvent, Function.identity())));
@@ -385,7 +397,7 @@ class PrometheusMeteringControllerTest {
     verify(service)
         .runRangeQuery(
             queries.expectedQuery("OpenShift-metrics", expectedAccount),
-            start,
+            start.plusHours(1),
             end,
             metricProperties.getStep(),
             metricProperties.getQueryTimeout());
@@ -409,7 +421,8 @@ class PrometheusMeteringControllerTest {
             .putMetricItem("usage", "Production")
             .putMetricItem("role", "osd")
             .putMetricItem("ebs_account", expectedAccount)
-            .putMetricItem("billing_provider", "red hat")
+            .putMetricItem("billing_marketplace", "red hat")
+            .putMetricItem("billing_marketplace_account", expectedBillingAccountId)
             .addValuesItem(List.of(BigDecimal.valueOf(1616787308L), BigDecimal.valueOf(4.0)));
     QueryResultDataResult premiumResultItem =
         new QueryResultDataResult()
@@ -418,7 +431,8 @@ class PrometheusMeteringControllerTest {
             .putMetricItem("usage", "Production")
             .putMetricItem("role", "osd")
             .putMetricItem("ebs_account", expectedAccount)
-            .putMetricItem("billing_provider", "red hat")
+            .putMetricItem("billing_marketplace", "red hat")
+            .putMetricItem("billing_marketplace_account", expectedBillingAccountId)
             .addValuesItem(List.of(BigDecimal.valueOf(1616787308L), BigDecimal.valueOf(4.0)));
     QueryResultData queryResultData =
         new QueryResultData().addResultItem(standardResultItem).addResultItem(premiumResultItem);
@@ -447,6 +461,7 @@ class PrometheusMeteringControllerTest {
             clock.dateFromUnix(1616787308L),
             expectedServiceType,
             expectedBillingProvider,
+            expectedBillingAccountId,
             expectedUom,
             4.0);
 
@@ -467,6 +482,7 @@ class PrometheusMeteringControllerTest {
             updatedEvent.getExpiration().get(),
             expectedServiceType,
             expectedBillingProvider,
+            expectedBillingAccountId,
             expectedUom,
             144.4);
     existingEvent.setEventId(eventId);
@@ -478,8 +494,8 @@ class PrometheusMeteringControllerTest {
             expectedAccount,
             MeteringEventFactory.EVENT_SOURCE,
             MeteringEventFactory.getEventType(expectedMetricId),
-            start.minusSeconds(metricProperties.getStep()),
-            end.minusSeconds(metricProperties.getStep())))
+            start,
+            end))
         .thenReturn(
             existingEvents.stream()
                 .collect(Collectors.toMap(EventKey::fromEvent, Function.identity())));
@@ -492,7 +508,7 @@ class PrometheusMeteringControllerTest {
     verify(service)
         .runRangeQuery(
             queries.expectedQuery("OpenShift-metrics", expectedAccount),
-            start,
+            start.plusHours(1),
             end,
             metricProperties.getStep(),
             metricProperties.getQueryTimeout());
@@ -510,6 +526,7 @@ class PrometheusMeteringControllerTest {
       String sla,
       String usage,
       String billingProvider,
+      String billingAccountId,
       List<List<BigDecimal>> timeValueTuples) {
     QueryResultDataResult dataResult =
         new QueryResultDataResult()
@@ -517,7 +534,8 @@ class PrometheusMeteringControllerTest {
             .putMetricItem("support", sla)
             .putMetricItem("usage", usage)
             .putMetricItem("ebs_account", account)
-            .putMetricItem("billing_provider", billingProvider);
+            .putMetricItem("billing_marketplace", billingProvider)
+            .putMetricItem("billing_marketplace_account", billingAccountId);
 
     // NOTE: A tuple is [unix_time,value]
     timeValueTuples.forEach(tuple -> dataResult.addValuesItem(tuple));

@@ -25,48 +25,31 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import org.candlepin.subscriptions.db.SubscriptionRepository;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.util.Assert;
 
 /**
  * Class responsible for searching Swatch database for subscriptionIds corresponding to usage keys
- * and if none is found, delegates fetching the subscriptionId to the {@link
- * RhMarketplaceSubscriptionCollector}.
+ * and if none is found, delegates fetching the subscriptionId to SubscriptionSyncController.
  */
 @Component
 public class RhMarketplaceSubscriptionIdProvider {
   private static final Logger log =
       LoggerFactory.getLogger(RhMarketplaceSubscriptionIdProvider.class);
 
-  private final RhMarketplaceSubscriptionCollector collector;
-  private final SubscriptionRepository subscriptionRepo;
   private final SubscriptionSyncController syncController;
-  private final TagProfile tagProfile;
   private final Counter missingSubscriptionCounter;
   private final Counter ambiguousSubscriptionCounter;
 
   @Autowired
   public RhMarketplaceSubscriptionIdProvider(
-      RhMarketplaceSubscriptionCollector collector,
-      SubscriptionRepository subscriptionRepo,
-      SubscriptionSyncController syncController,
-      TagProfile tagProfile,
-      MeterRegistry meterRegistry) {
-    this.collector = collector;
-    this.subscriptionRepo = subscriptionRepo;
+      SubscriptionSyncController syncController, MeterRegistry meterRegistry) {
     this.syncController = syncController;
-    this.tagProfile = tagProfile;
     this.missingSubscriptionCounter =
         meterRegistry.counter("rhsm-subscriptions.marketplace.missing.subscription");
     this.ambiguousSubscriptionCounter =
@@ -79,57 +62,21 @@ public class RhMarketplaceSubscriptionIdProvider {
       Key usageKey,
       OffsetDateTime rangeStart,
       OffsetDateTime rangeEnd) {
-    Assert.isTrue(Usage._ANY != usageKey.getUsage(), "Usage cannot be _ANY");
-    Assert.isTrue(ServiceLevel._ANY != usageKey.getSla(), "Service Level cannot be _ANY");
-
-    String productId = usageKey.getProductId();
-    Set<String> productNames = tagProfile.getOfferingProductNamesForTag(productId);
-    if (productNames.isEmpty()) {
-      log.warn("No product names configured for tag: {}", productId);
-      return Optional.empty();
-    }
-
-    List<Subscription> result =
-        fetchSubscriptions(accountNumber, usageKey, productNames, rangeStart, rangeEnd);
-
-    if (result.isEmpty()) {
-      /* If we are missing the subscription, call out to the RhMarketplaceSubscriptionCollector
-      to fetch from Marketplace.  Sync all those subscriptions. Query again. */
-      log.info("Syncing subscriptions for account {} using orgId {}", accountNumber, orgId);
-      var subscriptions = collector.requestSubscriptions(orgId);
-      subscriptions.forEach(syncController::syncSubscription);
-      result = fetchSubscriptions(accountNumber, usageKey, productNames, rangeStart, rangeEnd);
-    }
-
-    if (result.isEmpty()) {
+    List<Subscription> results =
+        syncController.findSubscriptionsAndSyncIfNeeded(
+            accountNumber, Optional.of(orgId), usageKey, rangeStart, rangeEnd, false);
+    if (results.isEmpty()) {
       missingSubscriptionCounter.increment();
-      log.error(
-          "No subscription found for account {} with key {} and product names {}",
-          accountNumber,
-          usageKey,
-          productNames);
-      return Optional.empty();
     }
-
-    if (result.size() > 1) {
+    if (results.size() > 1) {
       ambiguousSubscriptionCounter.increment();
       log.warn(
-          "Multiple subscriptions found for account {} with key {} and product names {}."
+          "Multiple subscriptions found for account {} with key {} and product tag {}."
               + " Selecting first result",
           accountNumber,
           usageKey,
-          productNames);
+          usageKey.getProductId());
     }
-    return Optional.of(result.get(0).getBillingProviderId());
-  }
-
-  protected List<Subscription> fetchSubscriptions(
-      String accountNumber,
-      Key usageKey,
-      Set<String> productNames,
-      OffsetDateTime rangeStart,
-      OffsetDateTime rangeEnd) {
-    return subscriptionRepo.findByAccountAndProductNameAndServiceLevel(
-        accountNumber, usageKey, productNames, rangeStart, rangeEnd);
+    return results.stream().findFirst().map(Subscription::getBillingProviderId);
   }
 }
