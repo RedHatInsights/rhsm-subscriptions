@@ -27,7 +27,7 @@ import java.util.Collections;
 import javax.ws.rs.core.UriInfo;
 import org.candlepin.subscriptions.utilization.api.model.PageLinks;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
-import org.jboss.resteasy.specimpl.ResteasyUriBuilder;
+import org.jboss.resteasy.specimpl.ResteasyUriBuilderImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,7 +45,7 @@ class PageLinkCreatorTest {
 
   @BeforeEach
   void setupUriInfo() {
-    Mockito.when(uriInfo.getRequestUriBuilder()).thenReturn(new ResteasyUriBuilder());
+    Mockito.when(uriInfo.getRequestUriBuilder()).thenReturn(new ResteasyUriBuilderImpl());
   }
 
   @Test
