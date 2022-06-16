@@ -2,45 +2,14 @@ apiVersion: v1
 data:
   subscription-watch.json: |-
     {
-      "__inputs": [],
-      "__elements": [],
-      "__requires": [
-        {
-          "type": "datasource",
-          "id": "cloudwatch",
-          "name": "CloudWatch",
-          "version": "1.0.0"
-        },
-        {
-          "type": "grafana",
-          "id": "grafana",
-          "name": "Grafana",
-          "version": "8.4.1"
-        },
-        {
-          "type": "panel",
-          "id": "graph",
-          "name": "Graph (old)",
-          "version": ""
-        },
-        {
-          "type": "datasource",
-          "id": "prometheus",
-          "name": "Prometheus",
-          "version": "1.0.0"
-        },
-        {
-          "type": "panel",
-          "id": "stat",
-          "name": "Stat",
-          "version": ""
-        }
-      ],
       "annotations": {
         "list": [
           {
             "builtIn": 1,
-            "datasource": "-- Grafana --",
+            "datasource": {
+              "type": "datasource",
+              "uid": "grafana"
+            },
             "enable": true,
             "hide": true,
             "iconColor": "rgba(0, 211, 255, 1)",
@@ -58,13 +27,17 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
-      "id": null,
-      "iteration": 1652723048193,
+      "id": 57,
+      "iteration": 1655409955025,
       "links": [],
       "liveNow": false,
       "panels": [
         {
           "collapsed": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "tuHy3WB7z"
+          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -597,6 +570,10 @@ data:
         },
         {
           "collapsed": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "tuHy3WB7z"
+          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -1293,6 +1270,10 @@ data:
         },
         {
           "collapsed": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "tuHy3WB7z"
+          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -1749,6 +1730,10 @@ data:
         },
         {
           "collapsed": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "tuHy3WB7z"
+          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -2222,6 +2207,10 @@ data:
         },
         {
           "collapsed": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "tuHy3WB7z"
+          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -2514,6 +2503,10 @@ data:
         },
         {
           "collapsed": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "tuHy3WB7z"
+          },
           "gridPos": {
             "h": 1,
             "w": 24,
@@ -2522,7 +2515,7 @@ data:
           },
           "id": 74,
           "panels": [],
-          "title": "Red Hat Marketplace Integration",
+          "title": "Billing Provider Integration",
           "type": "row"
         },
         {
@@ -2562,7 +2555,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "8.4.1",
+          "pluginVersion": "8.5.2",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -2653,7 +2646,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "8.4.1",
+          "pluginVersion": "8.5.2",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -2713,9 +2706,10 @@ data:
           "dashLength": 10,
           "dashes": false,
           "datasource": {
+            "type": "prometheus",
             "uid": "$datasource"
           },
-          "description": "⬇️ SWatch pushes usage info into RH Marketplace ⬇️ \n\n(TIP: if this isn't working, the \"pending bill\" will never be updated on customer accounts)",
+          "description": "rhsm-subscriptions-worker service produces TallySummary messages for consumption by Billing Usage service",
           "fieldConfig": {
             "defaults": {
               "unit": "none"
@@ -2749,7 +2743,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "8.4.1",
+          "pluginVersion": "8.5.2",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -2760,7 +2754,11 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(kafka_consumergroup_group_lag{topic=\"platform.rhsm-subscriptions.tally\", group=\"rh-marketplace-worker\"}) by (group, partition)",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "skSy3ZB7k"
+              },
+              "expr": "sum(kafka_consumergroup_group_lag{topic=\"platform.rhsm-subscriptions.tally\", group=\"swatch-producer-billing\"}) by (group, partition)",
               "format": "time_series",
               "instant": false,
               "interval": "",
@@ -2771,7 +2769,209 @@ data:
           ],
           "thresholds": [],
           "timeRegions": [],
-          "title": "RH Marketplace Task Lag",
+          "title": "Tally to Billable Usage Lag",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "mode": "time",
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "$$hashKey": "object:332",
+              "format": "none",
+              "logBase": 1,
+              "min": "0",
+              "show": true
+            },
+            {
+              "$$hashKey": "object:333",
+              "format": "short",
+              "logBase": 1,
+              "min": "0",
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false
+          }
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "description": "Billable Usage service emits messages with usage data for swatch billing provider services to consume.  This widget monitors the consumer group connected to the swatch-producer-aws service)",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "none"
+            },
+            "overrides": []
+          },
+          "fill": 1,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 9,
+            "w": 6,
+            "x": 0,
+            "y": 15
+          },
+          "hiddenSeries": false,
+          "id": 83,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "8.5.2",
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "repeatDirection": "h",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": true,
+          "steppedLine": false,
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "skSy3ZB7k"
+              },
+              "expr": "sum(kafka_consumergroup_group_lag{topic=\"platform.rhsm-subscriptions.billable-usage\", group=\"swatch-producer-aws\"}) by (group, partition)",
+              "format": "time_series",
+              "instant": false,
+              "interval": "",
+              "intervalFactor": 1,
+              "legendFormat": "partition {{ partition }}",
+              "refId": "A"
+            }
+          ],
+          "thresholds": [],
+          "timeRegions": [],
+          "title": "AWS Billable Usage Lag",
+          "tooltip": {
+            "shared": true,
+            "sort": 0,
+            "value_type": "individual"
+          },
+          "type": "graph",
+          "xaxis": {
+            "mode": "time",
+            "show": true,
+            "values": []
+          },
+          "yaxes": [
+            {
+              "$$hashKey": "object:332",
+              "format": "none",
+              "logBase": 1,
+              "min": "0",
+              "show": true
+            },
+            {
+              "$$hashKey": "object:333",
+              "format": "short",
+              "logBase": 1,
+              "min": "0",
+              "show": true
+            }
+          ],
+          "yaxis": {
+            "align": false
+          }
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "dashLength": 10,
+          "dashes": false,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "description": "Billable Usage service emits messages with usage data for swatch billing provider services to consume.  This widget monitors the rh-marketplace-worker consumer group (consumed by the swatch-billing-provider-rh-marketplace service)",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "none"
+            },
+            "overrides": []
+          },
+          "fill": 1,
+          "fillGradient": 0,
+          "gridPos": {
+            "h": 9,
+            "w": 6,
+            "x": 6,
+            "y": 15
+          },
+          "hiddenSeries": false,
+          "id": 84,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 1,
+          "links": [],
+          "nullPointMode": "null",
+          "options": {
+            "alertThreshold": true
+          },
+          "percentage": false,
+          "pluginVersion": "8.5.2",
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "repeatDirection": "h",
+          "seriesOverrides": [],
+          "spaceLength": 10,
+          "stack": true,
+          "steppedLine": false,
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "skSy3ZB7k"
+              },
+              "expr": "sum(kafka_consumergroup_group_lag{topic=\"platform.rhsm-subscriptions.billable-usage\", group=\"swatch-producer-rh-marketplace\"}) by (group, partition)",
+              "format": "time_series",
+              "instant": false,
+              "interval": "",
+              "intervalFactor": 1,
+              "legendFormat": "partition {{ partition }}",
+              "refId": "A"
+            }
+          ],
+          "thresholds": [],
+          "timeRegions": [],
+          "title": "RH Marketplace Billable Usage Lag",
           "tooltip": {
             "shared": true,
             "sort": 0,
@@ -2861,8 +3061,8 @@ data:
           "gridPos": {
             "h": 9,
             "w": 6,
-            "x": 18,
-            "y": 6
+            "x": 0,
+            "y": 24
           },
           "id": 82,
           "links": [],
@@ -2881,7 +3081,7 @@ data:
             },
             "textMode": "auto"
           },
-          "pluginVersion": "8.4.1",
+          "pluginVersion": "8.5.2",
           "targets": [
             {
               "expr": "sum(increase(rhsm_subscriptions_rh_marketplace_batch_accepted_total[$__range]))",
@@ -2911,16 +3111,16 @@ data:
         }
       ],
       "refresh": false,
-      "schemaVersion": 35,
+      "schemaVersion": 36,
       "style": "dark",
       "tags": [],
       "templating": {
         "list": [
           {
             "current": {
-              "selected": true,
-              "text": "crcp01ue1-prometheus",
-              "value": "crcp01ue1-prometheus"
+              "selected": false,
+              "text": "crcs02ue1-prometheus",
+              "value": "crcs02ue1-prometheus"
             },
             "hide": 0,
             "includeAll": false,
@@ -2937,8 +3137,8 @@ data:
           {
             "current": {
               "selected": false,
-              "text": "AWS insights-prod",
-              "value": "AWS insights-prod"
+              "text": "AWS insights-stage",
+              "value": "AWS insights-stage"
             },
             "hide": 0,
             "includeAll": false,
