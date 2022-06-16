@@ -105,8 +105,9 @@ class SubscriptionSyncControllerTest {
 
   @BeforeEach
   void setUp() {
-    Mockito.when(offeringRepository.findBySku(Mockito.anyString()))
-        .thenReturn(Offering.builder().productIds(new HashSet<>(Arrays.asList(68))).build());
+    Mockito.when(offeringRepository.findById(Mockito.anyString()))
+        .thenReturn(
+            Optional.of(Offering.builder().productIds(new HashSet<>(Arrays.asList(68))).build()));
   }
 
   @Test

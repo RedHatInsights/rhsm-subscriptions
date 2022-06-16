@@ -156,17 +156,7 @@ public class SubscriptionSyncController {
     final org.candlepin.subscriptions.db.model.Subscription newOrUpdated = convertDto(subscription);
     log.debug("New subscription that will need to be saved={}", newOrUpdated);
 
-    if (newOrUpdated.getBillingProvider() == null
-        || newOrUpdated.getBillingProvider().equals(BillingProvider.EMPTY)) {
-      var isPAYGEligible =
-          offeringRepository.findBySku(newOrUpdated.getSku()).getProductIds().stream()
-              .anyMatch(id -> tagProfile.isProductPAYGEligible(id.toString()));
-      if (isPAYGEligible) {
-        log.warn(
-            "PAYG eligible subscription with subscriptionId:{} has no billing provider.",
-            newOrUpdated.getSubscriptionId());
-      }
-    }
+    checkForMissingBillingProvider(newOrUpdated);
 
     if (subscriptionOptional.isPresent()) {
       final org.candlepin.subscriptions.db.model.Subscription existingSubscription =
@@ -201,6 +191,23 @@ public class SubscriptionSyncController {
     } else {
       subscriptionRepository.save(newOrUpdated);
       capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
+    }
+  }
+
+  private void checkForMissingBillingProvider(
+      org.candlepin.subscriptions.db.model.Subscription subscription) {
+    if (subscription.getBillingProvider() == null
+        || subscription.getBillingProvider().equals(BillingProvider.EMPTY)) {
+      var offeringOptional = offeringRepository.findById(subscription.getSku());
+      if (offeringOptional.isPresent()) {
+        var productTag =
+            tagProfile.tagForOfferingProductName(offeringOptional.get().getProductName());
+        if (tagProfile.isProductPAYGEligible(productTag)) {
+          log.warn(
+              "PAYG eligible subscription with subscriptionId:{} has no billing provider.",
+              subscription.getSubscriptionId());
+        }
+      }
     }
   }
 
