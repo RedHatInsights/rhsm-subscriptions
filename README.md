@@ -415,6 +415,13 @@ Essentially:
 2. Export the dashboard, choosing to "export for sharing externally", save JSON to a file.
 3. Rename the file to `subscription-watch.json`.
 
+OR
+
+1. Edit the dashboard on the stage grafana instance.
+2. Navigate to Dashboard Settings (cogwheel top right of page)
+3. Navigate to JSON Model (left nav)
+4. Save contents of the JSON Model into a file named `subscription-watch.json`.
+
 Use the following command to update the configmap YAML:
 
 ```
@@ -427,11 +434,14 @@ cat << EOF >> ./grafana-dashboard-subscription-watch.configmap.yaml
 EOF
 ```
 
+
 Possibly useful, to extract the JSON from the k8s configmap file:
 
 ```
 oc extract -f dashboards/grafana-dashboard-subscription-watch.configmap.yaml --confirm
 ```
+
+Once you extract it from the .yaml that's checked into this repo, you can import it into the stage instance of grafana by going to Create -> Import from the left nav.
 
 ## License
 
