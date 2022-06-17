@@ -55,6 +55,8 @@ parameters:
     value: '500'
   - name: DEVTEST_SUBSCRIPTION_EDITING_ENABLED
     value: 'false'
+  - name: DEVTEST_EVENT_EDITING_ENABLED
+    value: 'false'
   - name: SUBSCRIPTION_URL
     value: https://subscription.qa.api.redhat.com/svcrest/subscription/v5
   - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
