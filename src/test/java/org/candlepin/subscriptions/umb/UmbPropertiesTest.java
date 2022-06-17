@@ -18,14 +18,29 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db;
+package org.candlepin.subscriptions.umb;
 
-import java.util.List;
-import org.candlepin.subscriptions.db.model.Offering;
-import org.springframework.data.jpa.repository.JpaRepository;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/** Repository interface for the Offering entity */
-public interface OfferingRepository extends JpaRepository<Offering, String> {
+import org.junit.jupiter.api.Test;
 
-  List<Offering> findByProductName(String productName);
+class UmbPropertiesTest {
+
+  @Test
+  void testShouldLeaveNonVirtualTopicAlone() {
+    UmbProperties properties = new UmbProperties();
+    properties.setSubscriptionTopic("foobar");
+    assertEquals("foobar", properties.getSubscriptionTopic());
+  }
+
+  @Test
+  void shouldApplyUmbVirtualTopicPatternToConsumerTopic() {
+    UmbProperties properties = new UmbProperties();
+    properties.setNamespace("ns");
+    properties.setServiceAccountName("sa");
+    properties.setSubscriptionTopic("VirtualTopic.foo.bar");
+    assertEquals(
+        "Consumer.sa.swatch-ns-VirtualTopic_foo_bar.VirtualTopic.foo.bar",
+        properties.getSubscriptionTopic());
+  }
 }

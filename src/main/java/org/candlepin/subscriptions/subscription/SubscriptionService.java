@@ -80,6 +80,37 @@ public class SubscriptionService {
     return monoRetryWrapper(supplier);
   }
 
+  public Subscription getSubscriptionBySubscriptionNumber(String subscriptionNumber) {
+    Supplier<Subscription> supplier =
+        () -> {
+          try {
+            List<Subscription> matchingSubscriptions =
+                searchApi.getSubscriptionBySubscriptionNumber(subscriptionNumber);
+            if (matchingSubscriptions.isEmpty()) {
+              throw new ExternalServiceException(
+                  ErrorCode.SUBSCRIPTION_SERVICE_REQUEST_ERROR,
+                  "No subscriptions found for subscriptionNumber=" + subscriptionNumber,
+                  null);
+            }
+            if (matchingSubscriptions.size() > 1) {
+              throw new ExternalServiceException(
+                  ErrorCode.SUBSCRIPTION_SERVICE_REQUEST_ERROR,
+                  "Multiple subscriptions found for subscriptionNumber=" + subscriptionNumber,
+                  null);
+            }
+            return matchingSubscriptions.get(0);
+          } catch (ApiException e) {
+            log.error(API_EXCEPTION_FROM_SUBSCRIPTION_SERVICE, e.getMessage());
+            throw new ExternalServiceException(
+                ErrorCode.REQUEST_PROCESSING_ERROR,
+                ERROR_DURING_ATTEMPT_TO_REQUEST_SUBSCRIPTION_INFO_MSG,
+                e);
+          }
+        };
+
+    return monoRetryWrapper(supplier);
+  }
+
   /**
    * Obtain Subscription Service Subscription Models for an account number. Will attempt to gather
    * "all" pages and combine them.

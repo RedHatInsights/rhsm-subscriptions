@@ -52,6 +52,8 @@ public interface SubscriptionRepository
           + "AND s.subscriptionId = :subscriptionId")
   Optional<Subscription> findActiveSubscription(@Param("subscriptionId") String subscriptionId);
 
+  Optional<Subscription> findBySubscriptionNumber(String subscriptionNumber);
+
   Page<Subscription> findBySku(String sku, Pageable pageable);
 
   Stream<Subscription> findByOwnerId(String ownerId);

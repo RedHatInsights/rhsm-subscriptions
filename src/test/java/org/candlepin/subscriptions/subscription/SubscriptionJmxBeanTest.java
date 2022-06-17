@@ -24,11 +24,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 
 import org.candlepin.subscriptions.security.SecurityProperties;
+import org.candlepin.subscriptions.umb.UmbProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jmx.JmxException;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,6 +38,7 @@ class SubscriptionJmxBeanTest {
 
   @Mock private SubscriptionSyncController subscriptionSyncController;
   @Mock private SubscriptionPruneController subscriptionPruneController;
+  @Mock private JmsTemplate mockJmsTemplate;
 
   private SubscriptionJmxBean subject;
   private SecurityProperties properties;
@@ -45,7 +48,11 @@ class SubscriptionJmxBeanTest {
     properties = new SecurityProperties();
     subject =
         new SubscriptionJmxBean(
-            subscriptionSyncController, subscriptionPruneController, properties);
+            subscriptionSyncController,
+            subscriptionPruneController,
+            properties,
+            new UmbProperties(),
+            mockJmsTemplate);
   }
 
   @Test

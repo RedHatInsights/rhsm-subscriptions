@@ -33,6 +33,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.jms.annotation.EnableJms;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
 
@@ -44,7 +45,8 @@ import org.springframework.retry.support.RetryTemplateBuilder;
   RegistryConfiguration.class,
   CapacityReconciliationConfiguration.class
 })
-@ComponentScan({"org.candlepin.subscriptions.subscription"})
+@EnableJms
+@ComponentScan({"org.candlepin.subscriptions.subscription", "org.candlepin.subscriptions.umb"})
 public class SubscriptionServiceConfiguration {
 
   @Bean

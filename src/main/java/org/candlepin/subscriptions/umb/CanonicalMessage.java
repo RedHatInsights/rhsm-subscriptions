@@ -18,14 +18,29 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db;
+package org.candlepin.subscriptions.umb;
 
-import java.util.List;
-import org.candlepin.subscriptions.db.model.Offering;
-import org.springframework.data.jpa.repository.JpaRepository;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-/** Repository interface for the Offering entity */
-public interface OfferingRepository extends JpaRepository<Offering, String> {
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@JsonNaming(PropertyNamingStrategies.UpperCamelCaseStrategy.class)
+public class CanonicalMessage {
+  private Payload payload;
 
-  List<Offering> findByProductName(String productName);
+  public static XmlMapper createMapper() {
+    XmlMapper mapper = new XmlMapper();
+    mapper.findAndRegisterModules();
+    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    return mapper;
+  }
 }

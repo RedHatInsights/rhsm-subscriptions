@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<CanonicalMessage>
+  <Payload>
+    <Sync>
+      <Subscription>
+        <Identifiers>
+          <Reference system="EBS" entity-name="Account" qualifier="number">account123</Reference>
+          <Reference system="WEB" entity-name="Customer" qualifier="id">org123_ICUST</Reference>
+          <Reference system="SUBSCRIPTION" entity-name="Subscription" qualifier="number">1234</Reference>
+        </Identifiers>
+        <Status>
+          <State>Active</State>
+          <StartDate>2020-01-01T12:34:56.789</StartDate>
+        </Status>
+        <Quantity>1</Quantity>
+        <effectiveStartDate>2020-01-01T00:00:00.000</effectiveStartDate>
+        <effectiveEndDate>2030-01-01T00:00:00.000</effectiveEndDate>
+        <Product>
+          <Sku>MW01882</Sku>
+        </Product>
+        <!--NOTE: UMB messages have a lot more fields we don't care about, the following helps to
+        test that we're properly ignoring extra elements
+         -->
+        <DummyElementThatShouldBeIgnored />
+      </Subscription>
+    </Sync>
+  </Payload>
+</CanonicalMessage>

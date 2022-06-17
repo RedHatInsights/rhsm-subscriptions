@@ -24,8 +24,10 @@ import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.security.SecurityProperties;
+import org.candlepin.subscriptions.umb.UmbProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
+import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jmx.JmxException;
 import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedOperationParameter;
@@ -38,18 +40,25 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class SubscriptionJmxBean {
 
+  public static final String NOT_ENABLED_MESSAGE = "This feature is not currently enabled.";
   private final SubscriptionSyncController subscriptionSyncController;
   private final SubscriptionPruneController subscriptionPruneController;
   private final SecurityProperties properties;
+  private final UmbProperties umbProperties;
+  private final JmsTemplate jmsTemplate;
 
   @Autowired
   SubscriptionJmxBean(
       SubscriptionSyncController subscriptionSyncController,
       SubscriptionPruneController subscriptionPruneController,
-      SecurityProperties properties) {
+      SecurityProperties properties,
+      UmbProperties umbProperties,
+      JmsTemplate jmsTemplate) {
     this.subscriptionSyncController = subscriptionSyncController;
     this.subscriptionPruneController = subscriptionPruneController;
     this.properties = properties;
+    this.umbProperties = umbProperties;
+    this.jmsTemplate = jmsTemplate;
   }
 
   @Transactional
@@ -97,7 +106,7 @@ public class SubscriptionJmxBean {
           "Invoke reconciliation logic to create capacity? (hint: offering for the SKU must be present)")
   public void saveSubscriptions(String subscriptionsJson, boolean reconcileCapacity) {
     if (!properties.isDevMode() && !properties.isManualSubscriptionEditingEnabled()) {
-      throw new JmxException("This feature is not currently enabled.");
+      throw new JmxException(NOT_ENABLED_MESSAGE);
     }
     try {
       Object principal = ResourceUtils.getPrincipal();
@@ -109,10 +118,39 @@ public class SubscriptionJmxBean {
     }
   }
 
+  @ManagedOperation(description = "Sync UMB subscription manually. Supported only in dev-mode.")
+  @ManagedOperationParameter(name = "subscriptionXml", description = "XML containing a UMB message")
+  public void syncSubscriptionFromXml(String subscriptionXml) {
+    if (!properties.isDevMode() && !properties.isManualSubscriptionEditingEnabled()) {
+      throw new JmxException(NOT_ENABLED_MESSAGE);
+    }
+    try {
+      Object principal = ResourceUtils.getPrincipal();
+      log.info("Save of UMB subscription triggered over JMX by {}", principal);
+      subscriptionSyncController.saveUmbSubscriptionFromXml(subscriptionXml);
+    } catch (Exception e) {
+      log.error("Error saving subscription", e);
+      throw new JmxException("Error saving subscription. See log for details.");
+    }
+  }
+
+  @ManagedOperation(
+      description =
+          "Enqueue UMB subscription XML. Supported only in dev-mode. Won't work against actual UMB brokers.")
+  @ManagedOperationParameter(name = "subscriptionXml", description = "XML containing a UMB message")
+  public void enqueueSubscriptionXml(String subscriptionXml) {
+    if (!properties.isDevMode() && !properties.isManualSubscriptionEditingEnabled()) {
+      throw new JmxException(NOT_ENABLED_MESSAGE);
+    }
+    Object principal = ResourceUtils.getPrincipal();
+    jmsTemplate.convertAndSend(umbProperties.getSubscriptionTopic(), subscriptionXml);
+    log.info("{} enqueued message to topic {}", principal, umbProperties.getSubscriptionTopic());
+  }
+
   @ManagedOperation(description = "Delete a subscription manually. Supported only in dev-mode.")
   public void deleteSubscription(String subscriptionId) {
     if (!properties.isDevMode() && !properties.isManualSubscriptionEditingEnabled()) {
-      throw new JmxException("This feature is not currently enabled.");
+      throw new JmxException(NOT_ENABLED_MESSAGE);
     }
     Object principal = ResourceUtils.getPrincipal();
     log.info("Save of new subscriptions triggered over JMX by {}", principal);

@@ -35,10 +35,11 @@ import javax.ws.rs.client.ClientBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.jboss.resteasy.client.jaxrs.ClientHttpEngine;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
-import org.jboss.resteasy.client.jaxrs.engines.factory.ApacheHttpClient4EngineFactory;
+import org.jboss.resteasy.client.jaxrs.engines.ApacheHttpClientEngine;
 import org.jboss.resteasy.client.jaxrs.internal.ClientConfiguration;
 import org.jboss.resteasy.spi.ResteasyProviderFactory;
 import org.springframework.core.io.Resource;
@@ -88,9 +89,8 @@ public class HttpClient {
         RequestConfig.custom().setCookieSpec(CookieSpecs.IGNORE_COOKIES).build();
     apacheBuilder.setDefaultRequestConfig(cookieConfig);
 
-    org.apache.http.client.HttpClient httpClient = apacheBuilder.build();
-
-    ClientHttpEngine engine = ApacheHttpClient4EngineFactory.create(httpClient);
+    CloseableHttpClient httpClient = apacheBuilder.build();
+    ClientHttpEngine engine = ApacheHttpClientEngine.create(httpClient);
 
     ClientConfiguration clientConfig =
         new ClientConfiguration(ResteasyProviderFactory.getInstance());

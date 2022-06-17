@@ -18,14 +18,24 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db;
+package org.candlepin.subscriptions.umb;
 
-import java.util.List;
-import org.candlepin.subscriptions.db.model.Offering;
-import org.springframework.data.jpa.repository.JpaRepository;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlText;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-/** Repository interface for the Offering entity */
-public interface OfferingRepository extends JpaRepository<Offering, String> {
-
-  List<Offering> findByProductName(String productName);
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@JsonNaming(PropertyNamingStrategies.KebabCaseStrategy.class)
+public class Reference {
+  private String system;
+  private String entityName;
+  private String qualifier;
+  @JacksonXmlText private String value;
 }

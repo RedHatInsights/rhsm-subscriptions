@@ -1,0 +1,312 @@
+openapi: "3.0.2"
+info:
+  title: "internal-organizations-sync-api"
+  description: "REST interface for the internal-organization-sync service. Please note any deprecated APIs. Our current deprecation policy is to keep deprecated APIs around for at least 6 months."
+  version: 1.0.0
+paths:
+  /internal/rpc/syncOrg:
+    description: "Trigger a sync for a given Org ID"
+    post:
+      summary: "Sync organization for given org_id."
+      requestBody:
+        $ref: "#/components/requestBodies/OrgSyncRequestBody"
+      operationId: syncOrg
+      tags:
+        - internalOrganizations
+      responses:
+        '200':
+          description: "The request for syncing organization has completed successfully."
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '400':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+  /internal/rpc/syncAllOrgs:
+    description: "Trigger a sync for all Organizations"
+    post:
+      summary: "Sync all organizations."
+      operationId: syncFullOrgList
+      tags:
+        - internalOrganizations
+      responses:
+        '202':
+          description: "The request for syncing all organizations is successfully running."
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '403':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+  /internal/organizations-sync-list:
+    description: "Initiate altering database sync list by either adding or removing a given list of Org IDs"
+    parameters:
+      - name: org_ids
+        in: query
+        required: true
+        style: form
+        explode: false
+        schema:
+          type: array
+          items:
+            type: string
+        description: "Comma separated list of org_ids. (Ex. 123,456,789)"
+    post:
+      summary: "Add a given list of organizations to the database sync list."
+      operationId: addOrgsToSyncList
+      tags:
+        - internalOrganizations
+      responses:
+        '200':
+          description: "The request for adding organizations to the sync list has completed successfully."
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '400':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+    delete:
+      summary: "Remove a given list of organizations from the database sync list."
+      operationId: removeOrgsFromSyncList
+      tags:
+        - internalOrganizations
+      responses:
+        '200':
+          description: "The request for removing organizations from the sync list has completed successfully."
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '400':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+  /internal/organizations-sync-list/{org_id}:
+    description: "Initiate a search to check if given Org ID is in sync list"
+    parameters:
+      - name: org_id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: "Check if given Org ID is in the database sync list."
+      operationId: hasOrgInSyncList
+      tags:
+        - internalOrganizations
+      responses:
+        '200':
+          description: "The request to check the sync list for given org ID has successfully completed."
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/OrgExistsResponse"
+        '400':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+  /internal/organizations/{org_id}/inventory:
+    description: "Initiate viewing conduit representation of an org's systems from RHSM"
+    parameters:
+      - name: org_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: offset
+        in: query
+        schema:
+          type: integer
+        description: "The number of items to skip before starting to collect the result set"
+      - name: limit
+        in: query
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 1000
+        description: "The numbers of items to return"
+    get:
+      summary: "See conduit representation of an org's systems from RHSM."
+      operationId: getInventoryForOrg
+      tags:
+        - internalOrganizations
+      responses:
+        '200':
+          description: ""
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/OrgInventory"
+        '400':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+  /internal-organizations-sync-openapi.json:
+    $ref: "../../../../spec/openapi-paths.yaml#/openapi-json"
+  /internal-organizations-sync-openapi.yaml:
+    $ref: "../../../../spec/openapi-paths.yaml#/openapi-yaml"
+components:
+  requestBodies:
+    OrgSyncRequestBody:
+      description: "ID of Organization to sync"
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OrgSyncRequest"
+  schemas:
+    ConsumerInventory:
+      # Container for fields we capture from the IT endpoint for upload to inventory service.
+      required:
+        - subscription_manager_id
+        - org_id
+      properties:
+        subscription_manager_id:
+          type: string
+        insights_id:
+          type: string
+        org_id:
+          type: string
+        account_number:
+          type: string
+        os_name:
+          type: string
+        os_version:
+          type: string
+        os_kernel_version:
+          type: string
+        bios_vendor:
+          type: string
+        bios_version:
+          type: string
+        bios_uuid:
+          type: string
+        ip_addresses:
+          type: array
+          items:
+            type: string
+        fqdn:
+          type: string
+        display_name:
+          type: string
+        mac_addresses:
+          type: array
+          items:
+            type: string
+        cpu_sockets:
+          type: integer
+        cpu_cores:
+          type: integer
+        cores_per_socket:
+          type: integer
+        last_checkin:
+          type: string
+          format: date-time
+        memory:
+          type: integer
+          format: int64
+        system_memory_bytes:
+          type: integer
+          format: int64
+        architecture:
+          type: string
+        cloud_provider:
+          type: string
+        is_virtual:
+          type: boolean
+        vm_host:
+          type: string
+        vm_host_uuid:
+          type: string
+        guest_id:
+          type: string
+        rh_prod:
+          type: array
+          items:
+            type: string
+        sys_purpose_role:
+          type: string
+        sys_purpose_sla:
+          type: string
+        sys_purpose_usage:
+          type: string
+        sys_purpose_addons:
+          type: array
+          items:
+            type: string
+        sys_purpose_units:
+          type: string
+        billing_model:
+          type: string
+    DefaultResponse:
+      properties:
+        status:
+          type: string
+    OrgExistsResponse:
+      properties:
+        exists_in_list:
+          type: boolean
+    OrgSyncRequest:
+      type: object
+      properties:
+        org_id:
+          type: string
+    OrgInventory:
+      properties:
+        links:
+          $ref: "#/components/schemas/PageLinks"
+        consumer_inventories:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConsumerInventory"
+    PageLinks:
+      properties:
+        first:
+          type: string
+        last:
+          type: string
+        previous:
+          type: string
+        next:
+          type: string
+      required:
+        - first
+        - last
+  securitySchemes:
+    PskIdentity:
+      type: apiKey
+      in: header
+      name: x-rh-swatch-psk
+      description: |
+        Psk header containing Pre Shared Key. Contains an
+        UUID string:
+        ```
+        c9a98753-2092-4617-b226-5c2653330b3d
+        ```
+security:
+  - PskIdentity: []
