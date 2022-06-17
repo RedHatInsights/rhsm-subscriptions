@@ -25,6 +25,7 @@ Boundary(crc, console.redhat.com) {
 Boundary(rhit, "Red Hat IT") {
   System_Ext(rhit_subscriptions, "RH IT Subscription Service", "The internal RH Subscription API.")
   System_Ext(rhit_product, "RH IT Product Service", "The internal RH Product API which contains Offering definitions.")
+  ContainerQueue_Ext(rhit_umb_subscription, "VirtualTopic.canonical.subscription", "ActiveMQ VirtualTopic")
 }
 
 ' capacity ingress process
@@ -37,5 +38,7 @@ Rel_Back(capacity_reconcile_tasks, capacity_ingress, "Consumes from")
 Rel_Back(offering_sync_tasks, capacity_ingress, "Consumes from")
 Rel(capacity_ingress, db, "Reads from and writes to", "JDBC")
 Rel(capacity_ingress, rhit_subscriptions, "Reads from", "JSON/HTTPS")
+Rel_Back(capacity_ingress, rhit_umb_subscription, "Notifies", "XML")
 Rel(capacity_ingress, rhit_product, "Reads from", "JSON/HTTPS")
+Rel(rhit_subscriptions, rhit_umb_subscription, "Notifies", "XML")
 @enduml

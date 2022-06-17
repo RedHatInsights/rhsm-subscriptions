@@ -39,6 +39,12 @@ public class StubSearchApi extends SearchApi {
   }
 
   @Override
+  public List<Subscription> getSubscriptionBySubscriptionNumber(String subscriptionNumber)
+      throws ApiException {
+    return List.of(createAwsBillingProviderData());
+  }
+
+  @Override
   public List<Subscription> searchSubscriptionsByAccountNumber(
       String accountNumber, Integer index, Integer pageSize) throws ApiException {
     return List.of(createData(), createAwsBillingProviderData());

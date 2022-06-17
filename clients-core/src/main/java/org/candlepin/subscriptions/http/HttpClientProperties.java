@@ -20,19 +20,19 @@
  */
 package org.candlepin.subscriptions.http;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.time.Duration;
 import javax.net.ssl.HostnameVerifier;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
-import org.springframework.core.io.Resource;
+import org.candlepin.subscriptions.util.TlsProperties;
 
 /** HTTP service client configuration. */
 @Data
-@ToString
-public class HttpClientProperties {
+@ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
+public class HttpClientProperties extends TlsProperties {
 
   /** Use a stub of the service. */
   private boolean useStub;
@@ -58,48 +58,4 @@ public class HttpClientProperties {
    * used in testing, for example
    */
   @ToString.Exclude private HostnameVerifier hostnameVerifier = new DefaultHostnameVerifier();
-
-  /** Certificate authenticate file path */
-  private Resource keystore;
-
-  /** Certificate authenticate file password */
-  @ToString.Exclude private char[] keystorePassword;
-
-  /** Truststore file path */
-  private Resource truststore;
-
-  /** Truststore file password */
-  @ToString.Exclude private char[] truststorePassword;
-
-  public InputStream getKeystoreStream() throws IOException {
-    if (!validFile(keystore)) {
-      throw new IllegalStateException("No keystore file has been set");
-    }
-    return keystore.getInputStream();
-  }
-
-  public InputStream getTruststoreStream() throws IOException {
-    if (!validFile(truststore)) {
-      throw new IllegalStateException("No truststore file has been set");
-    }
-    return truststore.getInputStream();
-  }
-
-  public boolean usesClientAuth() {
-    return validFile(keystore);
-  }
-
-  /**
-   * If no truststore is provided, the security framework should use the truststore built into the
-   * JRE.
-   *
-   * @return true if a custom truststore should be used
-   */
-  public boolean providesTruststore() {
-    return validFile(truststore);
-  }
-
-  private boolean validFile(Resource r) {
-    return r != null && r.exists() && r.isReadable() && r.isFile();
-  }
 }
