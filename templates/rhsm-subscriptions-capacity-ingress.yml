@@ -207,6 +207,8 @@ objects:
                   value: ${DATABASE_MAX_POOL_SIZE}
                 - name: SUBSCRIPTION_SYNC_ENABLED
                   value: ${SUBSCRIPTION_SYNC_ENABLED}
+                - name: DEVTEST_EVENT_EDITING_ENABLED
+                  value: ${DEVTEST_EVENT_EDITING_ENABLED}
                 - name: SUBSCRIPTION_PAGE_SIZE
                   value: ${SUBSCRIPTION_PAGE_SIZE}
                 - name: INVENTORY_DATABASE_HOST
