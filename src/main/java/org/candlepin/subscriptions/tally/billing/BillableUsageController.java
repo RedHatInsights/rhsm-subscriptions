@@ -30,7 +30,6 @@ import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -62,32 +61,29 @@ public class BillableUsageController {
   }
 
   public void submitBillableUsage(BillingWindow billingWindow, BillableUsage usage) {
+    // Send the message last to ensure that remittance has been updated.
+    // If the message fails to send, it will roll back the transaction.
+    billingProducer.produce(processBillableUsage(billingWindow, usage));
+  }
+
+  public BillableUsage processBillableUsage(BillingWindow billingWindow, BillableUsage usage) {
+    BillableUsage toBill;
     switch (billingWindow) {
       case HOURLY:
-        produceHourlyBillable(usage);
+        toBill = produceHourlyBillable(usage);
         break;
       case MONTHLY:
-        produceMonthlyBillable(usage);
+        toBill = produceMonthlyBillable(usage);
         break;
       default:
         throw new UnsupportedOperationException(
             "Unsupported billing window specified when producing billable usage: " + billingWindow);
     }
+    return toBill;
   }
 
-  private BillableUsageRemittanceEntity getLatestRemittance(BillableUsage billableUsage) {
-    BillableUsageRemittanceEntityPK key =
-        BillableUsageRemittanceEntityPK.builder()
-            .usage(billableUsage.getUsage().value())
-            .accountNumber(billableUsage.getAccountNumber())
-            .billingProvider(billableUsage.getBillingProvider().value())
-            .billingAccountId(billableUsage.getBillingAccountId())
-            .productId(billableUsage.getProductId())
-            .sla(billableUsage.getSla().value())
-            .metricId(billableUsage.getUom().value())
-            .accumulationPeriod(getAccumulationPeriod(billableUsage.getSnapshotDate()))
-            .build();
-
+  public BillableUsageRemittanceEntity getLatestRemittance(BillableUsage billableUsage) {
+    BillableUsageRemittanceEntityPK key = BillableUsageRemittanceEntityPK.keyFrom(billableUsage);
     return billableUsageRemittanceRepository
         .findById(key)
         .orElse(BillableUsageRemittanceEntity.builder().key(key).remittedValue(0.0).build());
@@ -112,12 +108,12 @@ public class BillableUsageController {
         .build();
   }
 
-  private void produceHourlyBillable(BillableUsage usage) {
+  private BillableUsage produceHourlyBillable(BillableUsage usage) {
     log.debug("Processing hourly billable usage {}", usage);
-    billingProducer.produce(usage);
+    return usage;
   }
 
-  private void produceMonthlyBillable(BillableUsage usage) {
+  private BillableUsage produceMonthlyBillable(BillableUsage usage) {
     log.debug("Processing monthly billable usage {}", usage);
     Double currentMonthlyTotal =
         getCurrentlyMeasuredTotal(
@@ -147,14 +143,7 @@ public class BillableUsageController {
       log.debug("Updating remittance: {}", remittance);
       billableUsageRemittanceRepository.save(remittance);
     }
-
-    // Send the message last to ensure that remittance has been updated.
-    // If the message fails to send, it will roll back the transaction.
-    billingProducer.produce(usage);
-  }
-
-  private String getAccumulationPeriod(OffsetDateTime reference) {
-    return InstanceMonthlyTotalKey.formatMonthId(reference);
+    return usage;
   }
 
   private boolean updateRemittance(

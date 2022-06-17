@@ -103,4 +103,16 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
       @Param("beginning") OffsetDateTime beginning,
       @Param("ending") OffsetDateTime ending,
       @Param("measurementKey") TallyMeasurementKey measurementKey);
+
+  @Query(
+      nativeQuery = true,
+      value =
+          "select s.* from tally_snapshots s where id in "
+              + "(select distinct first_value(s.id) over "
+              + "(partition by s.account_number, s.sla, s.usage, s.billing_provider, s.billing_account_id, m.uom "
+              + "order by s.snapshot_date desc) from tally_snapshots s "
+              + "inner join tally_measurements m on s.id = m.snapshot_id where s.granularity='HOURLY' "
+              + "and extract(month from s.snapshot_date) = :month and s.sla != '_ANY' and "
+              + "s.usage != '_ANY' and s.billing_provider != '_ANY' and s.billing_account_id != '_ANY');")
+  Stream<TallySnapshot> findLatestBillablesForMonth(@Param("month") int month);
 }
