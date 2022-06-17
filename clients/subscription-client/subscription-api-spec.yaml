@@ -179,5 +179,5 @@ components:
           type: string
         sellerAccount:
           type: string
-        customerAccountId:
+        customerAccountID:
           type: string

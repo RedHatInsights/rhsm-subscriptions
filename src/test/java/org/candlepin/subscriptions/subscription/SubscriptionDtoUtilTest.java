@@ -76,7 +76,7 @@ class SubscriptionDtoUtilTest {
     extRef.setProductCode("testProduct456");
     extRef.setCustomerID("testCustomer123");
     extRef.setSellerAccount("testSellerAccount789");
-    dto.putExternalReferencesItem("aws", extRef);
+    dto.putExternalReferencesItem(SubscriptionDtoUtil.AWS_MARKETPLACE, extRef);
 
     assertEquals(
         "testProduct456;testCustomer123;testSellerAccount789",
@@ -96,7 +96,7 @@ class SubscriptionDtoUtilTest {
   void testExtractBillingProviderAWSMarketplace() {
     var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
 
-    dto.putExternalReferencesItem("aws", new ExternalReference());
+    dto.putExternalReferencesItem(SubscriptionDtoUtil.AWS_MARKETPLACE, new ExternalReference());
 
     assertEquals(BillingProvider.AWS, SubscriptionDtoUtil.populateBillingProvider(dto));
   }
@@ -106,8 +106,8 @@ class SubscriptionDtoUtilTest {
     var dto = new org.candlepin.subscriptions.subscription.api.model.Subscription();
 
     ExternalReference extRef = new ExternalReference();
-    extRef.setCustomerAccountId("123456789123");
-    dto.putExternalReferencesItem("aws", extRef);
+    extRef.setCustomerAccountID("123456789123");
+    dto.putExternalReferencesItem(SubscriptionDtoUtil.AWS_MARKETPLACE, extRef);
     assertEquals("123456789123", SubscriptionDtoUtil.extractBillingAccountId(dto));
   }
 
