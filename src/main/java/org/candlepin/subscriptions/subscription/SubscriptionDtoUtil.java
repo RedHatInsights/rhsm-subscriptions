@@ -33,7 +33,7 @@ import org.springframework.util.StringUtils;
 /** Utility class to assist in pulling nested data out of the Subscription DTO. */
 public class SubscriptionDtoUtil {
   public static final String IBMMARKETPLACE = "ibmmarketplace";
-  public static final String AWS_MARKETPLACE = "aws";
+  public static final String AWS_MARKETPLACE = "awsMarketplace";
 
   private SubscriptionDtoUtil() {
     // Utility methods only
@@ -100,7 +100,7 @@ public class SubscriptionDtoUtil {
   public static String extractBillingAccountId(Subscription subscription) {
     if (subscription.getExternalReferences() != null
         && subscription.getExternalReferences().containsKey(AWS_MARKETPLACE)) {
-      return subscription.getExternalReferences().get(AWS_MARKETPLACE).getCustomerAccountId();
+      return subscription.getExternalReferences().get(AWS_MARKETPLACE).getCustomerAccountID();
     }
     return null;
   }

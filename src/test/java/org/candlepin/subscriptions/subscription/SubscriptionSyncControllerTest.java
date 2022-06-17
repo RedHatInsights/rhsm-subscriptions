@@ -526,7 +526,7 @@ class SubscriptionSyncControllerTest {
         Map.of(
             SubscriptionDtoUtil.AWS_MARKETPLACE,
             new ExternalReference()
-                .customerAccountId("billingAccountId")
+                .customerAccountID("billingAccountId")
                 .productCode("p")
                 .customerID("c")
                 .sellerAccount("s")));
