@@ -113,7 +113,7 @@ class TagProfileFactoryTest {
   @Test
   void billingFrequencyIsSet() {
     Optional<TagMetric> metric =
-        tagProfile.getTagMetric(ProductId.OPENSHIFT_METRICS.toString(), Measurement.Uom.CORES);
+        tagProfile.getTagMetric(ProductId.RHOSAK.toString(), Measurement.Uom.STORAGE_GIBIBYTES);
     assertEquals(BillingWindow.HOURLY, metric.get().getBillingWindow());
   }
 }
