@@ -194,7 +194,7 @@ public class SubscriptionSyncController {
                 .build();
         subscriptionRepository.save(newSub);
       } else {
-        updateSubscriptionEndDate(newOrUpdated, existingSubscription);
+        updateSubscription(newOrUpdated, existingSubscription);
         subscriptionRepository.save(existingSubscription);
       }
       capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
@@ -388,12 +388,16 @@ public class SubscriptionSyncController {
         .build();
   }
 
-  protected void updateSubscriptionEndDate(
+  /** Update all subscription fields that we allow to change */
+  protected void updateSubscription(
       org.candlepin.subscriptions.db.model.Subscription newOrUpdated,
       org.candlepin.subscriptions.db.model.Subscription entity) {
     if (newOrUpdated.getEndDate() != null) {
       entity.setEndDate(newOrUpdated.getEndDate());
     }
+    entity.setBillingProvider(newOrUpdated.getBillingProvider());
+    entity.setBillingAccountId(newOrUpdated.getBillingAccountId());
+    entity.setBillingProviderId(newOrUpdated.getBillingProviderId());
   }
 
   public void saveSubscriptions(String subscriptionsJson, boolean reconcileCapacity) {
