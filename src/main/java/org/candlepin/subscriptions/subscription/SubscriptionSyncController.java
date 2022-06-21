@@ -541,7 +541,9 @@ public class SubscriptionSyncController {
             .accountNumber(accountNumber)
             .productNames(productNames)
             .serviceLevel(usageKey.getSla())
-            .usage(usageKey.getUsage())
+            // NOTE(khowell) due to an oversight PAYG SKUs don't currently have a usage set -
+            // at some point we should use usageKey.getUsage() instead of "_ANY"
+            .usage(Usage._ANY)
             .billingProvider(usageKey.getBillingProvider())
             .billingAccountId(usageKey.getBillingAccountId())
             .payg(true)
