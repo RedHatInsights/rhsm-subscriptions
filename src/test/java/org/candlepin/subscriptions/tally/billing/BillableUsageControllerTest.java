@@ -93,7 +93,8 @@ class BillableUsageControllerTest {
   @Test
   void monthlyWindowWithRemittanceUpdate() {
     BillableUsage usage = billable(clock.startOfCurrentMonth(), 2.3);
-    BillableUsageRemittanceEntity currentRemittance = remittance(usage, clock.now(), 3.0);
+    BillableUsageRemittanceEntity currentRemittance =
+        remittance(usage, clock.now().minusHours(1), 3.0);
     when(remittanceRepo.findById(keyFrom(usage))).thenReturn(Optional.of(currentRemittance));
     mockCurrentSnapshotMeasurementTotal(usage, 4.4); // from multiple snapshots (2.1, 2.3)
     controller.submitBillableUsage(BillingWindow.MONTHLY, usage);
