@@ -20,7 +20,8 @@
  */
 package org.candlepin.subscriptions.user;
 
-import javax.ws.rs.core.Response.Status;
+import static org.candlepin.subscriptions.exception.ErrorCode.ACCOUNT_MISSING_ERROR;
+
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.springframework.classify.Classifier;
 import org.springframework.retry.RetryPolicy;
@@ -48,7 +49,7 @@ public class NotFoundSubscriptionsExceptionClassifier
   public RetryPolicy classify(Throwable classifiable) {
     if (classifiable instanceof SubscriptionsException) {
       var subscriptionsException = (SubscriptionsException) classifiable;
-      if (Status.NO_CONTENT.equals(subscriptionsException.getStatus())) {
+      if (ACCOUNT_MISSING_ERROR.equals(subscriptionsException.getCode())) {
         return new NeverRetryPolicy();
       }
     }
