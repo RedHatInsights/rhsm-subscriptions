@@ -70,7 +70,7 @@ public enum ErrorCode {
   SUBSCRIPTION_SERVICE_MARKETPLACE_ID_LOOKUP_ERROR(
       3001, "Could not find marketplace subscription id"),
 
-  ACCOUNT_SERVICE_LOOKUP_ERROR(3002, "Could not find account");
+  ACCOUNT_MISSING_ERROR(3002, "Account not present according to RH IT services");
 
   private static final String CODE_PREFIX = "SUBSCRIPTIONS";
 

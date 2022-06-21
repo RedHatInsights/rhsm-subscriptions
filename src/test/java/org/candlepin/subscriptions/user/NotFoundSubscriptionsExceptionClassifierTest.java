@@ -94,10 +94,7 @@ class NotFoundSubscriptionsExceptionClassifierTest {
           ctx -> {
             noContentTries.incrementAndGet();
             throw new SubscriptionsException(
-                ErrorCode.ACCOUNT_SERVICE_LOOKUP_ERROR,
-                Status.NO_CONTENT,
-                String.format("No Content"),
-                "");
+                ErrorCode.ACCOUNT_MISSING_ERROR, Status.NOT_FOUND, "Account not found", "");
           });
     }
 
@@ -106,9 +103,9 @@ class NotFoundSubscriptionsExceptionClassifierTest {
           ctx -> {
             serverErrorTries.incrementAndGet();
             throw new SubscriptionsException(
-                ErrorCode.ACCOUNT_SERVICE_LOOKUP_ERROR,
+                ErrorCode.REQUEST_PROCESSING_ERROR,
                 Status.INTERNAL_SERVER_ERROR,
-                String.format("No Content"),
+                "Account not found",
                 "");
           });
     }

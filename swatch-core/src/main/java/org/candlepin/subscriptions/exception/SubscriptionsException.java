@@ -32,7 +32,7 @@ public class SubscriptionsException extends RuntimeException {
 
   @Getter private final Status status;
   @Getter private final String detail;
-  private final ErrorCode code;
+  @Getter private final ErrorCode code;
 
   public SubscriptionsException(ErrorCode code, Status status, String message, String detail) {
     this(code, status, message, detail, null);

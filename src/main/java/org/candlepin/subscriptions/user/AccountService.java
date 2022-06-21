@@ -64,8 +64,10 @@ public class AccountService {
         // Don't log a stacktrace
         MDC.put("ACCOUNT_LOOKUP_FAILED", Boolean.TRUE.toString());
         throw new SubscriptionsException(
-            ErrorCode.ACCOUNT_SERVICE_LOOKUP_ERROR,
-            Status.NO_CONTENT,
+            ErrorCode.ACCOUNT_MISSING_ERROR,
+            // use 404 here instead of 204, as 204 would be treated as a success, which
+            // leads to subtle NPE(s) when the response is interpreted.
+            Status.NOT_FOUND,
             String.format("Account number %s not found", accountNumber),
             (String) null);
       }
@@ -93,8 +95,10 @@ public class AccountService {
         // Don't log a stacktrace
         MDC.put("ACCOUNT_LOOKUP_FAILED", Boolean.TRUE.toString());
         throw new SubscriptionsException(
-            ErrorCode.ACCOUNT_SERVICE_LOOKUP_ERROR,
-            Status.NO_CONTENT,
+            ErrorCode.ACCOUNT_MISSING_ERROR,
+            // use 404 here instead of 204, as 204 would be treated as a success, which
+            // leads to subtle NPE(s) when the response is interpreted.
+            Status.NOT_FOUND,
             String.format("Account w/ orgId %s not found", orgId),
             (String) null);
       }
