@@ -35,6 +35,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import java.time.OffsetDateTime;
+import java.util.Objects;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import lombok.extern.slf4j.Slf4j;
@@ -102,14 +103,22 @@ public class BillableUsageProcessor {
     try {
       transformAndSend(context, billableUsage);
     } catch (Exception e) {
-      log.error(
-          "Error sending usage for account={} rhSubscriptionId={} tallySnapshotId={} awsCustomerId={} awsProductCode={}",
-          billableUsage.getAccountNumber(),
-          context.getRhSubscriptionId(),
-          billableUsage.getId(),
-          context.getCustomerId(),
-          context.getProductCode(),
-          e);
+      if (Objects.isNull(context)) {
+        log.error(
+            "Error sending usage for account={} tallySnapshotId={} AWS Context: null.",
+            billableUsage.getAccountNumber(),
+            billableUsage.getId(),
+            e);
+      } else {
+        log.error(
+            "Error sending usage for account={} rhSubscriptionId={} tallySnapshotId={} awsCustomerId={} awsProductCode={}",
+            billableUsage.getAccountNumber(),
+            context.getRhSubscriptionId(),
+            billableUsage.getId(),
+            context.getCustomerId(),
+            context.getProductCode(),
+            e);
+      }
     }
   }
 
