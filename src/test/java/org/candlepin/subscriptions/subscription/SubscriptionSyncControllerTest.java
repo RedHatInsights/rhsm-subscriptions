@@ -580,6 +580,29 @@ class SubscriptionSyncControllerTest {
     assertNull(incoming.getBillingAccountId());
   }
 
+  @Test
+  void testBillingFieldsUpdatedOnChange() {
+    Subscription incoming = createSubscription("123", "testsku", "456");
+    incoming.setBillingProvider(BillingProvider.RED_HAT);
+    incoming.setBillingProviderId("newBillingProviderId");
+    incoming.setBillingAccountId("newBillingAccountId");
+    Subscription existing = createSubscription("123", "testsku", "456");
+    existing.setBillingProvider(BillingProvider.AWS);
+    existing.setBillingAccountId("oldBillingAccountId");
+    existing.setBillingProviderId("oldBillinProviderId");
+
+    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(offeringRepository.existsById("testsku")).thenReturn(true);
+
+    subscriptionSyncController.syncSubscription(incoming, Optional.of(existing));
+
+    verifyNoInteractions(subscriptionService);
+    verify(subscriptionRepository).save(existing);
+    assertEquals(BillingProvider.RED_HAT, existing.getBillingProvider());
+    assertEquals("newBillingProviderId", existing.getBillingProviderId());
+    assertEquals("newBillingAccountId", existing.getBillingAccountId());
+  }
+
   private Subscription createSubscription(String orgId, String sku, String subId) {
     final Subscription subscription = new Subscription();
     subscription.setSubscriptionId(subId);
