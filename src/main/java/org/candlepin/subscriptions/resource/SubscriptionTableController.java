@@ -293,6 +293,15 @@ public class SubscriptionTableController {
       skuCapacity.setNextEventDate(nearestEventDate);
       skuCapacity.setNextEventType(SubscriptionEventType.END);
     }
+
+    //TODO
+    subscription.getBillingAccountId();
+    subscription.getBillingProvider();
+    subscription.getBillingProviderId();
+
+    skuCapacity.setBillingAccountId(null);
+    skuCapacity.setBillingProvider(null);
+
   }
 
   public void addSubscriptionInformation(
