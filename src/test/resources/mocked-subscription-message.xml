@@ -4,9 +4,13 @@
     <Sync>
       <Subscription>
         <Identifiers>
+          <!--NOTE: UMB messages have a lot more fields we don't care about, the following helps to
+          test that we're properly ignoring extra elements
+           -->
+          <DummyElementThatShouldBeIgnored>FooBar</DummyElementThatShouldBeIgnored>
           <Reference system="EBS" entity-name="Account" qualifier="number">account123</Reference>
           <Reference system="WEB" entity-name="Customer" qualifier="id">org123_ICUST</Reference>
-          <Reference system="SUBSCRIPTION" entity-name="Subscription" qualifier="number">1234</Reference>
+          <Identifier system="SUBSCRIPTION" entity-name="Subscription" qualifier="number">1234</Identifier>
         </Identifiers>
         <Status>
           <State>Active</State>

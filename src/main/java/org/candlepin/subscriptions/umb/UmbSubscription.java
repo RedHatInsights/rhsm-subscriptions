@@ -42,7 +42,7 @@ import lombok.NoArgsConstructor;
 @JsonNaming(PropertyNamingStrategies.UpperCamelCaseStrategy.class)
 public class UmbSubscription {
   private static final ZoneId RALEIGH_TIME_ZONE = ZoneId.of("America/New_York");
-  private Reference[] identifiers;
+  private Identifiers identifiers;
   private SubscriptionStatus status;
   private Integer quantity;
 
@@ -57,10 +57,22 @@ public class UmbSubscription {
   private SubscriptionProduct[] products;
 
   private Optional<String> getReference(String system, String entityName, String qualifier) {
-    if (identifiers == null) {
+    if (identifiers == null || identifiers.getReferences() == null) {
       return Optional.empty();
     }
-    return Arrays.stream(identifiers)
+    return Arrays.stream(identifiers.getReferences())
+        .filter(reference -> system.equals(reference.getSystem()))
+        .filter(reference -> entityName.equals(reference.getEntityName()))
+        .filter(reference -> qualifier.equals(reference.getQualifier()))
+        .map(Reference::getValue)
+        .findFirst();
+  }
+
+  private Optional<String> getIdentifier(String system, String entityName, String qualifier) {
+    if (identifiers == null || identifiers.getIds() == null) {
+      return Optional.empty();
+    }
+    return Arrays.stream(identifiers.getIds())
         .filter(reference -> system.equals(reference.getSystem()))
         .filter(reference -> entityName.equals(reference.getEntityName()))
         .filter(reference -> qualifier.equals(reference.getQualifier()))
@@ -69,7 +81,7 @@ public class UmbSubscription {
   }
 
   public String getSubscriptionNumber() {
-    return getReference("SUBSCRIPTION", "Subscription", "number").orElseThrow();
+    return getIdentifier("SUBSCRIPTION", "Subscription", "number").orElseThrow();
   }
 
   public String getWebCustomerId() {
