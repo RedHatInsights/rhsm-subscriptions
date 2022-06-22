@@ -298,14 +298,14 @@ objects:
                 - name: SPRING_ACTIVEMQ_BROKER_URL
                   value: ${SPRING_ACTIVEMQ_BROKER_URL}
                 - name: UMB_KEYSTORE
-                  value: /service-certs/keystore.jks
+                  value: file:/service-certs/keystore.jks
                 - name: UMB_KEYSTORE_PASSWORD
                   valueFrom:
                     secretKeyRef:
                       name: tls
                       key: keystore_password
                 - name: UMB_TRUSTSTORE
-                  value: /service-certs/truststore.jks
+                  value: file:/service-certs/truststore.jks
                 - name: UMB_TRUSTSTORE_PASSWORD
                   valueFrom:
                     secretKeyRef:
