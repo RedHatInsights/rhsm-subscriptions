@@ -294,11 +294,7 @@ public class SubscriptionTableController {
       skuCapacity.setNextEventType(SubscriptionEventType.END);
     }
 
-    //TODO
-    subscription.getBillingAccountId();
-    subscription.getBillingProvider();
-    subscription.getBillingProviderId();
-
+    //Populate as part of ENT-5123
     skuCapacity.setBillingAccountId(null);
     skuCapacity.setBillingProvider(null);
 
