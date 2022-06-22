@@ -836,6 +836,8 @@ paths:
                 data:
                   - sku: RH00011
                     product_name: "Red Hat Enterprise Linux Server, Premium (Physical and 4 Virtual Nodes)(L3 Only)"
+                    billing_provider: "some provider goes here"
+                    billing_account_id: "some account id goes here"
                     service_level: Premium
                     usage: Production
                     subscriptions:
@@ -1644,6 +1646,11 @@ components:
       properties:
         sku:
           description: "The identifier for the offering."
+          type: string
+        billing_provider:
+          $ref: '#/components/schemas/BillingProviderType'
+        billing_account_id:
+          description: "The billing account id."
           type: string
         product_name:
           description: "The offering name."
