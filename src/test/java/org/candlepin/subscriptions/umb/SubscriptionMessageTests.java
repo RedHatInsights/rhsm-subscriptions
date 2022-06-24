@@ -44,26 +44,32 @@ class SubscriptionMessageTests {
                             .subscription(
                                 UmbSubscription.builder()
                                     .identifiers(
-                                        new Reference[] {
-                                          Reference.builder()
-                                              .system("EBS")
-                                              .entityName("Account")
-                                              .qualifier("number")
-                                              .value("account123")
-                                              .build(),
-                                          Reference.builder()
-                                              .system("WEB")
-                                              .entityName("Customer")
-                                              .qualifier("id")
-                                              .value("org123_ICUST")
-                                              .build(),
-                                          Reference.builder()
-                                              .system("SUBSCRIPTION")
-                                              .entityName("Subscription")
-                                              .qualifier("number")
-                                              .value("1234")
-                                              .build()
-                                        })
+                                        Identifiers.builder()
+                                            .references(
+                                                new Reference[] {
+                                                  Reference.builder()
+                                                      .system("EBS")
+                                                      .entityName("Account")
+                                                      .qualifier("number")
+                                                      .value("account123")
+                                                      .build(),
+                                                  Reference.builder()
+                                                      .system("WEB")
+                                                      .entityName("Customer")
+                                                      .qualifier("id")
+                                                      .value("org123_ICUST")
+                                                      .build(),
+                                                })
+                                            .ids(
+                                                new Reference[] {
+                                                  Reference.builder()
+                                                      .system("SUBSCRIPTION")
+                                                      .entityName("Subscription")
+                                                      .qualifier("number")
+                                                      .value("1234")
+                                                      .build()
+                                                })
+                                            .build())
                                     .status(
                                         SubscriptionStatus.builder()
                                             .startDate(
