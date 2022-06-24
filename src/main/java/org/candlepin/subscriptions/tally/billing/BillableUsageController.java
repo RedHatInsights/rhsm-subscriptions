@@ -138,12 +138,7 @@ public class BillableUsageController {
 
     // The orgId might not have been available when remittance
     // was originally created, so we attempt to set here.
-    if (updateRemittance(
-        remittance,
-        usage.getOrgId(),
-        usageCalc.getRemittedValue(),
-        usageCalc.getRemittanceDate())) {
-      // Only send the update if we need to.
+    if (updateRemittance(remittance, usage.getOrgId(), usageCalc)) {
       log.debug("Updating remittance: {}", remittance);
       billableUsageRemittanceRepository.save(remittance);
     }
@@ -158,22 +153,20 @@ public class BillableUsageController {
   }
 
   private boolean updateRemittance(
-      BillableUsageRemittanceEntity remittance,
-      String orgId,
-      Double remittedValue,
-      OffsetDateTime remittedDate) {
+      BillableUsageRemittanceEntity remittance, String orgId, BillableUsageCalculation usageCalc) {
     boolean updated = false;
-    if (!Objects.equals(remittance.getRemittanceDate(), remittedDate)) {
-      remittance.setRemittanceDate(remittedDate);
-      updated = true;
-    }
     if (!Objects.equals(remittance.getOrgId(), orgId) && StringUtils.hasText(orgId)) {
       remittance.setOrgId(orgId);
       updated = true;
     }
-    if (!Objects.equals(remittance.getRemittedValue(), remittedValue)) {
-      remittance.setRemittedValue(remittedValue);
+    if (!Objects.equals(remittance.getRemittedValue(), usageCalc.getRemittedValue())) {
+      remittance.setRemittedValue(usageCalc.getRemittedValue());
       updated = true;
+    }
+
+    // Only update the date if the remittance was updated.
+    if (updated) {
+      remittance.setRemittanceDate(usageCalc.getRemittanceDate());
     }
     return updated;
   }
