@@ -10,25 +10,20 @@ services:
       - ./init_dbs.sh:/docker-entrypoint-initdb.d/init_dbs.sh:z
     ports:
       - "5432:5432"
-  zookeeper:
-    image: docker.io/confluentinc/cp-zookeeper
-    ports:
-      - "2181:2181"
-    environment:
-      - ZOOKEEPER_CLIENT_PORT=2181
   kafka:
-    image: docker.io/confluentinc/cp-kafka
+    image: quay.io/strimzi/kafka:latest-kafka-3.1.0
+    command:
+    - sh
+    - -c
+    - CLUSTER_ID=$$(bin/kafka-storage.sh random-uuid) && bin/kafka-storage.sh format -t $$CLUSTER_ID -c config/kraft/server.properties && bin/kafka-server-start.sh config/kraft/server.properties --override advertised.listeners=$${KAFKA_ADVERTISED_LISTENERS} --override listener.security.protocol.map=$${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP} --override listeners=$${KAFKA_LISTENERS}
     environment:
-      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
-      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
-      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_LISTENERS=PLAINTEXT://:29092,PLAINTEXT_HOST://:9092,CONTROLLER://:9093
       - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      - LOG_DIR=/tmp/logs
     ports:
       - "9092:9092"
       - "29092:29092"
-    depends_on:
-      - zookeeper
   kafka-rest:
     image: docker.io/confluentinc/cp-kafka-rest
     environment:
