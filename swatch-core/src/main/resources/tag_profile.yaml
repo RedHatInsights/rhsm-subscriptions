@@ -172,7 +172,7 @@ tagMetrics:
     metricId: redhat.com:openshift_container_platform:cpu_hour
     rhmMetricId: redhat.com:openshift_container_platform:cpu_hour
     uom: CORES
-    billingWindow: HOURLY
+    billingWindow: MONTHLY
     queryKey: 5mSamples
     queryParams:
       product: ocp
@@ -184,7 +184,7 @@ tagMetrics:
     metricId: redhat.com:openshift_dedicated:4cpu_hour
     rhmMetricId: redhat.com:openshift_dedicated:4cpu_hour
     uom: CORES
-    billingWindow: HOURLY
+    billingWindow: MONTHLY
     queryKey: 5mSamples
     queryParams:
       product: osd
@@ -194,7 +194,7 @@ tagMetrics:
     metricId: redhat.com:openshift_dedicated:cluster_hour
     rhmMetricId: redhat.com:openshift_dedicated:cluster_hour
     uom: INSTANCE_HOURS
-    billingWindow: HOURLY
+    billingWindow: MONTHLY
     queryKey: 5mSamples
     queryParams:
       product: osd

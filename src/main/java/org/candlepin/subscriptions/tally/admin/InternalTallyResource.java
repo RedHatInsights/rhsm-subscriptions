@@ -25,6 +25,7 @@ import org.candlepin.subscriptions.tally.admin.api.InternalApi;
 import org.candlepin.subscriptions.tally.admin.api.model.TallyResend;
 import org.candlepin.subscriptions.tally.admin.api.model.TallyResendData;
 import org.candlepin.subscriptions.tally.admin.api.model.UuidList;
+import org.candlepin.subscriptions.tally.billing.RemittanceController;
 import org.springframework.stereotype.Component;
 
 /** This resource is for exposing administrator REST endpoints for Tally. */
@@ -32,14 +33,23 @@ import org.springframework.stereotype.Component;
 public class InternalTallyResource implements InternalApi {
 
   private final MarketplaceResendTallyController resendTallyController;
+  private final RemittanceController remittanceController;
 
-  public InternalTallyResource(MarketplaceResendTallyController resendTallyController) {
+  public InternalTallyResource(
+      MarketplaceResendTallyController resendTallyController,
+      RemittanceController remittanceController) {
     this.resendTallyController = resendTallyController;
+    this.remittanceController = remittanceController;
   }
 
   @Override
   public TallyResend resendTally(UuidList uuidList) {
     var tallies = resendTallyController.resendTallySnapshots(uuidList.getUuids());
     return new TallyResend().data(new TallyResendData().talliesResent(tallies));
+  }
+
+  @Override
+  public void syncRemittance() {
+    remittanceController.syncRemittance();
   }
 }
