@@ -20,8 +20,7 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -77,6 +76,21 @@ class BillableUsageRemittanceRepositoryTest {
     Optional<BillableUsageRemittanceEntity> found = repository.findById(remittance2.getKey());
     assertTrue(found.isPresent());
     assertEquals(remittance2, found.get());
+  }
+
+  @Test
+  void findByAccount() {
+    BillableUsageRemittanceEntity remittance1 =
+        remittance("account123", "product1", 12.0, clock.startOfCurrentMonth());
+    BillableUsageRemittanceEntity remittance2 =
+        remittance("account123", "product1", 12.0, clock.endOfCurrentQuarter());
+    var accountMonthlyList = List.of(remittance1, remittance2);
+    repository.saveAllAndFlush(accountMonthlyList);
+    List<BillableUsageRemittanceEntity> found =
+        repository.findAllRemittancesByAccountNumber(
+            remittance1.getKey().getAccountNumber(), "product1");
+    assertFalse(found.isEmpty());
+    assertEquals(accountMonthlyList, found);
   }
 
   private BillableUsageRemittanceEntity remittance(
