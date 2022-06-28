@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.conduit.admin;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.conduit.InventoryController;
+import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
 import org.candlepin.subscriptions.conduit.rhsm.client.ApiException;
 import org.candlepin.subscriptions.exception.MissingAccountNumberException;
 import org.candlepin.subscriptions.resource.ResourceUtils;
@@ -39,9 +40,11 @@ import org.springframework.stereotype.Component;
 public class InternalOrganizationSyncResource implements InternalOrganizationsApi {
 
   private final InventoryController controller;
+  private final OrgSyncTaskManager tasks;
 
-  InternalOrganizationSyncResource(InventoryController controller) {
+  InternalOrganizationSyncResource(InventoryController controller, OrgSyncTaskManager tasks) {
     this.controller = controller;
+    this.tasks = tasks;
   }
 
   @Override
@@ -66,7 +69,13 @@ public class InternalOrganizationSyncResource implements InternalOrganizationsAp
 
   @Override
   public DefaultResponse syncFullOrgList() {
-    throw new UnsupportedOperationException();
+
+    log.info(
+        "Starting sync for all configured orgs, initiated by {}", ResourceUtils.getPrincipal());
+    tasks.syncFullOrgList();
+    var response = new DefaultResponse();
+    response.setStatus("Success");
+    return response;
   }
 
   @Override

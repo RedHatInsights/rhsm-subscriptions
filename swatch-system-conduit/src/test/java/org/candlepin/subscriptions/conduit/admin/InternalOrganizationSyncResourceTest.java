@@ -63,4 +63,9 @@ class InternalOrganizationSyncResourceTest {
     request.setOrgId("123");
     assertThrows(InternalServerErrorException.class, () -> resource.syncOrg(request));
   }
+
+  @Test
+  void syncAllOrgsShouldReturnSuccess() {
+    assertEquals("Success", resource.syncFullOrgList().getStatus());
+  }
 }
