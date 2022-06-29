@@ -62,17 +62,12 @@ public class CombiningRollupSnapshotStrategy {
   private static final Granularity[] GRANULARITIES = {Granularity.HOURLY, Granularity.DAILY};
 
   private final TallySnapshotRepository tallyRepo;
-  private final SnapshotSummaryProducer summaryProducer;
   private final ApplicationClock clock;
 
   @Autowired
   public CombiningRollupSnapshotStrategy(
-      TallySnapshotRepository tallyRepo,
-      SnapshotSummaryProducer summaryProducer,
-      ApplicationClock clock) {
-
+      TallySnapshotRepository tallyRepo, ApplicationClock clock) {
     this.tallyRepo = tallyRepo;
-    this.summaryProducer = summaryProducer;
     this.clock = clock;
   }
 
@@ -86,7 +81,7 @@ public class CombiningRollupSnapshotStrategy {
    *     granularity
    */
   @Transactional
-  public void produceSnapshotsFromCalculations(
+  public Map<String, List<TallySnapshot>> produceSnapshotsFromCalculations(
       String accountNumber,
       DateRange affectedRange,
       Set<String> affectedProductTags,
@@ -157,9 +152,8 @@ public class CombiningRollupSnapshotStrategy {
             .flatMap(List::stream)
             .collect(Collectors.groupingBy(TallySnapshot::getAccountNumber));
 
-    summaryProducer.produceTallySummaryMessages(totalSnapshotsToSend);
-
     log.info("Finished producing finestGranularitySnapshots for account {}.", accountNumber);
+    return totalSnapshotsToSend;
   }
 
   private void catalogExistingSnapshots(

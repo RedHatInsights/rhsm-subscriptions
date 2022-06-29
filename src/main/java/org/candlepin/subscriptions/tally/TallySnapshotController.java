@@ -23,11 +23,13 @@ package org.candlepin.subscriptions.tally;
 import io.micrometer.core.annotation.Timed;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -56,6 +58,7 @@ public class TallySnapshotController {
   private final RetryTemplate cloudigradeRetryTemplate;
   private final Set<String> applicableProducts;
   private final TagProfile tagProfile;
+  private final SnapshotSummaryProducer summaryProducer;
 
   @Autowired
   public TallySnapshotController(
@@ -68,7 +71,8 @@ public class TallySnapshotController {
       @Qualifier("cloudigradeRetryTemplate") RetryTemplate cloudigradeRetryTemplate,
       MetricUsageCollector metricUsageCollector,
       CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy,
-      TagProfile tagProfile) {
+      TagProfile tagProfile,
+      SnapshotSummaryProducer summaryProducer) {
 
     this.props = props;
     this.applicableProducts = applicableProducts;
@@ -80,6 +84,7 @@ public class TallySnapshotController {
     this.metricUsageCollector = metricUsageCollector;
     this.combiningRollupSnapshotStrategy = combiningRollupSnapshotStrategy;
     this.tagProfile = tagProfile;
+    this.summaryProducer = summaryProducer;
   }
 
   @Timed("rhsm-subscriptions.snapshots.single")
@@ -129,13 +134,16 @@ public class TallySnapshotController {
                         .filter(TallySnapshotController::isCombiningRollupStrategySupported)
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-                combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
-                    accountNumber,
-                    result.getRange(),
-                    tagProfile.getTagsForServiceType(serviceType),
-                    applicableUsageCalculations,
-                    Granularity.HOURLY,
-                    Double::sum);
+                Map<String, List<TallySnapshot>> totalSnapshots =
+                    combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
+                        accountNumber,
+                        result.getRange(),
+                        tagProfile.getTagsForServiceType(serviceType),
+                        applicableUsageCalculations,
+                        Granularity.HOURLY,
+                        Double::sum);
+
+                summaryProducer.produceTallySummaryMessages(totalSnapshots);
                 log.info("Finished producing hourly snapshots for account: {}", accountNumber);
               } catch (Exception e) {
                 log.error(
