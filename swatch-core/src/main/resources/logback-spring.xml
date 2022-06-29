@@ -74,7 +74,11 @@
                 <appender-ref ref="http"/>
             </logger>
 
-            <root level="INFO">
+            <logger name="org.candlepin" level="INFO">
+                <appender-ref ref="http"/>
+            </logger>
+
+            <root level="WARN">
                 <appender-ref ref="http"/>
             </root>
         </then>
