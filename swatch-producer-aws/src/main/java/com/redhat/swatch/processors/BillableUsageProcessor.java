@@ -26,6 +26,8 @@ import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.Inte
 import com.redhat.swatch.exception.AwsDimensionNotConfiguredException;
 import com.redhat.swatch.exception.AwsUnprocessedRecordsException;
 import com.redhat.swatch.exception.AwsUsageContextLookupException;
+import com.redhat.swatch.exception.DefaultApiException;
+import com.redhat.swatch.exception.SubscriptionRecentlyTerminatedException;
 import com.redhat.swatch.files.TagProfile;
 import com.redhat.swatch.openapi.model.BillableUsage;
 import com.redhat.swatch.openapi.model.BillableUsage.BillingProviderEnum;
@@ -91,6 +93,12 @@ public class BillableUsageProcessor {
     AwsUsageContext context;
     try {
       context = lookupAwsUsageContext(billableUsage);
+    } catch (SubscriptionRecentlyTerminatedException e) {
+      log.info(
+          "Subscription recently terminated for account={} tallySnapshotId={}",
+          billableUsage.getAccountNumber(),
+          billableUsage.getId());
+      return;
     } catch (AwsUsageContextLookupException e) {
       log.error(
           "Error looking up usage context for account={} tallySnapshotId={}",
@@ -128,7 +136,7 @@ public class BillableUsageProcessor {
     return applicable;
   }
 
-  @Retry
+  @Retry(retryOn = AwsUsageContextLookupException.class)
   public AwsUsageContext lookupAwsUsageContext(BillableUsage billableUsage)
       throws AwsUsageContextLookupException {
     try {
@@ -139,6 +147,17 @@ public class BillableUsageProcessor {
           Optional.ofNullable(billableUsage.getSla()).map(SlaEnum::value).orElse(null),
           Optional.ofNullable(billableUsage.getUsage()).map(UsageEnum::value).orElse(null),
           Optional.ofNullable(billableUsage.getBillingAccountId()).orElse("_ANY"));
+    } catch (DefaultApiException e) {
+      var optionalErrors = Optional.ofNullable(e.getErrors());
+      if (optionalErrors.isPresent()) {
+        var isRecentlyTerminatedError =
+            optionalErrors.get().getErrors().stream()
+                .anyMatch(error -> ("SUBSCRIPTIONS1005").equals(error.getCode()));
+        if (isRecentlyTerminatedError) {
+          throw new SubscriptionRecentlyTerminatedException(e);
+        }
+      }
+      throw new AwsUsageContextLookupException(e);
     } catch (ApiException e) {
       throw new AwsUsageContextLookupException(e);
     }

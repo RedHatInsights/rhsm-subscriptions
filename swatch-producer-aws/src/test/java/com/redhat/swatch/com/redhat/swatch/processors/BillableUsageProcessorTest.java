@@ -21,6 +21,7 @@
 package com.redhat.swatch.com.redhat.swatch.processors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -30,10 +31,14 @@ import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AwsUsage
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
 import com.redhat.swatch.exception.AwsUsageContextLookupException;
+import com.redhat.swatch.exception.DefaultApiException;
+import com.redhat.swatch.exception.SubscriptionRecentlyTerminatedException;
 import com.redhat.swatch.files.TagProfile;
 import com.redhat.swatch.openapi.model.BillableUsage;
 import com.redhat.swatch.openapi.model.BillableUsage.BillingProviderEnum;
 import com.redhat.swatch.openapi.model.BillableUsage.UomEnum;
+import com.redhat.swatch.openapi.model.Error;
+import com.redhat.swatch.openapi.model.Errors;
 import com.redhat.swatch.processors.AwsMarketplaceMeteringClientFactory;
 import com.redhat.swatch.processors.BillableUsageProcessor;
 import io.micrometer.core.instrument.Counter;
@@ -41,7 +46,9 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 import java.util.Optional;
+import javax.ws.rs.core.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -223,5 +230,38 @@ class BillableUsageProcessorTest {
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     processor.process(RHOSAK_INSTANCE_HOURS_RECORD);
     verifyNoInteractions(clientFactory, meteringClient);
+  }
+
+  @Test
+  void shouldThrowSubscriptionTerminatedException() throws ApiException {
+    Errors errors = new Errors();
+    Error error = new Error();
+    error.setCode("SUBSCRIPTIONS1005");
+    errors.setErrors(Arrays.asList(error));
+    var response = Response.serverError().entity(errors).build();
+    var exception = new DefaultApiException(response, errors);
+    when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+        .thenThrow(exception);
+
+    assertThrows(
+        SubscriptionRecentlyTerminatedException.class,
+        () -> {
+          processor.lookupAwsUsageContext(RHOSAK_INSTANCE_HOURS_RECORD);
+        });
+  }
+
+  @Test
+  void shouldSkipMessageIfSubscriptionRecentlyTerminated() throws ApiException {
+    Errors errors = new Errors();
+    Error error = new Error();
+    error.setCode("SUBSCRIPTIONS1005");
+    errors.setErrors(Arrays.asList(error));
+    var response = Response.serverError().entity(errors).build();
+    var exception = new DefaultApiException(response, errors);
+    when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+        .thenThrow(exception);
+
+    processor.process(RHOSAK_INSTANCE_HOURS_RECORD);
+    verifyNoInteractions(meteringClient);
   }
 }
