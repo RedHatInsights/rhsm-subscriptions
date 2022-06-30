@@ -174,6 +174,8 @@ public class BillableUsageProcessor {
     if (isDryRun.isPresent() && Boolean.TRUE.equals(isDryRun.get())) {
       log.info("[DRY RUN] Sending usage request to AWS: {}", request);
       return;
+    } else {
+      log.info("Sending usage request to AWS: {}", request);
     }
 
     try {
