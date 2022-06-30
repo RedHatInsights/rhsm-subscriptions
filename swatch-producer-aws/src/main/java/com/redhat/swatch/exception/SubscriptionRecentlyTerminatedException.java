@@ -20,29 +20,9 @@
  */
 package com.redhat.swatch.exception;
 
-import lombok.Getter;
+public class SubscriptionRecentlyTerminatedException extends AwsProducerException {
 
-public enum ErrorCode {
-  AWS_UNPROCESSED_RECORDS_ERROR(1000, "Some AWS UsageRecords were not processed"),
-  AWS_DIMENSION_NOT_CONFIGURED(1001, "Aws Dimension not configured"),
-  AWS_REQUEST_ERROR(1002, "AWS request failed"),
-  AWS_MISSING_CREDENTIALS_ERROR(1003, "AWS credentials missing"),
-  AWS_USAGE_CONTEXT_LOOKUP_ERROR(1004, "Error looking up AWS usage context"),
-  AWS_MANUAL_SUBMISSION_DISABLED(1005, "Manual submission disabled."),
-  SUBSCRIPTION_RECENTLY_TERMINATED(1006, "Subscription recently terminated");
-
-  private static final String CODE_PREFIX = "SWATCHAWS";
-
-  @Getter private final String code;
-  @Getter private final String description;
-
-  ErrorCode(int intCode, String description) {
-    this.code = CODE_PREFIX + intCode;
-    this.description = description;
-  }
-
-  @Override
-  public String toString() {
-    return String.format("%s: %s", code, description);
+  public SubscriptionRecentlyTerminatedException(Exception e) {
+    super(ErrorCode.SUBSCRIPTION_RECENTLY_TERMINATED, e);
   }
 }

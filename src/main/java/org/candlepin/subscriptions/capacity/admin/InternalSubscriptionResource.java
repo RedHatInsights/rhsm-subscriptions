@@ -25,13 +25,17 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import javax.persistence.EntityNotFoundException;
 import javax.ws.rs.NotFoundException;
+import javax.ws.rs.core.Response.Status;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.exception.ErrorCode;
+import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.security.SecurityProperties;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.candlepin.subscriptions.tally.UsageCalculation;
@@ -83,14 +87,39 @@ public class InternalSubscriptionResource implements InternalApi {
             Usage.fromString(usage),
             BillingProvider.AWS,
             billingAccountId);
+
+    // Set start date one hour in past to pickup recently terminated subscriptions
+    var start = date.minusHours(1);
     List<Subscription> subscriptions =
         subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
-            accountNumber, Optional.empty(), usageKey, date, date, true);
+            accountNumber, Optional.empty(), usageKey, start, date, true);
+
+    var existsRecentlyTerminatedSubscription =
+        subscriptions.stream().anyMatch(subscription -> subscription.getEndDate().isBefore(date));
+
+    // Filter out any terminated subscriptions
+    var activeSubscriptions =
+        subscriptions.stream()
+            .filter(
+                subscription ->
+                    subscription.getEndDate().isAfter(date)
+                        || subscription.getEndDate().equals(date))
+            .collect(Collectors.toList());
+
     if (subscriptions.isEmpty()) {
       missingSubscriptionCounter.increment();
       throw new NotFoundException();
     }
-    if (subscriptions.size() > 1) {
+
+    if (activeSubscriptions.isEmpty() && existsRecentlyTerminatedSubscription) {
+      throw new SubscriptionsException(
+          ErrorCode.SUBSCRIPTION_RECENTLY_TERMINATED,
+          Status.NOT_FOUND,
+          "Subscription recently terminated",
+          "");
+    }
+
+    if (activeSubscriptions.size() > 1) {
       ambiguousSubscriptionCounter.increment();
       log.warn(
           "Multiple subscriptions found for account {} with key {} and product tag {}."
@@ -99,7 +128,7 @@ public class InternalSubscriptionResource implements InternalApi {
           usageKey,
           usageKey.getProductId());
     }
-    return subscriptions.stream().findFirst().map(this::buildAwsUsageContext).orElseThrow();
+    return activeSubscriptions.stream().findFirst().map(this::buildAwsUsageContext).orElseThrow();
   }
 
   private AwsUsageContext buildAwsUsageContext(Subscription subscription) {
