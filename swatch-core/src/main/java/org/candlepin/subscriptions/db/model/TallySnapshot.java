@@ -22,10 +22,10 @@ package org.candlepin.subscriptions.db.model;
 
 import java.io.Serializable;
 import java.time.OffsetDateTime;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import javax.persistence.CollectionTable;
 import javax.persistence.Column;
@@ -39,8 +39,6 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.MapKeyClass;
-import javax.persistence.MapKeyColumn;
-import javax.persistence.MapKeyEnumerated;
 import javax.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -97,18 +95,6 @@ public class TallySnapshot implements Serializable {
   @Column(name = "granularity")
   private Granularity granularity;
 
-  /**
-   * @deprecated use tallyMeasurements instead
-   */
-  @Deprecated(forRemoval = true)
-  @ElementCollection(fetch = FetchType.EAGER)
-  @CollectionTable(name = "hardware_measurements", joinColumns = @JoinColumn(name = "snapshot_id"))
-  @MapKeyEnumerated(EnumType.STRING)
-  @MapKeyColumn(name = "measurement_type")
-  @Builder.Default
-  private Map<HardwareMeasurementType, HardwareMeasurement> hardwareMeasurements =
-      new EnumMap<>(HardwareMeasurementType.class);
-
   @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(name = "tally_measurements", joinColumns = @JoinColumn(name = "snapshot_id"))
   @Column(name = "value")
@@ -116,22 +102,8 @@ public class TallySnapshot implements Serializable {
   @Builder.Default
   private Map<TallyMeasurementKey, Double> tallyMeasurements = new HashMap<>();
 
-  /**
-   * @deprecated use getMeasurement instead
-   * @return HardwareMeasurement for the passed type
-   */
-  @Deprecated(forRemoval = true)
-  public HardwareMeasurement getHardwareMeasurement(HardwareMeasurementType type) {
-    return hardwareMeasurements.get(type);
-  }
-
-  /**
-   * @deprecated use setMeasurement instead
-   */
-  @Deprecated(forRemoval = true)
-  public void setHardwareMeasurement(
-      HardwareMeasurementType type, HardwareMeasurement measurement) {
-    hardwareMeasurements.put(type, measurement);
+  public Integer getMeasurementAsInteger(HardwareMeasurementType type, Measurement.Uom uom) {
+    return Optional.ofNullable(getMeasurement(type, uom)).map(Double::intValue).orElse(null);
   }
 
   public Double getMeasurement(HardwareMeasurementType type, Measurement.Uom uom) {
@@ -149,67 +121,73 @@ public class TallySnapshot implements Serializable {
         new org.candlepin.subscriptions.utilization.api.model.TallySnapshot();
 
     snapshot.setDate(this.getSnapshotDate());
+    snapshot.setCores(this.getMeasurementAsInteger(HardwareMeasurementType.TOTAL, Uom.CORES));
+    snapshot.setSockets(this.getMeasurementAsInteger(HardwareMeasurementType.TOTAL, Uom.SOCKETS));
+    snapshot.setInstanceCount(
+        this.getMeasurementAsInteger(HardwareMeasurementType.TOTAL, Uom.INSTANCES));
 
-    HardwareMeasurement total = this.hardwareMeasurements.get(HardwareMeasurementType.TOTAL);
-    if (total != null) {
-      snapshot.setCores(total.getCores());
-      snapshot.setSockets(total.getSockets());
-      snapshot.setInstanceCount(total.getInstanceCount());
-    }
-
-    HardwareMeasurement physical = this.hardwareMeasurements.get(HardwareMeasurementType.PHYSICAL);
-    if (physical != null) {
-      snapshot.setPhysicalCores(physical.getCores());
-      snapshot.setPhysicalSockets(physical.getSockets());
-      snapshot.setPhysicalInstanceCount(physical.getInstanceCount());
-    }
-
-    HardwareMeasurement virtual = this.hardwareMeasurements.get(HardwareMeasurementType.VIRTUAL);
-    HardwareMeasurement hypervisor =
-        this.hardwareMeasurements.get(HardwareMeasurementType.HYPERVISOR);
+    snapshot.setPhysicalCores(
+        this.getMeasurementAsInteger(HardwareMeasurementType.PHYSICAL, Uom.CORES));
+    snapshot.setPhysicalSockets(
+        this.getMeasurementAsInteger(HardwareMeasurementType.PHYSICAL, Uom.SOCKETS));
+    snapshot.setPhysicalInstanceCount(
+        this.getMeasurementAsInteger(HardwareMeasurementType.PHYSICAL, Uom.INSTANCES));
 
     // Sum "HYPERVISOR" and "VIRTUAL" records in the short term
     int totalVirtualCores = 0;
     int totalVirtualSockets = 0;
     int totalVirtualInstanceCount = 0;
-    if (virtual != null) {
-      totalVirtualCores += virtual.getCores();
-      totalVirtualSockets += virtual.getSockets();
-      totalVirtualInstanceCount += virtual.getInstanceCount();
-    }
-    if (hypervisor != null) {
-      totalVirtualCores += hypervisor.getCores();
-      totalVirtualSockets += hypervisor.getSockets();
-      totalVirtualInstanceCount += hypervisor.getInstanceCount();
-    }
-    if (hypervisor != null || virtual != null) {
-      snapshot.setHypervisorCores(totalVirtualCores);
-      snapshot.setHypervisorSockets(totalVirtualSockets);
-      snapshot.setHypervisorInstanceCount(totalVirtualInstanceCount);
-    }
+
+    totalVirtualCores +=
+        Optional.ofNullable(this.getMeasurement(HardwareMeasurementType.HYPERVISOR, Uom.CORES))
+            .orElse(0.0);
+    totalVirtualSockets +=
+        Optional.ofNullable(this.getMeasurement(HardwareMeasurementType.HYPERVISOR, Uom.SOCKETS))
+            .orElse(0.0);
+    totalVirtualInstanceCount +=
+        Optional.ofNullable(this.getMeasurement(HardwareMeasurementType.HYPERVISOR, Uom.INSTANCES))
+            .orElse(0.0);
+
+    totalVirtualCores +=
+        Optional.ofNullable(this.getMeasurement(HardwareMeasurementType.VIRTUAL, Uom.CORES))
+            .orElse(0.0);
+    totalVirtualSockets +=
+        Optional.ofNullable(this.getMeasurement(HardwareMeasurementType.VIRTUAL, Uom.SOCKETS))
+            .orElse(0.0);
+    totalVirtualInstanceCount +=
+        Optional.ofNullable(this.getMeasurement(HardwareMeasurementType.VIRTUAL, Uom.INSTANCES))
+            .orElse(0.0);
+
+    snapshot.setHypervisorCores(totalVirtualCores);
+    snapshot.setHypervisorSockets(totalVirtualSockets);
+    snapshot.setHypervisorInstanceCount(totalVirtualInstanceCount);
 
     // Tally up all the cloud providers that we support. We count/store them separately in the DB
     // so that we can report on each provider if required in the future.
-    Integer cloudInstances = 0;
-    Integer cloudCores = 0;
-    Integer cloudSockets = 0;
-    HardwareMeasurement cloudigradeMeasurement =
-        this.hardwareMeasurements.get(HardwareMeasurementType.AWS_CLOUDIGRADE);
+    int cloudInstances = 0;
+    int cloudCores = 0;
+    int cloudSockets = 0;
+    Double cloudigradeMeasurement =
+        getMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, Uom.SOCKETS);
     snapshot.setHasCloudigradeData(cloudigradeMeasurement != null);
     for (HardwareMeasurementType type : HardwareMeasurementType.getCloudProviderTypes()) {
-      HardwareMeasurement measurement = this.hardwareMeasurements.get(type);
+      Double measurement = getMeasurement(type, Uom.SOCKETS);
       if (cloudigradeMeasurement != null && type == HardwareMeasurementType.AWS) {
         if (measurement != null) {
-          snapshot.setHasCloudigradeMismatch(
-              cloudigradeMeasurement.getInstanceCount() != measurement.getInstanceCount());
+          snapshot.setHasCloudigradeMismatch(!Objects.equals(cloudigradeMeasurement, measurement));
         }
         // if cloudigrade data exists, then HBI-derived AWS data is ignored
         continue;
       }
       if (measurement != null) {
-        cloudInstances += measurement.getInstanceCount();
-        cloudCores += measurement.getCores();
-        cloudSockets += measurement.getSockets();
+        cloudInstances +=
+            Optional.ofNullable(getMeasurement(type, Uom.INSTANCES))
+                .map(Double::intValue)
+                .orElse(0);
+        cloudCores +=
+            Optional.ofNullable(getMeasurement(type, Uom.CORES)).map(Double::intValue).orElse(0);
+        cloudSockets +=
+            Optional.ofNullable(getMeasurement(type, Uom.SOCKETS)).map(Double::intValue).orElse(0);
       }
     }
     snapshot.setCloudInstanceCount(cloudInstances);

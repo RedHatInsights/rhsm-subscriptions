@@ -660,9 +660,7 @@ class TallyResourceTest {
     TallySnapshot snapshot = new TallySnapshot();
     snapshot.setAccountNumber("account123");
     snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
-    HardwareMeasurement measurement = new HardwareMeasurement();
-    measurement.setCores(4);
-    snapshot.setHardwareMeasurement(HardwareMeasurementType.TOTAL, measurement);
+    snapshot.setMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES, 4.0);
     when(repository.findSnapshot(
             any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(new PageImpl<>(List.of(snapshot)));
@@ -718,9 +716,7 @@ class TallyResourceTest {
     snapshot.setAccountNumber("account123");
     snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
     for (HardwareMeasurementType hardwareMeasurementType : HardwareMeasurementType.values()) {
-      HardwareMeasurement measurement = new HardwareMeasurement();
-      measurement.setCores(4);
-      snapshot.setHardwareMeasurement(hardwareMeasurementType, measurement);
+      snapshot.setMeasurement(hardwareMeasurementType, Uom.CORES, 4.0);
     }
     when(repository.findSnapshot(
             any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
@@ -803,10 +799,7 @@ class TallyResourceTest {
     snapshot.setAccountNumber("account123");
     snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
     if (hasCloudigradeData) {
-      HardwareMeasurement cloudigradeMeasurement = new HardwareMeasurement();
-      cloudigradeMeasurement.setCores(4);
-      snapshot.setHardwareMeasurement(
-          HardwareMeasurementType.AWS_CLOUDIGRADE, cloudigradeMeasurement);
+      snapshot.setMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, Uom.CORES, 4.0);
     }
     when(repository.findSnapshot(
             any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
@@ -865,16 +858,11 @@ class TallyResourceTest {
     TallySnapshot snapshot = new TallySnapshot();
     snapshot.setAccountNumber("account123");
     snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
-    HardwareMeasurement awsMeasurement = new HardwareMeasurement();
-    awsMeasurement.setCores(4);
-    HardwareMeasurement cloudigradeMeasurement = new HardwareMeasurement();
-    cloudigradeMeasurement.setCores(4);
+    snapshot.setMeasurement(HardwareMeasurementType.AWS, Uom.CORES, 4.0);
+    snapshot.setMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, Uom.CORES, 4.0);
     if (hasCloudigradeMismatch) {
-      cloudigradeMeasurement.setCores(8);
+      snapshot.setMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, Uom.CORES, 8.0);
     }
-    snapshot.setHardwareMeasurement(HardwareMeasurementType.AWS, awsMeasurement);
-    snapshot.setHardwareMeasurement(
-        HardwareMeasurementType.AWS_CLOUDIGRADE, cloudigradeMeasurement);
     when(repository.findSnapshot(
             any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(new PageImpl<>(List.of(snapshot)));
