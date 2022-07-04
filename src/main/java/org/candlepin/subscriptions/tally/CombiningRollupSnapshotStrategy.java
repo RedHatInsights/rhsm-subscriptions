@@ -146,12 +146,18 @@ public class CombiningRollupSnapshotStrategy {
             .flatMap(List::stream)
             .collect(Collectors.toList());
 
-    Map<String, List<TallySnapshot>> totalSnapshots =
-        Stream.of(finestGranularitySnapshots, rollupSnapshots)
+    // Only want to send messages for finest granularity snapshots that are within affected range
+    var finestGranularitySnapshotsInRange =
+        finestGranularitySnapshots.stream()
+            .filter(snapshot -> affectedRange.contains(snapshot.getSnapshotDate()))
+            .collect(Collectors.toList());
+
+    Map<String, List<TallySnapshot>> totalSnapshotsToSend =
+        Stream.of(finestGranularitySnapshotsInRange, rollupSnapshots)
             .flatMap(List::stream)
             .collect(Collectors.groupingBy(TallySnapshot::getAccountNumber));
 
-    summaryProducer.produceTallySummaryMessages(totalSnapshots);
+    summaryProducer.produceTallySummaryMessages(totalSnapshotsToSend);
 
     log.info("Finished producing finestGranularitySnapshots for account {}.", accountNumber);
   }
