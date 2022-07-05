@@ -41,6 +41,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Provides the logic for updating Tally snapshots. */
 @Component
@@ -106,6 +108,11 @@ public class TallySnapshotController {
     maxSeenSnapshotStrategy.produceSnapshotsFromCalculations(account, accountCalcs.values());
   }
 
+  // Because we want to ensure that our DB operations have been completed before
+  // any messages are sent, message sending must be done outside a DB transaction
+  // boundary. We use Propagation.NEVER here so that if this method should ever be called
+  // from within an existing DB transaction, an exception will be thrown.
+  @Transactional(propagation = Propagation.NEVER)
   @Timed("rhsm-subscriptions.snapshots.single.hourly")
   public void produceHourlySnapshotsForAccount(String accountNumber, DateRange snapshotRange) {
     tagProfile
