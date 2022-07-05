@@ -238,14 +238,14 @@ for i in range(args.num_accounts):
     for i in range(args.num_aws):
         generate_host(account_number=account, hardware_type='VIRTUALIZED', measurement_type='AWS',
                       product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
-                      is_hbi=args.is_hbi,
+                      is_hbi=args.is_hbi, num_of_guests=args.num_guests,
                       cloud_provider='AWS', is_marketplace=args.is_marketplace, host_type=args.host_type,
                       billing_provider=args.billing_provider, billing_account_id=args.billing_account_id)
 
     for i in range(args.num_physical):
         generate_host(account_number=account, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
                       product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
-                      is_hbi=args.is_hbi,
+                      is_hbi=args.is_hbi, num_of_guests=args.num_guests,
                       is_marketplace=args.is_marketplace,
                       host_type=args.host_type,
                       billing_provider=args.billing_provider, billing_account_id=args.billing_account_id)

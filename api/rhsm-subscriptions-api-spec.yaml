@@ -1519,10 +1519,12 @@ components:
             display_name: guest01.example.com
             subscription_manager_id: adafd9d5-5b00-42fa-a6c9-75801d45cc6d
             last_seen: '2020-01-01T00:00:00Z'
+            number_of_guests: 4
           - inventory_id: 9358e312-1c9f-42f4-8910-dcef6e970852
             display_name: guest02.example.com
             subscription_manager_id: b101a72f-1859-4489-acb8-d6d31c2578c4
             last_seen: '2020-01-01T00:00:00Z'
+            number_of_guests: 1
         links:
           first: string
           last: string
@@ -1567,6 +1569,8 @@ components:
         last_seen:
           format: date-time
           type: string
+        number_of_guests:
+          type: integer
       example:
         id: d6214a0b-b344-4778-831c-d53dcacb2da3
         display_name: rhv.example.com
@@ -1575,6 +1579,7 @@ components:
           - null
           - 1
         last_seen: '2020-01-01T00:00:00Z'
+        number_of_guests: 4
     CandlepinPool:
       description: Subset of Candlepin pool data that rhsm-subscriptions understands.
       properties:
