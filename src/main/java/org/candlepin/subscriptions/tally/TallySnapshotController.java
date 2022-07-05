@@ -23,11 +23,13 @@ package org.candlepin.subscriptions.tally;
 import io.micrometer.core.annotation.Timed;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -39,6 +41,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Provides the logic for updating Tally snapshots. */
 @Component
@@ -56,6 +60,7 @@ public class TallySnapshotController {
   private final RetryTemplate cloudigradeRetryTemplate;
   private final Set<String> applicableProducts;
   private final TagProfile tagProfile;
+  private final SnapshotSummaryProducer summaryProducer;
 
   @Autowired
   public TallySnapshotController(
@@ -68,7 +73,8 @@ public class TallySnapshotController {
       @Qualifier("cloudigradeRetryTemplate") RetryTemplate cloudigradeRetryTemplate,
       MetricUsageCollector metricUsageCollector,
       CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy,
-      TagProfile tagProfile) {
+      TagProfile tagProfile,
+      SnapshotSummaryProducer summaryProducer) {
 
     this.props = props;
     this.applicableProducts = applicableProducts;
@@ -80,6 +86,7 @@ public class TallySnapshotController {
     this.metricUsageCollector = metricUsageCollector;
     this.combiningRollupSnapshotStrategy = combiningRollupSnapshotStrategy;
     this.tagProfile = tagProfile;
+    this.summaryProducer = summaryProducer;
   }
 
   @Timed("rhsm-subscriptions.snapshots.single")
@@ -101,6 +108,11 @@ public class TallySnapshotController {
     maxSeenSnapshotStrategy.produceSnapshotsFromCalculations(account, accountCalcs.values());
   }
 
+  // Because we want to ensure that our DB operations have been completed before
+  // any messages are sent, message sending must be done outside a DB transaction
+  // boundary. We use Propagation.NEVER here so that if this method should ever be called
+  // from within an existing DB transaction, an exception will be thrown.
+  @Transactional(propagation = Propagation.NEVER)
   @Timed("rhsm-subscriptions.snapshots.single.hourly")
   public void produceHourlySnapshotsForAccount(String accountNumber, DateRange snapshotRange) {
     tagProfile
@@ -129,13 +141,16 @@ public class TallySnapshotController {
                         .filter(TallySnapshotController::isCombiningRollupStrategySupported)
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-                combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
-                    accountNumber,
-                    result.getRange(),
-                    tagProfile.getTagsForServiceType(serviceType),
-                    applicableUsageCalculations,
-                    Granularity.HOURLY,
-                    Double::sum);
+                Map<String, List<TallySnapshot>> totalSnapshots =
+                    combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
+                        accountNumber,
+                        result.getRange(),
+                        tagProfile.getTagsForServiceType(serviceType),
+                        applicableUsageCalculations,
+                        Granularity.HOURLY,
+                        Double::sum);
+
+                summaryProducer.produceTallySummaryMessages(totalSnapshots);
                 log.info("Finished producing hourly snapshots for account: {}", accountNumber);
               } catch (Exception e) {
                 log.error(

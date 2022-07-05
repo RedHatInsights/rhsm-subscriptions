@@ -41,7 +41,6 @@ import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.DateRange;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -58,10 +57,6 @@ class CombiningRollupSnapshotStrategyTest {
   @Autowired TagProfile tagProfile;
 
   @MockBean TallySnapshotRepository repo;
-
-  @MockBean SnapshotSummaryProducer producer;
-
-  @Captor private ArgumentCaptor<Map<String, List<TallySnapshot>>> producerCaptor;
 
   @Test
   void testConsecutiveHoursAddedTogether() {
@@ -455,19 +450,20 @@ class CombiningRollupSnapshotStrategyTest {
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
     AccountUsageCalculation noonUsage = createAccountUsageCalculation(usageKey, 4.0);
     AccountUsageCalculation afternoonUsage = createAccountUsageCalculation(usageKey, 3.0);
-    combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
-        "account123",
-        new DateRange(
-            OffsetDateTime.parse("2021-02-25T13:00:00Z"),
-            OffsetDateTime.parse("2021-02-25T14:00:00Z")),
-        tagProfile.getTagsWithPrometheusEnabledLookup(),
-        Map.of(
-            OffsetDateTime.parse("2021-02-25T12:00:00Z"),
-            noonUsage,
-            OffsetDateTime.parse("2021-02-25T13:00:00Z"),
-            afternoonUsage),
-        Granularity.HOURLY,
-        Double::sum);
+    Map<String, List<TallySnapshot>> talliesToSendByAccount =
+        combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
+            "account123",
+            new DateRange(
+                OffsetDateTime.parse("2021-02-25T13:00:00Z"),
+                OffsetDateTime.parse("2021-02-25T14:00:00Z")),
+            tagProfile.getTagsWithPrometheusEnabledLookup(),
+            Map.of(
+                OffsetDateTime.parse("2021-02-25T12:00:00Z"),
+                noonUsage,
+                OffsetDateTime.parse("2021-02-25T13:00:00Z"),
+                afternoonUsage),
+            Granularity.HOURLY,
+            Double::sum);
 
     TallySnapshot noonSnapshot =
         createTallySnapshot(Granularity.HOURLY, "2021-02-25T12:00:00Z", 4.0);
@@ -476,11 +472,12 @@ class CombiningRollupSnapshotStrategyTest {
     TallySnapshot dailySnapshot =
         createTallySnapshot(Granularity.DAILY, "2021-02-25T00:00:00Z", 7.0);
 
-    verify(producer, times(1)).produceTallySummaryMessages(producerCaptor.capture());
-    List<TallySnapshot> talliesSent = producerCaptor.getAllValues().get(0).get("account123");
+    assertEquals(1, talliesToSendByAccount.keySet().size());
+    assertTrue(talliesToSendByAccount.containsKey("account123"));
 
-    assertEquals(2, talliesSent.size());
-    assertThat(talliesSent, containsInAnyOrder(afternoonSnapshot, dailySnapshot));
+    List<TallySnapshot> talliesToSend = talliesToSendByAccount.get("account123");
+    assertEquals(2, talliesToSend.size());
+    assertThat(talliesToSend, containsInAnyOrder(afternoonSnapshot, dailySnapshot));
   }
 
   private AccountUsageCalculation createAccountUsageCalculation(
