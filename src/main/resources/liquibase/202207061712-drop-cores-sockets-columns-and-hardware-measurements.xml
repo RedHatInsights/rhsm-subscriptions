@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202207061712-1" author="khowell" dbms="postgresql">
+    <comment>Drop transition period triggers/functions</comment>
+    <sql>
+      drop trigger sync_host_measurements_insert on instance_measurements;
+      drop trigger sync_host_measurements_update on instance_measurements;
+      drop trigger sync_instance_measurements_insert on hosts;
+      drop trigger sync_instance_measurements_update on hosts;
+      drop trigger sync_hardware_measurements_insert on tally_measurements;
+      drop trigger sync_hardware_measurements_update on tally_measurements;
+      drop trigger sync_tally_measurements_insert on hardware_measurements;
+      drop trigger sync_tally_measurements_update on hardware_measurements;
+      drop function sync_host_measurements();
+      drop function sync_instance_measurements();
+      drop function sync_hardware_measurements();
+      drop function sync_tally_measurements();
+    </sql>
+  </changeSet>
+  <changeSet id="202207061712-2" author="khowell" dbms="postgresql">
+    <comment>Drop deprecated cores/sockets columns.</comment>
+    <dropColumn tableName="hosts" columnName="cores"/>
+    <dropColumn tableName="hosts" columnName="sockets"/>
+  </changeSet>
+  <changeSet id="202207061712-3" author="khowell">
+    <comment>Drop deprecated hardware_measurements table.</comment>
+    <dropTable tableName="hardware_measurements"/>
+  </changeSet>
+</databaseChangeLog>
