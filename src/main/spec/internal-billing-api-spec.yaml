@@ -1,0 +1,77 @@
+openapi: "3.0.2"
+info:
+  title: "rhsm-subscriptions internal billing API"
+  version: 1.0.0
+
+paths:
+  /internal/remittance/accountRemittances:
+    description: 'Operations to get specific account remittances'
+    parameters:
+      - name: accountNumber
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: productId
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: orgId
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: metricId
+        in: query
+        required: false
+        schema:
+          type: string
+    get:
+      operationId: getRemittances
+      summary: "Get all monthly remittances for an account"
+      responses:
+        '200':
+          description: "Found Account Remittances."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountRemittances"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - internalBilling
+  /internal-billing-openapi.json:
+    $ref: "../../../spec/openapi-paths.yaml#/openapi-json"
+  /internal-billing-openapi.yaml:
+    $ref: "../../../spec/openapi-paths.yaml#/openapi-yaml"
+
+components:
+  schemas:
+    AccountRemittances:
+      type: array
+      items:
+        $ref: "#/components/schemas/MonthlyRemittance"
+    MonthlyRemittance:
+      description: Encapsulates all Monthly remittance
+      properties:
+        accountNumber:
+          type: string
+        orgId:
+          type: string
+        productId:
+          type: string
+        metricId:
+          type: string
+        remittedValue:
+          type: number
+          format: double
+        accumulationPeriod:
+          type: string
+        remittanceDate:
+          type: string
+          format: date-time

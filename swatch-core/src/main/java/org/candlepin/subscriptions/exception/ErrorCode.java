@@ -49,6 +49,10 @@ public enum ErrorCode {
   /** The client's request was denied because opt-in has not yet occurred. */
   OPT_IN_REQUIRED(1004, "Request was denied since opt-in has not yet occurred."),
 
+  /** No active subscriptions were found but a subscription was recently termindated. */
+  SUBSCRIPTION_RECENTLY_TERMINATED(
+      1005, "Subscription recently terminated. No active subscriptions."),
+
   /** An unexpected exception was thrown by the inventory service client. */
   INVENTORY_SERVICE_ERROR(2000, "Inventory Service Error"),
 

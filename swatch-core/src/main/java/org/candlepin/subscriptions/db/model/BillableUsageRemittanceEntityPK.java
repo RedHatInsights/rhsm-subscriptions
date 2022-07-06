@@ -21,12 +21,14 @@
 package org.candlepin.subscriptions.db.model;
 
 import java.io.Serializable;
+import java.time.OffsetDateTime;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.candlepin.subscriptions.json.BillableUsage;
 
 @Data
 @Embeddable
@@ -58,4 +60,21 @@ public class BillableUsageRemittanceEntityPK implements Serializable {
 
   @Column(name = "billing_account_id", nullable = false, length = 255)
   private String billingAccountId;
+
+  public static BillableUsageRemittanceEntityPK keyFrom(BillableUsage billableUsage) {
+    return BillableUsageRemittanceEntityPK.builder()
+        .usage(billableUsage.getUsage().value())
+        .accountNumber(billableUsage.getAccountNumber())
+        .billingProvider(billableUsage.getBillingProvider().value())
+        .billingAccountId(billableUsage.getBillingAccountId())
+        .productId(billableUsage.getProductId())
+        .sla(billableUsage.getSla().value())
+        .metricId(billableUsage.getUom().value())
+        .accumulationPeriod(getAccumulationPeriod(billableUsage.getSnapshotDate()))
+        .build();
+  }
+
+  public static String getAccumulationPeriod(OffsetDateTime reference) {
+    return InstanceMonthlyTotalKey.formatMonthId(reference);
+  }
 }

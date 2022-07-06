@@ -30,10 +30,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 import javax.ws.rs.NotFoundException;
 import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.exception.ErrorCode;
+import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilterModifyingConfigurer;
 import org.candlepin.subscriptions.security.SecurityProperties;
 import org.candlepin.subscriptions.security.WithMockPskPrincipal;
@@ -62,6 +65,10 @@ class InternalSubscriptionResourceTest {
 
   private MockMvc mvc;
   private static final String SYNC_ORG_123 = "/internal/subscriptions/sync/org/123";
+  private OffsetDateTime defaultEndDate =
+      OffsetDateTime.of(2022, 7, 22, 8, 0, 0, 0, ZoneOffset.UTC);
+  private OffsetDateTime defaultLookUpDate =
+      OffsetDateTime.of(2022, 6, 22, 8, 0, 0, 0, ZoneOffset.UTC);
 
   @BeforeEach
   public void setup() {
@@ -89,7 +96,7 @@ class InternalSubscriptionResourceTest {
         NotFoundException.class,
         () ->
             resource.getAwsUsageContext(
-                "account123", OffsetDateTime.MIN, "rhosak", "Premium", "Production", "123"));
+                "account123", defaultLookUpDate, "rhosak", "Premium", "Production", "123"));
     Counter counter = meterRegistry.counter("swatch_missing_aws_subscription");
     assertEquals(1.0, counter.count());
   }
@@ -101,19 +108,72 @@ class InternalSubscriptionResourceTest {
         new InternalSubscriptionResource(meterRegistry, syncController, properties);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
+    sub1.setEndDate(defaultEndDate);
     Subscription sub2 = new Subscription();
     sub2.setBillingProviderId("bar1;bar2;bar3");
+    sub2.setEndDate(defaultEndDate);
     when(syncController.findSubscriptionsAndSyncIfNeeded(
             any(), any(), any(), any(), any(), anyBoolean()))
         .thenReturn(List.of(sub1, sub2));
     AwsUsageContext awsUsageContext =
         resource.getAwsUsageContext(
-            "account123", OffsetDateTime.MIN, "rhosak", "Premium", "Production", "123");
+            "account123", defaultLookUpDate, "rhosak", "Premium", "Production", "123");
     Counter counter = meterRegistry.counter("swatch_ambiguous_aws_subscription");
     assertEquals(1.0, counter.count());
     assertEquals("foo1", awsUsageContext.getProductCode());
     assertEquals("foo2", awsUsageContext.getCustomerId());
     assertEquals("foo3", awsUsageContext.getAwsSellerAccountId());
+  }
+
+  @Test
+  void shouldThrowSubscriptionsExceptionForTerminatedSubscription() {
+    SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+    InternalSubscriptionResource resource =
+        new InternalSubscriptionResource(meterRegistry, syncController, properties);
+    var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
+    Subscription sub1 = new Subscription();
+    sub1.setBillingProviderId("foo1;foo2;foo3");
+    sub1.setEndDate(endDate);
+    when(syncController.findSubscriptionsAndSyncIfNeeded(
+            any(), any(), any(), any(), any(), anyBoolean()))
+        .thenReturn(List.of(sub1));
+
+    var lookupDate = endDate.plusMinutes(30);
+    var exception =
+        assertThrows(
+            SubscriptionsException.class,
+            () -> {
+              resource.getAwsUsageContext(
+                  "account123", lookupDate, "rhosak", "Premium", "Production", "123");
+            });
+
+    assertEquals(
+        ErrorCode.SUBSCRIPTION_RECENTLY_TERMINATED.getDescription(),
+        exception.getCode().getDescription());
+  }
+
+  @Test
+  void shouldReturnActiveSubscriptionAndNotTerminated() {
+    SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+    InternalSubscriptionResource resource =
+        new InternalSubscriptionResource(meterRegistry, syncController, properties);
+    var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
+    Subscription sub1 = new Subscription();
+    sub1.setBillingProviderId("foo1;foo2;foo3");
+    sub1.setEndDate(endDate);
+    Subscription sub2 = new Subscription();
+    sub2.setBillingProviderId("bar1;bar2;bar3");
+    sub2.setEndDate(endDate.plusMinutes(45));
+    when(syncController.findSubscriptionsAndSyncIfNeeded(
+            any(), any(), any(), any(), any(), anyBoolean()))
+        .thenReturn(List.of(sub1, sub2));
+    var lookupDate = endDate.plusMinutes(30);
+    AwsUsageContext awsUsageContext =
+        resource.getAwsUsageContext(
+            "account123", lookupDate, "rhosak", "Premium", "Production", "123");
+    assertEquals("bar1", awsUsageContext.getProductCode());
+    assertEquals("bar2", awsUsageContext.getCustomerId());
+    assertEquals("bar3", awsUsageContext.getAwsSellerAccountId());
   }
 
   @Test

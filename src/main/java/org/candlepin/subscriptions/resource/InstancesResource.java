@@ -199,7 +199,6 @@ public class InstancesResource implements InstancesApi {
     List<Double> measurementList = new ArrayList<>();
     instance.setId(host.getInstanceId());
     instance.setDisplayName(host.getDisplayName());
-
     if (Objects.nonNull(host.getBillingProvider())) {
       instance.setBillingProvider(host.getBillingProvider().asOpenApiEnum());
     }
@@ -212,6 +211,7 @@ public class InstancesResource implements InstancesApi {
     instance.setBillingAccountId(host.getBillingAccountId());
     instance.setMeasurements(measurementList);
     instance.setLastSeen(host.getLastSeen());
+    instance.setNumberOfGuests(host.getNumOfGuests());
 
     return instance;
   }

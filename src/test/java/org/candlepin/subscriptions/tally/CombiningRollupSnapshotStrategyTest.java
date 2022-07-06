@@ -58,8 +58,6 @@ class CombiningRollupSnapshotStrategyTest {
 
   @MockBean TallySnapshotRepository repo;
 
-  @MockBean SnapshotSummaryProducer producer;
-
   @Test
   void testConsecutiveHoursAddedTogether() {
     when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
@@ -435,6 +433,51 @@ class CombiningRollupSnapshotStrategyTest {
         talliesSaved,
         containsInAnyOrder(
             expectedHourly1, expectedHourly2, expectedHourly3, expectedDaily1, expectedDaily2));
+  }
+
+  @Test
+  void testFinestGranularitySnapshotFilteredByDateRange() {
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
+            any(), any(), any(), any(), any()))
+        .then(invocation -> Stream.empty());
+    UsageCalculation.Key usageKey =
+        new UsageCalculation.Key(
+            OPEN_SHIFT_HOURLY,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider._ANY,
+            "_ANY");
+    when(repo.save(any())).then(invocation -> invocation.getArgument(0));
+    AccountUsageCalculation noonUsage = createAccountUsageCalculation(usageKey, 4.0);
+    AccountUsageCalculation afternoonUsage = createAccountUsageCalculation(usageKey, 3.0);
+    Map<String, List<TallySnapshot>> talliesToSendByAccount =
+        combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
+            "account123",
+            new DateRange(
+                OffsetDateTime.parse("2021-02-25T13:00:00Z"),
+                OffsetDateTime.parse("2021-02-25T14:00:00Z")),
+            tagProfile.getTagsWithPrometheusEnabledLookup(),
+            Map.of(
+                OffsetDateTime.parse("2021-02-25T12:00:00Z"),
+                noonUsage,
+                OffsetDateTime.parse("2021-02-25T13:00:00Z"),
+                afternoonUsage),
+            Granularity.HOURLY,
+            Double::sum);
+
+    TallySnapshot noonSnapshot =
+        createTallySnapshot(Granularity.HOURLY, "2021-02-25T12:00:00Z", 4.0);
+    TallySnapshot afternoonSnapshot =
+        createTallySnapshot(Granularity.HOURLY, "2021-02-25T13:00:00Z", 3.0);
+    TallySnapshot dailySnapshot =
+        createTallySnapshot(Granularity.DAILY, "2021-02-25T00:00:00Z", 7.0);
+
+    assertEquals(1, talliesToSendByAccount.keySet().size());
+    assertTrue(talliesToSendByAccount.containsKey("account123"));
+
+    List<TallySnapshot> talliesToSend = talliesToSendByAccount.get("account123");
+    assertEquals(2, talliesToSend.size());
+    assertThat(talliesToSend, containsInAnyOrder(afternoonSnapshot, dailySnapshot));
   }
 
   private AccountUsageCalculation createAccountUsageCalculation(

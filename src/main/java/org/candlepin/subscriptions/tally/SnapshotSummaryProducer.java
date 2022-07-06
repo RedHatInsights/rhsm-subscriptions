@@ -24,10 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
-import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.slf4j.Logger;
@@ -46,16 +43,19 @@ public class SnapshotSummaryProducer {
   private final String tallySummaryTopic;
   private final KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate;
   private final RetryTemplate kafkaRetryTemplate;
+  private final TallySummaryMapper summaryMapper;
 
   @Autowired
   protected SnapshotSummaryProducer(
       @Qualifier("tallySummaryKafkaTemplate")
           KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate,
       @Qualifier("tallySummaryKafkaRetryTemplate") RetryTemplate kafkaRetryTemplate,
-      @Qualifier("rhMarketplaceTasks") TaskQueueProperties props) {
+      @Qualifier("rhMarketplaceTasks") TaskQueueProperties props,
+      TallySummaryMapper summaryMapper) {
     this.tallySummaryTopic = props.getTopic();
     this.kafkaRetryTemplate = kafkaRetryTemplate;
     this.tallySummaryKafkaTemplate = tallySummaryKafkaTemplate;
+    this.summaryMapper = summaryMapper;
   }
 
   public void produceTallySummaryMessages(Map<String, List<TallySnapshot>> newAndUpdatedSnapshots) {
@@ -63,7 +63,7 @@ public class SnapshotSummaryProducer {
     newAndUpdatedSnapshots.forEach(
         (account, snapshots) ->
             snapshots.stream()
-                .map(snapshot -> createTallySummary(account, List.of(snapshot)))
+                .map(snapshot -> summaryMapper.mapSnapshots(account, List.of(snapshot)))
                 .forEach(
                     summary -> {
                       if (validateTallySummary(summary)) {
@@ -74,56 +74,6 @@ public class SnapshotSummaryProducer {
                     }));
 
     log.info("Produced {} TallySummary messages", totalTallies);
-  }
-
-  private TallySummary createTallySummary(
-      String accountNumber, List<TallySnapshot> tallySnapshots) {
-    var mappedSnapshots =
-        tallySnapshots.stream().map(this::mapTallySnapshot).collect(Collectors.toList());
-    return new TallySummary().withAccountNumber(accountNumber).withTallySnapshots(mappedSnapshots);
-  }
-
-  private org.candlepin.subscriptions.json.TallySnapshot mapTallySnapshot(
-      TallySnapshot tallySnapshot) {
-
-    var granularity =
-        org.candlepin.subscriptions.json.TallySnapshot.Granularity.fromValue(
-            tallySnapshot.getGranularity().getValue());
-
-    var sla =
-        org.candlepin.subscriptions.json.TallySnapshot.Sla.fromValue(
-            tallySnapshot.getServiceLevel().getValue());
-
-    var usage =
-        org.candlepin.subscriptions.json.TallySnapshot.Usage.fromValue(
-            tallySnapshot.getUsage().getValue());
-
-    var billingProvider =
-        org.candlepin.subscriptions.json.TallySnapshot.BillingProvider.fromValue(
-            tallySnapshot.getBillingProvider().getValue());
-
-    return new org.candlepin.subscriptions.json.TallySnapshot()
-        .withGranularity(granularity)
-        .withId(tallySnapshot.getId())
-        .withProductId(tallySnapshot.getProductId())
-        .withSnapshotDate(tallySnapshot.getSnapshotDate())
-        .withSla(sla)
-        .withUsage(usage)
-        .withBillingProvider(billingProvider)
-        .withBillingAccountId(tallySnapshot.getBillingAccountId())
-        .withTallyMeasurements(mapMeasurements(tallySnapshot.getTallyMeasurements()));
-  }
-
-  private List<TallyMeasurement> mapMeasurements(
-      Map<TallyMeasurementKey, Double> tallyMeasurements) {
-    return tallyMeasurements.entrySet().stream()
-        .map(
-            entry ->
-                new TallyMeasurement()
-                    .withHardwareMeasurementType(entry.getKey().getMeasurementType().toString())
-                    .withUom(TallyMeasurement.Uom.fromValue(entry.getKey().getUom().value()))
-                    .withValue(entry.getValue()))
-        .collect(Collectors.toList());
   }
 
   /**

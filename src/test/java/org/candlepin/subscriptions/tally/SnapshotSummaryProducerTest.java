@@ -72,7 +72,8 @@ class SnapshotSummaryProducerTest {
     props = new TaskQueueProperties();
     props.setTopic("summary-topic");
     RetryTemplate retryTemplate = new RetryTemplate();
-    this.producer = new SnapshotSummaryProducer(kafka, retryTemplate, props);
+    this.producer =
+        new SnapshotSummaryProducer(kafka, retryTemplate, props, new TallySummaryMapper());
   }
 
   @Test

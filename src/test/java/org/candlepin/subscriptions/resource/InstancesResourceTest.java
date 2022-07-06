@@ -70,6 +70,7 @@ class InstancesResourceTest {
     host.setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
     host.setDisplayName("rhv.example.com");
     host.setBillingProvider(expectedBillingProvider);
+    host.setNumOfGuests(3);
     host.setLastSeen(OffsetDateTime.now());
 
     Mockito.when(
@@ -94,6 +95,7 @@ class InstancesResourceTest {
     data.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
     data.setLastSeen(host.getLastSeen());
     data.setMeasurements(expectedMeasurement);
+    data.setNumberOfGuests(host.getNumOfGuests());
 
     var meta = new InstanceMeta();
     meta.setCount(1);

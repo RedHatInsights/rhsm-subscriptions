@@ -62,17 +62,12 @@ public class CombiningRollupSnapshotStrategy {
   private static final Granularity[] GRANULARITIES = {Granularity.HOURLY, Granularity.DAILY};
 
   private final TallySnapshotRepository tallyRepo;
-  private final SnapshotSummaryProducer summaryProducer;
   private final ApplicationClock clock;
 
   @Autowired
   public CombiningRollupSnapshotStrategy(
-      TallySnapshotRepository tallyRepo,
-      SnapshotSummaryProducer summaryProducer,
-      ApplicationClock clock) {
-
+      TallySnapshotRepository tallyRepo, ApplicationClock clock) {
     this.tallyRepo = tallyRepo;
-    this.summaryProducer = summaryProducer;
     this.clock = clock;
   }
 
@@ -86,7 +81,7 @@ public class CombiningRollupSnapshotStrategy {
    *     granularity
    */
   @Transactional
-  public void produceSnapshotsFromCalculations(
+  public Map<String, List<TallySnapshot>> produceSnapshotsFromCalculations(
       String accountNumber,
       DateRange affectedRange,
       Set<String> affectedProductTags,
@@ -146,14 +141,19 @@ public class CombiningRollupSnapshotStrategy {
             .flatMap(List::stream)
             .collect(Collectors.toList());
 
-    Map<String, List<TallySnapshot>> totalSnapshots =
-        Stream.of(finestGranularitySnapshots, rollupSnapshots)
+    // Only want to send messages for finest granularity snapshots that are within affected range
+    var finestGranularitySnapshotsInRange =
+        finestGranularitySnapshots.stream()
+            .filter(snapshot -> affectedRange.contains(snapshot.getSnapshotDate()))
+            .collect(Collectors.toList());
+
+    Map<String, List<TallySnapshot>> totalSnapshotsToSend =
+        Stream.of(finestGranularitySnapshotsInRange, rollupSnapshots)
             .flatMap(List::stream)
             .collect(Collectors.groupingBy(TallySnapshot::getAccountNumber));
 
-    summaryProducer.produceTallySummaryMessages(totalSnapshots);
-
     log.info("Finished producing finestGranularitySnapshots for account {}.", accountNumber);
+    return totalSnapshotsToSend;
   }
 
   private void catalogExistingSnapshots(

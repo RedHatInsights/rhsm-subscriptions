@@ -21,13 +21,31 @@
 package org.candlepin.subscriptions.conduit.admin;
 
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.conduit.InventoryController;
+import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
+import org.candlepin.subscriptions.conduit.rhsm.client.ApiException;
+import org.candlepin.subscriptions.exception.MissingAccountNumberException;
+import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.utilization.api.model.DefaultResponse;
 import org.candlepin.subscriptions.utilization.api.model.OrgExistsResponse;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
 import org.candlepin.subscriptions.utilization.api.model.OrgSyncRequest;
+import org.jboss.resteasy.spi.InternalServerErrorException;
 import org.openapitools.api.InternalOrganizationsApi;
+import org.springframework.stereotype.Component;
 
+@Slf4j
+@Component
 public class InternalOrganizationSyncResource implements InternalOrganizationsApi {
+
+  private final InventoryController controller;
+  private final OrgSyncTaskManager tasks;
+
+  InternalOrganizationSyncResource(InventoryController controller, OrgSyncTaskManager tasks) {
+    this.controller = controller;
+    this.tasks = tasks;
+  }
 
   @Override
   public DefaultResponse addOrgsToSyncList(List<String> orgIds) {
@@ -51,11 +69,29 @@ public class InternalOrganizationSyncResource implements InternalOrganizationsAp
 
   @Override
   public DefaultResponse syncFullOrgList() {
-    throw new UnsupportedOperationException();
+
+    log.info(
+        "Starting sync for all configured orgs, initiated by {}", ResourceUtils.getPrincipal());
+    tasks.syncFullOrgList();
+    var response = new DefaultResponse();
+    response.setStatus("Success");
+    return response;
   }
 
   @Override
   public DefaultResponse syncOrg(OrgSyncRequest orgSyncRequest) {
-    throw new UnsupportedOperationException();
+    log.info(
+        "Starting sync for org ID {} by {}",
+        orgSyncRequest.getOrgId(),
+        ResourceUtils.getPrincipal());
+    try {
+      controller.updateInventoryForOrg(orgSyncRequest.getOrgId());
+    } catch (MissingAccountNumberException | ApiException ex) {
+      throw new InternalServerErrorException(ex.getMessage());
+    }
+
+    var response = new DefaultResponse();
+    response.setStatus("Success");
+    return response;
   }
 }
