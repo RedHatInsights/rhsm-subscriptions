@@ -30,6 +30,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 import javax.ws.rs.core.Response;
 import org.candlepin.subscriptions.db.AccountListSource;
@@ -45,6 +46,8 @@ import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReport;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
 import org.candlepin.subscriptions.utilization.api.model.GranularityType;
+import org.candlepin.subscriptions.utilization.api.model.MetricId;
+import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.junit.jupiter.api.BeforeEach;
@@ -290,6 +293,351 @@ class CapacityResourceTest {
     assertTrue(capacitySnapshot.getHasInfiniteQuantity());
   }
 
+  @ParameterizedTest
+  @MethodSource("usageLists")
+  void testShouldCalculateCapacityRegardlessOfUsageSeenFirst(List<SubscriptionCapacity> usages) {
+    when(repository.findByOwnerAndProductId("owner123456", RHEL.toString(), null, null, min, max))
+        .thenReturn(usages);
+
+    CapacityReport report =
+        resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, null, null, null, null);
+
+    CapacitySnapshot capacitySnapshot = report.getData().get(0);
+    assertTrue(capacitySnapshot.getHasInfiniteQuantity());
+  }
+
+  @Test
+  void testReportByMetricIdShouldUseQueryBasedOnHeaderAndParameters() {
+    SubscriptionCapacity capacity = new SubscriptionCapacity();
+    capacity.setBeginDate(min);
+    capacity.setEndDate(max);
+
+    when(repository.findByOwnerAndProductIdAndMetricId(
+            "owner123456",
+            RHEL.toString(),
+            MetricId.CORES,
+            ReportCategory.PHYSICAL,
+            ServiceLevel._ANY,
+            Usage._ANY,
+            min,
+            max))
+        .thenReturn(Collections.singletonList(capacity));
+
+    CapacityReport report =
+        resource.getCapacityReportByMetricId(
+            RHEL,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            min,
+            max,
+            ReportCategory.PHYSICAL,
+            null,
+            null,
+            null,
+            null);
+
+    assertEquals(9, report.getData().size());
+  }
+
+  @Test
+  void testReportByMetricIdShouldUseSlaQueryParam() {
+    SubscriptionCapacity capacity = new SubscriptionCapacity();
+    capacity.setBeginDate(min);
+    capacity.setEndDate(max);
+
+    when(repository.findByOwnerAndProductIdAndMetricId(
+            "owner123456",
+            RHEL.toString(),
+            MetricId.CORES,
+            null,
+            ServiceLevel.PREMIUM,
+            Usage._ANY,
+            min,
+            max))
+        .thenReturn(Collections.singletonList(capacity));
+
+    CapacityReport report =
+        resource.getCapacityReportByMetricId(
+            RHEL,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            min,
+            max,
+            null,
+            null,
+            null,
+            ServiceLevelType.PREMIUM,
+            null);
+
+    assertEquals(9, report.getData().size());
+  }
+
+  @Test
+  void testReportByMetricIdShouldUseUsageQueryParam() {
+    SubscriptionCapacity capacity = new SubscriptionCapacity();
+    capacity.setBeginDate(min);
+    capacity.setEndDate(max);
+
+    when(repository.findByOwnerAndProductIdAndMetricId(
+            "owner123456",
+            RHEL.toString(),
+            MetricId.CORES,
+            null,
+            ServiceLevel._ANY,
+            Usage.PRODUCTION,
+            min,
+            max))
+        .thenReturn(Collections.singletonList(capacity));
+
+    CapacityReport report =
+        resource.getCapacityReportByMetricId(
+            RHEL,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            min,
+            max,
+            null,
+            null,
+            null,
+            null,
+            UsageType.PRODUCTION);
+
+    assertEquals(9, report.getData().size());
+  }
+
+  @Test
+  void testReportByMetricIdShouldTreatEmptySlaAsNull() {
+    SubscriptionCapacity capacity = new SubscriptionCapacity();
+    capacity.setBeginDate(min);
+    capacity.setEndDate(max);
+
+    when(repository.findByOwnerAndProductIdAndMetricId(
+            "owner123456",
+            RHEL.toString(),
+            MetricId.CORES,
+            null,
+            ServiceLevel._ANY,
+            Usage._ANY,
+            min,
+            max))
+        .thenReturn(Collections.singletonList(capacity));
+
+    CapacityReport report =
+        resource.getCapacityReportByMetricId(
+            RHEL,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            min,
+            max,
+            null,
+            null,
+            null,
+            ServiceLevelType.EMPTY,
+            null);
+
+    assertEquals(9, report.getData().size());
+  }
+
+  @Test
+  void testReportByMetricIdShouldTreatEmptyUsageAsNull() {
+    SubscriptionCapacity capacity = new SubscriptionCapacity();
+    capacity.setBeginDate(min);
+    capacity.setEndDate(max);
+
+    when(repository.findByOwnerAndProductIdAndMetricId(
+            "owner123456",
+            RHEL.toString(),
+            MetricId.CORES,
+            null,
+            ServiceLevel._ANY,
+            Usage._ANY,
+            min,
+            max))
+        .thenReturn(Collections.singletonList(capacity));
+
+    CapacityReport report =
+        resource.getCapacityReportByMetricId(
+            RHEL,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            min,
+            max,
+            null,
+            null,
+            null,
+            null,
+            UsageType.EMPTY);
+
+    assertEquals(9, report.getData().size());
+  }
+
+  @Test
+  void testReportByMetricIdShouldCalculateCapacityBasedOnMultipleSubscriptions() {
+    SubscriptionCapacity capacity = new SubscriptionCapacity();
+    capacity.setVirtualSockets(5);
+    capacity.setPhysicalSockets(2);
+    capacity.setVirtualCores(20);
+    capacity.setPhysicalCores(8);
+    capacity.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
+    capacity.setEndDate(max);
+
+    SubscriptionCapacity capacity2 = new SubscriptionCapacity();
+    capacity2.setVirtualSockets(7);
+    capacity2.setPhysicalSockets(11);
+    capacity2.setVirtualCores(14);
+    capacity2.setPhysicalCores(22);
+    capacity2.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
+    capacity2.setEndDate(max);
+
+    when(repository.findByOwnerAndProductIdAndMetricId(
+            "owner123456", RHEL.toString(), MetricId.CORES, null, null, null, min, max))
+        .thenReturn(Arrays.asList(capacity, capacity2));
+
+    CapacityReport report =
+        resource.getCapacityReportByMetricId(
+            RHEL, MetricId.CORES, GranularityType.DAILY, min, max, null, null, null, null, null);
+
+    CapacitySnapshot capacitySnapshot = report.getData().get(0);
+    assertEquals(12, capacitySnapshot.getHypervisorSockets().intValue());
+    assertEquals(13, capacitySnapshot.getPhysicalSockets().intValue());
+    assertEquals(34, capacitySnapshot.getHypervisorCores().intValue());
+    assertEquals(30, capacitySnapshot.getPhysicalCores().intValue());
+  }
+
+  @Test
+  void testReportByMetricIdShouldThrowExceptionOnBadOffset() {
+    SubscriptionsException e =
+        assertThrows(
+            SubscriptionsException.class,
+            () -> {
+              resource.getCapacityReportByMetricId(
+                  RHEL, MetricId.CORES, GranularityType.DAILY, min, max, null, 11, 10, null, null);
+            });
+    assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
+  }
+
+  @Test
+  void testReportByMetricIdShouldRespectOffsetAndLimit() {
+    SubscriptionCapacity capacity = new SubscriptionCapacity();
+    capacity.setBeginDate(min);
+    capacity.setEndDate(max);
+
+    when(repository.findByOwnerAndProductIdAndMetricId(
+            "owner123456",
+            RHEL.toString(),
+            MetricId.CORES,
+            null,
+            ServiceLevel._ANY,
+            Usage._ANY,
+            min,
+            max))
+        .thenReturn(Collections.singletonList(capacity));
+
+    CapacityReport report =
+        resource.getCapacityReportByMetricId(
+            RHEL, MetricId.CORES, GranularityType.DAILY, min, max, null, 1, 1, null, null);
+
+    assertEquals(1, report.getData().size());
+    assertEquals(
+        OffsetDateTime.now().minusDays(3).truncatedTo(ChronoUnit.DAYS),
+        report.getData().get(0).getDate());
+  }
+
+  @Test
+  @WithMockRedHatPrincipal("1111")
+  void testReportByMetridIdAccessDeniedWhenAccountIsNotWhitelisted() {
+    assertThrows(
+        AccessDeniedException.class,
+        () -> {
+          resource.getCapacityReportByMetricId(
+              RHEL, MetricId.CORES, GranularityType.DAILY, min, max, null, null, null, null, null);
+        });
+  }
+
+  @Test
+  @WithMockRedHatPrincipal(
+      value = "123456",
+      roles = {})
+  void testReportByMetricIdAccessDeniedWhenUserIsNotAnAdmin() {
+    assertThrows(
+        AccessDeniedException.class,
+        () -> {
+          resource.getCapacityReportByMetricId(
+              RHEL, MetricId.CORES, GranularityType.DAILY, min, max, null, null, null, null, null);
+        });
+  }
+
+  @Test
+  void testReportByMetricIdGetCapacitiesWeekly() {
+    SubscriptionCapacity capacity = new SubscriptionCapacity();
+    OffsetDateTime begin = OffsetDateTime.parse("2020-12-03T10:15:30+00:00");
+    OffsetDateTime end = OffsetDateTime.parse("2020-12-17T10:15:30+00:00");
+    capacity.setBeginDate(begin);
+    capacity.setEndDate(end);
+
+    when(repository.findByOwnerAndProductIdAndMetricId(
+            "owner123456",
+            RHEL.toString(),
+            MetricId.CORES,
+            ReportCategory.VIRTUAL,
+            ServiceLevel._ANY,
+            Usage.PRODUCTION,
+            min,
+            max))
+        .thenReturn(Collections.singletonList(capacity));
+
+    List<CapacitySnapshot> actual =
+        resource.getCapacities(
+            "owner123456",
+            RHEL,
+            Optional.of(MetricId.CORES),
+            ReportCategory.VIRTUAL,
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            Granularity.WEEKLY,
+            begin,
+            end);
+
+    // Add one because we generate reports including both endpoints on the timeline
+    long expected = ChronoUnit.WEEKS.between(begin, end) + 1;
+    assertEquals(expected, actual.size());
+  }
+
+  @Test
+  void testReportByMetricIdShouldCalculateCapacityWithUnlimitedUsage() {
+    SubscriptionCapacity capacity = new SubscriptionCapacity();
+    capacity.setHasUnlimitedUsage(true);
+    capacity.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
+    capacity.setEndDate(max);
+
+    when(repository.findByOwnerAndProductIdAndMetricId(
+            "owner123456", RHEL.toString(), MetricId.CORES, null, null, null, min, max))
+        .thenReturn(Collections.singletonList(capacity));
+
+    CapacityReport report =
+        resource.getCapacityReportByMetricId(
+            RHEL, MetricId.CORES, GranularityType.DAILY, min, max, null, null, null, null, null);
+
+    CapacitySnapshot capacitySnapshot = report.getData().get(0);
+    assertTrue(capacitySnapshot.getHasInfiniteQuantity());
+  }
+
+  @ParameterizedTest
+  @MethodSource("usageLists")
+  void testReportByMetricIdShouldCalculateCapacityRegardlessOfUsageSeenFirst(
+      List<SubscriptionCapacity> usages) {
+    when(repository.findByOwnerAndProductIdAndMetricId(
+            "owner123456", RHEL.toString(), MetricId.CORES, null, null, null, min, max))
+        .thenReturn(usages);
+
+    CapacityReport report =
+        resource.getCapacityReportByMetricId(
+            RHEL, MetricId.CORES, GranularityType.DAILY, min, max, null, null, null, null, null);
+
+    CapacitySnapshot capacitySnapshot = report.getData().get(0);
+    assertTrue(capacitySnapshot.getHasInfiniteQuantity());
+  }
+
   static Stream<Arguments> usageLists() {
     SubscriptionCapacity limited = new SubscriptionCapacity();
     limited.setHasUnlimitedUsage(false);
@@ -303,18 +651,5 @@ class CapacityResourceTest {
 
     return Stream.of(
         arguments(Arrays.asList(unlimited, limited)), arguments(Arrays.asList(limited, unlimited)));
-  }
-
-  @ParameterizedTest
-  @MethodSource("usageLists")
-  void testShouldCalculateCapacityRegardlessOfUsageSeenFirst(List<SubscriptionCapacity> usages) {
-    when(repository.findByOwnerAndProductId("owner123456", RHEL.toString(), null, null, min, max))
-        .thenReturn(usages);
-
-    CapacityReport report =
-        resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, null, null, null, null);
-
-    CapacitySnapshot capacitySnapshot = report.getData().get(0);
-    assertTrue(capacitySnapshot.getHasInfiniteQuantity());
   }
 }
