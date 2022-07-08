@@ -43,7 +43,7 @@ import org.candlepin.subscriptions.metering.MeteringEventFactory;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.model.QueryResultData;
-import org.candlepin.subscriptions.prometheus.model.QueryResultDataResult;
+import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.ResultType;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -414,8 +414,8 @@ class PrometheusMeteringControllerTest {
 
   @Test
   void verifyConflictingSlaCausesSavesFirstValue() {
-    QueryResultDataResult standardResultItem =
-        new QueryResultDataResult()
+    QueryResultDataResultInner standardResultItem =
+        new QueryResultDataResultInner()
             .putMetricItem("_id", expectedClusterId)
             .putMetricItem("support", "Standard")
             .putMetricItem("usage", "Production")
@@ -424,8 +424,8 @@ class PrometheusMeteringControllerTest {
             .putMetricItem("billing_marketplace", "red hat")
             .putMetricItem("billing_marketplace_account", expectedBillingAccountId)
             .addValuesItem(List.of(BigDecimal.valueOf(1616787308L), BigDecimal.valueOf(4.0)));
-    QueryResultDataResult premiumResultItem =
-        new QueryResultDataResult()
+    QueryResultDataResultInner premiumResultItem =
+        new QueryResultDataResultInner()
             .putMetricItem("_id", expectedClusterId)
             .putMetricItem("support", "Standard")
             .putMetricItem("usage", "Production")
@@ -528,8 +528,8 @@ class PrometheusMeteringControllerTest {
       String billingProvider,
       String billingAccountId,
       List<List<BigDecimal>> timeValueTuples) {
-    QueryResultDataResult dataResult =
-        new QueryResultDataResult()
+    QueryResultDataResultInner dataResult =
+        new QueryResultDataResultInner()
             .putMetricItem("_id", clusterId)
             .putMetricItem("support", sla)
             .putMetricItem("usage", usage)
