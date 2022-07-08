@@ -3,7 +3,6 @@ apiVersion: v1
 kind: Template
 metadata:
   name: swatch-producer-aws
-
 parameters:
   - name: IMAGE_PULL_SECRET
     value: quay-cloudservices-pull
@@ -61,6 +60,12 @@ objects:
   kind: ClowdApp
   metadata:
     name: swatch-producer-aws
+    labels:
+      # NOTE: There's no need to define annotations for prometheus when prometheus is
+      # configured via servicemonitor.
+      #
+      # See: https://github.com/prometheus-operator/prometheus-operator/issues/1547#issuecomment-401092041
+      prometheus: quarkus
   spec:
     envName: ${ENV_NAME}
 
