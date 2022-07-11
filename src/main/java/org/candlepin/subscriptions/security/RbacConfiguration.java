@@ -29,7 +29,8 @@ import org.springframework.context.annotation.Configuration;
 
 /** Configuration for consoledot RBAC service client */
 @Configuration
-@SuppressWarnings("common-java:DuplicatedBlocks")
+// @SuppressWarnings("common-java:DuplicatedBlocks") testing sonar
+// uncomment when before merging.
 public class RbacConfiguration {
 
   @Bean
