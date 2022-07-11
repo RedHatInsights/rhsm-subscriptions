@@ -38,7 +38,7 @@ import org.candlepin.subscriptions.metering.MeteringException;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescriptor;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
-import org.candlepin.subscriptions.prometheus.model.QueryResultDataResult;
+import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.candlepin.subscriptions.registry.TagMetaData;
 import org.candlepin.subscriptions.registry.TagMetric;
@@ -155,7 +155,7 @@ public class PrometheusMeteringController {
             log.debug("Found {} existing events.", existing.size());
 
             Map<EventKey, Event> events = new HashMap<>();
-            for (QueryResultDataResult r : metricData.getData().getResult()) {
+            for (QueryResultDataResultInner r : metricData.getData().getResult()) {
               Map<String, String> labels = r.getMetric();
               String clusterId = labels.get("_id");
               String sla = labels.get("support");

@@ -31,6 +31,8 @@ import javax.persistence.criteria.Root;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.utilization.api.model.MetricId;
+import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
@@ -62,17 +64,80 @@ public class CustomizedSubscriptionCapacityRepositoryImpl
     Root<SubscriptionCapacity> capacity = cq.from(SubscriptionCapacity.class);
 
     List<Predicate> predicates = new ArrayList<>();
+    addBasePredicates(cb, capacity, predicates, ownerId, productId);
+    addServiceLevelPredicates(cb, capacity, predicates, serviceLevel);
+    addUsagePredicates(cb, capacity, predicates, usage);
+    addDatePredicates(cb, capacity, predicates, reportBegin, reportEnd);
+
+    cq.where(predicates.toArray(new Predicate[0]));
+
+    return em.createQuery(cq).getResultList();
+  }
+
+  @Override
+  public List<SubscriptionCapacity> findByOwnerAndProductIdAndMetricId(
+      String ownerId,
+      String productId,
+      MetricId metricId,
+      ReportCategory reportCategory,
+      ServiceLevel serviceLevel,
+      Usage usage,
+      OffsetDateTime reportBegin,
+      OffsetDateTime reportEnd) {
+
+    CriteriaBuilder cb = em.getCriteriaBuilder();
+    CriteriaQuery<SubscriptionCapacity> cq = cb.createQuery(SubscriptionCapacity.class);
+    Root<SubscriptionCapacity> capacity = cq.from(SubscriptionCapacity.class);
+
+    List<Predicate> predicates = new ArrayList<>();
+
+    addBasePredicates(cb, capacity, predicates, ownerId, productId);
+    addServiceLevelPredicates(cb, capacity, predicates, serviceLevel);
+    addUsagePredicates(cb, capacity, predicates, usage);
+    addDatePredicates(cb, capacity, predicates, reportBegin, reportEnd);
+    addMetricPredicates(cb, predicates, capacity, metricId, reportCategory);
+
+    cq.where(predicates.toArray(new Predicate[0]));
+
+    return em.createQuery(cq).getResultList();
+  }
+
+  private void addBasePredicates(
+      CriteriaBuilder cb,
+      Root<SubscriptionCapacity> capacity,
+      List<Predicate> predicates,
+      String ownerId,
+      String productId) {
     predicates.add(cb.equal(capacity.get("key").get("ownerId"), ownerId));
     predicates.add(cb.equal(capacity.get("key").get("productId"), productId));
+  }
 
+  private void addServiceLevelPredicates(
+      CriteriaBuilder cb,
+      Root<SubscriptionCapacity> capacity,
+      List<Predicate> predicates,
+      ServiceLevel serviceLevel) {
     if (serviceLevel != null && serviceLevel != ServiceLevel._ANY) {
       predicates.add(cb.equal(capacity.get("serviceLevel"), serviceLevel));
     }
+  }
 
+  private void addUsagePredicates(
+      CriteriaBuilder cb,
+      Root<SubscriptionCapacity> capacity,
+      List<Predicate> predicates,
+      Usage usage) {
     if (usage != null && usage != Usage._ANY) {
       predicates.add(cb.equal(capacity.get("usage"), usage));
     }
+  }
 
+  private void addDatePredicates(
+      CriteriaBuilder cb,
+      Root<SubscriptionCapacity> capacity,
+      List<Predicate> predicates,
+      OffsetDateTime reportBegin,
+      OffsetDateTime reportEnd) {
     /* This bears a little bit of clarification: we are verifying that the subscription's
      * begin date is less than API request's _end_ date and the subscription's end date
      * is greater than request's _start_ date.
@@ -84,9 +149,50 @@ public class CustomizedSubscriptionCapacityRepositoryImpl
     if (reportBegin != null) {
       predicates.add(cb.lessThan(capacity.get("beginDate"), reportEnd));
     }
+  }
 
-    cq.where(predicates.toArray(new Predicate[0]));
-
-    return em.createQuery(cq).getResultList();
+  private void addMetricPredicates(
+      CriteriaBuilder cb,
+      List<Predicate> predicates,
+      Root<SubscriptionCapacity> capacity,
+      MetricId metricId,
+      ReportCategory reportCategory) {
+    if (metricId.equals(MetricId.CORES)) {
+      if (reportCategory != null) {
+        switch (reportCategory) {
+          case PHYSICAL:
+            predicates.add(cb.greaterThan(capacity.get("physicalCores"), 0));
+            break;
+          case VIRTUAL:
+            predicates.add(cb.greaterThan(capacity.get("virtualCores"), 0));
+            break;
+          default:
+            break;
+        }
+      } else {
+        predicates.add(
+            cb.or(
+                cb.greaterThan(capacity.get("physicalCores"), 0),
+                cb.greaterThan(capacity.get("virtualCores"), 0)));
+      }
+    } else if (metricId.equals(MetricId.SOCKETS)) {
+      if (reportCategory != null) {
+        switch (reportCategory) {
+          case PHYSICAL:
+            predicates.add(cb.greaterThan(capacity.get("physicalSockets"), 0));
+            break;
+          case VIRTUAL:
+            predicates.add(cb.greaterThan(capacity.get("virtualSockets"), 0));
+            break;
+          default:
+            break;
+        }
+      } else {
+        predicates.add(
+            cb.or(
+                cb.greaterThan(capacity.get("physicalSockets"), 0),
+                cb.greaterThan(capacity.get("virtualSockets"), 0)));
+      }
+    }
   }
 }
