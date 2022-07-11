@@ -25,6 +25,8 @@ import java.util.List;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.utilization.api.model.MetricId;
+import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -35,10 +37,23 @@ import org.springframework.transaction.annotation.Transactional;
  * https://docs.spring.io/spring-data/jpa/docs/2.3.0.RELEASE/reference/html/#repositories.custom-implementations
  */
 public interface CustomizedSubscriptionCapacityRepository {
+
   @Transactional
   List<SubscriptionCapacity> findByOwnerAndProductId(
       String ownerId,
       String productId,
+      ServiceLevel serviceLevel,
+      Usage usage,
+      OffsetDateTime reportBegin,
+      OffsetDateTime reportEnd);
+
+  @Transactional
+  @SuppressWarnings("java:S107")
+  List<SubscriptionCapacity> findByOwnerAndProductIdAndMetricId(
+      String ownerId,
+      String productId,
+      MetricId metricId,
+      ReportCategory reportCategory,
       ServiceLevel serviceLevel,
       Usage usage,
       OffsetDateTime reportBegin,
