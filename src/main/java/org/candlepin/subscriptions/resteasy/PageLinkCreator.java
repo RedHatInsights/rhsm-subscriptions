@@ -34,6 +34,7 @@ import org.springframework.stereotype.Component;
 
 /** Utility to create page links for paginated APIs. */
 @Component
+@SuppressWarnings("common-java:DuplicatedBlocks")
 public class PageLinkCreator {
 
   /**

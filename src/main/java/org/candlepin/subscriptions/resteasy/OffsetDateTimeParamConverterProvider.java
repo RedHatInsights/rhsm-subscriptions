@@ -32,6 +32,7 @@ import org.springframework.stereotype.Component;
 /** ParamConverterProvider to enable use of OffsetDateTime in query parameters. */
 @Component
 @Provider
+@SuppressWarnings("common-java:DuplicatedBlocks")
 public class OffsetDateTimeParamConverterProvider implements ParamConverterProvider {
 
   @Override

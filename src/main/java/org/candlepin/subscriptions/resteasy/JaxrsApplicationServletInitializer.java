@@ -47,6 +47,7 @@ import org.springframework.core.env.ConfigurableEnvironment;
  * <p>This can be used to map multiple different URIs to different JAX-RS applications if we need to
  * in the future.
  */
+@SuppressWarnings("common-java:DuplicatedBlocks")
 public class JaxrsApplicationServletInitializer implements BeanFactoryPostProcessor {
 
   @Override

@@ -29,6 +29,7 @@ import org.springframework.context.annotation.Configuration;
 
 /** Configuration for consoledot RBAC service client */
 @Configuration
+@SuppressWarnings("common-java:DuplicatedBlocks")
 public class RbacConfiguration {
 
   @Bean

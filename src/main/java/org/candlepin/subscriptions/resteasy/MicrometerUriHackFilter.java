@@ -43,6 +43,7 @@ import org.springframework.web.servlet.HandlerMapping;
  */
 @Component
 @Provider
+@SuppressWarnings("common-java:DuplicatedBlocks")
 public class MicrometerUriHackFilter implements ContainerRequestFilter {
 
   private static final Logger log = LoggerFactory.getLogger(MicrometerUriHackFilter.class);

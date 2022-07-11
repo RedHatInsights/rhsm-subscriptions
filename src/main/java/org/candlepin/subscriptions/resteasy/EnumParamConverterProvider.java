@@ -34,6 +34,7 @@ import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 
 /** ParamConverterProvider to enable use of enums in query providers. */
+@SuppressWarnings("common-java:DuplicatedBlocks")
 @Component
 @Provider
 public class EnumParamConverterProvider implements ParamConverterProvider {

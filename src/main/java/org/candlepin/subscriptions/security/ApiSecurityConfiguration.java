@@ -70,6 +70,7 @@ import org.springframework.security.web.csrf.CsrfFilter;
  */
 @Configuration
 @Import(RbacConfiguration.class)
+@SuppressWarnings("common-java:DuplicatedBlocks")
 public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
   @Autowired protected ObjectMapper mapper;
