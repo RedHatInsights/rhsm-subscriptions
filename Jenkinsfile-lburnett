@@ -1,0 +1,27 @@
+pipeline {
+  agent {
+    kubernetes {
+      label 'bananas'  // all your pods will be named with this prefix, followed by a unique id
+      idleMinutes 5  // how long the pod will live after no jobs have run on it
+      yamlFile 'build-pod.yaml'  // path to the pod definition relative to the root of our project
+      defaultContainer 'openjdk11'  // define a default container if more than a few stages use it, will default to jnlp container
+    }
+  }
+  stages {
+    stage('Test Java Version') {
+      steps {  // no container directive is needed as the maven container is the default
+        sh "java -version"
+      }
+    }
+   stage('Clean') {
+       steps {
+           sh "./gradlew --no-daemon clean"
+       }
+   }
+   stage('Assemble') {
+       steps {
+           sh "./gradlew --no-daemon --skip-validate-spec assemble"
+       }
+   }
+  }
+}

@@ -1,48 +1,54 @@
 pipeline {
-    options { buildDiscarder(logRotator(numToKeepStr: '50')) }
     agent {
-        label 'rhsm'
+        kubernetes {
+            label 'bananas'
+            // all your pods will be named with this prefix, followed by a unique id
+            idleMinutes 5  // how long the pod will live after no jobs have run on it
+            containerTemplate {
+                name 'openjdk11'
+                image 'registry.access.redhat.com/ubi8/openjdk-11'
+                command 'sleep'
+                args '99d'
+                resourceRequestCpu '4'
+                resourceLimitCpu '6'
+                resourceRequestMemory '4Gi'
+                resourceLimitMemory '6Gi'
+            }
+
+            defaultContainer 'openjdk11'
+            // define a default container if more than a few stages use it, will default to jnlp container
+        }
     }
     stages {
+        stage('Test Java Version') {
+            steps {  // no container directive is needed as the maven container is the default
+                sh "java -version"
+            }
+        }
         stage('Clean') {
             steps {
-                sh "./podman_run.sh ./gradlew --no-daemon clean"
+                sh "./gradlew --no-daemon clean"
             }
         }
         stage('Build') {
             steps {
-                sh "./podman_run.sh ./gradlew --no-daemon assemble"
+                sh "./gradlew --no-daemon build"
             }
         }
-        stage('Unit tests') {
-            steps {
-                sh "./podman_run.sh ./gradlew --no-daemon test"
-            }
-        }
+
         stage('Spotless') {
             steps {
-                sh "./podman_run.sh ./gradlew --no-daemon spotlessCheck"
+                sh "./gradlew --no-daemon spotlessCheck"
             }
         }
+
         stage('Upload PR to SonarQube') {
             when {
                 changeRequest()
             }
             steps {
                 withSonarQubeEnv('sonarcloud.io') {
-                    sh "./podman_run.sh ./gradlew --no-daemon sonarqube -Duser.home=/tmp -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.login=${SONAR_AUTH_TOKEN} -Dsonar.pullrequest.key=${CHANGE_ID} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.branch=${BRANCH_NAME} -Dsonar.organization=rhsm -Dsonar.projectKey=rhsm-subscriptions"
-                }
-            }
-        }
-        stage('Upload Branch to SonarQube') {
-            when {
-                not {
-                    changeRequest()
-                }
-            }
-            steps {
-                withSonarQubeEnv('sonarcloud.io') {
-                    sh "./podman_run.sh ./gradlew --no-daemon sonarqube -Duser.home=/tmp -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.login=${SONAR_AUTH_TOKEN} -Dsonar.branch.name=${BRANCH_NAME} -Dsonar.organization=rhsm -Dsonar.projectKey=rhsm-subscriptions"
+                    sh "./gradlew --no-daemon sonarqube -Duser.home=/tmp -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.login=${SONAR_AUTH_TOKEN} -Dsonar.pullrequest.key=${CHANGE_ID} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.branch=${BRANCH_NAME} -Dsonar.organization=rhsm -Dsonar.projectKey=rhsm-subscriptions"
                 }
             }
         }
@@ -57,8 +63,7 @@ pipeline {
                             timeout(time: 5, unit: 'MINUTES') {
                                 waitForQualityGate abortPipeline: true
                             }
-                        }
-                        catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
+                        } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
                             // "rethrow" as something retry will actually retry, see https://issues.jenkins-ci.org/browse/JENKINS-51454
                             if (e.causes.find { it instanceof org.jenkinsci.plugins.workflow.steps.TimeoutStepExecution$ExceededTimeout } != null) {
                                 error("Timeout waiting for SonarQube results")
@@ -69,7 +74,6 @@ pipeline {
             }
         }
     }
-
     post {
         always {
             junit '**/build/test-results/test/*.xml'
