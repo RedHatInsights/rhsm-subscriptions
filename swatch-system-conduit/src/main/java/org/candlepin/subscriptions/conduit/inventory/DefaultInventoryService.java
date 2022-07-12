@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.conduit.inventory;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.exception.inventory.InventoryServiceException;
@@ -45,11 +44,15 @@ public class DefaultInventoryService extends InventoryService {
   @Override
   @SuppressWarnings("java:S1874") // ignore deprecation of host add API (not used in production)
   protected void sendHostUpdate(List<ConduitFacts> facts) {
-    // The same timestamp for the whole batch
-    OffsetDateTime now = OffsetDateTime.now();
+
+    log.warn("The DefaultInventoryService is being used and is not sending the correct data!");
     List<CreateHostIn> hostsToSend =
         facts.stream()
-            .map(conduitFacts -> createHost(conduitFacts, now))
+            // NOTE: Temporarily creating a dummy CreateHostIn here since this code is
+            //       no long going to be used and will be removed. Doing this saves time on
+            //       implementing converter code from HbiHost -> CreateHostIn when it will
+            //       just be torn out later. The tests are currently being ignored.
+            .map(conduitFacts -> new CreateHostIn().account(conduitFacts.getAccountNumber()))
             .collect(Collectors.toList());
 
     try {

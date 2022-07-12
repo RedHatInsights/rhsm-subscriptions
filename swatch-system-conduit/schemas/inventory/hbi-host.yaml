@@ -1,0 +1,41 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: HbiHost
+properties:
+  display_name:
+    type: string
+  account:
+    type: string
+  insights_id:
+    type: string
+  rhel_machine_id:
+    type: string
+  subscription_manager_id:
+    type: string
+  satellite_id:
+    type: string
+  bios_uuid:
+    type: string
+  ip_addresses:
+    type: array
+    items:
+      type: string
+  fqdn:
+    type: string
+  mac_addresses:
+    type: array
+    items:
+      type: string
+  external_id:
+    type: string
+  facts:
+    type: array
+    items:
+      $ref: "hbi-fact-set.yaml"
+  system_profile:
+    $ref: "hbi-system-profile.yaml"
+  stale_timestamp:
+    type: string
+    existingJavaType: java.time.OffsetDateTime
+    format: date-time
+  reporter:
+    type: string

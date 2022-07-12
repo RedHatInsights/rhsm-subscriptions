@@ -22,11 +22,11 @@ package org.candlepin.subscriptions.conduit.inventory;
 
 import java.time.OffsetDateTime;
 import java.util.*;
+import org.candlepin.subscriptions.conduit.json.inventory.HbiFactSet;
+import org.candlepin.subscriptions.conduit.json.inventory.HbiHost;
+import org.candlepin.subscriptions.conduit.json.inventory.HbiSystemProfile;
+import org.candlepin.subscriptions.conduit.json.inventory.HbiSystemProfileOperatingSystem;
 import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
-import org.candlepin.subscriptions.inventory.client.model.CreateHostIn;
-import org.candlepin.subscriptions.inventory.client.model.FactSet;
-import org.candlepin.subscriptions.inventory.client.model.SystemProfile;
-import org.candlepin.subscriptions.inventory.client.model.SystemProfileOperatingSystem;
 import org.candlepin.subscriptions.utilization.api.model.ConsumerInventory;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
 import org.slf4j.Logger;
@@ -91,12 +91,13 @@ public abstract class InventoryService {
    *
    * @return the new host.
    */
-  protected CreateHostIn createHost(ConduitFacts facts, OffsetDateTime syncTimestamp) {
-    CreateHostIn host = new CreateHostIn();
+  protected HbiHost createHost(ConduitFacts facts, OffsetDateTime syncTimestamp) {
+    HbiHost host = new HbiHost();
 
     // fact namespace
-    host.facts(
-        Arrays.asList(new FactSet().namespace("rhsm").facts(buildFactMap(facts, syncTimestamp))));
+    host.setFacts(
+        Arrays.asList(
+            new HbiFactSet().withNamespace("rhsm").withFacts(buildFactMap(facts, syncTimestamp))));
 
     // required culling properties
     host.setReporter("rhsm-conduit");
@@ -117,8 +118,8 @@ public abstract class InventoryService {
     return host;
   }
 
-  private SystemProfile createSystemProfile(ConduitFacts facts) {
-    SystemProfile systemProfile = new SystemProfile();
+  private HbiSystemProfile createSystemProfile(ConduitFacts facts) {
+    HbiSystemProfile systemProfile = new HbiSystemProfile();
     if (facts.getOsName() != null) {
       systemProfile.setOperatingSystem(operatingSystem(facts));
     }
@@ -167,7 +168,7 @@ public abstract class InventoryService {
     return rhsmFactMap;
   }
 
-  private SystemProfileOperatingSystem operatingSystem(ConduitFacts facts) {
+  private HbiSystemProfileOperatingSystem operatingSystem(ConduitFacts facts) {
     var operatingSystem = operatingSystemName(facts.getOsName());
     if (operatingSystem != null) { // we set operatingSystem null with non-RHEL
       setOperatingSystemVersion(operatingSystem, facts.getOsVersion());
@@ -175,17 +176,17 @@ public abstract class InventoryService {
     return operatingSystem;
   }
 
-  private SystemProfileOperatingSystem operatingSystemName(String operatingSystemName) {
+  private HbiSystemProfileOperatingSystem operatingSystemName(String operatingSystemName) {
     if (!operatingSystemName.toLowerCase().contains("red hat enterprise linux")) {
       return null;
     }
-    var operatingSystems = new SystemProfileOperatingSystem();
-    operatingSystems.setName(SystemProfileOperatingSystem.NameEnum.RHEL);
+    var operatingSystems = new HbiSystemProfileOperatingSystem();
+    operatingSystems.setName(HbiSystemProfileOperatingSystem.Name.RHEL);
     return operatingSystems;
   }
 
   private void setOperatingSystemVersion(
-      SystemProfileOperatingSystem operatingSystem, String operatingSystemVersion) {
+      HbiSystemProfileOperatingSystem operatingSystem, String operatingSystemVersion) {
     var versions = operatingSystemVersion.split("\\.");
     if (versions.length == 2) {
       operatingSystem.setMajor(Integer.parseInt(versions[0]));

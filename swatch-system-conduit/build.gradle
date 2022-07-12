@@ -1,6 +1,7 @@
 plugins {
     id "swatch.spring-boot-conventions"
     id "org.openapi.generator"
+    id 'jsonschema2pojo'
     id "jacoco"
 }
 
@@ -64,6 +65,21 @@ dependencies {
     runtimeOnly "org.hsqldb:hsqldb"
     runtimeOnly "org.jolokia:jolokia-core"
     runtimeOnly "org.jboss.resteasy:resteasy-jackson2-provider"
+}
+
+jsonSchema2Pojo {
+    source = files("${projectDir}/schemas")
+    targetDirectory = file("${project.buildDir}/generated/src/gen/java")
+    targetPackage = "org.candlepin.subscriptions.conduit.json"
+    includeAdditionalProperties = false
+    includeJsr303Annotations = true
+    initializeCollections = false
+    dateTimeType = 'java.time.OffsetDateTime'
+    sourceType = 'yamlschema'
+    generateBuilders = true
+    includeGetters = true
+    includeSetters = true
+    inclusionLevel = 'USE_DEFAULTS'
 }
 
 jacocoTestReport {
