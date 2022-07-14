@@ -104,6 +104,7 @@ public abstract class InventoryService {
     host.setStaleTimestamp(syncTimestamp.plusHours(staleHostOffset));
 
     // canonical facts.
+    host.setOrgId(facts.getOrgId());
     host.setAccount(facts.getAccountNumber());
     host.setDisplayName(facts.getDisplayName());
     host.setFqdn(facts.getFqdn());

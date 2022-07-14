@@ -5,6 +5,8 @@ properties:
     type: string
   account:
     type: string
+  org_id:
+    type: string
   insights_id:
     type: string
   rhel_machine_id:
