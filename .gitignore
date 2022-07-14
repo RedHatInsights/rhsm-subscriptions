@@ -25,9 +25,11 @@
 # Spring Boot reads local configuration out of a directory named config.
 # However, Gradle also looks for project configurations - most notably
 # Checkstyle configuration - in the config directory.  This section hides
-# everything under the config directory except what Gradle is going to use.
-config/
-!config/codestyle/**
+# everything directly under the config directory except what Gradle is
+# going to use or files used for developer deployment (certificates and key)
+config/*
+!config/codestyle
+!config/kafka
 
 #VS Code
 .project

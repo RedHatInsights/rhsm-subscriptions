@@ -33,7 +33,6 @@
    ```shell
    $ openssl pkcs12 -export -in client.crt -inkey client.key -name 'Client' -certfile test-ca.crt -caname 'Test CA' -passout pass:password -out client.p12
    $ keytool -importkeystore -srckeystore client.p12 -srcstoretype pkcs12 -srcstorepass password -destkeystore client.jks -deststorepass password
-   $ rm client.p12
    ```
 
 6. Create a PKCS12 to hold the server's cert, key, and the CA that
@@ -42,12 +41,13 @@
    ```shell
    $ openssl pkcs12 -export -in server.crt -inkey server.key -name 'localhost' -certfile test-ca.crt -caname 'Test CA' -passout pass:password -out server.p12
    $ keytool -importkeystore -srckeystore server.p12 -srcstoretype pkcs12 -srcstorepass password -destkeystore server.jks -deststorepass password
-   $ rm server.p12
    ```
 
-7. Create a JKS to hold the CA and act as a truststore.
+7. Create a JKS and PKCS12 to hold the CA and act as truststores.  The file type you want to use
+   is dependent on the application.
 
    ```shell
+   $ openssl pkcs12 -export -in test-ca.crt -nokeys -name 'test-ca' -caname 'Test CA' -passout pass:password -out test-ca.p12
    $ keytool -importcert -file test-ca.crt -alias 'Test CA' -keystore test-ca.jks -storepass password -noprompt
    ```
 
@@ -65,10 +65,10 @@ openssl x509 -req -days 3650 -in client.csr -out client.crt -CA test-ca.crt -CAk
 
 openssl pkcs12 -export -in client.crt -inkey client.key -name 'Client' -certfile test-ca.crt -caname 'Test CA' -passout pass:password -out client.p12
 keytool -importkeystore -srckeystore client.p12 -srcstoretype pkcs12 -srcstorepass password -destkeystore client.jks -deststorepass password
-rm client.p12
 
 openssl pkcs12 -export -in server.crt -inkey server.key -name 'localhost' -certfile test-ca.crt -caname 'Test CA' -passout pass:password -out server.p12
 keytool -importkeystore -srckeystore server.p12 -srcstoretype pkcs12 -srcstorepass password -destkeystore server.jks -deststorepass password
-rm server.p12
+
+openssl pkcs12 -export -in test-ca.crt -nokeys -name 'test-ca' -caname 'Test CA' -passout pass:password -out test-ca.p12
 keytool -importcert -file test-ca.crt -alias 'Test CA' -keystore test-ca.jks -storepass password -noprompt
 ```
