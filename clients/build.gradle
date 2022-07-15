@@ -6,10 +6,6 @@ project(":clients:cloudigrade-internal-client") {
     apply plugin: "swatch.spring-boot-rest-client-conventions"
 }
 
-project(":clients:insights-inventory-client") {
-    apply plugin: "swatch.spring-boot-rest-client-conventions"
-}
-
 project(":clients:rh-marketplace-client") {
     apply plugin: "swatch.spring-boot-rest-client-conventions"
 }
