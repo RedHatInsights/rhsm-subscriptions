@@ -102,8 +102,8 @@ public class TallySnapshot implements Serializable {
   @Builder.Default
   private Map<TallyMeasurementKey, Double> tallyMeasurements = new HashMap<>();
 
-  public Integer getMeasurementAsInteger(HardwareMeasurementType type, Measurement.Uom uom) {
-    return Optional.ofNullable(getMeasurement(type, uom)).map(Double::intValue).orElse(null);
+  public int getMeasurementAsInteger(HardwareMeasurementType type, Measurement.Uom uom) {
+    return Optional.ofNullable(getMeasurement(type, uom)).map(Double::intValue).orElse(0);
   }
 
   public Double getMeasurement(HardwareMeasurementType type, Measurement.Uom uom) {
