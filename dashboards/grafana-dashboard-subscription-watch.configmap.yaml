@@ -2911,7 +2911,7 @@ data:
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "description": "Billable Usage service emits messages with usage data for swatch billing provider services to consume.  This widget monitors the rh-marketplace-worker consumer group (consumed by the swatch-billing-provider-rh-marketplace service)",
+          "description": "Billable Usage service emits messages with usage data for swatch billing provider services to consume.  This widget monitors the rh-marketplace-worker consumer group (consumed by the swatch-producer-red-hat-marketplace service)",
           "fieldConfig": {
             "defaults": {
               "unit": "none"

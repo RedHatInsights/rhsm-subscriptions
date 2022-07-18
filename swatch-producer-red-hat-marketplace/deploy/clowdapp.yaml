@@ -1,0 +1,374 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: swatch-producer-red-hat-marketplace
+parameters:
+  - name: HAWTIO_BASE_PATH
+    value: /app/rhsm-rh-marketplace/hawtio
+  - name: SERVER_MAX_HTTP_HEADER_SIZE
+    value: '48000'
+  - name: LOGGING_LEVEL_ROOT
+    value: WARN
+  - name: LOGGING_LEVEL
+    value: INFO
+  - name: KAFKA_MESSAGE_THREADS
+    value: '24'
+  - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+    value: '3600000'
+  - name: KAFKA_SEEK_OVERRIDE_END
+    value: 'false'
+  - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
+    value: ''
+  - name: REPLICAS
+    value: '1'
+  - name: IMAGE
+    value: quay.io/cloudservices/rhsm-subscriptions
+  - name: IMAGE_TAG
+    value: latest
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: MEMORY_REQUEST
+    value: 1000Mi
+  - name: MEMORY_LIMIT
+    value: 1700Mi
+  - name: CPU_REQUEST
+    value: 350m
+  - name: CPU_LIMIT
+    value: 1500m
+  - name: ENV_NAME
+    value: env-swatch-producer-red-hat-marketplace
+  - name: SPLUNK_FORWARDER_IMAGE
+    value: quay.io/cloudservices/rhsm-splunk-forwarder:19bd22d
+  - name: SPLUNK_FORWARDER_MEMORY_REQUEST
+    value: 128Mi
+  - name: SPLUNK_FORWARDER_MEMORY_LIMIT
+    value: 256Mi
+  - name: SPLUNK_FORWARDER_CPU_REQUEST
+    value: 50m
+  - name: SPLUNK_FORWARDER_CPU_LIMIT
+    value: 100m
+  - name: RH_MARKETPLACE_TOKEN_REFRESH_PERIOD
+    value: 1m
+  - name: RH_MARKETPLACE_MAX_ATTEMPTS
+    value: '10'
+  - name: RH_MARKETPLACE_BACK_OFF_MAX_INTERVAL
+    value: 64s
+  - name: RH_MARKETPLACE_BACK_OFF_INITIAL_INTERVAL
+    value: 1s
+  - name: RH_MARKETPLACE_BACK_OFF_MULTIPLIER
+    value: '2'
+  - name: RH_MARKETPLACE_VERIFY_BATCHES
+    value: 'true'
+  - name: RH_MARKETPLACE_MANUAL_SUBMISSION_ENABLED
+    value: 'false'
+  - name: RH_MARKETPLACE_AMENDMENT_NOT_SUPPORTED_MARKER
+    value: '(amendments) is not available'
+  - name: DATABASE_CONNECTION_TIMEOUT_MS
+    value: '30000'
+  - name: DATABASE_MAX_POOL_SIZE
+    value: '25'
+  - name: SUBSCRIPTION_URL
+    value: https://subscription.qa.api.redhat.com/svcrest/subscription/v5
+  - name: SUBSCRIPTION_MAX_CONNECTIONS
+    value: '100'
+  - name: SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL
+    value: 1s
+  - name: SUBSCRIPTION_BACK_OFF_MAX_INTERVAL
+    value: 64s
+  - name: SUBSCRIPTION_MAX_RETRY_ATTEMPTS
+    value: '4'
+  - name: SUBSCRIPTION_BACK_OFF_MULTIPLIER
+    value: '2'
+  - name: SUBSCRIPTION_PAGE_SIZE
+    value: '500'
+  - name: USER_HOST
+    value: 'user.qa.api.redhat.com'
+  - name: USER_MAX_CONNECTIONS
+    value: '100'
+  - name: USER_MAX_ATTEMPTS
+    value: '10'
+  - name: USER_BACK_OFF_MAX_INTERVAL
+    value: 64s
+  - name: USER_BACK_OFF_INITIAL_INTERVAL
+    value: 1s
+  - name: USER_BACK_OFF_MULTIPLIER
+    value: '2'
+  - name: BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL
+    value: 1s
+  - name: BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL
+    value: 1m
+  - name: BILLING_PRODUCER_BACK_OFF_MULTIPLIER
+    value: '2'
+  - name: BILLING_PRODUCER_MAX_ATTEMPTS
+    value: '1'
+  - name: ENABLE_TALLY_SUMMARY_LISTENER
+    value: 'true'
+  - name: RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_END
+    value: 'false'
+  - name: RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_TIMESTAMP
+    value: ''
+  - name: RHSM_RBAC_USE_STUB
+    value: 'false'
+  - name: DEV_MODE
+    value: 'false'
+
+objects:
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdApp
+  metadata:
+    name: swatch-producer-red-hat-marketplace
+    labels:
+      prometheus: rhsm
+  spec:
+    envName: ${ENV_NAME}
+
+    kafkaTopics:
+      - replicas: 3
+        partitions: 3
+        topicName: platform.rhsm-subscriptions.tally
+      - replicas: 3
+        partitions: 3
+        topicName: platform.rhsm-subscriptions.billable-usage
+
+    pullSecrets:
+      name: ${IMAGE_PULL_SECRET}
+
+    deployments:
+      - name: service
+        minReplicas: 1
+        webServices:
+          public:
+            enabled: true
+        podSpec:
+          image: ${IMAGE}:${IMAGE_TAG}
+          command:
+            - /bin/bash
+            - /usr/local/s2i/run
+          initContainers:
+            - env:
+                - name: SPRING_PROFILES_ACTIVE
+                  value: liquibase-only
+              inheritEnv: true
+              command:
+                - /bin/bash
+                - /usr/local/s2i/run
+              resources:
+                requests:
+                  cpu: ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
+                limits:
+                  cpu: ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
+          env:
+            - name: ENABLE_SPLUNK_HEC
+              value: ${ENABLE_SPLUNK_HEC}
+            - name: SPLUNKMETA_namespace
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SPLUNKMETA_host
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: SPLUNK_HEC_URL
+              value: ${SPLUNK_HEC_URL}
+            - name: SPLUNK_HEC_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: splunk-hec-external
+                  key: token
+            - name: SPLUNK_SOURCE
+              value: ${SPLUNK_SOURCE}
+            - name: SPLUNK_SOURCE_TYPE
+              value: ${SPLUNK_SOURCE_TYPE}
+            - name: SPLUNK_MESSAGE_FORMAT
+              value: ${SPLUNK_MESSAGE_FORMAT}
+            - name: SPLUNK_HEC_CONNECT_TIMEOUT
+              value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
+            - name: SPLUNK_HEC_BATCH_SIZE
+              value: ${SPLUNK_HEC_BATCH_SIZE}
+            - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+              value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
+            - name: SPRING_PROFILES_ACTIVE
+              value: rh-marketplace,kafka-queue
+            - name: AB_JOLOKIA_OFF
+              value: 'true'
+            - name: SERVER_MAX_HTTP_HEADER_SIZE
+              value: ${SERVER_MAX_HTTP_HEADER_SIZE}
+            - name: HAWTIO_BASE_PATH
+              value: ${HAWTIO_BASE_PATH}
+            - name: LOG_FILE
+              value: /logs/server.log
+            - name: JAVA_MAX_MEM_RATIO
+              value: '85'
+            - name: GC_MAX_METASPACE_SIZE
+              value: '256'
+            - name: LOGGING_LEVEL_ROOT
+              value: ${LOGGING_LEVEL_ROOT}
+            - name: LOGGING_LEVEL_ORG_CANDLEPIN
+              value: ${LOGGING_LEVEL}
+            - name: KAFKA_MESSAGE_THREADS
+              value: ${KAFKA_MESSAGE_THREADS}
+            - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+              value: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS}
+            - name: KAFKA_SEEK_OVERRIDE_END
+              value: ${KAFKA_SEEK_OVERRIDE_END}
+            - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
+              value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: hostname
+            - name: DATABASE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: port
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: password
+            - name: DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: name
+            - name: DATABASE_CONNECTION_TIMEOUT_MS
+              value: ${DATABASE_CONNECTION_TIMEOUT_MS}
+            - name: DATABASE_MAX_POOL_SIZE
+              value: ${DATABASE_MAX_POOL_SIZE}
+            - name: RH_MARKETPLACE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: rh-marketplace
+                  key: key
+            - name: RH_MARKETPLACE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: rh-marketplace
+                  key: url
+            - name: RH_MARKETPLACE_TOKEN_REFRESH_PERIOD
+              value: ${RH_MARKETPLACE_TOKEN_REFRESH_PERIOD}
+            - name: RH_MARKETPLACE_MAX_ATTEMPTS
+              value: ${RH_MARKETPLACE_MAX_ATTEMPTS}
+            - name: RH_MARKETPLACE_BACK_OFF_MAX_INTERVAL
+              value: ${RH_MARKETPLACE_BACK_OFF_MAX_INTERVAL}
+            - name: RH_MARKETPLACE_BACK_OFF_INITIAL_INTERVAL
+              value: ${RH_MARKETPLACE_BACK_OFF_INITIAL_INTERVAL}
+            - name: RH_MARKETPLACE_BACK_OFF_MULTIPLIER
+              value: ${RH_MARKETPLACE_BACK_OFF_MULTIPLIER}
+            - name: RH_MARKETPLACE_VERIFY_BATCHES
+              value: ${RH_MARKETPLACE_VERIFY_BATCHES}
+            - name: RH_MARKETPLACE_MANUAL_SUBMISSION_ENABLED
+              value: ${RH_MARKETPLACE_MANUAL_SUBMISSION_ENABLED}
+            - name: RH_MARKETPLACE_AMENDMENT_NOT_SUPPORTED_MARKER
+              value: ${RH_MARKETPLACE_AMENDMENT_NOT_SUPPORTED_MARKER}
+            - name: RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_END
+              value: ${RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_END}
+            - name: RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_TIMESTAMP
+              value: ${RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_TIMESTAMP}
+            - name: SUBSCRIPTION_KEYSTORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tls
+                  key: keystore_password
+            - name: SUBSCRIPTION_KEYSTORE
+              value: /pinhead/keystore.jks
+            - name: SUBSCRIPTION_URL
+              value: ${SUBSCRIPTION_URL}
+            - name: SUBSCRIPTION_MAX_CONNECTIONS
+              value: ${SUBSCRIPTION_MAX_CONNECTIONS}
+            - name: SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL
+              value: ${SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL}
+            - name: SUBSCRIPTION_BACK_OFF_MAX_INTERVAL
+              value: ${SUBSCRIPTION_BACK_OFF_MAX_INTERVAL}
+            - name: SUBSCRIPTION_BACK_OFF_MULTIPLIER
+              value: ${SUBSCRIPTION_BACK_OFF_MULTIPLIER}
+            - name: SUBSCRIPTION_MAX_RETRY_ATTEMPTS
+              value: ${SUBSCRIPTION_MAX_RETRY_ATTEMPTS}
+            - name: SUBSCRIPTION_PAGE_SIZE
+              value: ${SUBSCRIPTION_PAGE_SIZE}
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
+            - name: USER_HOST
+              value: ${USER_HOST}
+            - name: USER_MAX_CONNECTIONS
+              value: ${USER_MAX_CONNECTIONS}
+            - name: USER_MAX_ATTEMPTS
+              value: ${USER_MAX_ATTEMPTS}
+            - name: USER_BACK_OFF_MAX_INTERVAL
+              value: ${USER_BACK_OFF_MAX_INTERVAL}
+            - name: USER_BACK_OFF_INITIAL_INTERVAL
+              value: ${USER_BACK_OFF_INITIAL_INTERVAL}
+            - name: USER_BACK_OFF_MULTIPLIER
+              value: ${USER_BACK_OFF_MULTIPLIER}
+            - name: RHSM_KEYSTORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tls
+                  key: keystore_password
+            - name: RHSM_KEYSTORE
+              value: /pinhead/keystore.jks
+            - name: DEV_MODE
+              value: ${DEV_MODE}
+            - name: BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL
+              value: ${BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL}
+            - name: BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL
+              value: ${BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL}
+            - name: BILLING_PRODUCER_BACK_OFF_MULTIPLIER
+              value: ${BILLING_PRODUCER_BACK_OFF_MULTIPLIER}
+            - name: BILLING_PRODUCER_MAX_ATTEMPTS
+              value: ${BILLING_PRODUCER_MAX_ATTEMPTS}
+            - name: ENABLE_TALLY_SUMMARY_LISTENER
+              value: ${ENABLE_TALLY_SUMMARY_LISTENER}
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health/liveness
+              port: 9000
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: 9000
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: ${CPU_REQUEST}
+              memory: ${MEMORY_REQUEST}
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+            - name: pinhead
+              mountPath: /pinhead
+          volumes:
+            - name: logs
+              emptyDir:
+            - name: pinhead
+              secret:
+                secretName: pinhead

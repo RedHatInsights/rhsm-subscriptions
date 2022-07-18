@@ -1,0 +1,105 @@
+
+== build image & push to quay
+
+[source,bash]
+----
+QUAY_USER=kflahert
+#this is a fake password
+QUAY_TOKEN=Passw0rd
+IMAGE=quay.io/kflahert/rhsm
+IMAGE_TAG=my_image
+OC_TOKEN=Passw0rd
+
+docker login -u="$QUAY_USER" -p="$QUAY_TOKEN" quay.io
+
+docker -build --no-cache -t "${IMAGE}:${IMAGE_TAG}" .
+docker -push "${IMAGE}:${IMAGE_TAG}"
+----
+
+== login to openshift
+[source,bash]
+----
+oc login --token=${OC_TOKEN} --server=https://api.c-rh-c-eph.8p0c.p1.openshiftapps.com:6443
+----
+
+== setup Virtual Environment
+
+[source,bash]
+----
+VENV_DIR=~/bonfire_venv
+mkdir -p $VENV_DIR
+python3 -m venv $VENV_DIR
+. $VENV_DIR/bin/activate
+pip install crc-bonfire
+pip install --upgrade crc-bonfire
+----
+
+== configure ~/.config/bonfire/config.yaml
+
+[source,yaml]
+----
+apps:
+- name: rhsm-subscriptions
+  components:
+    - name: capacity-allowlist
+      host: gitlab
+      repo: rhsm/swatch-product-allowlist
+      path: templates/capacity-allowlist.yml
+    - name: rhsm-subscriptions
+      host: local
+      repo: /home/kevinflaherty/IdeaProjects/rhsm-subscriptions # Change me
+      path: deploy/rhsm-clowdapp.yaml
+      parameters:
+          REPLICAS: 1
+          RHSM_RBAC_USE_STUB: 'true'
+          RH_MARKETPLACE_MANUAL_SUBMISSION_ENABLED: 'true'
+          DEV_MODE: 'true'
+          ENABLE_ACCOUNT_RESET: 'true'
+- name: swatch-producer-red-hat-marketplace
+  components:
+    - name: swatch-producer-red-hat-marketplace
+      host: local
+      repo: /home/kevinflaherty/IdeaProjects/rhsm-subscriptions # Change me
+      path: swatch-producer-red-hat-marketplace/deploy/clowdapp.yaml
+      parameters:
+        REPLICAS: 1
+----
+
+== deploy rhsm app with bonfire (Prerequisite for swatch-producer-red-hat-marketplace)
+
+[source,bash]
+----
+IMAGE=quay.io/kflahert/rhsm
+IMAGE_TAG=my_image
+BONFIRE_APP_NAME=rhsm-subscriptions
+BONFIRE_COMPONENT_NAME=rhsm-subscriptions
+NAMESPACE=$(bonfire namespace reserve -d 12h)
+
+echo $NAMESPACE
+
+bonfire deploy -n $NAMESPACE \
+--no-remove-resources $BONFIRE_COMPONENT_NAME \
+-p $BONFIRE_COMPONENT_NAME/IMAGE=$IMAGE \
+-i $IMAGE=$IMAGE_TAG $BONFIRE_APP_NAME
+
+----
+
+== deploy swatch-producer-red-hat-marketplace app with bonfire
+
+[source,bash]
+----
+IMAGE=quay.io/kflahert/rhsm
+IMAGE_TAG=my_image
+BONFIRE_APP_NAME=swatch-producer-red-hat-marketplace
+BONFIRE_COMPONENT_NAME=swatch-producer-red-hat-marketplace
+
+echo $NAMESPACE
+
+bonfire deploy -n $NAMESPACE \
+--no-remove-resources $BONFIRE_COMPONENT_NAME \
+-p $BONFIRE_COMPONENT_NAME/IMAGE=$IMAGE \
+-i $IMAGE=$IMAGE_TAG $BONFIRE_APP_NAME
+
+----
+
+
