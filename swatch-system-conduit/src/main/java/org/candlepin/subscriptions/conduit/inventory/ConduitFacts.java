@@ -26,21 +26,21 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Positive;
-import org.candlepin.subscriptions.inventory.client.model.NetworkInterface;
+import org.candlepin.subscriptions.conduit.json.inventory.HbiNetworkInterface;
 import org.candlepin.subscriptions.utilization.api.model.ConsumerInventory;
 import org.candlepin.subscriptions.validator.IpAddress;
 import org.hibernate.validator.constraints.Length;
 
 /** POJO that validates all facts scoped for collection by the conduit. */
 public class ConduitFacts extends ConsumerInventory {
-  private List<NetworkInterface> networkInterfaces;
+  private List<HbiNetworkInterface> networkInterfaces;
 
   // Reusing systemprofile for network interfaces in Inventory Service
-  public void setNetworkInterfaces(List<NetworkInterface> networkInterfaces) {
+  public void setNetworkInterfaces(List<HbiNetworkInterface> networkInterfaces) {
     this.networkInterfaces = networkInterfaces;
   }
 
-  public List<NetworkInterface> getNetworkInterfaces() {
+  public List<HbiNetworkInterface> getNetworkInterfaces() {
     return networkInterfaces;
   }
 

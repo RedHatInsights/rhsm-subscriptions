@@ -35,6 +35,7 @@ import org.candlepin.subscriptions.inventory.client.model.FactSet;
 import org.candlepin.subscriptions.inventory.client.model.SystemProfile;
 import org.candlepin.subscriptions.inventory.client.resources.HostsApi;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -42,6 +43,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+@Disabled(
+    "These tests will be removed as part of ENT-5234, ignoring since code logic was removed and now just throws an exception.")
 @ExtendWith(MockitoExtension.class)
 class DefaultInventoryServiceTest {
   @Mock HostsApi api;

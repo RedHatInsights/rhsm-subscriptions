@@ -1,0 +1,8 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: HbiFactSet
+properties:
+  namespace:
+    type: string
+  facts:
+    type: object
+    existingJavaType: java.lang.Object
