@@ -26,7 +26,6 @@ import org.candlepin.subscriptions.conduit.json.inventory.HbiFactSet;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiHost;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiSystemProfile;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiSystemProfileOperatingSystem;
-import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
 import org.candlepin.subscriptions.utilization.api.model.ConsumerInventory;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
 import org.slf4j.Logger;

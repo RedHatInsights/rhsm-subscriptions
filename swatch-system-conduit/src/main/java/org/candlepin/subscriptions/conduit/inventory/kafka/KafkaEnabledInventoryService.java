@@ -29,7 +29,7 @@ import java.util.UUID;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.candlepin.subscriptions.conduit.inventory.ConduitFacts;
 import org.candlepin.subscriptions.conduit.inventory.InventoryService;
-import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
+import org.candlepin.subscriptions.conduit.inventory.InventoryServiceProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;

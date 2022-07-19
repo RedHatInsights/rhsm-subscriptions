@@ -51,7 +51,6 @@ import org.candlepin.subscriptions.conduit.rhsm.client.model.Consumer;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.InstalledProducts;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.Pagination;
 import org.candlepin.subscriptions.exception.MissingAccountNumberException;
-import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,7 +118,6 @@ public class InventoryController {
       InventoryService inventoryService,
       RhsmService rhsmService,
       Validator validator,
-      InventoryServiceProperties inventoryServiceProperties,
       OrgSyncTaskManager taskManager,
       MeterRegistry meterRegistry) {
 
