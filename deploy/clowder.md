@@ -281,6 +281,12 @@ but here are some essentials:
   oc get project -l ephemeral-ns-reserved -L ephemeral-ns-requester-name,ephemeral-ns-reserved
   ```
 
+* Here's a way to monitor events (useful for tracking down deployment issues)
+
+  ```shell
+  oc get events --sort-by=.metadata.creationTimestamp
+  ```
+
 # Special Notes
 ## capacity-allowlist ConfigMap
 The capacity-ingress pod relies on a ConfigMap, called `capacity-allowlist`,
