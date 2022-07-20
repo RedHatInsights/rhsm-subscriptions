@@ -2,13 +2,6 @@
 
 See general developer setup instructions in the repo root.
 
-## Profiles
-
-We have a number of profiles. Each profile activates a subset of components in the codebase.
-
-- `orgsync`: Run with `SPRING_PROFILES_ACTIVE=orgsync` to queue up all configured orgs for sync.
-
-
 ### Environment Variables
 
 The following environment variables are specific to the system-conduit service:
