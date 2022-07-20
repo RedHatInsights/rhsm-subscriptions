@@ -40,6 +40,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 /**
  * Responsible for all opt-in functionality logic. Provides a means to tie both account and org
@@ -149,10 +150,16 @@ public class OptInController {
 
   @Transactional
   public OptInConfig getOptInConfig(String accountNumber, String orgId) {
+    Optional<AccountConfig> accountConfig =
+        StringUtils.hasText(accountNumber)
+            ? accountConfigRepository.findById(accountNumber)
+            : Optional.empty();
+    Optional<OrgConfig> orgConfig =
+        StringUtils.hasText(orgId) ? orgConfigRepository.findById(orgId) : Optional.empty();
     return buildDto(
         buildMeta(accountNumber, orgId),
-        buildOptInAccountDTO(accountConfigRepository.findById(accountNumber)),
-        buildOptInOrgDTO(orgConfigRepository.findById(orgId)));
+        buildOptInAccountDTO(accountConfig),
+        buildOptInOrgDTO(orgConfig));
   }
 
   @Transactional
