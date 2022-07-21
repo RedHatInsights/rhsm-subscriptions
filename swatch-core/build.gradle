@@ -26,6 +26,7 @@ dependencies {
     implementation "com.jayway.jsonpath:json-path"
     implementation "com.splunk.logging:splunk-library-javalogging"
     implementation "org.codehaus.janino:janino"
+    implementation 'org.apache.kafka:kafka-clients:3.2.0'
     implementation("io.confluent:kafka-avro-serializer") {
         exclude group: "org.apache.kafka"
         // A transitive dependency, org.apache.zookeeper:zookeeper, includes log4j as well as slf4j.  We use
@@ -34,6 +35,7 @@ dependencies {
         exclude group: "org.slf4j", module: "slf4j-log4j12"
     }
     implementation project(":kafka-schema")
+
 
     testImplementation project(":swatch-core-test")
     testImplementation "org.springframework:spring-test"
