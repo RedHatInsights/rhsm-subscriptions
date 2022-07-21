@@ -350,27 +350,27 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: hostname
+                  key: db.host
             - name: DATABASE_PORT
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: port
+                  key: db.port
             - name: DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: username
+                  key: db.user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: password
+                  key: db.password
             - name: DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: name
+                  key: db.name
             - name: DATABASE_CONNECTION_TIMEOUT_MS
               value: ${DATABASE_CONNECTION_TIMEOUT_MS}
             - name: DATABASE_MAX_POOL_SIZE
@@ -379,7 +379,7 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: host-inventory-db
-                  key: hostname
+                  key: db.host
             - name: INVENTORY_DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
@@ -389,7 +389,7 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: host-inventory-db
-                  key: username
+                  key: db.user
             - name: INVENTORY_DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -567,32 +567,32 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: hostname
+                  key: db.host
             - name: DATABASE_PORT
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: port
+                  key: db.port
             - name: DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: username
+                  key: db.user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: password
+                  key: db.password
             - name: DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: name
+                  key: db.name
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
                 secretKeyRef:
                   name: host-inventory-db
-                  key: hostname
+                  key: db.host
             - name: INVENTORY_DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
@@ -602,7 +602,7 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: host-inventory-db
-                  key: username
+                  key: db.user
             - name: INVENTORY_DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -779,27 +779,27 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: hostname
+                  key: db.host
             - name: DATABASE_PORT
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: port
+                  key: db.port
             - name: DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: username
+                  key: db.user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: password
+                  key: db.password
             - name: DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: name
+                  key: db.name
             - name: DATABASE_CONNECTION_TIMEOUT_MS
               value: ${DATABASE_CONNECTION_TIMEOUT_MS}
             - name: DATABASE_MAX_POOL_SIZE
@@ -1018,27 +1018,27 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: hostname
+                  key: db.host
             - name: DATABASE_PORT
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: port
+                  key: db.port
             - name: DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: username
+                  key: db.user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: password
+                  key: db.password
             - name: DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: name
+                  key: db.name
             - name: DATABASE_CONNECTION_TIMEOUT_MS
               value: ${DATABASE_CONNECTION_TIMEOUT_MS}
             - name: DATABASE_MAX_POOL_SIZE
@@ -1047,7 +1047,7 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: host-inventory-db
-                  key: hostname
+                  key: db.host
             - name: INVENTORY_DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
@@ -1057,7 +1057,7 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: host-inventory-db
-                  key: username
+                  key: db.user
             - name: INVENTORY_DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -1235,27 +1235,27 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: hostname
+                  key: db.host
             - name: DATABASE_PORT
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: port
+                  key: db.port
             - name: DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: username
+                  key: db.user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: password
+                  key: db.password
             - name: DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: name
+                  key: db.name
             - name: DATABASE_CONNECTION_TIMEOUT_MS
               value: ${DATABASE_CONNECTION_TIMEOUT_MS}
             - name: DATABASE_MAX_POOL_SIZE
@@ -1405,27 +1405,27 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: hostname
+                  key: db.host
             - name: DATABASE_PORT
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: port
+                  key: db.port
             - name: DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: username
+                  key: db.user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: password
+                  key: db.password
             - name: DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: name
+                  key: db.name
             - name: DATABASE_CONNECTION_TIMEOUT_MS
               value: ${DATABASE_CONNECTION_TIMEOUT_MS}
             - name: DATABASE_MAX_POOL_SIZE
@@ -1434,7 +1434,7 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: host-inventory-db
-                  key: hostname
+                  key: db.host
             - name: INVENTORY_DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
@@ -1444,7 +1444,7 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: host-inventory-db
-                  key: username
+                  key: db.user
             - name: INVENTORY_DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -1680,32 +1680,32 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: hostname
+                  key: db.host
             - name: DATABASE_PORT
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: port
+                  key: db.port
             - name: DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: username
+                  key: db.user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: password
+                  key: db.password
             - name: DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: name
+                  key: db.name
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
                 secretKeyRef:
                   name: host-inventory-db
-                  key: hostname
+                  key: db.host
             - name: INVENTORY_DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
@@ -1715,7 +1715,7 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: host-inventory-db
-                  key: username
+                  key: db.user
             - name: INVENTORY_DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -1836,32 +1836,32 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: hostname
+                  key: db.host
             - name: DATABASE_PORT
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: port
+                  key: db.port
             - name: DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: username
+                  key: db.user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: password
+                  key: db.password
             - name: DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: name
+                  key: db.name
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
                 secretKeyRef:
                   name: host-inventory-db
-                  key: hostname
+                  key: db.host
             - name: INVENTORY_DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
@@ -1871,7 +1871,7 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: host-inventory-db
-                  key: username
+                  key: db.user
             - name: INVENTORY_DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -1984,32 +1984,32 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: hostname
+                  key: db.host
             - name: DATABASE_PORT
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: port
+                  key: db.port
             - name: DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: username
+                  key: db.user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: password
+                  key: db.password
             - name: DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: name
+                  key: db.name
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
                 secretKeyRef:
                   name: host-inventory-db
-                  key: hostname
+                  key: db.host
             - name: INVENTORY_DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
@@ -2019,7 +2019,7 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: host-inventory-db
-                  key: username
+                  key: db.user
             - name: INVENTORY_DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -2134,32 +2134,32 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: hostname
+                  key: db.host
             - name: DATABASE_PORT
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: port
+                  key: db.port
             - name: DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: username
+                  key: db.user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: password
+                  key: db.password
             - name: DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: name
+                  key: db.name
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
                 secretKeyRef:
                   name: host-inventory-db
-                  key: hostname
+                  key: db.host
             - name: INVENTORY_DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
@@ -2169,7 +2169,7 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: host-inventory-db
-                  key: username
+                  key: db.user
             - name: INVENTORY_DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -2284,32 +2284,32 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: hostname
+                  key: db.host
             - name: DATABASE_PORT
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: port
+                  key: db.port
             - name: DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: username
+                  key: db.user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: password
+                  key: db.password
             - name: DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: name
+                  key: db.name
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
                 secretKeyRef:
                   name: host-inventory-db
-                  key: hostname
+                  key: db.host
             - name: INVENTORY_DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
@@ -2319,7 +2319,7 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: host-inventory-db
-                  key: username
+                  key: db.user
             - name: INVENTORY_DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -2434,32 +2434,32 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: hostname
+                  key: db.host
             - name: DATABASE_PORT
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: port
+                  key: db.port
             - name: DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: username
+                  key: db.user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: password
+                  key: db.password
             - name: DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
                   name: rhsm-db
-                  key: name
+                  key: db.name
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
                 secretKeyRef:
                   name: host-inventory-db
-                  key: hostname
+                  key: db.host
             - name: INVENTORY_DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
@@ -2469,7 +2469,7 @@ objects:
               valueFrom:
                 secretKeyRef:
                   name: host-inventory-db
-                  key: username
+                  key: db.user
             - name: INVENTORY_DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
