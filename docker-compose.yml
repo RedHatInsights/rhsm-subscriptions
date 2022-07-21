@@ -35,7 +35,7 @@ services:
       - "9094:9094"
       - "29092:29092"
     volumes:
-      - ./init_kafka.sh:/init_kafka.sh:z
+      - ./config/kafka/init_kafka.sh:/init_kafka.sh:z
       - ./config/kafka/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:z
       - ./config/kafka/:/etc/kafka/secrets/certs:z
   kafka-rest:
