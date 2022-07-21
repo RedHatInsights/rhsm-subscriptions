@@ -38,16 +38,24 @@ parameters:
     value: 1500m
   - name: ENV_NAME
     value: env-swatch-producer-red-hat-marketplace
-  - name: SPLUNK_FORWARDER_IMAGE
-    value: quay.io/cloudservices/rhsm-splunk-forwarder:19bd22d
-  - name: SPLUNK_FORWARDER_MEMORY_REQUEST
-    value: 128Mi
-  - name: SPLUNK_FORWARDER_MEMORY_LIMIT
-    value: 256Mi
-  - name: SPLUNK_FORWARDER_CPU_REQUEST
-    value: 50m
-  - name: SPLUNK_FORWARDER_CPU_LIMIT
-    value: 100m
+  - name: ENABLE_SPLUNK_HEC
+    value: 'true'
+  - name: SPLUNK_HEC_URL
+    value: https://splunk-hec.redhat.com:8088
+  - name: SPLUNK_SOURCE
+    value: 'swatch-producer-red-hat-marketplace-hec'
+  - name: SPLUNK_SOURCE_TYPE
+    value: 'springboot_server'
+  - name: SPLUNK_MESSAGE_FORMAT
+    value: 'text'
+  - name: SPLUNK_HEC_URL
+    value: https://splunk-hec.redhat.com:8088
+  - name: SPLUNK_HEC_CONNECT_TIMEOUT
+    value: '5000'
+  - name: SPLUNK_HEC_BATCH_SIZE
+    value: '1'
+  - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+    value: '2000'
   - name: RH_MARKETPLACE_TOKEN_REFRESH_PERIOD
     value: 1m
   - name: RH_MARKETPLACE_MAX_ATTEMPTS
