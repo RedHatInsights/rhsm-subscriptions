@@ -34,7 +34,7 @@ dependencies {
         exclude group: "org.slf4j", module: "slf4j-log4j12"
     }
     implementation project(":kafka-schema")
-
+    implementation group: 'com.github.luben', name: 'zstd-jni', version: '1.5.2-3'
     testImplementation project(":swatch-core-test")
     testImplementation "org.springframework:spring-test"
 }
