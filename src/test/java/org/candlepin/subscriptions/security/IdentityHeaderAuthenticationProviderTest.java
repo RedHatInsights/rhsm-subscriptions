@@ -64,15 +64,6 @@ class IdentityHeaderAuthenticationProviderTest {
   }
 
   @Test
-  void testMissingAccountNumber() {
-    Authentication auth = token("123", null);
-    AuthenticationException e =
-        assertThrows(AuthenticationException.class, () -> manager.authenticate(auth));
-    assertEquals(
-        "x-rh-identity contains no account number for the principal", e.getCause().getMessage());
-  }
-
-  @Test
   void validPrincipalIsAuthenticated() {
     when(detailsService.loadUserDetails(any()))
         .thenReturn(new User("N/A", "N/A", Collections.emptyList()));

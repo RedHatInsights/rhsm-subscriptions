@@ -153,9 +153,6 @@ public class IdentityHeaderAuthenticationProvider implements AuthenticationProvi
           authentication.getPrincipal(), "No pre-authenticated principal found in request.");
       Assert.hasText(
           principal.getOwnerId(), RH_IDENTITY_HEADER + " contains no owner ID for the principal");
-      Assert.hasText(
-          principal.getAccountNumber(),
-          RH_IDENTITY_HEADER + " contains no account number for the principal");
       Assert.notNull(authentication.getDetails(), RH_IDENTITY_HEADER + "contains no roles");
     } catch (IllegalArgumentException e) {
       throw new PreAuthenticatedCredentialsNotFoundException(
