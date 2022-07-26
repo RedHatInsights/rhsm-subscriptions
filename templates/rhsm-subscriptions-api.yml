@@ -19,8 +19,6 @@ parameters:
     required: true
   - name: RHSM_RBAC_PORT
     value: '8080'
-  - name: KAFKA_BOOTSTRAP_HOST
-    required: true
   - name: REPLICAS
     value: '1'
   - name: IMAGE
@@ -133,12 +131,35 @@ objects:
                   value: ${LOGGING_LEVEL_ROOT}
                 - name: LOGGING_LEVEL_ORG_CANDLEPIN
                   value: ${LOGGING_LEVEL}
-                - name: KAFKA_BOOTSTRAP_HOST
-                  value: ${KAFKA_BOOTSTRAP_HOST}
                 - name: RHSM_RBAC_HOST
                   value: ${RHSM_RBAC_HOST}
                 - name: RHSM_RBAC_PORT
                   value: ${RHSM_RBAC_PORT}
+                - name: KAFKA_BOOTSTRAP_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: mk-oauth
+                      key: hostname
+                - name: KAFKA_BOOTSTRAP_PORT
+                  valueFrom:
+                    secretKeyRef:
+                      name: mk-oauth
+                      key: port
+                - name: KAFKA_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: mk-oauth
+                      key: username
+                - name: KAFKA_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: mk-oauth
+                      key: password
+                - name: KAFKA_SSL_TRUSTSTORE_CERTIFICATE
+                  valueFrom:
+                    secretKeyRef:
+                      name: kafka-ca
+                      key: ca.crt
                 - name: DATABASE_HOST
                   valueFrom:
                     secretKeyRef:
