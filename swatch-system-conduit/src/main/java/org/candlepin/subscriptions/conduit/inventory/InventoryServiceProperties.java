@@ -18,26 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.deployment;
+package org.candlepin.subscriptions.conduit.inventory;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.boot.convert.DurationUnit;
 
-import org.candlepin.subscriptions.conduit.job.OrgSyncConfiguration;
-import org.candlepin.subscriptions.spring.JobRunner;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.ActiveProfiles;
+/** Sub-class for inventory service properties */
+@Getter
+@Setter
+public class InventoryServiceProperties {
+  private boolean useStub;
+  private boolean prettyPrintJson;
+  private String url;
+  private String apiKey;
+  private String kafkaHostIngressTopic = "platform.inventory.host-ingress";
+  private int apiHostUpdateBatchSize = 50;
+  private int staleHostOffsetInDays = 0;
 
-@SpringBootTest
-@ActiveProfiles({"orgsync", "test"})
-class OrgSyncJobDeploymentTest {
-  @MockBean JobRunner jobRunner;
-  @Autowired OrgSyncConfiguration configuration;
-
-  @Test
-  void testDeployment() {
-    assertNotNull(configuration);
-  }
+  @DurationUnit(ChronoUnit.HOURS)
+  private Duration hostLastSyncThreshold = Duration.ofHours(24);
 }

@@ -349,13 +349,13 @@ objects:
                   - /usr/bin/bash
                   - -c
                   - >
-                    /usr/bin/curl --fail -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://${RHSM_SYSTEM_CONDUIT_SERVICE_HOST}:${RHSM_SYSTEM_CONDUIT_SERVICE_PORT}/api/rhsm-subscriptions/v1/internal/rpc/syncAllOrgs"
+                    /usr/bin/curl --fail -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://rhsm-conduit:8000/api/rhsm-subscriptions/v1/internal/rpc/syncAllOrgs"
                 env:
                   - name: SWATCH_SELF_PSK
-                  valueFrom:
-                    secretKeyRef:
-                      name: swatch-psks
-                      key: self
+                    valueFrom:
+                      secretKeyRef:
+                        name: swatch-psks
+                        key: self
                 resources:
                   requests:
                     cpu: ${CURL_CRON_CPU_REQUEST}
