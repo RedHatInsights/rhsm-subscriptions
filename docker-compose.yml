@@ -12,10 +12,7 @@ services:
       - "5432:5432"
   kafka:
     image: quay.io/strimzi/kafka:latest-kafka-3.1.0
-    command:
-    - sh
-    - -c
-    - CLUSTER_ID=$$(bin/kafka-storage.sh random-uuid) && bin/kafka-storage.sh format -t $$CLUSTER_ID -c config/kraft/server.properties && bin/kafka-server-start.sh config/kraft/server.properties --override advertised.listeners=$${KAFKA_ADVERTISED_LISTENERS} --override listener.security.protocol.map=$${KAFKA_LISTENER_SECURITY_PROTOCOL_MAP} --override listeners=$${KAFKA_LISTENERS}
+    command: sh /init_kafka.sh
     environment:
       - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       - KAFKA_LISTENERS=PLAINTEXT://:29092,PLAINTEXT_HOST://:9092,CONTROLLER://:9093
@@ -24,6 +21,8 @@ services:
     ports:
       - "9092:9092"
       - "29092:29092"
+    volumes:
+      - ./init_kafka.sh:/init_kafka.sh:z
   kafka-rest:
     image: docker.io/confluentinc/cp-kafka-rest
     environment:

@@ -187,15 +187,10 @@ public class BillableUsageProcessor {
           .results()
           .forEach(
               result -> {
-                log.info(
-                    "awsMeteringRecordId={} for dimension={} and quantity={} and customerId={}",
-                    result.meteringRecordId(),
-                    result.usageRecord().dimension(),
-                    result.usageRecord().quantity(),
-                    result.usageRecord().customerIdentifier());
                 if (result.status() != UsageRecordResultStatus.SUCCESS) {
                   log.error("{}", result);
                 } else {
+                  log.info("{}", result);
                   acceptedCounter.increment(response.results().size());
                 }
               });

@@ -61,6 +61,18 @@ parameters:
     value: '30000'
   - name: DATABASE_MAX_POOL_SIZE
     value: '25'
+  - name: CURL_CRON_IMAGE
+    value: registry.access.redhat.com/ubi8/ubi-minimal
+  - name: CURL_CRON_IMAGE_TAG
+    value: latest
+  - name: CURL_CRON_MEMORY_REQUEST
+    value: 500Mi
+  - name: CURL_CRON_MEMORY_LIMIT
+    value: 800Mi
+  - name: CURL_CRON_CPU_REQUEST
+    value: 350m
+  - name: CURL_CRON_CPU_LIMIT
+    value: 500m
 
 objects:
 - apiVersion: v1
@@ -331,52 +343,23 @@ objects:
               - name: ${IMAGE_PULL_SECRET}
               - name: quay-cloudservices-pull
             containers:
-              - image: ${IMAGE}:${IMAGE_TAG}
+              - image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
                 name: rhsm-conduit-cron-sync
+                command:
+                  - /usr/bin/bash
+                  - -c
+                  - >
+                    /usr/bin/curl --fail -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://rhsm-conduit:8000/api/rhsm-subscriptions/v1/internal/rpc/syncAllOrgs"
                 env:
-                - name: SPRING_PROFILES_ACTIVE
-                  value: orgsync,kafka-queue
-                - name: JAVA_MAX_MEM_RATIO
-                  value: '85'
-                - name: GC_MAX_METASPACE_SIZE
-                  value: '256'
-                - name: TASK_QUEUE_TYPE
-                  value: kafka
-                - name: LOGGING_LEVEL_ROOT
-                  value: ${LOGGING_LEVEL_ROOT}
-                - name: LOGGING_LEVEL_ORG_CANDLEPIN
-                  value: ${LOGGING_LEVEL}
-                - name: KAFKA_BOOTSTRAP_HOST
-                  value: ${KAFKA_BOOTSTRAP_HOST}
-                - name: DATABASE_HOST
-                  valueFrom:
-                    secretKeyRef:
-                      name: rhsm-db
-                      key: db.host
-                - name: DATABASE_PORT
-                  valueFrom:
-                    secretKeyRef:
-                      name: rhsm-db
-                      key: db.port
-                - name: DATABASE_USERNAME
-                  valueFrom:
-                    secretKeyRef:
-                      name: rhsm-db
-                      key: db.user
-                - name: DATABASE_PASSWORD
-                  valueFrom:
-                    secretKeyRef:
-                      name: rhsm-db
-                      key: db.password
-                - name: DATABASE_DATABASE
-                  valueFrom:
-                    secretKeyRef:
-                      name: rhsm-db
-                      key: db.name
+                  - name: SWATCH_SELF_PSK
+                    valueFrom:
+                      secretKeyRef:
+                        name: swatch-psks
+                        key: self
                 resources:
                   requests:
-                    cpu: ${CPU_REQUEST}
-                    memory: ${MEMORY_REQUEST}
+                    cpu: ${CURL_CRON_CPU_REQUEST}
+                    memory: ${CURL_CRON_MEMORY_REQUEST}
                   limits:
-                    cpu: ${CPU_LIMIT}
-                    memory: ${MEMORY_LIMIT}
+                    cpu: ${CURL_CRON_CPU_LIMIT}
+                    memory: ${CURL_CRON_MEMORY_LIMIT}

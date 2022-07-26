@@ -43,7 +43,7 @@ import org.candlepin.subscriptions.metering.MeteringEventFactory;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.model.QueryResultData;
-import org.candlepin.subscriptions.prometheus.model.QueryResultDataResult;
+import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.ResultType;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -92,6 +92,7 @@ class PrometheusMeteringControllerTest {
   private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
 
   private final String expectedAccount = "my-test-account";
+  private final String expectedOrgId = "my-test-org";
   private final String expectedMetricId = "redhat.com:openshift_container_platform:cpu_hour";
   private final String expectedClusterId = "C1";
   private final String expectedSla = "Premium";
@@ -131,6 +132,7 @@ class PrometheusMeteringControllerTest {
     QueryResult good =
         buildOpenShiftClusterQueryResult(
             expectedAccount,
+            expectedOrgId,
             expectedClusterId,
             expectedSla,
             expectedUsage,
@@ -155,6 +157,7 @@ class PrometheusMeteringControllerTest {
     QueryResult data =
         buildOpenShiftClusterQueryResult(
             expectedAccount,
+            expectedOrgId,
             expectedClusterId,
             expectedSla,
             expectedUsage,
@@ -180,6 +183,7 @@ class PrometheusMeteringControllerTest {
     QueryResult data =
         buildOpenShiftClusterQueryResult(
             expectedAccount,
+            expectedOrgId,
             expectedClusterId,
             expectedSla,
             expectedUsage,
@@ -211,6 +215,7 @@ class PrometheusMeteringControllerTest {
     QueryResult data =
         buildOpenShiftClusterQueryResult(
             expectedAccount,
+            expectedOrgId,
             expectedClusterId,
             expectedSla,
             expectedUsage,
@@ -232,6 +237,7 @@ class PrometheusMeteringControllerTest {
         List.of(
             MeteringEventFactory.createMetricEvent(
                 expectedAccount,
+                expectedOrgId,
                 expectedMetricId,
                 expectedClusterId,
                 expectedSla,
@@ -246,6 +252,7 @@ class PrometheusMeteringControllerTest {
                 val1.doubleValue()),
             MeteringEventFactory.createMetricEvent(
                 expectedAccount,
+                expectedOrgId,
                 expectedMetricId,
                 expectedClusterId,
                 expectedSla,
@@ -290,6 +297,7 @@ class PrometheusMeteringControllerTest {
     QueryResult data =
         buildOpenShiftClusterQueryResult(
             expectedAccount,
+            expectedOrgId,
             expectedClusterId,
             expectedSla,
             expectedUsage,
@@ -310,6 +318,7 @@ class PrometheusMeteringControllerTest {
     Event updatedEvent =
         MeteringEventFactory.createMetricEvent(
             expectedAccount,
+            expectedOrgId,
             expectedMetricId,
             expectedClusterId,
             expectedSla,
@@ -328,6 +337,7 @@ class PrometheusMeteringControllerTest {
             updatedEvent,
             MeteringEventFactory.createMetricEvent(
                 expectedAccount,
+                expectedOrgId,
                 expectedMetricId,
                 expectedClusterId,
                 expectedSla,
@@ -344,6 +354,7 @@ class PrometheusMeteringControllerTest {
     Event purgedEvent =
         MeteringEventFactory.createMetricEvent(
             expectedAccount,
+            expectedOrgId,
             expectedMetricId,
             "CLUSTER_NO_LONGER_EXISTS",
             expectedSla,
@@ -362,6 +373,7 @@ class PrometheusMeteringControllerTest {
             // This event will get updated by the incoming data from prometheus.
             MeteringEventFactory.createMetricEvent(
                 expectedAccount,
+                expectedOrgId,
                 expectedMetricId,
                 expectedClusterId,
                 expectedSla,
@@ -414,23 +426,25 @@ class PrometheusMeteringControllerTest {
 
   @Test
   void verifyConflictingSlaCausesSavesFirstValue() {
-    QueryResultDataResult standardResultItem =
-        new QueryResultDataResult()
+    QueryResultDataResultInner standardResultItem =
+        new QueryResultDataResultInner()
             .putMetricItem("_id", expectedClusterId)
             .putMetricItem("support", "Standard")
             .putMetricItem("usage", "Production")
             .putMetricItem("role", "osd")
             .putMetricItem("ebs_account", expectedAccount)
+            .putMetricItem("external_organization", expectedOrgId)
             .putMetricItem("billing_marketplace", "red hat")
             .putMetricItem("billing_marketplace_account", expectedBillingAccountId)
             .addValuesItem(List.of(BigDecimal.valueOf(1616787308L), BigDecimal.valueOf(4.0)));
-    QueryResultDataResult premiumResultItem =
-        new QueryResultDataResult()
+    QueryResultDataResultInner premiumResultItem =
+        new QueryResultDataResultInner()
             .putMetricItem("_id", expectedClusterId)
             .putMetricItem("support", "Standard")
             .putMetricItem("usage", "Production")
             .putMetricItem("role", "osd")
             .putMetricItem("ebs_account", expectedAccount)
+            .putMetricItem("external_organization", expectedOrgId)
             .putMetricItem("billing_marketplace", "red hat")
             .putMetricItem("billing_marketplace_account", expectedBillingAccountId)
             .addValuesItem(List.of(BigDecimal.valueOf(1616787308L), BigDecimal.valueOf(4.0)));
@@ -452,6 +466,7 @@ class PrometheusMeteringControllerTest {
     Event updatedEvent =
         MeteringEventFactory.createMetricEvent(
             expectedAccount,
+            expectedOrgId,
             expectedMetricId,
             expectedClusterId,
             "Standard",
@@ -473,6 +488,7 @@ class PrometheusMeteringControllerTest {
     var existingEvent =
         MeteringEventFactory.createMetricEvent(
             expectedAccount,
+            expectedOrgId,
             expectedMetricId,
             expectedClusterId,
             expectedSla,
@@ -522,18 +538,20 @@ class PrometheusMeteringControllerTest {
 
   private QueryResult buildOpenShiftClusterQueryResult(
       String account,
+      String orgId,
       String clusterId,
       String sla,
       String usage,
       String billingProvider,
       String billingAccountId,
       List<List<BigDecimal>> timeValueTuples) {
-    QueryResultDataResult dataResult =
-        new QueryResultDataResult()
+    QueryResultDataResultInner dataResult =
+        new QueryResultDataResultInner()
             .putMetricItem("_id", clusterId)
             .putMetricItem("support", sla)
             .putMetricItem("usage", usage)
             .putMetricItem("ebs_account", account)
+            .putMetricItem("external_organization", orgId)
             .putMetricItem("billing_marketplace", billingProvider)
             .putMetricItem("billing_marketplace_account", billingAccountId);
 

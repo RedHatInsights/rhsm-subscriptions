@@ -26,11 +26,11 @@ import static org.mockito.Mockito.*;
 
 import java.util.Collections;
 import javax.validation.ConstraintViolationException;
+import org.candlepin.subscriptions.conduit.inventory.InventoryServiceProperties;
 import org.candlepin.subscriptions.conduit.rhsm.client.ApiException;
 import org.candlepin.subscriptions.conduit.rhsm.client.RhsmApiProperties;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory;
 import org.candlepin.subscriptions.conduit.rhsm.client.resources.RhsmApi;
-import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;

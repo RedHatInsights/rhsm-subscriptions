@@ -22,21 +22,20 @@ package org.candlepin.subscriptions.conduit.inventory.kafka;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.candlepin.subscriptions.inventory.client.model.CreateHostIn;
+import org.candlepin.subscriptions.conduit.json.inventory.HbiHost;
 
 /**
  * Represents a message that is sent to the inventory service's kafka instance to request the
  * creation/update of a host in the inventory service.
  */
-public class CreateUpdateHostMessage
-    extends HostOperationMessage<Map<String, String>, CreateHostIn> {
+public class CreateUpdateHostMessage extends HostOperationMessage<Map<String, String>, HbiHost> {
 
   public CreateUpdateHostMessage() {
     this.operation = "add_host";
     this.metadata = new HashMap<>();
   }
 
-  public CreateUpdateHostMessage(CreateHostIn host) {
+  public CreateUpdateHostMessage(HbiHost host) {
     super("add_host", new HashMap<>(), host);
   }
 

@@ -1,0 +1,30 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: HbiSystemProfile
+properties:
+  operating_system:
+    $ref: "hbi-system-profile-operating-system.yaml"
+  os_release:
+    type: string
+  arch:
+    type: string
+  bios_vendor:
+    type: string
+  bios_version:
+    type: string
+  cores_per_socket:
+    type: integer
+  cloud_provider:
+    type: string
+  infrastructure_type:
+    type: string
+  system_memory_bytes:
+    type: float
+  number_of_sockets:
+    type: integer
+  owner_id:
+    type: string
+  network_interfaces:
+    type: array
+    items:
+      $ref: "hbi-network-interface.yaml"
+

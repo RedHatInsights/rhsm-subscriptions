@@ -38,7 +38,7 @@ import org.candlepin.subscriptions.metering.MeteringException;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescriptor;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
-import org.candlepin.subscriptions.prometheus.model.QueryResultDataResult;
+import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.candlepin.subscriptions.registry.TagMetaData;
 import org.candlepin.subscriptions.registry.TagMetric;
@@ -155,7 +155,7 @@ public class PrometheusMeteringController {
             log.debug("Found {} existing events.", existing.size());
 
             Map<EventKey, Event> events = new HashMap<>();
-            for (QueryResultDataResult r : metricData.getData().getResult()) {
+            for (QueryResultDataResultInner r : metricData.getData().getResult()) {
               Map<String, String> labels = r.getMetric();
               String clusterId = labels.get("_id");
               String sla = labels.get("support");
@@ -166,6 +166,7 @@ public class PrometheusMeteringController {
               String role = labels.get("product");
               String billingProvider = labels.get("billing_marketplace");
               String billingAccountId = labels.get("billing_marketplace_account");
+              String orgId = labels.get("external_organization");
 
               // For the openshift metrics, we expect our results to be a 'matrix'
               // vector [(instant_time,value), ...] so we only look at the result's getValues()
@@ -184,6 +185,7 @@ public class PrometheusMeteringController {
                     createOrUpdateEvent(
                         existing,
                         account,
+                        orgId,
                         tagMetric.get().getMetricId(),
                         clusterId,
                         sla,
@@ -234,6 +236,7 @@ public class PrometheusMeteringController {
   private Event createOrUpdateEvent(
       Map<EventKey, Event> existing,
       String account,
+      String orgId,
       String metricId,
       String instanceId,
       String sla,
@@ -260,6 +263,7 @@ public class PrometheusMeteringController {
     MeteringEventFactory.updateMetricEvent(
         event,
         account,
+        orgId,
         metricId,
         instanceId,
         sla,

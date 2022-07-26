@@ -31,8 +31,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.candlepin.subscriptions.conduit.inventory.ConduitFacts;
-import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
-import org.candlepin.subscriptions.inventory.client.model.FactSet;
+import org.candlepin.subscriptions.conduit.inventory.InventoryServiceProperties;
+import org.candlepin.subscriptions.conduit.json.inventory.HbiFactSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -102,7 +102,7 @@ class KafkaEnabledInventoryServiceTest {
 
     assertNotNull(message.getData().getFacts());
     assertEquals(1, message.getData().getFacts().size());
-    FactSet rhsm = message.getData().getFacts().get(0);
+    HbiFactSet rhsm = message.getData().getFacts().get(0);
     assertEquals("rhsm", rhsm.getNamespace());
 
     Map<String, Object> rhsmFacts = (Map<String, Object>) rhsm.getFacts();
@@ -114,7 +114,7 @@ class KafkaEnabledInventoryServiceTest {
     assertEquals("rhsm-conduit", message.getData().getReporter());
     assertEquals("6.3", message.getData().getSystemProfile().getOsRelease());
     assertEquals(
-        "RHEL", message.getData().getSystemProfile().getOperatingSystem().getName().getValue());
+        "RHEL", message.getData().getSystemProfile().getOperatingSystem().getName().value());
     assertEquals(6, message.getData().getSystemProfile().getOperatingSystem().getMajor());
     assertEquals(3, message.getData().getSystemProfile().getOperatingSystem().getMinor());
   }
@@ -185,7 +185,7 @@ class KafkaEnabledInventoryServiceTest {
 
     assertNotNull(message.getData().getFacts());
     assertEquals(1, message.getData().getFacts().size());
-    FactSet rhsm = message.getData().getFacts().get(0);
+    HbiFactSet rhsm = message.getData().getFacts().get(0);
     assertEquals("rhsm", rhsm.getNamespace());
 
     Map<String, Object> rhsmFacts = (Map<String, Object>) rhsm.getFacts();

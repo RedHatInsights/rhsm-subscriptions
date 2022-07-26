@@ -45,8 +45,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.conduit.inventory.ConduitFacts;
 import org.candlepin.subscriptions.conduit.inventory.InventoryService;
+import org.candlepin.subscriptions.conduit.inventory.InventoryServiceProperties;
 import org.candlepin.subscriptions.conduit.job.DatabaseOrgList;
 import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
+import org.candlepin.subscriptions.conduit.json.inventory.HbiNetworkInterface;
 import org.candlepin.subscriptions.conduit.rhsm.RhsmService;
 import org.candlepin.subscriptions.conduit.rhsm.client.ApiException;
 import org.candlepin.subscriptions.conduit.rhsm.client.RhsmApiProperties;
@@ -55,8 +57,6 @@ import org.candlepin.subscriptions.conduit.rhsm.client.model.InstalledProducts;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.Pagination;
 import org.candlepin.subscriptions.exception.MissingAccountNumberException;
-import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
-import org.candlepin.subscriptions.inventory.client.model.NetworkInterface;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -741,17 +741,17 @@ class InventoryControllerTest {
     consumer.getFacts().put("distribution.name", "Red Hat Enterprise Linux Workstation");
     consumer.getFacts().put("distribution.version", "6.3");
 
-    var expectedNIC1 = new NetworkInterface();
+    var expectedNIC1 = new HbiNetworkInterface();
     expectedNIC1.setName("virbr0");
     expectedNIC1.setIpv4Addresses(List.of("192.168.122.1", "ipv4ListTest"));
     expectedNIC1.setMacAddress("CO:FF:E0:OO:PP:D8");
 
-    var expectedNIC2 = new NetworkInterface();
+    var expectedNIC2 = new HbiNetworkInterface();
     expectedNIC2.setName("eth0");
     expectedNIC2.setIpv6Addresses(List.of("ipv6Test", "fe80::f2de:f1ff:fe9e:ccdd"));
     expectedNIC2.setMacAddress("CA:FE:D1:9E:CC:DD");
 
-    var loNIC = new NetworkInterface();
+    var loNIC = new HbiNetworkInterface();
     loNIC.setName("lo");
     loNIC.setIpv4Addresses(List.of("127.0.0.1"));
     loNIC.setMacAddress("00:00:00:00:00:00");

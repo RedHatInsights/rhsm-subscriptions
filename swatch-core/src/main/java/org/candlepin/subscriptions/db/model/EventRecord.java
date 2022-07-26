@@ -67,6 +67,7 @@ public class EventRecord {
     this.id = event.getEventId();
     this.event = event;
     this.accountNumber = event.getAccountNumber();
+    this.orgId = event.getOrgId();
     this.eventType = event.getEventType();
     this.eventSource = event.getEventSource();
     this.instanceId = event.getInstanceId();
@@ -77,6 +78,9 @@ public class EventRecord {
 
   @Column(name = "account_number")
   private String accountNumber;
+
+  @Column(name = "org_id")
+  private String orgId;
 
   @Column(name = "event_type")
   private String eventType;
@@ -104,6 +108,7 @@ public class EventRecord {
     }
     EventRecord that = (EventRecord) o;
     return Objects.equals(accountNumber, that.accountNumber)
+        && Objects.equals(orgId, that.getOrgId())
         && Objects.equals(eventType, that.eventType)
         && Objects.equals(eventSource, that.eventSource)
         && Objects.equals(instanceId, that.instanceId)
@@ -112,6 +117,6 @@ public class EventRecord {
 
   @Override
   public int hashCode() {
-    return Objects.hash(accountNumber, eventType, eventSource, instanceId, timestamp);
+    return Objects.hash(accountNumber, orgId, eventType, eventSource, instanceId, timestamp);
   }
 }

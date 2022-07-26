@@ -62,6 +62,7 @@ public class MeteringEventFactory {
   @SuppressWarnings("java:S107")
   public static Event createMetricEvent(
       String accountNumber,
+      String orgId,
       String metricId,
       String instanceId,
       String serviceLevel,
@@ -78,6 +79,7 @@ public class MeteringEventFactory {
     updateMetricEvent(
         event,
         accountNumber,
+        orgId,
         metricId,
         instanceId,
         serviceLevel,
@@ -97,6 +99,7 @@ public class MeteringEventFactory {
   public static void updateMetricEvent(
       Event toUpdate,
       String accountNumber,
+      String orgId,
       String metricId,
       String instanceId,
       String serviceLevel,
@@ -114,6 +117,7 @@ public class MeteringEventFactory {
         .withEventType(getEventType(metricId))
         .withServiceType(serviceType)
         .withAccountNumber(accountNumber)
+        .withOrgId(orgId)
         .withInstanceId(instanceId)
         .withTimestamp(measuredTime)
         .withExpiration(Optional.of(expired))

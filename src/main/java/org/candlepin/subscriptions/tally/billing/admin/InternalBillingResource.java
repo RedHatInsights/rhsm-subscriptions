@@ -37,7 +37,7 @@ public class InternalBillingResource implements InternalApi {
 
   @Override
   public List<MonthlyRemittance> getRemittances(
-      String accountNumber, String productId, String orgId, String metricId) {
+      String productId, String accountNumber, String orgId, String metricId) {
     return billingController.process(accountNumber, productId, orgId, metricId);
   }
 }

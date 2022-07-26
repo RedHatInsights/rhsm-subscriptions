@@ -36,7 +36,7 @@ import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuild
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescriptor;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.model.QueryResultData;
-import org.candlepin.subscriptions.prometheus.model.QueryResultDataResult;
+import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.ResultType;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.candlepin.subscriptions.registry.TagMetric;
@@ -155,7 +155,7 @@ class PrometheusAccountSourceTest {
     accounts.forEach(
         account -> {
           resultData.addResultItem(
-              new QueryResultDataResult().putMetricItem("ebs_account", account));
+              new QueryResultDataResultInner().putMetricItem("ebs_account", account));
         });
     return new QueryResult().status(StatusType.SUCCESS).data(resultData);
   }

@@ -29,8 +29,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.candlepin.subscriptions.conduit.inventory.kafka.CreateUpdateHostMessage;
 import org.candlepin.subscriptions.conduit.inventory.kafka.InventoryServiceKafkaConfigurator;
 import org.candlepin.subscriptions.conduit.inventory.kafka.KafkaEnabledInventoryService;
-import org.candlepin.subscriptions.inventory.client.HostsApiFactory;
-import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -72,11 +70,6 @@ public class InventoryServiceConfiguration {
   @ConfigurationProperties(prefix = "rhsm-conduit.inventory-service")
   public InventoryServiceProperties inventoryServiceProperties() {
     return new InventoryServiceProperties();
-  }
-
-  @Bean
-  public HostsApiFactory hostsApiFactory(InventoryServiceProperties properties) {
-    return new HostsApiFactory(properties);
   }
 
   @Bean

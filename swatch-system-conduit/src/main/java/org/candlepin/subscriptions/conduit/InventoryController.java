@@ -44,14 +44,13 @@ import javax.validation.Validator;
 import org.candlepin.subscriptions.conduit.inventory.ConduitFacts;
 import org.candlepin.subscriptions.conduit.inventory.InventoryService;
 import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
+import org.candlepin.subscriptions.conduit.json.inventory.HbiNetworkInterface;
 import org.candlepin.subscriptions.conduit.rhsm.RhsmService;
 import org.candlepin.subscriptions.conduit.rhsm.client.ApiException;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.Consumer;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.InstalledProducts;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.Pagination;
 import org.candlepin.subscriptions.exception.MissingAccountNumberException;
-import org.candlepin.subscriptions.inventory.client.InventoryServiceProperties;
-import org.candlepin.subscriptions.inventory.client.model.NetworkInterface;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,7 +118,6 @@ public class InventoryController {
       InventoryService inventoryService,
       RhsmService rhsmService,
       Validator validator,
-      InventoryServiceProperties inventoryServiceProperties,
       OrgSyncTaskManager taskManager,
       MeterRegistry meterRegistry) {
 
@@ -289,7 +287,7 @@ public class InventoryController {
       facts.setFqdn(fqdn);
     }
 
-    List<NetworkInterface> networkInterfaces = populateNICs(rhsmFacts);
+    List<HbiNetworkInterface> networkInterfaces = populateNICs(rhsmFacts);
     if (!networkInterfaces.isEmpty()) {
       facts.setNetworkInterfaces(networkInterfaces);
     }
@@ -357,13 +355,13 @@ public class InventoryController {
     return items.stream().filter(predicate).collect(Collectors.toList());
   }
 
-  private List<NetworkInterface> populateNICs(Map<String, String> rhsmFacts) {
-    var nicSet = new ArrayList<NetworkInterface>();
+  private List<HbiNetworkInterface> populateNICs(Map<String, String> rhsmFacts) {
+    var nicSet = new ArrayList<HbiNetworkInterface>();
     for (Map.Entry<String, String> entry : rhsmFacts.entrySet()) {
       if (entry.getKey().startsWith(MAC_PREFIX) && entry.getKey().endsWith(MAC_SUFFIX)) {
         String[] nicsName = entry.getKey().split(PERIOD_REGEX);
         var mac = entry.getValue();
-        var networkInterface = new NetworkInterface();
+        var networkInterface = new HbiNetworkInterface();
         networkInterface.setName(nicsName[2]);
         networkInterface.setMacAddress(mac);
         mapInterfaceIps(networkInterface, rhsmFacts, ".ipv4");
@@ -377,48 +375,56 @@ public class InventoryController {
   }
 
   private void mapInterfaceIps(
-      NetworkInterface networkInterface, Map<String, String> facts, String suffix) {
+      HbiNetworkInterface networkInterface, Map<String, String> facts, String suffix) {
     String prefix = MAC_PREFIX + networkInterface.getName() + suffix;
+
+    var ipv4List = new HashSet<String>();
+    var ipv6List = new HashSet<String>();
 
     if (suffix.equalsIgnoreCase(".ipv4") && facts.containsKey(prefix + "_address_list")) {
       var fact = prefix + "_address_list";
-      var ipList = filterIps(facts.get(fact), fact);
-      ipList.forEach(networkInterface::addIpv4AddressesItem);
+      ipv4List.addAll(filterIps(facts.get(fact), fact));
     } else if (facts.containsKey(prefix + "_address")) {
-      networkInterface.addIpv4AddressesItem(facts.get(prefix + "_address"));
+      ipv4List.add(facts.get(prefix + "_address"));
     }
 
     if (facts.containsKey(prefix + "_address.global_list")) {
       var fact = prefix + "_address.global_list";
-      var ipList = filterIps(facts.get(fact), fact);
-      ipList.forEach(networkInterface::addIpv6AddressesItem);
+      ipv6List.addAll(filterIps(facts.get(fact), fact));
     } else if (facts.containsKey(prefix + "_address.global")) {
-      networkInterface.addIpv6AddressesItem(facts.get(prefix + "_address.global"));
+      ipv6List.add(facts.get(prefix + "_address.global"));
     }
 
     if (facts.containsKey(prefix + "_address.link_list")) {
       var fact = prefix + "_address.link_list";
-      var ipList = filterIps(facts.get(fact), fact);
-      ipList.forEach(networkInterface::addIpv6AddressesItem);
+      ipv6List.addAll(filterIps(facts.get(fact), fact));
     } else if (facts.containsKey(prefix + "_address.link")) {
-      networkInterface.addIpv6AddressesItem(facts.get(prefix + "_address.link"));
+      ipv6List.add(facts.get(prefix + "_address.link"));
+    }
+
+    if (!ipv4List.isEmpty()) {
+      networkInterface.setIpv4Addresses(new ArrayList<>(ipv4List));
+    }
+
+    if (!ipv6List.isEmpty()) {
+      networkInterface.setIpv6Addresses(new ArrayList<>(ipv6List));
     }
   }
 
   private void checkLoopbackIPs(
-      List<NetworkInterface> networkInterfaces, Map<String, String> facts) {
+      List<HbiNetworkInterface> networkInterfaces, Map<String, String> facts) {
     boolean loExist = networkInterfaces.stream().anyMatch(nic -> "lo".equals(nic.getName()));
-    var lo = new NetworkInterface();
+    var lo = new HbiNetworkInterface();
 
     if (!loExist && facts.containsKey("net.interface.lo.ipv4_address")) {
       lo.setName("lo");
       lo.setMacAddress("00:00:00:00:00:00");
-      lo.addIpv4AddressesItem(facts.get("net.interface.lo.ipv4_address"));
+      lo.setIpv4Addresses(Arrays.asList(facts.get("net.interface.lo.ipv4_address")));
       networkInterfaces.add(lo);
     } else if (!loExist && facts.containsKey("net.interface.lo.ipv6_address")) {
       lo.setName("lo");
       lo.setMacAddress("00:00:00:00:00:00");
-      lo.addIpv6AddressesItem(facts.get("net.interface.lo.ipv6_address"));
+      lo.setIpv6Addresses(Arrays.asList(facts.get("net.interface.lo.ipv6_address")));
       networkInterfaces.add(lo);
     }
   }

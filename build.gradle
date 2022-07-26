@@ -23,7 +23,6 @@ dependencies {
     implementation project(":api")
     implementation project(":clients:cloudigrade-client")
     implementation project(":clients:cloudigrade-internal-client")
-    implementation project(":clients:insights-inventory-client")
     implementation project(":clients:rh-marketplace-client")
     implementation project(":clients:product-client")
     implementation project(":clients:prometheus-client")
