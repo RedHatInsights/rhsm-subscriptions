@@ -706,4 +706,27 @@ class MetricUsageCollectorTest {
     assertNotNull(instance);
     assertEquals(BillingProvider.RED_HAT, instance.getBillingProvider());
   }
+
+  @Test
+  void testInstanceHasOrgIdSet() {
+    Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
+    Event event =
+        new Event()
+            .withEventId(UUID.randomUUID())
+            .withAccountNumber("account123")
+            .withOrgId("test-org")
+            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+            .withServiceType(SERVICE_TYPE)
+            .withInstanceId(UUID.randomUUID().toString())
+            .withMeasurements(Collections.singletonList(measurement));
+
+    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
+    when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
+        .thenReturn(Stream.of(event));
+
+    metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN);
+    Host instance = accountServiceInventory.getServiceInstances().get(event.getInstanceId());
+    assertNotNull(instance);
+    assertEquals("test-org", instance.getOrgId());
+  }
 }
