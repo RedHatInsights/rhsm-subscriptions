@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202207051553-1" author="khowell" dbms="postgresql">
+    <sql>
+      DROP TRIGGER maintain_measurement_columns_update on hardware_measurements;
+      DROP TRIGGER maintain_measurement_columns_insert on hardware_measurements;
+      DROP function copy_measurement();
+    </sql>
+  </changeSet>
+  <changeSet id="202207051553-2" author="khowell">
+    <dropColumn tableName="tally_snapshots" columnName="cores"/>
+    <dropColumn tableName="tally_snapshots" columnName="sockets"/>
+    <dropColumn tableName="tally_snapshots" columnName="instance_count"/>
+    <dropColumn tableName="tally_snapshots" columnName="physical_cores"/>
+    <dropColumn tableName="tally_snapshots" columnName="physical_sockets"/>
+    <dropColumn tableName="tally_snapshots" columnName="physical_instance_count"/>
+    <dropColumn tableName="tally_snapshots" columnName="hypervisor_cores"/>
+    <dropColumn tableName="tally_snapshots" columnName="hypervisor_sockets"/>
+    <dropColumn tableName="tally_snapshots" columnName="hypervisor_instance_count"/>
+  </changeSet>
+</databaseChangeLog>
+

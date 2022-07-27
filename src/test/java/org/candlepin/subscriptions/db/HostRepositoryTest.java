@@ -178,8 +178,8 @@ class HostRepositoryTest {
     host.setNumOfGuests(expGuests);
     host.setDisplayName(expDisplayName);
     host.setLastSeen(expLastSeen);
-    host.setCores(12);
-    host.setSockets(12);
+    host.setMeasurement(Uom.CORES, 12.0);
+    host.setMeasurement(Uom.SOCKETS, 12.0);
     host.setHypervisor(expIsHypervisor);
     host.setUnmappedGuest(expUnmappedGuest);
     host.setCloudProvider(expCloudProvider);
@@ -264,8 +264,8 @@ class HostRepositoryTest {
   void testUpdate() {
     Host host = new Host("INV1", "HOST1", "my_acct", "my_org", "sub_id");
     host.setDisplayName(DEFAULT_DISPLAY_NAME);
-    host.setSockets(1);
-    host.setCores(1);
+    host.setMeasurement(Uom.SOCKETS, 1.0);
+    host.setMeasurement(Uom.CORES, 1.0);
     host.setMeasurement(Measurement.Uom.CORES, 2.0);
     host.addToMonthlyTotal(
         OffsetDateTime.parse("2021-02-26T01:00:00Z"), Measurement.Uom.CORES, 3.0);
@@ -300,8 +300,8 @@ class HostRepositoryTest {
     assertEquals(2, toUpdate.getBuckets().size());
 
     toUpdate.setAccountNumber("updated_acct_num");
-    toUpdate.setSockets(4);
-    toUpdate.setCores(8);
+    toUpdate.setMeasurement(Uom.SOCKETS, 4.0);
+    toUpdate.setMeasurement(Uom.CORES, 8.0);
     toUpdate.setDisplayName(DEFAULT_DISPLAY_NAME);
 
     HostTallyBucket rhelBucket =
@@ -325,8 +325,8 @@ class HostRepositoryTest {
     assertTrue(updateResult.isPresent());
     Host updated = updateResult.get();
     assertEquals("updated_acct_num", updated.getAccountNumber());
-    assertEquals(4, updated.getSockets().intValue());
-    assertEquals(8, updated.getCores().intValue());
+    assertEquals(4, updated.getMeasurement(Uom.SOCKETS).intValue());
+    assertEquals(8, updated.getMeasurement(Uom.CORES).intValue());
     assertEquals(1, updated.getBuckets().size());
     assertTrue(updated.getBuckets().contains(satelliteBucket));
     assertEquals(8.0, updated.getMeasurement(Measurement.Uom.CORES));
@@ -637,8 +637,8 @@ class HostRepositoryTest {
   @Test
   void testGetHostViews() {
     Host host1 = new Host("INV1", "HOST1", "my_acct", "my_org", "sub_id");
-    host1.setSockets(1);
-    host1.setCores(1);
+    host1.setMeasurement(Uom.SOCKETS, 1.0);
+    host1.setMeasurement(Uom.CORES, 1.0);
     host1.setNumOfGuests(4);
 
     host1.addBucket(
@@ -771,8 +771,8 @@ class HostRepositoryTest {
   void testNullNumGuests() {
     Host host = new Host("INV1", "HOST1", "my_acct", "my_org", "sub_id");
     host.setDisplayName(DEFAULT_DISPLAY_NAME);
-    host.setSockets(1);
-    host.setCores(1);
+    host.setMeasurement(Uom.SOCKETS, 1.0);
+    host.setMeasurement(Uom.CORES, 1.0);
 
     host.addBucket(
         "RHEL",
@@ -820,8 +820,8 @@ class HostRepositoryTest {
   void testShouldFilterSockets() {
     Host coreHost = new Host("INV1", "HOST1", "my_acct", "my_org", "sub_id");
     coreHost.setDisplayName(DEFAULT_DISPLAY_NAME);
-    coreHost.setSockets(0);
-    coreHost.setCores(1);
+    coreHost.setMeasurement(Uom.SOCKETS, 0.0);
+    coreHost.setMeasurement(Uom.CORES, 1.0);
     coreHost.addBucket(
         "RHEL",
         ServiceLevel.PREMIUM,
@@ -835,8 +835,8 @@ class HostRepositoryTest {
 
     Host socketHost = new Host("INV2", "HOST2", "my_acct", "my_org", "sub_id");
     socketHost.setDisplayName(DEFAULT_DISPLAY_NAME);
-    socketHost.setSockets(1);
-    socketHost.setCores(0);
+    socketHost.setMeasurement(Uom.SOCKETS, 1.0);
+    socketHost.setMeasurement(Uom.CORES, 0.0);
     socketHost.addBucket(
         "RHEL",
         ServiceLevel.PREMIUM,
@@ -882,8 +882,8 @@ class HostRepositoryTest {
   void testShouldFilterCores() {
     Host coreHost = new Host("INV1", "HOST1", "my_acct", "my_org", "sub_id");
     coreHost.setDisplayName(DEFAULT_DISPLAY_NAME);
-    coreHost.setSockets(0);
-    coreHost.setCores(1);
+    coreHost.setMeasurement(Uom.SOCKETS, 0.0);
+    coreHost.setMeasurement(Uom.CORES, 1.0);
     coreHost.addBucket(
         "RHEL",
         ServiceLevel.PREMIUM,
@@ -897,8 +897,8 @@ class HostRepositoryTest {
 
     Host socketHost = new Host("INV2", "HOST2", "my_acct", "my_org", "sub_id");
     socketHost.setDisplayName(DEFAULT_DISPLAY_NAME);
-    socketHost.setSockets(1);
-    socketHost.setCores(0);
+    socketHost.setMeasurement(Uom.SOCKETS, 1.0);
+    socketHost.setMeasurement(Uom.CORES, 0.0);
     socketHost.addBucket(
         "RHEL",
         ServiceLevel.PREMIUM,
@@ -1192,8 +1192,8 @@ class HostRepositoryTest {
             account,
             "ORG_" + account,
             "SUBMAN_" + inventoryId);
-    host.setSockets(1);
-    host.setCores(1);
+    host.setMeasurement(Uom.SOCKETS, 1.0);
+    host.setMeasurement(Uom.CORES, 1.0);
     return host;
   }
 

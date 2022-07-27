@@ -66,5 +66,8 @@
     <include file="liquibase/202205231334-create-billable-usage-tracking-table.xml"/>
     <include file="liquibase/202206021315-add-version-to-billable-usage-tracking-table.xml"/>
     <include file="liquibase/202207201200-add-org-id-to-event-table.xml"/>
+    <include file="liquibase/202207051553-drop-deprecated-tally-snapshot-columns.xml"/>
+    <include file="liquibase/202207051557-transition-deprecated-columns.xml"/>
+    <include file="liquibase/202207061021-migrate-cores-sockets-data.xml"/>
 </databaseChangeLog>
   <!-- vim: set expandtab sts=4 sw=4 ai: -->
