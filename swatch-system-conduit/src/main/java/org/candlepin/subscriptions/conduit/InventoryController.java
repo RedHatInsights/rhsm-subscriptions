@@ -43,6 +43,7 @@ import javax.validation.ConstraintViolation;
 import javax.validation.Validator;
 import org.candlepin.subscriptions.conduit.inventory.ConduitFacts;
 import org.candlepin.subscriptions.conduit.inventory.InventoryService;
+import org.candlepin.subscriptions.conduit.inventory.InventoryServiceProperties;
 import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiNetworkInterface;
 import org.candlepin.subscriptions.conduit.rhsm.RhsmService;
@@ -113,13 +114,16 @@ public class InventoryController {
   private Timer transformHostTimer;
   private Timer validateHostTimer;
 
+  private boolean tolerateMissingAccountNumber;
+
   @Autowired
   public InventoryController(
       InventoryService inventoryService,
       RhsmService rhsmService,
       Validator validator,
       OrgSyncTaskManager taskManager,
-      MeterRegistry meterRegistry) {
+      MeterRegistry meterRegistry,
+      InventoryServiceProperties serviceProperties) {
 
     this.inventoryService = inventoryService;
     this.rhsmService = rhsmService;
@@ -129,6 +133,7 @@ public class InventoryController {
     this.finalizeOrgCounter = meterRegistry.counter("rhsm-conduit.finalize.org");
     this.transformHostTimer = meterRegistry.timer("rhsm-conduit.transform.host");
     this.validateHostTimer = meterRegistry.timer("rhsm-conduit.validate.host");
+    this.tolerateMissingAccountNumber = serviceProperties.isTolerateMissingAccountNumber();
   }
 
   public ConduitFacts getFactsFromConsumer(Consumer consumer) {
@@ -519,14 +524,17 @@ public class InventoryController {
       return Stream.empty();
     }
 
+    // If the missing account number is false then
     // Peek at the first consumer.  If it is missing an account number, that means they all are.
     // Abort and return an empty stream.  No sense in wasting time looping through everything.
-    try {
-      if (!StringUtils.hasText(feedPage.getBody().get(0).getAccountNumber())) {
+    if(tolerateMissingAccountNumber) {
+      try {
+        if (!StringUtils.hasText(feedPage.getBody().get(0).getAccountNumber())) {
+          throw new MissingAccountNumberException();
+        }
+      } catch (NoSuchElementException e) {
         throw new MissingAccountNumberException();
       }
-    } catch (NoSuchElementException e) {
-      throw new MissingAccountNumberException();
     }
 
     return feedPage.getBody().stream()
