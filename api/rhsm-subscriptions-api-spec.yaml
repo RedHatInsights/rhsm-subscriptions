@@ -450,7 +450,7 @@ paths:
           content:
             application/vnd.api+json:
               schema:
-                $ref: "#/components/schemas/CapacityReport"
+                $ref: "#/components/schemas/CapacityReportByMetricId"
               example:
                 data:
                   - date: '2017-08-04T17:32:05Z'
@@ -1439,6 +1439,33 @@ components:
             - count
             - product
             - granularity
+    CapacityReportByMetricId:
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CapacitySnapshotByMetricId"
+        links:
+          $ref: "#/components/schemas/PageLinks"
+        meta:
+          type: object
+          properties:
+            count:
+              type: integer
+            product:
+              $ref: '#/components/schemas/ProductId'
+            metric_id:
+              $ref: '#/components/schemas/MetricId'
+            granularity:
+              $ref: '#/components/schemas/GranularityType'
+            service_level:
+              $ref: '#/components/schemas/ServiceLevelType'
+            usage:
+              $ref: '#/components/schemas/UsageType'
+          required:
+            - count
+            - product
+            - granularity
     CapacitySnapshot:
       required:
         - date
@@ -1485,6 +1512,25 @@ components:
             If there is an infinite quantity subscription involved, there is no meaningful number for
             capacity."
           type: boolean
+    CapacitySnapshotByMetricId:
+      required:
+        - date
+        - has_data
+        - value
+      properties:
+        date:
+          type: string
+          format: date-time
+          description: "The start date for this snapshot entry. Dates are returned in UTC. Clients must
+            consult the 'granularity' field in the CapacityReport to determine the length of time each
+            CapacitySnapshot covers."
+        has_data:
+          type: boolean
+        value:
+          description: "Capacity value"
+          type: integer
+          format: int32
+          minimum: 0
     HostReportSort:
       type: string
       enum:
