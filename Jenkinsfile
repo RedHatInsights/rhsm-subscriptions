@@ -1,8 +1,8 @@
 pipeline {
+    options { buildDiscarder(logRotator(numToKeepStr: '50')) }
     agent {
         kubernetes {
-            label 'swatch'
-            // all your pods will be named with this prefix, followed by a unique id
+            label 'swatch' // this value + unique identifier becomes the label
             idleMinutes 5  // how long the pod will live after no jobs have run on it
             containerTemplate {
                 name 'openjdk11'
@@ -10,13 +10,12 @@ pipeline {
                 command 'sleep'
                 args '99d'
                 resourceRequestCpu '2'
-                resourceLimitCpu '2'
-                resourceRequestMemory '4Gi'
+                resourceLimitCpu '6'
+                resourceRequestMemory '2Gi'
                 resourceLimitMemory '6Gi'
             }
 
             defaultContainer 'openjdk11'
-            // define a default container if more than a few stages use it, will default to jnlp container
         }
     }
     stages {
