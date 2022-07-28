@@ -65,7 +65,6 @@ public class ProductAllowlist implements ResourceLoaderAware {
       }
       return isAllowlisted;
     } catch (Exception e) {
-      // TODO is there any alerts in splunk for this?
       log.error("Error reading allowlist", e);
       return false;
     }
@@ -86,7 +85,6 @@ public class ProductAllowlist implements ResourceLoaderAware {
     try {
       return Collections.unmodifiableSet(source.set());
     } catch (IOException e) {
-      // TODO any splunk alerts?
       log.error("Error reading allowlist", e);
       return Collections.emptySet();
     }
