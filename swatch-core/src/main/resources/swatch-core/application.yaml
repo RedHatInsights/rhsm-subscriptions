@@ -159,5 +159,4 @@ rhsm-subscriptions:
       kafka-group-id: offering-worker
   auth:
     swatchPsks:
-      #TODO
       self: ${SWATCH_SELF_PSK:placeholder}
