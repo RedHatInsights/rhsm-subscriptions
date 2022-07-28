@@ -2,7 +2,7 @@ pipeline {
     options { buildDiscarder(logRotator(numToKeepStr: '50')) }
     agent {
         kubernetes {
-            label 'swatch' // this value + unique identifier becomes the label
+            label 'swatch' // this value + unique identifier becomes the pod name
             idleMinutes 5  // how long the pod will live after no jobs have run on it
             containerTemplate {
                 name 'openjdk11'
@@ -19,9 +19,11 @@ pipeline {
         }
     }
     stages {
-       stage('Build') {
+       stage('Build/Test/Lint') {
            steps {
-               sh "./gradlew  --no-daemon  build"
+               // The build task includes check, test, and assemble.  Linting happens during the check
+               // task and uses the spotless gradle plugin.
+               sh "./gradlew --no-daemon build"
            }
        }
 
@@ -31,7 +33,7 @@ pipeline {
            }
            steps {
                withSonarQubeEnv('sonarcloud.io') {
-                   sh "./gradlew  --no-daemon  sonarqube -Duser.home=/tmp -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.login=${SONAR_AUTH_TOKEN} -Dsonar.pullrequest.key=${CHANGE_ID} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.branch=${BRANCH_NAME} -Dsonar.organization=rhsm -Dsonar.projectKey=rhsm-subscriptions"
+                   sh "./gradlew --no-daemon sonarqube -Duser.home=/tmp -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.login=${SONAR_AUTH_TOKEN} -Dsonar.pullrequest.key=${CHANGE_ID} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.branch=${BRANCH_NAME} -Dsonar.organization=rhsm -Dsonar.projectKey=rhsm-subscriptions"
                }
            }
        }
