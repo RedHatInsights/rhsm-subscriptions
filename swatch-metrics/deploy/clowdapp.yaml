@@ -1,0 +1,511 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: swatch-metrics
+parameters:
+  - name: ENV_NAME
+    value: env-swatch-metrics
+  - name: IMAGE
+    value: quay.io/cloudservices/rhsm-subscriptions
+  - name: IMAGE_TAG
+    value: latest
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: MEMORY_REQUEST
+    value: 1000Mi
+  - name: MEMORY_LIMIT
+    value: 1400Mi
+  - name: CPU_REQUEST
+    value: 350m
+  - name: CPU_LIMIT
+    value: 1500m
+  - name: DEV_MODE
+    value: 'false'
+  - name: ENABLE_SPLUNK_HEC
+    value: 'true'
+  - name: SPLUNK_SOURCE
+    value: 'rhsm-subscription-hec'
+  - name: SPLUNK_SOURCE_TYPE
+    value: 'springboot_server'
+  - name: SPLUNK_MESSAGE_FORMAT
+    value: 'text'
+  - name: SPLUNK_HEC_URL
+    value: https://splunk-hec.redhat.com:8088
+  - name: SPLUNK_HEC_CONNECT_TIMEOUT
+    value: '5000'
+  - name: SPLUNK_HEC_BATCH_SIZE
+    value: '1'
+  - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+    value: '2000'
+  - name: METRICS_WORKER_HAWTIO_BASE_PATH
+    value: /app/rhsm-metrics/hawtio
+  - name: SERVER_MAX_HTTP_HEADER_SIZE
+    value: '48000'
+  - name: LOGGING_LEVEL_ROOT
+    value: WARN
+  - name: LOGGING_LEVEL
+    value: INFO
+  - name: METRICS_CRON_LOGGING_LEVEL
+    value: INFO
+  - name: KAFKA_MESSAGE_THREADS
+    value: '24'
+  - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+    value: '3600000'
+  - name: KAFKA_SEEK_OVERRIDE_END
+    value: 'false'
+  - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
+    value: ''
+  - name: CLOUDIGRADE_ENABLED
+    value: 'false'
+  - name: PROM_URL
+    value: http://localhost:8082
+  - name: DATABASE_CONNECTION_TIMEOUT_MS
+    value: '30000'
+  # TODO This has been lowered from what it was in the previous environment (from 25 to 10)
+  # We were running the clowder DB out of connections.  If we need more, we need to investigate
+  # tuning the database to allow more
+  - name: DATABASE_MAX_POOL_SIZE
+    value: '10'
+  # TODO This has been lowered from what it was in the previous environment (from 25 to 10)
+  # We were running the clowder DB out of connections.  If we need more, we need to investigate
+  # tuning the database to allow more
+  - name: OPENSHIFT_BILLING_MODEL_FILTER
+    value: 'marketplace'
+  - name: USER_HOST
+    # required: true # FIXME Not sure where this is provided
+    value: 'user.qa.api.redhat.com'
+  - name: USER_MAX_CONNECTIONS
+    value: '100'
+  - name: USER_MAX_ATTEMPTS
+    value: '10'
+  - name: USER_BACK_OFF_MAX_INTERVAL
+    value: 64s
+  - name: USER_BACK_OFF_INITIAL_INTERVAL
+    value: 1s
+  - name: USER_BACK_OFF_MULTIPLIER
+    value: '2'
+  - name: METERING_SCHEDULE
+    value: '@hourly'
+  - name: OPENSHIFT_METERING_RANGE
+    value: '60'
+  - name: HOURLY_TALLY_OFFSET
+    value: '60'
+  # TODO: this should be removed once OCM has non-standard billing_model clusters
+  - name: OPENSHIFT_ENABLED_ACCOUNT_PROMQL
+    value: "group(min_over_time(subscription_labels{ebs_account != '', billing_model='standard'}[1h])) by (ebs_account)"
+
+objects:
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdApp
+    metadata:
+      name: swatch-metrics
+    spec:
+      # The name of the ClowdEnvironment providing the services
+      envName: ${ENV_NAME}
+      database:
+        sharedDbAppName: rhsm
+      dependencies:
+        - rhsm
+
+      kafkaTopics:
+        - replicas: 3
+          partitions: 3
+          topicName: platform.rhsm-subscriptions.tally
+        - replicas: 3
+          partitions: 3
+          topicName: platform.rhsm-subscriptions.tasks
+        - replicas: 3
+          partitions: 3
+          topicName: platform.rhsm-subscriptions.metering-tasks
+
+      pullSecrets:
+        name: ${IMAGE_PULL_SECRET}
+
+      deployments:
+        - name: service
+          webServices:
+            public:
+              enabled: true
+          minReplicas: 1
+          podSpec:
+            image: ${IMAGE}:${IMAGE_TAG}
+            command:
+              - /bin/bash
+              - /usr/local/s2i/run
+            initContainers:
+              - env:
+                  - name: SPRING_PROFILES_ACTIVE
+                    value: liquibase-only
+                inheritEnv: true
+                command:
+                  - /bin/bash
+                  - /usr/local/s2i/run
+                resources:
+                  requests:
+                    cpu: ${CPU_REQUEST}
+                    memory: ${MEMORY_REQUEST}
+                  limits:
+                    cpu: ${CPU_LIMIT}
+                    memory: ${MEMORY_LIMIT}
+            env:
+              - name: ENABLE_SPLUNK_HEC
+                value: ${ENABLE_SPLUNK_HEC}
+              - name: SPLUNKMETA_namespace
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.namespace
+              - name: SPLUNKMETA_host
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.name
+              - name: SPLUNK_HEC_URL
+                value: ${SPLUNK_HEC_URL}
+              - name: SPLUNK_HEC_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: splunk-hec-external
+                    key: token
+              - name: SPLUNK_SOURCE
+                value: ${SPLUNK_SOURCE}
+              - name: SPLUNK_SOURCE_TYPE
+                value: ${SPLUNK_SOURCE_TYPE}
+              - name: SPLUNK_MESSAGE_FORMAT
+                value: ${SPLUNK_MESSAGE_FORMAT}
+              - name: SPLUNK_HEC_CONNECT_TIMEOUT
+                value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
+              - name: SPLUNK_HEC_BATCH_SIZE
+                value: ${SPLUNK_HEC_BATCH_SIZE}
+              - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+                value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
+              - name: SPRING_PROFILES_ACTIVE
+                value: openshift-metering-worker,kafka-queue
+              # turn off built-in jolokia, so that the spring boot jolokia actuator will work
+              - name: AB_JOLOKIA_OFF
+                value: 'true'
+              - name: SERVER_MAX_HTTP_HEADER_SIZE
+                value: ${SERVER_MAX_HTTP_HEADER_SIZE}
+              - name: HAWTIO_BASE_PATH
+                value: ${METRICS_WORKER_HAWTIO_BASE_PATH}
+              - name: LOG_FILE
+                value: /logs/server.log
+              - name: JAVA_MAX_MEM_RATIO
+                value: '85'
+              - name: GC_MAX_METASPACE_SIZE
+                value: '256'
+              - name: LOGGING_LEVEL_ROOT
+                value: ${LOGGING_LEVEL_ROOT}
+              - name: LOGGING_LEVEL_ORG_CANDLEPIN
+                value: ${LOGGING_LEVEL}
+              - name: KAFKA_MESSAGE_THREADS
+                value: ${KAFKA_MESSAGE_THREADS}
+              - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+                value: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS}
+              - name: KAFKA_SEEK_OVERRIDE_END
+                value: ${KAFKA_SEEK_OVERRIDE_END}
+              - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
+                value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
+              - name: DATABASE_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: rhsm-db
+                    key: db.host
+              - name: DATABASE_PORT
+                valueFrom:
+                  secretKeyRef:
+                    name: rhsm-db
+                    key: db.port
+              - name: DATABASE_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: rhsm-db
+                    key: db.user
+              - name: DATABASE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: rhsm-db
+                    key: db.password
+              - name: DATABASE_DATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: rhsm-db
+                    key: db.name
+              - name: DATABASE_CONNECTION_TIMEOUT_MS
+                value: ${DATABASE_CONNECTION_TIMEOUT_MS}
+              - name: DATABASE_MAX_POOL_SIZE
+                value: ${DATABASE_MAX_POOL_SIZE}
+              - name: INVENTORY_DATABASE_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: host-inventory-db
+                    key: db.host
+              - name: INVENTORY_DATABASE_DATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: host-inventory-db
+                    key: name
+              - name: INVENTORY_DATABASE_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: host-inventory-db
+                    key: db.user
+              - name: INVENTORY_DATABASE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: host-inventory-db
+                    key: password
+              - name: CLOUDIGRADE_ENABLED
+                value: ${CLOUDIGRADE_ENABLED}
+              - name: CLOUDIGRADE_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: cloudigrade-psk
+                    key: psk
+              - name: PROM_URL
+                value: ${PROM_URL}
+              - name: OPENSHIFT_BILLING_MODEL_FILTER
+                value: ${OPENSHIFT_BILLING_MODEL_FILTER}
+              - name: USER_HOST
+                value: ${USER_HOST}
+              - name: USER_MAX_CONNECTIONS
+                value: ${USER_MAX_CONNECTIONS}
+              - name: USER_MAX_ATTEMPTS
+                value: ${USER_MAX_ATTEMPTS}
+              - name: USER_BACK_OFF_MAX_INTERVAL
+                value: ${USER_BACK_OFF_MAX_INTERVAL}
+              - name: USER_BACK_OFF_INITIAL_INTERVAL
+                value: ${USER_BACK_OFF_INITIAL_INTERVAL}
+              - name: USER_BACK_OFF_MULTIPLIER
+                value: ${USER_BACK_OFF_MULTIPLIER}
+              - name: RHSM_KEYSTORE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: tls
+                    key: keystore_password
+              - name: RHSM_KEYSTORE
+                value: /pinhead/keystore.jks
+              - name: DEV_MODE
+                value: ${DEV_MODE}
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+            livenessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: /health/liveness
+                port: 9000
+                scheme: HTTP
+              initialDelaySeconds: 60
+              periodSeconds: 20
+              successThreshold: 1
+              timeoutSeconds: 5
+            readinessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: /health
+                port: 9000
+                scheme: HTTP
+              initialDelaySeconds: 60
+              periodSeconds: 20
+              successThreshold: 1
+              timeoutSeconds: 5
+            resources:
+              requests:
+                cpu: ${CPU_REQUEST}
+                memory: ${MEMORY_REQUEST}
+              limits:
+                cpu: ${CPU_LIMIT}
+                memory: ${MEMORY_LIMIT}
+            volumeMounts:
+              - name: logs
+                mountPath: /logs
+              - name: pinhead
+                mountPath: /pinhead
+            volumes:
+              - name: logs
+                emptyDir:
+              - name: pinhead
+                secret:
+                  secretName: pinhead
+            sidecars:
+              - name: token-refresher
+                enabled: true
+
+      jobs:
+        - name: metrics-sync
+          schedule: ${METERING_SCHEDULE}
+          activeDeadlineSeconds: 4200
+          successfulJobsHistoryLimit: 2
+          restartPolicy: Never
+          podSpec:
+            image: ${IMAGE}:${IMAGE_TAG}
+            command:
+              - /bin/bash
+              - /usr/local/s2i/run
+            initContainers:
+              - env:
+                  - name: SPRING_PROFILES_ACTIVE
+                    value: liquibase-only
+                inheritEnv: true
+                command:
+                  - /bin/bash
+                  - /usr/local/s2i/run
+                resources:
+                  requests:
+                    cpu: ${CPU_REQUEST}
+                    memory: ${MEMORY_REQUEST}
+                  limits:
+                    cpu: ${CPU_LIMIT}
+                    memory: ${MEMORY_LIMIT}
+            env:
+              - name: ENABLE_SPLUNK_HEC
+                value: ${ENABLE_SPLUNK_HEC}
+              - name: SPLUNKMETA_namespace
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.namespace
+              - name: SPLUNKMETA_host
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.name
+              - name: SPLUNK_HEC_URL
+                value: ${SPLUNK_HEC_URL}
+              - name: SPLUNK_HEC_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: splunk-hec-external
+                    key: token
+              - name: SPLUNK_SOURCE
+                value: ${SPLUNK_SOURCE}
+              - name: SPLUNK_SOURCE_TYPE
+                value: ${SPLUNK_SOURCE_TYPE}
+              - name: SPLUNK_MESSAGE_FORMAT
+                value: ${SPLUNK_MESSAGE_FORMAT}
+              - name: SPLUNK_HEC_CONNECT_TIMEOUT
+                value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
+              - name: SPLUNK_HEC_BATCH_SIZE
+                value: ${SPLUNK_HEC_BATCH_SIZE}
+              - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+                value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
+              - name: SPRING_PROFILES_ACTIVE
+                value: metering-job,kafka-queue
+              - name: JAVA_MAX_MEM_RATIO
+                value: '85'
+              - name: GC_MAX_METASPACE_SIZE
+                value: '256'
+              - name: LOG_FILE
+                value: /logs/server.log
+              - name: LOGGING_LEVEL_ROOT
+                value: ${LOGGING_LEVEL_ROOT}
+              - name: LOGGING_LEVEL_ORG_CANDLEPIN
+                value: ${METRICS_CRON_LOGGING_LEVEL}
+              - name: OPENSHIFT_METERING_RANGE
+                value: ${OPENSHIFT_METERING_RANGE}
+              - name: HOURLY_TALLY_OFFSET
+                value: ${HOURLY_TALLY_OFFSET}
+              - name: DATABASE_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: rhsm-db
+                    key: db.host
+              - name: DATABASE_PORT
+                valueFrom:
+                  secretKeyRef:
+                    name: rhsm-db
+                    key: db.port
+              - name: DATABASE_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: rhsm-db
+                    key: db.user
+              - name: DATABASE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: rhsm-db
+                    key: db.password
+              - name: DATABASE_DATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: rhsm-db
+                    key: db.name
+              - name: INVENTORY_DATABASE_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: host-inventory-db
+                    key: db.host
+              - name: INVENTORY_DATABASE_DATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: host-inventory-db
+                    key: name
+              - name: INVENTORY_DATABASE_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: host-inventory-db
+                    key: db.user
+              - name: INVENTORY_DATABASE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: host-inventory-db
+                    key: password
+              - name: PROM_URL
+                value: http://localhost:8082
+              # TODO remove once non-standard billing_model lands in OCM
+              - name: OPENSHIFT_ENABLED_ACCOUNT_PROMQL
+                value: ${OPENSHIFT_ENABLED_ACCOUNT_PROMQL}
+            livenessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: /health/liveness
+                port: 9000
+                scheme: HTTP
+              initialDelaySeconds: 60
+              periodSeconds: 20
+              successThreshold: 1
+              timeoutSeconds: 5
+            readinessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: /health
+                port: 9000
+                scheme: HTTP
+              initialDelaySeconds: 60
+              periodSeconds: 20
+              successThreshold: 1
+              timeoutSeconds: 5
+            resources:
+              requests:
+                cpu: ${CPU_REQUEST}
+                memory: ${MEMORY_REQUEST}
+              limits:
+                cpu: ${CPU_LIMIT}
+                memory: ${MEMORY_LIMIT}
+            volumeMounts:
+              - name: logs
+                mountPath: /logs
+            volumes:
+              - name: logs
+                emptyDir:
+            sidecars:
+              - name: token-refresher
+                enabled: true
+
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: swatch-psks
+    data:
+      self: ZHVtbXk=
+
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: cloudigrade-psk
+    data:
+      psk: ZHVtbXk=
