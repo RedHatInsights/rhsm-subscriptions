@@ -46,4 +46,7 @@ public interface OrgConfigRepository extends JpaRepository<OrgConfig, String> {
     orgConfig.setUpdated(current);
     return Optional.of(save(orgConfig));
   }
+
+  @Query
+  Boolean existsByOrgId(String orgId);
 }
