@@ -28,7 +28,7 @@ import org.candlepin.subscriptions.security.RoleProvider;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
- * Must have the SWATCH_ADMIN_ROLE and account must be whitelisted for reporting.
+ * Must have the SWATCH_ADMIN_ROLE and account must be allowlisted for reporting.
  *
  * @see RoleProvider
  */

@@ -29,7 +29,7 @@ import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.tally.files.ReportingAccountWhitelist;
+import org.candlepin.subscriptions.tally.files.ReportingAccountAllowlist;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,7 +47,7 @@ class OptInResourceTest {
 
   private ApplicationClock clock;
 
-  @MockBean private ReportingAccountWhitelist accountWhitelist;
+  @MockBean private ReportingAccountAllowlist reportingAccountAllowlist;
 
   @MockBean private OptInController controller;
 
@@ -56,7 +56,7 @@ class OptInResourceTest {
   @BeforeEach
   public void setupTests() throws IOException {
     this.clock = new FixedClockConfiguration().fixedClock();
-    when(accountWhitelist.hasAccount("account123456")).thenReturn(true);
+    when(reportingAccountAllowlist.hasAccount("account123456")).thenReturn(true);
   }
 
   @Test

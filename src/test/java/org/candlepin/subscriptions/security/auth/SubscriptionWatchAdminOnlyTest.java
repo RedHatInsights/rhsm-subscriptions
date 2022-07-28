@@ -22,7 +22,7 @@ package org.candlepin.subscriptions.security.auth;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import org.candlepin.subscriptions.security.WhitelistedAccountReportAccessService;
+import org.candlepin.subscriptions.security.AllowlistedAccountReportAccessService;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.util.StubResource;
 import org.candlepin.subscriptions.util.StubResourceConfiguration;
@@ -42,7 +42,7 @@ class SubscriptionWatchAdminOnlyTest {
 
   @Autowired ApplicationContext context;
 
-  @MockBean WhitelistedAccountReportAccessService reportAccessService;
+  @MockBean AllowlistedAccountReportAccessService reportAccessService;
 
   @Test
   @WithMockRedHatPrincipal(

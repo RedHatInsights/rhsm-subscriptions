@@ -93,7 +93,7 @@ public class WiremockRunner {
     // at 401
     wireMockServer.stubFor(
         any(urlMatching("/api/rhsm-subscriptions/v1/?.*"))
-            .withHeader("x-rh-swatch-psk", notMatching("dummy"))
+            .withHeader("x-rh-swatch-psk", notMatching("placeholder"))
             .willReturn(aResponse().withStatus(401)));
   }
 

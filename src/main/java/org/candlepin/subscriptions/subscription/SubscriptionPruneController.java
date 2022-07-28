@@ -26,7 +26,7 @@ import java.time.Duration;
 import java.util.stream.Stream;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
+import org.candlepin.subscriptions.capacity.files.ProductAllowlist;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
@@ -48,7 +48,7 @@ public class SubscriptionPruneController {
   private final KafkaTemplate<String, PruneSubscriptionsTask>
       pruneSubscriptionsByOrgTaskKafkaTemplate;
   private final String pruneSubscriptionsTopic;
-  private final ProductWhitelist productWhitelist;
+  private final ProductAllowlist productAllowlist;
 
   @Autowired
   public SubscriptionPruneController(
@@ -57,13 +57,13 @@ public class SubscriptionPruneController {
       OrgConfigRepository orgRepository,
       MeterRegistry meterRegistry,
       KafkaTemplate<String, PruneSubscriptionsTask> pruneSubscriptionsByOrgTaskKafkaTemplate,
-      ProductWhitelist productWhitelist,
+      ProductAllowlist productAllowlist,
       @Qualifier("pruneSubscriptionTasks") TaskQueueProperties pruneQueueProperties) {
     this.subscriptionRepository = subscriptionRepository;
     this.subscriptionCapacityRepository = subscriptionCapacityRepository;
     this.orgRepository = orgRepository;
     this.pruneAllTimer = meterRegistry.timer("swatch_subscription_prune_enqueue_all");
-    this.productWhitelist = productWhitelist;
+    this.productAllowlist = productAllowlist;
     this.pruneSubscriptionsTopic = pruneQueueProperties.getTopic();
     this.pruneSubscriptionsByOrgTaskKafkaTemplate = pruneSubscriptionsByOrgTaskKafkaTemplate;
   }
@@ -82,7 +82,7 @@ public class SubscriptionPruneController {
     Stream<Subscription> subscriptions = subscriptionRepository.findByOwnerId(orgId);
     subscriptions.forEach(
         subscription -> {
-          if (!productWhitelist.productIdMatches(subscription.getSku())) {
+          if (!productAllowlist.productIdMatches(subscription.getSku())) {
             log.info(
                 "Removing subscriptionId={} for orgId={} w/ sku={}",
                 subscription.getSubscriptionId(),
@@ -95,7 +95,7 @@ public class SubscriptionPruneController {
         subscriptionCapacityRepository.findByKeyOwnerId(orgId);
     capacityRecords.forEach(
         capacityRecord -> {
-          if (!productWhitelist.productIdMatches(capacityRecord.getSku())) {
+          if (!productAllowlist.productIdMatches(capacityRecord.getSku())) {
             log.info(
                 "Removing capacity record for subscriptionId={} for orgId={} w/ sku={}",
                 capacityRecord.getSubscriptionId(),

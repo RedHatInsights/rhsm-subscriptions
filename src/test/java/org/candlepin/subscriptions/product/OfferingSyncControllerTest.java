@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
-import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
+import org.candlepin.subscriptions.capacity.files.ProductAllowlist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -82,7 +82,7 @@ class OfferingSyncControllerTest {
   }
 
   @MockBean OfferingRepository repo;
-  @MockBean ProductWhitelist allowlist;
+  @MockBean ProductAllowlist allowlist;
   @MockBean CapacityReconciliationController capController;
   @MockBean KafkaTemplate<String, OfferingSyncTask> offeringSyncKafkaTemplate;
   @Autowired OfferingSyncController subject;

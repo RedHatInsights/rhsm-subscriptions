@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.security.auth;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import org.candlepin.subscriptions.security.WhitelistedAccountReportAccessService;
+import org.candlepin.subscriptions.security.AllowlistedAccountReportAccessService;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.util.StubResource;
 import org.candlepin.subscriptions.util.StubResourceConfiguration;
@@ -44,11 +44,11 @@ class ReportingAccessRequiredTest {
 
   @Autowired ApplicationContext context;
 
-  @MockBean WhitelistedAccountReportAccessService reportAccessService;
+  @MockBean AllowlistedAccountReportAccessService reportAccessService;
 
   /* The reporting admin expression in pseudo-code:
    *
-   *     isOrgAdmin and isWhitelisted.
+   *     isOrgAdmin and isAllowlisted.
    *
    * I've marked the tests with the true/false values for these conditions.
    */
@@ -59,7 +59,7 @@ class ReportingAccessRequiredTest {
       value = "NotAdmin",
       roles = {})
   void testFalseOrFalseAndFalseIsFalse() throws Exception {
-    whitelistOrg(false);
+    allowlistOrg(false);
     StubResource stub = context.getBean(StubResource.class);
 
     assertThrows(AccessDeniedException.class, stub::reportingAdminOnlyCall);
@@ -71,7 +71,7 @@ class ReportingAccessRequiredTest {
       value = "NotAdmin",
       roles = {})
   void testFalseOrFalseAndTrueIsFalse() throws Exception {
-    whitelistOrg(true);
+    allowlistOrg(true);
     StubResource stub = context.getBean(StubResource.class);
 
     assertThrows(AccessDeniedException.class, stub::reportingAdminOnlyCall);
@@ -81,7 +81,7 @@ class ReportingAccessRequiredTest {
   @Test
   @WithMockRedHatPrincipal("Admin")
   void testFalseOrTrueAndFalseIsFalse() throws Exception {
-    whitelistOrg(false);
+    allowlistOrg(false);
     StubResource stub = context.getBean(StubResource.class);
 
     assertThrows(AccessDeniedException.class, stub::reportingAdminOnlyCall);
@@ -91,15 +91,15 @@ class ReportingAccessRequiredTest {
   @Test
   @WithMockRedHatPrincipal("Admin")
   void testFalseOrTrueAndTrueIsTrue() throws Exception {
-    whitelistOrg(true);
+    allowlistOrg(true);
     StubResource stub = context.getBean(StubResource.class);
 
     assertDoesNotThrow(stub::reportingAdminOnlyCall);
   }
 
-  private void whitelistOrg(boolean shouldWhitelist) throws Exception {
-    WhitelistedAccountReportAccessService mockAccess =
-        context.getBean(WhitelistedAccountReportAccessService.class);
-    when(mockAccess.providesAccessTo(any(Authentication.class))).thenReturn(shouldWhitelist);
+  private void allowlistOrg(boolean shouldBeAllowed) throws Exception {
+    AllowlistedAccountReportAccessService mockAccess =
+        context.getBean(AllowlistedAccountReportAccessService.class);
+    when(mockAccess.providesAccessTo(any(Authentication.class))).thenReturn(shouldBeAllowed);
   }
 }
