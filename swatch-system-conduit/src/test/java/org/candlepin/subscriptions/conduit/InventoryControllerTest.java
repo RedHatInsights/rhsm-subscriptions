@@ -219,7 +219,7 @@ class InventoryControllerTest {
 
   @Test
   void testWhenTolerateMissingAccountNumberEnabled_DoNotThrowMissingAccountNumberException()
-      throws ApiException{
+      throws ApiException {
     Consumer consumer1 = new Consumer();
     consumer1.setOrgId("123");
     consumer1.setUuid(UUID.randomUUID().toString());
