@@ -114,8 +114,7 @@ public class InventoryController {
   private Timer transformHostTimer;
   private Timer validateHostTimer;
 
-  @Autowired
-  private InventoryServiceProperties serviceProperties;
+  @Autowired private InventoryServiceProperties serviceProperties;
 
   @Autowired
   public InventoryController(
@@ -519,25 +518,26 @@ public class InventoryController {
       org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory feedPage)
       throws MissingAccountNumberException {
 
-      if (feedPage.getBody().isEmpty()) {
-          return Stream.empty();
-      }
+    if (feedPage.getBody().isEmpty()) {
+      return Stream.empty();
+    }
 
-      // If the missing account number is false then
-      // Peek at the first consumer.  If it is missing an account number, that means they all are.
-      // Abort and return an empty stream.  No sense in wasting time looping through everything.
-      try {
-          if (!serviceProperties.isTolerateMissingAccountNumber() && !StringUtils.hasText(feedPage.getBody().get(0).getAccountNumber())) {
-              throw new MissingAccountNumberException();
-          }
-      } catch (NoSuchElementException e) {
-          throw new MissingAccountNumberException();
+    // If the missing account number is false then
+    // Peek at the first consumer.  If it is missing an account number, that means they all are.
+    // Abort and return an empty stream.  No sense in wasting time looping through everything.
+    try {
+      if (!serviceProperties.isTolerateMissingAccountNumber()
+          && !StringUtils.hasText(feedPage.getBody().get(0).getAccountNumber())) {
+        throw new MissingAccountNumberException();
       }
+    } catch (NoSuchElementException e) {
+      throw new MissingAccountNumberException();
+    }
 
-      return feedPage.getBody().stream()
-              .map(this::validateConsumer)
-              .filter(Optional::isPresent)
-              .map(Optional::get);
+    return feedPage.getBody().stream()
+        .map(this::validateConsumer)
+        .filter(Optional::isPresent)
+        .map(Optional::get);
   }
 
   @SuppressWarnings("indentation")

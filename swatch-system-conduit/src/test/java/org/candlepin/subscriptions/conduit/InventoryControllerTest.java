@@ -219,7 +219,7 @@ class InventoryControllerTest {
 
   @Test
   void testWhenTolerateMissingAccountNumberEnabled_DoNotThrowMissingAccountNumberException()
-          throws ApiException, MissingAccountNumberException {
+      throws ApiException{
     Consumer consumer1 = new Consumer();
     consumer1.setOrgId("123");
     consumer1.setUuid(UUID.randomUUID().toString());
@@ -229,9 +229,8 @@ class InventoryControllerTest {
 
     when(inventoryServiceProperties.isTolerateMissingAccountNumber()).thenReturn(true);
     when(rhsmService.getPageOfConsumers(eq("123"), nullable(String.class), anyString()))
-            .thenReturn(pageOf(consumer1, consumer2));
-    assertDoesNotThrow(
-             () -> controller.updateInventoryForOrg("123"));
+        .thenReturn(pageOf(consumer1, consumer2));
+    assertDoesNotThrow(() -> controller.updateInventoryForOrg("123"));
     verify(inventoryService, times(0)).scheduleHostUpdate(any(ConduitFacts.class));
   }
 
