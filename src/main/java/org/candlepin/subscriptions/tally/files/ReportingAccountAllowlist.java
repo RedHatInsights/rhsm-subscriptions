@@ -32,24 +32,24 @@ import org.springframework.stereotype.Component;
 
 /** Loads a list of account numbers that are permitted to access the Tally and Capacity API. */
 @Component
-public class ReportingAccountWhitelist implements ResourceLoaderAware {
+public class ReportingAccountAllowlist implements ResourceLoaderAware {
 
   private PerLineFileSource source;
   private boolean isDevMode;
 
-  public ReportingAccountWhitelist(
+  public ReportingAccountAllowlist(
       ApplicationProperties props, SecurityProperties securityProps, ApplicationClock clock) {
     String resourceLocation = props.getReportingAccountWhitelistResourceLocation();
     source =
         resourceLocation != null
             ? new PerLineFileSource(
-                resourceLocation, clock.getClock(), props.getReportingAccountWhitelistCacheTtl())
+                resourceLocation, clock.getClock(), props.getReportingAccountAllowlistCacheTtl())
             : null;
     this.isDevMode = securityProps.isDevMode();
   }
 
   public boolean hasAccount(String account) throws IOException {
-    // Whitelist any account when running in dev mode!
+    // Allowlist any account when running in dev mode!
     if (isDevMode) {
       return true;
     }

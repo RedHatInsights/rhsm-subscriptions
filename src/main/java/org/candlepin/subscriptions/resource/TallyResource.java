@@ -255,7 +255,7 @@ public class TallyResource implements TallyApi {
       String billingAccountId,
       Integer offset,
       Integer limit) {
-    // When limit and offset are not specified, we will fill the report with dummy
+    // When limit and offset are not specified, we will fill the report with placeholder
     // records from beginning to ending dates. Otherwise we page as usual.
     Pageable pageable = null;
     if (limit != null || offset != null) {

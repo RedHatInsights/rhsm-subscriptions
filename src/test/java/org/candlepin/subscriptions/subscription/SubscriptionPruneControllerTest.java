@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.util.stream.Stream;
-import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
+import org.candlepin.subscriptions.capacity.files.ProductAllowlist;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
@@ -58,7 +58,7 @@ class SubscriptionPruneControllerTest {
       @Mock MeterRegistry meterRegistry,
       @Mock Timer timer,
       @Mock KafkaTemplate<String, PruneSubscriptionsTask> kafkaTemplate,
-      @Mock ProductWhitelist allowList) {
+      @Mock ProductAllowlist allowList) {
     this.subscriptionRepo = subscriptionRepo;
     this.capacityRepo = capacityRepo;
     this.orgConfigRepo = orgConfigRepo;

@@ -36,13 +36,13 @@ import org.springframework.util.StringUtils;
 
 /** List of products to be considered for capacity calculations. */
 @Component
-public class ProductWhitelist implements ResourceLoaderAware {
+public class ProductAllowlist implements ResourceLoaderAware {
 
-  private static Logger log = LoggerFactory.getLogger(ProductWhitelist.class);
+  private static Logger log = LoggerFactory.getLogger(ProductAllowlist.class);
 
   private final PerLineFileSource source;
 
-  public ProductWhitelist(ApplicationProperties properties, ApplicationClock clock) {
+  public ProductAllowlist(ApplicationProperties properties, ApplicationClock clock) {
     if (StringUtils.hasText(properties.getProductWhitelistResourceLocation())) {
       source =
           new PerLineFileSource(
@@ -59,13 +59,14 @@ public class ProductWhitelist implements ResourceLoaderAware {
       return true;
     }
     try {
-      boolean whitelisted = source.set().contains(productId);
-      if (!whitelisted && log.isDebugEnabled()) {
-        log.debug("Product ID {} not in whitelist", productId);
+      boolean isAllowlisted = source.set().contains(productId);
+      if (!isAllowlisted && log.isDebugEnabled()) {
+        log.debug("Product ID {} not in allowlist", productId);
       }
-      return whitelisted;
+      return isAllowlisted;
     } catch (Exception e) {
-      log.error("Error reading whitelist", e);
+      // TODO is there any alerts in splunk for this?
+      log.error("Error reading allowlist", e);
       return false;
     }
   }
@@ -85,7 +86,8 @@ public class ProductWhitelist implements ResourceLoaderAware {
     try {
       return Collections.unmodifiableSet(source.set());
     } catch (IOException e) {
-      log.error("Error reading whitelist", e);
+      // TODO any splunk alerts?
+      log.error("Error reading allowlist", e);
       return Collections.emptySet();
     }
   }

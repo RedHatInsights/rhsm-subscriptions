@@ -46,7 +46,7 @@ public class DatabaseAccountListSource implements AccountListSource {
     try {
       return repository.isReportingEnabled(accountNumber);
     } catch (Exception e) {
-      throw new AccountListSourceException("Unable to determine if account was in whitelist.", e);
+      throw new AccountListSourceException("Unable to determine if account was in allowlist.", e);
     }
   }
 

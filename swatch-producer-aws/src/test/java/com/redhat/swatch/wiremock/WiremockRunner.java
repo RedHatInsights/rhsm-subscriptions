@@ -93,6 +93,7 @@ public class WiremockRunner {
     // at 401
     wireMockServer.stubFor(
         any(urlMatching("/api/rhsm-subscriptions/v1/?.*"))
+            // TODO, what is going to break by changing this to "placeholder"
             .withHeader("x-rh-swatch-psk", notMatching("dummy"))
             .willReturn(aResponse().withStatus(401)));
   }

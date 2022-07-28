@@ -633,7 +633,7 @@ class TallyResourceTest {
 
   @Test
   @WithMockRedHatPrincipal("1111")
-  void testAccessDeniedWhenAccountIsNotWhitelisted() {
+  void testAccessDeniedWhenAccountIsNotInAllowlist() {
     assertThrows(
         AccessDeniedException.class,
         () -> {

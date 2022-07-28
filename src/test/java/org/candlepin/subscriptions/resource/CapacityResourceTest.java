@@ -229,7 +229,7 @@ class CapacityResourceTest {
 
   @Test
   @WithMockRedHatPrincipal("1111")
-  void testAccessDeniedWhenAccountIsNotWhitelisted() {
+  void testAccessDeniedWhenAccountIsNotInAllowlist() {
     assertThrows(
         AccessDeniedException.class,
         () -> {
@@ -545,7 +545,7 @@ class CapacityResourceTest {
 
   @Test
   @WithMockRedHatPrincipal("1111")
-  void testReportByMetridIdAccessDeniedWhenAccountIsNotWhitelisted() {
+  void testReportByMetridIdAccessDeniedWhenAccountIsNotInAllowlist() {
     assertThrows(
         AccessDeniedException.class,
         () -> {

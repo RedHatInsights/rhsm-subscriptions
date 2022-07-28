@@ -27,18 +27,18 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 /**
- * Provides a means to validate that an authentication token has a whitelisted account associated
+ * Provides a means to validate that an authentication token has a allowlisted account associated
  * with it. The primary use of this class is to provide a check for expression based security
  * annotations.
  *
  * @see ReportingAccessRequired
  */
 @Service("reportAccessService")
-public class WhitelistedAccountReportAccessService {
+public class AllowlistedAccountReportAccessService {
 
   private AccountListSource accountSource;
 
-  public WhitelistedAccountReportAccessService(AccountListSource accountSource) {
+  public AllowlistedAccountReportAccessService(AccountListSource accountSource) {
     this.accountSource = accountSource;
   }
 

@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
+import org.candlepin.subscriptions.capacity.files.ProductAllowlist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
@@ -62,7 +62,7 @@ class CapacityReconciliationControllerTest {
 
   @Autowired CapacityReconciliationController capacityReconciliationController;
 
-  @MockBean ProductWhitelist whitelist;
+  @MockBean ProductAllowlist allowlist;
 
   @MockBean OfferingRepository offeringRepository;
 
@@ -81,7 +81,7 @@ class CapacityReconciliationControllerTest {
 
   @AfterEach
   void afterEach() {
-    reset(subscriptionCapacityRepository, capacityProductExtractor, offeringRepository, whitelist);
+    reset(subscriptionCapacityRepository, capacityProductExtractor, offeringRepository, allowlist);
   }
 
   @Test
@@ -96,7 +96,7 @@ class CapacityReconciliationControllerTest {
             .map(productId -> SubscriptionCapacity.from(newSubscription, offering, productId))
             .collect(Collectors.toList());
 
-    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(allowlist.productIdMatches(any())).thenReturn(true);
     when(capacityProductExtractor.getProducts(offering)).thenReturn(new HashSet<>(productIds));
     when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(offering));
     when(subscriptionCapacityRepository.findByKeyOwnerIdAndKeySubscriptionIdIn(
@@ -153,7 +153,7 @@ class CapacityReconciliationControllerTest {
                     SubscriptionCapacity.from(updatedSubscription, updatedOffering, productId))
             .collect(Collectors.toList());
 
-    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(allowlist.productIdMatches(any())).thenReturn(true);
     when(capacityProductExtractor.getProducts(updatedOffering)).thenReturn(productIds);
     when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(updatedOffering));
     when(subscriptionCapacityRepository.findByKeyOwnerIdAndKeySubscriptionIdIn(
@@ -167,7 +167,7 @@ class CapacityReconciliationControllerTest {
   }
 
   @Test
-  void shouldNotAddNewCapacitiesWhenProductIsNotOnWhitelist() {
+  void shouldNotAddNewCapacitiesWhenProductIsNotOnAllowlist() {
 
     Offering offering = Offering.builder().productIds(Set.of(45, 25)).sku("MCT3718").build();
     Subscription subscription = createSubscription("456", 10);
@@ -195,7 +195,7 @@ class CapacityReconciliationControllerTest {
                 .physicalSockets(15)
                 .build());
 
-    when(whitelist.productIdMatches(any())).thenReturn(false);
+    when(allowlist.productIdMatches(any())).thenReturn(false);
     when(capacityProductExtractor.getProducts(offering))
         .thenReturn(Set.of("RHEL", "RHEL Workstation"));
     when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(offering));
@@ -211,12 +211,12 @@ class CapacityReconciliationControllerTest {
   }
 
   @Test
-  void shouldRemoveAllCapacitiesWhenProductIsNotOnWhitelist() {
+  void shouldRemoveAllCapacitiesWhenProductIsNotOnAllowlist() {
 
     Offering offering = Offering.builder().productIds(Set.of(45, 25)).sku("MCT3718").build();
     Subscription subscription = createSubscription("456", 10);
 
-    when(whitelist.productIdMatches(any())).thenReturn(false);
+    when(allowlist.productIdMatches(any())).thenReturn(false);
     when(capacityProductExtractor.getProducts(offering)).thenReturn(Set.of("RHEL1", "RHEL2"));
     when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(offering));
     when(subscriptionCapacityRepository.findByKeyOwnerIdAndKeySubscriptionIdIn(
@@ -260,7 +260,7 @@ class CapacityReconciliationControllerTest {
                 .physicalSockets(15)
                 .build());
 
-    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(allowlist.productIdMatches(any())).thenReturn(true);
     when(capacityProductExtractor.getProducts(offering)).thenReturn(productIds);
     when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(offering));
     when(subscriptionCapacityRepository.findByKeyOwnerIdAndKeySubscriptionIdIn(

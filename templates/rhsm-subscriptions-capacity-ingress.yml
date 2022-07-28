@@ -90,7 +90,7 @@ parameters:
   - name: SPRING_ACTIVEMQ_BROKER_URL
     value: ssl://umb.qa.api.redhat.com:61616
   - name: UMB_SERVICE_ACCOUNT_NAME
-    value: dummy
+    value: placeholder
   - name: UMB_PROCESSING_ENABLED
     value: 'true'
 

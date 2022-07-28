@@ -83,7 +83,7 @@ public class ApplicationProperties {
    * Amount of time to cache the API access whitelist, before allowing a re-read from the
    * filesystem.
    */
-  private Duration reportingAccountWhitelistCacheTtl = Duration.ofMinutes(5);
+  private Duration reportingAccountAllowlistCacheTtl = Duration.ofMinutes(5);
 
   /**
    * The number of days after the inventory's stale_timestamp that the record will be culled.

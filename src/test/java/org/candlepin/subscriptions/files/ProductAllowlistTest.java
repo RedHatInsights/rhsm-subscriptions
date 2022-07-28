@@ -26,51 +26,51 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
+import org.candlepin.subscriptions.capacity.files.ProductAllowlist;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.FileSystemResourceLoader;
 
-class ProductWhitelistTest {
+class ProductAllowlistTest {
 
   @Test
   void testUnspecifiedLocationAllowsArbitraryProducts() throws IOException {
-    ProductWhitelist whitelist = initProductWhitelist("");
-    assertTrue(whitelist.productIdMatches("whee!"));
+    ProductAllowlist allowlist = initProductAllowlist("");
+    assertTrue(allowlist.productIdMatches("whee!"));
   }
 
   @Test
   void testAllowsProductsSpecified() throws IOException {
-    ProductWhitelist whitelist = initProductWhitelist("classpath:item_per_line.txt");
-    assertTrue(whitelist.productIdMatches("I1"));
-    assertTrue(whitelist.productIdMatches("I2"));
-    assertTrue(whitelist.productIdMatches("I3"));
+    ProductAllowlist allowlist = initProductAllowlist("classpath:item_per_line.txt");
+    assertTrue(allowlist.productIdMatches("I1"));
+    assertTrue(allowlist.productIdMatches("I2"));
+    assertTrue(allowlist.productIdMatches("I3"));
   }
 
   @Test
-  void testDisallowsProductsNotInWhitelist() throws IOException {
-    ProductWhitelist whitelist = initProductWhitelist("classpath:item_per_line.txt");
-    assertFalse(whitelist.productIdMatches("not on the list :-("));
+  void testDisallowsProductsIsNotInAllowlist() throws IOException {
+    ProductAllowlist allowlist = initProductAllowlist("classpath:item_per_line.txt");
+    assertFalse(allowlist.productIdMatches("not on the list :-("));
   }
 
   @Test
   void testAllProducts() throws IOException {
-    ProductWhitelist whitelist = initProductWhitelist("classpath:item_per_line.txt");
-    assertEquals(Set.of("I1", "I2", "I3"), whitelist.allProducts());
+    ProductAllowlist allowlist = initProductAllowlist("classpath:item_per_line.txt");
+    assertEquals(Set.of("I1", "I2", "I3"), allowlist.allProducts());
   }
 
   @Test
   void testAllProductsNoSource() throws IOException {
-    ProductWhitelist whitelist = initProductWhitelist("");
-    assertEquals(Collections.emptySet(), whitelist.allProducts());
+    ProductAllowlist allowlist = initProductAllowlist("");
+    assertEquals(Collections.emptySet(), allowlist.allProducts());
   }
 
-  private ProductWhitelist initProductWhitelist(String resourceLocation) throws IOException {
+  private ProductAllowlist initProductAllowlist(String resourceLocation) throws IOException {
     ApplicationProperties props = new ApplicationProperties();
     props.setProductWhitelistResourceLocation(resourceLocation);
-    ProductWhitelist whitelist = new ProductWhitelist(props, new ApplicationClock());
-    whitelist.setResourceLoader(new FileSystemResourceLoader());
-    whitelist.init();
-    return whitelist;
+    ProductAllowlist allowlist = new ProductAllowlist(props, new ApplicationClock());
+    allowlist.setResourceLoader(new FileSystemResourceLoader());
+    allowlist.init();
+    return allowlist;
   }
 }
