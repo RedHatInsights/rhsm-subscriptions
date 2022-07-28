@@ -114,7 +114,8 @@ public class InventoryController {
   private Timer transformHostTimer;
   private Timer validateHostTimer;
 
-  private boolean tolerateMissingAccountNumber;
+  @Autowired
+  private InventoryServiceProperties serviceProperties;
 
   @Autowired
   public InventoryController(
@@ -122,8 +123,7 @@ public class InventoryController {
       RhsmService rhsmService,
       Validator validator,
       OrgSyncTaskManager taskManager,
-      MeterRegistry meterRegistry,
-      InventoryServiceProperties serviceProperties) {
+      MeterRegistry meterRegistry) {
 
     this.inventoryService = inventoryService;
     this.rhsmService = rhsmService;
@@ -133,7 +133,6 @@ public class InventoryController {
     this.finalizeOrgCounter = meterRegistry.counter("rhsm-conduit.finalize.org");
     this.transformHostTimer = meterRegistry.timer("rhsm-conduit.transform.host");
     this.validateHostTimer = meterRegistry.timer("rhsm-conduit.validate.host");
-    this.tolerateMissingAccountNumber = serviceProperties.isTolerateMissingAccountNumber();
   }
 
   public ConduitFacts getFactsFromConsumer(Consumer consumer) {
@@ -520,27 +519,25 @@ public class InventoryController {
       org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory feedPage)
       throws MissingAccountNumberException {
 
-    if (feedPage.getBody().isEmpty()) {
-      return Stream.empty();
-    }
-
-    // If the missing account number is false then
-    // Peek at the first consumer.  If it is missing an account number, that means they all are.
-    // Abort and return an empty stream.  No sense in wasting time looping through everything.
-    if(tolerateMissingAccountNumber) {
-      try {
-        if (!StringUtils.hasText(feedPage.getBody().get(0).getAccountNumber())) {
-          throw new MissingAccountNumberException();
-        }
-      } catch (NoSuchElementException e) {
-        throw new MissingAccountNumberException();
+      if (feedPage.getBody().isEmpty()) {
+          return Stream.empty();
       }
-    }
 
-    return feedPage.getBody().stream()
-        .map(this::validateConsumer)
-        .filter(Optional::isPresent)
-        .map(Optional::get);
+      // If the missing account number is false then
+      // Peek at the first consumer.  If it is missing an account number, that means they all are.
+      // Abort and return an empty stream.  No sense in wasting time looping through everything.
+      try {
+          if (!serviceProperties.isTolerateMissingAccountNumber() && !StringUtils.hasText(feedPage.getBody().get(0).getAccountNumber())) {
+              throw new MissingAccountNumberException();
+          }
+      } catch (NoSuchElementException e) {
+          throw new MissingAccountNumberException();
+      }
+
+      return feedPage.getBody().stream()
+              .map(this::validateConsumer)
+              .filter(Optional::isPresent)
+              .map(Optional::get);
   }
 
   @SuppressWarnings("indentation")
