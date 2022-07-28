@@ -160,4 +160,4 @@ rhsm-subscriptions:
   auth:
     swatchPsks:
       #TODO
-      self: ${SWATCH_SELF_PSK:dummy}
+      self: ${SWATCH_SELF_PSK:placeholder}
