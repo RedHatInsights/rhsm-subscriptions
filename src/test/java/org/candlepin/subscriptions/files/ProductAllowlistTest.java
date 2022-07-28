@@ -67,7 +67,7 @@ class ProductAllowlistTest {
 
   private ProductAllowlist initProductAllowlist(String resourceLocation) throws IOException {
     ApplicationProperties props = new ApplicationProperties();
-    props.setProductWhitelistResourceLocation(resourceLocation);
+    props.setProductAllowlistResourceLocation(resourceLocation);
     ProductAllowlist allowlist = new ProductAllowlist(props, new ApplicationClock());
     allowlist.setResourceLoader(new FileSystemResourceLoader());
     allowlist.init();

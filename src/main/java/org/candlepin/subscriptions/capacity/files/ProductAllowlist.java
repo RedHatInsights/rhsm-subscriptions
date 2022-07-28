@@ -43,12 +43,12 @@ public class ProductAllowlist implements ResourceLoaderAware {
   private final PerLineFileSource source;
 
   public ProductAllowlist(ApplicationProperties properties, ApplicationClock clock) {
-    if (StringUtils.hasText(properties.getProductWhitelistResourceLocation())) {
+    if (StringUtils.hasText(properties.getProductAllowlistResourceLocation())) {
       source =
           new PerLineFileSource(
-              properties.getProductWhitelistResourceLocation(),
+              properties.getProductAllowlistResourceLocation(),
               clock.getClock(),
-              properties.getProductWhiteListCacheTtl());
+              properties.getProductAllowListCacheTtl());
     } else {
       source = null;
     }

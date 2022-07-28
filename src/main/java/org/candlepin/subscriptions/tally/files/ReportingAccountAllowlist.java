@@ -39,7 +39,7 @@ public class ReportingAccountAllowlist implements ResourceLoaderAware {
 
   public ReportingAccountAllowlist(
       ApplicationProperties props, SecurityProperties securityProps, ApplicationClock clock) {
-    String resourceLocation = props.getReportingAccountWhitelistResourceLocation();
+    String resourceLocation = props.getReportingAccountAllowlistResourceLocation();
     source =
         resourceLocation != null
             ? new PerLineFileSource(

@@ -237,7 +237,7 @@ objects:
                     secretKeyRef:
                       name: host-inventory-db-readonly
                       key: db.password
-                - name: PRODUCT_WHITELIST_RESOURCE_LOCATION
+                - name: PRODUCT_ALLOWLIST_RESOURCE_LOCATION
                   value: file:/capacity-allowlist/product-allowlist.txt
                 - name: PRODUCT_KEYSTORE
                   value: /service-certs/keystore.jks
