@@ -4,6 +4,8 @@ kind: Template
 metadata:
   name: rhsm
 parameters:
+  - name: TOLERATE_MISSING_ACCOUNT_NUMBER
+    value: 'false'
   - name: SUBSCRIPTIONS_HAWTIO_BASE_PATH
     value: /app/rhsm-subscriptions/hawtio
   - name: RH_MARKETPLACE_HAWTIO_BASE_PATH
@@ -1188,6 +1190,8 @@ objects:
                 secretKeyRef:
                   name: splunk-hec-external
                   key: token
+            - name: TOLERATE_MISSING_ACCOUNT_NUMBER
+              value: ${TOLERATE_MISSING_ACCOUNT_NUMBER}
             - name: SPLUNK_SOURCE
               value: ${SPLUNK_SOURCE}
             - name: SPLUNK_SOURCE_TYPE
