@@ -53,10 +53,10 @@ public class ApplicationProperties {
    * Resource location of a file containing a list of products (SKUs) to process. If not specified,
    * all products will be processed.
    */
-  private String productWhitelistResourceLocation;
+  private String productAllowlistResourceLocation;
 
-  /** Resource location of a file containing the whitelisted accounts allowed to run reports. */
-  private String reportingAccountWhitelistResourceLocation;
+  /** Resource location of a file containing the allowlisted accounts allowed to run reports. */
+  private String reportingAccountAllowlistResourceLocation;
 
   /**
    * An hour based threshold used to determine whether an inventory host record's rhsm facts are
@@ -75,15 +75,15 @@ public class ApplicationProperties {
   private Duration accountListCacheTtl = Duration.ofMinutes(5);
 
   /**
-   * Amount of time to cache the product whitelist, before allowing a re-read from the filesystem.
+   * Amount of time to cache the product allowlist, before allowing a re-read from the filesystem.
    */
-  private Duration productWhiteListCacheTtl = Duration.ofMinutes(5);
+  private Duration productAllowListCacheTtl = Duration.ofMinutes(5);
 
   /**
-   * Amount of time to cache the API access whitelist, before allowing a re-read from the
+   * Amount of time to cache the API access allowlist, before allowing a re-read from the
    * filesystem.
    */
-  private Duration reportingAccountWhitelistCacheTtl = Duration.ofMinutes(5);
+  private Duration reportingAccountAllowlistCacheTtl = Duration.ofMinutes(5);
 
   /**
    * The number of days after the inventory's stale_timestamp that the record will be culled.

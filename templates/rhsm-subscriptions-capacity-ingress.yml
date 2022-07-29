@@ -90,7 +90,7 @@ parameters:
   - name: SPRING_ACTIVEMQ_BROKER_URL
     value: ssl://umb.qa.api.redhat.com:61616
   - name: UMB_SERVICE_ACCOUNT_NAME
-    value: dummy
+    value: placeholder
   - name: UMB_PROCESSING_ENABLED
     value: 'true'
 
@@ -237,7 +237,7 @@ objects:
                     secretKeyRef:
                       name: host-inventory-db-readonly
                       key: db.password
-                - name: PRODUCT_WHITELIST_RESOURCE_LOCATION
+                - name: PRODUCT_ALLOWLIST_RESOURCE_LOCATION
                   value: file:/capacity-allowlist/product-allowlist.txt
                 - name: PRODUCT_KEYSTORE
                   value: /service-certs/keystore.jks

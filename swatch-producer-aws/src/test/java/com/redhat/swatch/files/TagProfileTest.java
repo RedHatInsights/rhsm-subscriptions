@@ -44,12 +44,12 @@ class TagProfileTest {
         assertThrows(
             AwsDimensionNotConfiguredException.class,
             () -> {
-              tagProfile.getAwsDimension("rhosak", "dummy-uom");
+              tagProfile.getAwsDimension("rhosak", "placeholder-uom");
             });
     assertEquals("rhosak", exception.getProductId());
-    assertEquals("dummy-uom", exception.getUom());
+    assertEquals("placeholder-uom", exception.getUom());
     assertThat(exception.getMessage(), containsString("rhosak"));
-    assertThat(exception.getMessage(), containsString("dummy-uom"));
+    assertThat(exception.getMessage(), containsString("placeholder-uom"));
   }
 
   @Test

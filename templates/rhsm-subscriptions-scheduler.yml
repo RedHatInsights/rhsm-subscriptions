@@ -749,7 +749,7 @@ objects:
                       value: '256'
                     - name: LOG_FILE
                       value: /logs/server.log
-                    - name: PRODUCT_WHITELIST_RESOURCE_LOCATION
+                    - name: PRODUCT_ALLOWLIST_RESOURCE_LOCATION
                       value: file:/capacity-allowlist/product-allowlist.txt
                     - name: LOGGING_LEVEL_ROOT
                       value: ${LOGGING_LEVEL_ROOT}

@@ -94,7 +94,7 @@ class RhMarketplacePayloadMapperTest {
             any(UsageCalculation.Key.class),
             any(OffsetDateTime.class),
             any(OffsetDateTime.class)))
-        .thenReturn(Optional.of("DUMMY"));
+        .thenReturn(Optional.of("PLACEHOLDER"));
 
     var snapshotDateLong = 1616100754L;
 

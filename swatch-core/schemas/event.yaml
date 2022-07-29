@@ -19,6 +19,10 @@ properties:
     description: Account identifier for the relevant account.
     type: string
     required: true
+  org_id:
+    description: Organization identifier associated with this event.
+    type: string
+    required: false
   service_type:
     description: Identifier for the type of service being measured. (E.g. RHEL System, OpenShift Cluster)
     type: string
@@ -86,6 +90,7 @@ properties:
             - Storage-gibibytes
             - Transfer-gibibytes
             - Storage-gibibyte-months
+            - Instances
     required: false
   cloud_provider:
     description: Identifier for the cloud provider of the subject.

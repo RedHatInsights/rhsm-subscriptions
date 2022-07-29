@@ -41,7 +41,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
-import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
+import org.candlepin.subscriptions.capacity.files.ProductAllowlist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -81,7 +81,7 @@ class SubscriptionSyncControllerTest {
 
   @Autowired private ApplicationClock clock;
 
-  @MockBean ProductWhitelist whitelist;
+  @MockBean ProductAllowlist allowlist;
 
   @MockBean OfferingRepository offeringRepository;
 
@@ -116,7 +116,7 @@ class SubscriptionSyncControllerTest {
     Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
         .thenReturn(Optional.of(createSubscription("123", "testsku", "456")));
     Mockito.when(offeringRepository.existsById("testsku")).thenReturn(true);
-    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(allowlist.productIdMatches(any())).thenReturn(true);
     var dto = createDto("456", 10);
     subscriptionSyncController.syncSubscription(dto);
     verify(subscriptionRepository, Mockito.times(2)).save(Mockito.any(Subscription.class));
@@ -129,7 +129,7 @@ class SubscriptionSyncControllerTest {
     Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
         .thenReturn(Optional.of(createSubscription("123", "testsku", "456")));
     Mockito.when(offeringRepository.existsById("testsku")).thenReturn(true);
-    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(allowlist.productIdMatches(any())).thenReturn(true);
     var dto = createDto("456", 4);
     subscriptionSyncController.syncSubscription(dto);
     verify(subscriptionRepository, Mockito.times(1)).save(Mockito.any(Subscription.class));
@@ -142,7 +142,7 @@ class SubscriptionSyncControllerTest {
     Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
         .thenReturn(Optional.empty());
     Mockito.when(offeringRepository.existsById("testsku")).thenReturn(true);
-    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(allowlist.productIdMatches(any())).thenReturn(true);
     var dto = createDto("456", 10);
     subscriptionSyncController.syncSubscription(dto);
     verify(subscriptionRepository, Mockito.times(1)).save(Mockito.any(Subscription.class));
@@ -164,7 +164,7 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void shouldSkipSyncSubscriptionIfSkuIsNotOnAllowList() {
-    when(whitelist.productIdMatches(any())).thenReturn(false);
+    when(allowlist.productIdMatches(any())).thenReturn(false);
     var dto = createDto("456", 10);
     Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
     subscriptionSyncController.syncSubscription(dto.getId().toString());
@@ -173,7 +173,7 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void shouldSkipSyncSubscriptionIfSkuIsNotInOfferingRepository() {
-    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(allowlist.productIdMatches(any())).thenReturn(true);
     var dto = createDto("456", 10);
     Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
     subscriptionSyncController.syncSubscription(dto.getId().toString());
@@ -182,7 +182,7 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void shouldSyncSubscriptionsWithinLimitForOrgAndQueueTaskForNext() {
-    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(allowlist.productIdMatches(any())).thenReturn(true);
     Mockito.when(offeringRepository.existsById("testsku")).thenReturn(true);
 
     List<org.candlepin.subscriptions.subscription.api.model.Subscription> subscriptions =
@@ -216,7 +216,7 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void shouldSyncSubscriptionsSyncSubIfRecent() {
-    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(allowlist.productIdMatches(any())).thenReturn(true);
     Mockito.when(offeringRepository.existsById(any())).thenReturn(true);
 
     // When syncing an org's subs, a sub should be synced if it is within effective*Dates
@@ -244,7 +244,7 @@ class SubscriptionSyncControllerTest {
     subscriptionSyncController.syncSubscriptions("100", 0, 1);
 
     verify(subscriptionService).getSubscriptionsByOrgId("100", 0, 2);
-    verifyNoInteractions(whitelist, offeringRepository, subscriptionRepository);
+    verifyNoInteractions(allowlist, offeringRepository, subscriptionRepository);
   }
 
   @Test
@@ -260,7 +260,7 @@ class SubscriptionSyncControllerTest {
     subscriptionSyncController.syncSubscriptions("100", 0, 1);
 
     verify(subscriptionService).getSubscriptionsByOrgId("100", 0, 2);
-    verifyNoInteractions(whitelist, offeringRepository, subscriptionRepository);
+    verifyNoInteractions(allowlist, offeringRepository, subscriptionRepository);
   }
 
   @Test
@@ -277,7 +277,7 @@ class SubscriptionSyncControllerTest {
     subscriptionSyncController.syncSubscriptions("100", 0, 1);
 
     verify(subscriptionService).getSubscriptionsByOrgId("100", 0, 2);
-    verifyNoInteractions(whitelist, offeringRepository, subscriptionRepository);
+    verifyNoInteractions(allowlist, offeringRepository, subscriptionRepository);
   }
 
   @Test
@@ -321,7 +321,7 @@ class SubscriptionSyncControllerTest {
     var dto2 = createDto("345", 3);
     var subList = Arrays.asList(dto1, dto2);
     when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(subList);
-    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(allowlist.productIdMatches(any())).thenReturn(true);
     when(offeringRepository.existsById(any())).thenReturn(true);
     subscriptionSyncController.forceSyncSubscriptionsForOrg("123", false);
     verify(subscriptionRepository, times(2)).save(any());
@@ -338,7 +338,7 @@ class SubscriptionSyncControllerTest {
     dto2.setExternalReferences(externalReferences);
     var subList = Arrays.asList(dto1, dto2);
     when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(subList);
-    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(allowlist.productIdMatches(any())).thenReturn(true);
     when(offeringRepository.existsById(any())).thenReturn(true);
     subscriptionSyncController.forceSyncSubscriptionsForOrg("123", true);
     verify(subscriptionRepository, times(1)).save(any());
@@ -531,7 +531,7 @@ class SubscriptionSyncControllerTest {
                 .customerID("c")
                 .sellerAccount("s")));
 
-    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(allowlist.productIdMatches(any())).thenReturn(true);
     when(offeringRepository.existsById("testsku")).thenReturn(true);
     when(subscriptionService.getSubscriptionBySubscriptionNumber("subnum"))
         .thenReturn(serviceResponse);
@@ -552,7 +552,7 @@ class SubscriptionSyncControllerTest {
     existing.setBillingProvider(BillingProvider.RED_HAT);
     existing.setBillingProviderId("billingProviderId");
 
-    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(allowlist.productIdMatches(any())).thenReturn(true);
     when(offeringRepository.existsById("testsku")).thenReturn(true);
 
     subscriptionSyncController.syncSubscription(incoming, Optional.of(existing));
@@ -570,7 +570,7 @@ class SubscriptionSyncControllerTest {
     Subscription existing = createSubscription("123", "testsku", "456");
     existing.setBillingAccountId("billingAccountId");
 
-    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(allowlist.productIdMatches(any())).thenReturn(true);
     when(offeringRepository.existsById("testsku")).thenReturn(true);
 
     subscriptionSyncController.syncSubscription(incoming, Optional.of(existing));
@@ -591,7 +591,7 @@ class SubscriptionSyncControllerTest {
     existing.setBillingAccountId("oldBillingAccountId");
     existing.setBillingProviderId("oldBillinProviderId");
 
-    when(whitelist.productIdMatches(any())).thenReturn(true);
+    when(allowlist.productIdMatches(any())).thenReturn(true);
     when(offeringRepository.existsById("testsku")).thenReturn(true);
 
     subscriptionSyncController.syncSubscription(incoming, Optional.of(existing));

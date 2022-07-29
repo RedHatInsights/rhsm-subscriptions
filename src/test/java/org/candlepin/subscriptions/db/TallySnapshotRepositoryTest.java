@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
-import org.candlepin.subscriptions.db.model.HardwareMeasurement;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
@@ -114,8 +113,8 @@ class TallySnapshotRepositoryTest {
     assertEquals(Usage.PRODUCTION, snapshot.getUsage());
     assertEquals(NOWISH, found.get(0).getSnapshotDate());
 
-    HardwareMeasurement total = snapshot.getHardwareMeasurement(HardwareMeasurementType.TOTAL);
-    assertEquals(8888, total.getCores());
+    int cores = snapshot.getMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES).intValue();
+    assertEquals(8888, cores);
   }
 
   @SuppressWarnings("linelength")
@@ -160,8 +159,8 @@ class TallySnapshotRepositoryTest {
     assertEquals("N/A", snapshot.getOwnerId());
     assertEquals(NOWISH, found.get(0).getSnapshotDate());
 
-    HardwareMeasurement total = snapshot.getHardwareMeasurement(HardwareMeasurementType.TOTAL);
-    assertEquals(1111, total.getCores());
+    int cores = snapshot.getMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES).intValue();
+    assertEquals(1111, cores);
   }
 
   @Test
@@ -203,10 +202,10 @@ class TallySnapshotRepositoryTest {
     assertEquals("Account1", result.getAccountNumber());
     assertEquals(product1, result.getProductId());
 
-    HardwareMeasurement total = result.getHardwareMeasurement(HardwareMeasurementType.TOTAL);
-    assertEquals(9, total.getCores());
-    assertEquals(10, total.getSockets());
-    assertEquals(11, total.getInstanceCount());
+    assertEquals(9, result.getMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES).intValue());
+    assertEquals(10, result.getMeasurement(HardwareMeasurementType.TOTAL, Uom.SOCKETS).intValue());
+    assertEquals(
+        11, result.getMeasurement(HardwareMeasurementType.TOTAL, Uom.INSTANCES).intValue());
   }
 
   @Test
@@ -214,11 +213,9 @@ class TallySnapshotRepositoryTest {
     TallySnapshot snap =
         createUnpersisted("Acme Inc.", "rocket-skates", Granularity.DAILY, 1, 2, 3, NOWISH);
 
-    HardwareMeasurement physical = new HardwareMeasurement();
-    physical.setCores(9);
-    physical.setSockets(8);
-    physical.setInstanceCount(7);
-    snap.setHardwareMeasurement(HardwareMeasurementType.PHYSICAL, physical);
+    snap.setMeasurement(HardwareMeasurementType.PHYSICAL, Uom.CORES, 9.0);
+    snap.setMeasurement(HardwareMeasurementType.PHYSICAL, Uom.SOCKETS, 8.0);
+    snap.setMeasurement(HardwareMeasurementType.PHYSICAL, Uom.INSTANCES, 7.0);
 
     repository.save(snap);
     repository.flush();
@@ -234,12 +231,13 @@ class TallySnapshotRepositoryTest {
             .collect(Collectors.toList());
 
     TallySnapshot expected = found.get(0);
-    HardwareMeasurement physicalResult =
-        expected.getHardwareMeasurement(HardwareMeasurementType.PHYSICAL);
 
-    assertEquals(9, physicalResult.getCores());
-    assertEquals(8, physicalResult.getSockets());
-    assertEquals(7, physicalResult.getInstanceCount());
+    assertEquals(
+        9, expected.getMeasurement(HardwareMeasurementType.PHYSICAL, Uom.CORES).intValue());
+    assertEquals(
+        8, expected.getMeasurement(HardwareMeasurementType.PHYSICAL, Uom.SOCKETS).intValue());
+    assertEquals(
+        7, expected.getMeasurement(HardwareMeasurementType.PHYSICAL, Uom.INSTANCES).intValue());
     assertEquals(
         Double.valueOf(1.0),
         expected.getMeasurement(HardwareMeasurementType.TOTAL, Measurement.Uom.CORES));
@@ -291,14 +289,10 @@ class TallySnapshotRepositoryTest {
     tally.setSnapshotDate(date);
     tally.setServiceLevel(serviceLevel);
 
-    HardwareMeasurement total = new HardwareMeasurement();
-    total.setCores(cores);
-    total.setSockets(sockets);
-    total.setInstanceCount(instances);
+    tally.setMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES, (double) cores);
+    tally.setMeasurement(HardwareMeasurementType.TOTAL, Uom.SOCKETS, (double) sockets);
+    tally.setMeasurement(HardwareMeasurementType.TOTAL, Uom.INSTANCES, (double) instances);
 
-    tally.setMeasurement(HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, (double) cores);
-
-    tally.setHardwareMeasurement(HardwareMeasurementType.TOTAL, total);
     return tally;
   }
 

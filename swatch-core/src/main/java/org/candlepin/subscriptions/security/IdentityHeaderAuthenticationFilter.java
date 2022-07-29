@@ -91,10 +91,10 @@ public class IdentityHeaderAuthenticationFilter extends AbstractPreAuthenticated
   }
 
   /**
-   * Credentials are not applicable in this case, so we return a dummy value.
+   * Credentials are not applicable in this case, so we return a placeholder value.
    *
    * @param request the servlet request
-   * @return a dummy value
+   * @return a placeholder value
    */
   @Override
   protected Object getPreAuthenticatedCredentials(HttpServletRequest request) {

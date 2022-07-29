@@ -229,6 +229,7 @@ public class MetricUsageCollector {
       Event event, Host instance, Optional<TagMetaData> serviceTypeMeta) {
     // fields that we expect to always be present
     instance.setAccountNumber(event.getAccountNumber());
+    instance.setOrgId(event.getOrgId());
     instance.setInstanceType(event.getServiceType());
     instance.setInstanceId(event.getInstanceId());
     instance.setDisplayName(event.getInstanceId()); // may be overridden later

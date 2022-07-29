@@ -209,7 +209,7 @@ parameters:
   - name: SPRING_ACTIVEMQ_BROKER_URL
     value: vm://localhost?broker.persistent=false
   - name: UMB_SERVICE_ACCOUNT_NAME
-    value: dummy
+    value: placeholder
   - name: UMB_PROCESSING_ENABLED
     value: 'true'
   - name: CURL_CRON_IMAGE
@@ -1454,7 +1454,7 @@ objects:
               value: ${INVENTORY_DATABASE_CONNECTION_TIMEOUT_MS}
             - name: INVENTORY_DATABASE_MAX_POOL_SIZE
               value: ${INVENTORY_DATABASE_MAX_POOL_SIZE}
-            - name: PRODUCT_WHITELIST_RESOURCE_LOCATION
+            - name: PRODUCT_ALLOWLIST_RESOURCE_LOCATION
               value: file:/capacity-allowlist/product-allowlist.txt
             - name: PRODUCT_KEYSTORE
               value: /pinhead/keystore.jks
@@ -2428,7 +2428,7 @@ objects:
               value: ${LOGGING_LEVEL_ROOT}
             - name: LOGGING_LEVEL_ORG_CANDLEPIN
               value: ${LOGGING_LEVEL}
-            - name: PRODUCT_WHITELIST_RESOURCE_LOCATION
+            - name: PRODUCT_ALLOWLIST_RESOURCE_LOCATION
               value: file:/capacity-allowlist/product-allowlist.txt
             - name: DATABASE_HOST
               valueFrom:

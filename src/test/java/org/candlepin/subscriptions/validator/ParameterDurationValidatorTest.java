@@ -238,7 +238,7 @@ class ParameterDurationValidatorTest {
   }
 
   /* These are primarily to illustrate another way of doing the validator testing if you do not need to
-   * provide a ConstraintValidationContext.  Creating a dummy ConstraintValidationContext is not trivial,
+   * provide a ConstraintValidationContext.  Creating a placeholder ConstraintValidationContext is not trivial,
    * so most of the tests that would dereference the context call the Validator indirectly by invoking a
    * method it's been applied to.  The ConstraintValidationContext could be mocked for cases that don't
    * use it, but for testing that the proper error messages are constructed we really don't want to use a

@@ -142,7 +142,7 @@ public class InventoryAccountUsageCollector {
                 accountHypervisorFacts.computeIfAbsent(account, a -> new HashMap<>());
             idToHypervisorMap.put(hostFacts.getSubscriptionManagerId(), facts);
             hypervisorHosts.put(hostFacts.getSubscriptionManagerId(), host);
-          } else if (facts.isVirtual() && !StringUtils.isEmpty(facts.getHypervisorUuid())) {
+          } else if (facts.isVirtual() && StringUtils.hasText(facts.getHypervisorUuid())) {
             Integer guests = hypervisorGuestCounts.getOrDefault(host.getHypervisorUuid(), 0);
             hypervisorGuestCounts.put(host.getHypervisorUuid(), ++guests);
           }

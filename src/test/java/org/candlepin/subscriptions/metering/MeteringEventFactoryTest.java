@@ -39,6 +39,7 @@ class MeteringEventFactoryTest {
   @Test
   void testOpenShiftClusterCoresEventCreation() throws Exception {
     String account = "my-account";
+    String orgId = "my-org";
     String clusterId = "my-cluster";
     String sla = "Premium";
     String usage = "Production";
@@ -54,6 +55,7 @@ class MeteringEventFactoryTest {
     Event event =
         MeteringEventFactory.createMetricEvent(
             account,
+            orgId,
             metricId,
             clusterId,
             sla,
@@ -68,6 +70,7 @@ class MeteringEventFactoryTest {
             measuredValue);
 
     assertEquals(account, event.getAccountNumber());
+    assertEquals(orgId, event.getOrgId());
     assertEquals(measuredTime, event.getTimestamp());
     assertEquals(expiry, event.getExpiration().get());
     assertEquals(clusterId, event.getInstanceId());
@@ -88,6 +91,7 @@ class MeteringEventFactoryTest {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
+            "my-org",
             "metric-id",
             "cluster-id",
             null,
@@ -108,6 +112,7 @@ class MeteringEventFactoryTest {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
+            "my-org",
             "metric-id",
             "cluster-id",
             "None",
@@ -128,6 +133,7 @@ class MeteringEventFactoryTest {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
+            "my-org",
             "metric-id",
             "cluster-id",
             "UNKNOWN_SLA",
@@ -148,6 +154,7 @@ class MeteringEventFactoryTest {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
+            "my-org",
             "metric-id",
             "cluster-id",
             "Premium",
@@ -168,6 +175,7 @@ class MeteringEventFactoryTest {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
+            "my-org",
             "metric-id",
             "cluster-id",
             "Premium",
@@ -188,6 +196,7 @@ class MeteringEventFactoryTest {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
+            "my-org",
             "metric-id",
             "cluster-id",
             "Premium",
@@ -208,6 +217,7 @@ class MeteringEventFactoryTest {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
+            "my-org",
             "metric-id",
             "cluster-id",
             "Premium",
@@ -228,6 +238,7 @@ class MeteringEventFactoryTest {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
+            "my-org",
             "metric-id",
             "cluster-id",
             "Premium",
@@ -250,6 +261,7 @@ class MeteringEventFactoryTest {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
+            "my-org",
             "metric-id",
             "cluster-id",
             "Premium",
@@ -271,6 +283,7 @@ class MeteringEventFactoryTest {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
+            "my-org",
             "metric-id",
             "cluster-id",
             "Premium",
@@ -291,6 +304,7 @@ class MeteringEventFactoryTest {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
+            "my-org",
             "metric-id",
             "cluster-id",
             "Premium",
@@ -311,6 +325,7 @@ class MeteringEventFactoryTest {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
+            "my-org",
             "metric-id",
             "cluster-id",
             "Premium",

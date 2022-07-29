@@ -29,7 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
-import org.candlepin.subscriptions.capacity.files.ProductWhitelist;
+import org.candlepin.subscriptions.capacity.files.ProductAllowlist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -51,7 +51,7 @@ public class OfferingSyncController {
       "{} for offeringSku=\"{}\" in offeringSyncTimeMillis={}.";
 
   private final OfferingRepository offeringRepository;
-  private final ProductWhitelist productAllowlist;
+  private final ProductAllowlist productAllowlist;
   private final ProductService productService;
   private final CapacityReconciliationController capacityReconciliationController;
   private final Timer syncTimer;
@@ -63,7 +63,7 @@ public class OfferingSyncController {
   @Autowired
   public OfferingSyncController(
       OfferingRepository offeringRepository,
-      ProductWhitelist productAllowlist,
+      ProductAllowlist productAllowlist,
       ProductService productService,
       CapacityReconciliationController capacityReconciliationController,
       MeterRegistry meterRegistry,

@@ -223,33 +223,16 @@ public class TallyResource implements TallyApi {
     result.setValue(result.getValue() + newDataPoint.getValue());
   }
 
-  // NOTE(khowell): deprecated method to be removed by https://issues.redhat.com/browse/ENT-3545
   @SuppressWarnings("java:S5738")
   private boolean hasCloudigradeData(
       org.candlepin.subscriptions.db.model.TallySnapshot tallySnapshot, Uom uom) {
-    if (tallySnapshot.getTallyMeasurements().isEmpty()) {
-      HardwareMeasurement hardwareMeasurement =
-          tallySnapshot.getHardwareMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE);
-      return hardwareMeasurement != null && extractLegacyValue(hardwareMeasurement, uom) > 0.0;
-    }
     Double measurement = tallySnapshot.getMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, uom);
     return measurement != null && measurement > 0.0;
   }
 
-  // NOTE(khowell): deprecated method to be removed by https://issues.redhat.com/browse/ENT-3545
   @SuppressWarnings("java:S5738")
   private boolean hasCloudigradeMismatch(
       org.candlepin.subscriptions.db.model.TallySnapshot tallySnapshot, Uom uom) {
-    if (tallySnapshot.getTallyMeasurements().isEmpty()) {
-      HardwareMeasurement cloudigradeMeasurement =
-          tallySnapshot.getHardwareMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE);
-      HardwareMeasurement hbiMeasurement =
-          tallySnapshot.getHardwareMeasurement(HardwareMeasurementType.AWS);
-      return cloudigradeMeasurement != null
-          && (hbiMeasurement == null
-              || extractLegacyValue(cloudigradeMeasurement, uom)
-                  != extractLegacyValue(hbiMeasurement, uom));
-    }
     Double cloudigradeMeasurement =
         tallySnapshot.getMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, uom);
     Double hbiMeasurement = tallySnapshot.getMeasurement(HardwareMeasurementType.AWS, uom);
@@ -272,7 +255,7 @@ public class TallyResource implements TallyApi {
       String billingAccountId,
       Integer offset,
       Integer limit) {
-    // When limit and offset are not specified, we will fill the report with dummy
+    // When limit and offset are not specified, we will fill the report with placeholder
     // records from beginning to ending dates. Otherwise we page as usual.
     Pageable pageable = null;
     if (limit != null || offset != null) {
@@ -317,38 +300,8 @@ public class TallyResource implements TallyApi {
       Uom uom,
       ReportCategory category,
       org.candlepin.subscriptions.db.model.TallySnapshot snapshot) {
-    double value;
-    if (snapshot.getTallyMeasurements().isEmpty()) {
-      value = extractLegacyValue(uom, category, snapshot);
-    } else {
-      value = extractValue(uom, category, snapshot);
-    }
+    double value = extractValue(uom, category, snapshot);
     return new TallyReportDataPoint().date(snapshot.getSnapshotDate()).value(value).hasData(true);
-  }
-
-  // NOTE(khowell): deprecated method to be removed by https://issues.redhat.com/browse/ENT-3545
-  @SuppressWarnings("java:S5738")
-  private double extractLegacyValue(
-      Uom uom,
-      ReportCategory category,
-      org.candlepin.subscriptions.db.model.TallySnapshot snapshot) {
-    Set<HardwareMeasurementType> contributingTypes = getContributingTypes(category);
-    return contributingTypes.stream()
-        .map(snapshot::getHardwareMeasurement)
-        .filter(Objects::nonNull)
-        .mapToDouble(m -> extractLegacyValue(m, uom))
-        .sum();
-  }
-
-  private double extractLegacyValue(HardwareMeasurement hardwareMeasurement, Uom uom) {
-    switch (uom) {
-      case CORES:
-        return hardwareMeasurement.getCores();
-      case SOCKETS:
-        return hardwareMeasurement.getSockets();
-      default:
-        throw new IllegalArgumentException(uom + " cannot be extracted from HardwareMeasurement");
-    }
   }
 
   private double extractValue(
