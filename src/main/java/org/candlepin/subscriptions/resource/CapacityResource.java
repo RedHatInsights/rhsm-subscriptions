@@ -41,8 +41,11 @@ import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReport;
+import org.candlepin.subscriptions.utilization.api.model.CapacityReportByMetricId;
+import org.candlepin.subscriptions.utilization.api.model.CapacityReportByMetricIdMeta;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
+import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshotByMetricId;
 import org.candlepin.subscriptions.utilization.api.model.GranularityType;
 import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.candlepin.subscriptions.utilization.api.model.PageLinks;
@@ -150,7 +153,7 @@ public class CapacityResource implements CapacityApi {
 
   @Override
   @ReportingAccessRequired
-  public CapacityReport getCapacityReportByMetricId(
+  public CapacityReportByMetricId getCapacityReportByMetricId(
       ProductId productId,
       MetricId metricId,
       @NotNull GranularityType granularityType,
@@ -175,11 +178,11 @@ public class CapacityResource implements CapacityApi {
 
     Granularity granularityValue = Granularity.fromString(granularityType.toString());
     String ownerId = ResourceUtils.getOwnerId();
-    List<CapacitySnapshot> capacities =
-        getCapacities(
+    List<CapacitySnapshotByMetricId> capacities =
+        getCapacitiesByMetricId(
             ownerId,
             productId,
-            Optional.of(metricId),
+            metricId,
             reportCategory,
             sanitizedServiceLevel,
             sanitizedUsage,
@@ -187,23 +190,25 @@ public class CapacityResource implements CapacityApi {
             beginning,
             ending);
 
-    List<CapacitySnapshot> data;
+    List<CapacitySnapshotByMetricId> data;
     PageLinks links;
     if (offset != null || limit != null) {
       Pageable pageable = ResourceUtils.getPageable(offset, limit);
       data = paginate(capacities, pageable);
-      Page<CapacitySnapshot> snapshotPage = new PageImpl<>(data, pageable, capacities.size());
+      Page<CapacitySnapshotByMetricId> snapshotPage =
+          new PageImpl<>(data, pageable, capacities.size());
       links = pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage);
     } else {
       data = capacities;
       links = null;
     }
 
-    CapacityReport report = new CapacityReport();
+    CapacityReportByMetricId report = new CapacityReportByMetricId();
     report.setData(data);
-    report.setMeta(new CapacityReportMeta());
+    report.setMeta(new CapacityReportByMetricIdMeta());
     report.getMeta().setGranularity(granularityType);
     report.getMeta().setProduct(productId);
+    report.getMeta().setMetricId(metricId);
     report.getMeta().setCount(report.getData().size());
 
     if (sanitizedServiceLevel != null) {
@@ -227,29 +232,6 @@ public class CapacityResource implements CapacityApi {
       Granularity granularity,
       @NotNull OffsetDateTime reportBegin,
       @NotNull OffsetDateTime reportEnd) {
-    return getCapacities(
-        ownerId,
-        productId,
-        Optional.empty(),
-        null,
-        sla,
-        usage,
-        granularity,
-        reportBegin,
-        reportEnd);
-  }
-
-  @SuppressWarnings("java:S107")
-  protected List<CapacitySnapshot> getCapacities(
-      String ownerId,
-      ProductId productId,
-      Optional<MetricId> optionalMetricId,
-      ReportCategory reportCategory,
-      ServiceLevel sla,
-      Usage usage,
-      Granularity granularity,
-      @NotNull OffsetDateTime reportBegin,
-      @NotNull OffsetDateTime reportEnd) {
 
     /* Throw an error if we are asked to generate capacity reports at a finer granularity than what is
      * supported by the product.  The reports created would be technically accurate, but would convey the
@@ -262,22 +244,9 @@ public class CapacityResource implements CapacityApi {
     }
 
     List<SubscriptionCapacity> matches;
-    if (optionalMetricId.isPresent()) {
-      matches =
-          repository.findByOwnerAndProductIdAndMetricId(
-              ownerId,
-              productId.toString(),
-              optionalMetricId.get(),
-              reportCategory,
-              sla,
-              usage,
-              reportBegin,
-              reportEnd);
-    } else {
-      matches =
-          repository.findByOwnerAndProductId(
-              ownerId, productId.toString(), sla, usage, reportBegin, reportEnd);
-    }
+    matches =
+        repository.findByOwnerAndProductId(
+            ownerId, productId.toString(), sla, usage, reportBegin, reportEnd);
 
     SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
 
@@ -296,7 +265,60 @@ public class CapacityResource implements CapacityApi {
     return result;
   }
 
-  private List<CapacitySnapshot> paginate(List<CapacitySnapshot> capacities, Pageable pageable) {
+  @SuppressWarnings("java:S107")
+  protected List<CapacitySnapshotByMetricId> getCapacitiesByMetricId(
+      String ownerId,
+      ProductId productId,
+      MetricId metricId,
+      ReportCategory reportCategory,
+      ServiceLevel sla,
+      Usage usage,
+      Granularity granularity,
+      @NotNull OffsetDateTime reportBegin,
+      @NotNull OffsetDateTime reportEnd) {
+
+    /* Throw an error if we are asked to generate capacity reports at a finer granularity than what is
+     * supported by the product.  The reports created would be technically accurate, but would convey the
+     * false impression that we have capacity information at that fine of a granularity.  This decision is
+     * on of personal judgment and it may be appropriate to reverse it at a later date. */
+    try {
+      tagProfile.validateGranularityCompatibility(productId, granularity);
+    } catch (IllegalStateException e) {
+      throw new BadRequestException(e.getMessage());
+    }
+
+    List<SubscriptionCapacity> matches;
+    matches =
+        repository.findByOwnerAndProductIdAndMetricId(
+            ownerId,
+            productId.toString(),
+            metricId,
+            reportCategory,
+            sla,
+            usage,
+            reportBegin,
+            reportEnd);
+
+    SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
+
+    OffsetDateTime start = timeAdjuster.adjustToPeriodStart(reportBegin);
+    OffsetDateTime end = timeAdjuster.adjustToPeriodEnd(reportEnd);
+    TemporalAmount offset = timeAdjuster.getSnapshotOffset();
+
+    List<CapacitySnapshotByMetricId> result = new ArrayList<>();
+    OffsetDateTime next = OffsetDateTime.from(start);
+
+    while (next.isBefore(end) || next.isEqual(end)) {
+      result.add(
+          createCapacitySnapshotWithMetricId(
+              next, matches, metricId, Optional.ofNullable(reportCategory)));
+      next = timeAdjuster.adjustToPeriodStart(next.plus(offset));
+    }
+
+    return result;
+  }
+
+  private <T> List<T> paginate(List<T> capacities, Pageable pageable) {
     if (pageable == null) {
       return capacities;
     }
@@ -327,7 +349,6 @@ public class CapacityResource implements CapacityApi {
         int capacityPhysicalSockets = sanitize(capacity.getPhysicalSockets());
         sockets += capacityPhysicalSockets;
         physicalSockets += capacityPhysicalSockets;
-
         int capacityPhysCores = sanitize(capacity.getPhysicalCores());
         cores += capacityPhysCores;
         physicalCores += capacityPhysCores;
@@ -349,6 +370,58 @@ public class CapacityResource implements CapacityApi {
         .physicalCores(physicalCores)
         .hypervisorCores(hypervisorCores)
         .hasInfiniteQuantity(hasInfiniteQuantity);
+  }
+
+  protected CapacitySnapshotByMetricId createCapacitySnapshotWithMetricId(
+      OffsetDateTime date,
+      List<SubscriptionCapacity> matches,
+      MetricId metricId,
+      Optional<ReportCategory> reportCategory) {
+    int value = 0;
+    boolean hasData = false;
+
+    for (SubscriptionCapacity capacity : matches) {
+      if (capacity.getBeginDate().isBefore(date) && capacity.getEndDate().isAfter(date)) {
+        hasData = true;
+        if (metricId.equals(MetricId.SOCKETS)) {
+          value += calculateSocketsCapacity(reportCategory, capacity);
+        } else if (metricId.equals(MetricId.CORES)) {
+          value += calculateCoresCapacity(reportCategory, capacity);
+        }
+      }
+    }
+
+    return new CapacitySnapshotByMetricId().date(date).value(value).hasData(hasData);
+  }
+
+  private int calculateSocketsCapacity(
+      Optional<ReportCategory> reportCategory, SubscriptionCapacity capacity) {
+    int value = 0;
+    if (reportCategory.isPresent()) {
+      if (reportCategory.get().equals(ReportCategory.PHYSICAL)) {
+        value += sanitize(capacity.getPhysicalSockets());
+      } else if (reportCategory.get().equals(ReportCategory.VIRTUAL)) {
+        value += sanitize(capacity.getVirtualSockets());
+      }
+    } else {
+      value += sanitize(capacity.getVirtualSockets()) + sanitize(capacity.getPhysicalSockets());
+    }
+    return value;
+  }
+
+  private int calculateCoresCapacity(
+      Optional<ReportCategory> reportCategory, SubscriptionCapacity capacity) {
+    int value = 0;
+    if (reportCategory.isPresent()) {
+      if (reportCategory.get().equals(ReportCategory.PHYSICAL)) {
+        value += sanitize(capacity.getPhysicalCores());
+      } else if (reportCategory.get().equals(ReportCategory.VIRTUAL)) {
+        value += sanitize(capacity.getVirtualCores());
+      }
+    } else {
+      value += sanitize(capacity.getVirtualCores()) + sanitize(capacity.getPhysicalCores());
+    }
+    return value;
   }
 
   private int sanitize(Integer value) {
