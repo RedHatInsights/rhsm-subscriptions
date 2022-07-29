@@ -3,48 +3,47 @@
 
 * Install `bonfire` following the instructions [here](https://github.com/RedHatInsights/bonfire#installation)
 
-* Configure `bonfire` to use your checkout.  Use bonfire's write-default command, then edit ~/.config/bonfire/config.yaml
+* Configure `bonfire` to use your checkout.  This cat command is just a
+  short-cut so the instructions will be succinct.  You should open the file and
+  paste in the name and component bits yourself under the `apps:` key.  If you
+  paste in the contents, replace `$(pwd)` with the directory where your
+  subscription-watch checkout is
+
+  You can override parameters as shown below, or alternatively with the bonfire
+  `-p` argument during the deploy step.  The parameters in the example below are
+  useful for development environments.
+
   ```
   bonfire config write-default
-  ```
-  You can override parameters by editing the config file, or alternatively with the bonfire `-p` argument during the deployment step.  The configurations in the example below are useful for development environments.  Be sure to update this example with the correct path to where your rhsm-subscription repo is located.  
-```yaml
-apps:
+
+  cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
   - name: rhsm
     components:
-      - name: rhsm #This is a ClowdApp
+      - name: capacity-allowlist
+        host: gitlab
+        repo: rhsm/swatch-product-allowlist
+        path: templates/capacity-allowlist.yml
+      - name: rhsm-subscriptions
         host: local
-        repo: /home/lburnett/code/rhsm-subscriptions
-        path: /deploy/rhsm-clowdapp.yaml
+        repo: $(pwd)
+        path: deploy/rhsm-clowdapp.yaml
         parameters:
-          REPLICAS: 1
-          RHSM_RBAC_USE_STUB: "true"
-          MARKETPLACE_MANUAL_SUBMISSION_ENABLED: "true"
-          DEV_MODE: "true"
-          ENABLE_ACCOUNT_RESET: "true"
-          rhsm-subscriptions/IMAGE: quay.io/cloudservices/rhsm-subscriptions
-          SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT: http://localhost:8101/subscriptions/
-
+            REPLICAS: 1
+            RHSM_RBAC_USE_STUB: 'true'
+            RH_MARKETPLACE_MANUAL_SUBMISSION_ENABLED: 'true'
+            DEV_MODE: 'true'
+            ENABLE_ACCOUNT_RESET: 'true'
       - name: swatch-producer-aws
         host: local
-        repo: /home/lburnett/code/rhsm-subscriptions/swatch-producer-aws
-        path: /deploy/clowdapp.yaml
+        repo: $(pwd)
+        path: swatch-producer-aws/deploy/clowdapp.yaml
         parameters:
-          REPLICAS: 1
-          swatch-producer-aws/IMAGE: quay.io/cloudservices/swatch-producer-aws
+          AWS_MANUAL_SUBMISSION_ENABLED: 'true'
 
-      - name: swatch-metrics
-        host: local
-        repo: /home/lburnett/code/rhsm-subscriptions/swatch-metrics
-        path: /deploy/clowdapp.yaml
-        parameters:
-          DEV_MODE: "true"
-          REPLICAS: 1
-          swatch-metrics/IMAGE: quay.io/cloudservices/rhsm-subscriptions
-```
-
-
-
+  BONFIRE
+  ```
+* Make your life easier and install the [Kubernetes Lens
+  IDE](https://k8slens.dev/).  It's much easier to use than the browser console.
 
 ## Local Development
 You can do development locally using Minikube, but be aware that the resource
