@@ -43,6 +43,7 @@ import javax.validation.ConstraintViolation;
 import javax.validation.Validator;
 import org.candlepin.subscriptions.conduit.inventory.ConduitFacts;
 import org.candlepin.subscriptions.conduit.inventory.InventoryService;
+import org.candlepin.subscriptions.conduit.inventory.InventoryServiceProperties;
 import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiNetworkInterface;
 import org.candlepin.subscriptions.conduit.rhsm.RhsmService;
@@ -112,6 +113,8 @@ public class InventoryController {
   private Counter finalizeOrgCounter;
   private Timer transformHostTimer;
   private Timer validateHostTimer;
+
+  @Autowired private InventoryServiceProperties serviceProperties;
 
   @Autowired
   public InventoryController(
@@ -519,10 +522,12 @@ public class InventoryController {
       return Stream.empty();
     }
 
+    // If the missing account number is false then
     // Peek at the first consumer.  If it is missing an account number, that means they all are.
     // Abort and return an empty stream.  No sense in wasting time looping through everything.
     try {
-      if (!StringUtils.hasText(feedPage.getBody().get(0).getAccountNumber())) {
+      if (!serviceProperties.isTolerateMissingAccountNumber()
+          && !StringUtils.hasText(feedPage.getBody().get(0).getAccountNumber())) {
         throw new MissingAccountNumberException();
       }
     } catch (NoSuchElementException e) {

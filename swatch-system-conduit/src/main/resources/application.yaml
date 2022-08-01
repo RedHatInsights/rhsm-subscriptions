@@ -21,6 +21,7 @@ rhsm-conduit:
     # FIXME: misnamed, it's actually in hours
     stale-host-offset-in-days: ${INVENTORY_STALE_HOST_OFFSET_HOURS:48}
     kafka-host-ingress-topic: ${INVENTORY_HOST_INGRESS_TOPIC:platform.inventory.host-ingress}
+    tolerate-missing-account-number: ${TOLERATE_MISSING_ACCOUNT_NUMBER:false}
   tasks:
     topic: ${CONDUIT_KAFKA_TOPIC:platform.rhsm-conduit.tasks}
     kafka-group-id: ${CONDUIT_KAFKA_GROUP_ID:rhsm-conduit-task-processor}

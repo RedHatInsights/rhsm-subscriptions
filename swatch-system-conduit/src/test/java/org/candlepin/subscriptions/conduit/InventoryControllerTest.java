@@ -200,7 +200,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testShortCircuitsOnMissingAccountNumbers()
+  void testWhenTolerateMissingAccountNumberDisabled_ShortCircuitsOnMissingAccountNumbers()
       throws ApiException, MissingAccountNumberException {
     Consumer consumer1 = new Consumer();
     consumer1.setOrgId("123");
@@ -209,10 +209,28 @@ class InventoryControllerTest {
     consumer1.setOrgId("123");
     consumer2.setUuid(UUID.randomUUID().toString());
 
+    when(inventoryServiceProperties.isTolerateMissingAccountNumber()).thenReturn(false);
     when(rhsmService.getPageOfConsumers(eq("123"), nullable(String.class), anyString()))
         .thenReturn(pageOf(consumer1, consumer2));
     assertThrows(
         MissingAccountNumberException.class, () -> controller.updateInventoryForOrg("123"));
+    verify(inventoryService, times(0)).scheduleHostUpdate(any(ConduitFacts.class));
+  }
+
+  @Test
+  void testWhenTolerateMissingAccountNumberEnabled_DoNotThrowMissingAccountNumberException()
+      throws ApiException {
+    Consumer consumer1 = new Consumer();
+    consumer1.setOrgId("123");
+    consumer1.setUuid(UUID.randomUUID().toString());
+    Consumer consumer2 = new Consumer();
+    consumer1.setOrgId("123");
+    consumer2.setUuid(UUID.randomUUID().toString());
+
+    when(inventoryServiceProperties.isTolerateMissingAccountNumber()).thenReturn(true);
+    when(rhsmService.getPageOfConsumers(eq("123"), nullable(String.class), anyString()))
+        .thenReturn(pageOf(consumer1, consumer2));
+    assertDoesNotThrow(() -> controller.updateInventoryForOrg("123"));
     verify(inventoryService, times(0)).scheduleHostUpdate(any(ConduitFacts.class));
   }
 

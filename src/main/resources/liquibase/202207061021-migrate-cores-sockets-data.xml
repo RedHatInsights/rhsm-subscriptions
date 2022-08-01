@@ -10,7 +10,7 @@
     <comment>Copy data from hosts.cores to instance_measurements.</comment>
     <sql>
       insert into instance_measurements(instance_id, uom, value)
-      select instance_id::uuid, 'CORES', cores
+      select id, 'CORES', cores
       from hosts
       where cores is not null on conflict(instance_id, uom) do
       update set value =excluded.value;
@@ -20,7 +20,7 @@
     <comment>Copy data from hosts.sockets to instance_measurements.</comment>
     <sql>
       insert into instance_measurements(instance_id, uom, value)
-      select instance_id::uuid, 'SOCKETS', sockets
+      select id, 'SOCKETS', sockets
       from hosts
       where sockets is not null
       on conflict(instance_id, uom) do update set value=excluded.value;
