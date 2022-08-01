@@ -17,33 +17,46 @@
   bonfire config write-default
 
   cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
-  - name: rhsm
+  - name: rhsm #Name of app-sre 'application' folder this component lives in
     components:
-      - name: capacity-allowlist
-        host: gitlab
-        repo: rhsm/swatch-product-allowlist
-        path: templates/capacity-allowlist.yml
-      - name: rhsm-subscriptions
-        host: local
-        repo: $(pwd)
-        path: deploy/rhsm-clowdapp.yaml
-        parameters:
-            REPLICAS: 1
-            RHSM_RBAC_USE_STUB: 'true'
-            RH_MARKETPLACE_MANUAL_SUBMISSION_ENABLED: 'true'
-            DEV_MODE: 'true'
-            ENABLE_ACCOUNT_RESET: 'true'
-      - name: swatch-producer-aws
-        host: local
-        repo: $(pwd)
-        path: swatch-producer-aws/deploy/clowdapp.yaml
-        parameters:
-          AWS_MANUAL_SUBMISSION_ENABLED: 'true'
+    - name: rhsm # a resourceTemplate in deploy-clowder.yaml in app-interface (ClowdApp name)
+    host: local
+    repo: $(pwd)/rhsm-subscriptions
+    path: /deploy/rhsm-clowdapp.yaml
+    parameters:
+    REPLICAS: 1
+    RHSM_RBAC_USE_STUB: "true"
+    MARKETPLACE_MANUAL_SUBMISSION_ENABLED: "true"
+    DEV_MODE: "true"
+    ENABLE_ACCOUNT_RESET: "true"
+    rhsm-subscriptions/IMAGE: quay.io/cloudservices/rhsm-subscriptions
+    SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT: http://localhost:8101/subscriptions/
 
-  BONFIRE
-  ```
-* Make your life easier and install the [Kubernetes Lens
-  IDE](https://k8slens.dev/).  It's much easier to use than the browser console.
+        - name: swatch-producer-red-hat-marketplace
+          host: local
+          repo: $(pwd)/rhsm-subscriptions/swatch-producer-red-hat-marketplace
+          path: /deploy/clowdapp.yaml
+          parameters:
+            REPLICAS: 1
+
+        - name: swatch-metrics
+          host: local
+          repo: $(pwd)/swatch-metrics
+          path: /deploy/clowdapp.yaml
+          parameters:
+            DEV_MODE: "true"
+            REPLICAS: 1
+            swatch-metrics/IMAGE: quay.io/cloudservices/rhsm-subscriptions
+
+        - name: swatch-producer-aws
+          host: local
+          repo: $(pwd)/rhsm-subscriptions/swatch-producer-aws
+          path: /deploy/clowdapp.yaml
+          parameters:
+            REPLICAS: 1
+            swatch-producer-aws/IMAGE: quay.io/cloudservices/swatch-producer-aws
+    BONFIRE
+    ```
 
 ## Local Development
 You can do development locally using Minikube, but be aware that the resource

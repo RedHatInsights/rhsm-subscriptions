@@ -13,7 +13,7 @@ export IQE_MARKER_EXPRESSION="ephemeral"  # This is the value passed to pytest -
 # export IQE_FILTER_EXPRESSION=""  # This is the value passed to pytest -k
 export IQE_CJI_TIMEOUT="30m"  # This is the time to wait for smoke test to complete or fail
 # NOTE: workaround for frontend deployment not being ready yet below
-export COMPONENTS="rhsm swatch-producer-aws"
+
 
 # Install bonfire repo/initialize
 CICD_URL=https://raw.githubusercontent.com/RedHatInsights/bonfire/master/cicd
@@ -37,9 +37,10 @@ done
 APP_ROOT=$PWD
 
 EXTRA_DEPLOY_ARGS=${IMAGES}
-COMPONENTS_RESOURCES_ARG=--no-remove-resources=${COMPONENT_NAME}
 OPTIONAL_DEPS_METHOD=none
 
+#each gets appended with --component
+export COMPONENTS_W_RESOURCES="rhsm swatch-producer-aws swatch-producer-red-hat-marketplace swatch-metrics"
 # Deploy to an ephemeral namespace for testing
 source $CICD_ROOT/deploy_ephemeral_env.sh
 
