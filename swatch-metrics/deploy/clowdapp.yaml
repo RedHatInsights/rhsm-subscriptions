@@ -335,7 +335,7 @@ objects:
       jobs:
         - name: metrics-sync
           schedule: ${METERING_SCHEDULE}
-          activeDeadlineSeconds: 4200
+          activeDeadlineSeconds: 1800
           successfulJobsHistoryLimit: 2
           restartPolicy: Never
           podSpec:
