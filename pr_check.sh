@@ -29,7 +29,7 @@ for service in $SERVICES; do
 
   # Build the image and push to quay
   APP_ROOT=$(get_approot $service)
-#  source $CICD_ROOT/build.sh
+  source $CICD_ROOT/build.sh
 
   IMAGES=" ${IMAGES} -i ${IMAGE}=${IMAGE_TAG} "
 done
