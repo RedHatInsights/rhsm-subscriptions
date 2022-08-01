@@ -333,7 +333,7 @@ objects:
                 enabled: true
 
       jobs:
-        - name: metrics-sync
+        - name: sync
           schedule: ${METERING_SCHEDULE}
           activeDeadlineSeconds: 1800
           successfulJobsHistoryLimit: 2
