@@ -39,8 +39,6 @@ APP_ROOT=$PWD
 EXTRA_DEPLOY_ARGS=${IMAGES}
 OPTIONAL_DEPS_METHOD=none
 
-JOB_NAME=lburnett
-BUILD_NUMBER=manual
 #each gets appended with --component
 export COMPONENTS_W_RESOURCES="rhsm swatch-producer-aws swatch-producer-red-hat-marketplace swatch-metrics"
 # Deploy to an ephemeral namespace for testing
