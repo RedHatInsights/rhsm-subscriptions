@@ -14,13 +14,13 @@
         if (new.uom = 'CORES') then
           update hosts
           set cores=new.value
-          where instance_id = new.instance_id::text
+          where id = new.instance_id
             and cores is null
              or cores != new.value;
         elsif (new.uom = 'SOCKETS') then
           update hosts
           set sockets=new.value
-          where instance_id = new.instance_id::text
+          where id = new.instance_id
             and sockets is null
              or sockets != new.value;
         end if;
