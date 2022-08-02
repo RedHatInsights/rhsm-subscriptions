@@ -10,3 +10,13 @@ updates:
     schedule:
       interval: "daily"
     target-branch: "main"
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    target-branch: "main"
+  - package-ecosystem: "docker"
+    directory: "swatch-producer-aws/src/main/docker"
+    schedule:
+      interval: "daily"
+    target-branch: "main"
