@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
+import org.candlepin.subscriptions.clowder.KafkaJaasBeanPostProcessor;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -27,6 +28,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.env.Environment;
 
 /** Configuration for Kafka common to both producers and consumers. */
 @Configuration
@@ -41,6 +43,11 @@ class KafkaConfiguration {
   @Bean
   KafkaConfigurator kafkaConfigurator(KafkaConsumerRegistry registry) {
     return new KafkaConfigurator(registry);
+  }
+
+  @Bean
+  public KafkaJaasBeanPostProcessor kafkaJaasBeanPostProcessor(Environment env) {
+    return new KafkaJaasBeanPostProcessor(env);
   }
 
   @Bean
