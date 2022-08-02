@@ -166,6 +166,10 @@ rhsm-subscriptions:
 # environment variables: KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT or for the existence of
 # a service with environment variables ending in "_SERVICE_HOST" and "_SERVICE_PORT"
 
+# The configuration can be coaxed into loading like so:
+# $ KUBERNETES_SERVICE_HOST="f" KUBERNETES_SERVICE_PORT="f" ACG_CONFIG=./config/kafka/clowder-config-test.json ./gradlew :bootRun
+# Note that the actual values for the service host and port environment variables are irrelevant.
+
 # This YAML document will override definitions in the document above it.
 # See https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.external-config.files.multi-document
 KAFKA_USERNAME: ${clowder.kafka.brokers[0].sasl.username}

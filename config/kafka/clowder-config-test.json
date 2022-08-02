@@ -1,0 +1,73 @@
+{
+  "BOPURL": "http://localhost:8090",
+  "database": {
+    "adminPassword": "postgres",
+    "adminUsername": "postgres",
+    "hostname": "localhost",
+    "name": "rhsm-subscriptions",
+    "password": "rhsm-subscriptions",
+    "port": 5432,
+    "sslMode": "disable",
+    "username": "rhsm-subscriptions"
+  },
+  "endpoints": [
+    {
+      "app": "rhsm",
+      "hostname": "localhost",
+      "name": "api",
+      "port": 8000
+    }
+  ],
+  "kafka": {
+    "brokers": [
+      {
+        "authtype": "sasl",
+        "cacert": "-----BEGIN CERTIFICATE-----\nMIIFBTCCAu2gAwIBAgIUI8W01ruDKw/0ZF2IS9hDww8KeXowDQYJKoZIhvcNAQEL\nBQAwEjEQMA4GA1UEAwwHVGVzdCBDQTAeFw0yMjA3MTQxODAwNTVaFw0zMjA3MTEx\nODAwNTVaMBIxEDAOBgNVBAMMB1Rlc3QgQ0EwggIiMA0GCSqGSIb3DQEBAQUAA4IC\nDwAwggIKAoICAQCbu+Yiyqv+r+wu2DV+xCptmHz9Vtg5eT+5gTyYhf2Ycfq7xbFD\nBnY1a7LQ5naWxsJQNSFicBoroHZWjt4lOO1ov8Zb6aIE/ZqLbpbYdli1UpGswCAT\na9vkLrh9p/WeSHQftyL8HQDBuK61jqzw2xShR6USIAmUEENp8mP0sFYNJIsHofHP\nERlx5cZj78vBpJgMUlcHzifv+z6VJfQ63k2Eth/zcl94zD6fa+uHlOyzx8OCB7EC\nwa5GVJzKYc8x5bxJi3TvESCntPb+mFve+h2Md00sQwVRWW3BR4iJMm7aS6A2s6Q+\nH0qd9Wq9FhpLykmHc6tQnuwR40DusmXTMcPnzJrWcwV4V8DN0bPH2z94QV4aZ/iO\nNkN2DCOr/Ze8BMZnLYtbJxHU9xzMZj54l9ngdT8H0EmMZYdmQH39MUgI1J9u7C/v\nfqLMLOc9daPy0dbJgFud/s1ZTgAzX2VITv+yXMKDFTaKHEutA2j4U1Vucfp1EnfY\npDTsbJ2oYVhoXK869mu7OfByjQKTxQFGl45iXl50s7dsLGUy5r/W6+iL3zZGDkU/\nZH6X/Ujay3VmoekVEyBAf6WAKM36Sp/va/GhlIEQI/EwQdg/XCoRTbDhLbbkVcPA\nRdNL0Yxh6kyvFZOZCcyXBZNR4ykltIdMkFAAIgpY2DEnkrepSGytm/2gtQIDAQAB\no1MwUTAdBgNVHQ4EFgQUQUgWjSm2SiPfirhYZSlUzVHuJf8wHwYDVR0jBBgwFoAU\nQUgWjSm2SiPfirhYZSlUzVHuJf8wDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0B\nAQsFAAOCAgEAO1WgnbRrf5uSh8Op1Xp8LC6C/4rQJP1d1zOL1QtaJ/Nh5Z0GCD9x\nY6iRqYZPl6Udj9/Y4H/TVuz2c6oNy0ZfmiENzOo21iVR+BjAbxq1ROLY3ZrSNwnR\n3nPISqQ+9bVmGjsX3T+K+Mu5na6N5y+9LvtIKhDOPXPW5LvjF39bX3J9qtsw15zw\nuUzu4/qeLWxTdDPuZPOk7L2ydMdYp/E+QCzBQ4hW2pj4hyvPR/DQ7t3mYH0PWf3M\nu6eQAePnfVxa0Lqm8XIc3Sl7b2leHvEDAwUDeQ2zT/CUtrnLHregEj89NjM21Efk\nzLprcKbY1+t+6OGcrkimEb++6YKAllKcgGyat5wKDyrSGGwvvZaDKp1IjjxEpVIR\n1rnw6O91kbyvMBdYuPCu55OwxJN/UOfjuQMHhwoouLNV90yYm5uwaWTV360+YgfA\nT25JEmalZRLfNeepuNq1pc34YAEGhHASduw+Q4uXUzeJxiveTR8Owar3DIlmXSye\nQoMAB9QqQbU3jh+pFCiUctUA/MT3dSEOEWSeGgBtykvKZvdxQ8/iPvdAkfd5vU7q\nnuFft1VQZOeVuIpH3kpv9+iROnX4W+iNO+omT5NcazTthJT3UohDDXvQCILJkl+e\nUfNfHwZGN4T/GekEp85CL2VcvM+Gx0gy3pf0IhlyzALCODwyoaZMno4=\n-----END CERTIFICATE-----",
+        "hostname": "localhost",
+        "port": 9094,
+        "sasl": {
+          "password": "dummy",
+          "saslMechanism": "PLAIN",
+          "securityProtocol": "SASL_SSL",
+          "username": "client"
+        }
+      }
+    ],
+    "topics": [
+      {
+        "name": "platform.rhsm-subscriptions.tally",
+        "requestedName": "platform.rhsm-subscriptions.tally"
+      },
+      {
+        "name": "platform.rhsm-subscriptions.tasks",
+        "requestedName": "platform.rhsm-subscriptions.tasks"
+      },
+      {
+        "name": "platform.rhsm-subscriptions.openshift-metering-tasks",
+        "requestedName": "platform.rhsm-subscriptions.openshift-metering-tasks"
+      },
+      {
+        "name": "platform.rhsm-subscriptions.subscription-sync",
+        "requestedName": "platform.rhsm-subscriptions.subscription-sync"
+      },
+      {
+        "name": "platform.rhsm-subscriptions.billable-usage",
+        "requestedName": "platform.rhsm-subscriptions.billable-usage"
+      }
+    ]
+  },
+  "logging": {
+    "cloudwatch": {
+      "accessKeyId": "",
+      "logGroup": "",
+      "region": "",
+      "secretAccessKey": ""
+    },
+    "type": "null"
+  },
+  "metricsPath": "/metrics",
+  "metricsPort": 9000,
+  "privatePort": 10000,
+  "publicPort": 8000,
+  "webPort": 8000
+}
