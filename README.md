@@ -391,19 +391,8 @@ oc process -f templates/rhsm-subscriptions-worker.yml | oc create -f -
 
 ## Release Process
 
-You can perform a release using `./gradlew release` **on the develop
-branch**. This command will invoke a
-[plugin](https://github.com/researchgate/gradle-release) that will bump
-the version numbers and create a release tag. When you run the command,
-it will ask for input. You can specify all the arguments on the CLI if
-necessary (e.g. doing a release via a CI environment). When asked for
-"This release version" specify the current version **without** the
-"-SNAPSHOT". When asked for the next version number enter the
-appropriate value prefixed **with** "-SNAPSHOT". Since we are not
-doing semantic versioning, simply accept the defaults.
-
-The plugin will create the tag and bump the version. You just need to
-push with `git push --follow-tags origin develop main`.
+Merges to `main` will trigger deployment to a preprod environment. Production
+deployments will be handled in an internal App-SRE automation repo.
 
 ## Grafana Dashboards
 
