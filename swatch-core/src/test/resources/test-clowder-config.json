@@ -44,8 +44,8 @@
                 "requestedName": "platform.rhsm-subscriptions.tasks"
             },
             {
-                "name": "platform.rhsm-subscriptions.openshift-metering-tasks-env-rhsm-rhsm",
-                "requestedName": "platform.rhsm-subscriptions.openshift-metering-tasks"
+                "name": "platform.rhsm-subscriptions.metering-tasks-env-rhsm-rhsm",
+                "requestedName": "platform.rhsm-subscriptions.metering-tasks"
             }
         ]
     },

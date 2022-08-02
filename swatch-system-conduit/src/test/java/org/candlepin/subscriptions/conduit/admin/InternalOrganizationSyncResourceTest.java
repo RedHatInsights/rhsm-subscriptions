@@ -24,6 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.util.AssertionErrors.assertFalse;
+import static org.springframework.test.util.AssertionErrors.assertTrue;
 
 import org.candlepin.subscriptions.conduit.InventoryController;
 import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
@@ -67,5 +69,21 @@ class InternalOrganizationSyncResourceTest {
   @Test
   void syncAllOrgsShouldReturnSuccess() {
     assertEquals("Success", resource.syncFullOrgList().getStatus());
+  }
+
+  @Test
+  void hasOrgInSyncListShouldReturnTrue() {
+    when(repo.existsById("123")).thenReturn(true);
+    assertTrue(
+        "Org ID expected to exist but does not",
+        resource.hasOrgInSyncList("123").getExistsInList());
+  }
+
+  @Test
+  void hasOrgInSyncListShouldReturnFalse() {
+    when(repo.existsById("123")).thenReturn(false);
+    assertFalse(
+        "Org ID expected to not exist but does",
+        resource.hasOrgInSyncList("123").getExistsInList());
   }
 }

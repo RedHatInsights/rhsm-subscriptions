@@ -25,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.conduit.InventoryController;
 import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
 import org.candlepin.subscriptions.conduit.rhsm.client.ApiException;
+import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.exception.MissingAccountNumberException;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.utilization.api.model.DefaultResponse;
@@ -41,10 +42,13 @@ public class InternalOrganizationSyncResource implements InternalOrganizationsAp
 
   private final InventoryController controller;
   private final OrgSyncTaskManager tasks;
+  private final OrgConfigRepository repo;
 
-  InternalOrganizationSyncResource(InventoryController controller, OrgSyncTaskManager tasks) {
+  InternalOrganizationSyncResource(
+      InventoryController controller, OrgSyncTaskManager tasks, OrgConfigRepository repo) {
     this.controller = controller;
     this.tasks = tasks;
+    this.repo = repo;
   }
 
   @Override
@@ -59,7 +63,10 @@ public class InternalOrganizationSyncResource implements InternalOrganizationsAp
 
   @Override
   public OrgExistsResponse hasOrgInSyncList(String orgId) {
-    throw new UnsupportedOperationException();
+    OrgExistsResponse response = new OrgExistsResponse();
+    boolean exists = repo.existsById(orgId);
+    response.setExistsInList(exists);
+    return response;
   }
 
   @Override
@@ -69,7 +76,6 @@ public class InternalOrganizationSyncResource implements InternalOrganizationsAp
 
   @Override
   public DefaultResponse syncFullOrgList() {
-
     log.info(
         "Starting sync for all configured orgs, initiated by {}", ResourceUtils.getPrincipal());
     tasks.syncFullOrgList();
