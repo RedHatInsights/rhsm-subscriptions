@@ -90,8 +90,7 @@ import lombok.Setter;
 @NamedNativeQuery(
     name = "InventoryHost.getFacts",
     query =
-        "select h.id as inventory_id, h.modified_on, h.account, h.display_name, "
-            + "h.facts->'rhsm'->>'orgId' as org_id, "
+        "select h.id as inventory_id, h.org_id, h.modified_on, h.account, h.display_name, "
             + "h.facts->'rhsm'->>'IS_VIRTUAL' as is_virtual, "
             + "h.facts->'rhsm'->>'VM_HOST_UUID' as hypervisor_uuid, "
             + "h.facts->'satellite'->>'virtual_host_uuid' as satellite_hypervisor_uuid, "
@@ -145,6 +144,9 @@ public class InventoryHost implements Serializable {
   @Id private UUID id;
 
   private String account;
+
+  @Column(name = "org_id")
+  private String orgId;
 
   @Column(name = "display_name")
   private String displayName;

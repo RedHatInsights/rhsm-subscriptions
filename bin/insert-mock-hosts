@@ -27,11 +27,12 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
             'id': inventory_id,
             'account': account,
             'display_name': display_name or insights_id,
+            'org_id': org_id or f'org_{account}',
             'created_on': last_seen or '1993-03-26',
             'modified_on': last_seen or '1993-03-26',
             'facts': json.dumps({
                 'rhsm': {
-                    'orgId': f'org_{account}',
+                    'orgId': org_id or f'org_{account}',
                     'VM_HOST_UUID': str(hypervisor_uuid) if hypervisor_uuid else None,
                     'IS_VIRTUAL': is_guest,
                 },
