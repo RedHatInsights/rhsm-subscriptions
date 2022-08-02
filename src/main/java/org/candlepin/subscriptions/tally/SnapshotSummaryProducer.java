@@ -63,7 +63,13 @@ public class SnapshotSummaryProducer {
     newAndUpdatedSnapshots.forEach(
         (account, snapshots) ->
             snapshots.stream()
-                .map(snapshot -> summaryMapper.mapSnapshots(account, List.of(snapshot)))
+                // NOTE: The orgId should be passed in the same way as the account. When the APIs
+                // are changed to require an orgID, this should be updated to not take the orgId
+                // from the snapshot when they are mapped to a summary.
+                .map(
+                    snapshot ->
+                        summaryMapper.mapSnapshots(
+                            account, snapshot.getOwnerId(), List.of(snapshot)))
                 .forEach(
                     summary -> {
                       if (validateTallySummary(summary)) {

@@ -71,7 +71,7 @@ public class RemittanceController {
 
     snapshotRepository
         .findLatestBillablesForMonth(clock.now().getMonthValue())
-        .map(s -> summaryMapper.mapSnapshots(s.getAccountNumber(), List.of(s)))
+        .map(s -> summaryMapper.mapSnapshots(s.getAccountNumber(), s.getOwnerId(), List.of(s)))
         .forEach(
             summary ->
                 billableUsageMapper
