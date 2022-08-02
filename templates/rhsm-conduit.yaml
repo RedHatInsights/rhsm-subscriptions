@@ -136,8 +136,6 @@ objects:
                 value: ${DATABASE_CONNECTION_TIMEOUT_MS}
               - name: DATABASE_MAX_POOL_SIZE
                 value: ${DATABASE_MAX_POOL_SIZE}
-              - name: TOLERATE_MISSING_ACCOUNT_NUMBER
-                value: ${TOLERATE_MISSING_ACCOUNT_NUMBER}
             resources:
               requests:
                 cpu: ${CPU_REQUEST}
@@ -226,6 +224,8 @@ objects:
                   secretKeyRef:
                     name: swatch-psks
                     key: self
+              - name: TOLERATE_MISSING_ACCOUNT_NUMBER
+                value: ${TOLERATE_MISSING_ACCOUNT_NUMBER}
             livenessProbe:
               failureThreshold: 3
               httpGet:
