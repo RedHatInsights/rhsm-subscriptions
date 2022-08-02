@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.security;
 
 import java.time.OffsetDateTime;
+import java.util.Objects;
 import java.util.Optional;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
@@ -179,7 +180,7 @@ public class OptInController {
             new OptInConfigData()
                 .account(accountData)
                 .org(orgData)
-                .optInComplete(accountData != null && orgData != null))
+                .optInComplete(Objects.nonNull(orgData)))
         .meta(meta);
   }
 

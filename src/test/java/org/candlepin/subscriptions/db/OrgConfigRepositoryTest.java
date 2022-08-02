@@ -99,15 +99,24 @@ class OrgConfigRepositoryTest {
   void testFindOrgsWithEnabledSync() {
     repository.saveAll(
         Arrays.asList(
-            createConfig("A1", true),
-            createConfig("A2", true),
-            createConfig("A3", false),
-            createConfig("A4", false)));
+            createConfig("Org1", true),
+            createConfig("Org2", true),
+            createConfig("Org3", false),
+            createConfig("Org4", false)));
     repository.flush();
 
     List<String> orgsWithSync = repository.findSyncEnabledOrgs().collect(Collectors.toList());
     assertEquals(2, orgsWithSync.size());
-    assertTrue(orgsWithSync.containsAll(Arrays.asList("A1", "A2")));
+    assertTrue(orgsWithSync.containsAll(Arrays.asList("Org1", "Org2")));
+  }
+
+  @Test
+  void existsByOrgId() {
+    repository.saveAll(Arrays.asList(createConfig("Org1", true)));
+    repository.flush();
+    assertTrue(repository.existsByOrgId("Org1"));
+    assertFalse(repository.existsByOrgId("Not_Found"));
+    assertFalse(repository.existsByOrgId(null));
   }
 
   private OrgConfig createConfig(String org, boolean canSync) {

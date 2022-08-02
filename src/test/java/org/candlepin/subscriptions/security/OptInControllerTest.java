@@ -401,7 +401,7 @@ class OptInControllerTest {
   }
 
   @Test
-  void optInConfigNotCompleteWhenOnlyOrgConfigExists() {
+  void optInConfigIsCompleteWhenOnlyOrgConfigExists() {
     String expectedAccountNumber = "TEST_ACCOUNT309";
     String expectedOrgId = "TEST_OWNER310";
 
@@ -411,7 +411,7 @@ class OptInControllerTest {
     OptInConfig dto = controller.getOptInConfig(expectedAccountNumber, expectedOrgId);
     assertNull(dto.getData().getAccount());
     assertNotNull(dto.getData().getOrg());
-    assertFalse(dto.getData().getOptInComplete());
+    assertTrue(dto.getData().getOptInComplete());
   }
 
   private AccountConfig setupExistingAccountConfig(String account) {
