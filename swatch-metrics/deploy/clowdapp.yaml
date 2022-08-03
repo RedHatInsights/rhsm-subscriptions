@@ -100,10 +100,13 @@ objects:
     spec:
       # The name of the ClowdEnvironment providing the services
       envName: ${ENV_NAME}
-      database:
-        sharedDbAppName: rhsm
-      dependencies:
-        - rhsm
+
+# Can't have this checked in like this, because stage gets upset since there
+# is no rhsm ClowdApp deployed to the rhsm-stage namespace
+#      database:
+#        sharedDbAppName: rhsm
+#      dependencies:
+#        - rhsm
 
       kafkaTopics:
         - replicas: 3
