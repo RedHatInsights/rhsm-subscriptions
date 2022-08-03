@@ -342,7 +342,7 @@ objects:
                 secret:
                   secretName: pinhead
             sidecars:
-              - name: token-refresher
+              tokenRefresher:
                 enabled: true
 
       jobs:
