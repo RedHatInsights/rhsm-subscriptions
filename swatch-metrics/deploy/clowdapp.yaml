@@ -91,6 +91,8 @@ parameters:
     value: '60'
   - name: HOURLY_TALLY_OFFSET
     value: '60'
+  - name: INVENTORY_SECRET_KEY_NAME
+    value: 'host-inventory-db'
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -239,22 +241,22 @@ objects:
               - name: INVENTORY_DATABASE_HOST
                 valueFrom:
                   secretKeyRef:
-                    name: host-inventory-db
+                    name: ${INVENTORY_SECRET_KEY_NAME}
                     key: db.host
               - name: INVENTORY_DATABASE_DATABASE
                 valueFrom:
                   secretKeyRef:
-                    name: host-inventory-db
+                    name: ${INVENTORY_SECRET_KEY_NAME}
                     key: name
               - name: INVENTORY_DATABASE_USERNAME
                 valueFrom:
                   secretKeyRef:
-                    name: host-inventory-db
+                    name: ${INVENTORY_SECRET_KEY_NAME}
                     key: db.user
               - name: INVENTORY_DATABASE_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: host-inventory-db
+                    name: ${INVENTORY_SECRET_KEY_NAME}
                     key: password
               - name: CLOUDIGRADE_ENABLED
                 value: ${CLOUDIGRADE_ENABLED}
@@ -437,22 +439,22 @@ objects:
               - name: INVENTORY_DATABASE_HOST
                 valueFrom:
                   secretKeyRef:
-                    name: host-inventory-db
+                    name: ${INVENTORY_SECRET_KEY_NAME}
                     key: db.host
               - name: INVENTORY_DATABASE_DATABASE
                 valueFrom:
                   secretKeyRef:
-                    name: host-inventory-db
+                    name: ${INVENTORY_SECRET_KEY_NAME}
                     key: name
               - name: INVENTORY_DATABASE_USERNAME
                 valueFrom:
                   secretKeyRef:
-                    name: host-inventory-db
+                    name: ${INVENTORY_SECRET_KEY_NAME}
                     key: db.user
               - name: INVENTORY_DATABASE_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: host-inventory-db
+                    name: ${INVENTORY_SECRET_KEY_NAME}
                     key: password
               - name: PROM_URL
                 value: http://localhost:8082
