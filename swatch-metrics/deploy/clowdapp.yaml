@@ -141,6 +141,9 @@ objects:
             command:
               - /bin/bash
               - /usr/local/s2i/run
+            sidecars:
+              - name: token-refresher
+                enabled: true
             initContainers:
               - env:
                   - name: SPRING_PROFILES_ACTIVE
@@ -341,9 +344,6 @@ objects:
               - name: pinhead
                 secret:
                   secretName: pinhead
-            sidecars:
-              tokenRefresher:
-                enabled: true
 
       jobs:
         - name: sync
