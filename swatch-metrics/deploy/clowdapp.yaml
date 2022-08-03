@@ -91,8 +91,11 @@ parameters:
     value: '60'
   - name: HOURLY_TALLY_OFFSET
     value: '60'
+# nonprod secret keys have different syntax than prod/stage
   - name: INVENTORY_SECRET_KEY_NAME
     value: 'host-inventory-db'
+  - name: INVENTORY_SECRET_KEY_NAME_PREFIX
+    value: ''
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -247,7 +250,7 @@ objects:
                 valueFrom:
                   secretKeyRef:
                     name: ${INVENTORY_SECRET_KEY_NAME}
-                    key: name
+                    key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}name
               - name: INVENTORY_DATABASE_USERNAME
                 valueFrom:
                   secretKeyRef:
@@ -257,7 +260,7 @@ objects:
                 valueFrom:
                   secretKeyRef:
                     name: ${INVENTORY_SECRET_KEY_NAME}
-                    key: password
+                    key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
               - name: CLOUDIGRADE_ENABLED
                 value: ${CLOUDIGRADE_ENABLED}
               - name: CLOUDIGRADE_PSK
@@ -445,7 +448,7 @@ objects:
                 valueFrom:
                   secretKeyRef:
                     name: ${INVENTORY_SECRET_KEY_NAME}
-                    key: name
+                    key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}name
               - name: INVENTORY_DATABASE_USERNAME
                 valueFrom:
                   secretKeyRef:
@@ -455,7 +458,7 @@ objects:
                 valueFrom:
                   secretKeyRef:
                     name: ${INVENTORY_SECRET_KEY_NAME}
-                    key: password
+                    key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
               - name: PROM_URL
                 value: http://localhost:8082
             livenessProbe:
