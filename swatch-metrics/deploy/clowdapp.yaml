@@ -99,6 +99,8 @@ objects:
     kind: ClowdApp
     metadata:
       name: swatch-metrics
+    labels:
+      prometheus: rhsm
     spec:
       # The name of the ClowdEnvironment providing the services
       envName: ${ENV_NAME}
