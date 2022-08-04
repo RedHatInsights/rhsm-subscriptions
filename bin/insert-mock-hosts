@@ -15,6 +15,7 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
                   sla=None, usage=None, is_unmapped_guest=None, is_hypervisor=None, cloud_provider=None,
                   skip_buckets=False, is_hbi=False, is_marketplace=False, host_type=None, billing_provider=None, billing_account_id=None):
     account = account_number or "account123"
+    org = org_id or "org123"
     host_id = uuid.uuid4()
     inventory_id = inventory_id or uuid.uuid4()
     insights_id = insights_id or uuid.uuid4()
@@ -26,6 +27,7 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
         host_fields = {
             'id': inventory_id,
             'account': account,
+            'org_id': org,
             'display_name': display_name or insights_id,
             'created_on': last_seen or '1993-03-26',
             'modified_on': last_seen or '1993-03-26',
@@ -60,7 +62,7 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
             'inventory_id': inventory_id,
             'insights_id': insights_id,
             'account_number': account,
-            'org_id': org_id or 'org123',
+            'org_id': org,
             'display_name': display_name or insights_id,
             'subscription_manager_id': subscription_manager_id or uuid.uuid4(),
             'cores': cores,
@@ -166,6 +168,8 @@ parser.add_argument('--unmapped-guests',
                     help='Are the guests to be created unmapped?')
 parser.add_argument('--account',
                     help='Set the account for the inserted records')
+parser.add_argument('--org',
+                    help='Set the organization for the inserted records')
 parser.add_argument('--num-accounts', type=int, default=1,
                     help='treat "--account" as a prefix and generate a number of accounts')
 parser.add_argument('--hypervisor-id',
@@ -236,14 +240,14 @@ for i in range(args.num_accounts):
     product = args.product or "RHEL"
 
     for i in range(args.num_aws):
-        generate_host(account_number=account, hardware_type='VIRTUALIZED', measurement_type='AWS',
+        generate_host(account_number=account, org_id=args.org, hardware_type='VIRTUALIZED', measurement_type='AWS',
                       product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
                       is_hbi=args.is_hbi, num_of_guests=args.num_guests,
                       cloud_provider='AWS', is_marketplace=args.is_marketplace, host_type=args.host_type,
                       billing_provider=args.billing_provider, billing_account_id=args.billing_account_id)
 
     for i in range(args.num_physical):
-        generate_host(account_number=account, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
+        generate_host(account_number=account, org_id=args.org, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
                       product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
                       is_hbi=args.is_hbi, num_of_guests=args.num_guests,
                       is_marketplace=args.is_marketplace,
@@ -252,7 +256,7 @@ for i in range(args.num_accounts):
 
     hypervisor = None
     for i in range(args.num_hypervisors):
-        hypervisor = generate_host(account_number=account, hardware_type='PHYSICAL', measurement_type='VIRTUAL',
+        hypervisor = generate_host(account_number=account, org_id=args.org, hardware_type='PHYSICAL', measurement_type='VIRTUAL',
                                    product=args.product,
                                    sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
                                    is_hypervisor=True, is_hbi=args.is_hbi,
@@ -260,7 +264,7 @@ for i in range(args.num_accounts):
                                    host_type=args.host_type,
                                    billing_provider=args.billing_provider, billing_account_id=args.billing_account_id)
         # create a physical entry for the host as well.
-        generate_host(account_number=account, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
+        generate_host(account_number=account, org_id=args.org, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
                       product=args.product,
                       sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hypervisor=True,
                       is_hbi=args.is_hbi,
@@ -282,7 +286,7 @@ for i in range(args.num_accounts):
             hypervisor_uuid = None
 
         skip_buckets = "RHEL" in product.upper()
-        generate_host(account_number=account, hardware_type='VIRTUALIZED', is_guest=True,
+        generate_host(account_number=account, org_id=args.org, hardware_type='VIRTUALIZED', is_guest=True,
                       product=args.product, sla=args.sla, usage=args.usage, hypervisor_uuid=hypervisor_uuid,
                       cores=args.cores, sockets=args.sockets, is_unmapped_guest=create_unmapped,
                       skip_buckets=skip_buckets, is_hbi=args.is_hbi,
