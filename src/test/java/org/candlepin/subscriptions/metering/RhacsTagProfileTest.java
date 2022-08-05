@@ -33,6 +33,7 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.json.TallyMeasurement;
+import org.candlepin.subscriptions.registry.BillingWindow;
 import org.candlepin.subscriptions.registry.TagMetaData;
 import org.candlepin.subscriptions.registry.TagMetric;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -65,6 +66,8 @@ class RhacsTagProfileTest {
             TagMetric.builder()
                 .tag("rhacs")
                 .metricId("redhat.com:rhacs:cpu_hour")
+                .rhmMetricId("redhat.com:rhacs:cpu_hour")
+                .billingWindow(BillingWindow.MONTHLY)
                 .awsDimension("cpu_hour")
                 .uom(Uom.CORES)
                 .queryKey("default")
@@ -96,6 +99,7 @@ class RhacsTagProfileTest {
                 .serviceType("Rhacs Cluster")
                 .defaultUsage(Usage.PRODUCTION)
                 .tags(Set.of("rhacs"))
+                .billingModel("PAYG")
                 .build()));
   }
 
@@ -103,7 +107,7 @@ class RhacsTagProfileTest {
   @MethodSource("promethuesEnabledLookupArgs")
   void testPrometueusEnabledMeasurements(String tag, TallyMeasurement.Uom uom, String exMetricId) {
     assertTrue(tagProfile.getTagsWithPrometheusEnabledLookup().contains(tag));
-    assertEquals(exMetricId, tagProfile.metricIdForTagAndUom(tag, uom));
+    assertEquals(exMetricId, tagProfile.rhmMetricIdForTagAndUom(tag, uom));
   }
 
   static Stream<Arguments> promethuesEnabledLookupArgs() {
