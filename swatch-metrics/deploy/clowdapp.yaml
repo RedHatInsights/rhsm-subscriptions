@@ -160,26 +160,6 @@ objects:
                     cpu: ${CPU_LIMIT}
                     memory: ${MEMORY_LIMIT}
             env:
-              - name: CLIENT_ID
-                valueFrom:
-                  secretKeyRef:
-                    name: token-refresher
-                    key: CLIENT_ID
-              - name: CLIENT_SECRET
-                valueFrom:
-                  secretKeyRef:
-                    name: token-refresher
-                    key: CLIENT_SECRET
-              - name: ISSUER_URL
-                valueFrom:
-                  secretKeyRef:
-                    name: token-refresher
-                    key: ISSUER_URL
-              - name: URL
-                valueFrom:
-                  secretKeyRef:
-                    name: token-refresher
-                    key: URL
               - name: ENABLE_SPLUNK_HEC
                 value: ${ENABLE_SPLUNK_HEC}
               - name: SPLUNKMETA_namespace
