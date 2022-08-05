@@ -257,7 +257,7 @@ tagMetrics:
     rhmMetricId: redhat.com:rhacs:cpu_hour
     awsDimension: cpu_hour
     uom: CORES
-    billingWindow: HOURLY
+    billingWindow: MONTHLY
     queryParams:
       product: rhacs
       prometheusMetric: rhacs:rox_central_cluster_metrics_cpu_capacity:avg_over_time1h
@@ -298,6 +298,13 @@ tagMetaData:
   - tags:
       - rhosak
     serviceType: Kafka Cluster
+    finestGranularity: HOURLY
+    defaultSla: PREMIUM
+    defaultUsage: PRODUCTION
+    billingModel: PAYG
+  - tags:
+      - rhacs
+    serviceType: Rhacs Cluster
     finestGranularity: HOURLY
     defaultSla: PREMIUM
     defaultUsage: PRODUCTION
