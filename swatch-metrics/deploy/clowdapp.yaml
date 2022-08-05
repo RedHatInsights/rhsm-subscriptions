@@ -536,3 +536,13 @@ objects:
       name: cloudigrade-psk
     data:
       psk: ZHVtbXk=
+
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: token-refresher
+    data:
+      CLIENT_ID: cGxhY2Vob2xkZXI=  # placeholder
+      CLIENT_SECRET: cGxhY2Vob2xkZXI=  # placeholder
+      ISSUER_URL: aHR0cDovL2xvY2FsaG9zdDo4MDAw # http://localhost:8000
+      URL: aHR0cDovL2xvY2FsaG9zdDo4MDAw # http://localhost:8000
