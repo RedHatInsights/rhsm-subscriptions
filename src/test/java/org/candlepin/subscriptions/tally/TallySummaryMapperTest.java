@@ -39,7 +39,7 @@ import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.junit.jupiter.api.Test;
 
-public class TallySummaryMapperTest {
+class TallySummaryMapperTest {
 
   @Test
   void testMapSnapshots() {
