@@ -34,7 +34,6 @@ import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.DateRange;
-import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -138,7 +137,7 @@ public class TallySnapshotController {
 
                 var applicableUsageCalculations =
                     result.getCalculations().entrySet().stream()
-                        .filter(TallySnapshotController::isCombiningRollupStrategySupported)
+                        .filter(this::isCombiningRollupStrategySupported)
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
                 Map<String, List<TallySnapshot>> totalSnapshots =
@@ -182,13 +181,10 @@ public class TallySnapshotController {
     }
   }
 
-  private static boolean isCombiningRollupStrategySupported(
+  private boolean isCombiningRollupStrategySupported(
       Map.Entry<OffsetDateTime, AccountUsageCalculation> usageCalculations) {
 
     var calculatedProducts = usageCalculations.getValue().getProducts();
-
-    return calculatedProducts.contains(ProductId.OPENSHIFT_METRICS.toString())
-        || calculatedProducts.contains(ProductId.OPENSHIFT_DEDICATED_METRICS.toString())
-        || calculatedProducts.contains(ProductId.RHOSAK.toString());
+    return calculatedProducts.stream().anyMatch(tagProfile::isProductPAYGEligible);
   }
 }
