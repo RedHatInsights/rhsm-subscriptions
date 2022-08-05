@@ -84,6 +84,7 @@ class SnapshotSummaryProducerTest {
         List.of(
             buildSnapshot(
                 "a1",
+                "org1",
                 "OSD",
                 Granularity.HOURLY,
                 ServiceLevel.PREMIUM,
@@ -96,6 +97,7 @@ class SnapshotSummaryProducerTest {
         List.of(
             buildSnapshot(
                 "a2",
+                "org2",
                 "OCP",
                 Granularity.HOURLY,
                 ServiceLevel.PREMIUM,
@@ -113,6 +115,7 @@ class SnapshotSummaryProducerTest {
     assertSummary(
         results,
         "a1",
+        "org1",
         "OSD",
         Granularity.HOURLY,
         ServiceLevel.PREMIUM,
@@ -122,6 +125,7 @@ class SnapshotSummaryProducerTest {
     assertSummary(
         results,
         "a2",
+        "org2",
         "OCP",
         Granularity.HOURLY,
         ServiceLevel.PREMIUM,
@@ -133,6 +137,7 @@ class SnapshotSummaryProducerTest {
   void assertSummary(
       Map<String, List<TallySummary>> results,
       String account,
+      String orgId,
       String product,
       Granularity granularity,
       ServiceLevel sla,
@@ -144,6 +149,7 @@ class SnapshotSummaryProducerTest {
     assertEquals(1, accountSummaries.size());
     TallySummary expectedSummary = accountSummaries.get(0);
     assertEquals(account, expectedSummary.getAccountNumber());
+    assertEquals(orgId, expectedSummary.getOrgId());
 
     assertEquals(1, expectedSummary.getTallySnapshots().size());
     org.candlepin.subscriptions.json.TallySnapshot snapshot =
@@ -169,6 +175,7 @@ class SnapshotSummaryProducerTest {
         List.of(
             buildSnapshot(
                 "a1",
+                "org_1",
                 "OSD",
                 Granularity.HOURLY,
                 ServiceLevel.PREMIUM,
@@ -199,6 +206,7 @@ class SnapshotSummaryProducerTest {
 
   TallySnapshot buildSnapshot(
       String account,
+      String orgId,
       String productId,
       Granularity granularity,
       ServiceLevel sla,
@@ -211,6 +219,7 @@ class SnapshotSummaryProducerTest {
     measurements.put(new TallyMeasurementKey(HardwareMeasurementType.TOTAL, uom), val);
     return TallySnapshot.builder()
         .accountNumber(account)
+        .ownerId(orgId)
         .productId(productId)
         .snapshotDate(OffsetDateTime.now())
         .tallyMeasurements(measurements)
