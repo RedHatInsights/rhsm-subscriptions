@@ -48,8 +48,6 @@ parameters:
     value: INFO
   - name: METRICS_CRON_LOGGING_LEVEL
     value: INFO
-  - name: KAFKA_BOOTSTRAP_HOST
-    required: true
   - name: KAFKA_MESSAGE_THREADS
     value: '24'
   - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
@@ -210,8 +208,6 @@ objects:
                 value: ${LOGGING_LEVEL_ROOT}
               - name: LOGGING_LEVEL_ORG_CANDLEPIN
                 value: ${LOGGING_LEVEL}
-              - name: KAFKA_BOOTSTRAP_HOST
-                value: ${KAFKA_BOOTSTRAP_HOST}
               - name: KAFKA_MESSAGE_THREADS
                 value: ${KAFKA_MESSAGE_THREADS}
               - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
