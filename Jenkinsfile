@@ -19,6 +19,15 @@ pipeline {
         }
     }
     stages {
+        stage('Verify PR ok to test') {
+            when {
+                beforeInput true
+                expression { env.CHANGE_FORK }
+            }
+            steps {
+                input 'ok to test?'
+            }
+        }
         stage('Build/Test/Lint') {
             steps {
                 // The build task includes check, test, and assemble.  Linting happens during the check
