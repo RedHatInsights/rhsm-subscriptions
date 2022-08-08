@@ -34,18 +34,22 @@
       </sql>
     </rollback>
   </changeSet>
-  <changeSet id="202207051557-2" author="khowell" dbms="postgresql">
+  <changeSet id="202207051557-2" author="khowell" dbms="postgresql" runOnChange="true">
     <comment>Create triggers to mirror from instance_measurements to hosts.</comment>
     <sql>
+      drop trigger if exists sync_host_measurements_insert on instance_measurements;
+      drop trigger if exists sync_host_measurements_update on instance_measurements;
       create trigger sync_host_measurements_insert
         after insert
         on instance_measurements
         for each row
+        when (pg_trigger_depth() = 0)
       execute procedure sync_host_measurements();
       create trigger sync_host_measurements_update
         after update
         on instance_measurements
         for each row
+        when (pg_trigger_depth() = 0)
       execute procedure sync_host_measurements();
     </sql>
     <rollback>
@@ -83,18 +87,22 @@
       </sql>
     </rollback>
   </changeSet>
-  <changeSet id="202207051557-4" author="khowell" dbms="postgresql">
+  <changeSet id="202207051557-4" author="khowell" dbms="postgresql" runOnChange="true">
     <comment>Create triggers to mirror from  hosts measurements to instance_measurements.</comment>
     <sql>
+      drop trigger if exists sync_instance_measurements_insert on hosts;
+      drop trigger if exists sync_instance_measurements_update on hosts;
       create trigger sync_instance_measurements_insert
         after insert
         on hosts
         for each row
+        when (pg_trigger_depth() = 0)
       execute procedure sync_instance_measurements();
       create trigger sync_instance_measurements_update
         after update
         on hosts
         for each row
+        when (pg_trigger_depth() = 0)
       execute procedure sync_instance_measurements();
     </sql>
     <rollback>
@@ -137,18 +145,22 @@
       </sql>
     </rollback>
   </changeSet>
-  <changeSet id="202207051557-6" author="khowell" dbms="postgresql">
+  <changeSet id="202207051557-6" author="khowell" dbms="postgresql" runOnChange="true">
     <comment>Create triggers to mirror from tally_measurements to hardware_measurements.</comment>
     <sql>
+      drop trigger if exists sync_hardware_measurements_insert on tally_measurements;
+      drop trigger if exists sync_hardware_measurements_update on tally_measurements;
       create trigger sync_hardware_measurements_insert
         after insert
         on tally_measurements
         for each row
+        when (pg_trigger_depth() = 0)
       execute procedure sync_hardware_measurements();
       create trigger sync_hardware_measurements_update
         after update
         on tally_measurements
         for each row
+        when (pg_trigger_depth() = 0)
       execute procedure sync_hardware_measurements();
     </sql>
     <rollback>
@@ -190,18 +202,22 @@
       </sql>
     </rollback>
   </changeSet>
-  <changeSet id="202207051557-8" author="khowell" dbms="postgresql">
+  <changeSet id="202207051557-8" author="khowell" dbms="postgresql" runOnChange="true">
     <comment>Create triggers to mirror from hardware_measurements to tally_measurements.</comment>
     <sql>
+      drop trigger if exists sync_tally_measurements_insert on hardware_measurements;
+      drop trigger if exists sync_tally_measurements_update on hardware_measurements;
       create trigger sync_tally_measurements_insert
         after insert
         on hardware_measurements
         for each row
+        when (pg_trigger_depth() = 0)
       execute procedure sync_tally_measurements();
       create trigger sync_tally_measurements_update
         after update
         on hardware_measurements
         for each row
+        when (pg_trigger_depth() = 0)
       execute procedure sync_tally_measurements();
     </sql>
     <rollback>
