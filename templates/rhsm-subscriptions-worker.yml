@@ -22,7 +22,7 @@ parameters:
   - name: KAFKA_MESSAGE_THREADS
     value: '24'
   - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
-    value: '3600000'
+    value: '7200000'
   - name: KAFKA_SEEK_OVERRIDE_END
     value: 'false'
   - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
