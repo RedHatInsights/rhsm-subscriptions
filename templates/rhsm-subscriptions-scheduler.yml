@@ -21,8 +21,6 @@ parameters:
     value: 0 1 * * *
   - name: CAPTURE_HOURLY_SNAPSHOT_SCHEDULE
     value: '@hourly'
-  - name: METERING_SCHEDULE
-    value: 30 * * * *
   - name: EVENT_RECORD_RETENTION
     value: 90d
   - name: IMAGE
@@ -51,8 +49,6 @@ parameters:
     value: 100m
   - name: HOURLY_TALLY_OFFSET
     value: 60m
-  - name: SUBSCRIPTION_SYNC_ENABLED
-    value: 'true'
 
 objects:
   - apiVersion: batch/v1beta1

@@ -94,8 +94,6 @@ parameters:
     value: 0 1 * * *
   - name: CAPTURE_HOURLY_SNAPSHOT_SCHEDULE
     value: '@hourly'
-  - name: METERING_SCHEDULE
-    value: '@hourly'
   - name: ORG_SYNC_SCHEDULE
     value: 0 0 * * *
   - name: EVENT_RECORD_RETENTION
