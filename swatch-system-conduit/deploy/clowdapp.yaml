@@ -90,19 +90,13 @@ objects:
     # The name of the ClowdEnvironment providing the services
     envName: ${ENV_NAME}
 
-    # kafkaTopics:
-    #   - replicas: 3
-    #     partitions: 3
-    #     topicName: platform.rhsm-subscriptions.tally
-    #   - replicas: 3
-    #     partitions: 3
-    #     topicName: platform.rhsm-subscriptions.tasks
-    #   - replicas: 3
-    #     partitions: 3
-    #     topicName: platform.rhsm-subscriptions.subscription-sync
-    #   - replicas: 3
-    #     partitions: 3
-    #     topicName: platform.rhsm-subscriptions.billable-usage
+    kafkaTopics:
+      - replicas: 3
+        partitions: 3
+        topicName: platform.rhsm-conduit.tasks
+      - replicas: 3
+        partitions: 3
+        topicName: platform.inventory.host-ingress
 
 # Can't have this checked in like this, because stage gets upset since there
 # is no rhsm ClowdApp deployed to the rhsm-stage namespace
