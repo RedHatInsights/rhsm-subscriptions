@@ -122,11 +122,11 @@ objects:
       - replicas: 3
         partitions: 3
         topicName: platform.rhsm-subscriptions.billable-usage
-    # Creates a database if local mode, or uses RDS in production
-    database:
-      # Must specify both a name and a major postgres version
-      name: rhsm-db
-      version: 12
+    # # Creates a database if local mode, or uses RDS in production
+    # database:
+    #   # Must specify both a name and a major postgres version
+    #   name: rhsm-db
+    #   version: 12
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
