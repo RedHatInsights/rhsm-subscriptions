@@ -72,6 +72,14 @@
           parameters:
             REPLICAS: 1
             swatch-system-conduit/IMAGE: quay.io/cloudservices/swatch-system-conduit
+
+        - name: swatch-api
+          host: local
+          repo: $(pwd)/swatch-api
+          path: /deploy/clowdapp.yaml
+          parameters:
+            REPLICAS: 1
+            swatch-api/IMAGE: quay.io/cloudservices/rhsm-subscriptions
     BONFIRE
     ```
 
