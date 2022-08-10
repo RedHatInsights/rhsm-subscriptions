@@ -13,7 +13,7 @@
   `-p` argument during the deploy step.  The parameters in the example below are
   useful for development environments.
 
-  ```
+  ```bash
   bonfire config write-default
 
   cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
@@ -47,6 +47,15 @@
             DEV_MODE: "true"
             REPLICAS: 1
             swatch-metrics/IMAGE: quay.io/cloudservices/rhsm-subscriptions
+
+        - name: swatch-subscription-sync
+          host: local
+          repo: $(pwd)/swatch-subscription-sync
+          path: /deploy/clowdapp.yaml
+          parameters:
+            DEV_MODE: "true"
+            REPLICAS: 1
+            swatch-subscription-sync/IMAGE: quay.io/cloudservices/rhsm-subscriptions
 
         - name: swatch-producer-aws
           host: local
