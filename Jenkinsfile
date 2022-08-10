@@ -1,5 +1,8 @@
 pipeline {
     options { buildDiscarder(logRotator(numToKeepStr: '50')) }
+    environment {
+        SPRING_ACTIVE_PROFILE = "test"
+    }
     agent {
         kubernetes {
             label 'swatch' // this value + unique identifier becomes the pod name
