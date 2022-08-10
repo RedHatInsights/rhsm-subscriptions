@@ -80,6 +80,7 @@
           parameters:
             REPLICAS: 1
             swatch-api/IMAGE: quay.io/cloudservices/rhsm-subscriptions
+            swatch-api/RHSM_RBAC_USE_STUB: "true"
     BONFIRE
     ```
 
