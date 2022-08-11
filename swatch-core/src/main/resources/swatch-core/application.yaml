@@ -172,10 +172,10 @@ rhsm-subscriptions:
 
 # This YAML document will override definitions in the document above it.
 # See https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.external-config.files.multi-document
-KAFKA_USERNAME: ${clowder.kafka.brokers[0].sasl.username}
-KAFKA_PASSWORD: ${clowder.kafka.brokers[0].sasl.password}
-KAFKA_SASL_PROTOCOL: ${clowder.kafka.brokers[0].sasl.securityProtocol}
-KAFKA_SASL_MECHANISM: ${clowder.kafka.brokers[0].sasl.saslMechanism}
+KAFKA_USERNAME: ${clowder.kafka.brokers[0].sasl.username:dummy}
+KAFKA_PASSWORD: ${clowder.kafka.brokers[0].sasl.password:password}
+KAFKA_SASL_PROTOCOL: ${clowder.kafka.brokers[0].sasl.securityProtocol:SASL_SSL}
+KAFKA_SASL_MECHANISM: ${clowder.kafka.brokers[0].sasl.saslMechanism:SCRAM-SHA-512}
 
 # This needs to be a PEM encoded certificate string.  If you want to point to a file you can use
 # spring.kafka.ssl.trust-store-location property but that property is mutually exclusive with the
@@ -187,7 +187,7 @@ KAFKA_SASL_MECHANISM: ${clowder.kafka.brokers[0].sasl.saslMechanism}
 # -+BEGIN\\s*.*CERTIFICATE[^-]*-+\\s+(?:\\s*[^\\r\\n]*:[^\\r\\n]*[\\r\\n]+)*([a-zA-Z0-9/+=\\s]*)-+END\\s*.*CERTIFICATE[^-]*-+\\s+")
 # A notable point about this expression is that the "----BEGIN CERTIFICATE-----" piece must be
 # followed by a newline which makes it challenging to place the value in a properties or YAML file.
-KAFKA_SSL_TRUSTSTORE_CERTIFICATE: ${clowder.kafka.brokers[0].cacert}
+KAFKA_SSL_TRUSTSTORE_CERTIFICATE: ${clowder.kafka.brokers[0].cacert:null}
 
 spring:
   config:
@@ -202,7 +202,6 @@ spring:
       # The value for loginModule is determined at runtime by the KafkaJaasBeanPostProcessor.
       # The value for the property is dependent on KAFKA_SASL_MECHANISM but isn't the literal text;
       # instead, it's a Kafka class name to use.
-      # loginModule: One of [PLAIN, SCRAM-SHA-512, SCRAM-SHA-256]
       # All the loginModules we currently support use the same options.  If that changes, the
       # KafkaJaasBeanPostProcessor will need updating.
       options:
