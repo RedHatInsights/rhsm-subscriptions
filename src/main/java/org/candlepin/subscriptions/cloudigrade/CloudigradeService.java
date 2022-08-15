@@ -49,23 +49,22 @@ public class CloudigradeService {
   }
 
   public ConcurrencyReport listDailyConcurrentUsages(
-      String accountNumber, Integer limit, Integer offset, LocalDate startDate, LocalDate endDate)
+      String orgId, Integer limit, Integer offset, LocalDate startDate, LocalDate endDate)
       throws ApiException {
     return concurrentApi.listDailyConcurrentUsages(
-        externalProperties.getPresharedKey(), accountNumber, limit, offset, startDate, endDate);
+        externalProperties.getPresharedKey(), orgId, limit, offset, startDate, endDate);
   }
 
-  public UserResponse listCloudigradeUser(String accountNumber)
+  public UserResponse listCloudigradeUser(String orgId)
       throws org.candlepin.subscriptions.cloudigrade.internal.ApiException {
-    /* The Cloudigrade "username" is actually the same as the account number that we need to send
-     * in over the x-rh-cloudigrade-account-number header */
-    return usersApi.listCloudigradeUser(
-        internalProperties.getPresharedKey(), accountNumber, accountNumber);
+    /* The Cloudigrade "username" is actually the same as the org id that we need to send
+     * in over the x-rh-cloudigrade-org-id header */
+    return usersApi.listCloudigradeUser(internalProperties.getPresharedKey(), orgId, orgId);
   }
 
-  public boolean cloudigradeUserExists(String accountNumber)
+  public boolean cloudigradeUserExists(String orgId)
       throws org.candlepin.subscriptions.cloudigrade.internal.ApiException {
-    var response = listCloudigradeUser(accountNumber);
+    var response = listCloudigradeUser(orgId);
     return response.getData() != null && !response.getData().isEmpty();
   }
 }

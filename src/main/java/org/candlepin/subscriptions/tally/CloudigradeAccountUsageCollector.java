@@ -59,20 +59,21 @@ public class CloudigradeAccountUsageCollector {
    *
    * @param accountCalcs map of existing account to usage calculations
    * @param account account to enrich calculations for
+   * @param orgId
    * @throws ApiException if the cloudigrade service errs
    */
   @Timed("rhsm-subscriptions.snapshots.cloudigrade")
   public void enrichUsageWithCloudigradeData(
-      Map<String, AccountUsageCalculation> accountCalcs, String account)
+      Map<String, AccountUsageCalculation> accountCalcs, String account, String orgId)
       throws ApiException, org.candlepin.subscriptions.cloudigrade.internal.ApiException {
-    log.trace("Cloudigrade checking for user {}", account);
-    if (!cloudigradeService.cloudigradeUserExists(account)) {
-      log.trace("Cloudigrade could not find user {}", account);
+    log.trace("Cloudigrade checking user for org {}", orgId);
+    if (!cloudigradeService.cloudigradeUserExists(orgId)) {
+      log.trace("Cloudigrade could not find user for org {}", orgId);
       return;
     }
-    log.trace("Fetching cloudigrade data for {}", account);
+    log.trace("Fetching cloudigrade data for org {}", orgId);
     ConcurrencyReport cloudigradeUsage =
-        cloudigradeService.listDailyConcurrentUsages(account, null, null, null, null);
+        cloudigradeService.listDailyConcurrentUsages(orgId, null, null, null, null);
     accountCalcs.putIfAbsent(account, new AccountUsageCalculation(account));
     AccountUsageCalculation usageCalc = accountCalcs.get(account);
     if (cloudigradeUsage.getData().size() > 1) {

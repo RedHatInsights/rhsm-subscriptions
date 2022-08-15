@@ -98,7 +98,10 @@ public class TallySnapshotController {
           retryTemplate.execute(
               context -> usageCollector.collect(this.applicableProducts, account)));
       if (props.isCloudigradeEnabled()) {
-        attemptCloudigradeEnrichment(account, accountCalcs);
+        if(null != accountCalcs) {
+          String orgId = accountCalcs.get(account).getOwner();
+          attemptCloudigradeEnrichment(account, accountCalcs, orgId);
+        }
       }
     } catch (Exception e) {
       log.error("Could not collect existing usage snapshots for account {}", account, e);
@@ -162,13 +165,13 @@ public class TallySnapshotController {
   }
 
   private void attemptCloudigradeEnrichment(
-      String account, Map<String, AccountUsageCalculation> accountCalcs) {
+      String account, Map<String, AccountUsageCalculation> accountCalcs, String orgId) {
     log.info("Adding cloudigrade reports to calculations.");
     try {
       cloudigradeRetryTemplate.execute(
           context -> {
             try {
-              cloudigradeCollector.enrichUsageWithCloudigradeData(accountCalcs, account);
+              cloudigradeCollector.enrichUsageWithCloudigradeData(accountCalcs, account, orgId);
             } catch (Exception e) {
               throw new ExternalServiceException(
                   ErrorCode.REQUEST_PROCESSING_ERROR,
