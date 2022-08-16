@@ -98,6 +98,9 @@ public class TallySnapshotController {
           retryTemplate.execute(
               context -> usageCollector.collect(this.applicableProducts, account)));
       if (props.isCloudigradeEnabled() && null != accountCalcs.get(account)) {
+
+        //TODO accountCalcs doesn't have an owners yet
+
         String orgId = accountCalcs.get(account).getOwner();
         attemptCloudigradeEnrichment(account, accountCalcs, orgId);
       }
