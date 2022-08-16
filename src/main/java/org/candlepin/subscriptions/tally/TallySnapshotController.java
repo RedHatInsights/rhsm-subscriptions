@@ -98,8 +98,8 @@ public class TallySnapshotController {
           retryTemplate.execute(
               context -> usageCollector.collect(this.applicableProducts, account)));
       if (props.isCloudigradeEnabled() && null != accountCalcs.get(account)) {
-          String orgId = accountCalcs.get(account).getOwner();
-          attemptCloudigradeEnrichment(account, accountCalcs, orgId);
+        String orgId = accountCalcs.get(account).getOwner();
+        attemptCloudigradeEnrichment(account, accountCalcs, orgId);
       }
     } catch (Exception e) {
       log.error("Could not collect existing usage snapshots for account {}", account, e);
