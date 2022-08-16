@@ -13,86 +13,86 @@
   `-p` argument during the deploy step.  The parameters in the example below are
   useful for development environments.
 
-  ```bash
-  bonfire config write-default
+```bash
+bonfire config write-default
 
-  cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
-  - name: rhsm #Name of app-sre 'application' folder this component lives in
-    components:
+cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
+- name: rhsm #Name of app-sre 'application' folder this component lives in
+  components:
     - name: rhsm # a resourceTemplate in deploy-clowder.yaml in app-interface (ClowdApp name)
-    host: local
-    repo: $(pwd)/rhsm-subscriptions
-    path: /deploy/rhsm-clowdapp.yaml
-    parameters:
-    REPLICAS: 1
-    RHSM_RBAC_USE_STUB: "true"
-    MARKETPLACE_MANUAL_SUBMISSION_ENABLED: "true"
-    DEV_MODE: "true"
-    ENABLE_ACCOUNT_RESET: "true"
-    rhsm-subscriptions/IMAGE: quay.io/cloudservices/rhsm-subscriptions
-    SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT: http://localhost:8101/subscriptions/
+      host: local
+      repo: $(pwd)/rhsm-subscriptions
+      path: /deploy/rhsm-clowdapp.yaml
+      parameters:
+        REPLICAS: 1
+        RHSM_RBAC_USE_STUB: "true"
+        MARKETPLACE_MANUAL_SUBMISSION_ENABLED: "true"
+        DEV_MODE: "true"
+        ENABLE_ACCOUNT_RESET: "true"
+        rhsm/IMAGE: quay.io/cloudservices/rhsm-subscriptions
+        SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT: http://localhost:8101/subscriptions/
 
-        - name: swatch-producer-red-hat-marketplace
-          host: local
-          repo: $(pwd)/rhsm-subscriptions/swatch-producer-red-hat-marketplace
-          path: /deploy/clowdapp.yaml
-          parameters:
-            REPLICAS: 1
+    - name: swatch-producer-red-hat-marketplace
+      host: local
+      repo: $(pwd)/rhsm-subscriptions/swatch-producer-red-hat-marketplace
+      path: /deploy/clowdapp.yaml
+      parameters:
+        REPLICAS: 1
 
-        - name: swatch-metrics
-          host: local
-          repo: $(pwd)/swatch-metrics
-          path: /deploy/clowdapp.yaml
-          parameters:
-            DEV_MODE: "true"
-            REPLICAS: 1
-            swatch-metrics/IMAGE: quay.io/cloudservices/rhsm-subscriptions
+    - name: swatch-metrics
+      host: local
+      repo: $(pwd)/swatch-metrics
+      path: /deploy/clowdapp.yaml
+      parameters:
+        DEV_MODE: "true"
+        REPLICAS: 1
+        swatch-metrics/IMAGE: quay.io/cloudservices/rhsm-subscriptions
 
-        - name: swatch-subscription-sync
-          host: local
-          repo: $(pwd)/swatch-subscription-sync
-          path: /deploy/clowdapp.yaml
-          parameters:
-            DEV_MODE: "true"
-            REPLICAS: 1
-            swatch-subscription-sync/IMAGE: quay.io/cloudservices/rhsm-subscriptions
+    - name: swatch-subscription-sync
+      host: local
+      repo: $(pwd)/swatch-subscription-sync
+      path: /deploy/clowdapp.yaml
+      parameters:
+        DEV_MODE: "true"
+        REPLICAS: 1
+        swatch-subscription-sync/IMAGE: quay.io/cloudservices/rhsm-subscriptions
 
-        - name: swatch-producer-aws
-          host: local
-          repo: $(pwd)/swatch-producer-aws
-          path: /deploy/clowdapp.yaml
-          parameters:
-            REPLICAS: 1
-            swatch-producer-aws/IMAGE: quay.io/cloudservices/swatch-producer-aws
+    - name: swatch-system-conduit
+      host: local
+      repo: $(pwd)/swatch-system-conduit
+      path: /deploy/clowdapp.yaml
+      parameters:
+        REPLICAS: 1
+        swatch-system-conduit/IMAGE: quay.io/cloudservices/swatch-system-conduit
 
-        - name: swatch-system-conduit
-          host: local
-          repo: $(pwd)/swatch-system-conduit
-          path: /deploy/clowdapp.yaml
-          parameters:
-            REPLICAS: 1
-            swatch-system-conduit/IMAGE: quay.io/cloudservices/swatch-system-conduit
+    - name: swatch-tally
+      host: local
+      repo: $(pwd)/swatch-tally
+      path: /deploy/clowdapp.yaml
+      parameters:
+        REPLICAS: 1
+        DEV_MODE: "true"
+        swatch-tally/IMAGE: quay.io/cloudservices/rhsm-subscriptions
+        RHSM_RBAC_USE_STUB: "true"
 
-        - name: swatch-tally
-          host: local
-          repo: $(pwd)/swatch-tally
-          path: /deploy/clowdapp.yaml
-          parameters:
-            REPLICAS: 1
-            DEV_MODE: "true"
-            swatch-tally/IMAGE: quay.io/cloudservices/rhsm-subscriptions
-            RHSM_RBAC_USE_STUB: "true"
+    - name: swatch-api
+      host: local
+      repo: /home/lburnett/code/rhsm-subscriptions/swatch-api
+      path: /deploy/clowdapp.yaml
+      parameters:
+        REPLICAS: 1
+        IMAGE: quay.io/cloudservices/rhsm-subscriptions
+        RHSM_RBAC_USE_STUB: "true"
 
-        - name: swatch-api
-          host: local
-          repo: /home/lburnett/code/rhsm-subscriptions/swatch-api
-          path: /deploy/clowdapp.yaml
-          parameters:
-            REPLICAS: 1
-            IMAGE: quay.io/cloudservices/rhsm-subscriptions
-            RHSM_RBAC_USE_STUB: "true"
-    BONFIRE
-    ```
+    - name: swatch-producer-aws
+      host: local
+      repo: $(pwd)/rhsm-subscriptions/swatch-producer-aws
+      path: /deploy/clowdapp.yaml
+      parameters:
+        REPLICAS: 1
+        swatch-producer-aws/IMAGE: quay.io/cloudservices/swatch-producer-aws
+BONFIRE
+```
 
 ## Local Development
 You can do development locally using Minikube, but be aware that the resource
