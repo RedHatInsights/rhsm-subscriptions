@@ -718,18 +718,6 @@ objects:
       self: ZHVtbXk=
 
   - apiVersion: v1
-    kind: Secret
-    metadata:
-      name: ${INVENTORY_SECRET_KEY_NAME}
-    data:
-      db.host: aW5zaWdodHM=
-      db.name: aW5zaWdodHM=
-      name: aW5zaWdodHM=
-      db.user: aW5zaWdodHM=
-      db.password: aW5zaWdodHM=
-      password: aW5zaWdodHM=
-
-  - apiVersion: v1
     kind: ConfigMap
     metadata:
       name: capacity-allowlist
