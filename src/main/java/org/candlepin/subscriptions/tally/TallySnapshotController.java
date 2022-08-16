@@ -25,6 +25,7 @@ import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.ApplicationProperties;
@@ -99,9 +100,16 @@ public class TallySnapshotController {
               context -> usageCollector.collect(this.applicableProducts, account)));
       if (props.isCloudigradeEnabled() && null != accountCalcs.get(account)) {
 
-        //TODO accountCalcs doesn't have an owners yet
+        String orgId;
+        if (Objects.isNull(accountCalcs.get(account).getOwner())) {
+          // If orgId/ownerId is null, use the accountNumber instead just so the code doesn't
+          // explode
+          log.warn("AccountCalc getOwner was null, setting orgId to accountNumber {}", account);
+          orgId = account;
+        } else {
+          orgId = accountCalcs.get(account).getOwner();
+        }
 
-        String orgId = accountCalcs.get(account).getOwner();
         attemptCloudigradeEnrichment(account, accountCalcs, orgId);
       }
     } catch (Exception e) {
