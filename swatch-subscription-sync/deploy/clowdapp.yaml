@@ -126,6 +126,10 @@ objects:
     spec:
       envName: ${ENV_NAME}
 
+# Needs to stay commented out until there's an rhsm ClowdApp deployed in stage/prod
+#      dependencies:
+#        - rhsm
+
       kafkaTopics:
         - replicas: 1
           partitions: 1
@@ -716,11 +720,3 @@ objects:
       name: swatch-psks
     data:
       self: ZHVtbXk=
-
-  - apiVersion: v1
-    kind: ConfigMap
-    metadata:
-      name: capacity-allowlist
-    data:
-      product-allowlist.txt: |-
-        PLACEHOLDER
