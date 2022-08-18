@@ -7,7 +7,7 @@ parameters:
   - name: ENV_NAME
     value: env-swatch-system-conduit
   - name: IMAGE
-    value: registry.access.redhat.com/ubi8/ubi-minimal
+    value: quay.io/cloudservices/rhsm-subscriptions
   - name: IMAGE_TAG
     value: latest
 
