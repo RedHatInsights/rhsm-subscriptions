@@ -15,7 +15,7 @@ objects:
   - apiVersion: cloud.redhat.com/v1alpha1
     kind: ClowdApp
     metadata:
-      name: env-swatch-system-conduit
+      name: swatch-system-conduit
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
     spec:
