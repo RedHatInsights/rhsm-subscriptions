@@ -52,6 +52,8 @@ import lombok.Setter;
 import lombok.ToString;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 /**
  * Represents a reported Host from inventory. This entity stores normalized facts for a Host
@@ -97,6 +99,7 @@ public class Host implements Serializable {
   @MapKeyEnumerated(EnumType.STRING)
   @MapKeyColumn(name = "uom")
   @Column(name = "value")
+  @Fetch(FetchMode.JOIN)
   private Map<Measurement.Uom, Double> measurements = new EnumMap<>(Measurement.Uom.class);
 
   @ElementCollection(fetch = FetchType.EAGER)
@@ -104,6 +107,7 @@ public class Host implements Serializable {
       name = "instance_monthly_totals",
       joinColumns = @JoinColumn(name = "instance_id"))
   @Column(name = "value")
+  @Fetch(FetchMode.JOIN)
   private Map<InstanceMonthlyTotalKey, Double> monthlyTotals = new HashMap<>();
 
   @Column(name = "is_guest")
@@ -127,6 +131,7 @@ public class Host implements Serializable {
       cascade = CascadeType.ALL,
       orphanRemoval = true,
       fetch = FetchType.EAGER)
+  @Fetch(FetchMode.JOIN)
   private Set<HostTallyBucket> buckets = new HashSet<>();
 
   @Column(name = "is_unmapped_guest")
