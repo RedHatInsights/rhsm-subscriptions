@@ -4,8 +4,8 @@ kind: Template
 metadata:
   name: swatch-api
 parameters:
-  - name: NAME
-    value: swatch-api
+  - name: ENV_NAME
+    value: env-swatch-api
   - name: IMAGE
     value: registry.access.redhat.com/ubi8/ubi-minimal
   - name: IMAGE_TAG
@@ -15,11 +15,11 @@ objects:
   - apiVersion: cloud.redhat.com/v1alpha1
     kind: ClowdApp
     metadata:
-      name: ${NAME}
+      name: swatch-api
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
     spec:
-      envName: env-${NAME}
+      envName: ${ENV_NAME}
       deployments:
         - name: service
           podSpec:
