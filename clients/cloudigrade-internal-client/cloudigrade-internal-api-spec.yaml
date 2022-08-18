@@ -16,16 +16,16 @@ paths:
         description: "Cloudigrade pre-shared key for authentication"
         schema:
           type: string
-      - name: x-rh-cloudigrade-account-number
-        required: true
+      - name: x-rh-cloudigrade-org-id
+        required: false
         in: header
-        description: "Cloudigrade account number"
+        description: "Cloudigrade org id"
         schema:
           type: string
-      - name: username
-        required: true
-        in: query
-        description: "Username to query"
+      - name: x-rh-cloudigrade-account-number
+        required: false
+        in: header
+        description: "Cloudigrade account number"
         schema:
           type: string
     get:

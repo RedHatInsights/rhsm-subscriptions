@@ -53,6 +53,28 @@ parameters:
     value: quay.io/cloudservices/rhsm-subscriptions
   - name: IMAGE_TAG
     value: latest
+  - name: ORG_SYNC_SCHEDULE
+    value: 0 0 * * *
+  - name: ENABLE_SPLUNK_HEC
+    value: 'true'
+  - name: SPLUNK_SOURCE
+    value: 'rhsm-subscription-hec'
+  - name: SPLUNK_SOURCE_TYPE
+    value: 'springboot_server'
+  - name: SPLUNK_MESSAGE_FORMAT
+    value: 'text'
+  - name: SPLUNK_HEC_URL
+    value: https://splunk-hec.redhat.com:8088
+  - name: SPLUNK_HEC_CONNECT_TIMEOUT
+    value: '5000'
+  - name: SPLUNK_HEC_BATCH_SIZE
+    value: '1'
+  - name: SPLUNK_HEC_TERMINATION_TIMEOUT
+    value: '2000'
+  - name: CURL_CRON_IMAGE
+    value: quay.io/app-sre/ubi8-ubi-minimal
+  - name: CURL_CRON_IMAGE_TAG
+    value: latest
   - name: CURL_CRON_MEMORY_REQUEST
     value: 500Mi
   - name: CURL_CRON_MEMORY_LIMIT

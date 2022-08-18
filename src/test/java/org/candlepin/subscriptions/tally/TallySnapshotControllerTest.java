@@ -67,7 +67,7 @@ class TallySnapshotControllerTest {
   void testCloudigradeAccountUsageCollectorEnabled() throws Exception {
     props.setCloudigradeEnabled(true);
     controller.produceSnapshotsForAccount(ACCOUNT);
-    verify(cloudigradeCollector).enrichUsageWithCloudigradeData(any(), any());
+    verify(cloudigradeCollector).enrichUsageWithCloudigradeData(any(), any(), any());
   }
 
   @Test
@@ -75,9 +75,9 @@ class TallySnapshotControllerTest {
     props.setCloudigradeEnabled(true);
     doThrow(new RuntimeException())
         .when(cloudigradeCollector)
-        .enrichUsageWithCloudigradeData(any(), any());
+        .enrichUsageWithCloudigradeData(any(), any(), any());
     controller.produceSnapshotsForAccount(ACCOUNT);
-    verify(cloudigradeCollector, times(2)).enrichUsageWithCloudigradeData(any(), any());
+    verify(cloudigradeCollector, times(2)).enrichUsageWithCloudigradeData(any(), any(), any());
   }
 
   @Test

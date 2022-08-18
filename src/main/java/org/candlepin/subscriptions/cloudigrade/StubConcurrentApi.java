@@ -33,6 +33,7 @@ public class StubConcurrentApi extends ConcurrentApi {
   @Override
   public ConcurrencyReport listDailyConcurrentUsages(
       String psk,
+      String orgId,
       String accountNumber,
       Integer limit,
       Integer offset,
