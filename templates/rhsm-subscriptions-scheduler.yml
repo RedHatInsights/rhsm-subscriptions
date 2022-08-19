@@ -470,3 +470,5 @@ objects:
                     secretKeyRef:
                       name: rhsm-db
                       key: db.password
+                - name: DB_CHANGELOG_CLEANUP_SQL
+                  value: ${DB_CHANGELOG_CLEANUP_SQL}
