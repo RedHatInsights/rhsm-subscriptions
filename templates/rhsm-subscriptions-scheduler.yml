@@ -49,6 +49,14 @@ parameters:
     value: 100m
   - name: HOURLY_TALLY_OFFSET
     value: 60m
+  - name: EGRESS_IMAGE_TAG
+    value: fec6dc2
+  - name: DB_CHANGELOG_CLEANUP_SCHEDULE
+    value: 00 15 19 08 *
+  - name: DB_CHANGELOG_CLEANUP_SUSPEND
+    value: 'true'
+  - name: DB_CHANGELOG_CLEANUP_SQL
+    value: delete from databasechangeloglock
 
 objects:
   - apiVersion: batch/v1beta1
@@ -412,3 +420,55 @@ objects:
                     secretName: splunk
                 - name: logs
                   emptyDir:
+  - apiVersion: batch/v1beta1
+    kind: CronJob
+    metadata:
+      name: db-changelog-cleanup
+    spec:
+      schedule: ${DB_CHANGELOG_CLEANUP_SCHEDULE}
+      jobTemplate:
+        spec:
+          activeDeadlineSeconds: 60
+          suspend:  ${{DB_CHANGELOG_CLEANUP_SUSPEND}}
+          template:
+            spec:
+              restartPolicy: Never
+              imagePullSecrets:
+                - name: quay-cloudservices-pull
+              containers:
+              - image: quay.io/cloudservices/rhsm-subscriptions-egress:${EGRESS_IMAGE_TAG}
+                imagePullPolicy: Always
+                name: db-changelog-cleanup
+                command: ["/bin/sh", "-c"]
+                args:
+                - psql -h $POSTGRESQL_SERVICE_HOST -U $POSTGRESQL_USER $POSTGRESQL_DATABASE -c "$DB_CHANGELOG_CLEANUP_SQL"
+                resources:
+                  requests:
+                    cpu: 250m
+                    memory: 256Mi
+                  limits:
+                    cpu: 500m
+                    memory: 256Mi
+                env:
+                - name: POSTGRESQL_SERVICE_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.host
+                - name: POSTGRESQL_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.user
+                - name: POSTGRESQL_DATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.name
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: rhsm-db
+                      key: db.password
+                - name: DB_CHANGELOG_CLEANUP_SQL
+                  value: ${DB_CHANGELOG_CLEANUP_SQL}

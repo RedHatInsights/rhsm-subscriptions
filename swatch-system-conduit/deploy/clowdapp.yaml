@@ -141,6 +141,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: SPRING_LIQUIBASE_ENABLED
+              value: 'false'
             - name: ENABLE_SPLUNK_HEC
               value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
@@ -259,7 +261,7 @@ objects:
               path: /health/liveness
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 60
+            initialDelaySeconds: 15
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -269,7 +271,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 60
+            initialDelaySeconds: 15
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
