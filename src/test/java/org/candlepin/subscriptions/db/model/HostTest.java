@@ -105,6 +105,45 @@ class HostTest {
     assertEquals(5.0, host.asTallyHostViewApiHost("2021-02").getCoreHours());
   }
 
+  @Test
+  void testExistingBucketsAreUpdatedAndNotDuplicated() {
+    Host host = new Host();
+    host.setId(UUID.randomUUID());
+
+    HostTallyBucket b1 =
+        new HostTallyBucket(
+            null, // NOTE: it is important to pass null here to simulate a new bucket
+            "foo",
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            "bar",
+            true,
+            1,
+            1,
+            HardwareMeasurementType.PHYSICAL);
+    HostTallyBucket b2 =
+        new HostTallyBucket(
+            null, // NOTE: it is important to pass null here to simulate a new bucket
+            "foo",
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            "bar",
+            true,
+            2,
+            2,
+            HardwareMeasurementType.PHYSICAL);
+
+    host.addBucket(b1);
+    host.addBucket(b2);
+
+    assertEquals(1, host.getBuckets().size());
+    HostTallyBucket actualBucket = host.getBuckets().stream().findFirst().orElseThrow();
+    assertEquals(2, actualBucket.getCores());
+    assertEquals(2, actualBucket.getSockets());
+  }
+
   private InventoryHostFacts getInventoryHostFactsFull() {
     InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
 

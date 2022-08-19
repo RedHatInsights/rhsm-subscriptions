@@ -201,8 +201,21 @@ public class Host implements Serializable {
   }
 
   public void addBucket(HostTallyBucket bucket) {
+    // NOTE: host must be set first, otherwise we'd treat a persistent bucket as not equal to a new
+    // bucket having the same key otherwise
     bucket.setHost(this);
-    getBuckets().add(bucket);
+    Optional<HostTallyBucket> existingBucket =
+        buckets.stream().filter(b -> b.getKey().equals(bucket.getKey())).findFirst();
+    // if the bucket key already exists, then we should update the existing values, instead of
+    // creating a redundant entry
+    if (existingBucket.isPresent()) {
+      HostTallyBucket b = existingBucket.get();
+      b.setSockets(bucket.getSockets());
+      b.setCores(bucket.getCores());
+    } else {
+      bucket.setHost(this);
+      getBuckets().add(bucket);
+    }
   }
 
   public void removeBucket(HostTallyBucket bucket) {

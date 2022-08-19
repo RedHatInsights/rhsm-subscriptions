@@ -38,6 +38,8 @@ import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.registry.TagMetaData;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -181,17 +183,25 @@ public class MetricUsageCollector {
     Map<String, Host> thisHoursInstances = new HashMap<>();
     eventToHostMapping.forEach(
         (instanceId, events) -> {
+          Set<Uom> seenUoms = new HashSet<>();
           Host existing = accountServiceInventory.getServiceInstances().get(instanceId);
           Host host = existing == null ? new Host() : existing;
-          // Clear all measurements before processing the events so that we do
-          // not add old measurements to the new account calculations. Once collect()
-          // is completed, the instance will contain the measurements of the last hour
-          // collected.
-          host.getMeasurements().clear();
           thisHoursInstances.put(instanceId, host);
           accountServiceInventory.getServiceInstances().put(instanceId, host);
 
-          events.forEach(event -> updateInstanceFromEvent(event, host, serviceTypeMeta));
+          events.forEach(
+              event -> {
+                updateInstanceFromEvent(event, host, serviceTypeMeta);
+                if (event.getMeasurements() != null) {
+                  event.getMeasurements().stream().map(Measurement::getUom).forEach(seenUoms::add);
+                }
+              });
+          // clear any measurements that we don't have events for
+          Set<Uom> staleMeasurements =
+              host.getMeasurements().keySet().stream()
+                  .filter(k -> !seenUoms.contains(k))
+                  .collect(Collectors.toSet());
+          staleMeasurements.forEach(host.getMeasurements()::remove);
         });
 
     return tallyCurrentAccountState(accountServiceInventory.getAccountNumber(), thisHoursInstances);
