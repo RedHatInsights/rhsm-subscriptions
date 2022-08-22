@@ -27,6 +27,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.config.AccountConfig;
@@ -82,7 +83,7 @@ class AccountConfigRepositoryTest {
 
   @Test
   void testDelete() {
-    AccountConfig config = createConfig("an-account", "org123", true, true);
+    AccountConfig config = createConfig("an-account", "an-org", true, true);
     repository.saveAndFlush(config);
 
     AccountConfig toDelete = repository.getOne(config.getAccountNumber());
@@ -152,8 +153,24 @@ class AccountConfigRepositoryTest {
     assertEquals(2, count);
   }
 
-  private AccountConfig createConfig(
-      String account, String orgId, boolean canSync, boolean canReport) {
+  @Test
+  void testLookupOrgIdByAccountNumber() {
+    AccountConfig expectedConfig = createConfig("A2", "O2", true, false);
+    repository.saveAll(
+        Arrays.asList(
+            createConfig("A1", "O1", true, true),
+            expectedConfig,
+            createConfig("A3", "O3", false, true),
+            createConfig("A4", "O4", false, false)));
+    repository.flush();
+
+    Optional<AccountConfig> result = repository.findById(expectedConfig.getAccountNumber());
+    assertTrue(result.isPresent());
+    assertEquals(expectedConfig, result.get());
+
+  }
+
+  private AccountConfig createConfig(String account, String orgId, boolean canSync, boolean canReport) {
     AccountConfig config = new AccountConfig(account);
     config.setOrgId(orgId);
     config.setOptInType(OptInType.API);
