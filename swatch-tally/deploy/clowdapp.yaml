@@ -87,6 +87,7 @@ parameters:
     value: 1s
   - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_MULTIPLIER
     value: '2'
+
   - name: PURGE_SNAPSHOT_SCHEDULE
     value: 0 3 * * *
   - name: CAPTURE_SNAPSHOT_SCHEDULE
@@ -121,6 +122,29 @@ parameters:
     value: 'host-inventory-db'
   - name: INVENTORY_SECRET_KEY_NAME_PREFIX
     value: ''
+
+  - name: TENANT_TRANSLATOR_HOST
+    value: "apicast.3scale-dev.svc.cluster.local"
+  - name: TENANT_TRANSLATOR_PORT
+    value: '8891'
+  - name: POPULATOR_LOG_FORMAT
+    value: cloudwatch
+  - name: ORG_ID_POPULATOR_IMAGE
+    value: quay.io/cloudservices/tenant-utils
+  - name: ORG_ID_POPULATOR_IMAGE_TAG
+    value: latest
+  - name: ORG_ID_POPULATOR_CRON_CPU_REQUEST
+    value: 50m
+  - name: ORG_ID_POPULATOR_CRON_MEMORY_REQUEST
+    value: 512Mi
+  - name: ORG_ID_POPULATOR_CRON_CPU_LIMIT
+    value: 300m
+  - name: ORG_ID_POPULATOR_CRON_MEMORY_LIMIT
+    value: 1Gi
+  - name: ORG_ID_POPULATOR_SCHEDULE
+    value: 0 0 * * *
+  - name: POPULATOR_RUN_NUMBER # increment to run the org_id populator(s) again.
+    value: "1"
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -831,6 +855,84 @@ objects:
             - name: logs
               emptyDir:
 
+      - name: opt-in-org-id-populator
+        podSpec:
+          image: ${ORG_ID_POPULATOR_IMAGE}:${ORG_ID_POPULATOR_IMAGE_TAG}
+          command:
+            - ./org-id-column-populator
+            - -H
+            - $(DATABASE_HOST)
+            - -p
+            - $(DATABASE_PORT)
+            - -u
+            - $(DATABASE_USERNAME)
+            - -w
+            - $(DATABASE_PASSWORD)
+            - -n
+            - $(DATABASE_DATABASE)
+            - -a
+            - account_number
+            - -o
+            - org_id
+            - -t
+            - account_config
+            - --ean-translator-addr
+            - http://${TENANT_TRANSLATOR_HOST}:${TENANT_TRANSLATOR_PORT}
+            - -s
+            - disable
+          env:
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: db.host
+            - name: DATABASE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: db.port
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: db.user
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: db.password
+            - name: DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: db.name
+            - name: POPULATOR_LOG_FORMAT
+              value: ${POPULATOR_LOG_FORMAT}
+            - name: ORG_ID_POPULATOR_IMAGE
+              value: ${ORG_ID_POPULATOR_IMAGE}
+            - name: ORG_ID_POPULATOR_IMAGE
+              value: ${ORG_ID_POPULATOR_IMAGE}
+            - name: LOG_FORMAT
+              value: ${POPULATOR_LOG_FORMAT}
+            - name: LOG_BATCH_FREQUENCY
+              value: "1"
+          resources:
+            requests:
+              cpu: ${ORG_ID_POPULATOR_CRON_CPU_REQUEST}
+              memory: ${ORG_ID_POPULATOR_CRON_MEMORY_REQUEST}
+            limits:
+              cpu: ${ORG_ID_POPULATOR_CRON_CPU_LIMIT}
+              memory: ${ORG_ID_POPULATOR_CRON_MEMORY_LIMIT}
+
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdJobInvocation
+  metadata:
+    name: opt-in-org-id-populator-${POPULATOR_RUN_NUMBER}
+  spec:
+    appName: swatch-tally
+    jobs:
+      - opt-in-org-id-populator
+
 - apiVersion: v1
   kind: Secret
   metadata:
@@ -844,3 +946,4 @@ objects:
     name: cloudigrade-psk
   data:
     psk: ZHVtbXk=
+
