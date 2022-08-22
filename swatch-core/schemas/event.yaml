@@ -133,6 +133,7 @@ properties:
       - ocp
       - osd
       - rhosak
+      - rhacs
     required: false
   sla:
     description: Service level for the subject.
