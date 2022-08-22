@@ -93,7 +93,7 @@ public class OptInController {
 
     Optional<AccountConfig> accountData =
         accountConfigRepository.createOrUpdateAccountConfig(
-            accountNumber, now, optInType, enableTallySync, enableTallyReporting);
+            accountNumber, orgId, now, optInType, enableTallySync, enableTallyReporting);
     Optional<OrgConfig> orgData =
         orgConfigRepository.createOrUpdateOrgConfig(orgId, now, optInType, enableConduitSync);
     return buildDto(

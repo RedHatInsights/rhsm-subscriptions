@@ -38,6 +38,9 @@ public class AccountConfig extends BaseConfig {
   @Column(name = "reporting_enabled")
   private Boolean reportingEnabled;
 
+  @Column(name = "org_id")
+  private String orgId;
+
   public AccountConfig() {}
 
   public AccountConfig(String accountNumber) {
@@ -60,6 +63,14 @@ public class AccountConfig extends BaseConfig {
     this.reportingEnabled = reportingEnabled;
   }
 
+  public String getOrgId() {
+    return orgId;
+  }
+
+  public void setOrgId(String orgId) {
+    this.orgId = orgId;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -76,11 +87,12 @@ public class AccountConfig extends BaseConfig {
 
     AccountConfig that = (AccountConfig) o;
     return Objects.equals(accountNumber, that.accountNumber)
+        && Objects.equals(orgId, that.orgId)
         && Objects.equals(reportingEnabled, that.reportingEnabled);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), accountNumber, reportingEnabled);
+    return Objects.hash(super.hashCode(), accountNumber, orgId, reportingEnabled);
   }
 }

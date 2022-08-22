@@ -69,5 +69,6 @@
     <include file="liquibase/202207051553-drop-deprecated-tally-snapshot-columns.xml"/>
     <include file="liquibase/202207051557-transition-deprecated-columns.xml"/>
     <include file="liquibase/202207061021-migrate-cores-sockets-data.xml"/>
+    <include file="liquibase/202208091622-add-org-id-to-account-config.xml"/>
 </databaseChangeLog>
   <!-- vim: set expandtab sts=4 sw=4 ai: -->
