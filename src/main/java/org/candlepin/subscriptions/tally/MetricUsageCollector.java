@@ -87,6 +87,12 @@ public class MetricUsageCollector {
             .findById(new AccountServiceInventoryId(accountNumber, serviceType))
             .orElse(new AccountServiceInventory(accountNumber, serviceType));
 
+    // SWATCH-261 This logic should be implemented much cleaner
+    accountServiceInventory.getServiceInstances().values().stream()
+        .map(Host::getOrgId)
+        .filter(Objects::nonNull)
+        .findFirst()
+        .ifPresent(accountServiceInventory::setOrgId);
     /*
     Evaluate latest state to determine if we are doing a recalculation and filter to host records for only
     the product profile we're working on
@@ -148,12 +154,7 @@ public class MetricUsageCollector {
         accountCalcs.put(offset, accountUsageCalculation);
       }
     }
-    // SWATCH-261 This logic should be implemented much cleaner
-    accountServiceInventory.getServiceInstances().values().stream()
-        .map(Host::getOrgId)
-        .filter(Objects::nonNull)
-        .findFirst()
-        .ifPresent(accountServiceInventory::setOrgId);
+    accountCalcs.values().forEach(calc -> calc.setOwner(accountServiceInventory.getOrgId()));
     accountServiceInventoryRepository.save(accountServiceInventory);
 
     return new CollectionResult(
@@ -193,7 +194,6 @@ public class MetricUsageCollector {
 
           events.forEach(event -> updateInstanceFromEvent(event, host, serviceTypeMeta));
         });
-
     return tallyCurrentAccountState(accountServiceInventory.getAccountNumber(), thisHoursInstances);
   }
 

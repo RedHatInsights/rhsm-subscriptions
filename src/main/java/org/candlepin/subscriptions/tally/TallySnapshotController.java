@@ -140,7 +140,6 @@ public class TallySnapshotController {
                     result.getCalculations().entrySet().stream()
                         .filter(this::isCombiningRollupStrategySupported)
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
                 Map<String, List<TallySnapshot>> totalSnapshots =
                     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
                         accountNumber,
