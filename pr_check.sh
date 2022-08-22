@@ -36,7 +36,7 @@ done
 
 APP_ROOT=$PWD
 
-EXTRA_DEPLOY_ARGS="--timeout 3600 ${IMAGES}"
+EXTRA_DEPLOY_ARGS="--timeout 1800 ${IMAGES}"
 OPTIONAL_DEPS_METHOD=none
 
 #each gets appended with --component
