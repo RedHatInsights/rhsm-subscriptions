@@ -74,6 +74,7 @@ parameters:
   - name: SUBSCRIPTION_BACK_OFF_MULTIPLIER
     value: '2'
   - name: USER_HOST
+    value: 'user.qa.api.redhat.com'
   - name: USER_MAX_CONNECTIONS
     value: '100'
   - name: USER_MAX_ATTEMPTS
