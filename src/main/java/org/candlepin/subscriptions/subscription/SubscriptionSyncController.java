@@ -363,7 +363,6 @@ public class SubscriptionSyncController {
         .subscriptionNumber(subscription.getSubscriptionNumber())
         .sku(SubscriptionDtoUtil.extractSku(subscription))
         .ownerId(subscription.getWebCustomerId().toString())
-        .accountNumber(String.valueOf(subscription.getOracleAccountNumber()))
         .quantity(subscription.getQuantity())
         .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))
         .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
