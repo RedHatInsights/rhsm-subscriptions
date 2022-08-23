@@ -131,7 +131,6 @@ components:
         - subscriptionProducts
         - webCustomerId
         - quantity
-        - oracleAccountNumber
       properties:
         id:
           type: integer

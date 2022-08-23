@@ -40,14 +40,6 @@ class SubscriptionServiceTest {
   @Autowired SubscriptionService subject;
 
   @Test
-  void verifySearchByAccountNumberTest() throws ApiException {
-    when(searchApi.searchSubscriptionsByAccountNumber("123", 0, 1))
-        .thenReturn(Collections.emptyList());
-    subject.getSubscriptionsByAccountNumber("123", 0, 1);
-    verify(searchApi, only()).searchSubscriptionsByAccountNumber("123", 0, 1);
-  }
-
-  @Test
   void verifySearchByOrgIdTest() throws ApiException {
     when(searchApi.searchSubscriptionsByOrgId("123", 0, 1)).thenReturn(Collections.emptyList());
     subject.getSubscriptionsByOrgId("123", 0, 1);

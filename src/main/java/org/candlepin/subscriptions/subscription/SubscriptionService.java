@@ -111,69 +111,6 @@ public class SubscriptionService {
     return monoRetryWrapper(supplier);
   }
 
-  /**
-   * Obtain Subscription Service Subscription Models for an account number. Will attempt to gather
-   * "all" pages and combine them.
-   *
-   * @param accountNumber the account number of the customer. Also refered to as the Oracle account
-   *     number.
-   * @return a list of Subscription models.
-   */
-  public List<Subscription> getSubscriptionsByAccountNumber(String accountNumber) {
-    var index = 0;
-    var pageSize = properties.getPageSize();
-    int latestResultCount;
-
-    Set<Subscription> total = new HashSet<>();
-    do {
-      List<Subscription> subscriptionsByAccountNumber;
-
-      subscriptionsByAccountNumber =
-          getSubscriptionsByAccountNumber(accountNumber, index, pageSize);
-      latestResultCount = subscriptionsByAccountNumber.size();
-      total.addAll(subscriptionsByAccountNumber);
-      index = index + pageSize;
-    } while (latestResultCount == pageSize);
-
-    return new ArrayList<>(total);
-  }
-
-  /**
-   * Obtain Subscription Service Subscription Models for an account number.
-   *
-   * @param accountNumber the account number of the customer. Also refered to as the Oracle account
-   *     number.
-   * @param index the starting index for results.
-   * @param pageSize the number of results in the page.
-   * @return a list of Subscription models.
-   */
-  protected List<Subscription> getSubscriptionsByAccountNumber(
-      String accountNumber, int index, int pageSize) {
-    Supplier<List<Subscription>> supplier =
-        () -> {
-          try {
-            return searchApi.searchSubscriptionsByAccountNumber(accountNumber, index, pageSize);
-          } catch (ApiException e) {
-            log.error(API_EXCEPTION_FROM_SUBSCRIPTION_SERVICE, e.getResponseBody());
-
-            if (e.getResponseBody().contains("NumberFormatException")) {
-              throw new UnretryableException(
-                  ErrorCode.REQUEST_PROCESSING_ERROR,
-                  Response.Status.INTERNAL_SERVER_ERROR,
-                  ERROR_DURING_ATTEMPT_TO_REQUEST_SUBSCRIPTION_INFO_MSG,
-                  e);
-            }
-
-            throw new ExternalServiceException(
-                ErrorCode.REQUEST_PROCESSING_ERROR,
-                ERROR_DURING_ATTEMPT_TO_REQUEST_SUBSCRIPTION_INFO_MSG,
-                e);
-          }
-        };
-
-    return fluxRetryWrapper(supplier);
-  }
-
   public List<Subscription> getSubscriptionsByOrgId(String orgId) {
     var index = 0;
     var pageSize = properties.getPageSize();
