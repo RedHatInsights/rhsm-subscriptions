@@ -167,10 +167,10 @@ class AccountConfigRepositoryTest {
     Optional<AccountConfig> result = repository.findById(expectedConfig.getAccountNumber());
     assertTrue(result.isPresent());
     assertEquals(expectedConfig, result.get());
-
   }
 
-  private AccountConfig createConfig(String account, String orgId, boolean canSync, boolean canReport) {
+  private AccountConfig createConfig(
+      String account, String orgId, boolean canSync, boolean canReport) {
     AccountConfig config = new AccountConfig(account);
     config.setOrgId(orgId);
     config.setOptInType(OptInType.API);

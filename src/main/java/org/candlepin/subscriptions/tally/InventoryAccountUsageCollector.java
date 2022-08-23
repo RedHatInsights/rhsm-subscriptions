@@ -22,12 +22,21 @@ package org.candlepin.subscriptions.tally;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.model.*;
+import org.candlepin.subscriptions.db.model.config.AccountConfig;
 import org.candlepin.subscriptions.inventory.db.InventoryDatabaseOperations;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.json.Measurement;
@@ -69,7 +78,15 @@ public class InventoryAccountUsageCollector {
 
   @SuppressWarnings("squid:S3776")
   @Transactional
-  public Map<String, AccountUsageCalculation> collect(Collection<String> products, String account) {
+  public Map<String, AccountUsageCalculation> collect(
+      Collection<String> products, AccountConfig accountConfig) {
+    String account = accountConfig.getAccountNumber();
+    String orgId = accountConfig.getOrgId();
+    if (Objects.isNull(account) || Objects.isNull(orgId)) {
+      throw new IllegalArgumentException(
+          String.format("Incomplete opt-in configuration - account=%s orgId=%s", account, orgId));
+    }
+    log.info("Finding HBI hosts for account={} org={}", account, orgId);
 
     AccountServiceInventory accountServiceInventory =
         accountServiceInventoryRepository
@@ -94,12 +111,12 @@ public class InventoryAccountUsageCollector {
     Map<String, Integer> hypervisorGuestCounts = new HashMap<>();
 
     inventory.reportedHypervisors(
-        List.of(account), reported -> hypMapping.put((String) reported[0], (String) reported[1]));
+        List.of(orgId), reported -> hypMapping.put((String) reported[0], (String) reported[1]));
     log.info("Found {} reported hypervisors.", hypMapping.size());
 
     Map<String, AccountUsageCalculation> calcsByAccount = new HashMap<>();
     inventory.processHostFacts(
-        List.of(account),
+        List.of(orgId),
         culledOffsetDays,
         hostFacts -> {
           calcsByAccount.putIfAbsent(account, new AccountUsageCalculation(account));
