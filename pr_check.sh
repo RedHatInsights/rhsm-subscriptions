@@ -36,6 +36,7 @@ done
 
 APP_ROOT=$PWD
 
+NAMESPACE_POOL="managed-kafka"
 EXTRA_DEPLOY_ARGS="--timeout 1800 ${IMAGES}"
 OPTIONAL_DEPS_METHOD=none
 
