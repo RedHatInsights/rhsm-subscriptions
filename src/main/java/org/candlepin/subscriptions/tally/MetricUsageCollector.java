@@ -148,6 +148,12 @@ public class MetricUsageCollector {
         accountCalcs.put(offset, accountUsageCalculation);
       }
     }
+    // SWATCH-261 This logic should be implemented much cleaner
+    accountServiceInventory.getServiceInstances().values().stream()
+        .map(Host::getOrgId)
+        .filter(Objects::nonNull)
+        .findFirst()
+        .ifPresent(accountServiceInventory::setOrgId);
     accountServiceInventoryRepository.save(accountServiceInventory);
 
     return new CollectionResult(

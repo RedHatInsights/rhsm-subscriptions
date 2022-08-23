@@ -207,6 +207,7 @@ class MetricUsageCollectorTest {
   private AccountServiceInventory createTestAccountServiceInventory() {
     AccountServiceInventory accountServiceInventory = new AccountServiceInventory();
     accountServiceInventory.setAccountNumber("account123");
+    accountServiceInventory.setOrgId("orgId");
     accountServiceInventory.setServiceType(SERVICE_TYPE);
     return accountServiceInventory;
   }
