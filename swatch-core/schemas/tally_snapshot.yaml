@@ -69,7 +69,6 @@ properties:
             - Storage-gibibytes
             - Transfer-gibibytes
             - Storage-gibibyte-months
-            - Instances
         value:
           description: Measurement value.
           type: number

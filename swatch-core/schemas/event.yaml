@@ -90,7 +90,6 @@ properties:
             - Storage-gibibytes
             - Transfer-gibibytes
             - Storage-gibibyte-months
-            - Instances
     required: false
   cloud_provider:
     description: Identifier for the cloud provider of the subject.

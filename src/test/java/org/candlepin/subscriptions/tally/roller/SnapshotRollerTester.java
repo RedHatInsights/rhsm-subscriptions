@@ -26,18 +26,17 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurement;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Totals;
@@ -338,16 +337,18 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
       int totalSockets,
       int totalInstances) {
     UsageCalculation productCalc = new UsageCalculation(createUsageKey(product));
+    productCalc.addPhysical(totalCores, totalSockets, totalInstances);
+    productCalc.addHypervisor(totalCores, totalSockets, totalInstances);
+    productCalc.addCloudProvider(
+        HardwareMeasurementType.AWS, totalCores, totalSockets, totalInstances);
     Stream.of(
             HardwareMeasurementType.AWS,
             HardwareMeasurementType.PHYSICAL,
-            HardwareMeasurementType.VIRTUAL,
-            HardwareMeasurementType.HYPERVISOR)
+            HardwareMeasurementType.VIRTUAL)
         .forEach(
             type -> {
               productCalc.add(type, Measurement.Uom.CORES, (double) totalCores);
               productCalc.add(type, Measurement.Uom.SOCKETS, (double) totalSockets);
-              productCalc.add(type, Uom.INSTANCES, (double) totalInstances);
             });
 
     AccountUsageCalculation calc = new AccountUsageCalculation(account);
@@ -364,16 +365,22 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     assertEquals(expectedVals.getProductId(), snapshot.getProductId());
 
     for (HardwareMeasurementType type : HardwareMeasurementType.values()) {
+      HardwareMeasurement measurement = snapshot.getHardwareMeasurement(type);
       Totals expectedTotal = expectedVals.getTotals(type);
+      if (measurement == null) {
+        assertNull(expectedTotal);
+        continue;
+      }
+
+      assertNotNull(expectedTotal);
       Arrays.stream(Measurement.Uom.values())
           .forEach(
               uom -> {
-                assertEquals(
-                    Optional.ofNullable(expectedTotal)
-                        .map(totals -> totals.getMeasurement(uom))
-                        .orElse(null),
-                    snapshot.getMeasurement(type, uom));
+                assertEquals(expectedTotal.getMeasurement(uom), snapshot.getMeasurement(type, uom));
               });
+      assertEquals(expectedTotal.getCores(), measurement.getCores());
+      assertEquals(expectedTotal.getSockets(), measurement.getSockets());
+      assertEquals(expectedTotal.getInstances(), measurement.getInstanceCount());
     }
   }
 }
