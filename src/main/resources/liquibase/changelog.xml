@@ -69,5 +69,6 @@
     <include file="liquibase/202207051553-drop-deprecated-tally-snapshot-columns.xml"/>
     <include file="liquibase/202208091622-add-org-id-to-account-config.xml"/>
     <include file="liquibase/202208241137-remove-copy-triggers.xml"/>
+    <include file="liquibase/202208241637-clean-up-tally-measurements-after-revert.xml"/>
 </databaseChangeLog>
-  <!-- vim: set expandtab sts=4 sw=4 ai: -->
+<!-- vim: set expandtab sts=4 sw=4 ai: -->
