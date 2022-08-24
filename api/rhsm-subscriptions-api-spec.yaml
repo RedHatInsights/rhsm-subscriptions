@@ -1830,6 +1830,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SkuCapacitySubscription"
+        billing_provider:
+          $ref: '#/components/schemas/BillingProviderType'
         next_event_date:
           description: "The most immediate date for a subscription event."
           type: string

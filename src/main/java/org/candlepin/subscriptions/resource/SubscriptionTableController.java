@@ -214,7 +214,7 @@ public class SubscriptionTableController {
         sub -> {
           final SkuCapacity inventory =
               inventories.computeIfAbsent(
-                  sub.getSku(),
+                  String.format("%s:%s", sub.getSku(), sub.getBillingProvider()),
                   key -> initializeOnDemandSkuCapacity(sub, skuOfferings.get(sub.getSku())));
           addOnDemandSubscriptionInformation(sub, inventory);
         });
@@ -259,6 +259,10 @@ public class SubscriptionTableController {
         Optional.ofNullable(offering.getServiceLevel()).orElse(ServiceLevel.EMPTY).asOpenApiEnum());
     inv.setUsage(Optional.ofNullable(offering.getUsage()).orElse(Usage.EMPTY).asOpenApiEnum());
     inv.setHasInfiniteQuantity(offering.getHasUnlimitedUsage());
+    inv.setBillingProvider(
+        Optional.ofNullable(subscription.getBillingProvider())
+            .orElse(BillingProvider.EMPTY)
+            .asOpenApiEnum());
     inv.setQuantity(0);
     return inv;
   }
