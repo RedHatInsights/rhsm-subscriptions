@@ -35,6 +35,7 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,31 +76,7 @@ public class UsageCalculation {
 
   /** Provides metric totals associated with each hardware type associated with a calculation. */
   public static class Totals {
-    /**
-     * @deprecated use measurements instead
-     */
-    @Deprecated(forRemoval = true)
-    private int cores;
-
-    /**
-     * @deprecated use measurements instead
-     */
-    @Deprecated(forRemoval = true)
-    private int sockets;
-
-    /**
-     * @deprecated use measurements instead
-     */
-    @Deprecated(forRemoval = true)
-    private int instances;
-
     private final Map<Measurement.Uom, Double> measurements = new EnumMap<>(Measurement.Uom.class);
-
-    public Totals() {
-      cores = 0;
-      sockets = 0;
-      instances = 0;
-    }
 
     public String toString() {
       String entries =
@@ -107,36 +84,7 @@ public class UsageCalculation {
               .map(e -> String.format("%s: %s", e.getKey(), e.getValue()))
               .collect(Collectors.joining(", "));
       String uomMeasurements = String.format("[%s]", entries);
-      return String.format(
-          "[uom_measurements: %s, cores: %s, sockets: %s, instances: %s]",
-          uomMeasurements, cores, sockets, instances);
-    }
-
-    /**
-     * @deprecated use getMeasurement instead
-     * @return running cores measurement
-     */
-    @Deprecated(forRemoval = true)
-    public int getCores() {
-      return cores;
-    }
-
-    /**
-     * @deprecated use getMeasurement instead
-     * @return running sockets measurement
-     */
-    @Deprecated(forRemoval = true)
-    public int getSockets() {
-      return sockets;
-    }
-
-    /**
-     * @deprecated use getMeasurement instead
-     * @return running instances measurement
-     */
-    @Deprecated(forRemoval = true)
-    public int getInstances() {
-      return instances;
+      return String.format("[uom_measurements: %s]", uomMeasurements);
     }
 
     public Map<Measurement.Uom, Double> getMeasurements() {
@@ -187,84 +135,58 @@ public class UsageCalculation {
   }
 
   public void add(HardwareMeasurementType type, Measurement.Uom uom, Double value) {
+    if (type == HardwareMeasurementType.AWS_CLOUDIGRADE
+        && mappedTotals.containsKey(HardwareMeasurementType.AWS)) {
+      if (uom == Uom.INSTANCES) {
+        double awsInstances = getTotals(HardwareMeasurementType.AWS).getMeasurement(Uom.INSTANCES);
+        if (awsInstances != value) {
+          log.warn("AWS totals differ by source; HBI: {} vs. cloudigrade: {}", awsInstances, value);
+        }
+      }
+
+      // if both HBI and cloudigrade have info about this calculation, we need to undo any
+      // contribution towards total the HBI AWS measurements had
+      addToTotal(uom, mappedTotals.get(HardwareMeasurementType.AWS).getMeasurement(uom) * -1);
+    }
     increment(type, uom, value);
-    addToTotal(uom, value);
+    if (type != HardwareMeasurementType.TOTAL) {
+      addToTotal(uom, value);
+    }
   }
 
-  /**
-   * @deprecated use add instead
-   */
-  @Deprecated(forRemoval = true)
+  public void add(HardwareMeasurementType type, int cores, int sockets, int instances) {
+    add(type, Uom.CORES, (double) cores);
+    add(type, Uom.SOCKETS, (double) sockets);
+    add(type, Uom.INSTANCES, (double) instances);
+  }
+
   public void addPhysical(int cores, int sockets, int instances) {
-    increment(HardwareMeasurementType.PHYSICAL, cores, sockets, instances);
-    addToTotal(cores, sockets, instances);
+    add(HardwareMeasurementType.PHYSICAL, cores, sockets, instances);
   }
 
-  /**
-   * @deprecated use add instead
-   */
-  @Deprecated(forRemoval = true)
   public void addHypervisor(int cores, int sockets, int instances) {
-    increment(HardwareMeasurementType.VIRTUAL, cores, sockets, instances);
-    addToTotal(cores, sockets, instances);
+    add(HardwareMeasurementType.VIRTUAL, cores, sockets, instances);
   }
 
-  /**
-   * @deprecated use addToTotal(Measurement.Uom, Double value) instead
-   */
-  @Deprecated(forRemoval = true)
   public void addToTotal(int cores, int sockets, int instances) {
-    increment(HardwareMeasurementType.TOTAL, cores, sockets, instances);
+    add(HardwareMeasurementType.TOTAL, cores, sockets, instances);
   }
 
   public void addToTotal(Measurement.Uom uom, Double value) {
     increment(HardwareMeasurementType.TOTAL, uom, value);
   }
 
-  /**
-   * @deprecated use add instead
-   */
-  @Deprecated(forRemoval = true)
   public void addCloudProvider(
       HardwareMeasurementType cloudType, int cores, int sockets, int instances) {
     if (!HardwareMeasurementType.isSupportedCloudProvider(cloudType.name())) {
       throw new IllegalArgumentException(
           String.format("%s is not a supported cloud provider type.", cloudType));
     }
-
-    increment(cloudType, cores, sockets, instances);
-    addToTotal(cores, sockets, instances);
+    add(cloudType, cores, sockets, instances);
   }
 
-  /**
-   * @deprecated use add instead
-   */
-  @Deprecated(forRemoval = true)
   public void addCloudigrade(HardwareMeasurementType cloudType, int count) {
-    increment(cloudType, 0, count, count);
-    Totals awsTotals = getTotals(HardwareMeasurementType.AWS);
-    Totals grandTotal = getTotals(HardwareMeasurementType.TOTAL);
-    if (awsTotals != null) {
-      if (awsTotals.instances != count) {
-        log.warn(
-            "AWS totals differ by source; HBI: {} vs. cloudigrade: {}", awsTotals.instances, count);
-      }
-      grandTotal.instances -= awsTotals.instances;
-      grandTotal.sockets -= awsTotals.sockets;
-      grandTotal.cores -= awsTotals.cores;
-    }
-    addToTotal(0, count, count);
-  }
-
-  /**
-   * @deprecated use increment(HardwareMeasurementType, Measurement.Uom, Double) instead
-   */
-  @Deprecated(forRemoval = true)
-  private void increment(HardwareMeasurementType type, int cores, int sockets, int instances) {
-    Totals total = getOrDefault(type);
-    total.cores += cores;
-    total.sockets += sockets;
-    total.instances += instances;
+    add(cloudType, 0, count, count);
   }
 
   private void increment(HardwareMeasurementType type, Measurement.Uom uom, Double value) {

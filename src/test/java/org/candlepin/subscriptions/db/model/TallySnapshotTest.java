@@ -32,15 +32,10 @@ class TallySnapshotTest {
   @Test
   void testShouldIgnoreHbiAwsWhenCloudigradeAwsPresent() {
     TallySnapshot snapshot = new TallySnapshot();
-    HardwareMeasurement hbiMeasurement = new HardwareMeasurement();
-    hbiMeasurement.setSockets(3);
-    hbiMeasurement.setInstanceCount(3);
-    HardwareMeasurement cloudigradeMeasurement = new HardwareMeasurement();
-    cloudigradeMeasurement.setSockets(7);
-    cloudigradeMeasurement.setInstanceCount(7);
-    snapshot.setHardwareMeasurement(HardwareMeasurementType.AWS, hbiMeasurement);
-    snapshot.setHardwareMeasurement(
-        HardwareMeasurementType.AWS_CLOUDIGRADE, cloudigradeMeasurement);
+    snapshot.setMeasurement(HardwareMeasurementType.AWS, Uom.SOCKETS, 3.0);
+    snapshot.setMeasurement(HardwareMeasurementType.AWS, Uom.INSTANCES, 3.0);
+    snapshot.setMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, Uom.SOCKETS, 7.0);
+    snapshot.setMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, Uom.INSTANCES, 7.0);
 
     org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot =
         snapshot.asApiSnapshot();
@@ -54,10 +49,8 @@ class TallySnapshotTest {
   @Test
   void testShouldNotFlagCloudigradeDataIfNotPresent() {
     TallySnapshot snapshot = new TallySnapshot();
-    HardwareMeasurement hbiMeasurement = new HardwareMeasurement();
-    hbiMeasurement.setSockets(3);
-    hbiMeasurement.setInstanceCount(3);
-    snapshot.setHardwareMeasurement(HardwareMeasurementType.AWS, hbiMeasurement);
+    snapshot.setMeasurement(HardwareMeasurementType.AWS, Uom.SOCKETS, 3.0);
+    snapshot.setMeasurement(HardwareMeasurementType.AWS, Uom.INSTANCES, 3.0);
 
     org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot =
         snapshot.asApiSnapshot();
@@ -71,15 +64,10 @@ class TallySnapshotTest {
   @Test
   void testShouldNotFlagCloudigradeMismatchIfMatching() {
     TallySnapshot snapshot = new TallySnapshot();
-    HardwareMeasurement hbiMeasurement = new HardwareMeasurement();
-    hbiMeasurement.setSockets(7);
-    hbiMeasurement.setInstanceCount(7);
-    HardwareMeasurement cloudigradeMeasurement = new HardwareMeasurement();
-    cloudigradeMeasurement.setSockets(7);
-    cloudigradeMeasurement.setInstanceCount(7);
-    snapshot.setHardwareMeasurement(HardwareMeasurementType.AWS, hbiMeasurement);
-    snapshot.setHardwareMeasurement(
-        HardwareMeasurementType.AWS_CLOUDIGRADE, cloudigradeMeasurement);
+    snapshot.setMeasurement(HardwareMeasurementType.AWS, Uom.SOCKETS, 7.0);
+    snapshot.setMeasurement(HardwareMeasurementType.AWS, Uom.INSTANCES, 7.0);
+    snapshot.setMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, Uom.SOCKETS, 7.0);
+    snapshot.setMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, Uom.INSTANCES, 7.0);
 
     org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot =
         snapshot.asApiSnapshot();
@@ -93,14 +81,8 @@ class TallySnapshotTest {
   @Test
   void testShouldTolerateAccountWithOnlyCloudigrade() {
     TallySnapshot snapshot = new TallySnapshot();
-    HardwareMeasurement hbiMeasurement = new HardwareMeasurement();
-    hbiMeasurement.setSockets(7);
-    hbiMeasurement.setInstanceCount(7);
-    HardwareMeasurement cloudigradeMeasurement = new HardwareMeasurement();
-    cloudigradeMeasurement.setSockets(7);
-    cloudigradeMeasurement.setInstanceCount(7);
-    snapshot.setHardwareMeasurement(
-        HardwareMeasurementType.AWS_CLOUDIGRADE, cloudigradeMeasurement);
+    snapshot.setMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, Uom.SOCKETS, 7.0);
+    snapshot.setMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, Uom.INSTANCES, 7.0);
 
     org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot =
         snapshot.asApiSnapshot();
@@ -114,14 +96,10 @@ class TallySnapshotTest {
   @Test
   void testShouldAddHypervisorAndVirtual() {
     TallySnapshot snapshot = new TallySnapshot();
-    HardwareMeasurement hypervisorMeasurement = new HardwareMeasurement();
-    hypervisorMeasurement.setSockets(30);
-    hypervisorMeasurement.setInstanceCount(3);
-    HardwareMeasurement virtualMeasurement = new HardwareMeasurement();
-    virtualMeasurement.setSockets(70);
-    virtualMeasurement.setInstanceCount(7);
-    snapshot.setHardwareMeasurement(HardwareMeasurementType.HYPERVISOR, hypervisorMeasurement);
-    snapshot.setHardwareMeasurement(HardwareMeasurementType.VIRTUAL, virtualMeasurement);
+    snapshot.setMeasurement(HardwareMeasurementType.HYPERVISOR, Uom.SOCKETS, 30.0);
+    snapshot.setMeasurement(HardwareMeasurementType.HYPERVISOR, Uom.INSTANCES, 3.0);
+    snapshot.setMeasurement(HardwareMeasurementType.VIRTUAL, Uom.SOCKETS, 70.0);
+    snapshot.setMeasurement(HardwareMeasurementType.VIRTUAL, Uom.INSTANCES, 7.0);
 
     org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot =
         snapshot.asApiSnapshot();
