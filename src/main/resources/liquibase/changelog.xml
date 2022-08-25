@@ -67,8 +67,6 @@
     <include file="liquibase/202206021315-add-version-to-billable-usage-tracking-table.xml"/>
     <include file="liquibase/202207201200-add-org-id-to-event-table.xml"/>
     <include file="liquibase/202207051553-drop-deprecated-tally-snapshot-columns.xml"/>
-    <include file="liquibase/202207051557-transition-deprecated-columns.xml"/>
-    <include file="liquibase/202207061021-migrate-cores-sockets-data.xml"/>
     <include file="liquibase/202208091622-add-org-id-to-account-config.xml"/>
     <include file="liquibase/202208241137-remove-copy-triggers.xml"/>
     <include file="liquibase/202208241637-clean-up-tally-measurements-after-revert.xml"/>
@@ -76,5 +74,7 @@
     <include file="liquibase/202208301033-default-null-hardware-measurements.xml"/>
     <include file="liquibase/202208301423-set-tally-snapshot-owner-id.xml"/>
     <include file="liquibase/202209121018-update-primary-key-of-account-config.xml"/>
+    <include file="liquibase/202208251614-transition-deprecated-columns.xml"/>
+    <include file="liquibase/202208251616-migrate-cores-sockets-data.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

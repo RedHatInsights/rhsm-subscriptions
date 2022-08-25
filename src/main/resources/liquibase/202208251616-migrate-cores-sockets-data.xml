@@ -6,7 +6,7 @@
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
-  <changeSet id="202207061021-1" author="khowell" dbms="postgresql">
+  <changeSet id="202208251616-1" author="khowell" dbms="postgresql">
     <comment>Copy data from hosts.cores to instance_measurements.</comment>
     <sql>
       insert into instance_measurements(instance_id, uom, value)
@@ -16,7 +16,7 @@
       update set value =excluded.value;
     </sql>
   </changeSet>
-  <changeSet id="202207061021-2" author="khowell" dbms="postgresql">
+  <changeSet id="202208251616-2" author="khowell" dbms="postgresql">
     <comment>Copy data from hosts.sockets to instance_measurements.</comment>
     <sql>
       insert into instance_measurements(instance_id, uom, value)
@@ -26,7 +26,7 @@
       on conflict(instance_id, uom) do update set value=excluded.value;
     </sql>
   </changeSet>
-  <changeSet id="202207061021-3" author="khowell" dbms="postgresql">
+  <changeSet id="202208251616-3" author="khowell" dbms="postgresql">
     <comment>Copy data from hardware_measurements.sockets to tally_measurements.</comment>
     <sql>
       insert into tally_measurements(snapshot_id, measurement_type, uom, value)
@@ -36,7 +36,7 @@
       on conflict(snapshot_id, measurement_type, uom) do update set value=excluded.value;
     </sql>
   </changeSet>
-  <changeSet id="202207061021-4" author="khowell" dbms="postgresql">
+  <changeSet id="202208251616-4" author="khowell" dbms="postgresql">
     <comment>Copy data from hardware_measurements.cores to tally_measurements.</comment>
     <sql>
       insert into tally_measurements(snapshot_id, measurement_type, uom, value)
@@ -46,7 +46,7 @@
       on conflict(snapshot_id, measurement_type, uom) do update set value=excluded.value;
     </sql>
   </changeSet>
-  <changeSet id="202207061021-5" author="khowell" dbms="postgresql">
+  <changeSet id="202208251616-5" author="khowell" dbms="postgresql">
     <comment>Copy data from hardware_measurements.instance_count to tally_measurements.</comment>
     <sql>
       insert into tally_measurements(snapshot_id, measurement_type, uom, value)

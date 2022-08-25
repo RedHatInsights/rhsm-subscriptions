@@ -5,7 +5,7 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
-  <changeSet id="202207051557-1" author="khowell" dbms="postgresql" runOnChange="true">
+  <changeSet id="202208251614-1" author="khowell" dbms="postgresql" runOnChange="true">
     <comment>Create function to mirror from instance_measurements to hosts.</comment>
     <createProcedure>
       create or replace function sync_host_measurements() returns trigger as
@@ -34,7 +34,7 @@
       </sql>
     </rollback>
   </changeSet>
-  <changeSet id="202207051557-2" author="khowell" dbms="postgresql" runOnChange="true">
+  <changeSet id="202208251614-2" author="khowell" dbms="postgresql" runOnChange="true">
     <comment>Create triggers to mirror from instance_measurements to hosts.</comment>
     <sql>
       drop trigger if exists sync_host_measurements_insert on instance_measurements;
@@ -59,7 +59,7 @@
       </sql>
     </rollback>
   </changeSet>
-  <changeSet id="202207051557-3" author="khowell" dbms="postgresql" runOnChange="true">
+  <changeSet id="202208251614-3" author="khowell" dbms="postgresql" runOnChange="true">
     <comment>Create function to mirror from  hosts measurements to instance_measurements.</comment>
     <createProcedure>
       create or replace function sync_instance_measurements() returns trigger as
@@ -87,7 +87,7 @@
       </sql>
     </rollback>
   </changeSet>
-  <changeSet id="202207051557-4" author="khowell" dbms="postgresql" runOnChange="true">
+  <changeSet id="202208251614-4" author="khowell" dbms="postgresql" runOnChange="true">
     <comment>Create triggers to mirror from  hosts measurements to instance_measurements.</comment>
     <sql>
       drop trigger if exists sync_instance_measurements_insert on hosts;
@@ -110,7 +110,7 @@
       drop trigger sync_instance_measurements_update on hosts;
     </rollback>
   </changeSet>
-  <changeSet id="202207051557-5" author="khowell" dbms="postgresql" runOnChange="true">
+  <changeSet id="202208251614-5" author="khowell" dbms="postgresql" runOnChange="true">
     <comment>Create function to mirror from tally_measurements to hardware_measurements.</comment>
     <createProcedure>
       create or replace function sync_hardware_measurements() returns trigger as
@@ -145,7 +145,7 @@
       </sql>
     </rollback>
   </changeSet>
-  <changeSet id="202207051557-6" author="khowell" dbms="postgresql" runOnChange="true">
+  <changeSet id="202208251614-6" author="khowell" dbms="postgresql" runOnChange="true">
     <comment>Create triggers to mirror from tally_measurements to hardware_measurements.</comment>
     <sql>
       drop trigger if exists sync_hardware_measurements_insert on tally_measurements;
@@ -168,7 +168,7 @@
       drop trigger sync_hardware_measurements_update on tally_measurements;
     </rollback>
   </changeSet>
-  <changeSet id="202207051557-7" author="khowell" dbms="postgresql" runOnChange="true">
+  <changeSet id="202208251614-7" author="khowell" dbms="postgresql" runOnChange="true">
     <comment>Create function to mirror from hardware_measurements to tally_measurements.</comment>
     <createProcedure>
       create or replace function sync_tally_measurements() returns trigger as
@@ -202,7 +202,7 @@
       </sql>
     </rollback>
   </changeSet>
-  <changeSet id="202207051557-8" author="khowell" dbms="postgresql" runOnChange="true">
+  <changeSet id="202208251614-8" author="khowell" dbms="postgresql" runOnChange="true">
     <comment>Create triggers to mirror from hardware_measurements to tally_measurements.</comment>
     <sql>
       drop trigger if exists sync_tally_measurements_insert on hardware_measurements;
