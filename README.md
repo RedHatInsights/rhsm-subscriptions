@@ -402,7 +402,14 @@ Essentially:
 
 1. Edit the dashboard on the stage grafana instance.
 2. Export the dashboard, choosing to "export for sharing externally", save JSON to a file.
-3. Rename the file to `subscription-watch.json`.
+3. Export the dashboard again, this time not selecting the external sharing option and save that
+   JSON to a file.
+4. For both pieces of JSON, drop them into the `subscription-watch.json` section under `data`
+   in `grafana-dashboard-subscription-watch.configmap.yaml` and update the indentation.
+5. Do a `git diff`.  Select the export that makes the most sense.  In my experience, **not**
+   selecting the "external sharing" option leads to more correct results.  A export formatted
+   for sharing has an `__inputs` section that hardcodes some values we don't want hardcoded.
+6. Rename the file to `subscription-watch.json`.
 
 OR
 

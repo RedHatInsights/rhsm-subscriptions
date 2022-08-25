@@ -47,6 +47,7 @@ public interface AccountConfigRepository extends JpaRepository<AccountConfig, St
 
   default Optional<AccountConfig> createOrUpdateAccountConfig(
       String account,
+      String orgId,
       OffsetDateTime current,
       OptInType optInType,
       boolean enableSync,
@@ -57,6 +58,7 @@ public interface AccountConfigRepository extends JpaRepository<AccountConfig, St
       accountConfig.setOptInType(optInType);
       accountConfig.setCreated(current);
     }
+    accountConfig.setOrgId(orgId);
     accountConfig.setSyncEnabled(enableSync);
     accountConfig.setReportingEnabled(enableReporting);
     accountConfig.setUpdated(current);

@@ -33,8 +33,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurement;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
@@ -92,6 +92,11 @@ public abstract class BaseSnapshotRoller {
       Totals calculatedTotals = productCalc.getTotals(type);
       if (calculatedTotals != null) {
         log.debug("Updating snapshot with hardware measurement: {}", type);
+        HardwareMeasurement total = new HardwareMeasurement();
+        total.setCores(calculatedTotals.getCores());
+        total.setSockets(calculatedTotals.getSockets());
+        total.setInstanceCount(calculatedTotals.getInstances());
+        snapshot.setHardwareMeasurement(type, total);
         calculatedTotals
             .getMeasurements()
             .forEach((uom, value) -> snapshot.setMeasurement(type, uom, value));
@@ -233,18 +238,50 @@ public abstract class BaseSnapshotRoller {
       UsageCalculation calc) {
 
     Totals prodCalcTotals = calc.getTotals(measurementType);
+    HardwareMeasurement measurement = snap.getHardwareMeasurement(measurementType);
 
     // Nothing to update if the existing measure does not exist and there
     // was no new incoming measurement.
-    if (prodCalcTotals == null) {
+    if (measurement == null && prodCalcTotals == null) {
       return false;
     }
 
-    HashMap<TallyMeasurementKey, Double> beforeUpdate = new HashMap<>(snap.getTallyMeasurements());
+    boolean changed = false;
+
+    // If the calculated values for the measurement do not exist, zero them out
+    // for the snapshot update. Daily snapshots will have the values reset to zero.
+    // All other snapshots will take the existing value.
+    int calcSockets = prodCalcTotals != null ? prodCalcTotals.getSockets() : 0;
+    int calcCores = prodCalcTotals != null ? prodCalcTotals.getCores() : 0;
+    int calcInstanceCount = prodCalcTotals != null ? prodCalcTotals.getInstances() : 0;
+
+    if (measurement == null) {
+      // All the int fields in measurement will be initialized to zero
+      measurement = new HardwareMeasurement();
+    }
+
+    if (override || mustUpdate(measurement.getCores(), calcCores)) {
+      measurement.setCores(calcCores);
+      changed = true;
+    }
+
+    if (override || mustUpdate(measurement.getSockets(), calcSockets)) {
+      measurement.setSockets(calcSockets);
+      changed = true;
+    }
+
+    if (override || mustUpdate(measurement.getInstanceCount(), calcInstanceCount)) {
+      measurement.setInstanceCount(calcInstanceCount);
+      changed = true;
+    }
 
     updateUomTotals(override, snap, measurementType, prodCalcTotals);
 
-    return override || !beforeUpdate.equals(snap.getTallyMeasurements());
+    if (changed) {
+      snap.setHardwareMeasurement(measurementType, measurement);
+    }
+
+    return changed;
   }
 
   private void updateUomTotals(
@@ -268,5 +305,9 @@ public abstract class BaseSnapshotRoller {
 
   private boolean mustUpdate(Double existing, Double newMeasurment) {
     return existing == null || newMeasurment > existing;
+  }
+
+  private boolean mustUpdate(Integer v1, Integer v2) {
+    return v1 == null || v2 > v1;
   }
 }
