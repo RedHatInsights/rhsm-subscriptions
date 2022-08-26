@@ -193,7 +193,7 @@ spring:
   config:
     activate:
       on-cloud-platform: "kubernetes"
-      on-profile: "!test"
+      on-profile: "!test & kafka-queue"
   kafka:
     security:
       protocol: ${KAFKA_SASL_PROTOCOL}
