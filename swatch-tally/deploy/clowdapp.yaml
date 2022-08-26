@@ -482,23 +482,23 @@ objects:
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
                 secretKeyRef:
-                  name: host-inventory-db
+                  name: ${INVENTORY_SECRET_KEY_NAME}
                   key: db.host
             - name: INVENTORY_DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
-                  name: host-inventory-db
-                  key: name
+                  name: ${INVENTORY_SECRET_KEY_NAME}
+                  key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}name
             - name: INVENTORY_DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: host-inventory-db
+                  name: ${INVENTORY_SECRET_KEY_NAME}
                   key: db.user
             - name: INVENTORY_DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: host-inventory-db
-                  key: password
+                  name: ${INVENTORY_SECRET_KEY_NAME}
+                  key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -630,23 +630,23 @@ objects:
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
                 secretKeyRef:
-                  name: host-inventory-db
+                  name: ${INVENTORY_SECRET_KEY_NAME}
                   key: db.host
             - name: INVENTORY_DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
-                  name: host-inventory-db
-                  key: name
+                  name: ${INVENTORY_SECRET_KEY_NAME}
+                  key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}name
             - name: INVENTORY_DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: host-inventory-db
+                  name: ${INVENTORY_SECRET_KEY_NAME}
                   key: db.user
             - name: INVENTORY_DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: host-inventory-db
-                  key: password
+                  name: ${INVENTORY_SECRET_KEY_NAME}
+                  key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -780,23 +780,23 @@ objects:
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
                 secretKeyRef:
-                  name: host-inventory-db
+                  name: ${INVENTORY_SECRET_KEY_NAME}
                   key: db.host
             - name: INVENTORY_DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
-                  name: host-inventory-db
-                  key: name
+                  name: ${INVENTORY_SECRET_KEY_NAME}
+                  key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}name
             - name: INVENTORY_DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: host-inventory-db
+                  name: ${INVENTORY_SECRET_KEY_NAME}
                   key: db.user
             - name: INVENTORY_DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: host-inventory-db
-                  key: password
+                  name: ${INVENTORY_SECRET_KEY_NAME}
+                  key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
           livenessProbe:
             failureThreshold: 3
             httpGet:
