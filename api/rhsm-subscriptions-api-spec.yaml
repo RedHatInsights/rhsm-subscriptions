@@ -1097,10 +1097,10 @@ components:
     MetricId:
       type: string
       enum:
+        # Cores is the same as core-hours
         - Cores
         - Sockets
         - Core-seconds
-        - Core-hours
         - Instance-hours
         - Storage-gibibyte-months
         - Storage-gibibytes
