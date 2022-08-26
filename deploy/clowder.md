@@ -72,6 +72,16 @@
           parameters:
             REPLICAS: 1
             swatch-system-conduit/IMAGE: quay.io/cloudservices/swatch-system-conduit
+
+        - name: swatch-tally
+          host: local
+          repo: $(pwd)/swatch-tally
+          path: /deploy/clowdapp.yaml
+          parameters:
+            REPLICAS: 1
+            DEV_MODE: "true"
+            swatch-tally/IMAGE: quay.io/cloudservices/rhsm-subscriptions
+            RHSM_RBAC_USE_STUB: "true"
     BONFIRE
     ```
 
