@@ -29,11 +29,7 @@ get_approot() {
   if [ "$component" == "rhsm-subscriptions" ]; then
     echo "$PWD"
   else
-    if [[ -f $component/Dockerfile ]]; then
-      echo "$PWD"
-    elif [[ -f $component/src/main/docker/Dockerfile.jvm ]]; then
-      echo "$PWD/$component"
-    fi
+    echo "$PWD/$component"
   fi
 }
 
