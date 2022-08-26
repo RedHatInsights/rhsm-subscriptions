@@ -4,8 +4,15 @@ kind: Template
 metadata:
   name: rhsm
 parameters:
+<<<<<<< HEAD
   - name: SUBSCRIPTIONS_HAWTIO_BASE_PATH
     value: /app/rhsm-subscriptions/hawtio
+=======
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: ENV_NAME
+    value: env-rhsm
+>>>>>>> main
   - name: SERVER_MAX_HTTP_HEADER_SIZE
     value: '48000'
   - name: LOGGING_LEVEL_ROOT
@@ -52,8 +59,6 @@ parameters:
   # TODO This has been lowered from what it was in the previous environment (from 25 to 10)
   # We were running the clowder DB out of connections.  If we need more, we need to investigate
   # tuning the database to allow more
-  - name: INVENTORY_DATABASE_MAX_POOL_SIZE
-    value: '10'
   - name: OPENSHIFT_BILLING_MODEL_FILTER
     value: 'marketplace'
   - name: USER_HOST
@@ -77,6 +82,7 @@ parameters:
     value: 1s
   - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_MULTIPLIER
     value: '2'
+<<<<<<< HEAD
   - name: ENV_NAME
     value: env-rhsm
 
@@ -88,6 +94,10 @@ parameters:
     value: '@hourly'
   - name: EVENT_RECORD_RETENTION
     value: '90d'
+=======
+  - name: RHSM_RBAC_USE_STUB
+    value: 'false'
+>>>>>>> main
   # TODO after enable individual functionality (see ENT-4487)
   - name: DEV_MODE
     value: 'false'
@@ -109,6 +119,10 @@ parameters:
     value: '1'
   - name: SPLUNK_HEC_TERMINATION_TIMEOUT
     value: '2000'
+<<<<<<< HEAD
+=======
+
+>>>>>>> main
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -123,20 +137,6 @@ objects:
     optionalDependencies:
       - cloudigrade
 
-    kafkaTopics:
-      - replicas: 3
-        partitions: 3
-        topicName: platform.rhsm-subscriptions.tally
-      - replicas: 3
-        partitions: 3
-        topicName: platform.rhsm-subscriptions.tasks
-      - replicas: 3
-        partitions: 3
-        topicName: platform.rhsm-subscriptions.subscription-sync
-      - replicas: 3
-        partitions: 3
-        topicName: platform.rhsm-subscriptions.billable-usage
-    # Creates a database if local mode, or uses RDS in production
     database:
       # Must specify both a name and a major postgres version
       name: rhsm-db
@@ -146,7 +146,11 @@ objects:
       name: ${IMAGE_PULL_SECRET}
 
     deployments:
+<<<<<<< HEAD
       - name: subscriptions-worker
+=======
+      - name: api
+>>>>>>> main
         minReplicas: 1
         webServices:
           public:
@@ -204,13 +208,21 @@ objects:
             - name: SPLUNK_HEC_TERMINATION_TIMEOUT
               value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
             - name: SPRING_PROFILES_ACTIVE
+<<<<<<< HEAD
               value: worker,kafka-queue
+=======
+              value: api
+            # turn off built-in jolokia, so that the spring boot jolokia actuator will work
+>>>>>>> main
             - name: AB_JOLOKIA_OFF
               value: 'true'
             - name: SERVER_MAX_HTTP_HEADER_SIZE
               value: ${SERVER_MAX_HTTP_HEADER_SIZE}
+<<<<<<< HEAD
             - name: HAWTIO_BASE_PATH
               value: ${SUBSCRIPTIONS_HAWTIO_BASE_PATH}
+=======
+>>>>>>> main
             - name: LOG_FILE
               value: /logs/server.log
             - name: JAVA_MAX_MEM_RATIO
@@ -229,10 +241,13 @@ objects:
               value: ${KAFKA_SEEK_OVERRIDE_END}
             - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
               value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
+<<<<<<< HEAD
             - name: DATABASE_CONNECTION_TIMEOUT_MS
               value: ${DATABASE_CONNECTION_TIMEOUT_MS}
             - name: DATABASE_MAX_POOL_SIZE
               value: ${DATABASE_MAX_POOL_SIZE}
+=======
+>>>>>>> main
             - name: DATABASE_HOST
               valueFrom:
                 secretKeyRef:
@@ -258,6 +273,13 @@ objects:
                 secretKeyRef:
                   name: rhsm-db
                   key: db.name
+<<<<<<< HEAD
+=======
+            - name: DATABASE_CONNECTION_TIMEOUT_MS
+              value: ${DATABASE_CONNECTION_TIMEOUT_MS}
+            - name: DATABASE_MAX_POOL_SIZE
+              value: ${DATABASE_MAX_POOL_SIZE}
+>>>>>>> main
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
                 secretKeyRef:
@@ -278,6 +300,7 @@ objects:
                 secretKeyRef:
                   name: host-inventory-db
                   key: password
+<<<<<<< HEAD
             - name: INVENTORY_DATABASE_CONNECTION_TIMEOUT_MS
               value: ${INVENTORY_DATABASE_CONNECTION_TIMEOUT_MS}
             - name: INVENTORY_DATABASE_MAX_POOL_SIZE
@@ -294,6 +317,10 @@ objects:
                 secretKeyRef:
                   name: swatch-psks
                   key: self
+=======
+            - name: CLOUDIGRADE_ENABLED
+              value: ${CLOUDIGRADE_ENABLED}
+>>>>>>> main
             - name: PROM_URL
               value: ${PROM_URL}
             - name: OPENSHIFT_BILLING_MODEL_FILTER
@@ -310,6 +337,14 @@ objects:
               value: ${USER_BACK_OFF_INITIAL_INTERVAL}
             - name: USER_BACK_OFF_MULTIPLIER
               value: ${USER_BACK_OFF_MULTIPLIER}
+            - name: TALLY_SUMMARY_PRODUCER_MAX_ATTEMPTS
+              value: ${TALLY_SUMMARY_PRODUCER_MAX_ATTEMPTS}
+            - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_MAX_INTERVAL
+              value: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_MAX_INTERVAL}
+            - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_INITIAL_INTERVAL
+              value: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_INITIAL_INTERVAL}
+            - name: TALLY_SUMMARY_PRODUCER_BACK_OFF_MULTIPLIER
+              value: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_MULTIPLIER}
             - name: RHSM_KEYSTORE_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -317,19 +352,22 @@ objects:
                   key: keystore_password
             - name: RHSM_KEYSTORE
               value: /pinhead/keystore.jks
+            - name: RHSM_RBAC_USE_STUB
+              value: ${RHSM_RBAC_USE_STUB}
             - name: DEV_MODE
               value: ${DEV_MODE}
-            - name: ENABLE_ACCOUNT_RESET
-              value: ${ENABLE_ACCOUNT_RESET}
-            - name: DEV_MODE
-              value: ${DEV_MODE}
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
           livenessProbe:
             failureThreshold: 3
             httpGet:
               path: /health/liveness
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 60
+            initialDelaySeconds: 15
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -339,7 +377,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 60
+            initialDelaySeconds: 15
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -362,463 +400,9 @@ objects:
               secret:
                 secretName: pinhead
 
-    jobs:
-      - name: cron-tally
-        schedule: ${CAPTURE_SNAPSHOT_SCHEDULE}
-        activeDeadlineSeconds: 4200
-        successfulJobsHistoryLimit: 2
-        restartPolicy: Never
-        podSpec:
-          image: ${IMAGE}:${IMAGE_TAG}
-          command:
-            - /bin/bash
-            - /usr/local/s2i/run
-          initContainers:
-            - env:
-                - name: SPRING_PROFILES_ACTIVE
-                  value: liquibase-only
-              inheritEnv: true
-              command:
-                - /bin/bash
-                - /usr/local/s2i/run
-              resources:
-                requests:
-                  cpu: ${CPU_REQUEST}
-                  memory: ${MEMORY_REQUEST}
-                limits:
-                  cpu: ${CPU_LIMIT}
-                  memory: ${MEMORY_LIMIT}
-          env:
-            - name: ENABLE_SPLUNK_HEC
-              value: ${ENABLE_SPLUNK_HEC}
-            - name: SPLUNKMETA_namespace
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.namespace
-            - name: SPLUNKMETA_host
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.name
-            - name: SPLUNK_HEC_URL
-              value: ${SPLUNK_HEC_URL}
-            - name: SPLUNK_HEC_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: splunk-hec-external
-                  key: token
-            - name: SPLUNK_SOURCE
-              value: ${SPLUNK_SOURCE}
-            - name: SPLUNK_SOURCE_TYPE
-              value: ${SPLUNK_SOURCE_TYPE}
-            - name: SPLUNK_MESSAGE_FORMAT
-              value: ${SPLUNK_MESSAGE_FORMAT}
-            - name: SPLUNK_HEC_CONNECT_TIMEOUT
-              value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
-            - name: SPLUNK_HEC_BATCH_SIZE
-              value: ${SPLUNK_HEC_BATCH_SIZE}
-            - name: SPLUNK_HEC_TERMINATION_TIMEOUT
-              value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
-            - name: SPRING_PROFILES_ACTIVE
-              value: capture-snapshots,kafka-queue
-            - name: JAVA_MAX_MEM_RATIO
-              value: '85'
-            - name: GC_MAX_METASPACE_SIZE
-              value: '256'
-            - name: LOG_FILE
-              value: /logs/server.log
-            - name: LOGGING_LEVEL_ROOT
-              value: ${LOGGING_LEVEL_ROOT}
-            - name: LOGGING_LEVEL_ORG_CANDLEPIN
-              value: ${LOGGING_LEVEL}
-            - name: DATABASE_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: rhsm-db
-                  key: db.host
-            - name: DATABASE_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: rhsm-db
-                  key: db.port
-            - name: DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: rhsm-db
-                  key: db.user
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: rhsm-db
-                  key: db.password
-            - name: DATABASE_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: rhsm-db
-                  key: db.name
-            - name: INVENTORY_DATABASE_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: host-inventory-db
-                  key: db.host
-            - name: INVENTORY_DATABASE_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: host-inventory-db
-                  key: name
-            - name: INVENTORY_DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: host-inventory-db
-                  key: db.user
-            - name: INVENTORY_DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: host-inventory-db
-                  key: password
-          livenessProbe:
-            failureThreshold: 3
-            httpGet:
-              path: /health/liveness
-              port: 9000
-              scheme: HTTP
-            initialDelaySeconds: 60
-            periodSeconds: 20
-            successThreshold: 1
-            timeoutSeconds: 5
-          readinessProbe:
-            failureThreshold: 3
-            httpGet:
-              path: /health
-              port: 9000
-              scheme: HTTP
-            initialDelaySeconds: 60
-            periodSeconds: 20
-            successThreshold: 1
-            timeoutSeconds: 5
-          resources:
-            requests:
-              cpu: ${CPU_REQUEST}
-              memory: ${MEMORY_REQUEST}
-            limits:
-              cpu: ${CPU_LIMIT}
-              memory: ${MEMORY_LIMIT}
-          volumeMounts:
-            - name: logs
-              mountPath: /logs
-          volumes:
-            - name: logs
-              emptyDir:
-
-      - name: hourly-tally
-        schedule: ${CAPTURE_HOURLY_SNAPSHOT_SCHEDULE}
-        activeDeadlineSeconds: 4200
-        successfulJobsHistoryLimit: 2
-        restartPolicy: Never
-        podSpec:
-          image: ${IMAGE}:${IMAGE_TAG}
-          command:
-            - /bin/bash
-            - /usr/local/s2i/run
-          initContainers:
-            - env:
-                - name: SPRING_PROFILES_ACTIVE
-                  value: liquibase-only
-              inheritEnv: true
-              command:
-                - /bin/bash
-                - /usr/local/s2i/run
-              resources:
-                requests:
-                  cpu: ${CPU_REQUEST}
-                  memory: ${MEMORY_REQUEST}
-                limits:
-                  cpu: ${CPU_LIMIT}
-                  memory: ${MEMORY_LIMIT}
-          env:
-            - name: ENABLE_SPLUNK_HEC
-              value: ${ENABLE_SPLUNK_HEC}
-            - name: SPLUNKMETA_namespace
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.namespace
-            - name: SPLUNKMETA_host
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.name
-            - name: SPLUNK_HEC_URL
-              value: ${SPLUNK_HEC_URL}
-            - name: SPLUNK_HEC_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: splunk-hec-external
-                  key: token
-            - name: SPLUNK_SOURCE
-              value: ${SPLUNK_SOURCE}
-            - name: SPLUNK_SOURCE_TYPE
-              value: ${SPLUNK_SOURCE_TYPE}
-            - name: SPLUNK_MESSAGE_FORMAT
-              value: ${SPLUNK_MESSAGE_FORMAT}
-            - name: SPLUNK_HEC_CONNECT_TIMEOUT
-              value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
-            - name: SPLUNK_HEC_BATCH_SIZE
-              value: ${SPLUNK_HEC_BATCH_SIZE}
-            - name: SPLUNK_HEC_TERMINATION_TIMEOUT
-              value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
-            - name: SPRING_PROFILES_ACTIVE
-              value: capture-hourly-snapshots,kafka-queue
-            - name: JAVA_MAX_MEM_RATIO
-              value: '85'
-            - name: GC_MAX_METASPACE_SIZE
-              value: '256'
-            - name: LOG_FILE
-              value: /logs/server.log
-            - name: LOGGING_LEVEL_ROOT
-              value: ${LOGGING_LEVEL_ROOT}
-            - name: LOGGING_LEVEL_ORG_CANDLEPIN
-              value: ${LOGGING_LEVEL}
-            - name: DATABASE_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: rhsm-db
-                  key: db.host
-            - name: DATABASE_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: rhsm-db
-                  key: db.port
-            - name: DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: rhsm-db
-                  key: db.user
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: rhsm-db
-                  key: db.password
-            - name: DATABASE_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: rhsm-db
-                  key: db.name
-            - name: INVENTORY_DATABASE_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: host-inventory-db
-                  key: db.host
-            - name: INVENTORY_DATABASE_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: host-inventory-db
-                  key: name
-            - name: INVENTORY_DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: host-inventory-db
-                  key: db.user
-            - name: INVENTORY_DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: host-inventory-db
-                  key: password
-          livenessProbe:
-            failureThreshold: 3
-            httpGet:
-              path: /health/liveness
-              port: 9000
-              scheme: HTTP
-            initialDelaySeconds: 60
-            periodSeconds: 20
-            successThreshold: 1
-            timeoutSeconds: 5
-          readinessProbe:
-            failureThreshold: 3
-            httpGet:
-              path: /health
-              port: 9000
-              scheme: HTTP
-            initialDelaySeconds: 60
-            periodSeconds: 20
-            successThreshold: 1
-            timeoutSeconds: 5
-          resources:
-            requests:
-              cpu: ${CPU_REQUEST}
-              memory: ${MEMORY_REQUEST}
-            limits:
-              cpu: ${CPU_LIMIT}
-              memory: ${MEMORY_LIMIT}
-          volumeMounts:
-            - name: logs
-              mountPath: /logs
-          volumes:
-            - name: logs
-              emptyDir:
-
-      - name: cron-purge
-        schedule: ${PURGE_SNAPSHOT_SCHEDULE}
-        activeDeadlineSeconds: 1800
-        successfulJobsHistoryLimit: 2
-        restartPolicy: Never
-        podSpec:
-          image: ${IMAGE}:${IMAGE_TAG}
-          command:
-            - /bin/bash
-            - /usr/local/s2i/run
-          initContainers:
-            - env:
-                - name: SPRING_PROFILES_ACTIVE
-                  value: liquibase-only
-              inheritEnv: true
-              command:
-                - /bin/bash
-                - /usr/local/s2i/run
-              resources:
-                requests:
-                  cpu: ${CPU_REQUEST}
-                  memory: ${MEMORY_REQUEST}
-                limits:
-                  cpu: ${CPU_LIMIT}
-                  memory: ${MEMORY_LIMIT}
-          env:
-            - name: ENABLE_SPLUNK_HEC
-              value: ${ENABLE_SPLUNK_HEC}
-            - name: SPLUNKMETA_namespace
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.namespace
-            - name: SPLUNKMETA_host
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.name
-            - name: SPLUNK_HEC_URL
-              value: ${SPLUNK_HEC_URL}
-            - name: SPLUNK_HEC_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: splunk-hec-external
-                  key: token
-            - name: SPLUNK_SOURCE
-              value: ${SPLUNK_SOURCE}
-            - name: SPLUNK_SOURCE_TYPE
-              value: ${SPLUNK_SOURCE_TYPE}
-            - name: SPLUNK_MESSAGE_FORMAT
-              value: ${SPLUNK_MESSAGE_FORMAT}
-            - name: SPLUNK_HEC_CONNECT_TIMEOUT
-              value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
-            - name: SPLUNK_HEC_BATCH_SIZE
-              value: ${SPLUNK_HEC_BATCH_SIZE}
-            - name: SPLUNK_HEC_TERMINATION_TIMEOUT
-              value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
-            - name: SPRING_PROFILES_ACTIVE
-              value: purge-snapshots,kafka-queue
-            - name: JAVA_MAX_MEM_RATIO
-              value: '85'
-            - name: GC_MAX_METASPACE_SIZE
-              value: '256'
-            - name: LOG_FILE
-              value: /logs/server.log
-            - name: LOGGING_LEVEL_ROOT
-              value: ${LOGGING_LEVEL_ROOT}
-            - name: LOGGING_LEVEL_ORG_CANDLEPIN
-              value: ${LOGGING_LEVEL}
-            - name: EVENT_RECORD_RETENTION
-              value: ${EVENT_RECORD_RETENTION}
-            - name: DATABASE_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: rhsm-db
-                  key: db.host
-            - name: DATABASE_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: rhsm-db
-                  key: db.port
-            - name: DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: rhsm-db
-                  key: db.user
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: rhsm-db
-                  key: db.password
-            - name: DATABASE_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: rhsm-db
-                  key: db.name
-            - name: INVENTORY_DATABASE_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: host-inventory-db
-                  key: db.host
-            - name: INVENTORY_DATABASE_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: host-inventory-db
-                  key: name
-            - name: INVENTORY_DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: host-inventory-db
-                  key: db.user
-            - name: INVENTORY_DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: host-inventory-db
-                  key: password
-          livenessProbe:
-            failureThreshold: 3
-            httpGet:
-              path: /health/liveness
-              port: 9000
-              scheme: HTTP
-            initialDelaySeconds: 60
-            periodSeconds: 20
-            successThreshold: 1
-            timeoutSeconds: 5
-          readinessProbe:
-            failureThreshold: 3
-            httpGet:
-              path: /health
-              port: 9000
-              scheme: HTTP
-            initialDelaySeconds: 60
-            periodSeconds: 20
-            successThreshold: 1
-            timeoutSeconds: 5
-          resources:
-            requests:
-              cpu: ${CPU_REQUEST}
-              memory: ${MEMORY_REQUEST}
-            limits:
-              cpu: ${CPU_LIMIT}
-              memory: ${MEMORY_LIMIT}
-          volumeMounts:
-            - name: logs
-              mountPath: /logs
-          volumes:
-            - name: logs
-              emptyDir:
-
 - apiVersion: v1
   kind: Secret
   metadata:
     name: swatch-psks
   data:
     self: ZHVtbXk=
-
-- apiVersion: v1
-  kind: Secret
-  metadata:
-    name: cloudigrade-psk
-  data:
-    psk: ZHVtbXk=

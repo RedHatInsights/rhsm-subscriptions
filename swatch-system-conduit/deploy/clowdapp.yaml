@@ -49,7 +49,10 @@ parameters:
     value: '10'
   - name: ENV_NAME
     value: env-swatch-system-conduit
-
+  - name: IMAGE
+    value: quay.io/cloudservices/rhsm-subscriptions
+  - name: IMAGE_TAG
+    value: latest
   - name: ORG_SYNC_SCHEDULE
     value: 0 0 * * *
   - name: ENABLE_SPLUNK_HEC
@@ -69,7 +72,7 @@ parameters:
   - name: SPLUNK_HEC_TERMINATION_TIMEOUT
     value: '2000'
   - name: CURL_CRON_IMAGE
-    value: registry.access.redhat.com/ubi8/ubi-minimal
+    value: quay.io/app-sre/ubi8-ubi-minimal
   - name: CURL_CRON_IMAGE_TAG
     value: latest
   - name: CURL_CRON_MEMORY_REQUEST
@@ -138,6 +141,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: SPRING_LIQUIBASE_ENABLED
+              value: 'false'
             - name: ENABLE_SPLUNK_HEC
               value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
@@ -256,7 +261,7 @@ objects:
               path: /health/liveness
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 60
+            initialDelaySeconds: 15
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5
@@ -266,7 +271,7 @@ objects:
               path: /health
               port: 9000
               scheme: HTTP
-            initialDelaySeconds: 60
+            initialDelaySeconds: 15
             periodSeconds: 20
             successThreshold: 1
             timeoutSeconds: 5

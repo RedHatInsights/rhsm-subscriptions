@@ -34,7 +34,6 @@ import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.DateRange;
-import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -97,8 +96,9 @@ public class TallySnapshotController {
       accountCalcs.putAll(
           retryTemplate.execute(
               context -> usageCollector.collect(this.applicableProducts, account)));
-      if (props.isCloudigradeEnabled()) {
-        attemptCloudigradeEnrichment(account, accountCalcs);
+      if (props.isCloudigradeEnabled() && null != accountCalcs.get(account)) {
+        String orgId = accountCalcs.get(account).getOwner();
+        attemptCloudigradeEnrichment(account, accountCalcs, orgId);
       }
     } catch (Exception e) {
       log.error("Could not collect existing usage snapshots for account {}", account, e);
@@ -138,7 +138,7 @@ public class TallySnapshotController {
 
                 var applicableUsageCalculations =
                     result.getCalculations().entrySet().stream()
-                        .filter(TallySnapshotController::isCombiningRollupStrategySupported)
+                        .filter(this::isCombiningRollupStrategySupported)
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
                 Map<String, List<TallySnapshot>> totalSnapshots =
@@ -162,13 +162,13 @@ public class TallySnapshotController {
   }
 
   private void attemptCloudigradeEnrichment(
-      String account, Map<String, AccountUsageCalculation> accountCalcs) {
+      String account, Map<String, AccountUsageCalculation> accountCalcs, String orgId) {
     log.info("Adding cloudigrade reports to calculations.");
     try {
       cloudigradeRetryTemplate.execute(
           context -> {
             try {
-              cloudigradeCollector.enrichUsageWithCloudigradeData(accountCalcs, account);
+              cloudigradeCollector.enrichUsageWithCloudigradeData(accountCalcs, account, orgId);
             } catch (Exception e) {
               throw new ExternalServiceException(
                   ErrorCode.REQUEST_PROCESSING_ERROR,
@@ -182,13 +182,10 @@ public class TallySnapshotController {
     }
   }
 
-  private static boolean isCombiningRollupStrategySupported(
+  private boolean isCombiningRollupStrategySupported(
       Map.Entry<OffsetDateTime, AccountUsageCalculation> usageCalculations) {
 
     var calculatedProducts = usageCalculations.getValue().getProducts();
-
-    return calculatedProducts.contains(ProductId.OPENSHIFT_METRICS.toString())
-        || calculatedProducts.contains(ProductId.OPENSHIFT_DEDICATED_METRICS.toString())
-        || calculatedProducts.contains(ProductId.RHOSAK.toString());
+    return calculatedProducts.stream().anyMatch(tagProfile::isProductPAYGEligible);
   }
 }

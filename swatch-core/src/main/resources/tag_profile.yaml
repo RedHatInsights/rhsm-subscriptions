@@ -94,6 +94,10 @@ tagMappings:
     valueType: role
     tags:
       - rhosak
+  - value: rhacs
+    valueType: role
+    tags:
+      - rhacs
   - value: Red Hat Enterprise Linux Server
     valueType: role
     tags:
@@ -125,6 +129,11 @@ tagMappings:
     valueType: productName
     tags:
       - rhosak
+
+  - value: Red Hat Advanced Cluster Security for Kubernetes
+    valueType: productName
+    tags:
+      - rhacs
 
   # System Architecture
   - value: aarch64
@@ -242,6 +251,18 @@ tagMetrics:
       prometheusMetric: kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibyte_months
       prometheusMetadataMetric: subscription_labels
 
+  # RHACS metrics
+  - tag: rhacs
+    metricId: redhat.com:rhacs:cpu_hour
+    rhmMetricId: redhat.com:rhacs:cpu_hour
+    awsDimension: cpu_hour
+    uom: CORES
+    billingWindow: MONTHLY
+    queryParams:
+      product: rhacs
+      prometheusMetric: rhacs:rox_central_cluster_metrics_cpu_capacity:avg_over_time1h
+      prometheusMetadataMetric: subscription_labels
+
 # The tagMetaData section defines additional information around how a tag is tallied.  Most notably,
 # tags need to have their finest granularity defined so that we can create accurate snapshots.  A
 # tag that only supports DAILY granularity shouldn't be tallied hourly, for example.  Other metadata
@@ -277,6 +298,13 @@ tagMetaData:
   - tags:
       - rhosak
     serviceType: Kafka Cluster
+    finestGranularity: HOURLY
+    defaultSla: PREMIUM
+    defaultUsage: PRODUCTION
+    billingModel: PAYG
+  - tags:
+      - rhacs
+    serviceType: Rhacs Cluster
     finestGranularity: HOURLY
     defaultSla: PREMIUM
     defaultUsage: PRODUCTION
