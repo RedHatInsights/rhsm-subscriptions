@@ -13,14 +13,10 @@ fi
 
 get_dockerfile() {
   component=$1
-  if [ "$component" == "rhsm-subscriptions" ]; then
-    echo "./Dockerfile"
+  if [[ -f $component/src/main/docker/Dockerfile.jvm ]]; then
+    echo "src/main/docker/Dockerfile.jvm"
   else
-    if [[ -f $component/Dockerfile ]]; then
-      echo "$component/Dockerfile"
-    elif [[ -f $component/src/main/docker/Dockerfile.jvm ]]; then
-      echo "src/main/docker/Dockerfile.jvm"
-    fi
+    echo "./Dockerfile"
   fi
 }
 
