@@ -116,6 +116,28 @@ parameters:
     value: '1'
   - name: SPLUNK_HEC_TERMINATION_TIMEOUT
     value: '2000'
+  - name: TENANT_TRANSLATOR_HOST
+    value: "apicast.3scale-dev.svc.cluster.local"
+  - name: TENANT_TRANSLATOR_PORT
+    value: '8891'
+  - name: POPULATOR_LOG_FORMAT
+    value: cloudwatch
+  - name: ORG_ID_POPULATOR_IMAGE
+    value: quay.io/cloudservices/tenant-utils
+  - name: ORG_ID_POPULATOR_IMAGE_TAG
+    value: latest
+  - name: ORG_ID_POPULATOR_CRON_CPU_REQUEST
+    value: 50m
+  - name: ORG_ID_POPULATOR_CRON_MEMORY_REQUEST
+    value: 512Mi
+  - name: ORG_ID_POPULATOR_CRON_CPU_LIMIT
+    value: 300m
+  - name: ORG_ID_POPULATOR_CRON_MEMORY_LIMIT
+    value: 1Gi
+  - name: POPULATOR_RUN_NUMBER # in case we need to run populator again, just increment this
+    value: "1"
+  - name: ORG_ID_POPULATOR_SSL_MODE
+    value: verify-full
 # nonprod secret keys have different syntax than prod/stage
   - name: INVENTORY_SECRET_KEY_NAME
     value: 'host-inventory-db'
@@ -830,6 +852,86 @@ objects:
           volumes:
             - name: logs
               emptyDir:
+
+      - name: tally-snapshot-org-id-populator
+        podSpec:
+          image: ${ORG_ID_POPULATOR_IMAGE}:${ORG_ID_POPULATOR_IMAGE_TAG}
+          command:
+            - ./org-id-column-populator
+            - -H
+            - $(DATABASE_HOST)
+            - -p
+            - $(DATABASE_PORT)
+            - -u
+            - $(DATABASE_USERNAME)
+            - -w
+            - $(DATABASE_PASSWORD)
+            - -n
+            - $(DATABASE_DATABASE)
+            - -a
+            - account_number
+            - -o
+            - owner_id
+            - -t
+            - tally_snapshots
+            - --ean-translator-addr
+            - http://${TENANT_TRANSLATOR_HOST}:${TENANT_TRANSLATOR_PORT}
+            - -s
+            - $(ORG_ID_POPULATOR_SSL_MODE)
+          env:
+            - name: DATABASE_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: db.host
+            - name: DATABASE_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: db.port
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: db.user
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: db.password
+            - name: DATABASE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: rhsm-db
+                  key: db.name
+            - name: POPULATOR_LOG_FORMAT
+              value: ${POPULATOR_LOG_FORMAT}
+            - name: ORG_ID_POPULATOR_IMAGE
+              value: ${ORG_ID_POPULATOR_IMAGE}
+            - name: ORG_ID_POPULATOR_IMAGE
+              value: ${ORG_ID_POPULATOR_IMAGE}
+            - name: ORG_ID_POPULATOR_SSL_MODE
+              value: ${ORG_ID_POPULATOR_SSL_MODE}
+            - name: LOG_FORMAT
+              value: ${POPULATOR_LOG_FORMAT}
+            - name: LOG_BATCH_FREQUENCY
+              value: "1"
+          resources:
+            requests:
+              cpu: ${ORG_ID_POPULATOR_CRON_CPU_REQUEST}
+              memory: ${ORG_ID_POPULATOR_CRON_MEMORY_REQUEST}
+            limits:
+              cpu: ${ORG_ID_POPULATOR_CRON_CPU_LIMIT}
+              memory: ${ORG_ID_POPULATOR_CRON_MEMORY_LIMIT}
+
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdJobInvocation
+  metadata:
+    name: populate-tally-snapshot-org-id-${POPULATOR_RUN_NUMBER}
+  spec:
+    appName: swatch-tally
+    jobs:
+      - tally-snapshot-org-id-populator
 
 - apiVersion: v1
   kind: Secret
