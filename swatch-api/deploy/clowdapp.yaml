@@ -20,6 +20,8 @@ objects:
       name: ${IMAGE_PULL_SECRET}
     spec:
       envName: ${ENV_NAME}
+      dependencies:
+        - rbac
       deployments:
         - name: service
           podSpec:
