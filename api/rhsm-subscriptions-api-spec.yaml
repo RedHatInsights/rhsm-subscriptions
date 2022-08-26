@@ -1093,12 +1093,14 @@ components:
         - OpenShift-metrics
         - OpenShift-dedicated-metrics
         - rhosak
+        - rhacs
     MetricId:
       type: string
       enum:
         - Cores
         - Sockets
         - Core-seconds
+        - Core-hours
         - Instance-hours
         - Storage-gibibyte-months
         - Storage-gibibytes
