@@ -45,6 +45,8 @@ export COMPONENTS_W_RESOURCES="rhsm swatch-producer-aws swatch-producer-red-hat-
 for EXTRA_COMPONENT_NAME in $COMPONENTS_W_RESOURCES; do
   export EXTRA_DEPLOY_ARGS="${EXTRA_DEPLOY_ARGS} --set-template-ref ${EXTRA_COMPONENT_NAME}=${GIT_COMMIT}"
 done
+# do not deploy dependencies for hbi
+export EXTRA_DEPLOY_ARGS="${EXTRA_DEPLOY_ARGS} --remove-dependencies=host-inventory"
 # Deploy to an ephemeral namespace for testing
 source $CICD_ROOT/deploy_ephemeral_env.sh
 
