@@ -18,34 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.task.queue.kafka;
+package org.candlepin.subscriptions;
 
-import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
+import org.candlepin.subscriptions.clowder.KafkaJaasBeanPostProcessor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.Profile;
+import org.springframework.core.env.Environment;
 
-/** Configuration for Kafka common to both producers and consumers. */
 @Configuration
-@Profile("kafka-queue")
-class KafkaConfiguration {
+public class SystemConduitConfiguration {
+  /**
+   * A bean post-processor responsible for setting up JAAS for Kafka.
+   *
+   * @param env The Spring Environment
+   * @return a KafkaJaasBeanPostProcessor object
+   */
   @Bean
-  @ConditionalOnMissingBean
-  KafkaConsumerRegistry kafkaConsumerRegistry() {
-    return new KafkaConsumerRegistry();
-  }
-
-  @Bean
-  KafkaConfigurator kafkaConfigurator(KafkaConsumerRegistry registry) {
-    return new KafkaConfigurator(registry);
-  }
-
-  @Bean
-  @Primary
-  KafkaProperties taskQueueKafkaProperties() {
-    return new KafkaProperties();
+  public KafkaJaasBeanPostProcessor kafkaJaasBeanPostProcessor(Environment env) {
+    return new KafkaJaasBeanPostProcessor(env);
   }
 }
