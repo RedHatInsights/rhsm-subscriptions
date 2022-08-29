@@ -51,8 +51,6 @@ parameters:
     value: env-swatch-system-conduit
   - name: IMAGE
     value: quay.io/cloudservices/rhsm-subscriptions
-  - name: IMAGE_TAG
-    value: latest
   - name: ORG_SYNC_SCHEDULE
     value: 0 0 * * *
   - name: ENABLE_SPLUNK_HEC
