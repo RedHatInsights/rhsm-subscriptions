@@ -121,6 +121,8 @@ parameters:
     value: 'host-inventory-db'
   - name: INVENTORY_SECRET_KEY_NAME_PREFIX
     value: ''
+  - name: DEVTEST_EVENT_EDITING_ENABLED
+    value: 'false'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -343,8 +345,8 @@ objects:
               value: ${DEV_MODE}
             - name: ENABLE_ACCOUNT_RESET
               value: ${ENABLE_ACCOUNT_RESET}
-            - name: DEV_MODE
-              value: ${DEV_MODE}
+            - name: DEVTEST_EVENT_EDITING_ENABLED
+              value: ${DEVTEST_EVENT_EDITING_ENABLED}
           livenessProbe:
             failureThreshold: 3
             httpGet:
