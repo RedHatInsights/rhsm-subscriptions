@@ -51,15 +51,17 @@ fi
 
 # Exit script if a podman command fails
 trap build_failed ERR
+# Remove any jars from build/libs. Having multiple JARS here will confuse s2i/run
+./gradlew clean
 
 for p in "${projects[@]}"; do
   case "$p" in
     "rhsm")
-    echo "r"
+      ./gradlew :assemble
       podman build . -t quay.io/$quay_user/rhsm:$tag --label "git-commit=${commit}"
       ;;
     "conduit")
-    echo "c"
+      ./gradlew swatch-system-conduit:assemble
       podman build . -f swatch-system-conduit/Dockerfile \
         -t quay.io/$quay_user/swatch-system-conduit:$tag --label "git-commit=${commit}"
       ;;
