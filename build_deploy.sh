@@ -15,12 +15,14 @@ fi
 DOCKER_CONF="$PWD/.docker"
 mkdir -p "$DOCKER_CONF"
 docker --config="$DOCKER_CONF" login -u="$QUAY_USER" -p="$QUAY_TOKEN" quay.io
+
+USE_DOCKER=true ./podman_run.sh ./gradlew assemble
+
 for service in $SERVICES; do
   IMAGE="quay.io/cloudservices/$service"
   DOCKERFILE=$(get_dockerfile $service)
   if [[ $(basename $DOCKERFILE) = "Dockerfile.jvm" ]]; then
     # quarkus_build
-    USE_DOCKER=true ./podman_run.sh ./gradlew :$service:quarkusBuild
     docker --config="$DOCKER_CONF" build --no-cache -t "${IMAGE}:${IMAGE_TAG}" $service -f $service/$(get_dockerfile $service)
   else
     # spring boot build
