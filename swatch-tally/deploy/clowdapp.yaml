@@ -133,18 +133,18 @@ parameters:
     value: quay.io/cloudservices/tenant-utils
   - name: ORG_ID_POPULATOR_IMAGE_TAG
     value: latest
-  - name: ORG_ID_POPULATOR_CRON_CPU_REQUEST
+  - name: ORG_ID_POPULATOR_CPU_REQUEST
     value: 50m
-  - name: ORG_ID_POPULATOR_CRON_MEMORY_REQUEST
+  - name: ORG_ID_POPULATOR_MEMORY_REQUEST
     value: 512Mi
-  - name: ORG_ID_POPULATOR_CRON_CPU_LIMIT
+  - name: ORG_ID_POPULATOR_CPU_LIMIT
     value: 300m
-  - name: ORG_ID_POPULATOR_CRON_MEMORY_LIMIT
+  - name: ORG_ID_POPULATOR_MEMORY_LIMIT
     value: 1Gi
-  - name: ORG_ID_POPULATOR_SCHEDULE
-    value: 0 0 * * *
   - name: POPULATOR_RUN_NUMBER # increment to run the org_id populator(s) again.
     value: "1"
+  - name: ORG_ID_POPULATOR_BATCH_SIZE
+    value: "100"
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -876,6 +876,8 @@ objects:
             - org_id
             - -t
             - account_config
+            - -b
+            - $(ORG_ID_POPULATOR_BATCH_SIZE)
             - --ean-translator-addr
             - http://${TENANT_TRANSLATOR_HOST}:${TENANT_TRANSLATOR_PORT}
             - -s
@@ -906,6 +908,8 @@ objects:
                 secretKeyRef:
                   name: rhsm-db
                   key: db.name
+            - name: ORG_ID_POPULATOR_BATCH_SIZE
+              value: ${ORG_ID_POPULATOR_BATCH_SIZE}
             - name: POPULATOR_LOG_FORMAT
               value: ${POPULATOR_LOG_FORMAT}
             - name: ORG_ID_POPULATOR_IMAGE
@@ -918,11 +922,11 @@ objects:
               value: "1"
           resources:
             requests:
-              cpu: ${ORG_ID_POPULATOR_CRON_CPU_REQUEST}
-              memory: ${ORG_ID_POPULATOR_CRON_MEMORY_REQUEST}
+              cpu: ${ORG_ID_POPULATOR_CPU_REQUEST}
+              memory: ${ORG_ID_POPULATOR_MEMORY_REQUEST}
             limits:
-              cpu: ${ORG_ID_POPULATOR_CRON_CPU_LIMIT}
-              memory: ${ORG_ID_POPULATOR_CRON_MEMORY_LIMIT}
+              cpu: ${ORG_ID_POPULATOR_CPU_LIMIT}
+              memory: ${ORG_ID_POPULATOR_MEMORY_LIMIT}
 
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdJobInvocation
