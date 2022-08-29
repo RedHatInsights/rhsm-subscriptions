@@ -2,7 +2,7 @@ spring:
   config:
     import: classpath:swatch-core/application.yaml  # load the common configuration
   profiles:
-    active: kafka-queue  # NOTE(khowell): this should be unnecessary w/ https://issues.redhat.com/browse/ENT-3874
+    active: kafka-queue
 rhsm-conduit:
   rhsm:
     use-stub: ${RHSM_USE_STUB:false}
