@@ -119,6 +119,12 @@ class SubscriptionTableControllerTest {
           ServiceLevel.STANDARD,
           Usage.PRODUCTION,
           true);
+  private static final SubCapSpec RH0180196_VIRTUAL_SOCKETS =
+      SubCapSpec.offering(
+          "RH0180196", "RHEL Server", 0, 0, 2, 0, ServiceLevel.STANDARD, Usage.PRODUCTION, false);
+  private static final SubCapSpec RH0180197_VIRTUAL_CORES =
+      SubCapSpec.offering(
+          "RH0180197", "RHEL Server", 0, 0, 0, 2, ServiceLevel.STANDARD, Usage.PRODUCTION, false);
 
   private enum Org {
     STANDARD("711497", "477931");
@@ -720,6 +726,60 @@ class SubscriptionTableControllerTest {
 
     actualItem = actual.getData().get(1);
     assertEquals(RH0180191.sku, actualItem.getSku(), "Wrong SKU. (Incorrect ordering of SKUs?)");
+  }
+
+  @Test
+  void testGetSkuCapacityReportVirtualSocketsOnly() {
+    // Given an org with one active sub with a quantity of 4 and has an eng product with a virtual socket
+    // capacity of 2,
+    ProductId productId = RHEL_SERVER;
+    Sub expectedSub = Sub.sub("1234", "1235", 4);
+    List<SubscriptionCapacityView> givenCapacities =
+        givenCapacities(Org.STANDARD, productId, RH0180196_VIRTUAL_SOCKETS.withSub(expectedSub));
+
+
+    when(subscriptionCapacityViewRepository.findAllBy(
+        any(), anyString(), any(), any(), any(), any(), any()))
+        .thenReturn(givenCapacities);
+
+    // When requesting a SKU capacity report for the eng product,
+    SkuCapacityReport actual =
+        subscriptionTableController.capacityReportBySku(
+            productId, null, null, null, null, null, null, null, null, null);
+
+    // Then the report contains a single inventory item containing the sub and appropriate
+    // quantity and capacities.
+    assertEquals(1, actual.getData().size(), "Wrong number of items returned");
+    SkuCapacity actualItem = actual.getData().get(0);
+    assertEquals(RH0180196_VIRTUAL_SOCKETS.sku, actualItem.getSku(), "Wrong SKU");
+    assertCapacities(0, 8, Uom.SOCKETS, actualItem);
+  }
+
+  @Test
+  void testGetSkuCapacityReportVirtualCoresOnly() {
+    // Given an org with one active sub with a quantity of 4 and has an eng product with a virtual socket
+    // capacity of 2,
+    ProductId productId = RHEL_SERVER;
+    Sub expectedSub = Sub.sub("1234", "1235", 4);
+    List<SubscriptionCapacityView> givenCapacities =
+        givenCapacities(Org.STANDARD, productId, RH0180197_VIRTUAL_CORES.withSub(expectedSub));
+
+
+    when(subscriptionCapacityViewRepository.findAllBy(
+        any(), anyString(), any(), any(), any(), any(), any()))
+        .thenReturn(givenCapacities);
+
+    // When requesting a SKU capacity report for the eng product,
+    SkuCapacityReport actual =
+        subscriptionTableController.capacityReportBySku(
+            productId, null, null, null, null, null, null, null, null, null);
+
+    // Then the report contains a single inventory item containing the sub and appropriate
+    // quantity and capacities.
+    assertEquals(1, actual.getData().size(), "Wrong number of items returned");
+    SkuCapacity actualItem = actual.getData().get(0);
+    assertEquals(RH0180197_VIRTUAL_CORES.sku, actualItem.getSku(), "Wrong SKU");
+    assertCapacities(0, 8, Uom.CORES, actualItem);
   }
 
   private static void assertCapacities(
