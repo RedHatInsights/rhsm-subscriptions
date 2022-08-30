@@ -36,6 +36,7 @@ import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
@@ -44,6 +45,7 @@ import org.candlepin.subscriptions.resource.SubscriptionTableController;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.SkuCapacity;
@@ -188,8 +190,8 @@ class SubscriptionTableControllerOnDemandTest {
     // Given an org with two active subs with different quantities for the same SKU,
     // and the subs have different ending dates,
     ProductId productId = RHOSAK;
-    Sub expectedNewerSub = Sub.sub("1234", MW01882.sku, "1235", 1, 5, 7);
-    Sub expectedOlderSub = Sub.sub("1236", MW01882.sku, "1237", 2, 6, 6);
+    Sub expectedNewerSub = Sub.sub("1234", MW01882.sku, "1235", 1, BillingProvider.RED_HAT, 5, 7);
+    Sub expectedOlderSub = Sub.sub("1236", MW01882.sku, "1237", 2, BillingProvider.RED_HAT, 6, 6);
 
     List<Subscription> givenSubs =
         givenSubscriptions(
@@ -229,8 +231,8 @@ class SubscriptionTableControllerOnDemandTest {
     // and the subs have different ending dates,
 
     ProductId productId = RHOSAK;
-    Sub expectedNewerSub = Sub.sub("1234", MW01882.sku, "1235", 4, 5, 7);
-    Sub expectedOlderSub = Sub.sub("1236", MW01882RN.sku, "1237", 5, 6, 6);
+    Sub expectedNewerSub = Sub.sub("1234", MW01882.sku, "1235", 4, BillingProvider.RED_HAT, 5, 7);
+    Sub expectedOlderSub = Sub.sub("1236", MW01882RN.sku, "1237", 5, BillingProvider.RED_HAT, 6, 6);
 
     List<Subscription> givenSubs =
         givenSubscriptions(
@@ -289,8 +291,8 @@ class SubscriptionTableControllerOnDemandTest {
   @Test
   void testShouldUseQueryBasedOnHeaderAndParameters() {
     ProductId productId = RHOSAK;
-    Sub expectedNewerSub = Sub.sub("1234", MW01882.sku, "1235", 1, 5, 7);
-    Sub expectedOlderSub = Sub.sub("1236", MW01882.sku, "1237", 2, 6, 6);
+    Sub expectedNewerSub = Sub.sub("1234", MW01882.sku, "1235", 1, BillingProvider.RED_HAT, 5, 7);
+    Sub expectedOlderSub = Sub.sub("1236", MW01882.sku, "1237", 2, BillingProvider.RED_HAT, 6, 6);
 
     List<Subscription> givenSubs =
         givenSubscriptions(
@@ -310,8 +312,8 @@ class SubscriptionTableControllerOnDemandTest {
   @Test
   void testShouldUseSlaQueryParam() {
     ProductId productId = RHOSAK;
-    Sub expectedNewerSub = Sub.sub("1234", MW01882.sku, "1235", 1, 5, 7);
-    Sub expectedOlderSub = Sub.sub("1236", MW01882.sku, "1237", 2, 6, 6);
+    Sub expectedNewerSub = Sub.sub("1234", MW01882.sku, "1235", 1, BillingProvider.RED_HAT, 5, 7);
+    Sub expectedOlderSub = Sub.sub("1236", MW01882.sku, "1237", 2, BillingProvider.RED_HAT, 6, 6);
 
     List<Subscription> givenSubs =
         givenSubscriptions(
@@ -341,8 +343,8 @@ class SubscriptionTableControllerOnDemandTest {
   void testShouldUseUsageQueryParam() {
 
     ProductId productId = RHOSAK;
-    Sub expectedNewerSub = Sub.sub("1234", MW01882.sku, "1235", 1, 5, 7);
-    Sub expectedOlderSub = Sub.sub("1236", MW01882.sku, "1237", 2, 6, 6);
+    Sub expectedNewerSub = Sub.sub("1234", MW01882.sku, "1235", 1, BillingProvider.RED_HAT, 5, 7);
+    Sub expectedOlderSub = Sub.sub("1236", MW01882.sku, "1237", 2, BillingProvider.RED_HAT, 6, 6);
 
     List<Subscription> givenSubs =
         givenSubscriptions(
@@ -416,6 +418,33 @@ class SubscriptionTableControllerOnDemandTest {
     assertEquals(expectedSub.end, actualItem.getNextEventDate(), "Wrong upcoming event date");
   }
 
+  @Test
+  void testShouldGetUniqueResultPerBillingProviderSameSku() {
+    ProductId productId = RHOSAK;
+    Sub expectedNewerSub = Sub.sub("1234", MW01882.sku, "1235", 1, BillingProvider.RED_HAT, 5, 7);
+    Sub expectedOlderSub = Sub.sub("1236", MW01882.sku, "1237", 2, BillingProvider.AWS, 6, 6);
+
+    List<Subscription> givenSubs =
+        givenSubscriptions(
+            Org.STANDARD,
+            productId,
+            MW01882.withSub(expectedNewerSub),
+            MW01882.withSub(expectedOlderSub));
+
+    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(givenSubs);
+
+    SkuCapacityReport reportForMatchingUsage =
+        subscriptionTableController.capacityReportBySku(
+            RHOSAK, null, null, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
+    assertEquals(2, reportForMatchingUsage.getData().size());
+    var billingProvidersReturned =
+        reportForMatchingUsage.getData().stream()
+            .map(v -> v.getBillingProvider())
+            .collect(Collectors.toList());
+    assertTrue(billingProvidersReturned.contains(BillingProviderType.AWS));
+    assertTrue(billingProvidersReturned.contains(BillingProviderType.RED_HAT));
+  }
+
   private static void assertSubscription(Sub expectedSub, SkuCapacitySubscription actual) {
     assertEquals(expectedSub.id, actual.getId(), "Wrong Subscription ID");
     assertEquals(expectedSub.number, actual.getNumber(), "Wrong Subscription Number");
@@ -427,6 +456,7 @@ class SubscriptionTableControllerOnDemandTest {
     private final String sku;
     private final String number;
     private final Integer quantity;
+    private final BillingProvider billingProvider;
     private final OffsetDateTime start;
     private final OffsetDateTime end;
 
@@ -435,18 +465,25 @@ class SubscriptionTableControllerOnDemandTest {
         String sku,
         String number,
         Integer quantity,
+        BillingProvider billingProvider,
         OffsetDateTime start,
         OffsetDateTime end) {
       this.id = id;
       this.sku = sku;
       this.number = number;
       this.quantity = quantity;
+      this.billingProvider = billingProvider;
       this.start = start;
       this.end = end;
     }
 
     public static Sub sub(String id, String sku, String number, Integer quantity) {
-      return sub(id, sku, number, quantity, 6, 6);
+      return sub(id, sku, number, quantity, BillingProvider.RED_HAT, 6, 6);
+    }
+
+    public static Sub sub(
+        String id, String sku, String number, Integer quantity, BillingProvider billingProvider) {
+      return sub(id, sku, number, quantity, billingProvider, 6, 6);
     }
 
     /* Also specifies the sub active timeframe, relative to now. */
@@ -455,12 +492,13 @@ class SubscriptionTableControllerOnDemandTest {
         String sku,
         String number,
         Integer quantity,
+        BillingProvider billingProvider,
         int startMonthsAgo,
         int endMonthsAway) {
       OffsetDateTime subStart = OffsetDateTime.now().minusMonths(startMonthsAgo);
       OffsetDateTime subEnd = subStart.plusMonths(startMonthsAgo + endMonthsAway);
 
-      return new Sub(id, sku, number, quantity, subStart, subEnd);
+      return new Sub(id, sku, number, quantity, billingProvider, subStart, subEnd);
     }
   }
 
@@ -554,6 +592,7 @@ class SubscriptionTableControllerOnDemandTest {
           .quantity(sub.quantity)
           .subscriptionNumber(sub.number)
           .accountNumber(org.accountNumber)
+          .billingProvider(sub.billingProvider)
           .startDate(sub.start)
           .endDate(sub.end)
           .sku(sku)
