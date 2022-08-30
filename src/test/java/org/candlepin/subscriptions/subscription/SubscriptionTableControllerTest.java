@@ -730,16 +730,16 @@ class SubscriptionTableControllerTest {
 
   @Test
   void testGetSkuCapacityReportVirtualSocketsOnly() {
-    // Given an org with one active sub with a quantity of 4 and has an eng product with a virtual socket
+    // Given an org with one active sub with a quantity of 4 and has an eng product with a virtual
+    // socket
     // capacity of 2,
     ProductId productId = RHEL_SERVER;
     Sub expectedSub = Sub.sub("1234", "1235", 4);
     List<SubscriptionCapacityView> givenCapacities =
         givenCapacities(Org.STANDARD, productId, RH0180196_VIRTUAL_SOCKETS.withSub(expectedSub));
 
-
     when(subscriptionCapacityViewRepository.findAllBy(
-        any(), anyString(), any(), any(), any(), any(), any()))
+            any(), anyString(), any(), any(), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product,
@@ -757,16 +757,16 @@ class SubscriptionTableControllerTest {
 
   @Test
   void testGetSkuCapacityReportVirtualCoresOnly() {
-    // Given an org with one active sub with a quantity of 4 and has an eng product with a virtual socket
+    // Given an org with one active sub with a quantity of 4 and has an eng product with a virtual
+    // socket
     // capacity of 2,
     ProductId productId = RHEL_SERVER;
     Sub expectedSub = Sub.sub("1234", "1235", 4);
     List<SubscriptionCapacityView> givenCapacities =
         givenCapacities(Org.STANDARD, productId, RH0180197_VIRTUAL_CORES.withSub(expectedSub));
 
-
     when(subscriptionCapacityViewRepository.findAllBy(
-        any(), anyString(), any(), any(), any(), any(), any()))
+            any(), anyString(), any(), any(), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product,
