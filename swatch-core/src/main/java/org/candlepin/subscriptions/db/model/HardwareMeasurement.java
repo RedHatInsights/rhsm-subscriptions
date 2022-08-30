@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.db.model;
 import java.io.Serializable;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
-import javax.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -32,12 +31,9 @@ import lombok.Setter;
 @Getter
 @Setter
 public class HardwareMeasurement implements Serializable {
-
-  @NotNull
   @Column(name = "instance_count")
   private int instanceCount;
 
   private int cores;
-
-  @NotNull private int sockets;
+  private int sockets;
 }
