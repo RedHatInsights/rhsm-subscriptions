@@ -39,6 +39,5 @@ public class HardwareMeasurement implements Serializable {
 
   private int cores;
 
-  @NotNull
-  private int sockets;
+  @NotNull private int sockets;
 }
