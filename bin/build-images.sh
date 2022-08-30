@@ -58,7 +58,7 @@ for p in "${projects[@]}"; do
   case "$p" in
     "rhsm")
       ./gradlew :assemble
-      podman build . -t quay.io/$quay_user/rhsm:$tag --label "git-commit=${commit}"
+      podman build . -t quay.io/$quay_user/rhsm-subscriptions:$tag --label "git-commit=${commit}"
       ;;
     "conduit")
       ./gradlew swatch-system-conduit:assemble
@@ -86,7 +86,7 @@ function push_and_clean() {
 for p in "${projects[@]}"; do
   case "$p" in
     "rhsm")
-      push_and_clean "quay.io/$quay_user/rhsm:$tag"
+      push_and_clean "quay.io/$quay_user/rhsm-subscriptions:$tag"
       ;;
     "conduit")
       push_and_clean "quay.io/$quay_user/swatch-system-conduit:$tag"
