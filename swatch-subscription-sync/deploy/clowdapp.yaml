@@ -215,7 +215,7 @@ objects:
             - name: SPLUNK_HEC_TERMINATION_TIMEOUT
               value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
             - name: SPRING_PROFILES_ACTIVE
-              value: capacity-ingress
+              value: capacity-ingress,kafka-queue
             - name: SUBSCRIPTION_SYNC_ENABLED
               value: ${SUBSCRIPTION_SYNC_ENABLED}
             - name: AB_JOLOKIA_OFF
