@@ -4,6 +4,8 @@ kind: Template
 metadata:
   name: swatch-api
 parameters:
+  - name: DEV_MODE
+    value: 'false'
   - name: ENV_NAME
     value: env-swatch-api
   - name: IMAGE_PULL_SECRET
@@ -106,6 +108,8 @@ objects:
                     cpu: ${CPU_LIMIT}
                     memory: ${MEMORY_LIMIT}
             env:
+              - name: DEV_MODE
+                value: ${DEV_MODE}
               - name: SERVER_MAX_HTTP_HEADER_SIZE
                 value: ${SERVER_MAX_HTTP_HEADER_SIZE}
               - name: LOG_FILE
