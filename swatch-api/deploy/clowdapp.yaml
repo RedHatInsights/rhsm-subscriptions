@@ -198,3 +198,19 @@ objects:
               - name: pinhead
                 secret:
                   secretName: pinhead
+  - kind: Service
+    apiVersion: v1
+    metadata:
+      name: rhsm-subscriptions
+    spec:
+      ports:
+        - port: 8000
+          name: "8000"
+          protocol: TCP
+          targetPort: 8000
+        - port: 8080
+          name: "8080"
+          protocol: TCP
+          targetPort: 8000
+      selector:
+        pod: swatch-api-service
