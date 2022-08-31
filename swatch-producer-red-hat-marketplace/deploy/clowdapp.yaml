@@ -48,8 +48,6 @@ parameters:
     value: 'springboot_server'
   - name: SPLUNK_MESSAGE_FORMAT
     value: 'text'
-  - name: SPLUNK_HEC_URL
-    value: https://splunk-hec.redhat.com:8088
   - name: SPLUNK_HEC_CONNECT_TIMEOUT
     value: '5000'
   - name: SPLUNK_HEC_BATCH_SIZE

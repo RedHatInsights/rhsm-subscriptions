@@ -49,8 +49,6 @@ parameters:
     value: '10'
   - name: ENV_NAME
     value: env-swatch-system-conduit
-  - name: IMAGE
-    value: quay.io/cloudservices/rhsm-subscriptions
   - name: ORG_SYNC_SCHEDULE
     value: 0 0 * * *
   - name: ENABLE_SPLUNK_HEC
