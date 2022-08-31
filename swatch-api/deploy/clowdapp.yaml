@@ -19,7 +19,7 @@ parameters:
   - name: LOGGING_LEVEL
     value: INFO
   - name: RHSM_RBAC_HOST
-    value: rhsm-service
+    value: rbac-service
   - name: RHSM_RBAC_PORT
     value: '8000'
   - name: KAFKA_BOOTSTRAP_HOST
