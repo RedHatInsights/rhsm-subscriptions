@@ -267,8 +267,8 @@ objects:
           restartPolicy: Always
           terminationGracePeriodSeconds: 75
           imagePullSecrets:
-          - name: ${IMAGE_PULL_SECRET}
-          - name: quay-cloudservices-pull
+            - name: ${IMAGE_PULL_SECRET}
+            - name: quay-cloudservices-pull
       triggers:
         - type: ConfigChange
 

@@ -82,6 +82,15 @@
             DEV_MODE: "true"
             swatch-tally/IMAGE: quay.io/cloudservices/rhsm-subscriptions
             RHSM_RBAC_USE_STUB: "true"
+
+        - name: swatch-api
+          host: local
+          repo: /home/lburnett/code/rhsm-subscriptions/swatch-api
+          path: /deploy/clowdapp.yaml
+          parameters:
+            REPLICAS: 1
+            IMAGE: quay.io/cloudservices/rhsm-subscriptions
+            RHSM_RBAC_USE_STUB: "true"
     BONFIRE
     ```
 
