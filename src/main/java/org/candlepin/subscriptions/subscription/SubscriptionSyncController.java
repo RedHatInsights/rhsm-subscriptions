@@ -550,7 +550,7 @@ public class SubscriptionSyncController {
 
     ReportCriteria subscriptionCriteria =
         orgId
-            .map(s -> reportCriteriaBuilder.orgId(s).build())
+            .map(id -> reportCriteriaBuilder.orgId(id).build())
             .orElseGet(() -> reportCriteriaBuilder.accountNumber(accountNumber).build());
 
     List<org.candlepin.subscriptions.db.model.Subscription> result =
