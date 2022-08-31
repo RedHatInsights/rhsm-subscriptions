@@ -105,6 +105,7 @@ public class BillableUsageMapper {
                         measurement ->
                             new BillableUsage()
                                 .withAccountNumber(tallySummary.getAccountNumber())
+                                .withOrgId(tallySummary.getOrgId())
                                 .withId(snapshot.getId())
                                 .withSnapshotDate(snapshot.getSnapshotDate())
                                 .withProductId(snapshot.getProductId())

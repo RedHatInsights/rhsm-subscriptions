@@ -535,9 +535,8 @@ public class SubscriptionSyncController {
       return Collections.emptyList();
     }
 
-    ReportCriteria subscriptionCriteria =
+    ReportCriteria.ReportCriteriaBuilder reportCriteriaBuilder =
         ReportCriteria.builder()
-            .accountNumber(accountNumber)
             .productNames(productNames)
             .serviceLevel(usageKey.getSla())
             // NOTE(khowell) due to an oversight PAYG SKUs don't currently have a usage set -
@@ -547,8 +546,13 @@ public class SubscriptionSyncController {
             .billingAccountId(usageKey.getBillingAccountId())
             .payg(true)
             .beginning(rangeStart)
-            .ending(rangeEnd)
-            .build();
+            .ending(rangeEnd);
+
+    ReportCriteria subscriptionCriteria =
+        orgId
+            .map(s -> reportCriteriaBuilder.orgId(s).build())
+            .orElseGet(() -> reportCriteriaBuilder.accountNumber(accountNumber).build());
+
     List<org.candlepin.subscriptions.db.model.Subscription> result =
         subscriptionRepository.findByCriteria(
             subscriptionCriteria, Sort.by(Subscription_.START_DATE).descending());

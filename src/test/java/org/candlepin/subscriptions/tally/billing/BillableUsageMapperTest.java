@@ -63,7 +63,7 @@ class BillableUsageMapperTest {
     assertTrue(
         mapper
             .fromTallySummary(
-                createExampleTallySummary(
+                createExampleTallySummaryWithAccountNumber(
                     "RHEL",
                     Granularity.HOURLY,
                     Sla.STANDARD,
@@ -80,7 +80,7 @@ class BillableUsageMapperTest {
     assertTrue(
         mapper
             .fromTallySummary(
-                createExampleTallySummary(
+                createExampleTallySummaryWithAccountNumber(
                     "rhosak",
                     Granularity.HOURLY,
                     Sla.ANY,
@@ -97,7 +97,7 @@ class BillableUsageMapperTest {
     assertTrue(
         mapper
             .fromTallySummary(
-                createExampleTallySummary(
+                createExampleTallySummaryWithAccountNumber(
                     "rhosak",
                     Granularity.HOURLY,
                     Sla.STANDARD,
@@ -114,7 +114,7 @@ class BillableUsageMapperTest {
     assertTrue(
         mapper
             .fromTallySummary(
-                createExampleTallySummary(
+                createExampleTallySummaryWithAccountNumber(
                     "rhosak",
                     Granularity.HOURLY,
                     Sla.STANDARD,
@@ -131,7 +131,7 @@ class BillableUsageMapperTest {
     assertTrue(
         mapper
             .fromTallySummary(
-                createExampleTallySummary(
+                createExampleTallySummaryWithAccountNumber(
                     "rhosak",
                     Granularity.HOURLY,
                     Sla.STANDARD,
@@ -143,7 +143,7 @@ class BillableUsageMapperTest {
   }
 
   @Test
-  void shouldProduceBillableUsage() {
+  void shouldProduceBillableUsage_WhenAccountNumberPresent() {
     BillableUsageMapper mapper = new BillableUsageMapper(tagProfile);
     BillableUsage expected =
         new BillableUsage()
@@ -160,7 +160,36 @@ class BillableUsageMapperTest {
         expected,
         mapper
             .fromTallySummary(
-                createExampleTallySummary(
+                createExampleTallySummaryWithAccountNumber(
+                    "rhosak",
+                    Granularity.HOURLY,
+                    Sla.STANDARD,
+                    Usage.PRODUCTION,
+                    BillingProvider.AWS,
+                    "bill123"))
+            .findAny()
+            .orElseThrow());
+  }
+
+  @Test
+  void shouldProduceBillableUsage_WhenOrgIdPresent() {
+    BillableUsageMapper mapper = new BillableUsageMapper(tagProfile);
+    BillableUsage expected =
+        new BillableUsage()
+            .withOrgId("org123")
+            .withProductId("rhosak")
+            .withSnapshotDate(OffsetDateTime.MIN)
+            .withUsage(BillableUsage.Usage.PRODUCTION)
+            .withSla(BillableUsage.Sla.STANDARD)
+            .withBillingProvider(BillableUsage.BillingProvider.AWS)
+            .withBillingAccountId("bill123")
+            .withUom(BillableUsage.Uom.STORAGE_GIBIBYTES)
+            .withValue(42.0);
+    assertEquals(
+        expected,
+        mapper
+            .fromTallySummary(
+                createExampleTallySummaryWithOrgId(
                     "rhosak",
                     Granularity.HOURLY,
                     Sla.STANDARD,
@@ -177,7 +206,7 @@ class BillableUsageMapperTest {
     assertTrue(
         mapper
             .fromTallySummary(
-                createExampleTallySummary(
+                createExampleTallySummaryWithAccountNumber(
                     "rhosak",
                     Granularity.YEARLY,
                     Sla.STANDARD,
@@ -192,7 +221,7 @@ class BillableUsageMapperTest {
   void shouldSkipSummaryWithNoMeasurements() {
     BillableUsageMapper mapper = new BillableUsageMapper(tagProfile);
     TallySummary tallySummary =
-        createExampleTallySummary(
+        createExampleTallySummaryWithAccountNumber(
             "rhosak",
             Granularity.HOURLY,
             Sla.STANDARD,
@@ -203,7 +232,7 @@ class BillableUsageMapperTest {
     assertTrue(mapper.fromTallySummary(tallySummary).findAny().isEmpty());
   }
 
-  TallySummary createExampleTallySummary(
+  TallySummary createExampleTallySummaryWithAccountNumber(
       String productId,
       Granularity granularity,
       Sla sla,
@@ -212,6 +241,39 @@ class BillableUsageMapperTest {
       String billingAccountId) {
     return new TallySummary()
         .withAccountNumber("123")
+        .withTallySnapshots(
+            List.of(
+                new TallySnapshot()
+                    .withSnapshotDate(OffsetDateTime.MIN)
+                    .withProductId(productId)
+                    .withGranularity(granularity)
+                    .withTallyMeasurements(
+                        List.of(
+                            new TallyMeasurement()
+                                .withUom(Uom.STORAGE_GIBIBYTES)
+                                .withHardwareMeasurementType(
+                                    HardwareMeasurementType.PHYSICAL.toString())
+                                .withValue(42.0),
+                            new TallyMeasurement()
+                                .withUom(Uom.STORAGE_GIBIBYTES)
+                                .withHardwareMeasurementType(
+                                    HardwareMeasurementType.TOTAL.toString())
+                                .withValue(42.0)))
+                    .withSla(sla)
+                    .withUsage(usage)
+                    .withBillingProvider(billingProvider)
+                    .withBillingAccountId(billingAccountId)));
+  }
+
+  TallySummary createExampleTallySummaryWithOrgId(
+      String productId,
+      Granularity granularity,
+      Sla sla,
+      Usage usage,
+      BillingProvider billingProvider,
+      String billingAccountId) {
+    return new TallySummary()
+        .withOrgId("org123")
         .withTallySnapshots(
             List.of(
                 new TallySnapshot()

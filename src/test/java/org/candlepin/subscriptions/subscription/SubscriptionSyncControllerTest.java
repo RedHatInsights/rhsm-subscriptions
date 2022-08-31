@@ -389,7 +389,7 @@ class SubscriptionSyncControllerTest {
   }
 
   @Test
-  void findsSubscriptionId() {
+  void findsSubscriptionId_WhenBothOrgIdAndAccountNumberPresent() {
     UsageCalculation.Key key =
         new Key(
             String.valueOf(1),
@@ -413,6 +413,64 @@ class SubscriptionSyncControllerTest {
     List<Subscription> actual =
         subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
             "1000", Optional.of("org1000"), key, rangeStart, rangeEnd, false);
+    assertEquals(1, actual.size());
+    assertEquals("xyz", actual.get(0).getBillingProviderId());
+  }
+
+  @Test
+  void findsSubscriptionId_WhenOrgIdPresentAndAccountNumberAbsent() {
+    UsageCalculation.Key key =
+        new Key(
+            String.valueOf(1),
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            "xyz");
+    Subscription s = new Subscription();
+    s.setStartDate(OffsetDateTime.now().minusDays(7));
+    s.setEndDate(OffsetDateTime.now().plusDays(7));
+    s.setBillingProvider(BillingProvider.RED_HAT);
+    s.setBillingProviderId("xyz");
+    List<Subscription> result = Collections.singletonList(s);
+
+    Set<String> productNames = Set.of("OpenShift Container Platform");
+    when(mockProfile.getOfferingProductNamesForTag(any())).thenReturn(productNames);
+    when(subscriptionRepository.findByCriteria(any(), any()))
+        .thenReturn(new ArrayList<>())
+        .thenReturn(result);
+
+    List<Subscription> actual =
+        subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
+            null, Optional.of("org1000"), key, rangeStart, rangeEnd, false);
+    assertEquals(1, actual.size());
+    assertEquals("xyz", actual.get(0).getBillingProviderId());
+  }
+
+  @Test
+  void findsSubscriptionId_WhenAccountNumberPresentAndOrgIdAbsent() {
+    UsageCalculation.Key key =
+        new Key(
+            String.valueOf(1),
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            "xyz");
+    Subscription s = new Subscription();
+    s.setStartDate(OffsetDateTime.now().minusDays(7));
+    s.setEndDate(OffsetDateTime.now().plusDays(7));
+    s.setBillingProvider(BillingProvider.RED_HAT);
+    s.setBillingProviderId("xyz");
+    List<Subscription> result = Collections.singletonList(s);
+
+    Set<String> productNames = Set.of("OpenShift Container Platform");
+    when(mockProfile.getOfferingProductNamesForTag(any())).thenReturn(productNames);
+    when(subscriptionRepository.findByCriteria(any(), any()))
+        .thenReturn(new ArrayList<>())
+        .thenReturn(result);
+
+    List<Subscription> actual =
+        subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
+            "account123", Optional.empty(), key, rangeStart, rangeEnd, false);
     assertEquals(1, actual.size());
     assertEquals("xyz", actual.get(0).getBillingProviderId());
   }
