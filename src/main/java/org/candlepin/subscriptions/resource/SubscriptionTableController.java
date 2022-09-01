@@ -327,13 +327,13 @@ public class SubscriptionTableController {
     } else if (skuCapacity.getUom() == Uom.CORES) {
       skuCapacity.setPhysicalCapacity(skuCapacity.getPhysicalCapacity() + physicalCores);
       skuCapacity.setVirtualCapacity(skuCapacity.getVirtualCapacity() + virtualCores);
-    } else if (physicalSockets != 0) {
+    } else if (physicalSockets != 0 || virtualSockets != 0) {
       skuCapacity.setPhysicalCapacity(skuCapacity.getPhysicalCapacity() + physicalSockets);
       skuCapacity.setVirtualCapacity(skuCapacity.getVirtualCapacity() + virtualSockets);
       if (skuCapacity.getUom() == null) {
         skuCapacity.setUom(Uom.SOCKETS);
       }
-    } else if (physicalCores != 0) {
+    } else if (physicalCores != 0 || virtualCores != 0) {
       skuCapacity.setPhysicalCapacity(skuCapacity.getPhysicalCapacity() + physicalCores);
       skuCapacity.setVirtualCapacity(skuCapacity.getVirtualCapacity() + virtualCores);
       if (skuCapacity.getUom() == null) {
