@@ -10,6 +10,22 @@
 # than the defaults defined here.
 KAFKA_BOOTSTRAP_HOST: ${clowder.kafka.brokers[0].hostname:localhost}
 KAFKA_BOOTSTRAP_PORT: ${clowder.kafka.brokers[0].port:9092}
+KAFKA_USERNAME: ${clowder.kafka.brokers[0].sasl.username:}
+KAFKA_PASSWORD: ${clowder.kafka.brokers[0].sasl.password:}
+KAFKA_SASL_PROTOCOL: ${clowder.kafka.brokers[0].sasl.securityProtocol:}
+KAFKA_SASL_MECHANISM: ${clowder.kafka.brokers[0].sasl.saslMechanism:}
+
+# This needs to be a PEM encoded certificate string.  If you want to point to a file you can use
+# spring.kafka.ssl.trust-store-location property but that property is mutually exclusive with the
+# spring.kafka.ssl.trust-store-certificates property.  Since Clowder gives us the actual
+# certificate PEM, we have to use the trust-store-certificates property here.
+#
+# The value of this property must match a regular expression defined in Kafka's
+# DefaultSslEngineFactory.PemParser class.  The regular expression is (with Java escapes)
+# -+BEGIN\\s*.*CERTIFICATE[^-]*-+\\s+(?:\\s*[^\\r\\n]*:[^\\r\\n]*[\\r\\n]+)*([a-zA-Z0-9/+=\\s]*)-+END\\s*.*CERTIFICATE[^-]*-+\\s+")
+# A notable point about this expression is that the "----BEGIN CERTIFICATE-----" piece must be
+# followed by a newline which makes it challenging to place the value in a properties or YAML file.
+KAFKA_SSL_TRUSTSTORE_CERTIFICATE: ${clowder.kafka.brokers[0].cacert:}
 SERVER_PORT: ${clowder.publicPort:8000}
 
 # Values assigned to management.path-mapping.* shouldn't have a leading slash. However, Clowder
@@ -158,58 +174,3 @@ rhsm-subscriptions:
   auth:
     swatchPsks:
       self: ${SWATCH_SELF_PSK:placeholder}
-
----
-# This YAML document is loaded by spring.config.activate.on-cloud-platform when Spring Boot detects
-# that it is running under Kubernetes/Openshift.  Specifically, Spring Boot uses a heuristic defined
-# in the CloudPlatform class.  For Kubernetes/Openshift, it looks for the presence of two
-# environment variables: KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT or for the existence of
-# a service with environment variables ending in "_SERVICE_HOST" and "_SERVICE_PORT"
-
-# The configuration can be coaxed into loading like so:
-# $ KUBERNETES_SERVICE_HOST="f" KUBERNETES_SERVICE_PORT="f" ACG_CONFIG=./config/kafka/clowder-config-test.json ./gradlew :bootRun
-# Note that the actual values for the service host and port environment variables are irrelevant.
-
-# This YAML document will override definitions in the document above it.
-# See https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.external-config.files.multi-document
-KAFKA_USERNAME: ${clowder.kafka.brokers[0].sasl.username:dummy}
-KAFKA_PASSWORD: ${clowder.kafka.brokers[0].sasl.password:password}
-KAFKA_SASL_PROTOCOL: ${clowder.kafka.brokers[0].sasl.securityProtocol:SASL_SSL}
-KAFKA_SASL_MECHANISM: ${clowder.kafka.brokers[0].sasl.saslMechanism:SCRAM-SHA-512}
-
-# This needs to be a PEM encoded certificate string.  If you want to point to a file you can use
-# spring.kafka.ssl.trust-store-location property but that property is mutually exclusive with the
-# spring.kafka.ssl.trust-store-certificates property.  Since Clowder gives us the actual
-# certificate PEM, we have to use the trust-store-certificates property here.
-#
-# The value of this property must match a regular expression defined in Kafka's
-# DefaultSslEngineFactory.PemParser class.  The regular expression is (with Java escapes)
-# -+BEGIN\\s*.*CERTIFICATE[^-]*-+\\s+(?:\\s*[^\\r\\n]*:[^\\r\\n]*[\\r\\n]+)*([a-zA-Z0-9/+=\\s]*)-+END\\s*.*CERTIFICATE[^-]*-+\\s+")
-# A notable point about this expression is that the "----BEGIN CERTIFICATE-----" piece must be
-# followed by a newline which makes it challenging to place the value in a properties or YAML file.
-KAFKA_SSL_TRUSTSTORE_CERTIFICATE: ${clowder.kafka.brokers[0].cacert:null}
-
-spring:
-  config:
-    activate:
-      on-cloud-platform: "kubernetes"
-      on-profile: "!test & kafka-queue"
-  kafka:
-    security:
-      protocol: ${KAFKA_SASL_PROTOCOL}
-    jaas:
-      enabled: true
-      # The value for loginModule is determined at runtime by the KafkaJaasBeanPostProcessor.
-      # The value for the property is dependent on KAFKA_SASL_MECHANISM but isn't the literal text;
-      # instead, it's a Kafka class name to use.
-      # All the loginModules we currently support use the same options.  If that changes, the
-      # KafkaJaasBeanPostProcessor will need updating.
-      options:
-        username: ${KAFKA_USERNAME}
-        password: ${KAFKA_PASSWORD}
-    ssl:
-      trust-store-certificates: ${KAFKA_SSL_TRUSTSTORE_CERTIFICATE}
-      trust-store-type: PEM
-    properties:
-      sasl:
-        mechanism: ${KAFKA_SASL_MECHANISM}

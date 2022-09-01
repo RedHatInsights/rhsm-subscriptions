@@ -20,13 +20,12 @@
  */
 package org.candlepin.subscriptions.clowder;
 
-import java.util.Objects;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.InvalidPropertyException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.Environment;
+import org.springframework.util.StringUtils;
 
 /**
  * A bean post-processor to correctly configure JAAS for Kafka. Clowder gives us a value indicating
@@ -55,30 +54,44 @@ public class KafkaJaasBeanPostProcessor implements BeanPostProcessor, Ordered {
   public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
     if (bean instanceof KafkaProperties) {
       var kafkaProperties = (KafkaProperties) bean;
-      var jaas = kafkaProperties.getJaas();
-
-      if (jaas.isEnabled()) {
-        var saslMechanism =
-            Objects.requireNonNullElse(environment.getProperty("KAFKA_SASL_MECHANISM"), "");
-
-        switch (saslMechanism) {
-          case "PLAIN":
-            jaas.setLoginModule("org.apache.kafka.common.security.plain.PlainLoginModule");
-            break;
-          case "SCRAM-SHA-512":
-          case "SCRAM-SHA-256":
-            jaas.setLoginModule("org.apache.kafka.common.security.scram.ScramLoginModule");
-            break;
-          default:
-            throw new InvalidPropertyException(
-                kafkaProperties.getClass(),
-                "properties.sasl.mechanism",
-                "Invalid SASL mechanism defined: " + saslMechanism);
-        }
+      String saslMechanism = environment.getProperty("KAFKA_SASL_MECHANISM");
+      if (!StringUtils.hasText(saslMechanism)) {
+        return bean;
       }
 
-      return kafkaProperties;
+      kafkaProperties.getSecurity().setProtocol(environment.getProperty("KAFKA_SASL_PROTOCOL"));
+      String truststoreCertificate = environment.getProperty("KAFKA_SSL_TRUSTSTORE_CERTIFICATE");
+      if (StringUtils.hasText(truststoreCertificate)) {
+        kafkaProperties.getSsl().setTrustStoreCertificates(truststoreCertificate);
+        kafkaProperties.getSsl().setTrustStoreType("PEM");
+      }
+      kafkaProperties.getProperties().put("sasl.mechanism", saslMechanism);
+      kafkaProperties.getProperties().put("sasl.jaas.config", getJaasConfig(saslMechanism));
     }
     return bean;
+  }
+
+  public String getJaasConfig(String saslMechanism) {
+    String username = environment.getProperty("KAFKA_USERNAME");
+    String password = environment.getProperty("KAFKA_PASSWORD");
+    switch (saslMechanism) {
+      case "PLAIN":
+        return "org.apache.kafka.common.security.plain.PlainLoginModule required "
+            + "username=\""
+            + username
+            + "\" password=\""
+            + password
+            + "\";";
+      case "SCRAM-SHA-512":
+      case "SCRAM-SHA-256":
+        return "org.apache.kafka.common.security.scram.ScramLoginModule required "
+            + "username=\""
+            + username
+            + "\" password=\""
+            + password
+            + "\";";
+      default:
+        throw new IllegalArgumentException("Invalid SASL mechanism defined: " + saslMechanism);
+    }
   }
 }
