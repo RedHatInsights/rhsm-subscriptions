@@ -55,23 +55,33 @@ public class KafkaJaasBeanPostProcessor implements BeanPostProcessor, Ordered {
     if (bean instanceof KafkaProperties) {
       var kafkaProperties = (KafkaProperties) bean;
       String saslMechanism = environment.getProperty("KAFKA_SASL_MECHANISM");
+      // if sasl mechanism isn't specified, kafka communication is unauthenticated, nothing to do
       if (!StringUtils.hasText(saslMechanism)) {
         return bean;
       }
 
       kafkaProperties.getSecurity().setProtocol(environment.getProperty("KAFKA_SASL_PROTOCOL"));
       String truststoreCertificate = environment.getProperty("KAFKA_SSL_TRUSTSTORE_CERTIFICATE");
+
+      // NOTE: if the truststore certificate isn't specified, then the system truststore will be
+      // used (which is necessary for managed kafka).
       if (StringUtils.hasText(truststoreCertificate)) {
         kafkaProperties.getSsl().setTrustStoreCertificates(truststoreCertificate);
         kafkaProperties.getSsl().setTrustStoreType("PEM");
       }
       kafkaProperties.getProperties().put("sasl.mechanism", saslMechanism);
+
+      // NOTE: here we manually construct sasl.jaas.config rather than using the
+      // KafkaProperties.Jaas object, since KafkaProperties.Jaas is ignored if
+      // spring.kafka.jaas.enabled is true, and we do not have a clean way of setting jaas.enabled
+      // early enough.
       kafkaProperties.getProperties().put("sasl.jaas.config", getJaasConfig(saslMechanism));
     }
     return bean;
   }
 
   public String getJaasConfig(String saslMechanism) {
+    // configure the sasl.jaas.config property, inspired by ClowderConfigSource
     String username = environment.getProperty("KAFKA_USERNAME");
     String password = environment.getProperty("KAFKA_PASSWORD");
     switch (saslMechanism) {
