@@ -1,3 +1,5 @@
+CONDUIT_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-conduit.tasks')].name:platform.rhsm-conduit.tasks}
+
 spring:
   config:
     import: classpath:swatch-core/application.yaml  # load the common configuration
@@ -23,7 +25,7 @@ rhsm-conduit:
     kafka-host-ingress-topic: ${INVENTORY_HOST_INGRESS_TOPIC:platform.inventory.host-ingress}
     tolerate-missing-account-number: ${TOLERATE_MISSING_ACCOUNT_NUMBER:false}
   tasks:
-    topic: ${CONDUIT_KAFKA_TOPIC:platform.rhsm-conduit.tasks}
+    topic: ${CONDUIT_TOPIC}
     kafka-group-id: ${CONDUIT_KAFKA_GROUP_ID:rhsm-conduit-task-processor}
     seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
     seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}

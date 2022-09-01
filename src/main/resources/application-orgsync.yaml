@@ -1,3 +1,5 @@
+CONDUIT_KAFKA_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-conduit.tasks')].name:platform.rhsm-conduit.tasks}
+
 rhsm-conduit:
   org-sync:
     # The cron schedule is only used in development mode.  In a production deployment, a version of the
@@ -5,4 +7,4 @@ rhsm-conduit:
     # is handled by OpenShift's cron capabilities.
     schedule: ${ORG_SYNC_SCHEDULE:0 */2 * * * ?}
   tasks:
-    topic: ${CONDUIT_KAFKA_TOPIC:platform.rhsm-conduit.tasks}
+    topic: ${CONDUIT_KAFKA_TOPIC}
