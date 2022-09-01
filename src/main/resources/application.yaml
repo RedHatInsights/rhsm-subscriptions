@@ -3,6 +3,13 @@
 # getting loaded.
 # See https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html#boot-features-external-config-application-property-files
 
+TALLY_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.tally')].name:platform.rhsm-subscriptions.tally}
+TASKS_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.tasks')].name:platform.rhsm-subscriptions.tasks}
+METERING_TASK_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.metering-tasks')].name:platform.rhsm-subscriptions.metering-tasks}
+SUBSCRIPTION_SYNC_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.subscription-sync')].name:platform.rhsm-subscriptions.subscription-sync}
+SUBSCRIPTION_PRUNE_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.subscription-prune')].name:platform.rhsm-subscriptions.subscription-prune}
+CAPACITY_RECONCILE_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.capacity-reconcile')].name:platform.rhsm-subscriptions.capacity-reconcile}
+
 resteasy:
   jaxrs:
     app:
@@ -51,7 +58,7 @@ rhsm-subscriptions:
   account-batch-size: ${ACCOUNT_BATCH_SIZE:1}
   product-allowlist-resource-location: ${PRODUCT_ALLOWLIST_RESOURCE_LOCATION:}
   tasks:
-    topic: ${KAFKA_TOPIC:platform.rhsm-subscriptions.tasks}
+    topic: ${TASKS_TOPIC}
     kafka-group-id: ${KAFKA_GROUP_ID:rhsm-subscriptions-task-processor}
     seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
     seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
@@ -66,7 +73,7 @@ rhsm-subscriptions:
             ${OPENSHIFT_ENABLED_ACCOUNT_PROMQL:group(min_over_time(#{metric.queryParams[prometheusMetadataMetric]}{product='#{metric.queryParams[product]}', ebs_account != '', billing_model='marketplace'}[1h]))
             by (ebs_account)}
     tasks:
-      topic: ${METERING_TASK_TOPIC:platform.rhsm-subscriptions.metering-tasks}
+      topic: ${METERING_TASK_TOPIC}
       kafka-group-id: ${METERING_TASK_GROUP_ID:metering-task-processor}
       seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
       seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
@@ -88,15 +95,15 @@ rhsm-subscriptions:
     ignore-expired-older-than: ${SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN:2m}
     ignore-starting-later-than: ${SUBSCRIPTION_IGNORE_STARTING_LATER_THAN:2m}
     tasks:
-      topic: platform.rhsm-subscriptions.subscription-sync
+      topic: ${SUBSCRIPTION_SYNC_TOPIC}
       kafka-group-id: subscription-worker
   subscription-prune:
     tasks:
-      topic: platform.rhsm-subscriptions.subscription-prune
+      topic: ${SUBSCRIPTION_PRUNE_TOPIC}
       kafka-group-id: subscription-prune-worker
   capacity:
     tasks:
-      topic: platform.rhsm-subscriptions.capacity-reconcile
+      topic: ${CAPACITY_RECONCILE_TOPIC}
       kafka-group-id: capacity-reconciliation-worker
   user-service:
     use-stub: ${USER_USE_STUB:false}
@@ -109,7 +116,7 @@ rhsm-subscriptions:
     back-off-multiplier: ${USER_BACK_OFF_MULTIPLIER:2}
     max-attempts: ${USER_MAX_ATTEMPTS:1}
   rh-marketplace-tasks:
-    topic: platform.rhsm-subscriptions.tally
+    topic: ${TALLY_TOPIC}
     kafka-group-id: rh-marketplace-worker
     seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
     seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}

@@ -1,3 +1,5 @@
+BILLABLE_USAGE_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.billable-usage')].name:platform.rhsm-subscriptions.billable-usage}
+
 rhsm-subscriptions:
   rh-marketplace:
     api-key: ${RH_MARKETPLACE_API_KEY}
@@ -13,7 +15,7 @@ rhsm-subscriptions:
     amendment-not-supported-marker: ${RH_MARKETPLACE_AMENDMENT_NOT_SUPPORTED_MARKER:(amendments) is not available}
     billable-usage:
       incoming:
-        topic: platform.rhsm-subscriptions.billable-usage
+        topic: ${BILLABLE_USAGE_TOPIC}
         kafka-group-id: swatch-producer-rh-marketplace
         seek-override-end: ${RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_END:false}
         seek-override-timestamp: ${RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
