@@ -17,8 +17,6 @@ parameters:
     value: WARN
   - name: LOGGING_LEVEL
     value: INFO
-  - name: KAFKA_BOOTSTRAP_HOST
-    required: true
   - name: KAFKA_MESSAGE_THREADS
     value: '24'
   - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
@@ -182,8 +180,6 @@ objects:
                   value: ${LOGGING_LEVEL_ROOT}
                 - name: LOGGING_LEVEL_ORG_CANDLEPIN
                   value: ${LOGGING_LEVEL}
-                - name: KAFKA_BOOTSTRAP_HOST
-                  value: ${KAFKA_BOOTSTRAP_HOST}
                 - name: KAFKA_MESSAGE_THREADS
                   value: ${KAFKA_MESSAGE_THREADS}
                 - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
@@ -192,6 +188,31 @@ objects:
                   value: ${KAFKA_SEEK_OVERRIDE_END}
                 - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
                   value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
+                - name: KAFKA_BOOTSTRAP_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: mk-oauth
+                      key: hostname
+                - name: KAFKA_BOOTSTRAP_PORT
+                  valueFrom:
+                    secretKeyRef:
+                      name: mk-oauth
+                      key: port
+                - name: KAFKA_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: mk-oauth
+                      key: username
+                - name: KAFKA_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: mk-oauth
+                      key: password
+                - name: KAFKA_SSL_TRUSTSTORE_CERTIFICATE
+                  valueFrom:
+                    secretKeyRef:
+                      name: kafka-ca
+                      key: ca.crt
                 - name: DATABASE_HOST
                   valueFrom:
                     secretKeyRef:

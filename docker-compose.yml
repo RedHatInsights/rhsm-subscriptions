@@ -14,15 +14,30 @@ services:
     image: quay.io/strimzi/kafka:latest-kafka-3.1.0
     command: sh /init_kafka.sh
     environment:
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      - KAFKA_LISTENERS=PLAINTEXT://:29092,PLAINTEXT_HOST://:9092,CONTROLLER://:9093
-      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      # Enable SSL debugging
+      # - KAFKA_OPTS=-Djavax.net.debug=ssl,handshake,data,trustmanager,keymanager
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,SASL_SSL:SASL_SSL
+      - KAFKA_LISTENERS=PLAINTEXT://:29092,PLAINTEXT_HOST://:9092,CONTROLLER://:9093,SASL_SSL://:9094
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092,SASL_SSL://localhost:9094
       - LOG_DIR=/tmp/logs
+      - KAFKA_SSL_CLIENT_AUTH=required
+      - KAFKA_SSL_KEYSTORE_LOCATION=/etc/kafka/secrets/certs/server.jks
+      - KAFKA_SSL_KEYSTORE_PASSWORD=password
+      - KAFKA_SSL_TRUSTSTORE_LOCATION=/etc/kafka/secrets/certs/test-ca.jks
+      - KAFKA_SSL_TRUSTSTORE_PASSWORD=password
+        # Passed directly to the JVM. Place SSL debug options here (e.g. -Djavax.net.debug=ssl)
+      - KAFKA_OPTS=-Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf
+        # Note that as of this writing (20 Jul 2022), Kraft mode does not support SCRAM
+      - KAFKA_SASL_MECHANISM=PLAIN
     ports:
       - "9092:9092"
+      # Port 9093 is used by the Kraft configuration
+      - "9094:9094"
       - "29092:29092"
     volumes:
-      - ./init_kafka.sh:/init_kafka.sh:z
+      - ./config/kafka/init_kafka.sh:/init_kafka.sh:z
+      - ./config/kafka/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:z
+      - ./config/kafka/:/etc/kafka/secrets/certs:z
   kafka-rest:
     image: docker.io/confluentinc/cp-kafka-rest
     environment:

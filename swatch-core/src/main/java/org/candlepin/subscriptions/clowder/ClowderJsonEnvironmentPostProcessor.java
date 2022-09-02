@@ -44,6 +44,9 @@ public class ClowderJsonEnvironmentPostProcessor implements EnvironmentPostProce
   private int order = Ordered.LOWEST_PRECEDENCE;
 
   private final ObjectMapper objectMapper;
+
+  // This logger records messages and is then replayed through the DeferredLogs class in Spring.
+  // As such, we have to use an Apache Commons Log class.
   private final Log logger;
 
   @Override

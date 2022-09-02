@@ -11,8 +11,6 @@ metadata:
 parameters:
   - name: HAWTIO_BASE_PATH
     value: /app/rhsm-conduit/hawtio
-  - name: KAFKA_BOOTSTRAP_HOST
-    required: true
   - name: RHSM_URL
     required: true
   - name: LOGGING_LEVEL_ROOT
@@ -168,8 +166,6 @@ objects:
                 value: ${LOGGING_LEVEL}
               - name: RHSM_URL
                 value: ${RHSM_URL}
-              - name: KAFKA_BOOTSTRAP_HOST
-                value: ${KAFKA_BOOTSTRAP_HOST}
               - name: KAFKA_TASK_GROUP
                 value: platform.rhsm-conduit.tasks
               - name: KAFKA_MESSAGE_THREADS
@@ -180,6 +176,31 @@ objects:
                 value: ${KAFKA_SEEK_OVERRIDE_END}
               - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
                 value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
+              - name: KAFKA_BOOTSTRAP_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: mk-oauth
+                    key: hostname
+              - name: KAFKA_BOOTSTRAP_PORT
+                valueFrom:
+                  secretKeyRef:
+                    name: mk-oauth
+                    key: port
+              - name: KAFKA_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: mk-oauth
+                    key: username
+              - name: KAFKA_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: mk-oauth
+                    key: password
+              - name: KAFKA_SSL_TRUSTSTORE_CERTIFICATE
+                valueFrom:
+                  secretKeyRef:
+                    name: kafka-ca
+                    key: ca.crt
               - name: DATABASE_HOST
                 valueFrom:
                   secretKeyRef:

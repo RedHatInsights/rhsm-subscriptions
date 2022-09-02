@@ -10,7 +10,22 @@
 # than the defaults defined here.
 KAFKA_BOOTSTRAP_HOST: ${clowder.kafka.brokers[0].hostname:localhost}
 KAFKA_BOOTSTRAP_PORT: ${clowder.kafka.brokers[0].port:9092}
+KAFKA_USERNAME: ${clowder.kafka.brokers[0].sasl.username:}
+KAFKA_PASSWORD: ${clowder.kafka.brokers[0].sasl.password:}
+KAFKA_SASL_PROTOCOL: ${clowder.kafka.brokers[0].sasl.securityProtocol:}
+KAFKA_SASL_MECHANISM: ${clowder.kafka.brokers[0].sasl.saslMechanism:}
 
+# This needs to be a PEM encoded certificate string.  If you want to point to a file you can use
+# spring.kafka.ssl.trust-store-location property but that property is mutually exclusive with the
+# spring.kafka.ssl.trust-store-certificates property.  Since Clowder gives us the actual
+# certificate PEM, we have to use the trust-store-certificates property here.
+#
+# The value of this property must match a regular expression defined in Kafka's
+# DefaultSslEngineFactory.PemParser class.  The regular expression is (with Java escapes)
+# -+BEGIN\\s*.*CERTIFICATE[^-]*-+\\s+(?:\\s*[^\\r\\n]*:[^\\r\\n]*[\\r\\n]+)*([a-zA-Z0-9/+=\\s]*)-+END\\s*.*CERTIFICATE[^-]*-+\\s+")
+# A notable point about this expression is that the "----BEGIN CERTIFICATE-----" piece must be
+# followed by a newline which makes it challenging to place the value in a properties or YAML file.
+KAFKA_SSL_TRUSTSTORE_CERTIFICATE: ${clowder.kafka.brokers[0].cacert:}
 SERVER_PORT: ${clowder.publicPort:8000}
 
 # Values assigned to management.path-mapping.* shouldn't have a leading slash. However, Clowder
@@ -20,9 +35,8 @@ SERVER_PORT: ${clowder.publicPort:8000}
 # requests to "/metrics" aren't going to match according to Spring Security's path matching rules
 # and the end result is that any security rule applied to EndpointRequest.to("prometheus") will be
 # applied to the defined path ("//metrics") rather than the de facto path ("/metrics").
-
+#
 # Accordingly, I've put in a custom rule in the security config to grant access to "/metrics"
-
 METRICS_PROMETHEUS_PATH: ${clowder.metricsPath:/metrics}
 METRICS_BASE_PATH: /
 METRICS_SERVER_PORT: ${clowder.metricsPort:9000}
