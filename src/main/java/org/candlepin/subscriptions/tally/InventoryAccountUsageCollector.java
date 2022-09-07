@@ -22,14 +22,7 @@ package org.candlepin.subscriptions.tally;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.ApplicationProperties;
@@ -219,7 +212,12 @@ public class InventoryAccountUsageCollector {
     if (log.isDebugEnabled()) {
       calcsByAccount.values().forEach(calc -> log.debug("Account Usage: {}", calc));
     }
-
+    // SWATCH-121 This logic should be implemented much cleaner
+    accountServiceInventory.getServiceInstances().values().stream()
+        .map(Host::getOrgId)
+        .filter(Objects::nonNull)
+        .findFirst()
+        .ifPresent(accountServiceInventory::setOrgId);
     accountServiceInventoryRepository.save(accountServiceInventory);
 
     return calcsByAccount;

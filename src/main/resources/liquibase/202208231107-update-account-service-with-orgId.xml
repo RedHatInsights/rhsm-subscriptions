@@ -1,0 +1,28 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+    <!--
+    DRAFT CHANGELOG FOR ACCOUNT SERVICES FOR ORG_ID (This file was not added to the changelog do to timing of SWATCH-279)
+    Use as reference after org_id gets populated with either SWATCH-121 or 261 written on 08-23-2022
+    Renamed this file and date to reflect actual changes are completed.
+    -->
+
+    <changeSet id="202208231107-1"  author="ksynvrit">
+        <comment> Update Primary Key for account service aggregate with org_id</comment>
+    <dropPrimaryKey tableName="account_services"/>
+    <addPrimaryKey tableName="account_services" columnNames="account_number,service_type,org_id" />
+    </changeSet>
+
+    <changeSet id="202208231107-2"  author="ksynvrit">
+        <comment>Insert data for existing account services, enforce integrity</comment>
+        <!-- Will need to drop exist accountnumber constraint  this note was created 08-23-2022-->
+        <addForeignKeyConstraint baseTableName="hosts"
+                                 baseColumnNames="account_number,instance_type,org_id"
+                                 constraintName="fk_hosts_account_services"
+                                 referencedTableName="account_services"
+                                 referencedColumnNames="account_number,service_type,org_id"/>
+    </changeSet>
+
+</databaseChangeLog>

@@ -23,14 +23,7 @@ package org.candlepin.subscriptions.db.model;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
-import javax.persistence.CascadeType;
-import javax.persistence.EmbeddedId;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.JoinColumn;
-import javax.persistence.MapKeyColumn;
-import javax.persistence.OneToMany;
-import javax.persistence.Table;
+import javax.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -86,4 +79,7 @@ public class AccountServiceInventory implements Serializable {
   // handled in hosts table)
   @MapKeyColumn(name = "instance_id", updatable = false, insertable = false)
   private Map<String, Host> serviceInstances = new HashMap<>();
+
+  @Column(name = "org_id")
+  private String orgId;
 }
