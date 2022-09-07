@@ -12,6 +12,8 @@ export IQE_PLUGINS="rhsm-subscriptions"  # name of the IQE plugin for this APP
 export IQE_MARKER_EXPRESSION="ephemeral"  # This is the value passed to pytest -m
 # export IQE_FILTER_EXPRESSION=""  # This is the value passed to pytest -k
 export IQE_CJI_TIMEOUT="30m"  # This is the time to wait for smoke test to complete or fail
+# IQE plugin image
+export IQE_IMAGE_TAG="rhsm-subscriptions"
 # NOTE: workaround for frontend deployment not being ready yet below
 
 
