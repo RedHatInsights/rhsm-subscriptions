@@ -24,12 +24,14 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.Objects;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
 /** A simple class that represents a date range. */
 @Getter
 @Setter
+@EqualsAndHashCode
 public class DateRange {
 
   private final OffsetDateTime startDate;
