@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
-import io.micrometer.core.annotation.Timed;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskExecutionException;
 import org.candlepin.subscriptions.task.TaskFactory;
@@ -50,7 +49,6 @@ public class KafkaTaskProcessor extends SeekableKafkaConsumer implements TaskCon
   }
 
   @KafkaListener(id = "#{__listener.groupId}", topics = "#{__listener.topic}")
-  @Timed("rhsm-subscriptions.task.execution")
   public void receive(TaskMessage taskMessage) {
     try {
       log.info("Message received from kafka: {}", taskMessage);

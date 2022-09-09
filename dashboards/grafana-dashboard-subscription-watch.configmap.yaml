@@ -27,8 +27,8 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
-      "id": 57,
-      "iteration": 1660924101745,
+      "id": 540,
+      "iteration": 1662728700464,
       "links": [],
       "liveNow": false,
       "panels": [
@@ -157,7 +157,6 @@ data:
               },
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -168,7 +167,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 1
+                "y": 2
               },
               "hiddenSeries": false,
               "id": 47,
@@ -189,7 +188,7 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
@@ -276,16 +275,6 @@ data:
               },
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
-                  "mappings": [],
-                  "thresholds": {
-                    "mode": "absolute",
-                    "steps": [
-                      {
-                        "color": "green"
-                      }
-                    ]
-                  },
                   "unit": "bytes"
                 },
                 "overrides": []
@@ -296,7 +285,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 1
+                "y": 2
               },
               "hiddenSeries": false,
               "hideTimeOverride": false,
@@ -318,7 +307,7 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 2,
               "points": false,
               "renderer": "flot",
@@ -404,7 +393,6 @@ data:
               },
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -415,7 +403,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 1
+                "y": 2
               },
               "hiddenSeries": false,
               "id": 54,
@@ -436,7 +424,7 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
@@ -557,7 +545,6 @@ data:
               },
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -568,7 +555,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 1
+                "y": 2
               },
               "hiddenSeries": false,
               "id": 56,
@@ -589,7 +576,7 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
@@ -689,13 +676,13 @@ data:
               },
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "mappings": [],
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       }
                     ]
                   }
@@ -706,7 +693,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 0,
-                "y": 2
+                "y": 3
               },
               "id": 72,
               "options": {
@@ -723,7 +710,7 @@ data:
                 },
                 "textMode": "auto"
               },
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "targets": [
                 {
                   "expr": "sum(increase(inventory_ingress_add_host_failures_total{reporter=\"rhsm-conduit\"}[$__range]))",
@@ -753,7 +740,6 @@ data:
               "decimals": 3,
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -764,7 +750,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 6,
-                "y": 2
+                "y": 3
               },
               "hiddenSeries": false,
               "id": 40,
@@ -785,7 +771,7 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
@@ -795,7 +781,7 @@ data:
               "steppedLine": false,
               "targets": [
                 {
-                  "expr": "sum(kafka_consumergroup_group_lag{topic='platform.rhsm-conduit.tasks'}) by (topic)",
+                  "expr": "sum(kafka_consumergroup_group_lag{topic=~'.*platform.rhsm-conduit.tasks'}) by (topic)",
                   "format": "time_series",
                   "groupBy": [
                     {
@@ -837,7 +823,7 @@ data:
               ],
               "thresholds": [],
               "timeRegions": [],
-              "title": "rhsm-conduit consumer group lag",
+              "title": "swatch-system-conduit consumer group lag",
               "tooltip": {
                 "shared": true,
                 "sort": 0,
@@ -879,7 +865,6 @@ data:
               "description": "",
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -890,7 +875,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 12,
-                "y": 2
+                "y": 3
               },
               "hiddenSeries": false,
               "id": 59,
@@ -911,7 +896,7 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
@@ -969,11 +954,11 @@ data:
               "dashLength": 10,
               "dashes": false,
               "datasource": {
+                "type": "prometheus",
                 "uid": "${datasource}"
               },
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -984,7 +969,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 18,
-                "y": 2
+                "y": 3
               },
               "hiddenSeries": false,
               "id": 4,
@@ -1005,7 +990,7 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
@@ -1015,17 +1000,17 @@ data:
               "steppedLine": false,
               "targets": [
                 {
-                  "expr": "max(rhsm_subscriptions_task_execution_seconds_max{job=\"rhsm-conduit\"}) by (deployment)",
+                  "expr": "max(spring_kafka_listener_seconds_max{service=\"swatch-system-conduit-service\"})",
                   "format": "time_series",
                   "interval": "",
                   "intervalFactor": 1,
-                  "legendFormat": "{{ deployment }}",
+                  "legendFormat": "__auto",
                   "refId": "A"
                 }
               ],
               "thresholds": [],
               "timeRegions": [],
-              "title": "rhsm-conduit max sync duration",
+              "title": "swatch-system-conduit max sync duration",
               "tooltip": {
                 "shared": true,
                 "sort": 0,
@@ -1065,7 +1050,6 @@ data:
               },
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -1076,7 +1060,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 0,
-                "y": 12
+                "y": 13
               },
               "hiddenSeries": false,
               "id": 41,
@@ -1097,7 +1081,7 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
@@ -1107,7 +1091,7 @@ data:
               "steppedLine": false,
               "targets": [
                 {
-                  "expr": "sum by (topic) (rate(kafka_consumergroup_group_offset{topic='platform.rhsm-conduit.tasks'}[$__interval]))",
+                  "expr": "sum by (topic) (rate(kafka_consumergroup_group_offset{topic=~'.*platform.rhsm-conduit.tasks'}[$__interval]))",
                   "format": "time_series",
                   "groupBy": [
                     {
@@ -1149,7 +1133,7 @@ data:
               ],
               "thresholds": [],
               "timeRegions": [],
-              "title": "rhsm-conduit topic consumption rate (orgs/second)",
+              "title": "swatch-system-conduit topic consumption rate (orgs/second)",
               "tooltip": {
                 "shared": true,
                 "sort": 0,
@@ -1191,7 +1175,6 @@ data:
               },
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -1202,7 +1185,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 6,
-                "y": 12
+                "y": 13
               },
               "hiddenSeries": false,
               "id": 8,
@@ -1223,7 +1206,7 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
@@ -1233,7 +1216,7 @@ data:
               "steppedLine": false,
               "targets": [
                 {
-                  "expr": "sum(process_cpu_usage{service=\"rhsm-conduit\"}) by (pod)",
+                  "expr": "sum(process_cpu_usage{service=\"swatch-system-conduit-service\"}) by (pod)",
                   "format": "time_series",
                   "interval": "",
                   "intervalFactor": 1,
@@ -1243,7 +1226,7 @@ data:
               ],
               "thresholds": [],
               "timeRegions": [],
-              "title": "rhsm-conduit CPU",
+              "title": "swatch-system-conduit CPU",
               "tooltip": {
                 "shared": true,
                 "sort": 0,
@@ -1283,7 +1266,6 @@ data:
               },
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -1294,7 +1276,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 12,
-                "y": 12
+                "y": 13
               },
               "hiddenSeries": false,
               "id": 10,
@@ -1315,7 +1297,7 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
@@ -1325,7 +1307,7 @@ data:
               "steppedLine": false,
               "targets": [
                 {
-                  "expr": "sum by (id, pod) (jvm_memory_used_bytes{service=\"rhsm-conduit\"})",
+                  "expr": "sum by (id, pod) (jvm_memory_used_bytes{service=\"swatch-system-conduit-service\"})",
                   "format": "time_series",
                   "interval": "",
                   "intervalFactor": 1,
@@ -1366,7 +1348,7 @@ data:
               }
             }
           ],
-          "title": "System Conduit (rhsm-conduit)",
+          "title": "swatch-system-conduit (aka rhsm-conduit)",
           "type": "row"
         },
         {
@@ -1394,7 +1376,6 @@ data:
               "decimals": 3,
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -1405,7 +1386,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 3
+                "y": 4
               },
               "hiddenSeries": false,
               "id": 63,
@@ -1426,7 +1407,7 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
@@ -1436,7 +1417,7 @@ data:
               "steppedLine": false,
               "targets": [
                 {
-                  "expr": "sum(kafka_consumergroup_group_lag{topic='platform.rhsm-subscriptions.tasks'})",
+                  "expr": "sum(kafka_consumergroup_group_lag{topic=~'.*platform.rhsm-subscriptions.tasks'})",
                   "format": "time_series",
                   "groupBy": [
                     {
@@ -1478,7 +1459,7 @@ data:
               ],
               "thresholds": [],
               "timeRegions": [],
-              "title": "subscriptions-jobs consumer group lag",
+              "title": "tally consumer group lag",
               "tooltip": {
                 "shared": true,
                 "sort": 0,
@@ -1520,7 +1501,6 @@ data:
               "decimals": 3,
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -1531,7 +1511,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 3
+                "y": 4
               },
               "hiddenSeries": false,
               "id": 64,
@@ -1552,7 +1532,7 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
@@ -1562,7 +1542,7 @@ data:
               "steppedLine": false,
               "targets": [
                 {
-                  "expr": "sum(rate(kafka_consumergroup_group_offset{topic=\"platform.rhsm-subscriptions.tasks\"}[$__interval]))",
+                  "expr": "sum(rate(kafka_consumergroup_group_offset{topic=~\".*platform.rhsm-subscriptions.tasks\"}[$__interval]))",
                   "format": "time_series",
                   "groupBy": [
                     {
@@ -1604,7 +1584,7 @@ data:
               ],
               "thresholds": [],
               "timeRegions": [],
-              "title": "subscriptions-jobs org rate (orgs/sec)",
+              "title": "tally org rate (orgs/sec)",
               "tooltip": {
                 "shared": true,
                 "sort": 0,
@@ -1645,7 +1625,6 @@ data:
               },
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -1656,7 +1635,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 3
+                "y": 4
               },
               "hiddenSeries": false,
               "id": 66,
@@ -1677,7 +1656,7 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
@@ -1687,7 +1666,7 @@ data:
               "steppedLine": false,
               "targets": [
                 {
-                  "expr": "sum(process_cpu_usage{service=~\"rhsm-subscriptions-worker-monitoring|rhsm-subscriptions-scheduler-monitoring\"}) by (pod)",
+                  "expr": "sum(process_cpu_usage{service=~\"swatch-tally-service\"}) by (pod)",
                   "format": "time_series",
                   "interval": "",
                   "intervalFactor": 1,
@@ -1703,7 +1682,7 @@ data:
               ],
               "thresholds": [],
               "timeRegions": [],
-              "title": "rhsm-subscriptions worker CPU",
+              "title": "swatch-tally CPU",
               "tooltip": {
                 "shared": true,
                 "sort": 0,
@@ -1743,7 +1722,6 @@ data:
               },
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -1754,7 +1732,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 3
+                "y": 4
               },
               "hiddenSeries": false,
               "id": 68,
@@ -1775,7 +1753,7 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
@@ -1785,7 +1763,7 @@ data:
               "steppedLine": false,
               "targets": [
                 {
-                  "expr": "jvm_memory_used_bytes{service=~\"rhsm-subscriptions-worker-monitoring|rhsm-subscriptions-scheduler-monitoring\",id=~\"PS Old Gen|PS Survivor Space|PS Eden Space\"}",
+                  "expr": "jvm_memory_used_bytes{service=\"swatch-tally-service\",id=~\"PS Old Gen|PS Survivor Space|PS Eden Space\"}",
                   "format": "time_series",
                   "interval": "",
                   "intervalFactor": 1,
@@ -1795,7 +1773,7 @@ data:
               ],
               "thresholds": [],
               "timeRegions": [],
-              "title": "worker JVM Memory Used",
+              "title": "tally JVM Memory Used",
               "tooltip": {
                 "shared": true,
                 "sort": 0,
@@ -1826,7 +1804,7 @@ data:
               }
             }
           ],
-          "title": "Tally",
+          "title": "swatch-tally",
           "type": "row"
         },
         {
@@ -1853,7 +1831,6 @@ data:
               },
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -1864,7 +1841,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 4
+                "y": 5
               },
               "hiddenSeries": false,
               "id": 32,
@@ -1885,7 +1862,7 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
@@ -1895,7 +1872,7 @@ data:
               "steppedLine": false,
               "targets": [
                 {
-                  "expr": "sum by (uri) (rate(http_server_requests_seconds_count{service=\"rhsm-subscriptions\",uri=~\"/api/rhsm-subscriptions.*\"}[1m]))",
+                  "expr": "sum by (uri) (rate(http_server_requests_seconds_count{service=\"swatch-api-service\",uri=~\"/api/rhsm-subscriptions.*\"}[1m]))",
                   "format": "time_series",
                   "interval": "",
                   "intervalFactor": 1,
@@ -1946,7 +1923,6 @@ data:
               },
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -1957,7 +1933,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 4
+                "y": 5
               },
               "hiddenSeries": false,
               "id": 33,
@@ -1978,7 +1954,7 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
@@ -1988,7 +1964,7 @@ data:
               "steppedLine": false,
               "targets": [
                 {
-                  "expr": "sum by (uri) (rate(http_server_requests_seconds_sum{service=\"rhsm-subscriptions\",uri=~\"/api/rhsm-subscriptions.*\"}[1m]) / rate(http_server_requests_seconds_count{service=\"rhsm-subscriptions\",uri=~\"/api/rhsm-subscriptions.*\"}[1m]))",
+                  "expr": "sum by (uri) (rate(http_server_requests_seconds_sum{service=\"swatch-api-service\",uri=~\"/api/rhsm-subscriptions.*\"}[1m]) / rate(http_server_requests_seconds_count{service=\"swatch-api-service\",uri=~\"/api/rhsm-subscriptions.*\"}[1m]))",
                   "format": "time_series",
                   "intervalFactor": 1,
                   "legendFormat": "{{uri}}",
@@ -2036,7 +2012,6 @@ data:
               },
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -2047,7 +2022,7 @@ data:
                 "h": 9,
                 "w": 12,
                 "x": 12,
-                "y": 4
+                "y": 5
               },
               "hiddenSeries": false,
               "id": 34,
@@ -2068,7 +2043,7 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
@@ -2078,7 +2053,7 @@ data:
               "steppedLine": false,
               "targets": [
                 {
-                  "expr": "rate(http_server_requests_seconds_count{service=\"rhsm-subscriptions\",exception!=\"None\"}[$__interval])",
+                  "expr": "rate(http_server_requests_seconds_count{service=\"swatch-api-service\",exception!=\"None\"}[$__interval])",
                   "format": "time_series",
                   "interval": "",
                   "intervalFactor": 1,
@@ -2128,7 +2103,6 @@ data:
               },
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -2139,7 +2113,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 0,
-                "y": 13
+                "y": 14
               },
               "hiddenSeries": false,
               "id": 35,
@@ -2160,7 +2134,7 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
@@ -2170,7 +2144,7 @@ data:
               "steppedLine": false,
               "targets": [
                 {
-                  "expr": "sum(process_cpu_usage{service=\"rhsm-subscriptions\"}) by (pod)",
+                  "expr": "sum(process_cpu_usage{service=\"swatch-api-service\"}) by (pod)",
                   "format": "time_series",
                   "interval": "",
                   "intervalFactor": 1,
@@ -2220,7 +2194,6 @@ data:
               },
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -2231,7 +2204,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 6,
-                "y": 13
+                "y": 14
               },
               "hiddenSeries": false,
               "id": 36,
@@ -2252,7 +2225,7 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
@@ -2262,7 +2235,7 @@ data:
               "steppedLine": false,
               "targets": [
                 {
-                  "expr": "sum by (id, pod) (jvm_memory_used_bytes{service=\"rhsm-subscriptions\"})",
+                  "expr": "sum by (id, pod) (jvm_memory_used_bytes{service=\"swatch-api-service\"})",
                   "format": "time_series",
                   "interval": "",
                   "intervalFactor": 1,
@@ -2303,7 +2276,7 @@ data:
               }
             }
           ],
-          "title": "APIs",
+          "title": "swatch-api",
           "type": "row"
         },
         {
@@ -2326,11 +2299,11 @@ data:
               "dashLength": 10,
               "dashes": false,
               "datasource": {
+                "type": "prometheus",
                 "uid": "${datasource}"
               },
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -2341,7 +2314,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 5
+                "y": 6
               },
               "hiddenSeries": false,
               "id": 20,
@@ -2362,27 +2335,28 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
               "seriesOverrides": [],
               "spaceLength": 10,
-              "stack": false,
+              "stack": true,
               "steppedLine": false,
               "targets": [
                 {
-                  "expr": "sum(rate(http_server_requests_seconds_count{uri=~\"/api/rhsm-subscriptions/v1/ingress/candlepin_pools/.*\"}[$__interval]))",
+                  "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.subscription-sync\"}) by (group, partition)",
                   "format": "time_series",
                   "interval": "",
                   "intervalFactor": 1,
-                  "legendFormat": "",
+                  "legendFormat": "partition {{partition}}",
+                  "range": true,
                   "refId": "A"
                 }
               ],
               "thresholds": [],
               "timeRegions": [],
-              "title": "subscription-ingress batch rate",
+              "title": "Subscription Sync Task Lag",
               "tooltip": {
                 "shared": true,
                 "sort": 0,
@@ -2398,8 +2372,9 @@ data:
                 {
                   "$$hashKey": "object:2120",
                   "format": "short",
-                  "label": "Batches / Second",
+                  "label": "",
                   "logBase": 1,
+                  "min": "0",
                   "show": true
                 },
                 {
@@ -2419,11 +2394,12 @@ data:
               "dashLength": 10,
               "dashes": false,
               "datasource": {
+                "type": "prometheus",
                 "uid": "${datasource}"
               },
+              "description": "",
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -2434,10 +2410,10 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 5
+                "y": 6
               },
               "hiddenSeries": false,
-              "id": 18,
+              "id": 89,
               "legend": {
                 "avg": false,
                 "current": false,
@@ -2455,27 +2431,28 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
               "seriesOverrides": [],
               "spaceLength": 10,
-              "stack": false,
+              "stack": true,
               "steppedLine": false,
               "targets": [
                 {
-                  "expr": "sum(rate(http_server_requests_seconds_sum{uri=~\"/api/rhsm-subscriptions/v1/ingress/candlepin_pools/.*\"}[$__interval])) / sum(rate(http_server_requests_seconds_count{uri=~\"/api/rhsm-subscriptions/v1/ingress/candlepin_pools/.*\"}[$__interval]))",
+                  "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.offering-sync\"}) by (group, partition)",
                   "format": "time_series",
                   "interval": "",
                   "intervalFactor": 1,
-                  "legendFormat": "",
+                  "legendFormat": "partition {{partition}}",
+                  "range": true,
                   "refId": "A"
                 }
               ],
               "thresholds": [],
               "timeRegions": [],
-              "title": "subscription-ingress latency",
+              "title": "Offering Sync Task Lag",
               "tooltip": {
                 "shared": true,
                 "sort": 0,
@@ -2489,14 +2466,15 @@ data:
               },
               "yaxes": [
                 {
-                  "$$hashKey": "object:2182",
-                  "format": "s",
-                  "label": "time per batch",
+                  "$$hashKey": "object:2120",
+                  "format": "short",
+                  "label": "",
                   "logBase": 1,
+                  "min": "0",
                   "show": true
                 },
                 {
-                  "$$hashKey": "object:2183",
+                  "$$hashKey": "object:2121",
                   "format": "short",
                   "logBase": 1,
                   "show": true
@@ -2512,11 +2490,12 @@ data:
               "dashLength": 10,
               "dashes": false,
               "datasource": {
+                "type": "prometheus",
                 "uid": "${datasource}"
               },
+              "description": "",
               "fieldConfig": {
                 "defaults": {
-                  "custom": {},
                   "links": []
                 },
                 "overrides": []
@@ -2525,12 +2504,12 @@ data:
               "fillGradient": 0,
               "gridPos": {
                 "h": 9,
-                "w": 12,
+                "w": 6,
                 "x": 12,
-                "y": 5
+                "y": 6
               },
               "hiddenSeries": false,
-              "id": 26,
+              "id": 90,
               "legend": {
                 "avg": false,
                 "current": false,
@@ -2548,27 +2527,28 @@ data:
                 "alertThreshold": true
               },
               "percentage": false,
-              "pluginVersion": "7.2.1",
+              "pluginVersion": "9.0.3",
               "pointradius": 5,
               "points": false,
               "renderer": "flot",
               "seriesOverrides": [],
               "spaceLength": 10,
-              "stack": false,
+              "stack": true,
               "steppedLine": false,
               "targets": [
                 {
-                  "expr": "rate(http_server_requests_seconds_count{uri=\"/api/rhsm-subscriptions/v1/ingress/candlepin_pools/.*\",exception!=\"None\"}[1m])",
+                  "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.capacity-reconcile\"}) by (group, partition)",
                   "format": "time_series",
                   "interval": "",
                   "intervalFactor": 1,
-                  "legendFormat": "",
+                  "legendFormat": "partition {{partition}}",
+                  "range": true,
                   "refId": "A"
                 }
               ],
               "thresholds": [],
               "timeRegions": [],
-              "title": "Error Rate",
+              "title": "Capacity Reconcile Task Lag",
               "tooltip": {
                 "shared": true,
                 "sort": 0,
@@ -2582,13 +2562,15 @@ data:
               },
               "yaxes": [
                 {
-                  "$$hashKey": "object:2238",
-                  "format": "reqps",
+                  "$$hashKey": "object:2120",
+                  "format": "short",
+                  "label": "",
                   "logBase": 1,
+                  "min": "0",
                   "show": true
                 },
                 {
-                  "$$hashKey": "object:2239",
+                  "$$hashKey": "object:2121",
                   "format": "short",
                   "logBase": 1,
                   "show": true
@@ -2599,11 +2581,11 @@ data:
               }
             }
           ],
-          "title": "Capacity Ingress",
+          "title": "swatch-subscription-sync",
           "type": "row"
         },
         {
-          "collapsed": false,
+          "collapsed": true,
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
@@ -2615,598 +2597,601 @@ data:
             "y": 6
           },
           "id": 74,
-          "panels": [],
-          "title": "Billing Provider Integration",
-          "type": "row"
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "${datasource}"
-          },
-          "description": "⬇️ OCM provides usage metrics that are read by the metering collector job ⬇️\n\n(TIP: if this isn't working, data will not land in swatch DB at all)",
-          "fill": 1,
-          "fillGradient": 0,
-          "gridPos": {
-            "h": 9,
-            "w": 6,
-            "x": 0,
-            "y": 7
-          },
-          "hiddenSeries": false,
-          "id": 76,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "maxPerRow": 12,
-          "nullPointMode": "null",
-          "options": {
-            "alertThreshold": true
-          },
-          "percentage": false,
-          "pluginVersion": "9.0.3",
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeatDirection": "v",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": true,
-          "steppedLine": false,
-          "targets": [
+          "panels": [
             {
-              "expr": "sum(kafka_consumergroup_group_lag{topic=\"platform.rhsm-subscriptions.metering-tasks\"}) by (group, partition)",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 1,
-              "legendFormat": "partition {{ partition }}",
-              "refId": "A"
-            }
-          ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "OpenShift Metering Task Lag",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "$$hashKey": "object:361",
-              "format": "short",
-              "logBase": 1,
-              "min": "0",
-              "show": true
-            },
-            {
-              "$$hashKey": "object:362",
-              "format": "short",
-              "logBase": 1,
-              "min": "0",
-              "show": true
-            }
-          ],
-          "yaxis": {
-            "align": false
-          }
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "${datasource}"
-          },
-          "description": "⬇️ Sampled metrics stored in DB are \"collapsed\" into summary metrics ⬇️\n\n(TIP: Summary metrics are displayed in web UI)",
-          "fill": 1,
-          "fillGradient": 0,
-          "gridPos": {
-            "h": 9,
-            "w": 6,
-            "x": 6,
-            "y": 7
-          },
-          "hiddenSeries": false,
-          "id": 78,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "maxPerRow": 12,
-          "nullPointMode": "null",
-          "options": {
-            "alertThreshold": true
-          },
-          "percentage": false,
-          "pluginVersion": "9.0.3",
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeatDirection": "v",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": true,
-          "steppedLine": false,
-          "targets": [
-            {
-              "expr": "sum(kafka_consumergroup_group_lag{topic=\"platform.rhsm-subscriptions.tasks\"}) by (group, partition)",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 1,
-              "legendFormat": "partition {{ partition }}",
-              "refId": "A"
-            }
-          ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Tally Task Lag",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "$$hashKey": "object:390",
-              "format": "short",
-              "logBase": 1,
-              "min": "0",
-              "show": true
-            },
-            {
-              "$$hashKey": "object:391",
-              "format": "short",
-              "logBase": 1,
-              "min": "0",
-              "show": true
-            }
-          ],
-          "yaxis": {
-            "align": false
-          }
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "description": "rhsm-subscriptions-worker service produces TallySummary messages for consumption by Billing Usage service",
-          "fieldConfig": {
-            "defaults": {
-              "unit": "none"
-            },
-            "overrides": []
-          },
-          "fill": 1,
-          "fillGradient": 0,
-          "gridPos": {
-            "h": 9,
-            "w": 6,
-            "x": 12,
-            "y": 7
-          },
-          "hiddenSeries": false,
-          "id": 80,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null",
-          "options": {
-            "alertThreshold": true
-          },
-          "percentage": false,
-          "pluginVersion": "9.0.3",
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeatDirection": "h",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": true,
-          "steppedLine": false,
-          "targets": [
-            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
               "datasource": {
-                "type": "prometheus",
                 "uid": "${datasource}"
               },
-              "expr": "sum(kafka_consumergroup_group_lag{topic=\"platform.rhsm-subscriptions.tally\", group=\"swatch-producer-billing\"}) by (group, partition)",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 1,
-              "legendFormat": "partition {{ partition }}",
-              "refId": "A"
-            }
-          ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Tally to Billable Usage Lag",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "$$hashKey": "object:332",
-              "format": "none",
-              "logBase": 1,
-              "min": "0",
-              "show": true
-            },
-            {
-              "$$hashKey": "object:333",
-              "format": "short",
-              "logBase": 1,
-              "min": "0",
-              "show": true
-            }
-          ],
-          "yaxis": {
-            "align": false
-          }
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "description": "Billable Usage service emits messages with usage data for swatch billing provider services to consume.  This widget monitors the consumer group connected to the swatch-producer-aws service)",
-          "fieldConfig": {
-            "defaults": {
-              "unit": "none"
-            },
-            "overrides": []
-          },
-          "fill": 1,
-          "fillGradient": 0,
-          "gridPos": {
-            "h": 9,
-            "w": 6,
-            "x": 0,
-            "y": 16
-          },
-          "hiddenSeries": false,
-          "id": 83,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null",
-          "options": {
-            "alertThreshold": true
-          },
-          "percentage": false,
-          "pluginVersion": "9.0.3",
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeatDirection": "h",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": true,
-          "steppedLine": false,
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
+              "description": "⬇️ OCM provides usage metrics that are read by the metering collector job ⬇️\n\n(TIP: if this isn't working, data will not land in swatch DB at all)",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 9,
+                "w": 6,
+                "x": 0,
+                "y": 7
               },
-              "expr": "sum(kafka_consumergroup_group_lag{topic=\"platform.rhsm-subscriptions.billable-usage\", group=\"swatch-producer-aws\"}) by (group, partition)",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 1,
-              "legendFormat": "partition {{ partition }}",
-              "refId": "A"
-            }
-          ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "AWS Billable Usage Lag",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "$$hashKey": "object:332",
-              "format": "none",
-              "logBase": 1,
-              "min": "0",
-              "show": true
-            },
-            {
-              "$$hashKey": "object:333",
-              "format": "short",
-              "logBase": 1,
-              "min": "0",
-              "show": true
-            }
-          ],
-          "yaxis": {
-            "align": false
-          }
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "description": "Billable Usage service emits messages with usage data for swatch billing provider services to consume.  This widget monitors the rh-marketplace-worker consumer group (consumed by the swatch-producer-red-hat-marketplace service)",
-          "fieldConfig": {
-            "defaults": {
-              "unit": "none"
-            },
-            "overrides": []
-          },
-          "fill": 1,
-          "fillGradient": 0,
-          "gridPos": {
-            "h": 9,
-            "w": 6,
-            "x": 6,
-            "y": 16
-          },
-          "hiddenSeries": false,
-          "id": 84,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null",
-          "options": {
-            "alertThreshold": true
-          },
-          "percentage": false,
-          "pluginVersion": "9.0.3",
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeatDirection": "h",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": true,
-          "steppedLine": false,
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
+              "hiddenSeries": false,
+              "id": 76,
+              "legend": {
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
               },
-              "expr": "sum(kafka_consumergroup_group_lag{topic=\"platform.rhsm-subscriptions.billable-usage\", group=\"swatch-producer-rh-marketplace\"}) by (group, partition)",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 1,
-              "legendFormat": "partition {{ partition }}",
-              "refId": "A"
-            }
-          ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "RH Marketplace Billable Usage Lag",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "$$hashKey": "object:332",
-              "format": "none",
-              "logBase": 1,
-              "min": "0",
-              "show": true
-            },
-            {
-              "$$hashKey": "object:333",
-              "format": "short",
-              "logBase": 1,
-              "min": "0",
-              "show": true
-            }
-          ],
-          "yaxis": {
-            "align": false
-          }
-        },
-        {
-          "datasource": {
-            "uid": "${datasource}"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "mappings": [
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "maxPerRow": 12,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "9.0.3",
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "repeatDirection": "v",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": true,
+              "steppedLine": false,
+              "targets": [
                 {
-                  "options": {
-                    "match": "null",
-                    "result": {
-                      "text": "N/A"
-                    }
-                  },
-                  "type": "special"
+                  "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.metering-tasks\"}) by (group, partition)",
+                  "format": "time_series",
+                  "instant": false,
+                  "interval": "",
+                  "intervalFactor": 1,
+                  "legendFormat": "partition {{ partition }}",
+                  "refId": "A"
                 }
               ],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
+              "thresholds": [],
+              "timeRegions": [],
+              "title": "OpenShift Metering Task Lag",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "mode": "time",
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "$$hashKey": "object:361",
+                  "format": "short",
+                  "logBase": 1,
+                  "min": "0",
+                  "show": true
+                },
+                {
+                  "$$hashKey": "object:362",
+                  "format": "short",
+                  "logBase": 1,
+                  "min": "0",
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": {
+                "uid": "${datasource}"
+              },
+              "description": "⬇️ Sampled metrics stored in DB are \"collapsed\" into summary metrics ⬇️\n\n(TIP: Summary metrics are displayed in web UI)",
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 9,
+                "w": 6,
+                "x": 6,
+                "y": 7
+              },
+              "hiddenSeries": false,
+              "id": 78,
+              "legend": {
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "maxPerRow": 12,
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "9.0.3",
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "repeatDirection": "v",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": true,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.tasks\"}) by (group, partition)",
+                  "format": "time_series",
+                  "instant": false,
+                  "interval": "",
+                  "intervalFactor": 1,
+                  "legendFormat": "partition {{ partition }}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeRegions": [],
+              "title": "Tally Task Lag",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "mode": "time",
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "$$hashKey": "object:390",
+                  "format": "short",
+                  "logBase": 1,
+                  "min": "0",
+                  "show": true
+                },
+                {
+                  "$$hashKey": "object:391",
+                  "format": "short",
+                  "logBase": 1,
+                  "min": "0",
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "description": "swatch-tally-service produces TallySummary messages for consumption by Billing Usage service",
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "none"
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 9,
+                "w": 6,
+                "x": 12,
+                "y": 7
+              },
+              "hiddenSeries": false,
+              "id": 80,
+              "legend": {
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "9.0.3",
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "repeatDirection": "h",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": true,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.tally\", group=\"swatch-producer-billing\"}) by (group, partition)",
+                  "format": "time_series",
+                  "instant": false,
+                  "interval": "",
+                  "intervalFactor": 1,
+                  "legendFormat": "partition {{ partition }}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeRegions": [],
+              "title": "Tally to Billable Usage Lag",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "mode": "time",
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "$$hashKey": "object:332",
+                  "format": "none",
+                  "logBase": 1,
+                  "min": "0",
+                  "show": true
+                },
+                {
+                  "$$hashKey": "object:333",
+                  "format": "short",
+                  "logBase": 1,
+                  "min": "0",
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "description": "Billable Usage service emits messages with usage data for swatch billing provider services to consume.  This widget monitors the consumer group connected to the swatch-producer-aws service)",
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "none"
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 9,
+                "w": 6,
+                "x": 0,
+                "y": 16
+              },
+              "hiddenSeries": false,
+              "id": 83,
+              "legend": {
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "9.0.3",
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "repeatDirection": "h",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": true,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.billable-usage\", group=\"swatch-producer-aws\"}) by (group, partition)",
+                  "format": "time_series",
+                  "instant": false,
+                  "interval": "",
+                  "intervalFactor": 1,
+                  "legendFormat": "partition {{ partition }}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeRegions": [],
+              "title": "AWS Billable Usage Lag",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "mode": "time",
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "$$hashKey": "object:332",
+                  "format": "none",
+                  "logBase": 1,
+                  "min": "0",
+                  "show": true
+                },
+                {
+                  "$$hashKey": "object:333",
+                  "format": "short",
+                  "logBase": 1,
+                  "min": "0",
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false
+              }
+            },
+            {
+              "aliasColors": {},
+              "bars": false,
+              "dashLength": 10,
+              "dashes": false,
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "description": "Billable Usage service emits messages with usage data for swatch billing provider services to consume.  This widget monitors the rh-marketplace-worker consumer group (consumed by the swatch-producer-red-hat-marketplace service)",
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "none"
+                },
+                "overrides": []
+              },
+              "fill": 1,
+              "fillGradient": 0,
+              "gridPos": {
+                "h": 9,
+                "w": 6,
+                "x": 6,
+                "y": 16
+              },
+              "hiddenSeries": false,
+              "id": 84,
+              "legend": {
+                "avg": false,
+                "current": false,
+                "max": false,
+                "min": false,
+                "show": true,
+                "total": false,
+                "values": false
+              },
+              "lines": true,
+              "linewidth": 1,
+              "links": [],
+              "nullPointMode": "null",
+              "options": {
+                "alertThreshold": true
+              },
+              "percentage": false,
+              "pluginVersion": "9.0.3",
+              "pointradius": 5,
+              "points": false,
+              "renderer": "flot",
+              "repeatDirection": "h",
+              "seriesOverrides": [],
+              "spaceLength": 10,
+              "stack": true,
+              "steppedLine": false,
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "${datasource}"
+                  },
+                  "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.billable-usage\", group=\"swatch-producer-rh-marketplace\"}) by (group, partition)",
+                  "format": "time_series",
+                  "instant": false,
+                  "interval": "",
+                  "intervalFactor": 1,
+                  "legendFormat": "partition {{ partition }}",
+                  "refId": "A"
+                }
+              ],
+              "thresholds": [],
+              "timeRegions": [],
+              "title": "RH Marketplace Billable Usage Lag",
+              "tooltip": {
+                "shared": true,
+                "sort": 0,
+                "value_type": "individual"
+              },
+              "type": "graph",
+              "xaxis": {
+                "mode": "time",
+                "show": true,
+                "values": []
+              },
+              "yaxes": [
+                {
+                  "$$hashKey": "object:332",
+                  "format": "none",
+                  "logBase": 1,
+                  "min": "0",
+                  "show": true
+                },
+                {
+                  "$$hashKey": "object:333",
+                  "format": "short",
+                  "logBase": 1,
+                  "min": "0",
+                  "show": true
+                }
+              ],
+              "yaxis": {
+                "align": false
+              }
+            },
+            {
+              "datasource": {
+                "uid": "${datasource}"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "mappings": [
+                    {
+                      "options": {
+                        "match": "null",
+                        "result": {
+                          "text": "N/A"
+                        }
+                      },
+                      "type": "special"
+                    }
+                  ],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      }
+                    ]
+                  },
+                  "unit": "none"
+                },
+                "overrides": [
                   {
-                    "color": "green"
+                    "matcher": {
+                      "id": "byName",
+                      "options": "rejected"
+                    },
+                    "properties": [
+                      {
+                        "id": "thresholds",
+                        "value": {
+                          "mode": "absolute",
+                          "steps": [
+                            {
+                              "color": "green",
+                              "value": null
+                            },
+                            {
+                              "color": "red",
+                              "value": 1
+                            }
+                          ]
+                        }
+                      }
+                    ]
                   }
                 ]
               },
-              "unit": "none"
-            },
-            "overrides": [
-              {
-                "matcher": {
-                  "id": "byName",
-                  "options": "rejected"
+              "gridPos": {
+                "h": 9,
+                "w": 6,
+                "x": 0,
+                "y": 25
+              },
+              "id": 82,
+              "links": [],
+              "maxDataPoints": 100,
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "horizontal",
+                "reduceOptions": {
+                  "calcs": [
+                    "mean"
+                  ],
+                  "fields": "",
+                  "values": false
                 },
-                "properties": [
-                  {
-                    "id": "thresholds",
-                    "value": {
-                      "mode": "absolute",
-                      "steps": [
-                        {
-                          "color": "green"
-                        },
-                        {
-                          "color": "red",
-                          "value": 1
-                        }
-                      ]
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 6,
-            "x": 0,
-            "y": 25
-          },
-          "id": 82,
-          "links": [],
-          "maxDataPoints": 100,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "horizontal",
-            "reduceOptions": {
-              "calcs": [
-                "mean"
+                "textMode": "auto"
+              },
+              "pluginVersion": "9.0.3",
+              "targets": [
+                {
+                  "expr": "sum(increase(rhsm_subscriptions_rh_marketplace_batch_accepted_total[$__range]))",
+                  "format": "time_series",
+                  "instant": true,
+                  "interval": "",
+                  "intervalFactor": 1,
+                  "legendFormat": "accepted",
+                  "refId": "A"
+                },
+                {
+                  "expr": "sum(increase(rhsm_subscriptions_rh_marketplace_batch_rejected_total[$__range]))",
+                  "instant": true,
+                  "interval": "",
+                  "legendFormat": "rejected",
+                  "refId": "B"
+                },
+                {
+                  "expr": "sum(increase(rhsm_subscriptions_rh_marketplace_batch_unverified_total[$__range]))",
+                  "interval": "",
+                  "legendFormat": "unverified",
+                  "refId": "C"
+                }
               ],
-              "fields": "",
-              "values": false
-            },
-            "textMode": "auto"
-          },
-          "pluginVersion": "9.0.3",
-          "targets": [
-            {
-              "expr": "sum(increase(rhsm_subscriptions_rh_marketplace_batch_accepted_total[$__range]))",
-              "format": "time_series",
-              "instant": true,
-              "interval": "",
-              "intervalFactor": 1,
-              "legendFormat": "accepted",
-              "refId": "A"
-            },
-            {
-              "expr": "sum(increase(rhsm_subscriptions_rh_marketplace_batch_rejected_total[$__range]))",
-              "instant": true,
-              "interval": "",
-              "legendFormat": "rejected",
-              "refId": "B"
-            },
-            {
-              "expr": "sum(increase(rhsm_subscriptions_rh_marketplace_batch_unverified_total[$__range]))",
-              "interval": "",
-              "legendFormat": "unverified",
-              "refId": "C"
+              "title": "Red Hat Marketplace Batch Stats",
+              "type": "stat"
             }
           ],
-          "title": "Red Hat Marketplace Batch Stats",
-          "type": "stat"
+          "title": "Billing Provider Integration (swatch-producer-{aws,red-hat-marketplace})",
+          "type": "row"
         }
       ],
       "refresh": false,
@@ -3285,7 +3270,7 @@ data:
       "timezone": "utc",
       "title": "Subscription Watch",
       "uid": "lkPhH-1Zk",
-      "version": 286091,
+      "version": 286092,
       "weekStart": ""
     }
 kind: ConfigMap
