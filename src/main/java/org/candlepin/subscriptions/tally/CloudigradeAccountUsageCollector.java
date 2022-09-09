@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.tally;
 
 import io.micrometer.core.annotation.Timed;
 import java.util.*;
-import org.apache.commons.lang3.StringUtils;
 import org.candlepin.subscriptions.cloudigrade.ApiException;
 import org.candlepin.subscriptions.cloudigrade.CloudigradeService;
 import org.candlepin.subscriptions.cloudigrade.api.model.ConcurrencyReport;
@@ -36,6 +35,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ObjectUtils;
 
 /** Collects the max values from accounts in cloudigrade. */
 @Component
@@ -65,9 +65,11 @@ public class CloudigradeAccountUsageCollector {
   public void enrichUsageWithCloudigradeData(
       Map<String, AccountUsageCalculation> accountCalcs, String account, String orgId)
       throws ApiException, org.candlepin.subscriptions.cloudigrade.internal.ApiException {
-    log.info("Cloudigrade enrich usage using org{} or account{}", orgId, account);
-    ConcurrencyReport cloudigradeUsage = getDailyConcurrencyReport(account, orgId);
-    if (cloudigradeUsage == null) return;
+    log.info("Cloudigrade enriching usage using org {} and account {}", orgId, account);
+    ConcurrencyReport cloudigradeUsage = getDailyConcurrencyReport(orgId);
+    if (cloudigradeUsage == null) {
+      return;
+    }
 
     accountCalcs.putIfAbsent(account, new AccountUsageCalculation(account));
     AccountUsageCalculation usageCalc = accountCalcs.get(account);
@@ -99,30 +101,30 @@ public class CloudigradeAccountUsageCollector {
   }
 
   @Nullable
-  private ConcurrencyReport getDailyConcurrencyReport(String account, String orgId)
+  protected ConcurrencyReport getDailyConcurrencyReport(String orgId)
       throws org.candlepin.subscriptions.cloudigrade.internal.ApiException, ApiException {
-    ConcurrencyReport cloudigradeUsage;
-    // If orgId/ownerId is null, use the accountNumber instead just so the code doesn't
-    // explode
-    if (StringUtils.isNotBlank(orgId)) {
-      log.trace("Cloudigrade checking user for org {}", orgId);
-      if (!cloudigradeService.cloudigradeUserExists(orgId, null)) {
-        log.trace("Cloudigrade could not find user for org {}", orgId);
-        return null;
-      }
-      log.trace("Fetching cloudigrade data for org {}", orgId);
-      cloudigradeUsage =
-          cloudigradeService.listDailyConcurrentUsages(orgId, null, null, null, null, null);
-    } else {
-      log.warn("Org id is null, using account number instead");
-      if (!cloudigradeService.cloudigradeUserExists(null, account)) {
-        log.trace("Cloudigrade could not find user for account {}", account);
-        return null;
-      }
-      log.trace("Fetching cloudigrade data for account {}", account);
-      cloudigradeUsage =
-          cloudigradeService.listDailyConcurrentUsages(null, account, null, null, null, null);
+    ConcurrencyReport cloudigradeUsage = null;
+
+    if (ObjectUtils.isEmpty(orgId)) {
+      /* As of this writing (9 Sep 2022), Cloudigrade does still support the
+      X-RH-CLOUDIGRADE-ACCOUNT-NUMBER header, so this statement is not true in the narrow sense.
+      However, sending both the account number header and the X-RH-CLOUDIGRADE-ORG-ID is a
+      recipe for confusion if one of them is empty (See SWATCH-545).  OpenAPI does not make it
+      easy to declare mutually exclusive parameters, so I've elected to just ban account number
+      since we are transitioning away from it anyway.
+      */
+      log.warn("Cloudigrade requires an org ID to authenticate");
+      return null;
     }
+
+    log.debug("Cloudigrade checking user for org {}", orgId);
+    if (cloudigradeService.cloudigradeUserExists(orgId)) {
+      log.debug("Fetching cloudigrade data for org {}", orgId);
+      cloudigradeUsage =
+          cloudigradeService.listDailyConcurrentUsages(orgId, null, null, null, null);
+    }
+    log.debug("Cloudigrade could not find user for org {}", orgId);
+
     return cloudigradeUsage;
   }
 

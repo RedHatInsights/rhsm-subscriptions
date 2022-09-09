@@ -17,15 +17,9 @@ paths:
       schema:
         type: string
     - name: x-rh-cloudigrade-org-id
-      required: false
+      required: true
       in: header
       description: "Cloudigrade org id"
-      schema:
-        type: string
-    - name: x-rh-cloudigrade-account-number
-      required: false
-      in: header
-      description: "Cloudigrade account number"
       schema:
         type: string
     - name: limit

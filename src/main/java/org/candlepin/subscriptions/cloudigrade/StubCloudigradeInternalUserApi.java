@@ -30,14 +30,17 @@ import org.candlepin.subscriptions.cloudigrade.internal.api.resources.UsersApi;
 public class StubCloudigradeInternalUserApi extends UsersApi {
 
   @Override
-  public UserResponse listCloudigradeUser(
-      String xRhCloudigradePsk, String xRhCloudigradeAccountNumber, String username)
+  public UserResponse listCloudigradeUser(String xRhCloudigradePsk, String orgId)
       throws ApiException {
     return new UserResponse().links(createLinks()).addDataItem(createData());
   }
 
   private CloudigradeUser createData() {
-    return new CloudigradeUser().username("12345678").dateJoined(LocalDate.of(2011, 1, 1)).id(4);
+    return new CloudigradeUser()
+        .orgId("12345678")
+        .accountNumber("87654321")
+        .dateJoined(LocalDate.of(2011, 1, 1))
+        .id(4);
   }
 
   private CloudigradeUserLinksSection createLinks() {

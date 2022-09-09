@@ -34,7 +34,6 @@ public class StubConcurrentApi extends ConcurrentApi {
   public ConcurrencyReport listDailyConcurrentUsages(
       String psk,
       String orgId,
-      String accountNumber,
       Integer limit,
       Integer offset,
       LocalDate startDate,
