@@ -49,33 +49,41 @@ public class CloudigradeService {
   }
 
   public ConcurrencyReport listDailyConcurrentUsages(
-      String orgId,
-      String accountNumber,
-      Integer limit,
-      Integer offset,
-      LocalDate startDate,
-      LocalDate endDate)
+      String orgId, Integer limit, Integer offset, LocalDate startDate, LocalDate endDate)
       throws ApiException {
     return concurrentApi.listDailyConcurrentUsages(
-        externalProperties.getPresharedKey(),
-        orgId,
-        accountNumber,
-        limit,
-        offset,
-        startDate,
-        endDate);
+        externalProperties.getPresharedKey(), orgId, limit, offset, startDate, endDate);
   }
 
-  public UserResponse listCloudigradeUser(String orgId, String accountNumber)
+  public UserResponse listCloudigradeUser(String orgId)
       throws org.candlepin.subscriptions.cloudigrade.internal.ApiException {
-    /* The Cloudigrade "username" is actually the same as the org id that we need to send
-     * in over the x-rh-cloudigrade-org-id header */
-    return usersApi.listCloudigradeUser(internalProperties.getPresharedKey(), orgId, accountNumber);
+    return usersApi.listCloudigradeUser(internalProperties.getPresharedKey(), orgId);
   }
 
-  public boolean cloudigradeUserExists(String orgId, String accountNumber)
+  public boolean cloudigradeUserExists(String orgId)
       throws org.candlepin.subscriptions.cloudigrade.internal.ApiException {
-    var response = listCloudigradeUser(orgId, accountNumber);
-    return response.getData() != null && !response.getData().isEmpty();
+    var response = listCloudigradeUser(orgId);
+    if (response.getData() == null || response.getData().isEmpty()) {
+      return false;
+    }
+
+    // See SWATCH-545: an error in the spec definition changed our request from
+    // /users?username={name} to /users (which returned all the users). At the time we were
+    // merely checking to see if response.getData() had a non-zero result to answer the question
+    // of whether the user existed or not.  The entire list of all users then triggered a false
+    // positive that the given user existed.
+    if (response.getData().size() > 1) {
+      throw new IllegalStateException(
+          "Cloudigrade return multiple results for one user. Probable"
+              + " error in request to Cloudigrade API.");
+    }
+
+    var user = response.getData().get(0);
+    if (orgId.equals(user.getOrgId())) {
+      return true;
+    }
+
+    throw new IllegalStateException(
+        "Cloudigrade returned a user that does not match the user we " + "requested");
   }
 }

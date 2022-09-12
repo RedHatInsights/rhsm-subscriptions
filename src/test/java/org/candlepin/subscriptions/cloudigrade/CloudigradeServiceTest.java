@@ -44,24 +44,12 @@ class CloudigradeServiceTest {
   @Autowired ObjectMapper mapper;
 
   @Test
-  void testInjectsCloudigradePsk_WhenOrgIdIsPresent() throws Exception {
+  void testInjectsCloudigradePsk() throws Exception {
     ArgumentCaptor<String> header = ArgumentCaptor.forClass(String.class);
 
-    cloudigradeService.listDailyConcurrentUsages(
-        "Org123", null, 10, 0, LocalDate.MIN, LocalDate.MAX);
+    cloudigradeService.listDailyConcurrentUsages("Org123", 10, 0, LocalDate.MIN, LocalDate.MAX);
 
     verify(concurrentApi)
-        .listDailyConcurrentUsages("secret", "Org123", null, 10, 0, LocalDate.MIN, LocalDate.MAX);
-  }
-
-  @Test
-  void testInjectsCloudigradePsk_WhenOrgIdIsNotPresent() throws Exception {
-    ArgumentCaptor<String> header = ArgumentCaptor.forClass(String.class);
-
-    cloudigradeService.listDailyConcurrentUsages(
-        null, "foo123", 10, 0, LocalDate.MIN, LocalDate.MAX);
-
-    verify(concurrentApi)
-        .listDailyConcurrentUsages("secret", null, "foo123", 10, 0, LocalDate.MIN, LocalDate.MAX);
+        .listDailyConcurrentUsages("secret", "Org123", 10, 0, LocalDate.MIN, LocalDate.MAX);
   }
 }

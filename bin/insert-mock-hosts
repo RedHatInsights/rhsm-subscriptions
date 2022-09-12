@@ -198,8 +198,10 @@ parser.add_argument('--host-type',
                     default=None,
                     help='Set host type of the system to be inserted')
 parser.add_argument('--billing-provider',
+                    default="_ANY",
                     help='Set the billing_provider for the inserted records')
 parser.add_argument('--billing-account-id',
+                    default="_ANY",
                     help='Set the billing_account_id for the inserted records')
 
 args = parser.parse_args()
