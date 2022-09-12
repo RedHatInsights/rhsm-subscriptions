@@ -347,4 +347,25 @@ class MeteringEventFactoryTest {
     assertEquals("snapshot", MeteringEventFactory.getEventType(null));
     assertEquals("snapshot", MeteringEventFactory.getEventType(""));
   }
+
+  @Test
+  void testRhmNormalizedToRedHat() {
+    Event event =
+        MeteringEventFactory.createMetricEvent(
+            "my-account",
+            "my-org",
+            "metric-id",
+            "cluster-id",
+            "Premium",
+            "Production",
+            "ocp",
+            OffsetDateTime.now(),
+            OffsetDateTime.now(),
+            "service_type",
+            "rhm",
+            null,
+            Uom.CORES,
+            12.5);
+    assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());
+  }
 }

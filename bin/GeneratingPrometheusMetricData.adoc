@@ -3,67 +3,18 @@
 Metric data can be generated and imported to a local prometheus service run via podman. This is helpful when you'd like to test some metric gathering changes that aren't already in Observatorium.
 
 == Generate The Test Data
-The following script will create metrics in 5m intervals for all of today.
-
-[source,python]
-----
-#!/usr/bin/python
-
-from datetime import date
-from datetime import datetime
-from datetime import timedelta
-from datetime import timezone
-import time
-import pytz
-import random
-
-# Time in UTC
-
-today = datetime.now(timezone.utc)
-date_mark = today.replace(minute=0, hour=0, second=0, microsecond=0)
-
-account = 'account123'
-mktp_account = 'mktp-123'
-cluster_id = 'test01'
-
-sub_labels_template = "subscription_labels{{_id=\"{cluster_id}\",billing_model=\"marketplace\",ebs_account=\"{ebs_account}\",external_organization=\"org123\",support=\"Premium\",billing_provider=\"aws\",billing_marketplace_account=\"{mktp_account}\",product=\"rhosak\"}} 1.0 {metric_time}\n"
-rhosak_storage_template = "kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibytes{{_id=\"{cluster_id}\"}} {metered_storage_value} {metric_time}\n"
-
-f = open("sample/metrics.txt", "w")
-f.write("# HELP subscription_labels The total number of HTTP requests.\n")
-f.write("# TYPE subscription_labels counter\n")
-f.write("# HELP kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibytes The total number of HTTP requests.\n")
-f.write("# TYPE kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibytes counter\n")
-
-while date_mark.day == today.day and date_mark <= today:
-metric_time = int(date_mark.timestamp())
-metered_storage_value = random.uniform(0.0, 100.0)
-f.write(sub_labels_template.format(cluster_id = cluster_id, ebs_account = account, mktp_account = mktp_account, metric_time = metric_time))
-f.write(rhosak_storage_template.format(cluster_id = cluster_id, metered_storage_value = metered_storage_value, metric_time = metric_time))
-
-  date_mark = date_mark + timedelta(minutes=5)
-
-f.write("# EOF")
-f.close()
-----
-
-== Import Data And Start Prometheus
+The following script will create metrics in 5m intervals for the last 24 hours, and then runs prometheus with the mocked data. You can use env vars to influence the generated data (see ``bin/prometheus-mock-data.sh``).
 
 [source,bash]
 ----
-mkdir prometheus_service; cd prometheus_service
-mkdir prometheus; chmod 777 prometheus
-mkdir sample && ./generate_metrics
-
-# Import the metrics
-podman run --entrypoint /bin/promtool --name prom -p 9090:9090 --rm -ti -v $PWD/prometheus:/prometheus:Z -v $PWD/sample:/sample:Z quay.io/prometheus/prometheus tsdb create-blocks-from openmetrics /sample/metrics.txt .
-
-# Run prometheus
-podman run --name prom -p 9090:9090 --rm -ti -v $PWD/prometheus:/prometheus:Z -v $PWD/sample:/sample:Z quay.io/prometheus/prometheus
+bin/prometheus-mock-data.sh
 ----
 
 == Testing The API
-Take a look at the samples/metrics.txt file and get the time value from the first ( ${START_DATE} ) and the last ( ${END_DATE} ) line and plug them into the curl commands below.
+http://localhost:9090/graph is useful to try PromQL queries.
+
+Using ``START_DATE=$(date -d yesterday +%s)`` and ``END_DATE=$(date +%s)`` (last 24 hours) and plug them into the curl commands below.
+
 [source,bash]
 ----
 curl 'http://localhost:9090/api/v1/query_range?query=kafka_id%3Akafka_broker_quota_totalstorageusedbytes%3Amax_over_time1h_gibibytes+*+on%28_id%29+group_right+min_over_time%28subscription_labels%7Bproduct%3D%22rhosak%22%2C+ebs_account%3D%22account123%22%2C+billing_model%3D%22marketplace%22%2C+support%3D%7E%22Premium%7CStandard%7CSelf-Support%7CNone%22%7D%5B1h%5D%29&dedup=true&partial_response=false&start=${START_DATE}&end=${END_DATE}&step=3600&max_source_resolution=0s'
@@ -73,7 +24,7 @@ curl 'http://localhost:9090/api/v1/query_range?query=kafka_id%3Akafka_broker_quo
 ----
 
 == Pointing Subscription Watch At The Local Prometheus
-With this set up, you can now point the metring and tally services at this instance by running the application as follows.
+With this set up, you can now point the metering and tally services at this instance by running the application as follows.
 [source,bash]
 ----
 # Run the metering job
