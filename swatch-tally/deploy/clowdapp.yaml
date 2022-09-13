@@ -799,7 +799,7 @@ objects:
             - name: logs
               emptyDir:
 
-      - name: opt-in-org-id-populator
+      - name: opt-in-org-id-populator-${POPULATOR_RUN_NUMBER}
         podSpec:
           image: ${ORG_ID_POPULATOR_IMAGE}:${ORG_ID_POPULATOR_IMAGE_TAG}
           command:
@@ -879,7 +879,7 @@ objects:
   spec:
     appName: swatch-tally
     jobs:
-      - opt-in-org-id-populator
+      - opt-in-org-id-populator-${POPULATOR_RUN_NUMBER}
 
 - apiVersion: v1
   kind: Secret
