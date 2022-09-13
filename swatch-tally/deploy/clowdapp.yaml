@@ -129,6 +129,8 @@ parameters:
     value: "apicast.3scale-dev.svc.cluster.local"
   - name: TENANT_TRANSLATOR_PORT
     value: '8891'
+  - name: TENANT_TRANSLATOR_TIMEOUT
+    value: '40'
   - name: POPULATOR_LOG_FORMAT
     value: cloudwatch
   - name: ORG_ID_POPULATOR_IMAGE
@@ -799,7 +801,7 @@ objects:
             - name: logs
               emptyDir:
 
-      - name: opt-in-org-id-populator
+      - name: opt-in-org-id-populator-${POPULATOR_RUN_NUMBER}
         podSpec:
           image: ${ORG_ID_POPULATOR_IMAGE}:${ORG_ID_POPULATOR_IMAGE_TAG}
           command:
@@ -824,6 +826,8 @@ objects:
             - $(ORG_ID_POPULATOR_BATCH_SIZE)
             - --ean-translator-addr
             - http://${TENANT_TRANSLATOR_HOST}:${TENANT_TRANSLATOR_PORT}
+            - --ean-translator-timeout
+            - ${TENANT_TRANSLATOR_TIMEOUT}
             - -s
             - disable
           env:
@@ -879,7 +883,7 @@ objects:
   spec:
     appName: swatch-tally
     jobs:
-      - opt-in-org-id-populator
+      - opt-in-org-id-populator-${POPULATOR_RUN_NUMBER}
 
 - apiVersion: v1
   kind: Secret
