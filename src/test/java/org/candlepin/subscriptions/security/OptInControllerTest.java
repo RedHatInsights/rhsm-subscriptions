@@ -235,6 +235,7 @@ class OptInControllerTest {
   @Test
   void testOptInViaAccountNumberDoesNotUseApiIfOptInExists() {
     AccountConfig accountConfig = new AccountConfig("account123");
+    accountConfig.setOrgId("org123");
     accountConfig.setOptInType(OptInType.API);
     accountConfig.setSyncEnabled(true);
     accountConfig.setReportingEnabled(true);
