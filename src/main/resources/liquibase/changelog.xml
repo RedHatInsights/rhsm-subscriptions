@@ -72,5 +72,6 @@
     <include file="liquibase/202208241637-clean-up-tally-measurements-after-revert.xml"/>
     <include file="liquibase/202208231227-add-org-id-to-account-service-table.xml"/>
     <include file="liquibase/202208301033-default-null-hardware-measurements.xml"/>
+    <include file="liquibase/202208301423-set-tally-snapshot-owner-id.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
