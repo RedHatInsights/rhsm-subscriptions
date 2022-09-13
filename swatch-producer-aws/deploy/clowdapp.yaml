@@ -72,7 +72,7 @@ objects:
     kafkaTopics:
       - replicas: 1
         partitions: 1
-        topicName: platform.rhsm-subscriptions.tally
+        topicName: platform.rhsm-subscriptions.billable-usage
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
