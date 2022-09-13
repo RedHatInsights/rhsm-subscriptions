@@ -1,0 +1,28 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+
+    <changeSet id="202209121018-1" author="kflahert" dbms="postgresql">
+        <comment>Set placeholder values for missing org_ids in stage</comment>
+        <update tableName="account_config">
+            <column name="org_id" valueComputed="(select CONCAT('PLACEHOLDER_', account_number))"/>
+            <where>org_id IS NULL</where>
+        </update>
+    </changeSet>
+
+    <changeSet id="202209121018-2" author="kflahert">
+        <dropPrimaryKey tableName="account_config"/>
+        <addPrimaryKey constraintName="account_config_pkey"
+                       tableName="account_config"
+                       columnNames="org_id"/>
+        <dropUniqueConstraint tableName="account_config"
+                              constraintName="account_config_org_id_unq"/>
+        <addUniqueConstraint tableName="account_config"
+                             columnNames="account_number"
+                             constraintName="account_config_account_number_unq"/>
+    </changeSet>
+
+</databaseChangeLog>
