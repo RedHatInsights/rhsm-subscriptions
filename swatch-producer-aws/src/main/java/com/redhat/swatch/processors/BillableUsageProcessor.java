@@ -95,15 +95,17 @@ public class BillableUsageProcessor {
       context = lookupAwsUsageContext(billableUsage);
     } catch (SubscriptionRecentlyTerminatedException e) {
       log.info(
-          "Subscription recently terminated for account={} tallySnapshotId={}",
+          "Subscription recently terminated for account={} tallySnapshotId={} orgId={}",
           billableUsage.getAccountNumber(),
-          billableUsage.getId());
+          billableUsage.getId(),
+          billableUsage.getOrgId());
       return;
     } catch (AwsUsageContextLookupException e) {
       log.error(
-          "Error looking up usage context for account={} tallySnapshotId={}",
+          "Error looking up usage context for account={} tallySnapshotId={} orgId={}",
           billableUsage.getAccountNumber(),
           billableUsage.getId(),
+          billableUsage.getOrgId(),
           e);
       return;
     }
@@ -111,12 +113,13 @@ public class BillableUsageProcessor {
       transformAndSend(context, billableUsage);
     } catch (Exception e) {
       log.error(
-          "Error sending usage for account={} rhSubscriptionId={} tallySnapshotId={} awsCustomerId={} awsProductCode={}",
+          "Error sending usage for account={} rhSubscriptionId={} tallySnapshotId={} awsCustomerId={} awsProductCode={} orgId={}",
           billableUsage.getAccountNumber(),
           context.getRhSubscriptionId(),
           billableUsage.getId(),
           context.getCustomerId(),
           context.getProductCode(),
+          billableUsage.getOrgId(),
           e);
     }
   }
@@ -142,6 +145,7 @@ public class BillableUsageProcessor {
     try {
       return internalSubscriptionsApi.getAwsUsageContext(
           billableUsage.getAccountNumber(),
+          billableUsage.getOrgId(),
           billableUsage.getSnapshotDate(),
           billableUsage.getProductId(),
           Optional.ofNullable(billableUsage.getSla()).map(SlaEnum::value).orElse(null),
