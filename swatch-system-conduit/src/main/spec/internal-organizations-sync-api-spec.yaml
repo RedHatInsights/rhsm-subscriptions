@@ -52,13 +52,11 @@ paths:
       - name: org_ids
         in: query
         required: true
-        style: form
-        explode: false
         schema:
           type: array
           items:
             type: string
-        description: "Comma separated list of org_ids. (Ex. 123,456,789)"
+        description: "List of org IDs to add (Ex. ?org_ids=123&org_ids=456&org_ids=789)"
     post:
       summary: "Add a given list of organizations to the database sync list."
       operationId: addOrgsToSyncList

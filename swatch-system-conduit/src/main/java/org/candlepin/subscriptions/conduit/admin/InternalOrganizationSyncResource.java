@@ -21,13 +21,16 @@
 package org.candlepin.subscriptions.conduit.admin;
 
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.conduit.InventoryController;
 import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
 import org.candlepin.subscriptions.conduit.rhsm.client.ApiException;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
+import org.candlepin.subscriptions.db.model.config.OrgConfig;
 import org.candlepin.subscriptions.exception.MissingAccountNumberException;
 import org.candlepin.subscriptions.resource.ResourceUtils;
+import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.DefaultResponse;
 import org.candlepin.subscriptions.utilization.api.model.OrgExistsResponse;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
@@ -43,17 +46,37 @@ public class InternalOrganizationSyncResource implements InternalOrganizationsAp
   private final InventoryController controller;
   private final OrgSyncTaskManager tasks;
   private final OrgConfigRepository repo;
+  private final ApplicationClock clock;
+
+  private static final String SUCCESS_STATUS = "Success";
 
   InternalOrganizationSyncResource(
-      InventoryController controller, OrgSyncTaskManager tasks, OrgConfigRepository repo) {
+      InventoryController controller,
+      OrgSyncTaskManager tasks,
+      OrgConfigRepository repo,
+      ApplicationClock clock) {
     this.controller = controller;
     this.tasks = tasks;
     this.repo = repo;
+    this.clock = clock;
   }
 
   @Override
   public DefaultResponse addOrgsToSyncList(List<String> orgIds) {
-    throw new UnsupportedOperationException();
+    log.info(
+        "Adding {} orgs to DB sync list, initiated by {}",
+        orgIds.size(),
+        ResourceUtils.getPrincipal());
+
+    var orgConfigs =
+        orgIds.stream()
+            .map(id -> OrgConfig.fromInternalApi(id, clock.now()))
+            .collect(Collectors.toList());
+
+    repo.saveAll(orgConfigs);
+    var response = new DefaultResponse();
+    response.setStatus(SUCCESS_STATUS);
+    return response;
   }
 
   @Override
@@ -80,7 +103,7 @@ public class InternalOrganizationSyncResource implements InternalOrganizationsAp
         "Starting sync for all configured orgs, initiated by {}", ResourceUtils.getPrincipal());
     tasks.syncFullOrgList();
     var response = new DefaultResponse();
-    response.setStatus("Success");
+    response.setStatus(SUCCESS_STATUS);
     return response;
   }
 
@@ -97,7 +120,7 @@ public class InternalOrganizationSyncResource implements InternalOrganizationsAp
     }
 
     var response = new DefaultResponse();
-    response.setStatus("Success");
+    response.setStatus(SUCCESS_STATUS);
     return response;
   }
 }
