@@ -75,6 +75,7 @@ public class InternalSubscriptionResource implements InternalApi {
   @Override
   public AwsUsageContext getAwsUsageContext(
       String accountNumber,
+      String orgId,
       OffsetDateTime date,
       String productId,
       String sla,
@@ -92,7 +93,7 @@ public class InternalSubscriptionResource implements InternalApi {
     var start = date.minusHours(1);
     List<Subscription> subscriptions =
         subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
-            accountNumber, Optional.empty(), usageKey, start, date, true);
+            accountNumber, Optional.ofNullable(orgId), usageKey, start, date, true);
 
     var existsRecentlyTerminatedSubscription =
         subscriptions.stream().anyMatch(subscription -> subscription.getEndDate().isBefore(date));
@@ -122,9 +123,10 @@ public class InternalSubscriptionResource implements InternalApi {
     if (activeSubscriptions.size() > 1) {
       ambiguousSubscriptionCounter.increment();
       log.warn(
-          "Multiple subscriptions found for account {} with key {} and product tag {}."
+          "Multiple subscriptions found for account {} or for org {} with key {} and product tag {}."
               + " Selecting first result",
           accountNumber,
+          orgId,
           usageKey,
           usageKey.getProductId());
     }
