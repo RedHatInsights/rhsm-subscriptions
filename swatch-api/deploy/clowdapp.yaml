@@ -51,7 +51,7 @@ parameters:
   - name: SPLUNK_HEC_CONNECT_TIMEOUT
     value: '5000'
   - name: SPLUNK_HEC_BATCH_SIZE
-    value: '1'
+    value: '1000'
   - name: SPLUNK_HEC_TERMINATION_TIMEOUT
     value: '2000'
 objects:
