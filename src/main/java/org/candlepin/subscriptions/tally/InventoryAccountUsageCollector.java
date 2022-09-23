@@ -98,7 +98,7 @@ public class InventoryAccountUsageCollector {
         List.of(account), reported -> hypMapping.put((String) reported[0], (String) reported[1]));
     log.info("Found {} reported hypervisors.", hypMapping.size());
 
-    Map<Host, Set<HostBucketKey>> hostSeenBucketKeysLookup = new HashMap<>();
+    Map<String, Set<HostBucketKey>> hostSeenBucketKeysLookup = new HashMap<>();
     Map<String, AccountUsageCalculation> calcsByAccount = new HashMap<>();
     inventory.processHostFacts(
         List.of(account),
@@ -131,7 +131,7 @@ public class InventoryAccountUsageCollector {
             populateHostFieldsFromHbi(host, hostFacts, facts);
           }
           Set<HostBucketKey> seenBucketKeys =
-              hostSeenBucketKeysLookup.computeIfAbsent(host, h -> new HashSet<>());
+              hostSeenBucketKeysLookup.computeIfAbsent(host.getInstanceId(), h -> new HashSet<>());
 
           if (facts.isHypervisor()) {
             Map<String, NormalizedFacts> idToHypervisorMap =
@@ -216,7 +216,8 @@ public class InventoryAccountUsageCollector {
         .forEach(
             host -> {
               Set<HostBucketKey> seenBucketKeys =
-                  hostSeenBucketKeysLookup.computeIfAbsent(host, h -> new HashSet<>());
+                  hostSeenBucketKeysLookup.computeIfAbsent(
+                      host.getInstanceId(), h -> new HashSet<>());
               host.getBuckets().removeIf(b -> !seenBucketKeys.contains(b.getKey()));
             });
 
@@ -255,7 +256,7 @@ public class InventoryAccountUsageCollector {
       Map<String, Host> hypervisorHosts,
       Map<String, Integer> hypervisorGuestCounts,
       Map<String, AccountUsageCalculation> calcsByAccount,
-      Map<Host, Set<HostBucketKey>> hostSeenBucketKeyLookup) {
+      Map<String, Set<HostBucketKey>> hostSeenBucketKeyLookup) {
     accountHypervisorFacts.forEach(
         (account, accountHypervisors) -> {
           AccountUsageCalculation accountCalc = calcsByAccount.get(account);
@@ -263,7 +264,8 @@ public class InventoryAccountUsageCollector {
               (hypervisorUuid, hypervisor) -> {
                 Host hypHost = hypervisorHosts.get(hypervisorUuid);
                 Set<HostBucketKey> hostBucketKeys =
-                    hostSeenBucketKeyLookup.computeIfAbsent(hypHost, h -> new HashSet<>());
+                    hostSeenBucketKeyLookup.computeIfAbsent(
+                        hypHost.getInstanceId(), h -> new HashSet<>());
                 hypHost.setNumOfGuests(hypervisorGuestCounts.getOrDefault(hypervisorUuid, 0));
                 Set<UsageCalculation.Key> usageKeys =
                     hypervisorUsageKeys.getOrDefault(hypervisorUuid, Collections.emptySet());
