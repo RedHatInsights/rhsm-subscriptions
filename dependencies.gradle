@@ -27,7 +27,7 @@ ext.plugins = [
         "io.spring.gradle:dependency-management-plugin:1.0.14.RELEASE",
         "org.jsonschema2pojo:jsonschema2pojo-gradle-plugin:1.1.2",
         "org.kordamp.gradle:jandex-gradle-plugin:0.13.2",
-        "org.openapitools:openapi-generator-gradle-plugin:6.0.1",
+        "org.openapitools:openapi-generator-gradle-plugin:6.2.0",
         "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:3.4.0.2513",
         "org.springframework.boot:spring-boot-gradle-plugin:2.7.4",
 ]
