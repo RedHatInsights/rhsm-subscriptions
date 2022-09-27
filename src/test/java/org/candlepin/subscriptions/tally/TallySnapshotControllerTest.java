@@ -24,7 +24,10 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Optional;
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
+import org.candlepin.subscriptions.db.model.config.AccountConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +44,8 @@ class TallySnapshotControllerTest {
 
   @Autowired TallySnapshotController controller;
 
+  @MockBean AccountConfigRepository accountRepo;
+
   @MockBean CloudigradeAccountUsageCollector cloudigradeCollector;
 
   @MockBean MetricUsageCollector metricUsageCollector;
@@ -53,6 +58,10 @@ class TallySnapshotControllerTest {
 
   @BeforeEach
   void setup() {
+    AccountConfig accountConfig = new AccountConfig(ACCOUNT);
+    accountConfig.setOrgId("ORG_" + ACCOUNT);
+    when(accountRepo.findById(ACCOUNT)).thenReturn(Optional.of(accountConfig));
+
     defaultCloudigradeIntegrationEnablement = props.isCloudigradeEnabled();
     when(inventoryCollector.collect(any(), any()))
         .thenReturn(ImmutableMap.of(ACCOUNT, new AccountUsageCalculation(ACCOUNT)));

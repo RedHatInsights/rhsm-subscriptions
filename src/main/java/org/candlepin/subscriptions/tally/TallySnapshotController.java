@@ -28,8 +28,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.db.model.config.AccountConfig;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -50,6 +52,7 @@ public class TallySnapshotController {
   private static final Logger log = LoggerFactory.getLogger(TallySnapshotController.class);
 
   private final ApplicationProperties props;
+  private final AccountConfigRepository accountRepo;
   private final InventoryAccountUsageCollector usageCollector;
   private final CloudigradeAccountUsageCollector cloudigradeCollector;
   private final MetricUsageCollector metricUsageCollector;
@@ -64,6 +67,7 @@ public class TallySnapshotController {
   @Autowired
   public TallySnapshotController(
       ApplicationProperties props,
+      AccountConfigRepository accountRepo,
       @Qualifier("applicableProducts") Set<String> applicableProducts,
       InventoryAccountUsageCollector usageCollector,
       CloudigradeAccountUsageCollector cloudigradeCollector,
@@ -76,6 +80,7 @@ public class TallySnapshotController {
       SnapshotSummaryProducer summaryProducer) {
 
     this.props = props;
+    this.accountRepo = accountRepo;
     this.applicableProducts = applicableProducts;
     this.usageCollector = usageCollector;
     this.cloudigradeCollector = cloudigradeCollector;
@@ -90,12 +95,25 @@ public class TallySnapshotController {
 
   @Timed("rhsm-subscriptions.snapshots.single")
   public void produceSnapshotsForAccount(String account) {
+    // NOTE: This lookup should happen when the process starts and should be passed
+    //       along. This should be removed once the task processor is updated to use
+    //       the org_id.
+    AccountConfig accountLookup =
+        accountRepo
+            .findById(account)
+            .orElseThrow(
+                () ->
+                    new IllegalArgumentException(
+                        String.format(
+                            "Invalid account number: %s. Has the account been opted in?",
+                            account)));
+
     log.info("Producing snapshots for account {}.", account);
     Map<String, AccountUsageCalculation> accountCalcs = new HashMap<>();
     try {
       accountCalcs.putAll(
           retryTemplate.execute(
-              context -> usageCollector.collect(this.applicableProducts, account)));
+              context -> usageCollector.collect(this.applicableProducts, accountLookup)));
       if (props.isCloudigradeEnabled() && null != accountCalcs.get(account)) {
         String orgId = accountCalcs.get(account).getOwner();
         attemptCloudigradeEnrichment(account, accountCalcs, orgId);
