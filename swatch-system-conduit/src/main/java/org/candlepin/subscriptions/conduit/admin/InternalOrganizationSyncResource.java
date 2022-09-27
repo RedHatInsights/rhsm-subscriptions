@@ -67,13 +67,15 @@ public class InternalOrganizationSyncResource implements InternalOrganizationsAp
         "Adding {} orgs to DB sync list, initiated by {}",
         orgIds.size(),
         ResourceUtils.getPrincipal());
-
     var orgConfigs =
         orgIds.stream()
             .map(id -> OrgConfig.fromInternalApi(id, clock.now()))
             .collect(Collectors.toList());
-
     repo.saveAll(orgConfigs);
+    log.info(
+        "Finished adding {} orgs to DB sync list, initiated by {}",
+        orgIds.size(),
+        ResourceUtils.getPrincipal());
     var response = new DefaultResponse();
     response.setStatus(SUCCESS_STATUS);
     return response;
