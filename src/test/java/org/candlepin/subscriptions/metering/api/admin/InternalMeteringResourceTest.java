@@ -33,6 +33,7 @@ import javax.ws.rs.BadRequestException;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.json.Measurement.Uom;
+import org.candlepin.subscriptions.metering.ResourceUtil;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -53,6 +54,7 @@ class InternalMeteringResourceTest {
   @Mock private PrometheusMeteringController controller;
 
   private ApplicationProperties appProps;
+  private ResourceUtil util;
   private ApplicationClock clock;
   private InternalMeteringResource resource;
 
@@ -60,11 +62,12 @@ class InternalMeteringResourceTest {
   void setupTest() {
     appProps = new ApplicationProperties();
     clock = new FixedClockConfiguration().fixedClock();
+    util = new ResourceUtil(clock);
     lenient().when(tagProfile.tagIsPrometheusEnabled(VALID_PRODUCT)).thenReturn(true);
     lenient()
         .when(tagProfile.getSupportedMetricsForProduct(VALID_PRODUCT))
         .thenReturn(Set.of(Uom.INSTANCE_HOURS));
-    resource = new InternalMeteringResource(appProps, clock, tagProfile, tasks, controller);
+    resource = new InternalMeteringResource(util, appProps, tagProfile, tasks, controller);
   }
 
   @Test

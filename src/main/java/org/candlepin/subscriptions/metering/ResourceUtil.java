@@ -24,18 +24,20 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Optional;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-/** Base class for metering resources. */
-public class BaseMeteringResource {
+/** Utility component for metering resources. */
+@Component
+public class ResourceUtil {
 
   protected ApplicationClock clock;
 
-  public BaseMeteringResource(ApplicationClock clock) {
+  public ResourceUtil(ApplicationClock clock) {
     this.clock = clock;
   }
 
-  protected OffsetDateTime getDate(String dateToParse) {
+  public OffsetDateTime getDate(String dateToParse) {
     Optional<OffsetDateTime> optionalDate;
     if (StringUtils.hasText(dateToParse)) {
       try {
@@ -52,7 +54,7 @@ public class BaseMeteringResource {
     return getDate(optionalDate);
   }
 
-  protected OffsetDateTime getDate(Optional<OffsetDateTime> optionalDate) {
+  public OffsetDateTime getDate(Optional<OffsetDateTime> optionalDate) {
     if (optionalDate.isPresent()) {
       OffsetDateTime date = optionalDate.get();
       if (!date.isEqual(clock.startOfHour(date))) {
@@ -65,7 +67,7 @@ public class BaseMeteringResource {
     return clock.startOfCurrentHour();
   }
 
-  protected OffsetDateTime getStartDate(OffsetDateTime endDate, Integer rangeInMinutes) {
+  public OffsetDateTime getStartDate(OffsetDateTime endDate, Integer rangeInMinutes) {
     if (rangeInMinutes == null) {
       throw new IllegalArgumentException("Required argument: rangeInMinutes");
     }

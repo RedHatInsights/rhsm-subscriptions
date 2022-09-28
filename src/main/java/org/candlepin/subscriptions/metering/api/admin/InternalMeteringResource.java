@@ -25,31 +25,31 @@ import java.util.Optional;
 import javax.ws.rs.BadRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.metering.BaseMeteringResource;
+import org.candlepin.subscriptions.metering.ResourceUtil;
 import org.candlepin.subscriptions.metering.admin.api.InternalApi;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.resource.ResourceUtils;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
-public class InternalMeteringResource extends BaseMeteringResource implements InternalApi {
+public class InternalMeteringResource implements InternalApi {
 
+  private final ResourceUtil util;
   private final ApplicationProperties applicationProperties;
   private final PrometheusMetricsTaskManager tasks;
   private final PrometheusMeteringController controller;
   private final TagProfile tagProfile;
 
   public InternalMeteringResource(
+      ResourceUtil util,
       ApplicationProperties applicationProperties,
-      ApplicationClock clock,
       TagProfile tagProfile,
       PrometheusMetricsTaskManager tasks,
       PrometheusMeteringController controller) {
-    super(clock);
+    this.util = util;
     this.applicationProperties = applicationProperties;
     this.tagProfile = tagProfile;
     this.tasks = tasks;
@@ -69,8 +69,8 @@ public class InternalMeteringResource extends BaseMeteringResource implements In
       throw new BadRequestException(String.format("Invalid product tag specified: %s", productTag));
     }
 
-    OffsetDateTime end = getDate(Optional.ofNullable(endDate));
-    OffsetDateTime start = getStartDate(end, rangeInMinutes);
+    OffsetDateTime end = util.getDate(Optional.ofNullable(endDate));
+    OffsetDateTime start = util.getStartDate(end, rangeInMinutes);
     log.info(
         "{} metering for {} against range [{}, {}) triggered via API by {}",
         productTag,

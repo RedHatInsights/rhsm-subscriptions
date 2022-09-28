@@ -22,11 +22,10 @@ package org.candlepin.subscriptions.metering.jmx;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
-import org.candlepin.subscriptions.metering.BaseMeteringResource;
+import org.candlepin.subscriptions.metering.ResourceUtil;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.resource.ResourceUtils;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,9 +35,11 @@ import org.springframework.jmx.export.annotation.ManagedResource;
 
 /** Exposes the ability to trigger metering operations from JMX. */
 @ManagedResource
-public class MeteringJmxBean extends BaseMeteringResource {
+public class MeteringJmxBean {
 
   private static final Logger log = LoggerFactory.getLogger(MeteringJmxBean.class);
+
+  private ResourceUtil util;
 
   private PrometheusMetricsTaskManager tasks;
 
@@ -46,10 +47,8 @@ public class MeteringJmxBean extends BaseMeteringResource {
 
   @Autowired
   public MeteringJmxBean(
-      ApplicationClock clock,
-      PrometheusMetricsTaskManager tasks,
-      MetricProperties metricProperties) {
-    super(clock);
+      ResourceUtil util, PrometheusMetricsTaskManager tasks, MetricProperties metricProperties) {
+    this.util = util;
     this.tasks = tasks;
     this.metricProperties = metricProperties;
   }
@@ -62,8 +61,8 @@ public class MeteringJmxBean extends BaseMeteringResource {
     Object principal = ResourceUtils.getPrincipal();
     log.info("{} metering for {} triggered via JMX by {}", productTag, accountNumber, principal);
 
-    OffsetDateTime end = getDate(Optional.empty());
-    OffsetDateTime start = getStartDate(end, metricProperties.getRangeInMinutes());
+    OffsetDateTime end = util.getDate(Optional.empty());
+    OffsetDateTime start = util.getStartDate(end, metricProperties.getRangeInMinutes());
 
     try {
       tasks.updateMetricsForAccount(accountNumber, productTag, start, end);
@@ -89,8 +88,8 @@ public class MeteringJmxBean extends BaseMeteringResource {
       throws IllegalArgumentException {
     Object principal = ResourceUtils.getPrincipal();
 
-    OffsetDateTime end = getDate(endDate);
-    OffsetDateTime start = getStartDate(end, rangeInMinutes);
+    OffsetDateTime end = util.getDate(endDate);
+    OffsetDateTime start = util.getStartDate(end, rangeInMinutes);
     log.info(
         "{} metering for {} against range [{}, {}) triggered via JMX by {}",
         productTag,
@@ -133,8 +132,8 @@ public class MeteringJmxBean extends BaseMeteringResource {
       throws IllegalArgumentException {
     Object principal = ResourceUtils.getPrincipal();
 
-    OffsetDateTime end = getDate(endDate);
-    OffsetDateTime start = getStartDate(end, rangeInMinutes);
+    OffsetDateTime end = util.getDate(endDate);
+    OffsetDateTime start = util.getStartDate(end, rangeInMinutes);
     log.info(
         "Metering for all accounts against range [{}, {}) triggered via JMX by {}",
         start,

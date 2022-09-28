@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 
 import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.metering.ResourceUtil;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -45,6 +46,7 @@ class MeteringJmxBeanTest {
   @Mock private TagProfile tagProfile;
 
   private ApplicationClock clock;
+  private ResourceUtil util;
   private MetricProperties metricProps;
   private MeteringJmxBean jmx;
 
@@ -54,7 +56,8 @@ class MeteringJmxBeanTest {
     metricProps.setRangeInMinutes(60);
 
     clock = new FixedClockConfiguration().fixedClock();
-    jmx = new MeteringJmxBean(clock, tasks, metricProps);
+    util = new ResourceUtil(clock);
+    jmx = new MeteringJmxBean(util, tasks, metricProps);
   }
 
   @Test
