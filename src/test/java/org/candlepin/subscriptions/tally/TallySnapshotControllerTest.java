@@ -41,6 +41,7 @@ import org.springframework.test.context.ActiveProfiles;
 class TallySnapshotControllerTest {
 
   public static final String ACCOUNT = "foo123";
+  public static final String ORG_ID = "org123";
 
   @Autowired TallySnapshotController controller;
 
@@ -75,13 +76,23 @@ class TallySnapshotControllerTest {
   @Test
   void testCloudigradeAccountUsageCollectorEnabled() throws Exception {
     props.setCloudigradeEnabled(true);
+    when(accountRepo.findOrgByAccountNumber(ACCOUNT)).thenReturn(ORG_ID);
     controller.produceSnapshotsForAccount(ACCOUNT);
     verify(cloudigradeCollector).enrichUsageWithCloudigradeData(any(), any(), any());
   }
 
   @Test
+  void testWhenCloudigradeAccountUsageCollectorEnabledAndMissingOrgId_EnrichmentNotInvoked()
+      throws Exception {
+    props.setCloudigradeEnabled(true);
+    controller.produceSnapshotsForAccount(ACCOUNT);
+    verifyNoInteractions(cloudigradeCollector);
+  }
+
+  @Test
   void testCloudigradeAccountUsageCollectorExceptionIgnored() throws Exception {
     props.setCloudigradeEnabled(true);
+    when(accountRepo.findOrgByAccountNumber(ACCOUNT)).thenReturn(ORG_ID);
     doThrow(new RuntimeException())
         .when(cloudigradeCollector)
         .enrichUsageWithCloudigradeData(any(), any(), any());

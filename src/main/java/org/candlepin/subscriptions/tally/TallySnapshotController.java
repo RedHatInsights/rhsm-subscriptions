@@ -22,11 +22,9 @@ package org.candlepin.subscriptions.tally;
 
 import io.micrometer.core.annotation.Timed;
 import java.time.OffsetDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
@@ -114,9 +112,11 @@ public class TallySnapshotController {
       accountCalcs.putAll(
           retryTemplate.execute(
               context -> usageCollector.collect(this.applicableProducts, accountLookup)));
-      if (props.isCloudigradeEnabled() && null != accountCalcs.get(account)) {
-        String orgId = accountCalcs.get(account).getOwner();
+      String orgId = accountRepo.findOrgByAccountNumber(account);
+      if (props.isCloudigradeEnabled() && StringUtils.isNotEmpty(orgId)) {
         attemptCloudigradeEnrichment(account, accountCalcs, orgId);
+      } else {
+        log.info("orgId={} not found or cloudigrade is not enabled", orgId);
       }
     } catch (Exception e) {
       log.error("Could not collect existing usage snapshots for account {}", account, e);
