@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.exception;
 
+import java.util.Optional;
 import javax.ws.rs.core.Response.Status;
 import lombok.Getter;
 import org.candlepin.subscriptions.utilization.api.model.Error;
@@ -39,7 +40,7 @@ public class SubscriptionsException extends RuntimeException {
   }
 
   public SubscriptionsException(ErrorCode code, Status status, String message, Throwable e) {
-    this(code, status, message, e.getMessage(), e);
+    this(code, status, message, Optional.ofNullable(e).map(Throwable::getMessage).orElse(null), e);
   }
 
   public SubscriptionsException(
