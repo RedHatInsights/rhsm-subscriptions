@@ -31,6 +31,7 @@ import javax.persistence.FetchType;
 import javax.persistence.ManyToOne;
 import javax.persistence.MapsId;
 import javax.persistence.Table;
+import javax.persistence.Version;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -58,6 +59,9 @@ public class HostTallyBucket implements Serializable {
   @MapsId("hostId")
   @ManyToOne(fetch = FetchType.LAZY)
   private Host host;
+
+  // Version to enable optimistic locking
+  @Version @Column private Integer version;
 
   @SuppressWarnings("java:S107")
   public HostTallyBucket(

@@ -39,6 +39,7 @@ import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -114,7 +115,7 @@ class CloudigradeAccountUsageCollectorTest {
                 new UsageCalculation.Key(
                     "RHEL", ServiceLevel._ANY, Usage._ANY, BillingProvider._ANY, "_ANY"))
             .getTotals(HardwareMeasurementType.AWS_CLOUDIGRADE)
-            .getInstances());
+            .getMeasurement(Uom.INSTANCES));
   }
 
   @Test
@@ -172,7 +173,7 @@ class CloudigradeAccountUsageCollectorTest {
                 new UsageCalculation.Key(
                     "RHEL", ServiceLevel._ANY, Usage._ANY, BillingProvider._ANY, "_ANY"))
             .getTotals(HardwareMeasurementType.AWS_CLOUDIGRADE)
-            .getInstances());
+            .getMeasurement(Uom.INSTANCES));
   }
 
   @Test
@@ -253,7 +254,7 @@ class CloudigradeAccountUsageCollectorTest {
         accountUsage
             .getCalculation(usageKey.get())
             .getTotals(HardwareMeasurementType.TOTAL)
-            .getSockets());
+            .getMeasurement(Uom.SOCKETS));
   }
 
   private Map<String, AccountUsageCalculation> usageMapOf(

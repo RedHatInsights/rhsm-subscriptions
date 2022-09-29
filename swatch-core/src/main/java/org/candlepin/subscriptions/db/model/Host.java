@@ -92,18 +92,6 @@ public class Host implements Serializable {
   @Column(name = "subscription_manager_id")
   private String subscriptionManagerId;
 
-  /**
-   * @deprecated use measurements instead
-   */
-  @Deprecated(forRemoval = true)
-  private Integer cores;
-
-  /**
-   * @deprecated use measurements instead
-   */
-  @Deprecated(forRemoval = true)
-  private Integer sockets;
-
   @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(name = "instance_measurements", joinColumns = @JoinColumn(name = "instance_id"))
   @MapKeyEnumerated(EnumType.STRING)
@@ -177,44 +165,6 @@ public class Host implements Serializable {
     this.subscriptionManagerId = subManId;
   }
 
-  /**
-   * @deprecated use getMeasurement(Measurement.Uom.CORES) instead
-   * @return effective cores measured on the instance
-   */
-  @Deprecated(forRemoval = true)
-  public Integer getCores() {
-    return Optional.ofNullable(measurements.get(Measurement.Uom.CORES))
-        .map(Double::intValue)
-        .orElse(cores);
-  }
-
-  /**
-   * @deprecated use setMeasurement(Measurement.Uom.CORES, value) instead
-   */
-  @Deprecated(forRemoval = true)
-  public void setCores(Integer cores) {
-    this.cores = cores;
-  }
-
-  /**
-   * @deprecated use getMeasurement(Measurement.Uom.SOCKETS) instead
-   * @return effective sockets measured on the instance
-   */
-  @Deprecated(forRemoval = true)
-  public Integer getSockets() {
-    return Optional.ofNullable(measurements.get(Measurement.Uom.SOCKETS))
-        .map(Double::intValue)
-        .orElse(sockets);
-  }
-
-  /**
-   * @deprecated use setMeasurement(Measurement.Uom.SOCKETS, value) instead
-   */
-  @Deprecated(forRemoval = true)
-  public void setSockets(Integer sockets) {
-    this.sockets = sockets;
-  }
-
   public Double getMeasurement(Measurement.Uom uom) {
     return measurements.get(uom);
   }
@@ -251,8 +201,21 @@ public class Host implements Serializable {
   }
 
   public void addBucket(HostTallyBucket bucket) {
+    // NOTE: host must be set first, otherwise we'd treat a persistent bucket as not equal to a new
+    // bucket having the same key otherwise
     bucket.setHost(this);
-    getBuckets().add(bucket);
+    Optional<HostTallyBucket> existingBucket =
+        buckets.stream().filter(b -> b.getKey().equals(bucket.getKey())).findFirst();
+    // if the bucket key already exists, then we should update the existing values, instead of
+    // creating a redundant entry
+    if (existingBucket.isPresent()) {
+      HostTallyBucket b = existingBucket.get();
+      b.setSockets(bucket.getSockets());
+      b.setCores(bucket.getCores());
+    } else {
+      bucket.setHost(this);
+      getBuckets().add(bucket);
+    }
   }
 
   public void removeBucket(HostTallyBucket bucket) {
@@ -302,8 +265,9 @@ public class Host implements Serializable {
 
   public org.candlepin.subscriptions.utilization.api.model.Host asApiHost() {
     return new org.candlepin.subscriptions.utilization.api.model.Host()
-        .cores(cores)
-        .sockets(sockets)
+        .cores(Optional.ofNullable(getMeasurement(Uom.CORES)).map(Double::intValue).orElse(null))
+        .sockets(
+            Optional.ofNullable(getMeasurement(Uom.SOCKETS)).map(Double::intValue).orElse(null))
         .displayName(displayName)
         .hardwareType(hardwareType.toString())
         .insightsId(insightsId)
@@ -335,8 +299,6 @@ public class Host implements Serializable {
         && Objects.equals(accountNumber, host.accountNumber)
         && Objects.equals(orgId, host.orgId)
         && Objects.equals(subscriptionManagerId, host.subscriptionManagerId)
-        && Objects.equals(cores, host.cores)
-        && Objects.equals(sockets, host.sockets)
         && Objects.equals(hypervisorUuid, host.hypervisorUuid)
         && hardwareType == host.hardwareType
         && Objects.equals(numOfGuests, host.numOfGuests)
@@ -357,8 +319,6 @@ public class Host implements Serializable {
         accountNumber,
         orgId,
         subscriptionManagerId,
-        cores,
-        sockets,
         guest,
         hypervisorUuid,
         hardwareType,
