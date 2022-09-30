@@ -164,4 +164,15 @@ public class ResourceUtils {
         ? "_ANY"
         : billingAccountId;
   }
+
+  /**
+   * Simple method to get around sonar complaint: java:S5411 - Boxed "Boolean" should be avoided in
+   * boolean expressions
+   */
+  public static boolean sanitizeBoolean(Boolean value, boolean defaultValue) {
+    if (Objects.isNull(value)) {
+      return defaultValue;
+    }
+    return value;
+  }
 }

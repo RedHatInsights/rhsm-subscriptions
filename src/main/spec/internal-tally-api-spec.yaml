@@ -40,6 +40,48 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+  /internal/tally/hourly:
+    description: 'Operations pertaining to the hourly tally.'
+    post:
+      operationId: performHourlyTallyForAccount
+      summary: "Immediately perform the hourly tally for a specific account."
+      parameters:
+        - name: account
+          in: query
+          required: true
+          schema:
+            type: string
+          description: "The account number to tally."
+        - name: start
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            description: "The start date for the tally (e.g. 22-05-03T10:00:00Z). Must be specified along with the end parameter."
+        - name: end
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            description: "The end date for the tally (e.g. 22-05-03T10:00:00Z). Must be specified along with the start parameter."
+        - name: x-rh-swatch-synchronous-request
+          in: header
+          required: false
+          schema:
+            type: boolean
+            default: "false"
+            description: "When present, a synchronous request is made."
+      responses:
+        '200':
+          description: "The hourly tally operation succeeded for the specified account."
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
   /internal-tally-openapi.json:
     $ref: "../../../spec/openapi-paths.yaml#/openapi-json"
   /internal-tally-openapi.yaml:

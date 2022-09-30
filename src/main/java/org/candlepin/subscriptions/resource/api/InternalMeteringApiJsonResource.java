@@ -18,23 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.metering;
+package org.candlepin.subscriptions.resource.api;
 
-import org.candlepin.subscriptions.util.ApplicationClock;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
+import org.candlepin.subscriptions.metering.admin.api.InternalMeteringOpenapiJsonApi;
+import org.springframework.stereotype.Component;
 
-/**
- * Top level config class for metering. Beans are defined/configured on a profile basis via the
- * profile package. This class serves as an application entry point for the metering components.
- */
-@Configuration
-@ComponentScan({"org.candlepin.subscriptions.metering.profile"})
-public class MeteringConfiguration {
+/** Serves the OpenAPI json for the internal metering sync API */
+@Component
+public class InternalMeteringApiJsonResource implements InternalMeteringOpenapiJsonApi {
 
-  @Bean
-  ResourceUtil meteringResourceUtils(ApplicationClock clock) {
-    return new ResourceUtil(clock);
+  private ApiSpecController controller;
+
+  public InternalMeteringApiJsonResource(ApiSpecController controller) {
+    this.controller = controller;
+  }
+
+  @Override
+  public String getOpenApiJson() {
+    return controller.getInternalMeteringApiJson();
   }
 }
