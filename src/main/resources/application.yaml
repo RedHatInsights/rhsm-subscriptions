@@ -6,9 +6,6 @@
 TALLY_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.tally')].name:platform.rhsm-subscriptions.tally}
 TASKS_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.tasks')].name:platform.rhsm-subscriptions.tasks}
 METERING_TASK_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.metering-tasks')].name:platform.rhsm-subscriptions.metering-tasks}
-SUBSCRIPTION_SYNC_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.subscription-sync')].name:platform.rhsm-subscriptions.subscription-sync}
-SUBSCRIPTION_PRUNE_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.subscription-prune')].name:platform.rhsm-subscriptions.subscription-prune}
-CAPACITY_RECONCILE_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.capacity-reconcile')].name:platform.rhsm-subscriptions.capacity-reconcile}
 
 resteasy:
   jaxrs:
@@ -94,17 +91,6 @@ rhsm-subscriptions:
     page-size: ${SUBSCRIPTION_PAGE_SIZE:1000}
     ignore-expired-older-than: ${SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN:2m}
     ignore-starting-later-than: ${SUBSCRIPTION_IGNORE_STARTING_LATER_THAN:2m}
-    tasks:
-      topic: ${SUBSCRIPTION_SYNC_TOPIC}
-      kafka-group-id: subscription-worker
-  subscription-prune:
-    tasks:
-      topic: ${SUBSCRIPTION_PRUNE_TOPIC}
-      kafka-group-id: subscription-prune-worker
-  capacity:
-    tasks:
-      topic: ${CAPACITY_RECONCILE_TOPIC}
-      kafka-group-id: capacity-reconciliation-worker
   user-service:
     use-stub: ${USER_USE_STUB:false}
     url: https://${USER_HOST:localhost}:${USER_PORT:443}
