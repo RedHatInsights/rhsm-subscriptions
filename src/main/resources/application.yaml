@@ -4,7 +4,6 @@
 # See https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html#boot-features-external-config-application-property-files
 
 TALLY_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.tally')].name:platform.rhsm-subscriptions.tally}
-METERING_TASK_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.metering-tasks')].name:platform.rhsm-subscriptions.metering-tasks}
 
 resteasy:
   jaxrs:
@@ -63,11 +62,6 @@ rhsm-subscriptions:
           default: >-
             ${OPENSHIFT_ENABLED_ACCOUNT_PROMQL:group(min_over_time(#{metric.queryParams[prometheusMetadataMetric]}{product='#{metric.queryParams[product]}', ebs_account != '', billing_model='marketplace'}[1h]))
             by (ebs_account)}
-    tasks:
-      topic: ${METERING_TASK_TOPIC}
-      kafka-group-id: ${METERING_TASK_GROUP_ID:metering-task-processor}
-      seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
-      seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
   prometheus-latency-duration: ${PROMETHEUS_LATENCY_DURATION:0h}
   hourly-tally-offset: ${HOURLY_TALLY_OFFSET:60m}
   metric-lookup-range-duration: ${METRIC_LOOKUP_RANGE:1h}
