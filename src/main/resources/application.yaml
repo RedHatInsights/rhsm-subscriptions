@@ -4,7 +4,6 @@
 # See https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html#boot-features-external-config-application-property-files
 
 TALLY_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.tally')].name:platform.rhsm-subscriptions.tally}
-TASKS_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.tasks')].name:platform.rhsm-subscriptions.tasks}
 METERING_TASK_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.metering-tasks')].name:platform.rhsm-subscriptions.metering-tasks}
 
 resteasy:
@@ -54,11 +53,6 @@ rhsm-subscriptions:
     offering-sync-schedule: ${OFFERING_SYNC_SCHEDULE:0 0 2 * * ?}
   account-batch-size: ${ACCOUNT_BATCH_SIZE:1}
   product-allowlist-resource-location: ${PRODUCT_ALLOWLIST_RESOURCE_LOCATION:}
-  tasks:
-    topic: ${TASKS_TOPIC}
-    kafka-group-id: ${KAFKA_GROUP_ID:rhsm-subscriptions-task-processor}
-    seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
-    seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
   metering:
     prometheus:
       client:

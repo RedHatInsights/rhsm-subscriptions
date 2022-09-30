@@ -2,6 +2,7 @@ CLOUDIGRADE_HOST: ${clowder.endpoints[?(@.app == 'cloudigrade')].hostname:localh
 CLOUDIGRADE_PORT: ${clowder.endpoints[?(@.app == 'cloudigrade')].port:8080}
 CLOUDIGRADE_INTERNAL_HOST: ${CLOUDIGRADE_HOST}
 CLOUDIGRADE_INTERNAL_PORT: ${CLOUDIGRADE_PORT}
+TASKS_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.tasks')].name:platform.rhsm-subscriptions.tasks}
 TALLY_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.tally')].name:platform.rhsm-subscriptions.tally}
 BILLABLE_USAGE_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.billable-usage')].name:platform.rhsm-subscriptions.billable-usage}
 
@@ -47,3 +48,8 @@ rhsm-subscriptions:
       seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
     outgoing:
       topic: ${BILLABLE_USAGE_TOPIC}
+  tasks:
+    topic: ${TASKS_TOPIC}
+    kafka-group-id: ${KAFKA_GROUP_ID:rhsm-subscriptions-task-processor}
+    seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
+    seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
