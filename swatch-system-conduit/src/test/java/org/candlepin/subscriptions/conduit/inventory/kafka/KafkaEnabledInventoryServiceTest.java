@@ -88,6 +88,7 @@ class KafkaEnabledInventoryServiceTest {
     expectedFacts.setOsVersion("6.3");
 
     InventoryServiceProperties props = new InventoryServiceProperties();
+    props.setKafkaHostIngressTopic("placeholder");
     KafkaEnabledInventoryService service =
         new KafkaEnabledInventoryService(props, producer, meterRegistry, retryTemplate);
     service.sendHostUpdate(Arrays.asList(expectedFacts));
@@ -129,6 +130,7 @@ class KafkaEnabledInventoryServiceTest {
         .thenThrow(KafkaException.class);
 
     InventoryServiceProperties props = new InventoryServiceProperties();
+    props.setKafkaHostIngressTopic("placeholder");
     KafkaEnabledInventoryService service =
         new KafkaEnabledInventoryService(props, producer, meterRegistry, retryTemplate);
     service.sendHostUpdate(expectedFacts);
@@ -152,6 +154,7 @@ class KafkaEnabledInventoryServiceTest {
   @Test
   void ensureMessageSentWhenHostUpdateScheduled() {
     InventoryServiceProperties props = new InventoryServiceProperties();
+    props.setKafkaHostIngressTopic("placeholder");
     KafkaEnabledInventoryService service =
         new KafkaEnabledInventoryService(props, producer, meterRegistry, retryTemplate);
     service.scheduleHostUpdate(new ConduitFacts());
