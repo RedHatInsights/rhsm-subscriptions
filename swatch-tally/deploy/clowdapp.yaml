@@ -174,9 +174,6 @@ objects:
         topicName: platform.rhsm-subscriptions.tasks
       - replicas: 3
         partitions: 3
-        topicName: platform.rhsm-subscriptions.subscription-sync
-      - replicas: 3
-        partitions: 3
         topicName: platform.rhsm-subscriptions.billable-usage
     # Creates a database if local mode, or uses RDS in production
     # database:
