@@ -1,4 +1,5 @@
 CONDUIT_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-conduit.tasks')].name:platform.rhsm-conduit.tasks}
+INVENTORY_HOST_INGRESS_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.inventory.host-ingress')].name:platform.inventory.host-ingress}
 
 spring:
   config:
@@ -22,7 +23,7 @@ rhsm-conduit:
     add-uuid-hyphens: ${INVENTORY_ADD_UUID_HYPHENS:false}
     # FIXME: misnamed, it's actually in hours
     stale-host-offset-in-days: ${INVENTORY_STALE_HOST_OFFSET_HOURS:48}
-    kafka-host-ingress-topic: ${INVENTORY_HOST_INGRESS_TOPIC:platform.inventory.host-ingress}
+    kafka-host-ingress-topic: ${INVENTORY_HOST_INGRESS_TOPIC}
     tolerate-missing-account-number: ${TOLERATE_MISSING_ACCOUNT_NUMBER:false}
   tasks:
     topic: ${CONDUIT_TOPIC}
