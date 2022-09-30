@@ -1,0 +1,14 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202209301230-1" author="mstead" dbms="postgresql">
+    <comment>Migrate org_id to billable_usage_remittance table from account_config.</comment>
+    <sql>update billable_usage_remittance r set org_id = ac.org_id
+         from account_config ac
+         WHERE r.account_number = ac.account_number and ac.org_id IS NOT NULL and r.org_id is distinct from ac.org_id;</sql>
+  </changeSet>
+
+</databaseChangeLog>
