@@ -22,9 +22,11 @@ package org.candlepin.subscriptions.tally;
 
 import io.micrometer.core.annotation.Timed;
 import java.time.OffsetDateTime;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
@@ -42,6 +44,7 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 /** Provides the logic for updating Tally snapshots. */
 @Component
@@ -113,10 +116,13 @@ public class TallySnapshotController {
           retryTemplate.execute(
               context -> usageCollector.collect(this.applicableProducts, accountLookup)));
       String orgId = accountRepo.findOrgByAccountNumber(account);
-      if (props.isCloudigradeEnabled() && StringUtils.isNotEmpty(orgId)) {
-        attemptCloudigradeEnrichment(account, accountCalcs, orgId);
-      } else {
-        log.info("orgId={} not found or cloudigrade is not enabled", orgId);
+      if (props.isCloudigradeEnabled()) {
+        if (StringUtils.hasLength(orgId)) {
+          attemptCloudigradeEnrichment(account, accountCalcs, orgId);
+        } else {
+          log.warn(
+              "Org Id {} not found for account {} during cloudigrade enrichment", orgId, account);
+        }
       }
     } catch (Exception e) {
       log.error("Could not collect existing usage snapshots for account {}", account, e);
