@@ -20,6 +20,8 @@ export IQE_IMAGE_TAG="rhsm-subscriptions"
 # Install bonfire repo/initialize
 CICD_URL=https://raw.githubusercontent.com/RedHatInsights/bonfire/master/cicd
 curl -s $CICD_URL/bootstrap.sh > .cicd_bootstrap.sh && source .cicd_bootstrap.sh
+# Borrow the venv that bonfire sets up to do validation of our topic references
+python bin/validate-topics.py
 
 IMAGES=""
 
