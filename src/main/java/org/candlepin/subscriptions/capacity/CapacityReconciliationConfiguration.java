@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.capacity;
 
-import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getConfigProps;
+import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getProducerProperties;
 
 import org.candlepin.subscriptions.subscription.PruneSubscriptionsTask;
 import org.candlepin.subscriptions.subscription.SyncSubscriptionsTask;
@@ -42,19 +42,19 @@ public class CapacityReconciliationConfiguration {
   @Bean
   public ProducerFactory<String, SyncSubscriptionsTask> syncSubscriptionsProducerFactory(
       KafkaProperties kafkaProperties) {
-    return new DefaultKafkaProducerFactory<>(getConfigProps(kafkaProperties));
+    return new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
   }
 
   @Bean
   public ProducerFactory<String, PruneSubscriptionsTask> pruneSubscriptionsProducerFactory(
       KafkaProperties kafkaProperties) {
-    return new DefaultKafkaProducerFactory<>(getConfigProps(kafkaProperties));
+    return new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
   }
 
   @Bean
   public ProducerFactory<String, ReconcileCapacityByOfferingTask>
       reconcileCapacityByOfferingProducerFactory(KafkaProperties kafkaProperties) {
-    return new DefaultKafkaProducerFactory<>(getConfigProps(kafkaProperties));
+    return new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
   }
 
   @Bean
