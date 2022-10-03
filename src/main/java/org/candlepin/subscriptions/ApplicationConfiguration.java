@@ -34,6 +34,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import javax.validation.Validator;
 import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationWorkerConfiguration;
+import org.candlepin.subscriptions.clowder.DatabaseSslBeanPostProcessor;
 import org.candlepin.subscriptions.clowder.KafkaJaasBeanPostProcessor;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.metering.MeteringConfiguration;
@@ -197,5 +198,10 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   @Bean
   public KafkaJaasBeanPostProcessor kafkaJaasBeanPostProcessor(Environment env) {
     return new KafkaJaasBeanPostProcessor(env);
+  }
+
+  @Bean
+  public DatabaseSslBeanPostProcessor databaseSslBeanPostProcessor(Environment env) {
+    return new DatabaseSslBeanPostProcessor(env);
   }
 }

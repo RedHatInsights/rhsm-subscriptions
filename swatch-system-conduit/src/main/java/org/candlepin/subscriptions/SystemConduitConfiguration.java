@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions;
 
+import org.candlepin.subscriptions.clowder.DatabaseSslBeanPostProcessor;
 import org.candlepin.subscriptions.clowder.KafkaJaasBeanPostProcessor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,5 +37,16 @@ public class SystemConduitConfiguration {
   @Bean
   public KafkaJaasBeanPostProcessor kafkaJaasBeanPostProcessor(Environment env) {
     return new KafkaJaasBeanPostProcessor(env);
+  }
+
+  /**
+   * A bean post-processor responsible for setting up SSL for the database.
+   *
+   * @param env The Spring Environment
+   * @return a databaseSslBeanPostProcessor object
+   */
+  @Bean
+  public DatabaseSslBeanPostProcessor databaseSslBeanPostProcessor(Environment env) {
+    return new DatabaseSslBeanPostProcessor(env);
   }
 }
