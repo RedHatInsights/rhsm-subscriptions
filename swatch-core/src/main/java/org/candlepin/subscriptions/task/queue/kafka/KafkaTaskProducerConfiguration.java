@@ -62,11 +62,11 @@ public class KafkaTaskProducerConfiguration {
   }
 
   @NotNull
-  public static Map<String, Object> getConfigProps(KafkaProperties kafkaProperties) {
-    return Map.of(
-        ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getBootstrapServers(),
-        ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
-        ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+  public static Map<String, Object> getProducerProperties(KafkaProperties kafkaProperties) {
+    Map<String, Object> properties = kafkaProperties.buildProducerProperties();
+    properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+    properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+    return properties;
   }
 
   @Bean

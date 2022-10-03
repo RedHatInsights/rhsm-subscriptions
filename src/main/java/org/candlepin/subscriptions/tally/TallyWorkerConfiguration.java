@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getConfigProps;
+import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getProducerProperties;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashSet;
@@ -173,7 +173,7 @@ public class TallyWorkerConfiguration {
   public ProducerFactory<String, TallySummary> tallySummaryProducerFactory(
       KafkaProperties kafkaProperties, ObjectMapper objectMapper) {
     DefaultKafkaProducerFactory<String, TallySummary> factory =
-        new DefaultKafkaProducerFactory<>(getConfigProps(kafkaProperties));
+        new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
     /*
     Use our customized ObjectMapper. Notably, the spring-kafka default ObjectMapper writes dates as
     timestamps, which produces messages not compatible with JSON-B deserialization.
