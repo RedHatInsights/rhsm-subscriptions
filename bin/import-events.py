@@ -19,10 +19,11 @@ class Measurement:
 
 
 class Event:
-    def __init__(self, event_type, account, instance, timestamp, expiration, role, sla, uom, value, service_type, billing_provider, billing_account_id):
+    def __init__(self, event_type, account, org_id, instance, timestamp, expiration, role, sla, uom, value, service_type, billing_provider, billing_account_id):
         self.event_source = "prometheus"
         self.event_type = "snapshot_" + event_type
         self.account_number = account
+        self.org_id = org_id
         self.instance_id = instance
         self.timestamp = timestamp
         self.expiration = expiration
@@ -68,7 +69,7 @@ def post_events(url, events, dry_run=False):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="""Insert Events from CSV over JMX.
         The CSV must have a header containing the following rows:
-        event_type, account, instance, timestamp, expiration, role, sla, uom, value, service_type
+        event_type, account, org_id, instance, timestamp, expiration, role, sla, uom, value, service_type
     """)
     parser.add_argument('--host', default='localhost', help='Jolokia host')
     parser.add_argument('--port', default='9000', help='Jolokia port')
