@@ -35,6 +35,7 @@ import javax.validation.Validator;
 import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationWorkerConfiguration;
 import org.candlepin.subscriptions.clowder.KafkaJaasBeanPostProcessor;
+import org.candlepin.subscriptions.clowder.RdsSslBeanPostProcessor;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.metering.MeteringConfiguration;
 import org.candlepin.subscriptions.product.OfferingWorkerConfiguration;
@@ -197,5 +198,10 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   @Bean
   public KafkaJaasBeanPostProcessor kafkaJaasBeanPostProcessor(Environment env) {
     return new KafkaJaasBeanPostProcessor(env);
+  }
+
+  @Bean
+  public RdsSslBeanPostProcessor rdsSslBeanPostProcessor(Environment env) {
+    return new RdsSslBeanPostProcessor(env);
   }
 }

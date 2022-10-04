@@ -14,6 +14,8 @@ KAFKA_USERNAME: ${clowder.kafka.brokers[0].sasl.username:}
 KAFKA_PASSWORD: ${clowder.kafka.brokers[0].sasl.password:}
 KAFKA_SASL_PROTOCOL: ${clowder.kafka.brokers[0].sasl.securityProtocol:}
 KAFKA_SASL_MECHANISM: ${clowder.kafka.brokers[0].sasl.saslMechanism:}
+DATABASE_SSL_MODE: ${clowder.database.sslMode:disable}
+DATABASE_SSL_CERT: ${clowder.database.rdsCa:}
 
 # This needs to be a PEM encoded certificate string.  If you want to point to a file you can use
 # spring.kafka.ssl.trust-store-location property but that property is mutually exclusive with the
@@ -66,8 +68,6 @@ APP_NAME: rhsm-subscriptions
 DATABASE_HOST: localhost
 DATABASE_PORT: 5432
 DATABASE_DATABASE: rhsm-subscriptions
-DATABASE_SSL_MODE: disable
-DATABASE_SSL_CERT: /dev/null
 DATABASE_USERNAME: rhsm-subscriptions
 DATABASE_PASSWORD: rhsm-subscriptions
 DATABASE_CONNECTION_TIMEOUT_MS: 30000
@@ -157,7 +157,7 @@ rhsm-subscriptions:
     # this mapping required here because it is used by our SecurityConfig, which is shared
     org.candlepin.subscriptions.resteasy: ${PATH_PREFIX}/${APP_NAME}/v1
   datasource:
-    url: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_DATABASE}?reWriteBatchedInserts=true&stringtype=unspecified&sslmode=${DATABASE_SSL_MODE}&sslrootcert=${DATABASE_SSL_CERT}&options=-c%20statement_timeout=${POSTGRES_STATEMENT_TIMEOUT}
+    url: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_DATABASE}?reWriteBatchedInserts=true&stringtype=unspecified&options=-c%20statement_timeout=${POSTGRES_STATEMENT_TIMEOUT}
     username: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
     driver-class-name: org.postgresql.Driver
