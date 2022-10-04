@@ -136,7 +136,7 @@ parameters:
   - name: ORG_ID_POPULATOR_IMAGE
     value: quay.io/cloudservices/tenant-utils
   - name: ORG_ID_POPULATOR_IMAGE_TAG
-    value: latest
+    value: '7336069'
   - name: ORG_ID_POPULATOR_CPU_REQUEST
     value: 50m
   - name: ORG_ID_POPULATOR_MEMORY_REQUEST
