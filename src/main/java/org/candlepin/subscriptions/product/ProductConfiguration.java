@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.product;
 
-import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getConfigProps;
+import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getProducerProperties;
 
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -57,7 +57,7 @@ public class ProductConfiguration {
   @Bean
   public ProducerFactory<String, OfferingSyncTask> offeringSyncProducerFactory(
       KafkaProperties kafkaProperties) {
-    return new DefaultKafkaProducerFactory<>(getConfigProps(kafkaProperties));
+    return new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
   }
 
   @Bean
