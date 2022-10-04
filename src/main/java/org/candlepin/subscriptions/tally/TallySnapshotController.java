@@ -44,6 +44,7 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 /** Provides the logic for updating Tally snapshots. */
 @Component
@@ -114,9 +115,14 @@ public class TallySnapshotController {
       accountCalcs.putAll(
           retryTemplate.execute(
               context -> usageCollector.collect(this.applicableProducts, accountLookup)));
-      if (props.isCloudigradeEnabled() && null != accountCalcs.get(account)) {
-        String orgId = accountCalcs.get(account).getOwner();
-        attemptCloudigradeEnrichment(account, accountCalcs, orgId);
+      String orgId = accountRepo.findOrgByAccountNumber(account);
+      if (props.isCloudigradeEnabled()) {
+        if (StringUtils.hasText(orgId)) {
+          attemptCloudigradeEnrichment(account, accountCalcs, orgId);
+        } else {
+          log.warn(
+              "Org Id {} not found for account {} during cloudigrade enrichment", orgId, account);
+        }
       }
     } catch (Exception e) {
       log.error("Could not collect existing usage snapshots for account {}", account, e);
