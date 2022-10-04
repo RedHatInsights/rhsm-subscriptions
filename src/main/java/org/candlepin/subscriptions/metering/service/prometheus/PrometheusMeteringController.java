@@ -160,10 +160,16 @@ public class PrometheusMeteringController {
               String clusterId = labels.get("_id");
               String sla = labels.get("support");
               String usage = labels.get("usage");
+
+              // These were added as an edge case with RHODS as it doesn't have product as a label
+              // in prometheus
+              String product = labels.get("product");
+              String resourceName = labels.get("resource_name");
+
               // NOTE: Role comes from the product label despite its name. The values set here
               //       are NOT engineering or swatch product IDs. They map to the roles in the
               //       tag profile. For openshift, the values will be 'ocp' or 'osd'.
-              String role = labels.get("product");
+              String role = product == null ? resourceName : product;
               String billingProvider = labels.get("billing_marketplace");
               String billingAccountId = labels.get("billing_marketplace_account");
               String orgId = labels.get("external_organization");
