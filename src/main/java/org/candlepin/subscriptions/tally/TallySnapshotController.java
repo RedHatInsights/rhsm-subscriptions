@@ -117,7 +117,7 @@ public class TallySnapshotController {
               context -> usageCollector.collect(this.applicableProducts, accountLookup)));
       String orgId = accountRepo.findOrgByAccountNumber(account);
       if (props.isCloudigradeEnabled()) {
-        if (StringUtils.hasLength(orgId)) {
+        if (StringUtils.hasText(orgId)) {
           attemptCloudigradeEnrichment(account, accountCalcs, orgId);
         } else {
           log.warn(
