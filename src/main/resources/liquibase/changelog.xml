@@ -77,5 +77,6 @@
     <include file="liquibase/202208251616-migrate-cores-sockets-data.xml"/>
     <include file="liquibase/202208191129-add-version-to-host_tally_buckets.xml"/>
     <include file="liquibase/202209301035-migrate-org-id-to-hosts-table.xml"/>
+    <include file="liquibase/202209301614-migrate-org-id-to-events-table.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

@@ -1,0 +1,15 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202209301614-1" author="mstead" dbms="postgresql">
+    <comment>Migrate org_id to events table from account_config.</comment>
+    <sql>update events e
+         set org_id = ac.org_id, data = jsonb_set(data, '{org_id}', to_jsonb(ac.org_id), true)
+         from account_config ac
+         WHERE e.account_number = ac.account_number and ac.org_id IS NOT NULL;</sql>
+  </changeSet>
+
+</databaseChangeLog>
