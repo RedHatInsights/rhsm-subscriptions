@@ -126,7 +126,7 @@ parameters:
     value: 'false'
 
   - name: TENANT_TRANSLATOR_HOST
-    value: "apicast.3scale-dev.svc.cluster.local"
+    value: "gateway.3scale-dev.svc.cluster.local"
   - name: TENANT_TRANSLATOR_PORT
     value: '8891'
   - name: TENANT_TRANSLATOR_TIMEOUT
