@@ -67,12 +67,14 @@ public class RdsSslBeanPostProcessor implements BeanPostProcessor, Ordered {
       String sslMode = environment.getProperty("DATABASE_SSL_MODE");
       // if ssl is disabled no need to change url
       if (StringUtils.isBlank(sslMode) || sslMode.equals("disable")) {
+        log.info("Connecting to database with SSL Mode: disable");
         return bean;
       }
 
       boolean verifyFull = sslMode.equals("verify-full");
       String jdbcUrl = ((DataSourceProperties) bean).getUrl();
       jdbcUrl = jdbcUrl + "&sslmode=" + sslMode;
+      log.info("Connecting to database with SSL Mode: {}", sslMode);
 
       if (verifyFull) {
         String rdsCa = environment.getProperty("DATABASE_SSL_CERT");
