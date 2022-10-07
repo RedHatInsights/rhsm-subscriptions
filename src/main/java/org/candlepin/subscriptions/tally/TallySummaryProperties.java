@@ -37,4 +37,7 @@ public class TallySummaryProperties {
 
   /** Retry exponential backoff multiplier. */
   private Double backOffMultiplier;
+
+  /** Outgoing topic */
+  private String topic;
 }

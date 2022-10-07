@@ -1,3 +1,5 @@
+METERING_TASK_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.metering-tasks')].name:platform.rhsm-subscriptions.metering-tasks}
+
 rhsm-subscriptions:
   # Use Spring Resource notation for this (e.g. "classpath:" or "file:")
   account-list-resource-location: ${ACCOUNT_LIST_RESOURCE_LOCATION:}
@@ -19,3 +21,8 @@ rhsm-subscriptions:
         backOffMaxInterval: ${OPENSHIFT_BACK_OFF_MAX_INTERVAL:50000}
         backOffInitialInterval: ${OPENSHIFT_BACK_OFF_INITIAL_INTERVAL:1000}
         backOffMultiplier: ${OPENSHIFT_BACK_OFF_MULTIPLIER:1.5}
+    tasks:
+      topic: ${METERING_TASK_TOPIC}
+      kafka-group-id: ${METERING_TASK_GROUP_ID:metering-task-processor}
+      seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
+      seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
