@@ -53,6 +53,7 @@ import org.candlepin.subscriptions.conduit.rhsm.client.model.InstalledProducts;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.Pagination;
 import org.candlepin.subscriptions.exception.MissingAccountNumberException;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
+import org.candlepin.subscriptions.validator.MacAddressValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -108,6 +109,7 @@ public class InventoryController {
   private InventoryService inventoryService;
   private RhsmService rhsmService;
   private Validator validator;
+  private MacAddressValidator macValidator;
   private OrgSyncTaskManager taskManager;
   private Counter queueNextPageCounter;
   private Counter finalizeOrgCounter;
@@ -121,12 +123,14 @@ public class InventoryController {
       InventoryService inventoryService,
       RhsmService rhsmService,
       Validator validator,
+      MacAddressValidator macValidator,
       OrgSyncTaskManager taskManager,
       MeterRegistry meterRegistry) {
 
     this.inventoryService = inventoryService;
     this.rhsmService = rhsmService;
     this.validator = validator;
+    this.macValidator = macValidator;
     this.taskManager = taskManager;
     this.queueNextPageCounter = meterRegistry.counter("rhsm-conduit.queue.next-page");
     this.finalizeOrgCounter = meterRegistry.counter("rhsm-conduit.finalize.org");
@@ -349,7 +353,9 @@ public class InventoryController {
             mac != null
                 && !mac.equalsIgnoreCase(NONE)
                 && !mac.equalsIgnoreCase(UNKNOWN)
-                && !isTruncated(mac, factKey);
+                && !isTruncated(mac, factKey)
+                && macValidator.isValid(mac, null);
+
     return filterCommaDelimitedList(s, macTests);
   }
 

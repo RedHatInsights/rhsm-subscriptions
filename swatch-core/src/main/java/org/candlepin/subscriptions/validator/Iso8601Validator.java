@@ -39,9 +39,8 @@ public class Iso8601Validator implements ConstraintValidator<Iso8601, String> {
   @Override
   public boolean isValid(String value, ConstraintValidatorContext context) {
     // Note that the Jakarta Bean Validation specification recommends to consider null values as
-    // being
-    // valid. If null is not a valid value for an element, it should be annotated with @NotNull
-    // explicitly
+    // being valid. If null is not a valid value for an element, it should be annotated with
+    // @NotNull explicitly
     if (value == null) {
       return true;
     }

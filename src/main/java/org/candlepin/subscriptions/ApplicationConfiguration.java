@@ -167,7 +167,7 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   /* Do not declare a MethodValidationPostProcessor!
    *
    * The Spring Core documents instruct the user to create a MethodValidationPostProcessor in order to
-   * enable method validation.  However, Spring Boot takes care of creating that bean that itself:
+   * enable method validation.  However, Spring Boot takes care of creating that bean itself:
    * "The method validation feature supported by Bean Validation 1.1 is automatically enabled as long as a
    * JSR-303 implementation (such as Hibernate validator) is on the classpath" (from
    * https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#boot-features-validation).
