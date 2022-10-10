@@ -28,6 +28,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -166,10 +167,10 @@ class PrometheusMeteringControllerTest {
             List.of(List.of(new BigDecimal(12312.345), new BigDecimal(24))));
     when(service.runRangeQuery(anyString(), any(), any(), any(), any())).thenReturn(data);
 
-    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedAccount, start, end);
+    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedOrgId, start, end);
     verify(service)
         .runRangeQuery(
-            queries.expectedQuery("OpenShift-metrics", expectedAccount),
+            queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
             clock.startOfHour(start).plusHours(1),
             end,
             metricProperties.getStep(),
@@ -177,7 +178,7 @@ class PrometheusMeteringControllerTest {
   }
 
   @Test
-  void accountGetsOptedInWhenReportingMetrics() {
+  void orgIdGetsOptedInWhenReportingMetrics() {
     OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = start.plusHours(4);
     QueryResult data =
@@ -192,16 +193,15 @@ class PrometheusMeteringControllerTest {
             List.of(List.of(new BigDecimal(12312.345), new BigDecimal(24))));
     when(service.runRangeQuery(anyString(), any(), any(), any(), any())).thenReturn(data);
 
-    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedAccount, start, end);
+    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedOrgId, start, end);
     verify(service)
         .runRangeQuery(
-            queries.expectedQuery("OpenShift-metrics", expectedAccount),
+            queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
             start.plusHours(1),
             end,
             metricProperties.getStep(),
             metricProperties.getQueryTimeout());
-    verify(optInController)
-        .optInByAccountNumber(expectedAccount, OptInType.PROMETHEUS, true, true, true);
+    verify(optInController).optInByOrgId(expectedOrgId, OptInType.PROMETHEUS, true, true, true);
   }
 
   @Test
@@ -223,7 +223,7 @@ class PrometheusMeteringControllerTest {
             expectedBillingAccountId,
             List.of(List.of(time1, val1), List.of(time2, val2)));
     when(service.runRangeQuery(
-            eq(queries.expectedQuery("OpenShift-metrics", expectedAccount)),
+            eq(queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId))),
             any(),
             any(),
             any(),
@@ -266,14 +266,14 @@ class PrometheusMeteringControllerTest {
                 expectedUom,
                 val2.doubleValue()));
 
-    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedAccount, start, end);
+    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedOrgId, start, end);
 
     ArgumentCaptor<Collection> saveCaptor = ArgumentCaptor.forClass(Collection.class);
     verify(eventController).saveAll(saveCaptor.capture());
 
     verify(service)
         .runRangeQuery(
-            queries.expectedQuery("OpenShift-metrics", expectedAccount),
+            queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
             start.plusHours(1),
             end,
             metricProperties.getStep(),
@@ -305,7 +305,7 @@ class PrometheusMeteringControllerTest {
             expectedBillingAccountId,
             List.of(List.of(time1, val1), List.of(time2, val2)));
     when(service.runRangeQuery(
-            eq(queries.expectedQuery("OpenShift-metrics", expectedAccount)),
+            eq(queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId))),
             any(),
             any(),
             any(),
@@ -389,7 +389,7 @@ class PrometheusMeteringControllerTest {
             // This event should get purged because prometheus did not report this cluster.
             purgedEvent);
     when(eventController.mapEventsInTimeRange(
-            expectedAccount,
+            expectedOrgId,
             MeteringEventFactory.EVENT_SOURCE,
             MeteringEventFactory.getEventType(expectedMetricId),
             start,
@@ -398,7 +398,7 @@ class PrometheusMeteringControllerTest {
             existingEvents.stream()
                 .collect(Collectors.toMap(EventKey::fromEvent, Function.identity())));
 
-    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedAccount, start, end);
+    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedOrgId, start, end);
 
     ArgumentCaptor<Collection> saveCaptor = ArgumentCaptor.forClass(Collection.class);
     verify(eventController).saveAll(saveCaptor.capture());
@@ -408,7 +408,7 @@ class PrometheusMeteringControllerTest {
 
     verify(service)
         .runRangeQuery(
-            queries.expectedQuery("OpenShift-metrics", expectedAccount),
+            queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
             start.plusHours(1),
             end,
             metricProperties.getStep(),
@@ -453,7 +453,7 @@ class PrometheusMeteringControllerTest {
     QueryResult data = new QueryResult().data(queryResultData);
 
     when(service.runRangeQuery(
-            eq(queries.expectedQuery("OpenShift-metrics", expectedAccount)),
+            eq(queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId))),
             any(),
             any(),
             any(),
@@ -507,7 +507,7 @@ class PrometheusMeteringControllerTest {
             // This event will get updated by the incoming data from prometheus.
             existingEvent);
     when(eventController.mapEventsInTimeRange(
-            expectedAccount,
+            expectedOrgId,
             MeteringEventFactory.EVENT_SOURCE,
             MeteringEventFactory.getEventType(expectedMetricId),
             start,
@@ -516,14 +516,14 @@ class PrometheusMeteringControllerTest {
             existingEvents.stream()
                 .collect(Collectors.toMap(EventKey::fromEvent, Function.identity())));
 
-    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedAccount, start, end);
+    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedOrgId, start, end);
 
     var saveCaptor = ArgumentCaptor.forClass(Collection.class);
     verify(eventController).saveAll(saveCaptor.capture());
 
     verify(service)
         .runRangeQuery(
-            queries.expectedQuery("OpenShift-metrics", expectedAccount),
+            queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
             start.plusHours(1),
             end,
             metricProperties.getStep(),

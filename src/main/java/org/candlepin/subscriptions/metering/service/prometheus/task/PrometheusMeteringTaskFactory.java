@@ -42,9 +42,13 @@ public class PrometheusMeteringTaskFactory implements TaskFactory {
   @Override
   public Task build(TaskDescriptor taskDescriptor) {
     if (TaskType.METRICS_COLLECTION.equals(taskDescriptor.getTaskType())) {
+      if (taskDescriptor.hasArg("account")) {
+        throw new IllegalArgumentException(
+            String.format("Task has account rather than orgId: %s", taskDescriptor));
+      }
       return new MetricsTask(
           controller,
-          validateString(taskDescriptor, "account"),
+          validateString(taskDescriptor, "orgId"),
           validateString(taskDescriptor, "productTag"),
           Uom.fromValue(validateString(taskDescriptor, "metric")),
           validateDate(taskDescriptor, "start"),

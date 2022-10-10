@@ -150,12 +150,12 @@ class PrometheusAccountSourceTest {
     assertTrue(accounts.containsAll(expectedAccounts));
   }
 
-  private QueryResult buildAccountQueryResult(List<String> accounts) {
+  private QueryResult buildAccountQueryResult(List<String> orgIds) {
     QueryResultData resultData = new QueryResultData().resultType(ResultType.MATRIX);
-    accounts.forEach(
+    orgIds.forEach(
         account -> {
           resultData.addResultItem(
-              new QueryResultDataResultInner().putMetricItem("ebs_account", account));
+              new QueryResultDataResultInner().putMetricItem("external_organization", account));
         });
     return new QueryResult().status(StatusType.SUCCESS).data(resultData);
   }

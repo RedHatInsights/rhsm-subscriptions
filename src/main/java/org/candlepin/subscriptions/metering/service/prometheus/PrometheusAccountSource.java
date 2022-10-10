@@ -64,7 +64,7 @@ public class PrometheusAccountSource {
             metricProperties.getStep(),
             metricProperties.getQueryTimeout());
     return result.getData().getResult().stream()
-        .map(r -> r.getMetric().getOrDefault("ebs_account", ""))
+        .map(r -> r.getMetric().getOrDefault("external_organization", ""))
         .filter(StringUtils::hasText)
         .collect(Collectors.toSet());
   }

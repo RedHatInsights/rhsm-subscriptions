@@ -123,19 +123,27 @@ public class OptInController {
   // Separate isolated transaction needed in order to prevent opt-in errors rolling back metrics
   // updates
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public void optInByOrgId(
+  public String optInByOrgId(
       String orgId,
       OptInType optInType,
       boolean enableTallySync,
       boolean enableTallyReporting,
       boolean enableConduitSync) {
     if (orgConfigRepository.existsById(orgId)) {
-      return;
+      return accountService.lookupAccountNumber(orgId);
     }
     String accountNumber = accountService.lookupAccountNumber(orgId);
     log.info("Opting in account/orgId: {}/{}", accountNumber, orgId);
-    performOptIn(
-        accountNumber, orgId, optInType, enableTallySync, enableTallyReporting, enableConduitSync);
+    return performOptIn(
+            accountNumber,
+            orgId,
+            optInType,
+            enableTallySync,
+            enableTallyReporting,
+            enableConduitSync)
+        .getData()
+        .getAccount()
+        .getAccountNumber();
   }
 
   @Transactional
