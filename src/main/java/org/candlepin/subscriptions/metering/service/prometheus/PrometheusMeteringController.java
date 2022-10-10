@@ -170,16 +170,7 @@ public class PrometheusMeteringController {
               String billingAccountId = labels.get("billing_marketplace_account");
               String account = labels.get("ebs_account");
               // NOTE: https://issues.redhat.com/browse/SWATCH-262 should remove this workaround.
-              if (!StringUtils.hasText(account)) {
-                account = accountNumberFromOptIn;
-                if (!StringUtils.hasText(account)) {
-                  // For now, refuse to process an event that is completely missing accountNumber.
-                  // Otherwise, we'd potentially end up in a state where a customer can't view the
-                  // tally data.
-                  throw new IllegalStateException(
-                      "Refusing to persist event without accountNumber");
-                }
-              }
+              account = ensureAccountNumber(account, accountNumberFromOptIn);
 
               // For the openshift metrics, we expect our results to be a 'matrix'
               // vector [(instant_time,value), ...] so we only look at the result's getValues()
@@ -231,6 +222,20 @@ public class PrometheusMeteringController {
             throw e;
           }
         });
+  }
+
+  // SWATCH-262 should remove this method
+  private String ensureAccountNumber(String account, String accountNumberFromOptIn) {
+    if (StringUtils.hasText(account)) {
+      return account;
+    }
+    if (!StringUtils.hasText(accountNumberFromOptIn)) {
+      // For now, refuse to process an event that is completely missing accountNumber.
+      // Otherwise, we'd potentially end up in a state where a customer can't view the
+      // tally data.
+      throw new IllegalStateException("Refusing to persist event without accountNumber");
+    }
+    return accountNumberFromOptIn;
   }
 
   private String ensureOptIn(String orgId) {
