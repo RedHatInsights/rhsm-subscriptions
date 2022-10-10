@@ -130,7 +130,7 @@ public class OptInController {
       boolean enableTallyReporting,
       boolean enableConduitSync) {
     if (orgConfigRepository.existsById(orgId)) {
-      return accountService.lookupAccountNumber(orgId);
+      return accountConfigRepository.findAccountNumberByOrgId(orgId);
     }
     String accountNumber = accountService.lookupAccountNumber(orgId);
     log.info("Opting in account/orgId: {}/{}", accountNumber, orgId);
