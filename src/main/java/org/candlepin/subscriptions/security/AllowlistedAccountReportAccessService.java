@@ -20,13 +20,11 @@
  */
 package org.candlepin.subscriptions.security;
 
-import org.candlepin.subscriptions.db.AccountListSource;
-import org.candlepin.subscriptions.db.model.OrgConfigRepository;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 /**
  * Provides a means to validate that an authentication token has a allowlisted account associated
@@ -38,25 +36,14 @@ import org.springframework.util.StringUtils;
 @Service("reportAccessService")
 public class AllowlistedAccountReportAccessService {
 
-  private AccountListSource accountSource;
-  private OrgConfigRepository orgRepo;
+  private final AccountConfigRepository accountConfigRepository;
 
-  public AllowlistedAccountReportAccessService(
-      AccountListSource accountSource, OrgConfigRepository orgRepo) {
-    this.accountSource = accountSource;
-    this.orgRepo = orgRepo;
+  public AllowlistedAccountReportAccessService(AccountConfigRepository accountConfigRepository) {
+    this.accountConfigRepository = accountConfigRepository;
   }
 
   public boolean providesAccessTo(Authentication auth) throws AccountListSourceException {
     InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
-    // If there was no account available from the principal (or not in the header)
-    // allow access based on the org.
-    if (!StringUtils.hasText(principal.getAccountNumber())) {
-      // NOTE: Technically, this should be checking for the reporting_enabled flag,
-      //       but since we don't use that functionality, we decided to allow based on
-      //       org-id opt-in existence.
-      return orgRepo.existsByOrgId(principal.getOwnerId());
-    }
-    return this.accountSource.containsReportingAccount(principal.getAccountNumber());
+    return accountConfigRepository.existsByOrgId(principal.getOwnerId());
   }
 }

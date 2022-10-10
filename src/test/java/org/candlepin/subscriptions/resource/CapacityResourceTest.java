@@ -32,7 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 import javax.ws.rs.core.Response;
-import org.candlepin.subscriptions.db.AccountListSource;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -41,7 +41,6 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReport;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReportByMetricId;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
@@ -74,13 +73,13 @@ class CapacityResourceTest {
 
   @MockBean PageLinkCreator pageLinkCreator;
 
-  @MockBean AccountListSource accountListSource;
+  @MockBean AccountConfigRepository accountConfigRepository;
 
   @Autowired CapacityResource resource;
 
   @BeforeEach
-  public void setupTests() throws AccountListSourceException {
-    when(accountListSource.containsReportingAccount("account123456")).thenReturn(true);
+  public void setupTests() {
+    when(accountConfigRepository.existsByOrgId("owner123456")).thenReturn(true);
   }
 
   @Test

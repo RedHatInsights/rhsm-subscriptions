@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Set;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
-import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -42,7 +41,6 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.HostReport;
 import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
@@ -76,18 +74,17 @@ class HostsResourceTest {
 
   @MockBean HostRepository repository;
   @MockBean PageLinkCreator pageLinkCreator;
-  @MockBean AccountListSource accountListSource;
   @MockBean AccountConfigRepository accountConfigRepo;
   @Autowired HostsResource resource;
 
   @BeforeEach
-  public void setup() throws AccountListSourceException {
+  public void setup() {
     PageImpl<TallyHostView> mockPage = new PageImpl<>(Collections.emptyList());
     when(repository.getTallyHostViews(
             any(), any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any()))
         .thenReturn(mockPage);
-    when(accountListSource.containsReportingAccount("account123456")).thenReturn(true);
     when(accountConfigRepo.findOrgByAccountNumber("account123456")).thenReturn("owner123456");
+    when(accountConfigRepo.existsByOrgId("owner123456")).thenReturn(true);
   }
 
   @Test

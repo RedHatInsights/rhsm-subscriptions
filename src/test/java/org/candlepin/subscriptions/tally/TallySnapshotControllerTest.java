@@ -60,7 +60,8 @@ class TallySnapshotControllerTest {
 
   @BeforeEach
   void setup() {
-    AccountConfig accountConfig = new AccountConfig(ACCOUNT);
+    AccountConfig accountConfig = new AccountConfig();
+    accountConfig.setAccountNumber(ACCOUNT);
     accountConfig.setOrgId("ORG_" + ACCOUNT);
     when(accountRepo.findById(ACCOUNT)).thenReturn(Optional.of(accountConfig));
 

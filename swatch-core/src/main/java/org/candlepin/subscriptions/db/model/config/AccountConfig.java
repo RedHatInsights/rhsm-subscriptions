@@ -31,21 +31,17 @@ import javax.persistence.Table;
 @Table(name = "account_config")
 public class AccountConfig extends BaseConfig {
 
-  @Id
   @Column(name = "account_number")
   private String accountNumber;
 
   @Column(name = "reporting_enabled")
   private Boolean reportingEnabled;
 
+  @Id
   @Column(name = "org_id")
   private String orgId;
 
   public AccountConfig() {}
-
-  public AccountConfig(String accountNumber) {
-    this.accountNumber = accountNumber;
-  }
 
   public String getAccountNumber() {
     return accountNumber;

@@ -54,6 +54,14 @@ public interface AccountConfigRepository extends JpaRepository<AccountConfig, St
           + "where c.optInType='API' and c.created between :startOfWeek and :endOfWeek")
   int getCountOfOptInsForDateRange(OffsetDateTime startOfWeek, OffsetDateTime endOfWeek);
 
+  Optional<AccountConfig> findByOrgId(String orgId);
+
+  boolean existsByOrgId(String orgId);
+
+  boolean existsByAccountNumber(String accountNumber);
+
+  void deleteByOrgId(String accountNumber);
+
   default Optional<AccountConfig> createOrUpdateAccountConfig(
       String account,
       String orgId,
@@ -61,12 +69,14 @@ public interface AccountConfigRepository extends JpaRepository<AccountConfig, St
       OptInType optInType,
       boolean enableSync,
       boolean enableReporting) {
-    Optional<AccountConfig> found = findById(account);
-    AccountConfig accountConfig = found.orElse(new AccountConfig(account));
+    Optional<AccountConfig> found = findByOrgId(orgId);
+    AccountConfig accountConfig = found.orElse(new AccountConfig());
     if (!found.isPresent()) {
+      accountConfig.setOrgId(orgId);
       accountConfig.setOptInType(optInType);
       accountConfig.setCreated(current);
     }
+    accountConfig.setAccountNumber(account);
     accountConfig.setOrgId(orgId);
     accountConfig.setSyncEnabled(enableSync);
     accountConfig.setReportingEnabled(enableReporting);

@@ -80,7 +80,7 @@ public class OptInJmxBean {
   public void optOut(String accountNumber, String orgId) {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Opt out for {} triggered via JMX by {}", accountNumber, principal);
-    controller.optOut(accountNumber, orgId);
+    controller.optOut(orgId);
   }
 
   @ManagedOperation(
