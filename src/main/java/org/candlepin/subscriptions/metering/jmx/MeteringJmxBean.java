@@ -153,7 +153,7 @@ public class MeteringJmxBean {
     try {
       tasks.updateMetricsForOrgId(orgId, productTag, start, end);
     } catch (Exception e) {
-      log.error("Error triggering {} metering for account {} via JMX.", productTag, orgId, e);
+      log.error("Error triggering {} metering for orgId {} via JMX.", productTag, orgId, e);
     }
   }
 
