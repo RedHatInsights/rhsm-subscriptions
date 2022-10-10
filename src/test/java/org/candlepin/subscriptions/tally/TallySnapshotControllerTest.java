@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -64,7 +65,7 @@ class TallySnapshotControllerTest {
     when(accountRepo.findById(ACCOUNT)).thenReturn(Optional.of(accountConfig));
 
     defaultCloudigradeIntegrationEnablement = props.isCloudigradeEnabled();
-    when(inventoryCollector.collect(any(), any()))
+    when(inventoryCollector.collect(any(), any(), any()))
         .thenReturn(ImmutableMap.of(ACCOUNT, new AccountUsageCalculation(ACCOUNT)));
   }
 
@@ -76,34 +77,50 @@ class TallySnapshotControllerTest {
   @Test
   void testCloudigradeAccountUsageCollectorEnabled() throws Exception {
     props.setCloudigradeEnabled(true);
-    when(accountRepo.findOrgByAccountNumber(ACCOUNT)).thenReturn(ORG_ID);
-    controller.produceSnapshotsForAccount(ACCOUNT);
+    when(accountRepo.findAccountNumberByOrgId(ORG_ID)).thenReturn(ACCOUNT);
+    controller.produceSnapshotsForOrg(ORG_ID);
     verify(cloudigradeCollector).enrichUsageWithCloudigradeData(any(), any(), any());
   }
 
   @Test
-  void testWhenCloudigradeAccountUsageCollectorEnabledAndMissingOrgId_EnrichmentNotInvoked()
-      throws Exception {
+  void testWhenCloudigradeAccountUsageCollectorEnabledAndMissingOrgId_EnrichmentNotInvoked() {
     props.setCloudigradeEnabled(true);
-    controller.produceSnapshotsForAccount(ACCOUNT);
+    assertThrows(IllegalArgumentException.class, () -> controller.produceSnapshotsForOrg(null));
+    verifyNoInteractions(cloudigradeCollector);
+  }
+
+  @Test
+  void testWhenCloudigradeAccountUsageCollectorEnabledAndMissingAccount_EnrichmentNotInvoked() {
+    props.setCloudigradeEnabled(true);
+    assertThrows(IllegalArgumentException.class, () -> controller.produceSnapshotsForOrg(ORG_ID));
     verifyNoInteractions(cloudigradeCollector);
   }
 
   @Test
   void testCloudigradeAccountUsageCollectorExceptionIgnored() throws Exception {
     props.setCloudigradeEnabled(true);
-    when(accountRepo.findOrgByAccountNumber(ACCOUNT)).thenReturn(ORG_ID);
+    when(accountRepo.findAccountNumberByOrgId(ORG_ID)).thenReturn(ACCOUNT);
     doThrow(new RuntimeException())
         .when(cloudigradeCollector)
         .enrichUsageWithCloudigradeData(any(), any(), any());
-    controller.produceSnapshotsForAccount(ACCOUNT);
+    controller.produceSnapshotsForOrg(ORG_ID);
     verify(cloudigradeCollector, times(2)).enrichUsageWithCloudigradeData(any(), any(), any());
   }
 
   @Test
   void testCloudigradeAccountUsageCollectorDisabled() {
     props.setCloudigradeEnabled(false);
-    controller.produceSnapshotsForAccount(ACCOUNT);
+    when(accountRepo.findAccountNumberByOrgId(ORG_ID)).thenReturn(ACCOUNT);
+    controller.produceSnapshotsForOrg(ORG_ID);
     verifyNoInteractions(cloudigradeCollector);
+  }
+
+  @Test
+  void testCloudigradeAccountUsageCollectorEnabledWithAccount() throws Exception {
+    props.setCloudigradeEnabled(true);
+    when(accountRepo.findOrgByAccountNumber(ACCOUNT)).thenReturn(ORG_ID);
+    when(accountRepo.findAccountNumberByOrgId(ORG_ID)).thenReturn(ACCOUNT);
+    controller.produceSnapshotsForAccount(ACCOUNT);
+    verify(cloudigradeCollector).enrichUsageWithCloudigradeData(any(), any(), any());
   }
 }

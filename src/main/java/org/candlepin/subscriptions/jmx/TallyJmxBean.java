@@ -49,6 +49,7 @@ public class TallyJmxBean {
     this.tasks = taskManager;
   }
 
+  // Deprecate this endpoint once accountNumber to orgId is finished.
   @ManagedOperation(description = "Trigger a tally for an account")
   @ManagedOperationParameter(name = "accountNumber", description = "Which account to tally.")
   public void tallyAccount(String accountNumber) {
@@ -57,11 +58,20 @@ public class TallyJmxBean {
     tasks.updateAccountSnapshots(accountNumber);
   }
 
+  @ManagedOperation(description = "Trigger a tally for an org")
+  @ManagedOperationParameter(name = "orgId", description = "Which account to tally.")
+  public void tallyOrg(String orgId) {
+    Object principal = ResourceUtils.getPrincipal();
+    log.info("Tally for org {} triggered over JMX by {}", orgId, principal);
+    tasks.updateOrgSnapshots(orgId);
+  }
+
+  // Later during clean up rename the endpoint to tallyConfiguredOrgs
   @ManagedOperation(description = "Trigger tally for all configured accounts")
   public void tallyConfiguredAccounts() {
     Object principal = ResourceUtils.getPrincipal();
-    log.info("Tally for all accounts triggered over JMX by {}", principal);
-    tasks.updateSnapshotsForAllAccounts();
+    log.info("Tally for all orgs triggered over JMX by {}", principal);
+    tasks.updateSnapshotsForAllOrg();
   }
 
   @ManagedOperation(description = "Trigger hourly tally for an account within a timeframe.")

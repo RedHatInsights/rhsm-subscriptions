@@ -18,31 +18,32 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.tally.job;
+package org.candlepin.subscriptions.db;
 
-import org.candlepin.subscriptions.exception.JobFailureException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
+import java.util.stream.Stream;
+import org.candlepin.subscriptions.db.model.config.OrgConfig;
+import org.candlepin.subscriptions.tally.OrgListSourceException;
 import org.springframework.stereotype.Component;
 
-/** A cron job that captures all usage snapshots on a configured schedule. */
+/**
+ * Pulls the list of orgs to sync from a database table.
+ *
+ * <p>See {@link OrgConfig}.
+ */
 @Component
-public class CaptureSnapshotsJob implements Runnable {
+public class OrgListSource {
 
-  private final CaptureSnapshotsTaskManager tasks;
+  private final AccountConfigRepository accountRepo;
 
-  @Autowired
-  public CaptureSnapshotsJob(CaptureSnapshotsTaskManager taskManager) {
-    this.tasks = taskManager;
+  public OrgListSource(AccountConfigRepository accountRepo) {
+    this.accountRepo = accountRepo;
   }
 
-  @Override
-  @Scheduled(cron = "${rhsm-subscriptions.jobs.capture-snapshot-schedule}")
-  public void run() {
+  public Stream<String> getAllOrgToSync() throws OrgListSourceException {
     try {
-      tasks.updateSnapshotsForAllOrg();
+      return accountRepo.findSyncEnabledOrgs();
     } catch (Exception e) {
-      throw new JobFailureException("Failed to run CaptureSnapshotsJob.", e);
+      throw new OrgListSourceException("Unable to get org sync list!", e);
     }
   }
 }

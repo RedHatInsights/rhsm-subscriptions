@@ -25,13 +25,13 @@ import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
-import org.candlepin.subscriptions.db.model.config.AccountConfig;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -94,28 +94,26 @@ public class TallySnapshotController {
     this.summaryProducer = summaryProducer;
   }
 
+  // Deprecate this method after org id migration
   @Timed("rhsm-subscriptions.snapshots.single")
   public void produceSnapshotsForAccount(String account) {
-    // NOTE: This lookup should happen when the process starts and should be passed
-    //       along. This should be removed once the task processor is updated to use
-    //       the org_id.
-    AccountConfig accountLookup =
-        accountRepo
-            .findById(account)
-            .orElseThrow(
-                () ->
-                    new IllegalArgumentException(
-                        String.format(
-                            "Invalid account number: %s. Has the account been opted in?",
-                            account)));
+    produceSnapshotsForOrg(accountRepo.findOrgByAccountNumber(account));
+  }
 
-    log.info("Producing snapshots for account {}.", account);
+  @Timed("rhsm-subscriptions.snapshots.single")
+  public void produceSnapshotsForOrg(String orgId) {
+    String account = accountRepo.findAccountNumberByOrgId(orgId);
+    if (Objects.isNull(account) || Objects.isNull(orgId)) {
+      throw new IllegalArgumentException(
+          String.format("Incomplete opt-in configuration - account=%s orgId=%s", account, orgId));
+    }
+    log.info("Producing snapshots for Org ID {} with Account {}.", orgId, account);
     Map<String, AccountUsageCalculation> accountCalcs = new HashMap<>();
     try {
       accountCalcs.putAll(
           retryTemplate.execute(
-              context -> usageCollector.collect(this.applicableProducts, accountLookup)));
-      String orgId = accountRepo.findOrgByAccountNumber(account);
+              context -> usageCollector.collect(this.applicableProducts, account, orgId)));
+
       if (props.isCloudigradeEnabled()) {
         if (StringUtils.hasText(orgId)) {
           attemptCloudigradeEnrichment(account, accountCalcs, orgId);

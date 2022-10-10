@@ -71,6 +71,11 @@ public class ApplicationProperties {
    */
   private int accountBatchSize = 500;
 
+  /**
+   * The batch size of org that will be processed at a time while producing snapshots. Default: 500
+   */
+  private int orgBatchSize = 500;
+
   /** Amount of time to cache the account list, before allowing a re-read from the filesystem. */
   private Duration accountListCacheTtl = Duration.ofMinutes(5);
 

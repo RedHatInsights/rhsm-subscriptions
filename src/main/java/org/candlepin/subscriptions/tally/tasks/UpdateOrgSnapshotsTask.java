@@ -20,25 +20,32 @@
  */
 package org.candlepin.subscriptions.tally.tasks;
 
-import java.util.Arrays;
 import java.util.List;
+import javax.validation.constraints.Size;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.candlepin.subscriptions.task.Task;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.validation.annotation.Validated;
 
-@ExtendWith(MockitoExtension.class)
-class UpdateAccountSnapshotsTaskTest {
+/** Updates the usage snapshots for a given org. */
+@Validated
+public class UpdateOrgSnapshotsTask implements Task {
+  private static final Logger log = LoggerFactory.getLogger(UpdateOrgSnapshotsTask.class);
 
-  @Mock private TallySnapshotController snapshotController;
+  private final List<String> orgList;
+  private final TallySnapshotController snapshotController;
 
-  @Test
-  void testExecute() {
-    List<String> accounts = Arrays.asList("a1");
-    UpdateAccountSnapshotsTask task = new UpdateAccountSnapshotsTask(snapshotController, accounts);
-    task.execute();
-    Mockito.verify(snapshotController).produceSnapshotsForAccount("a1");
+  public UpdateOrgSnapshotsTask(
+      TallySnapshotController snapshotController, @Size(min = 1, max = 1) List<String> orgList) {
+    this.snapshotController = snapshotController;
+    this.orgList = orgList;
+  }
+
+  @Override
+  public void execute() {
+    String org = orgList.get(0);
+    log.info("Updating snapshots for org {}.", org);
+    snapshotController.produceSnapshotsForOrg(org);
   }
 }

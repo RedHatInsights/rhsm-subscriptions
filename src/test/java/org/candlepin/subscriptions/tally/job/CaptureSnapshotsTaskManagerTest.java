@@ -31,8 +31,10 @@ import java.util.List;
 import java.util.Optional;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.AccountListSource;
-import org.candlepin.subscriptions.tally.AccountListSourceException;
+import org.candlepin.subscriptions.db.OrgListSource;
+import org.candlepin.subscriptions.tally.OrgListSourceException;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskManagerException;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -69,76 +71,97 @@ class CaptureSnapshotsTaskManagerTest {
 
   @Autowired ApplicationClock applicationClock;
 
-  @Test
-  void testUpdateForSingleAccount() {
-    String account = "12345";
-    manager.updateAccountSnapshots(account);
+  @MockBean private AccountConfigRepository accountRepo;
 
-    verify(queue).enqueue(createDescriptor(account));
+  @MockBean private OrgListSource orgList;
+
+  public static final String ORG_ID = "org123";
+  public static final String ACCOUNT = "foo123";
+
+  // Deprecate this test once accountNumber to orgId is finished.
+  @Test
+  void testUpdateForSingleAccount_WhenOrgPresent() {
+    when(accountRepo.findOrgByAccountNumber(ACCOUNT)).thenReturn(ORG_ID);
+    manager.updateAccountSnapshots(ACCOUNT);
+    verify(queue).enqueue(createDescriptorOrg(ORG_ID));
+  }
+
+  // Deprecate this test once accountNumber to orgId is finished.
+  @Test
+  void testUpdateForSingleAccount_WhenOrgAbsent() {
+    when(accountRepo.findOrgByAccountNumber(ACCOUNT)).thenReturn(null);
+    manager.updateAccountSnapshots(ACCOUNT);
+    verify(queue).enqueue(createDescriptorAccount(ACCOUNT));
   }
 
   @Test
-  void ensureUpdateIsRunForEachAccount() throws Exception {
-    List<String> expectedAccounts = Arrays.asList("a1", "a2");
-    when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
-
-    manager.updateSnapshotsForAllAccounts();
-
-    verify(queue, times(1)).enqueue(createDescriptor(expectedAccounts));
+  void testUpdateForSingleOrg() {
+    manager.updateOrgSnapshots(ORG_ID);
+    verify(queue).enqueue(createDescriptorOrg(ORG_ID));
   }
 
   @Test
-  void ensureAccountListIsPartitionedWhenSendingTaskMessages() throws Exception {
-    List<String> expectedAccounts = Arrays.asList("a1", "a2", "a3", "a4");
-    when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
+  void ensureUpdateIsRunForEachOrg() throws Exception {
+    List<String> expectedOrgList = Arrays.asList("o1", "o2");
+    when(orgList.getAllOrgToSync()).thenReturn(expectedOrgList.stream());
 
-    manager.updateSnapshotsForAllAccounts();
+    manager.updateSnapshotsForAllOrg();
+
+    verify(queue, times(1)).enqueue(createDescriptorOrg(expectedOrgList));
+  }
+
+  @Test
+  void ensureOrgListIsPartitionedWhenSendingTaskMessages() throws Exception {
+    List<String> expectedOrgList = Arrays.asList("o1", "o2", "o3", "o4");
+    when(orgList.getAllOrgToSync()).thenReturn(expectedOrgList.stream());
+
+    manager.updateSnapshotsForAllOrg();
 
     // NOTE: Partition size is defined in test.properties
-    verify(queue, times(1)).enqueue(createDescriptor(Arrays.asList("a1", "a2")));
-    verify(queue, times(1)).enqueue(createDescriptor(Arrays.asList("a3", "a4")));
+    verify(queue, times(1)).enqueue(createDescriptorOrg(Arrays.asList("o1", "o2")));
+    verify(queue, times(1)).enqueue(createDescriptorOrg(Arrays.asList("o3", "o4")));
   }
 
   @Test
-  void ensureLastAccountListPartitionIsIncludedWhenSendingTaskMessages() throws Exception {
-    List<String> expectedAccounts = Arrays.asList("a1", "a2", "a3", "a4", "a5");
-    when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
+  void ensureLastOrgListPartitionIsIncludedWhenSendingTaskMessages() throws Exception {
+    List<String> expectedOrgList = Arrays.asList("o1", "o2", "o3", "o4", "o5");
+    when(orgList.getAllOrgToSync()).thenReturn(expectedOrgList.stream());
 
-    manager.updateSnapshotsForAllAccounts();
+    manager.updateSnapshotsForAllOrg();
 
     // NOTE: Partition size is defined in test.properties
-    verify(queue, times(1)).enqueue(createDescriptor(Arrays.asList("a1", "a2")));
-    verify(queue, times(1)).enqueue(createDescriptor(Arrays.asList("a3", "a4")));
-    verify(queue, times(1)).enqueue(createDescriptor(Arrays.asList("a5")));
+    verify(queue, times(1)).enqueue(createDescriptorOrg(List.of("o1", "o2")));
+    verify(queue, times(1)).enqueue(createDescriptorOrg(List.of("o3", "o4")));
+    verify(queue, times(1)).enqueue(createDescriptorOrg(List.of("o5")));
   }
 
   @Test
   void ensureErrorOnUpdateContinuesWithoutFailure() throws Exception {
-    List<String> expectedAccounts = Arrays.asList("a1", "a2", "a3", "a4", "a5", "a6");
-    when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
+    List<String> expectedOrgList = Arrays.asList("o1", "o2", "o3", "o4", "o5", "o6");
+    when(orgList.getAllOrgToSync()).thenReturn(expectedOrgList.stream());
 
     doThrow(new RuntimeException("Forced!"))
         .when(queue)
-        .enqueue(createDescriptor(Arrays.asList("a3", "a4")));
+        .enqueue(createDescriptorAccount(Arrays.asList("o3", "o4")));
 
-    manager.updateSnapshotsForAllAccounts();
+    manager.updateSnapshotsForAllOrg();
 
-    verify(queue, times(1)).enqueue(createDescriptor(Arrays.asList("a1", "a2")));
-    verify(queue, times(1)).enqueue(createDescriptor(Arrays.asList("a3", "a4")));
-    // Even though a3,a4 throws exception, a5,a6 should be enqueued.
-    verify(queue, times(1)).enqueue(createDescriptor(Arrays.asList("a5", "a6")));
+    verify(queue, times(1)).enqueue(createDescriptorOrg(Arrays.asList("o1", "o2")));
+    verify(queue, times(1)).enqueue(createDescriptorOrg(Arrays.asList("o3", "o4")));
+    // Even though o3,o4 throws exception, o5,o6 should be enqueued.
+    verify(queue, times(1)).enqueue(createDescriptorOrg(Arrays.asList("o5", "o6")));
   }
 
   @Test
-  void ensureNoUpdatesWhenAccountListCanNotBeRetreived() throws Exception {
-    doThrow(new AccountListSourceException("Forced!", new RuntimeException()))
-        .when(accountListSource)
-        .syncableAccounts();
+  void ensureNoUpdatesWhenOrgListCanNotBeRetreived() throws Exception {
+    doThrow(new OrgListSourceException("Forced!", new RuntimeException()))
+        .when(orgList)
+        .getAllOrgToSync();
 
     assertThrows(
         TaskManagerException.class,
         () -> {
-          manager.updateSnapshotsForAllAccounts();
+          manager.updateSnapshotsForAllOrg();
         });
 
     verify(queue, never()).enqueue(any());
@@ -207,13 +230,23 @@ class CaptureSnapshotsTaskManagerTest {
         });
   }
 
-  private TaskDescriptor createDescriptor(String account) {
-    return createDescriptor(Arrays.asList(account));
+  private TaskDescriptor createDescriptorAccount(String account) {
+    return createDescriptorAccount(List.of(account));
   }
 
-  private TaskDescriptor createDescriptor(List<String> accounts) {
+  private TaskDescriptor createDescriptorAccount(List<String> accounts) {
     return TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic())
         .setArg("accounts", accounts)
+        .build();
+  }
+
+  private TaskDescriptor createDescriptorOrg(String org) {
+    return createDescriptorOrg(List.of(org));
+  }
+
+  private TaskDescriptor createDescriptorOrg(List<String> orgs) {
+    return TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic())
+        .setArg("orgs", orgs)
         .build();
   }
 

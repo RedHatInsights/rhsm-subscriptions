@@ -29,8 +29,11 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.AccountListSource;
+import org.candlepin.subscriptions.db.OrgListSource;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
+import org.candlepin.subscriptions.tally.OrgListSourceException;
 import org.candlepin.subscriptions.tally.TallyTaskQueueConfiguration;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskManagerException;
@@ -47,6 +50,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Import;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 /**
  * Producer of tally snapshot production tasks.
@@ -64,19 +68,27 @@ public class CaptureSnapshotsTaskManager {
   private final AccountListSource accountListSource;
   private final ApplicationClock applicationClock;
 
+  private final OrgListSource orgList;
+
+  private final AccountConfigRepository accountRepo;
+
   @Autowired
   public CaptureSnapshotsTaskManager(
       ApplicationProperties appProperties,
       @Qualifier("tallyTaskQueueProperties") TaskQueueProperties tallyTaskQueueProperties,
       TaskQueue queue,
       AccountListSource accountListSource,
-      ApplicationClock applicationClock) {
+      ApplicationClock applicationClock,
+      OrgListSource orgList,
+      AccountConfigRepository accountRepo) {
 
     this.appProperties = appProperties;
     this.taskQueueProperties = tallyTaskQueueProperties;
     this.queue = queue;
     this.accountListSource = accountListSource;
     this.applicationClock = applicationClock;
+    this.orgList = orgList;
+    this.accountRepo = accountRepo;
   }
 
   /**
@@ -86,42 +98,61 @@ public class CaptureSnapshotsTaskManager {
    */
   @SuppressWarnings("indentation")
   public void updateAccountSnapshots(String accountNumber) {
+
+    String orgId = accountRepo.findOrgByAccountNumber(accountNumber);
+    if (StringUtils.hasText(orgId)) {
+      updateOrgSnapshots(orgId);
+    } else {
+      // Deprecate this method after org_id migration.
+      queue.enqueue(
+          TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic())
+              .setSingleValuedArg("accounts", accountNumber)
+              .build());
+    }
+  }
+
+  /**
+   * Initiates a task that will update the snapshots for the specified org.
+   *
+   * @param orgId the account number in which to update.
+   */
+  @SuppressWarnings("indentation")
+  public void updateOrgSnapshots(String orgId) {
     queue.enqueue(
         TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic())
-            .setSingleValuedArg("accounts", accountNumber)
+            .setSingleValuedArg("orgs", orgId)
             .build());
   }
 
   /**
-   * Queue up tasks to update the snapshots for all configured accounts.
+   * Queue up tasks to update the snapshots for all configured orgs.
    *
    * @throws TaskManagerException
    */
   @Transactional
-  public void updateSnapshotsForAllAccounts() {
-    int accountBatchSize = appProperties.getAccountBatchSize();
-    AccountUpdateQueue updateQueue = new AccountUpdateQueue(queue, accountBatchSize);
+  public void updateSnapshotsForAllOrg() {
+    int orgBatchSize = appProperties.getOrgBatchSize();
+    OrgUpdateQueue updateQueue = new OrgUpdateQueue(queue, orgBatchSize);
 
-    try (Stream<String> accountStream = accountListSource.syncableAccounts()) {
-      log.info("Queuing snapshot production in batches of {}.", accountBatchSize);
+    try (Stream<String> orgStream = orgList.getAllOrgToSync()) {
+      log.info("Queuing all org snapshot production in batches of {}.", orgBatchSize);
 
       AtomicInteger count = new AtomicInteger(0);
-      accountStream.forEach(
-          account -> {
-            updateQueue.queue(account);
+      orgStream.forEach(
+          org -> {
+            updateQueue.queue(org);
             count.addAndGet(1);
           });
 
-      // The final group of accounts might have be less than the batch size
+      // The final group of org might have be less than the batch size
       // and need to be flushed.
       if (!updateQueue.isEmpty()) {
         updateQueue.flush();
       }
 
-      log.info("Done queuing snapshot production for {} accounts.", count.intValue());
-    } catch (AccountListSourceException e) {
-      throw new TaskManagerException(
-          "Could not list accounts for update snapshot task generation", e);
+      log.info("Done queuing snapshot production for {} org list.", count.intValue());
+    } catch (OrgListSourceException e) {
+      throw new TaskManagerException("Could not list org for update snapshot task generation", e);
     }
   }
 
@@ -199,23 +230,23 @@ public class CaptureSnapshotsTaskManager {
   }
 
   /**
-   * A class that is used to queue up account numbers as they are streamed from the DB so that they
-   * can be sent for updates in the configured batches.
+   * A class that is used to queue up org as they are streamed from the DB so that they can be sent
+   * for updates in the configured batches.
    */
-  private class AccountUpdateQueue {
+  private class OrgUpdateQueue {
     private int batchSize;
     private TaskQueue taskQueue;
-    private List<String> queuedAccounts;
+    private List<String> queuedOrgList;
 
-    public AccountUpdateQueue(TaskQueue taskQueue, int batchSize) {
+    public OrgUpdateQueue(TaskQueue taskQueue, int batchSize) {
       this.taskQueue = taskQueue;
       this.batchSize = batchSize;
-      this.queuedAccounts = new LinkedList<>();
+      this.queuedOrgList = new LinkedList<>();
     }
 
-    public void queue(String account) {
-      queuedAccounts.add(account);
-      if (queuedAccounts.size() == batchSize) {
+    public void queue(String org) {
+      queuedOrgList.add(org);
+      if (queuedOrgList.size() == batchSize) {
         flush();
       }
     }
@@ -226,19 +257,19 @@ public class CaptureSnapshotsTaskManager {
             TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic())
                 // clone the list so that we can be sure that we don't clear references
                 // out from under the task queue should delivery be delayed for any reason.
-                .setArg("accounts", new ArrayList<>(queuedAccounts))
+                .setArg("orgs", new ArrayList<>(queuedOrgList))
                 .build());
       } catch (Exception e) {
         log.error(
-            "Could not queue snapshot updates for accounts: {}",
-            String.join(",", queuedAccounts),
+            "Could not queue snapshot updates for org list: {}",
+            String.join(",", queuedOrgList),
             e);
       }
-      queuedAccounts.clear();
+      queuedOrgList.clear();
     }
 
     public boolean isEmpty() {
-      return queuedAccounts.isEmpty();
+      return queuedOrgList.isEmpty();
     }
   }
 }

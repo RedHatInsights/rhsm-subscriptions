@@ -18,31 +18,11 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.tally.job;
+package org.candlepin.subscriptions.tally;
 
-import org.candlepin.subscriptions.exception.JobFailureException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
-
-/** A cron job that captures all usage snapshots on a configured schedule. */
-@Component
-public class CaptureSnapshotsJob implements Runnable {
-
-  private final CaptureSnapshotsTaskManager tasks;
-
-  @Autowired
-  public CaptureSnapshotsJob(CaptureSnapshotsTaskManager taskManager) {
-    this.tasks = taskManager;
-  }
-
-  @Override
-  @Scheduled(cron = "${rhsm-subscriptions.jobs.capture-snapshot-schedule}")
-  public void run() {
-    try {
-      tasks.updateSnapshotsForAllOrg();
-    } catch (Exception e) {
-      throw new JobFailureException("Failed to run CaptureSnapshotsJob.", e);
-    }
+/** Represents an exception that occurs when something goes wrong while pulling org lists. */
+public class OrgListSourceException extends Exception {
+  public OrgListSourceException(String message, Throwable cause) {
+    super(message, cause);
   }
 }

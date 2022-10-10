@@ -12,6 +12,7 @@ rhsm-subscriptions:
     driver-class-name: org.hsqldb.jdbc.JDBCDriver
     platform: hsqldb
   account-batch-size: 2
+  org-batch-size: 2
   subscription-sync-enabled: true
   subscription:
     use-stub: true
