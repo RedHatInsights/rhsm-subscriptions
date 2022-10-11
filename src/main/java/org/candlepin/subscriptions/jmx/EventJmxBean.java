@@ -28,6 +28,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.transaction.Transactional;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.security.SecurityProperties;
@@ -56,11 +57,17 @@ public class EventJmxBean {
   private final ObjectMapper objectMapper;
   private final SecurityProperties properties;
 
+  private final AccountConfigRepository accountConfigRepository;
+
   public EventJmxBean(
-      EventController eventController, ObjectMapper objectMapper, SecurityProperties properties) {
+      EventController eventController,
+      ObjectMapper objectMapper,
+      SecurityProperties properties,
+      AccountConfigRepository accountConfigRepository) {
     this.eventController = eventController;
     this.objectMapper = objectMapper;
     this.properties = properties;
+    this.accountConfigRepository = accountConfigRepository;
   }
 
   @Transactional
@@ -69,13 +76,26 @@ public class EventJmxBean {
   @ManagedOperationParameter(name = "begin", description = "Beginning of time range (inclusive)")
   @ManagedOperationParameter(name = "end", description = "End of time range (exclusive)")
   public String fetchEventsInTimeRange(String accountNumber, String begin, String end) {
+    String orgId = accountConfigRepository.findOrgByAccountNumber(accountNumber);
+    if (orgId == null) {
+      throw new JmxException("Unable to find orgId for accountNumber: " + accountNumber);
+    }
+    return fetchEventsForOrgIdInTimeRange(orgId, begin, end);
+  }
+
+  @Transactional
+  @ManagedOperation(description = "Fetch events (for debugging).")
+  @ManagedOperationParameter(name = "accountNumber", description = "Account number")
+  @ManagedOperationParameter(name = "begin", description = "Beginning of time range (inclusive)")
+  @ManagedOperationParameter(name = "end", description = "End of time range (exclusive)")
+  public String fetchEventsForOrgIdInTimeRange(String orgId, String begin, String end) {
     OffsetDateTime beginValue = OffsetDateTime.parse(begin);
     OffsetDateTime endValue = OffsetDateTime.parse(end);
 
     try {
       List<Event> events =
           eventController
-              .fetchEventsInTimeRange(accountNumber, beginValue, endValue)
+              .fetchEventsInTimeRange(orgId, beginValue, endValue)
               .collect(Collectors.toList());
       return objectMapper.writeValueAsString(events);
     } catch (Exception e) {

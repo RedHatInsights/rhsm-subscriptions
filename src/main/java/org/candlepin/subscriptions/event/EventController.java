@@ -49,15 +49,15 @@ public class EventController {
   /**
    * Note: calling method needs to use @Transactional
    *
-   * @param accountNumber account identifier
+   * @param orgId Red Hat orgId
    * @param begin beginning of the time range (inclusive)
    * @param end end of the time range (exclusive)
    * @return stream of Event
    */
   public Stream<Event> fetchEventsInTimeRange(
-      String accountNumber, OffsetDateTime begin, OffsetDateTime end) {
-    return repo.findByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
-            accountNumber, begin, end)
+      String orgId, OffsetDateTime begin, OffsetDateTime end) {
+    return repo.findByOrgIdAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+            orgId, begin, end)
         .map(EventRecord::getEvent);
   }
 
@@ -70,13 +70,13 @@ public class EventController {
 
   @SuppressWarnings({"linelength", "indentation"})
   public Map<EventKey, Event> mapEventsInTimeRange(
-      String accountNumber,
+      String orgId,
       String eventSource,
       String eventType,
       OffsetDateTime begin,
       OffsetDateTime end) {
-    return repo.findByAccountNumberAndEventSourceAndEventTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
-            accountNumber, eventSource, eventType, begin, end)
+    return repo.findByOrgIdAndEventSourceAndEventTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+            orgId, eventSource, eventType, begin, end)
         .map(EventRecord::getEvent)
         .collect(Collectors.toMap(EventKey::fromEvent, Function.identity()));
   }
