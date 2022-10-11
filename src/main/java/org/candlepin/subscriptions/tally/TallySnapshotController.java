@@ -94,7 +94,7 @@ public class TallySnapshotController {
     this.summaryProducer = summaryProducer;
   }
 
-  // Deprecate this method after org id migration
+  // SWATCH-614 Deprecate this method after org id migration
   @Timed("rhsm-subscriptions.snapshots.single")
   public void produceSnapshotsForAccount(String account) {
     produceSnapshotsForOrg(accountRepo.findOrgByAccountNumber(account));

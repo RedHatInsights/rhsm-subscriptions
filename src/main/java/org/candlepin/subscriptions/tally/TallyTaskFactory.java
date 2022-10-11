@@ -28,7 +28,6 @@ import javax.validation.ConstraintViolationException;
 import javax.validation.Validator;
 import javax.validation.executable.ExecutableValidator;
 import org.candlepin.subscriptions.tally.tasks.CaptureMetricsSnapshotTask;
-import org.candlepin.subscriptions.tally.tasks.UpdateAccountSnapshotsTask;
 import org.candlepin.subscriptions.tally.tasks.UpdateOrgSnapshotsTask;
 import org.candlepin.subscriptions.task.Task;
 import org.candlepin.subscriptions.task.TaskDescriptor;
@@ -71,9 +70,8 @@ public class TallyTaskFactory implements TaskFactory {
         log.debug("Task created for processing orgs");
         return new UpdateOrgSnapshotsTask(snapshotController, taskDescriptor.getArg("orgs"));
       } else {
-        log.debug("Task created for processing accounts");
-        return new UpdateAccountSnapshotsTask(
-            snapshotController, taskDescriptor.getArg("accounts"));
+        log.error("Task descriptor with argument orgs is missing {}", taskDescriptor);
+        throw new IllegalArgumentException("Incorrect task descriptor");
       }
     }
 

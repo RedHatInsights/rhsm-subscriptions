@@ -49,7 +49,7 @@ public class TallyJmxBean {
     this.tasks = taskManager;
   }
 
-  // Deprecate this endpoint once accountNumber to orgId is finished.
+  // SWATCH-614 Deprecate this method after org id migration
   @ManagedOperation(description = "Trigger a tally for an account")
   @ManagedOperationParameter(name = "accountNumber", description = "Which account to tally.")
   public void tallyAccount(String accountNumber) {
@@ -66,7 +66,7 @@ public class TallyJmxBean {
     tasks.updateOrgSnapshots(orgId);
   }
 
-  // Later during clean up rename the endpoint to tallyConfiguredOrgs
+  // SWATCH-614 Rename the endpoint to tallyConfiguredOrgs
   @ManagedOperation(description = "Trigger tally for all configured accounts")
   public void tallyConfiguredAccounts() {
     Object principal = ResourceUtils.getPrincipal();

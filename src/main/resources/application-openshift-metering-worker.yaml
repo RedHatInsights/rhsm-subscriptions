@@ -4,7 +4,7 @@ rhsm-subscriptions:
   # Use Spring Resource notation for this (e.g. "classpath:" or "file:")
   account-list-resource-location: ${ACCOUNT_LIST_RESOURCE_LOCATION:}
   account-batch-size: ${ACCOUNT_BATCH_SIZE:1}
-  org-batch-size: ${ORG_BATCH_SIZE:1}
+
   metering:
     prometheus:
       metric:

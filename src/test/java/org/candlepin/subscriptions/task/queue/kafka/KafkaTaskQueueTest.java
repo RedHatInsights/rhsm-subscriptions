@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.test.context.EmbeddedKafka;
@@ -36,9 +38,8 @@ import org.springframework.test.context.ActiveProfiles;
       "${rhsm-subscriptions.subscription.tasks.topic}"
     })
 class KafkaTaskQueueTest extends KafkaTaskQueueTester {
-
   @Test
-  void testSendAndReceiveTaskMessage() throws InterruptedException {
-    runSendAndReceiveTaskMessageTest();
+  void testSendAndReceiveTaskMessageWithOrg() throws InterruptedException {
+    assertDoesNotThrow(() -> runSendAndReceiveTaskMessageTestWithOrg());
   }
 }
