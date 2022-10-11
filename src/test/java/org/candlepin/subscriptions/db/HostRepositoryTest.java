@@ -730,7 +730,7 @@ class HostRepositoryTest {
     Uom referenceUom = HostsResource.SORT_TO_UOM_MAP.getOrDefault(sort, Uom.CORES);
     Page<Host> results =
         repo.findAllBy(
-            "account123",
+            "ORG_account123",
             "RHEL",
             ServiceLevel._ANY,
             Usage._ANY,
@@ -1000,7 +1000,7 @@ class HostRepositoryTest {
 
     Page<Host> results =
         repo.findAllBy(
-            "a1",
+            "ORG_a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -1017,7 +1017,7 @@ class HostRepositoryTest {
 
     Page<Host> allResults =
         repo.findAllBy(
-            "a1",
+            "ORG_a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -1120,7 +1120,7 @@ class HostRepositoryTest {
 
     Page<Host> results =
         repo.findAllBy(
-            "a1",
+            "ORG_a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
