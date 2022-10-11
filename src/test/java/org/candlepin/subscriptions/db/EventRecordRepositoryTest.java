@@ -88,8 +88,8 @@ class EventRecordRepositoryTest {
 
     List<EventRecord> found =
         repository
-            .findByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
-                "account123", OffsetDateTime.now(CLOCK), OffsetDateTime.now(CLOCK).plusYears(1))
+            .findByOrgIdAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+                "org123", OffsetDateTime.now(CLOCK), OffsetDateTime.now(CLOCK).plusYears(1))
             .collect(Collectors.toList());
 
     assertEquals(1, found.size());
@@ -117,8 +117,8 @@ class EventRecordRepositoryTest {
 
     List<EventRecord> found =
         repository
-            .findByAccountNumberAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
-                "account123", OffsetDateTime.now(CLOCK).minusYears(1), OffsetDateTime.now(CLOCK))
+            .findByOrgIdAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+                "org123", OffsetDateTime.now(CLOCK).minusYears(1), OffsetDateTime.now(CLOCK))
             .collect(Collectors.toList());
 
     assertEquals(1, found.size());
@@ -164,8 +164,8 @@ class EventRecordRepositoryTest {
 
     List<EventRecord> found =
         repository
-            .findByAccountNumberAndEventSourceAndEventTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
-                e1.getAccountNumber(),
+            .findByOrgIdAndEventSourceAndEventTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+                e1.getOrgId(),
                 e1.getEventSource(),
                 e1.getEventType(),
                 OffsetDateTime.now(CLOCK).minusYears(1),

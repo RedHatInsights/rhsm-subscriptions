@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -76,6 +77,7 @@ class HostsResourceTest {
   @MockBean HostRepository repository;
   @MockBean PageLinkCreator pageLinkCreator;
   @MockBean AccountListSource accountListSource;
+  @MockBean AccountConfigRepository accountConfigRepo;
   @Autowired HostsResource resource;
 
   @BeforeEach
@@ -85,6 +87,7 @@ class HostsResourceTest {
             any(), any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any()))
         .thenReturn(mockPage);
     when(accountListSource.containsReportingAccount("account123456")).thenReturn(true);
+    when(accountConfigRepo.findOrgByAccountNumber("account123456")).thenReturn("owner123456");
   }
 
   @Test
@@ -405,7 +408,7 @@ class HostsResourceTest {
     when(page.getContent()).thenReturn(List.of(host));
 
     when(repository.findAllBy(
-            "account123456",
+            "owner123456",
             ProductId.OPENSHIFT_DEDICATED_METRICS.toString(),
             ServiceLevel._ANY,
             Usage._ANY,

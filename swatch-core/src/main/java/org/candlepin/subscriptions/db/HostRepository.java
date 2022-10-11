@@ -114,7 +114,7 @@ public interface HostRepository
    * Find all Hosts by bucket criteria and return a page of TallyHostView objects. A TallyHostView
    * is a Host representation detailing what 'bucket' was applied to the current daily snapshots.
    *
-   * @param accountNumber The account number of the hosts to query (required).
+   * @param orgId The organization ID of the hosts to query (required).
    * @param productId The bucket product ID to filter Host by (pass null to ignore).
    * @param sla The bucket service level to filter Hosts by (pass null to ignore).
    * @param usage The bucket usage to filter Hosts by (pass null to ignore).
@@ -129,7 +129,7 @@ public interface HostRepository
    */
   @SuppressWarnings("java:S107")
   default Page<Host> findAllBy(
-      @Param("account") String accountNumber,
+      @Param("orgId") String orgId,
       @Param("product") String productId,
       @Param("sla") ServiceLevel sla,
       @Param("usage") Usage usage,
@@ -144,8 +144,7 @@ public interface HostRepository
 
     HostSpecification searchCriteria = new HostSpecification();
 
-    searchCriteria.add(
-        new SearchCriteria(Host_.ACCOUNT_NUMBER, accountNumber, SearchOperation.EQUAL));
+    searchCriteria.add(new SearchCriteria(Host_.ORG_ID, orgId, SearchOperation.EQUAL));
     searchCriteria.add(
         new SearchCriteria(HostBucketKey_.PRODUCT_ID, productId, SearchOperation.EQUAL));
     searchCriteria.add(new SearchCriteria(HostBucketKey_.SLA, sla, SearchOperation.EQUAL));

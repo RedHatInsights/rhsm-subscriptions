@@ -111,7 +111,7 @@ public class InstancesResource implements InstancesApi {
     int minCores = 0;
     int minSockets = 0;
 
-    String accountNumber = ResourceUtils.getAccountNumber();
+    String orgId = ResourceUtils.getOwnerId();
     ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
     Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
     BillingProvider sanitizedBillingProvider =
@@ -146,7 +146,7 @@ public class InstancesResource implements InstancesApi {
     Measurement.Uom referenceUom = SORT_TO_UOM_MAP.get(sort);
     hosts =
         repository.findAllBy(
-            accountNumber,
+            orgId,
             productId.toString(),
             sanitizedSla,
             sanitizedUsage,
