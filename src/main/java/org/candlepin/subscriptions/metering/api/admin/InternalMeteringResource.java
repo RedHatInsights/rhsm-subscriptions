@@ -70,13 +70,14 @@ public class InternalMeteringResource implements InternalApi {
       Boolean xRhSwatchSynchronousRequest) {
     Object principal = ResourceUtils.getPrincipal();
 
-    if (orgId == null && accountNumber != null) {
+    if (orgId == null && accountNumber == null) {
+      throw new BadRequestException("Neither orgId nor accountNumber specified");
+    } else if (orgId == null) {
       orgId = accountConfigRepository.findOrgByAccountNumber(accountNumber);
-    }
-
-    if (orgId == null) {
-      throw new BadRequestException(
-          String.format("No orgId found/specified for accountNumber: %s", accountNumber));
+      if (orgId == null) {
+        throw new BadRequestException(
+            String.format("Unable to look up orgId for accountNumber: %s", accountNumber));
+      }
     }
 
     if (!tagProfile.tagIsPrometheusEnabled(productTag)) {

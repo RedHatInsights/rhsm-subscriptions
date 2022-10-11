@@ -172,6 +172,6 @@ class InternalMeteringResourceTest {
             () ->
                 resource.meterProductForAccount(
                     VALID_PRODUCT, 120, "account2", null, endDate, false));
-    assertEquals("No orgId found/specified for accountNumber: account2", bre.getMessage());
+    assertEquals("Unable to look up orgId for accountNumber: account2", bre.getMessage());
   }
 }
