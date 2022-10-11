@@ -27,11 +27,29 @@ import org.candlepin.subscriptions.user.api.resources.AccountApi;
 /** Stub implementation of the Account API that returns a canned response. */
 public class StubAccountApi extends AccountApi {
 
+  /**
+   * Generate mock lookups for accountNumber <-> orgId translations.
+   *
+   * <p>Translates any accountNumber (stripping "account" prefix) to org$accountNumber. Translates
+   * any orgId (stripped "org" prefix) to account$orgId.
+   *
+   * <p>As a special exception, it translates orgId 123 to accountNumber 123.
+   *
+   * @param accountSearch (required)
+   * @return mocked API response
+   */
   @Override
-  public Account findAccount(AccountSearch accountSearch) throws ApiException {
-    if ("123".equals(accountSearch.getBy().getId())) {
-      return new Account().ebsAccountNumber("123").id("123");
+  public Account findAccount(AccountSearch accountSearch) {
+    String orgId = accountSearch.getBy().getId();
+    String accountNumber = accountSearch.getBy().getEbsAccountNumber();
+    if ("123".equals(orgId)) {
+      accountNumber = "123";
+    } else if (accountNumber != null) {
+      orgId = "org" + accountNumber.replace("account", "");
+    } else if (orgId != null) {
+      accountNumber = "account" + orgId.replace("org", "");
     }
-    return new Account().ebsAccountNumber("account123").id("org123");
+
+    return new Account().ebsAccountNumber(accountNumber).id(orgId);
   }
 }
