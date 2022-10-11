@@ -20,7 +20,9 @@
  */
 package org.candlepin.subscriptions.tally.collector;
 
+import java.util.UUID;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 public class TestHelper {
@@ -36,6 +38,8 @@ public class TestHelper {
     NormalizedFacts facts = new NormalizedFacts();
     facts.setSockets(sockets);
     facts.setCores(cores);
+    facts.setHardwareType(HostHardwareType.PHYSICAL);
+    facts.setHypervisorUuid(UUID.randomUUID().toString());
     facts.setHypervisor(true);
     return facts;
   }
@@ -44,9 +48,8 @@ public class TestHelper {
     NormalizedFacts facts = new NormalizedFacts();
     facts.setSockets(sockets);
     facts.setCores(cores);
-    facts.setVirtual(true);
+    facts.setHardwareType(HostHardwareType.VIRTUALIZED);
     facts.setHypervisorUnknown(hypervisorIsunknown);
-    facts.setHypervisor(false);
     return facts;
   }
 

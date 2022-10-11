@@ -73,6 +73,7 @@ public class FactNormalizer {
 
     NormalizedFacts normalizedFacts = new NormalizedFacts();
     normalizeClassification(normalizedFacts, hostFacts, reportedHypervisors);
+    normalizeHardwareType(normalizedFacts, hostFacts);
     normalizeSystemProfileFacts(normalizedFacts, hostFacts);
     normalizeSatelliteFacts(normalizedFacts, hostFacts);
     normalizeRhsmFacts(normalizedFacts, hostFacts);
@@ -135,27 +136,23 @@ public class FactNormalizer {
     boolean isHypervisorUnknown =
         (isVirtual && !StringUtils.hasText(hypervisorUuid))
             || mappedHypervisors.getOrDefault(hypervisorUuid, null) == null;
+    normalizedFacts.setHypervisorUnknown(isHypervisorUnknown);
 
     boolean isHypervisor =
         StringUtils.hasText(hostFacts.getSubscriptionManagerId())
             && mappedHypervisors.containsKey(hostFacts.getSubscriptionManagerId());
-
     normalizedFacts.setHypervisor(isHypervisor);
-    normalizedFacts.setVirtual(isVirtual);
-    normalizedFacts.setHypervisorUnknown(isHypervisorUnknown);
-    normalizedFacts.setHardwareType(determineHardwareType(hostFacts));
   }
 
-  private HostHardwareType determineHardwareType(InventoryHostFacts facts) {
-    HostHardwareType hardwareType;
-    if (HardwareMeasurementType.isSupportedCloudProvider(facts.getCloudProvider())) {
+  private void normalizeHardwareType(
+      NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
+    var hardwareType = HostHardwareType.PHYSICAL;
+    if (HardwareMeasurementType.isSupportedCloudProvider(hostFacts.getCloudProvider())) {
       hardwareType = HostHardwareType.CLOUD;
-    } else if (isVirtual(facts)) {
+    } else if (isVirtual(hostFacts)) {
       hardwareType = HostHardwareType.VIRTUALIZED;
-    } else {
-      hardwareType = HostHardwareType.PHYSICAL;
     }
-    return hardwareType;
+    normalizedFacts.setHardwareType(hardwareType);
   }
 
   @SuppressWarnings("indentation")

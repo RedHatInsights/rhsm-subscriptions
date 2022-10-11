@@ -57,10 +57,10 @@ class HostTest {
   }
 
   @Test
-  void populateFieldsFromHbiFull() {
+  void populateFieldsFromHbiPhysical() {
     Host host = new Host();
     InventoryHostFacts inventoryHostFacts = getInventoryHostFactsFull();
-    NormalizedFacts normalizedFacts = getNormalizedFactsFull();
+    NormalizedFacts normalizedFacts = getNormalizedFactsPhysical();
 
     populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
 
@@ -70,11 +70,75 @@ class HostTest {
     assertEquals(host.getOrgId(), inventoryHostFacts.getOrgId());
     assertEquals(host.getDisplayName(), inventoryHostFacts.getDisplayName());
     assertEquals(host.getSubscriptionManagerId(), inventoryHostFacts.getSubscriptionManagerId());
-    assertTrue(host.isGuest());
+    assertFalse(host.isGuest());
+    assertFalse(host.isHypervisor());
     assertEquals(host.getHypervisorUuid(), normalizedFacts.getHypervisorUuid());
     assertEquals(2, host.getMeasurements().size());
-    assertTrue(host.isHypervisor());
+    assertEquals(host.getLastSeen(), inventoryHostFacts.getModifiedOn());
+    assertEquals(host.getHardwareType(), normalizedFacts.getHardwareType());
+  }
+
+  @Test
+  void populateFieldsFromHbiUnmappedGuest() {
+    Host host = new Host();
+    InventoryHostFacts inventoryHostFacts = getInventoryHostFactsFull();
+    NormalizedFacts normalizedFacts = getNormalizedFactsUnmappedGuest();
+
+    populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
+    assertEquals(host.getInventoryId(), inventoryHostFacts.getInventoryId().toString());
+    assertEquals(host.getInsightsId(), inventoryHostFacts.getInsightsId());
+    assertEquals(host.getAccountNumber(), inventoryHostFacts.getAccount());
+    assertEquals(host.getOrgId(), inventoryHostFacts.getOrgId());
+    assertEquals(host.getDisplayName(), inventoryHostFacts.getDisplayName());
+    assertEquals(host.getSubscriptionManagerId(), inventoryHostFacts.getSubscriptionManagerId());
+    assertTrue(host.isGuest());
+    assertFalse(host.isHypervisor());
+    assertEquals(host.getHypervisorUuid(), normalizedFacts.getHypervisorUuid());
+    assertEquals(2, host.getMeasurements().size());
     assertEquals(host.getCloudProvider(), normalizedFacts.getCloudProviderType().name());
+    assertEquals(host.getLastSeen(), inventoryHostFacts.getModifiedOn());
+    assertEquals(host.getHardwareType(), normalizedFacts.getHardwareType());
+  }
+
+  @Test
+  void populateFieldsFromHbiMappedGuest() {
+    Host host = new Host();
+    InventoryHostFacts inventoryHostFacts = getInventoryHostFactsFull();
+    NormalizedFacts normalizedFacts = getNormalizedFactsUnmappedGuest();
+
+    populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
+    assertEquals(host.getInventoryId(), inventoryHostFacts.getInventoryId().toString());
+    assertEquals(host.getInsightsId(), inventoryHostFacts.getInsightsId());
+    assertEquals(host.getAccountNumber(), inventoryHostFacts.getAccount());
+    assertEquals(host.getOrgId(), inventoryHostFacts.getOrgId());
+    assertEquals(host.getDisplayName(), inventoryHostFacts.getDisplayName());
+    assertEquals(host.getSubscriptionManagerId(), inventoryHostFacts.getSubscriptionManagerId());
+    assertTrue(host.isGuest());
+    assertFalse(host.isHypervisor());
+    assertEquals(host.getHypervisorUuid(), normalizedFacts.getHypervisorUuid());
+    assertEquals(2, host.getMeasurements().size());
+    assertEquals(host.getCloudProvider(), normalizedFacts.getCloudProviderType().name());
+    assertEquals(host.getLastSeen(), inventoryHostFacts.getModifiedOn());
+    assertEquals(host.getHardwareType(), normalizedFacts.getHardwareType());
+  }
+
+  @Test
+  void populateFieldsFromHbiHypervisor() {
+    Host host = new Host();
+    InventoryHostFacts inventoryHostFacts = getInventoryHostFactsFull();
+    NormalizedFacts normalizedFacts = getNormalizedFactsHypervisor();
+
+    populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
+    assertEquals(host.getInventoryId(), inventoryHostFacts.getInventoryId().toString());
+    assertEquals(host.getInsightsId(), inventoryHostFacts.getInsightsId());
+    assertEquals(host.getAccountNumber(), inventoryHostFacts.getAccount());
+    assertEquals(host.getOrgId(), inventoryHostFacts.getOrgId());
+    assertEquals(host.getDisplayName(), inventoryHostFacts.getDisplayName());
+    assertEquals(host.getSubscriptionManagerId(), inventoryHostFacts.getSubscriptionManagerId());
+    assertFalse(host.isGuest());
+    assertTrue(host.isHypervisor());
+    assertEquals(host.getHypervisorUuid(), normalizedFacts.getHypervisorUuid());
+    assertEquals(2, host.getMeasurements().size());
     assertEquals(host.getLastSeen(), inventoryHostFacts.getModifiedOn());
     assertEquals(host.getHardwareType(), normalizedFacts.getHardwareType());
   }
@@ -158,18 +222,48 @@ class HostTest {
     return inventoryHostFacts;
   }
 
-  private NormalizedFacts getNormalizedFactsFull() {
+  private NormalizedFacts getNormalizedFactsMappedGuest() {
     NormalizedFacts normalizedFacts = new NormalizedFacts();
 
-    normalizedFacts.setVirtual(true);
+    normalizedFacts.setHardwareType(HostHardwareType.VIRTUALIZED);
     normalizedFacts.setHypervisorUuid(UUID.randomUUID().toString());
     normalizedFacts.setCores(1);
     normalizedFacts.setSockets(1);
-    normalizedFacts.setHypervisor(true);
-    normalizedFacts.setHypervisor(true);
-    normalizedFacts.setHypervisorUnknown(true);
     normalizedFacts.setCloudProviderType(HardwareMeasurementType.GOOGLE);
-    normalizedFacts.setHardwareType(HostHardwareType.CLOUD);
+
+    return normalizedFacts;
+  }
+
+  private NormalizedFacts getNormalizedFactsUnmappedGuest() {
+    NormalizedFacts normalizedFacts = new NormalizedFacts();
+
+    normalizedFacts.setHardwareType(HostHardwareType.VIRTUALIZED);
+    normalizedFacts.setHypervisorUuid("");
+    normalizedFacts.setCores(1);
+    normalizedFacts.setSockets(1);
+    normalizedFacts.setCloudProviderType(HardwareMeasurementType.GOOGLE);
+
+    return normalizedFacts;
+  }
+
+  private NormalizedFacts getNormalizedFactsPhysical() {
+    NormalizedFacts normalizedFacts = new NormalizedFacts();
+
+    normalizedFacts.setHardwareType(HostHardwareType.PHYSICAL);
+    normalizedFacts.setCores(1);
+    normalizedFacts.setSockets(1);
+
+    return normalizedFacts;
+  }
+
+  private NormalizedFacts getNormalizedFactsHypervisor() {
+    NormalizedFacts normalizedFacts = new NormalizedFacts();
+
+    normalizedFacts.setHardwareType(HostHardwareType.PHYSICAL);
+    normalizedFacts.setHypervisorUuid(UUID.randomUUID().toString());
+    normalizedFacts.setHypervisor(true);
+    normalizedFacts.setCores(1);
+    normalizedFacts.setSockets(1);
 
     return normalizedFacts;
   }
