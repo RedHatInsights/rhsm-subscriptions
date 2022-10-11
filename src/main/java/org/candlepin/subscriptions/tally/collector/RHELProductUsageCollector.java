@@ -76,7 +76,7 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
       prodCalc.addPhysical(appliedCores, appliedSockets, 1);
       return Optional.of(
           createBucket(
-              prodCalc, true, appliedCores, appliedSockets, HardwareMeasurementType.PHYSICAL));
+              prodCalc, false, appliedCores, appliedSockets, HardwareMeasurementType.PHYSICAL));
     }
 
     // nothing applied to calculation so no bucket to return.
@@ -93,15 +93,15 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
     if (appliedSockets == 0) {
       log.warn(
           "Hypervisor in account {} has no sockets and will"
-              + " not contribute to the totals. The tally for the RHEL product will not be accurate since"
-              + "all associated guests will not contribute to the tally.",
+              + " not contribute to the totals. The tally for the RHEL product will not be"
+              + " accurate since all associated guests will not contribute to the tally.",
           account);
     }
 
     prodCalc.addHypervisor(appliedCores, appliedSockets, 1);
     return Optional.of(
         createBucket(
-            prodCalc, false, appliedCores, appliedSockets, HardwareMeasurementType.VIRTUAL));
+            prodCalc, true, appliedCores, appliedSockets, HardwareMeasurementType.HYPERVISOR));
   }
 
   private HostTallyBucket createBucket(
