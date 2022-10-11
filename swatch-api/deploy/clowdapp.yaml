@@ -247,6 +247,25 @@ objects:
               - name: pinhead
                 secret:
                   secretName: pinhead
+        - name: nginx-proxy
+          minReplicas: 1
+          webServices:
+            public:
+              enabled: true
+          podSpec:
+            image: quay.io/app-sre/ubi8-nginx-118
+            command:
+            - nginx
+            - "-g"
+            - "daemon off;"
+            volumeMounts:
+            - name: swatch-api-nginx-conf
+              mountPath: /etc/nginx
+            volumes:
+            - name: swatch-api-nginx-conf
+              configMap:
+                name: nginx-conf
+
   - kind: Service
     apiVersion: v1
     metadata:
@@ -262,4 +281,36 @@ objects:
           protocol: TCP
           targetPort: 8000
       selector:
-        pod: swatch-api-service
+        pod: swatch-api-nginx-proxy
+
+
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: nginx-conf
+    data:
+      nginx.conf: |-
+        events {}
+        http {
+          upstream swatch-api {
+            server swatch-api-service:8000;
+          }
+
+          server {
+            error_log  stderr;
+            access_log  /dev/stdout;
+            listen 8000;
+            client_max_body_size 500M;
+            client_header_buffer_size 46k;
+
+            location /healthz {
+                auth_basic          off;
+                allow               all;
+                return              200;
+            }
+
+            location ^~/ {
+              proxy_pass http://swatch-api;
+            }
+          }
+        }
