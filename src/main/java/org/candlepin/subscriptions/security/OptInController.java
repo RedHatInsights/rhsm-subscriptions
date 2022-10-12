@@ -71,31 +71,17 @@ public class OptInController {
   // Separate isolated transaction needed in order to prevent opt-in errors rolling back metrics
   // updates
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public OptInConfig optIn(
-      String accountNumber,
-      String orgId,
-      OptInType optInType,
-      boolean enableTallySync,
-      boolean enableTallyReporting,
-      boolean enableConduitSync) {
-    return performOptIn(
-        accountNumber, orgId, optInType, enableTallySync, enableTallyReporting, enableConduitSync);
+  public OptInConfig optIn(String accountNumber, String orgId, OptInType optInType) {
+    return performOptIn(accountNumber, orgId, optInType);
   }
 
-  private OptInConfig performOptIn(
-      String accountNumber,
-      String orgId,
-      OptInType optInType,
-      boolean enableTallySync,
-      boolean enableTallyReporting,
-      boolean enableConduitSync) {
+  private OptInConfig performOptIn(String accountNumber, String orgId, OptInType optInType) {
     OffsetDateTime now = clock.now();
 
     Optional<AccountConfig> accountData =
-        accountConfigRepository.createOrUpdateAccountConfig(
-            accountNumber, orgId, now, optInType, enableTallySync, enableTallyReporting);
+        accountConfigRepository.createOrUpdateAccountConfig(accountNumber, orgId, now, optInType);
     Optional<OrgConfig> orgData =
-        orgConfigRepository.createOrUpdateOrgConfig(orgId, now, optInType, enableConduitSync);
+        orgConfigRepository.createOrUpdateOrgConfig(orgId, now, optInType);
     return buildDto(
         buildMeta(accountNumber, orgId),
         buildOptInAccountDTO(accountData),
@@ -105,45 +91,25 @@ public class OptInController {
   // Separate isolated transaction needed in order to prevent opt-in errors rolling back metrics
   // updates
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public void optInByAccountNumber(
-      String accountNumber,
-      OptInType optInType,
-      boolean enableTallySync,
-      boolean enableTallyReporting,
-      boolean enableConduitSync) {
+  public void optInByAccountNumber(String accountNumber, OptInType optInType) {
     if (accountConfigRepository.existsByAccountNumber(accountNumber)) {
       return;
     }
     String orgId = accountService.lookupOrgId(accountNumber);
     log.info("Opting in account/orgId: {}/{}", accountNumber, orgId);
-    performOptIn(
-        accountNumber, orgId, optInType, enableTallySync, enableTallyReporting, enableConduitSync);
+    performOptIn(accountNumber, orgId, optInType);
   }
 
   // Separate isolated transaction needed in order to prevent opt-in errors rolling back metrics
   // updates
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public String optInByOrgId(
-      String orgId,
-      OptInType optInType,
-      boolean enableTallySync,
-      boolean enableTallyReporting,
-      boolean enableConduitSync) {
+  public String optInByOrgId(String orgId, OptInType optInType) {
     if (orgConfigRepository.existsById(orgId)) {
       return accountConfigRepository.findAccountNumberByOrgId(orgId);
     }
     String accountNumber = accountService.lookupAccountNumber(orgId);
     log.info("Opting in account/orgId: {}/{}", accountNumber, orgId);
-    return performOptIn(
-            accountNumber,
-            orgId,
-            optInType,
-            enableTallySync,
-            enableTallyReporting,
-            enableConduitSync)
-        .getData()
-        .getAccount()
-        .getAccountNumber();
+    return performOptIn(accountNumber, orgId, optInType).getData().getAccount().getAccountNumber();
   }
 
   @Transactional
@@ -203,8 +169,6 @@ public class OptInController {
     AccountConfig config = optionalConfig.get();
     return new OptInConfigDataAccount()
         .accountNumber(config.getAccountNumber())
-        .tallySyncEnabled(config.getSyncEnabled())
-        .tallyReportingEnabled(config.getReportingEnabled())
         .optInType(config.getOptInType() == null ? null : config.getOptInType().name())
         .created(config.getCreated())
         .lastUpdated(config.getUpdated());
@@ -218,7 +182,6 @@ public class OptInController {
     OrgConfig config = optionalConfig.get();
     return new OptInConfigDataOrg()
         .orgId(config.getOrgId())
-        .conduitSyncEnabled(config.getSyncEnabled())
         .optInType(config.getOptInType() == null ? null : config.getOptInType().name())
         .created(config.getCreated())
         .lastUpdated(config.getUpdated());

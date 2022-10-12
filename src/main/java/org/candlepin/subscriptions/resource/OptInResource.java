@@ -54,17 +54,10 @@ public class OptInResource implements OptInApi {
 
   @SubscriptionWatchAdminOnly
   @Override
-  public OptInConfig putOptInConfig(
-      Boolean enableTallySync, Boolean enableTallyReporting, Boolean enableConduitSync) {
+  public OptInConfig putOptInConfig() {
     // NOTE: All query params are defaulted to 'true' by the API definition, however we
     //       double check below.
-    return controller.optIn(
-        ResourceUtils.getAccountNumber(),
-        validateOrgId(),
-        OptInType.API,
-        trueIfNull(enableTallySync),
-        trueIfNull(enableTallyReporting),
-        trueIfNull(enableConduitSync));
+    return controller.optIn(ResourceUtils.getAccountNumber(), validateOrgId(), OptInType.API);
   }
 
   private String validateOrgId() {

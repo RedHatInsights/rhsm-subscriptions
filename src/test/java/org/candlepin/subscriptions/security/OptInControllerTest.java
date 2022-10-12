@@ -69,7 +69,7 @@ class OptInControllerTest {
     String expectedAccount = "my-account";
     String expectedOrg = "my-org";
 
-    OptInConfig saved = controller.optIn("my-account", "my-org", OptInType.API, true, true, true);
+    OptInConfig saved = controller.optIn("my-account", "my-org", OptInType.API);
     assertNotNull(saved);
     assertNotNull(saved.getData());
     assertNotNull(saved.getMeta());
@@ -83,8 +83,6 @@ class OptInControllerTest {
     OptInConfigDataAccount accountConig = saved.getData().getAccount();
     assertNotNull(accountConig);
     assertEquals(expectedAccount, accountConig.getAccountNumber());
-    assertTrue(accountConig.getTallyReportingEnabled());
-    assertTrue(accountConig.getTallySyncEnabled());
     assertEquals(clock.now(), accountConig.getCreated());
     assertEquals(clock.now(), accountConig.getLastUpdated());
     assertEquals(OptInType.API.name(), accountConig.getOptInType());
@@ -92,7 +90,6 @@ class OptInControllerTest {
     OptInConfigDataOrg orgConfig = saved.getData().getOrg();
     assertNotNull(orgConfig);
     assertEquals(expectedOrg, orgConfig.getOrgId());
-    assertTrue(orgConfig.getConduitSyncEnabled());
     assertEquals(clock.now(), orgConfig.getCreated());
     assertEquals(clock.now(), orgConfig.getLastUpdated());
     assertEquals(OptInType.API.name(), orgConfig.getOptInType());
@@ -105,12 +102,7 @@ class OptInControllerTest {
 
     OptInConfig modified =
         controller.optIn(
-            existingAccountConfig.getAccountNumber(),
-            existingOrgConfig.getOrgId(),
-            OptInType.API,
-            false,
-            false,
-            false);
+            existingAccountConfig.getAccountNumber(), existingOrgConfig.getOrgId(), OptInType.API);
 
     assertNotNull(modified);
     assertNotNull(modified.getData());
@@ -125,8 +117,6 @@ class OptInControllerTest {
     OptInConfigDataAccount accountConig = modified.getData().getAccount();
     assertNotNull(accountConig);
     assertEquals(existingAccountConfig.getAccountNumber(), accountConig.getAccountNumber());
-    assertFalse(accountConig.getTallyReportingEnabled());
-    assertFalse(accountConig.getTallySyncEnabled());
     // Created date should not change
     assertEquals(clock.now().minusDays(1), accountConig.getCreated());
     // Updated date should be changed
@@ -137,7 +127,6 @@ class OptInControllerTest {
     OptInConfigDataOrg orgConfig = modified.getData().getOrg();
     assertNotNull(orgConfig);
     assertEquals(existingOrgConfig.getOrgId(), orgConfig.getOrgId());
-    assertFalse(orgConfig.getConduitSyncEnabled());
     assertEquals(clock.now().minusDays(1), orgConfig.getCreated());
     assertEquals(clock.now(), orgConfig.getLastUpdated());
     assertEquals(OptInType.DB.name(), orgConfig.getOptInType());
@@ -148,8 +137,7 @@ class OptInControllerTest {
     OrgConfig existingOrgConfig = setupExistingOrgConfig("TEST_ORG3");
 
     OptInConfig saved =
-        controller.optIn(
-            "TEST_ACCOUNT3", existingOrgConfig.getOrgId(), OptInType.API, false, false, false);
+        controller.optIn("TEST_ACCOUNT3", existingOrgConfig.getOrgId(), OptInType.API);
 
     assertNotNull(saved);
     assertNotNull(saved.getData());
@@ -163,8 +151,6 @@ class OptInControllerTest {
 
     OptInConfigDataAccount savedAccountConfig = saved.getData().getAccount();
     assertEquals("TEST_ACCOUNT3", savedAccountConfig.getAccountNumber());
-    assertFalse(savedAccountConfig.getTallyReportingEnabled());
-    assertFalse(savedAccountConfig.getTallySyncEnabled());
     // Created date should not change
     assertEquals(clock.now(), savedAccountConfig.getCreated());
     // Updated date should be changed
@@ -174,7 +160,6 @@ class OptInControllerTest {
 
     OptInConfigDataOrg savedOrgConfig = saved.getData().getOrg();
     assertEquals(existingOrgConfig.getOrgId(), savedOrgConfig.getOrgId());
-    assertFalse(savedOrgConfig.getConduitSyncEnabled());
     assertEquals(clock.now().minusDays(1), savedOrgConfig.getCreated());
     assertEquals(clock.now(), savedOrgConfig.getLastUpdated());
     // OptInType expected to be API since the config didn't exist yet.
@@ -183,7 +168,7 @@ class OptInControllerTest {
 
   @Test
   void testOptInViaAccountNumber() {
-    controller.optInByAccountNumber("account123", OptInType.API, false, false, false);
+    controller.optInByAccountNumber("account123", OptInType.API);
 
     assertTrue(orgRepo.existsByOrgId("org123"));
     assertTrue(accountRepo.existsByAccountNumber("account123"));
@@ -195,8 +180,6 @@ class OptInControllerTest {
     accountConfig.setAccountNumber("account123");
     accountConfig.setOrgId("org123");
     accountConfig.setOptInType(OptInType.API);
-    accountConfig.setSyncEnabled(true);
-    accountConfig.setReportingEnabled(true);
     accountConfig.setCreated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
     accountConfig.setUpdated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
     accountRepo.save(accountConfig);
@@ -204,7 +187,7 @@ class OptInControllerTest {
     AccountService mockAccountService = mock(AccountService.class);
     OptInController controllerWithMockApi =
         new OptInController(clock, accountRepo, orgRepo, mockAccountService);
-    controllerWithMockApi.optInByAccountNumber("account123", OptInType.API, false, false, false);
+    controllerWithMockApi.optInByAccountNumber("account123", OptInType.API);
 
     verifyNoInteractions(mockAccountService);
     assertTrue(accountRepo.existsByAccountNumber("account123"));
@@ -212,7 +195,7 @@ class OptInControllerTest {
 
   @Test
   void testOptInViaOrgId() {
-    controller.optInByOrgId("org123", OptInType.API, false, false, false);
+    controller.optInByOrgId("org123", OptInType.API);
 
     assertTrue(orgRepo.existsByOrgId("org123"));
     assertTrue(accountRepo.existsByAccountNumber("account123"));
@@ -222,7 +205,6 @@ class OptInControllerTest {
   void testOptInViaOrgIdDoesNotUseApiIfOptInExists() {
     OrgConfig orgConfig = new OrgConfig("org123");
     orgConfig.setOptInType(OptInType.API);
-    orgConfig.setSyncEnabled(true);
     orgConfig.setCreated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
     orgConfig.setUpdated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
     orgRepo.save(orgConfig);
@@ -230,7 +212,7 @@ class OptInControllerTest {
     AccountService mockAccountService = mock(AccountService.class);
     OptInController controllerWithMockApi =
         new OptInController(clock, accountRepo, orgRepo, mockAccountService);
-    controllerWithMockApi.optInByOrgId("org123", OptInType.API, false, false, false);
+    controllerWithMockApi.optInByOrgId("org123", OptInType.API);
 
     verifyNoInteractions(mockAccountService);
     assertTrue(orgRepo.existsById("org123"));
@@ -250,16 +232,12 @@ class OptInControllerTest {
   void testGetOptInConfig() {
     String expectedAccount = "account123456";
     String expectedOrg = "owner123456";
-    Boolean expectedSyncEnabled = Boolean.TRUE;
-    Boolean expectedReportingEnabled = Boolean.FALSE;
     OptInType expectedOptIn = OptInType.API;
     OffsetDateTime expectedOptInDate = clock.now();
     OffsetDateTime expectedUpdatedDate = expectedOptInDate.plusDays(1);
 
     AccountConfig accountConfig = new AccountConfig();
     accountConfig.setAccountNumber(expectedAccount);
-    accountConfig.setSyncEnabled(expectedSyncEnabled);
-    accountConfig.setReportingEnabled(expectedReportingEnabled);
     accountConfig.setOrgId(expectedOrg);
     accountConfig.setOptInType(expectedOptIn);
     accountConfig.setCreated(expectedOptInDate);
@@ -267,7 +245,6 @@ class OptInControllerTest {
     accountRepo.save(accountConfig);
 
     OrgConfig orgConfig = new OrgConfig(expectedOrg);
-    orgConfig.setSyncEnabled(expectedSyncEnabled);
     orgConfig.setOptInType(expectedOptIn);
     orgConfig.setCreated(expectedOptInDate);
     orgConfig.setUpdated(expectedUpdatedDate);
@@ -284,15 +261,12 @@ class OptInControllerTest {
 
     OptInConfigDataAccount accountDto = dto.getData().getAccount();
     assertEquals(accountDto.getAccountNumber(), expectedAccount);
-    assertEquals(accountDto.getTallySyncEnabled(), expectedSyncEnabled);
-    assertEquals(accountDto.getTallyReportingEnabled(), expectedReportingEnabled);
     assertEquals(accountDto.getOptInType(), expectedOptIn.name());
     assertEquals(accountDto.getCreated(), expectedOptInDate);
     assertEquals(accountDto.getLastUpdated(), expectedUpdatedDate);
 
     OptInConfigDataOrg orgDto = dto.getData().getOrg();
     assertEquals(orgDto.getOrgId(), expectedOrg);
-    assertEquals(orgDto.getConduitSyncEnabled(), expectedSyncEnabled);
     assertEquals(orgDto.getOptInType(), expectedOptIn.name());
     assertEquals(orgDto.getCreated(), expectedOptInDate);
     assertEquals(orgDto.getLastUpdated(), expectedUpdatedDate);
@@ -306,15 +280,12 @@ class OptInControllerTest {
     accountConfig.setAccountNumber("account123");
     accountConfig.setOrgId("org123");
     accountConfig.setOptInType(OptInType.API);
-    accountConfig.setSyncEnabled(true);
-    accountConfig.setReportingEnabled(true);
     accountConfig.setCreated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
     accountConfig.setUpdated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
     accountRepo.save(accountConfig);
 
     OrgConfig orgConfig = new OrgConfig("org123");
     orgConfig.setOptInType(OptInType.API);
-    orgConfig.setSyncEnabled(true);
     orgConfig.setCreated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
     orgConfig.setUpdated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
     orgRepo.save(orgConfig);
@@ -332,15 +303,12 @@ class OptInControllerTest {
     accountConfig.setAccountNumber("account123");
     accountConfig.setOrgId("org123");
     accountConfig.setOptInType(OptInType.API);
-    accountConfig.setSyncEnabled(true);
-    accountConfig.setReportingEnabled(true);
     accountConfig.setCreated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
     accountConfig.setUpdated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
     accountRepo.save(accountConfig);
 
     OrgConfig orgConfig = new OrgConfig("org123");
     orgConfig.setOptInType(OptInType.API);
-    orgConfig.setSyncEnabled(true);
     orgConfig.setCreated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
     orgConfig.setUpdated(OffsetDateTime.parse("2021-04-06T00:00:00Z"));
     orgRepo.save(orgConfig);
@@ -355,8 +323,6 @@ class OptInControllerTest {
   private AccountConfig setupExistingAccountConfig() {
     AccountConfig config = new AccountConfig();
     config.setAccountNumber("TEST_ACCOUNT1");
-    config.setReportingEnabled(true);
-    config.setSyncEnabled(true);
     config.setOrgId("TEST_ORG1");
     config.setCreated(clock.now().minusDays(1));
     config.setUpdated(clock.now());
@@ -366,7 +332,6 @@ class OptInControllerTest {
 
   private OrgConfig setupExistingOrgConfig(String org) {
     OrgConfig config = new OrgConfig(org);
-    config.setSyncEnabled(true);
     config.setCreated(clock.now().minusDays(1));
     config.setUpdated(clock.now());
     config.setOptInType(OptInType.DB);

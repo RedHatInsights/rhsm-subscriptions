@@ -24,8 +24,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
@@ -62,7 +60,6 @@ class OrgConfigRepositoryTest {
     String org = "test-org";
     OrgConfig config = new OrgConfig(org);
     config.setOptInType(OptInType.JMX);
-    config.setSyncEnabled(true);
     config.setCreated(creation);
     config.setUpdated(expectedUpdate);
 
@@ -72,19 +69,17 @@ class OrgConfigRepositoryTest {
     assertNotNull(found);
     assertEquals(config, found);
 
-    found.setSyncEnabled(false);
     found.setOptInType(OptInType.API);
     repository.saveAndFlush(found);
 
     OrgConfig updated = repository.getOne(org);
     assertNotNull(updated);
-    assertEquals(Boolean.FALSE, updated.getSyncEnabled());
     assertEquals(OptInType.API, updated.getOptInType());
   }
 
   @Test
   void testDelete() {
-    OrgConfig config = createConfig("an-org", true);
+    OrgConfig config = createConfig("an-org");
     repository.saveAndFlush(config);
 
     OrgConfig toDelete = repository.getOne(config.getOrgId());
@@ -96,33 +91,17 @@ class OrgConfigRepositoryTest {
   }
 
   @Test
-  void testFindOrgsWithEnabledSync() {
-    repository.saveAll(
-        Arrays.asList(
-            createConfig("Org1", true),
-            createConfig("Org2", true),
-            createConfig("Org3", false),
-            createConfig("Org4", false)));
-    repository.flush();
-
-    List<String> orgsWithSync = repository.findSyncEnabledOrgs().collect(Collectors.toList());
-    assertEquals(2, orgsWithSync.size());
-    assertTrue(orgsWithSync.containsAll(Arrays.asList("Org1", "Org2")));
-  }
-
-  @Test
   void existsByOrgId() {
-    repository.saveAll(Arrays.asList(createConfig("Org1", true)));
+    repository.saveAll(Arrays.asList(createConfig("Org1")));
     repository.flush();
     assertTrue(repository.existsByOrgId("Org1"));
     assertFalse(repository.existsByOrgId("Not_Found"));
     assertFalse(repository.existsByOrgId(null));
   }
 
-  private OrgConfig createConfig(String org, boolean canSync) {
+  private OrgConfig createConfig(String org) {
     OrgConfig config = new OrgConfig(org);
     config.setOptInType(OptInType.API);
-    config.setSyncEnabled(canSync);
     config.setCreated(clock.now());
     config.setUpdated(config.getCreated().plusDays(1));
     return config;

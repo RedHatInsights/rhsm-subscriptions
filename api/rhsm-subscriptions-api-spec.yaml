@@ -59,14 +59,11 @@ paths:
                   opt_in_complete: true
                   account:
                     account_number: 12345
-                    tally_sync_enabled: true
-                    tally_reporting_enabled: true
                     opt_in_type: 'API'
                     created: '2017-08-04T17:32:05Z'
                     last_updated: '2017-08-04T17:32:05Z'
                   org:
                     org_id: 1111
-                    conduit_sync_enabled: true
                     opt_in_type: 'API'
                     created: '2017-08-04T17:32:05Z'
                     last_updated: '2017-08-04T17:32:05Z'
@@ -83,27 +80,8 @@ paths:
           $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
     put:
       summary: "Create/Update an account's opt-in configuration. Account and Org ID are defined by the
-                identity header. If no parameters are specified, all everything will be enabled."
+                identity header."
       operationId: putOptInConfig
-      parameters:
-        - name: enable_tally_sync
-          in: query
-          required: false
-          schema:
-            type: boolean
-            default: true
-        - name: enable_tally_reporting
-          in: query
-          required: false
-          schema:
-            type: boolean
-            default: true
-        - name: enable_conduit_sync
-          in: query
-          required: false
-          schema:
-            type: boolean
-            default: true
       responses:
         '200':
           description: "The request for the account's opt-in configuration was successful."
@@ -116,14 +94,11 @@ paths:
                   opt_in_complete: true
                   account:
                     account_number: 12345
-                    tally_sync_enabled: true
-                    tally_reporting_enabled: true
                     opt_in_type: 'API'
                     created: '2017-08-04T17:32:05Z'
                     last_updated: '2017-08-04T17:32:05Z'
                   org:
                     org_id: 1111
-                    conduit_sync_enabled: true
                     opt_in_type: 'API'
                     created: '2017-08-04T17:32:05Z'
                     last_updated: '2017-08-04T17:32:05Z'
@@ -1171,18 +1146,12 @@ components:
               type: object
               required:
                 - account_number
-                - tally_sync_enabled
-                - tally_reporting_enabled
                 - opt_in_type
                 - created
                 - last_updated
               properties:
                 account_number:
                   type: string
-                tally_sync_enabled:
-                  type: boolean
-                tally_reporting_enabled:
-                  type: boolean
                 opt_in_type:
                   type: string
                 created:
@@ -1195,15 +1164,12 @@ components:
               type: object
               required:
                 - org_id
-                - conduit_sync_enabled
                 - opt_in_type
                 - created
                 - last_updated
               properties:
                 org_id:
                   type: string
-                conduit_sync_enabled:
-                  type: boolean
                 opt_in_type:
                   type: string
                 created:

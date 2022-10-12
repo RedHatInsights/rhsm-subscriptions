@@ -31,18 +31,17 @@ import org.springframework.data.jpa.repository.Query;
 /** Defines all operations for storing organization config entries. */
 public interface OrgConfigRepository extends JpaRepository<OrgConfig, String> {
 
-  @Query("select distinct c.orgId from OrgConfig c where c.syncEnabled = TRUE")
+  @Query("select distinct c.orgId from OrgConfig c")
   Stream<String> findSyncEnabledOrgs();
 
   default Optional<OrgConfig> createOrUpdateOrgConfig(
-      String orgId, OffsetDateTime current, OptInType optInType, boolean enableSync) {
+      String orgId, OffsetDateTime current, OptInType optInType) {
     Optional<OrgConfig> found = findById(orgId);
     OrgConfig orgConfig = found.orElse(new OrgConfig(orgId));
     if (!found.isPresent()) {
       orgConfig.setOptInType(optInType);
       orgConfig.setCreated(current);
     }
-    orgConfig.setSyncEnabled(enableSync);
     orgConfig.setUpdated(current);
     return Optional.of(save(orgConfig));
   }

@@ -31,10 +31,6 @@ import javax.persistence.MappedSuperclass;
 /** Base class for configuration DB objects. */
 @MappedSuperclass
 public class BaseConfig implements Serializable {
-
-  @Column(name = "sync_enabled")
-  protected Boolean syncEnabled;
-
   @Enumerated(EnumType.STRING)
   @Column(name = "opt_in_type")
   protected OptInType optInType;
@@ -44,14 +40,6 @@ public class BaseConfig implements Serializable {
 
   @Column(name = "updated")
   protected OffsetDateTime updated;
-
-  public Boolean getSyncEnabled() {
-    return syncEnabled;
-  }
-
-  public void setSyncEnabled(Boolean syncEnabled) {
-    this.syncEnabled = syncEnabled;
-  }
 
   public OptInType getOptInType() {
     return optInType;
@@ -88,14 +76,13 @@ public class BaseConfig implements Serializable {
     }
 
     BaseConfig that = (BaseConfig) o;
-    return Objects.equals(syncEnabled, that.syncEnabled)
-        && optInType == that.optInType
+    return optInType == that.optInType
         && Objects.equals(created, that.created)
         && Objects.equals(updated, that.updated);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(syncEnabled, optInType, created, updated);
+    return Objects.hash(optInType, created, updated);
   }
 }

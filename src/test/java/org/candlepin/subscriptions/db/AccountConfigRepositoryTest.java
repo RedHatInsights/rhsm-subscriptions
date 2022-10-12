@@ -58,8 +58,6 @@ class AccountConfigRepositoryTest {
     config.setAccountNumber(account);
     config.setOrgId("test-og");
     config.setOptInType(OptInType.JMX);
-    config.setReportingEnabled(true);
-    config.setSyncEnabled(true);
     config.setCreated(creation);
     config.setUpdated(expectedUpdate);
 
@@ -68,21 +66,17 @@ class AccountConfigRepositoryTest {
     AccountConfig found = repository.findByOrgId("test-og").orElseThrow();
     assertEquals(config, found);
 
-    found.setReportingEnabled(false);
-    found.setSyncEnabled(false);
     found.setOptInType(OptInType.API);
     repository.saveAndFlush(found);
 
     AccountConfig updated = repository.findByOrgId("test-og").orElseThrow();
     assertNotNull(updated);
-    assertEquals(Boolean.FALSE, updated.getReportingEnabled());
-    assertEquals(Boolean.FALSE, updated.getSyncEnabled());
     assertEquals(OptInType.API, updated.getOptInType());
   }
 
   @Test
   void testDelete() {
-    AccountConfig config = createConfig("an-account", "an-org", true, true);
+    AccountConfig config = createConfig("an-account", "an-org");
     repository.saveAndFlush(config);
 
     AccountConfig toDelete = repository.findByOrgId("an-org").orElseThrow();
@@ -97,32 +91,16 @@ class AccountConfigRepositoryTest {
   void testFindAccountsWithEnabledSync() {
     repository.saveAll(
         Arrays.asList(
-            createConfig("A1", "O1", true, true),
-            createConfig("A2", "O2", true, false),
-            createConfig("A3", "O3", false, true),
-            createConfig("A4", "O4", false, false)));
+            createConfig("A1", "O1"),
+            createConfig("A2", "O2"),
+            createConfig("A3", "O3"),
+            createConfig("A4", "O4")));
     repository.flush();
 
     List<String> accountsWithSync =
         repository.findSyncEnabledAccounts().collect(Collectors.toList());
-    assertEquals(2, accountsWithSync.size());
-    assertTrue(accountsWithSync.containsAll(Arrays.asList("A1", "A2")));
-  }
-
-  @Test
-  void testIsReportingEnabled() {
-    repository.saveAll(
-        Arrays.asList(
-            createConfig("A1", "O1", true, true),
-            createConfig("A2", "O2", true, false),
-            createConfig("A3", "O3", false, true),
-            createConfig("A4", "O4", false, false)));
-    repository.flush();
-
-    assertTrue(repository.isReportingEnabled("A1"));
-    assertFalse(repository.isReportingEnabled("A2"));
-    assertTrue(repository.isReportingEnabled("A3"));
-    assertFalse(repository.isReportingEnabled("A4"));
+    assertEquals(4, accountsWithSync.size());
+    assertTrue(accountsWithSync.containsAll(Arrays.asList("A1", "A2", "A3", "A4")));
   }
 
   @Test
@@ -130,16 +108,16 @@ class AccountConfigRepositoryTest {
     OffsetDateTime begin = OffsetDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC).minusSeconds(1);
     OffsetDateTime end = begin.plusDays(1);
 
-    AccountConfig optInBefore = createConfig("A1", "O1", true, true);
+    AccountConfig optInBefore = createConfig("A1", "O1");
     optInBefore.setCreated(begin.minusSeconds(1));
 
-    AccountConfig optInBeginning = createConfig("A2", "O2", true, true);
+    AccountConfig optInBeginning = createConfig("A2", "O2");
     optInBeginning.setCreated(begin);
 
-    AccountConfig optInEnd = createConfig("A3", "O3", true, true);
+    AccountConfig optInEnd = createConfig("A3", "O3");
     optInEnd.setCreated(end);
 
-    AccountConfig optInAfter = createConfig("A4", "O4", true, true);
+    AccountConfig optInAfter = createConfig("A4", "O4");
     optInAfter.setCreated(end.plusSeconds(1));
 
     repository.saveAll(Arrays.asList(optInBefore, optInBeginning, optInEnd, optInAfter));
@@ -154,26 +132,23 @@ class AccountConfigRepositoryTest {
 
   @Test
   void testLookupOrgIdByAccountNumber() {
-    AccountConfig expectedConfig = createConfig("A2", "O2", true, false);
+    AccountConfig expectedConfig = createConfig("A2", "O2");
     repository.saveAll(
         Arrays.asList(
-            createConfig("A1", "O1", true, true),
+            createConfig("A1", "O1"),
             expectedConfig,
-            createConfig("A3", "O3", false, true),
-            createConfig("A4", "O4", false, false)));
+            createConfig("A3", "O3"),
+            createConfig("A4", "O4")));
     repository.flush();
 
     assertEquals("O2", repository.findOrgByAccountNumber("A2"));
   }
 
-  private AccountConfig createConfig(
-      String account, String orgId, boolean canSync, boolean canReport) {
+  private AccountConfig createConfig(String account, String orgId) {
     AccountConfig config = new AccountConfig();
     config.setAccountNumber(account);
     config.setOrgId(orgId);
     config.setOptInType(OptInType.API);
-    config.setSyncEnabled(canSync);
-    config.setReportingEnabled(canReport);
     config.setCreated(clock.now());
     config.setUpdated(config.getCreated().plusDays(1));
     return config;

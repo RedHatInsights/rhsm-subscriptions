@@ -34,9 +34,6 @@ public class AccountConfig extends BaseConfig {
   @Column(name = "account_number")
   private String accountNumber;
 
-  @Column(name = "reporting_enabled")
-  private Boolean reportingEnabled;
-
   @Id
   @Column(name = "org_id")
   private String orgId;
@@ -47,14 +44,6 @@ public class AccountConfig extends BaseConfig {
 
   public void setAccountNumber(String accountNumber) {
     this.accountNumber = accountNumber;
-  }
-
-  public Boolean getReportingEnabled() {
-    return reportingEnabled;
-  }
-
-  public void setReportingEnabled(Boolean reportingEnabled) {
-    this.reportingEnabled = reportingEnabled;
   }
 
   public String getOrgId() {
@@ -80,13 +69,11 @@ public class AccountConfig extends BaseConfig {
     }
 
     AccountConfig that = (AccountConfig) o;
-    return Objects.equals(accountNumber, that.accountNumber)
-        && Objects.equals(orgId, that.orgId)
-        && Objects.equals(reportingEnabled, that.reportingEnabled);
+    return Objects.equals(accountNumber, that.accountNumber) && Objects.equals(orgId, that.orgId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), accountNumber, orgId, reportingEnabled);
+    return Objects.hash(super.hashCode(), accountNumber, orgId);
   }
 }
