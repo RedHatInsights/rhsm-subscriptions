@@ -258,6 +258,9 @@ objects:
             - nginx
             - "-g"
             - "daemon off;"
+            env:
+            - name: DEV_MODE
+              value: ${DEV_MODE}
             volumeMounts:
             - name: swatch-api-nginx-conf
               mountPath: /etc/nginx
