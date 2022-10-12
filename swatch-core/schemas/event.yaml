@@ -133,7 +133,7 @@ properties:
       - ocp
       - osd
       - rhosak
-      - rhacs
+      - addon-open-data-hub
     required: false
   sla:
     description: Service level for the subject.
