@@ -192,10 +192,10 @@ tagMetrics:
     rhmMetricId: redhat.com:openshift_container_platform:cpu_hour
     uom: CORES
     billingWindow: MONTHLY
-    queryKey: 5mSamples
+    queryKey: default
     queryParams:
       product: ocp
-      prometheusMetric: cluster:usage:workload:capacity_physical_cpu_cores:max:5m
+      prometheusMetric: cluster:usage:workload:capacity_physical_cpu_hours
       prometheusMetadataMetric: subscription_labels
 
   # OSD metrics
@@ -204,20 +204,20 @@ tagMetrics:
     rhmMetricId: redhat.com:openshift_dedicated:4cpu_hour
     uom: CORES
     billingWindow: MONTHLY
-    queryKey: 5mSamples
+    queryKey: default
     queryParams:
       product: osd
-      prometheusMetric: cluster:usage:workload:capacity_physical_cpu_cores:max:5m
+      prometheusMetric:  cluster:usage:workload:capacity_physical_cpu_hours
       prometheusMetadataMetric: subscription_labels
   - tag: OpenShift-dedicated-metrics
     metricId: redhat.com:openshift_dedicated:cluster_hour
     rhmMetricId: redhat.com:openshift_dedicated:cluster_hour
     uom: INSTANCE_HOURS
     billingWindow: MONTHLY
-    queryKey: 5mSamples
+    queryKey: default
     queryParams:
       product: osd
-      prometheusMetric: group(cluster:usage:workload:capacity_physical_cpu_cores:max:5m) by (_id)
+      prometheusMetric: cluster:usage:workload:capacity_physical_instance_hours
       prometheusMetadataMetric: subscription_labels
 
   # RHOSAK metrics
