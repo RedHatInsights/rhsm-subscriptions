@@ -23,7 +23,7 @@ ext.plugins = [
         "com.diffplug.spotless:spotless-plugin-gradle:6.11.0",
         "com.github.davidmc24.gradle.plugin:gradle-avro-plugin:1.5.0",
         "com.netflix.nebula:nebula-release-plugin:17.0.0",
-        "io.quarkus:gradle-application-plugin:2.13.1.Final",
+        "io.quarkus:gradle-application-plugin:2.13.2.Final",
         "io.spring.gradle:dependency-management-plugin:1.0.14.RELEASE",
         "org.jsonschema2pojo:jsonschema2pojo-gradle-plugin:1.1.2",
         "org.kordamp.gradle:jandex-gradle-plugin:0.13.2",
@@ -46,7 +46,7 @@ libraries["jsr305"] = "com.google.code.findbugs:jsr305:3.0.2"
 libraries["junit-jupiter"] = "org.junit.jupiter:junit-jupiter:5.9.1"
 libraries["kafka-avro-serializer"] = "io.confluent:kafka-avro-serializer:7.2.2"
 libraries["lombok"] = "org.projectlombok:lombok:1.18.24"
-libraries["quarkus-bom"] = "io.quarkus.platform:quarkus-bom:2.13.1.Final"
+libraries["quarkus-bom"] = "io.quarkus.platform:quarkus-bom:2.13.2.Final"
 libraries["quarkus-logging-logback"] = "io.quarkiverse.logging.logback:quarkus-logging-logback:0.13.0"
 libraries["quarkus-logging-splunk"] = "io.quarkiverse.logging.splunk:quarkus-logging-splunk:2.4.0"
 libraries["resteasy-client"] = "org.jboss.resteasy:resteasy-client:5.0.4.Final"
@@ -54,9 +54,9 @@ libraries["resteasy-jackson2-provider"] = "org.jboss.resteasy:resteasy-jackson2-
 libraries["resteasy-multipart-provider"] = "org.jboss.resteasy:resteasy-multipart-provider:5.0.4.Final"
 libraries["resteasy-spring-boot-starter"] = "org.jboss.resteasy:resteasy-spring-boot-starter:5.0.0.Final"
 libraries["resteasy-validator-provider"] = "org.jboss.resteasy:resteasy-validator-provider:5.0.4.Final"
-libraries["splunk-library-javalogging"] = "com.splunk.logging:splunk-library-javalogging:1.11.6"
+libraries["splunk-library-javalogging"] = "com.splunk.logging:splunk-library-javalogging:1.11.7"
 libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-dependencies:2.7.4"
 libraries["swagger-annotations"] = "io.swagger:swagger-annotations:1.6.7"
-libraries["swagger-ui"] = "org.webjars:swagger-ui:4.14.2"
+libraries["swagger-ui"] = "org.webjars:swagger-ui:4.14.3"
 libraries["webjars-locator"] = "org.webjars:webjars-locator:0.45"
 libraries["wiremock-jre8"] = "com.github.tomakehurst:wiremock-jre8:2.34.0"
