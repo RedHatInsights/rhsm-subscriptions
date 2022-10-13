@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.jmx;
 import java.util.Optional;
 import javax.validation.constraints.NotNull;
 import org.candlepin.subscriptions.resource.ResourceUtils;
+import org.candlepin.subscriptions.tally.admin.DataMigrationRunner;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.util.DateRange;
 import org.candlepin.subscriptions.validator.ParameterDuration;
@@ -44,9 +45,11 @@ public class TallyJmxBean {
   private static final Logger log = LoggerFactory.getLogger(TallyJmxBean.class);
 
   private final CaptureSnapshotsTaskManager tasks;
+  private final DataMigrationRunner dataMigrationRunner;
 
-  public TallyJmxBean(CaptureSnapshotsTaskManager taskManager) {
+  public TallyJmxBean(CaptureSnapshotsTaskManager taskManager, DataMigrationRunner dataMigrationRunner) {
     this.tasks = taskManager;
+    this.dataMigrationRunner = dataMigrationRunner;
   }
 
   @ManagedOperation(description = "Trigger a tally for an account")
@@ -123,5 +126,11 @@ public class TallyJmxBean {
     }
 
     tasks.updateHourlySnapshotsForAllAccounts(Optional.ofNullable(range));
+  }
+
+  @ManagedOperation(description = "Fix all the things")
+  public void changeSetRunner() {
+
+    dataMigrationRunner.sanityCheck();
   }
 }
