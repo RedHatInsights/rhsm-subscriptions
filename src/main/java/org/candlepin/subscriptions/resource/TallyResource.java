@@ -63,8 +63,8 @@ public class TallyResource implements TallyApi {
   private static final Map<ReportCategory, Set<HardwareMeasurementType>> CATEGORY_MAP =
       Map.of(
           ReportCategory.PHYSICAL, Set.of(HardwareMeasurementType.PHYSICAL),
-          ReportCategory.VIRTUAL,
-              Set.of(HardwareMeasurementType.VIRTUAL, HardwareMeasurementType.HYPERVISOR),
+          ReportCategory.VIRTUAL, Set.of(HardwareMeasurementType.VIRTUAL),
+          ReportCategory.HYPERVISOR, Set.of(HardwareMeasurementType.HYPERVISOR),
           ReportCategory.CLOUD, new HashSet<>(HardwareMeasurementType.getCloudProviderTypes()));
   private final TallySnapshotRepository repository;
   private final PageLinkCreator pageLinkCreator;
