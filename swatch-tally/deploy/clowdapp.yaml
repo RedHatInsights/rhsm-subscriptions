@@ -899,22 +899,22 @@ objects:
           - name: POSTGRESQL_SERVICE_HOST
             valueFrom:
               secretKeyRef:
-                name: rhsm-db
+                name: swatch-tally-db
                 key: db.host
           - name: POSTGRESQL_USER
             valueFrom:
               secretKeyRef:
-                name: rhsm-db
+                name: swatch-tally-db
                 key: db.user
           - name: POSTGRESQL_DATABASE
             valueFrom:
               secretKeyRef:
-                name: rhsm-db
+                name: swatch-tally-db
                 key: db.name
           - name: PGPASSWORD
             valueFrom:
               secretKeyRef:
-                name: rhsm-db
+                name: swatch-tally-db
                 key: db.password
           - name: DB_CHANGELOG_CLEANUP_SQL
             value: ${DB_CHANGELOG_CLEANUP_SQL}

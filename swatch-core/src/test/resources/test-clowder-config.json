@@ -3,7 +3,7 @@
         "adminPassword": "SECRET",
         "adminUsername": "postgres",
         "hostname": "rhsm-clowdapp-db.rhsm.svc",
-        "name": "rhsm-db",
+        "name": "swatch-tally-db",
         "password": "ALSO_SECRET",
         "port": 5432,
         "sslMode": "disable",
