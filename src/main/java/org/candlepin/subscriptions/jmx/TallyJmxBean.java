@@ -24,6 +24,7 @@ import java.util.Optional;
 import javax.validation.constraints.NotNull;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.tally.admin.DataMigrationRunner;
+import org.candlepin.subscriptions.tally.admin.HardwareMeasurementMigration;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.util.DateRange;
 import org.candlepin.subscriptions.validator.ParameterDuration;
@@ -47,7 +48,8 @@ public class TallyJmxBean {
   private final CaptureSnapshotsTaskManager tasks;
   private final DataMigrationRunner dataMigrationRunner;
 
-  public TallyJmxBean(CaptureSnapshotsTaskManager taskManager, DataMigrationRunner dataMigrationRunner) {
+  public TallyJmxBean(
+      CaptureSnapshotsTaskManager taskManager, DataMigrationRunner dataMigrationRunner) {
     this.tasks = taskManager;
     this.dataMigrationRunner = dataMigrationRunner;
   }
@@ -128,9 +130,17 @@ public class TallyJmxBean {
     tasks.updateHourlySnapshotsForAllAccounts(Optional.ofNullable(range));
   }
 
-  @ManagedOperation(description = "Fix all the things")
-  public void changeSetRunner() {
-
-    dataMigrationRunner.sanityCheck();
+  @ManagedOperation(description = "Trigger hardware_measurements migration")
+  @ManagedOperationParameter(
+      name = "snapshotId",
+      description = "Offset to start from (may be null to start from beginning)")
+  @ManagedOperationParameter(name = "batchSize", description = "Batch size")
+  public void migrateHardwareMeasurements(String snapshotId, int batchSize) {
+    log.info(
+        "hardware_measurements migration triggered over JMX by {}", ResourceUtils.getPrincipal());
+    dataMigrationRunner.migrate(
+        HardwareMeasurementMigration.class,
+        StringUtils.hasText(snapshotId) ? snapshotId : null,
+        batchSize);
   }
 }

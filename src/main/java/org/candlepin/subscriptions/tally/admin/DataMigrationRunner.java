@@ -1,94 +1,77 @@
+/*
+ * Copyright Red Hat, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Red Hat trademarks are not licensed under GPLv3. No permission is
+ * granted to use or replicate Red Hat trademarks that are incorporated
+ * in this software or its documentation.
+ */
 package org.candlepin.subscriptions.tally.admin;
 
-import java.util.Arrays;
-import java.util.List;
+import io.micrometer.core.instrument.MeterRegistry;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.stream.Collectors;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.PreDestroy;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
-import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
 public class DataMigrationRunner {
-
+  private final ExecutorService executor;
+  private final JdbcTemplate jdbcTemplate;
+  private final MeterRegistry meterRegistry;
 
   @Autowired
-  JdbcTemplate jdbcTemplate;
-
-  public void sanityCheck() {
-    log.info("Bananas");
-    migrateCoresSocketsData();
-
-    var threadPoolSize = 4;
-
-    ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(threadPoolSize);
-
-    migrateCoresSocketsData().forEach(sqlStatement -> {
-      executor.submit(() -> {
-
-        log.info("Running sql: {}", sqlStatement);
-        jdbcTemplate.update(sqlStatement);
-        updateDatabaseChangelog("placeholder for now....we need to shove a comment in somewhere");
-        return null;
-
-      });
-    });
+  public DataMigrationRunner(JdbcTemplate jdbcTemplate, MeterRegistry meterRegistry) {
+    executor = Executors.newFixedThreadPool(4);
+    this.jdbcTemplate = jdbcTemplate;
+    this.meterRegistry = meterRegistry;
   }
 
-  // src/main/resources/liquibase/202208251616-migrate-cores-sockets-data.xml
-  public List<String> migrateCoresSocketsData() {
-
-    return Arrays.asList(
-        // 202208251616-1
-        "insert into instance_measurements(instance_id, uom, value) select id, 'CORES', cores from hosts where cores is not null on conflict(instance_id, uom) do update set value =excluded.value;"
-        // 202208251616-2
-        ,
-        "insert into instance_measurements(instance_id, uom, value) select id, 'SOCKETS', sockets from hosts where sockets is not null on conflict(instance_id, uom) do update set value=excluded.value;"
-        // 202208251616-3
-        ,
-        "insert into tally_measurements(snapshot_id, measurement_type, uom, value) select snapshot_id, measurement_type, 'SOCKETS', sockets from hardware_measurements where sockets is not null on conflict(snapshot_id, measurement_type, uom) do update set value=excluded.value;"
-        // 202208251616-4
-        ,
-        "insert into tally_measurements(snapshot_id, measurement_type, uom, value) select snapshot_id, measurement_type, 'CORES', cores from hardware_measurements where cores is not null on conflict(snapshot_id, measurement_type, uom) do update set value=excluded.value;"
-        // 202208251616-5
-        ,
-        "insert into tally_measurements(snapshot_id, measurement_type, uom, value) select snapshot_id, measurement_type, 'INSTANCES', instance_count from hardware_measurements where instance_count is not null on conflict(snapshot_id, measurement_type, uom) do update set value=excluded.value;"
-
-    );
-
-
+  @PreDestroy
+  protected void destroy() throws InterruptedException {
+    executor.shutdown();
+    if (!executor.awaitTermination(20, TimeUnit.SECONDS)) {
+      log.warn("Data migration not yet terminated in 20 seconds.");
+    }
   }
 
+  public void migrate(
+      Class<? extends DataMigration> migrationClass, String startingRecordID, int batchSize) {
+    executor.execute(
+        () -> {
+          DataMigration dataMigration;
+          try {
+            dataMigration = DataMigration.getMigration(migrationClass, jdbcTemplate, meterRegistry);
+          } catch (Exception e) {
+            log.warn("Unable to constructor migration from class {}", migrationClass);
+            return;
+          }
 
+          String lastProcessedId = startingRecordID;
+          do {
+            SqlRowSet page = dataMigration.extract(lastProcessedId, batchSize);
+            lastProcessedId = dataMigration.transformAndLoad(page);
+          } while (lastProcessedId != null);
 
-  public void updateDatabaseChangelog(String comment) {
-
-    // TODO
-    log.info("Entry into databasechangelog", comment);
+          dataMigration.recordCompleted();
+        });
   }
-
-
-
-  // {
-  // "id": "202209301614-1",
-  // "author": "mstead",
-  // "filename": "liquibase/202209301614-migrate-org-id-to-events-table.xml",
-  // "dateexecuted": "2022-10-12 18:03:48.245371",
-  // "orderexecuted": 143,
-  // "exectype": "EXECUTED",
-  // "md5sum": "8:ba2f1a325928e9bb87387bd97e27f2bc",
-  // "description": "sql",
-  // "comments": "Migrate org_id to events table from account_config.",
-  // "tag": null,
-  // "liquibase": "4.9.1",
-  // "contexts": null,
-  // "labels": null,
-  // "deployment_id": "5597795748"
-  // }
-
-
 }
-
