@@ -149,6 +149,14 @@ parameters:
     value: "1"
   - name: ORG_ID_POPULATOR_BATCH_SIZE
     value: "100"
+  - name: EGRESS_IMAGE_TAG
+    value: fec6dc2
+  # Using a value of 'select 1' makes this job a no-op by default.
+  # When needed bump DB_CHANGELOG_CLEANUP_RUN_NUMBER, set DB_CHANGELOG_CLEANUP_SQL to 'delete from databasechangeloglock'
+  - name: DB_CHANGELOG_CLEANUP_RUN_NUMBER
+    value: '1'
+  - name: DB_CHANGELOG_CLEANUP_SQL
+    value: 'select 1'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -872,6 +880,44 @@ objects:
             limits:
               cpu: ${ORG_ID_POPULATOR_CPU_LIMIT}
               memory: ${ORG_ID_POPULATOR_MEMORY_LIMIT}
+      - name: db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+        restartPolicy: Never
+        podSpec:
+          image: quay.io/cloudservices/rhsm-subscriptions-egress:${EGRESS_IMAGE_TAG}
+          name: db-changelog-cleanup
+          command: ["/bin/sh", "-c"]
+          args:
+          - psql -h $POSTGRESQL_SERVICE_HOST -U $POSTGRESQL_USER $POSTGRESQL_DATABASE -c "$DB_CHANGELOG_CLEANUP_SQL"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          env:
+          - name: POSTGRESQL_SERVICE_HOST
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-db
+                key: db.host
+          - name: POSTGRESQL_USER
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-db
+                key: db.user
+          - name: POSTGRESQL_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-db
+                key: db.name
+          - name: PGPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: rhsm-db
+                key: db.password
+          - name: DB_CHANGELOG_CLEANUP_SQL
+            value: ${DB_CHANGELOG_CLEANUP_SQL}
 
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdJobInvocation
@@ -881,6 +927,15 @@ objects:
     appName: swatch-tally
     jobs:
       - opt-in-org-id-populator-${POPULATOR_RUN_NUMBER}
+
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdJobInvocation
+  metadata:
+    name: db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
+  spec:
+    appName: swatch-tally
+    jobs:
+      - db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
 
 - apiVersion: v1
   kind: Secret
