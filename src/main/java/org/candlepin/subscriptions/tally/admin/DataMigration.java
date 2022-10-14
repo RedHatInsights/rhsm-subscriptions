@@ -43,7 +43,7 @@ public abstract class DataMigration {
 
   protected MeterRegistry meterRegistry;
 
-  public DataMigration(JdbcTemplate jdbcTemplate, MeterRegistry meterRegistry) {
+  protected DataMigration(JdbcTemplate jdbcTemplate, MeterRegistry meterRegistry) {
     this.jdbcTemplate = jdbcTemplate;
     this.meterRegistry = meterRegistry;
   }
