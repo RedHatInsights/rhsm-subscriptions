@@ -126,17 +126,6 @@ public class HardwareMeasurementMigration extends DataMigration {
             "liquibase/202208251616-migrate-cores-sockets-data.xml",
             "md5sum",
             "8:5e353189c216fb19646ef4183c28488a"));
-    markLiquibaseChangesetRan(
-        jdbcTemplate,
-        Map.of(
-            "id",
-            "202208251616-5",
-            "author",
-            "khowell",
-            "filename",
-            "liquibase/202208251616-migrate-cores-sockets-data.xml",
-            "md5sum",
-            "8:1891ca4061d152d04b61b6190d86cbac"));
   }
 
   private Double extractNullableDouble(SqlRowSet data, String column) {
