@@ -114,7 +114,7 @@ parameters:
 
 # allow overriding to support independent deploy with bonfire
   - name: DB_POD
-    value: rhsm
+    value: swatch-tally
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -143,6 +143,11 @@ objects:
         - replicas: 1
           partitions: 1
           topicName: platform.rhsm-subscriptions.subscription-prune
+
+      database:
+        sharedDbAppName: swatch-tally
+      dependencies:
+        - swatch-tally
 
       # Creates a database if local mode, or uses RDS in production
       # database:

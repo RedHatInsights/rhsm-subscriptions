@@ -175,11 +175,11 @@ objects:
       - replicas: 3
         partitions: 3
         topicName: platform.rhsm-subscriptions.billable-usage
-    # Creates a database if local mode, or uses RDS in production
-    # database:
-    #   # Must specify both a name and a major postgres version
-    #   name: rhsm-db
-    #   version: 12
+
+    database:
+      # Must specify both a name and a major postgres version
+      name: swatch-tally-db
+      version: 12
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
@@ -277,27 +277,27 @@ objects:
             - name: DATABASE_HOST
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.host
             - name: DATABASE_PORT
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.port
             - name: DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.password
             - name: DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.name
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
@@ -484,27 +484,27 @@ objects:
             - name: DATABASE_HOST
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.host
             - name: DATABASE_PORT
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.port
             - name: DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.password
             - name: DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.name
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
@@ -612,27 +612,27 @@ objects:
             - name: DATABASE_HOST
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.host
             - name: DATABASE_PORT
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.port
             - name: DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.password
             - name: DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.name
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
@@ -742,27 +742,27 @@ objects:
             - name: DATABASE_HOST
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.host
             - name: DATABASE_PORT
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.port
             - name: DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.password
             - name: DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.name
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
@@ -831,27 +831,27 @@ objects:
             - name: DATABASE_HOST
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.host
             - name: DATABASE_PORT
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.port
             - name: DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.password
             - name: DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.name
             - name: ORG_ID_POPULATOR_BATCH_SIZE
               value: ${ORG_ID_POPULATOR_BATCH_SIZE}

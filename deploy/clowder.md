@@ -19,19 +19,16 @@ bonfire config write-default
 cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
 - name: rhsm #Name of app-sre 'application' folder this component lives in
   components:
-    - name: rhsm # a resourceTemplate in deploy-clowder.yaml in app-interface (ClowdApp name)
+    - name: swatch-tally
       host: local
-      repo: $(pwd)/rhsm-subscriptions
-      path: /deploy/rhsm-clowdapp.yaml
+      repo: $(pwd)/swatch-tally
+      path: /deploy/clowdapp.yaml
       parameters:
         REPLICAS: 1
-        RHSM_RBAC_USE_STUB: "true"
-        MARKETPLACE_MANUAL_SUBMISSION_ENABLED: "true"
         DEV_MODE: "true"
-        ENABLE_ACCOUNT_RESET: "true"
-        rhsm/IMAGE: quay.io/cloudservices/rhsm-subscriptions
-        SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT: http://localhost:8101/subscriptions/
-
+        swatch-tally/IMAGE: quay.io/cloudservices/rhsm-subscriptions
+        RHSM_RBAC_USE_STUB: "true"
+        
     - name: swatch-producer-red-hat-marketplace
       host: local
       repo: $(pwd)/rhsm-subscriptions/swatch-producer-red-hat-marketplace
@@ -64,16 +61,6 @@ cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
       parameters:
         REPLICAS: 1
         swatch-system-conduit/IMAGE: quay.io/cloudservices/swatch-system-conduit
-
-    - name: swatch-tally
-      host: local
-      repo: $(pwd)/swatch-tally
-      path: /deploy/clowdapp.yaml
-      parameters:
-        REPLICAS: 1
-        DEV_MODE: "true"
-        swatch-tally/IMAGE: quay.io/cloudservices/rhsm-subscriptions
-        RHSM_RBAC_USE_STUB: "true"
 
     - name: swatch-api
       host: local
