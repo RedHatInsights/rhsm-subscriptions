@@ -23,6 +23,8 @@ package org.candlepin.subscriptions.tally.admin;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
@@ -74,6 +76,9 @@ public class HardwareMeasurementMigration extends DataMigration {
   @Override
   public String transformAndLoad(SqlRowSet data) {
     String lastSeenSnapshotId = null;
+    List<Object[]> insertList = new ArrayList<>();
+    List<Object[]> updateList = new ArrayList<>();
+    int snapshotCount = 0;
     while (data.next()) {
       String snapshotId = data.getString("snapshot_id");
       lastSeenSnapshotId = snapshotId;
@@ -84,20 +89,24 @@ public class HardwareMeasurementMigration extends DataMigration {
       Double tallyMeasurementCores = extractNullableDouble(data, "c_value");
       if (sockets != null && tallyMeasurementSockets == null) {
         log.debug("Inserting sockets for tally snapshotId: {}", snapshotId);
-        jdbcTemplate.update(INSERT_SQL, snapshotId, measurementType, "SOCKETS", sockets);
+        insertList.add(new Object[] {snapshotId, measurementType, "SOCKETS", sockets});
       } else if (!Objects.equals(tallyMeasurementSockets, sockets)) {
         log.debug("Updating sockets for tally snapshotId: {}", snapshotId);
-        jdbcTemplate.update(UPDATE_SQL, sockets, snapshotId, measurementType, "SOCKETS");
+        updateList.add(new Object[] {sockets, snapshotId, measurementType, "SOCKETS"});
       }
       if (cores != null && tallyMeasurementCores == null) {
         log.debug("Inserting cores for tally snapshotId: {}", snapshotId);
-        jdbcTemplate.update(INSERT_SQL, snapshotId, measurementType, "CORES", cores);
+        insertList.add(new Object[] {snapshotId, measurementType, "CORES", cores});
       } else if (!Objects.equals(tallyMeasurementCores, cores)) {
         log.debug("Updating cores for tally snapshotId: {}", snapshotId);
-        jdbcTemplate.update(UPDATE_SQL, cores, snapshotId, measurementType, "CORES");
+        updateList.add(new Object[] {cores, snapshotId, measurementType, "CORES"});
       }
-      counter.increment();
+      snapshotCount++;
     }
+
+    jdbcTemplate.batchUpdate(INSERT_SQL, insertList);
+    jdbcTemplate.batchUpdate(UPDATE_SQL, updateList);
+    counter.increment(snapshotCount);
     return lastSeenSnapshotId;
   }
 
