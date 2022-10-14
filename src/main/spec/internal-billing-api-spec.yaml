@@ -27,6 +27,28 @@ paths:
         required: false
         schema:
           type: string
+      - name: billingProvider
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: billingAccountId
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: beginning
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - name: ending
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date-time
     get:
       operationId: getRemittances
       summary: "Get all monthly remittances for an account"
@@ -66,6 +88,10 @@ components:
         productId:
           type: string
         metricId:
+          type: string
+        billingProvider:
+          type: string
+        billingAccountId:
           type: string
         remittedValue:
           type: number

@@ -20,12 +20,22 @@
  */
 package org.candlepin.subscriptions.db;
 
+import java.lang.reflect.Field;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Predicate;
 
 public abstract class BaseSpecification {
+
+  protected Set<String> getAttributes(Path<?> keyPath) {
+    return Arrays.stream(keyPath.getModel().getBindableJavaType().getDeclaredFields())
+        .map(Field::getName)
+        .collect(Collectors.toSet());
+  }
 
   protected Predicate mapCriteriaToPredicate(
       Path<?> expression, SearchCriteria criteria, CriteriaBuilder builder) {

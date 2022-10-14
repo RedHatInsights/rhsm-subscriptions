@@ -24,35 +24,20 @@ import java.util.List;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 public interface BillableUsageRemittanceRepository
-    extends JpaRepository<BillableUsageRemittanceEntity, BillableUsageRemittanceEntityPK> {
+    extends JpaRepository<BillableUsageRemittanceEntity, BillableUsageRemittanceEntityPK>,
+        JpaSpecificationExecutor<BillableUsageRemittanceEntity> {
 
   @Query
   void deleteByOrgId(String orgId);
 
-  @Query
-  List<BillableUsageRemittanceEntity> findAllByOrgIdAndKey_ProductIdAndKey_MetricId( // NOSONAR
-      String orgId, String productId, String metricId);
+  default List<BillableUsageRemittanceEntity> filterBy(BillableUsageRemittanceFilter filter) {
+    BillableUsageRemittanceSpecification spec =
+        BillableUsageRemittanceSpecification.builder().criteria(filter.getSearchCriteria()).build();
 
-  @Query
-  List<BillableUsageRemittanceEntity>
-      findAllByKey_AccountNumberAndKey_ProductIdAndKey_MetricId( // NOSONAR
-      String accountNumber, String productId, String metricId);
-
-  @Query(
-      "SELECT b FROM BillableUsageRemittanceEntity b where "
-          + "b.key.accountNumber = :accountNumber and "
-          + "b.key.productId = :productId")
-  List<BillableUsageRemittanceEntity> findAllRemittancesByAccountNumber(
-      @Param("accountNumber") String accountNumber, @Param("productId") String productId);
-
-  @Query(
-      "SELECT b FROM BillableUsageRemittanceEntity b where "
-          + "b.orgId = :orgId and "
-          + "b.key.productId = :productId")
-  List<BillableUsageRemittanceEntity> findAllRemittancesByOrgId(
-      @Param("orgId") String orgId, @Param("productId") String productId);
+    return this.findAll(spec);
+  }
 }

@@ -53,7 +53,12 @@ class BillableUsageRemittanceRepositoryTest {
   @Test
   void saveAndFetch() {
     BillableUsageRemittanceEntity remittance =
-        remittance("account123", "product1", 12.0, clock.startOfCurrentMonth());
+        remittance(
+            "account123",
+            "product1",
+            BillingProvider.AWS.value(),
+            12.0,
+            clock.startOfCurrentMonth());
     repository.saveAndFlush(remittance);
     Optional<BillableUsageRemittanceEntity> fetched = repository.findById(remittance.getKey());
     assertTrue(fetched.isPresent());
@@ -63,16 +68,24 @@ class BillableUsageRemittanceRepositoryTest {
   @Test
   void deleteByOrgId() {
     BillableUsageRemittanceEntity remittance1 =
-        remittance("account123", "product1", 12.0, clock.startOfCurrentMonth());
-    remittance1.setOrgId("org123");
+        remittance(
+            "account123",
+            "product1",
+            BillingProvider.AWS.value(),
+            12.0,
+            clock.startOfCurrentMonth());
     BillableUsageRemittanceEntity remittance2 =
-        remittance("account555", "product1", 12.0, clock.startOfCurrentMonth());
-    remittance2.setOrgId("org555");
+        remittance(
+            "account555",
+            "product1",
+            BillingProvider.AWS.value(),
+            12.0,
+            clock.startOfCurrentMonth());
 
     List<BillableUsageRemittanceEntity> toSave = List.of(remittance1, remittance2);
     repository.saveAllAndFlush(toSave);
 
-    repository.deleteByOrgId("org123");
+    repository.deleteByOrgId("org_account123");
     repository.flush();
     assertTrue(repository.findById(remittance1.getKey()).isEmpty());
     Optional<BillableUsageRemittanceEntity> found = repository.findById(remittance2.getKey());
@@ -83,25 +96,42 @@ class BillableUsageRemittanceRepositoryTest {
   @Test
   void findByAccount() {
     BillableUsageRemittanceEntity remittance1 =
-        remittance("account123", "product1", 12.0, clock.startOfCurrentMonth());
+        remittance(
+            "account123",
+            "product1",
+            BillingProvider.AWS.value(),
+            12.0,
+            clock.startOfCurrentMonth());
     BillableUsageRemittanceEntity remittance2 =
-        remittance("account123", "product1", 12.0, clock.endOfCurrentQuarter());
+        remittance(
+            "account123",
+            "product1",
+            BillingProvider.AWS.value(),
+            12.0,
+            clock.endOfCurrentQuarter());
     var accountMonthlyList = List.of(remittance1, remittance2);
     repository.saveAllAndFlush(accountMonthlyList);
     List<BillableUsageRemittanceEntity> found =
-        repository.findAllRemittancesByAccountNumber(
-            remittance1.getKey().getAccountNumber(), "product1");
+        repository.filterBy(
+            BillableUsageRemittanceFilter.builder()
+                .account(remittance1.getKey().getAccountNumber())
+                .productId("product1")
+                .build());
     assertFalse(found.isEmpty());
     assertEquals(accountMonthlyList, found);
   }
 
   private BillableUsageRemittanceEntity remittance(
-      String accountNumber, String productId, Double value, OffsetDateTime remittanceDate) {
+      String accountNumber,
+      String productId,
+      String billingProvider,
+      Double value,
+      OffsetDateTime remittanceDate) {
     BillableUsageRemittanceEntityPK key =
         BillableUsageRemittanceEntityPK.builder()
             .usage(Usage.PRODUCTION.value())
             .accountNumber(accountNumber)
-            .billingProvider(BillingProvider.AWS.value())
+            .billingProvider(billingProvider)
             .billingAccountId(accountNumber + "_ba")
             .productId(productId)
             .sla(Sla.PREMIUM.value())
@@ -110,8 +140,185 @@ class BillableUsageRemittanceRepositoryTest {
             .build();
     return BillableUsageRemittanceEntity.builder()
         .key(key)
+        .orgId("org_" + accountNumber)
         .remittanceDate(remittanceDate)
         .remittedValue(value)
         .build();
+  }
+
+  @Test
+  void testFindByProductId() {
+    BillableUsageRemittanceEntity remittance1 =
+        remittance(
+            "account123",
+            "product1",
+            BillingProvider.AWS.value(),
+            12.0,
+            clock.startOfCurrentMonth());
+    BillableUsageRemittanceEntity remittance2 =
+        remittance(
+            "account456",
+            "product2",
+            BillingProvider.AWS.value(),
+            12.0,
+            clock.endOfCurrentQuarter());
+    var accountMonthlyList = List.of(remittance1, remittance2);
+    repository.saveAllAndFlush(accountMonthlyList);
+
+    BillableUsageRemittanceFilter filter =
+        BillableUsageRemittanceFilter.builder().productId("product2").account("account456").build();
+    List<BillableUsageRemittanceEntity> usage = repository.filterBy(filter);
+    assertEquals(1, usage.size());
+    assertEquals("product2", usage.get(0).getKey().getProductId());
+  }
+
+  @Test
+  void findByBillingProvider() {
+    BillableUsageRemittanceEntity remittance1 =
+        remittance(
+            "account123",
+            "product1",
+            BillingProvider.AWS.value(),
+            12.0,
+            clock.startOfCurrentMonth());
+    BillableUsageRemittanceEntity remittance2 =
+        remittance(
+            "account123",
+            "product1",
+            BillingProvider.RED_HAT.value(),
+            12.0,
+            clock.endOfCurrentQuarter());
+    BillableUsageRemittanceEntity remittance3 =
+        remittance(
+            "account456",
+            "product1",
+            BillingProvider.RED_HAT.value(),
+            12.0,
+            clock.endOfCurrentQuarter());
+    var accountMonthlyList = List.of(remittance1, remittance2, remittance3);
+    repository.saveAllAndFlush(accountMonthlyList);
+
+    BillableUsageRemittanceFilter filter1 =
+        BillableUsageRemittanceFilter.builder()
+            .billingProvider(BillingProvider.RED_HAT.value())
+            .build();
+
+    List<BillableUsageRemittanceEntity> byBillingProviderResults = repository.filterBy(filter1);
+    assertEquals(2, byBillingProviderResults.size());
+    assertTrue(byBillingProviderResults.containsAll(List.of(remittance2, remittance3)));
+
+    BillableUsageRemittanceFilter filter2 =
+        BillableUsageRemittanceFilter.builder()
+            .orgId(remittance3.getOrgId())
+            .billingProvider(BillingProvider.RED_HAT.value())
+            .build();
+    List<BillableUsageRemittanceEntity> byBillingProviderAndOrgId = repository.filterBy(filter2);
+    assertEquals(1, byBillingProviderAndOrgId.size());
+    assertEquals(remittance3, byBillingProviderAndOrgId.get(0));
+  }
+
+  @Test
+  void findByBillingAccountId() {
+    BillableUsageRemittanceEntity remittance1 =
+        remittance(
+            "account123",
+            "product1",
+            BillingProvider.AWS.value(),
+            12.0,
+            clock.startOfCurrentMonth());
+    BillableUsageRemittanceEntity remittance2 =
+        remittance(
+            "account123",
+            "product1",
+            BillingProvider.RED_HAT.value(),
+            12.0,
+            clock.endOfCurrentQuarter());
+    remittance2.setOrgId("special_org");
+
+    var accountMonthlyList = List.of(remittance1, remittance2);
+    repository.saveAllAndFlush(accountMonthlyList);
+
+    BillableUsageRemittanceFilter filter1 =
+        BillableUsageRemittanceFilter.builder()
+            // Will be the same generated value for remittance1 and remittance2
+            .billingAccountId(remittance1.getKey().getBillingAccountId())
+            .build();
+
+    List<BillableUsageRemittanceEntity> byBillingAccountIdResults = repository.filterBy(filter1);
+    assertEquals(2, byBillingAccountIdResults.size());
+    assertTrue(byBillingAccountIdResults.containsAll(List.of(remittance1, remittance2)));
+
+    BillableUsageRemittanceFilter filter2 =
+        BillableUsageRemittanceFilter.builder()
+            .orgId(remittance2.getOrgId())
+            .billingAccountId(remittance2.getKey().getBillingAccountId())
+            .build();
+    List<BillableUsageRemittanceEntity> byBillingProviderAndOrgId = repository.filterBy(filter2);
+    assertEquals(1, byBillingProviderAndOrgId.size());
+    assertEquals(remittance2, byBillingProviderAndOrgId.get(0));
+  }
+
+  @Test
+  void findByRange() {
+    OffsetDateTime ending = clock.now();
+    OffsetDateTime beginning = clock.now().minusDays(4);
+
+    BillableUsageRemittanceEntity remittance1 =
+        remittance("account123", "product1", BillingProvider.AWS.value(), 12.0, ending);
+    BillableUsageRemittanceEntity remittance2 =
+        remittance("account123", "product1", BillingProvider.RED_HAT.value(), 12.0, beginning);
+    BillableUsageRemittanceEntity remittance3 =
+        remittance(
+            "account234",
+            "product1",
+            BillingProvider.RED_HAT.value(),
+            12.0,
+            clock.now().minusDays(8));
+
+    var accountMonthlyList = List.of(remittance1, remittance2, remittance3);
+    repository.saveAllAndFlush(accountMonthlyList);
+
+    BillableUsageRemittanceFilter filter =
+        BillableUsageRemittanceFilter.builder().beginning(beginning).ending(ending).build();
+
+    List<BillableUsageRemittanceEntity> byDateRange = repository.filterBy(filter);
+    assertEquals(2, byDateRange.size());
+    assertTrue(byDateRange.containsAll(List.of(remittance1, remittance2)));
+  }
+
+  @Test
+  void findByByRangeAndOrgId() {
+    OffsetDateTime ending = clock.now();
+    OffsetDateTime beginning = clock.now().minusDays(8);
+
+    BillableUsageRemittanceEntity remittance1 =
+        remittance("account123", "product1", BillingProvider.AWS.value(), 12.0, ending);
+    BillableUsageRemittanceEntity remittance2 =
+        remittance(
+            "account123",
+            "product1",
+            BillingProvider.RED_HAT.value(),
+            12.0,
+            clock.now().minusDays(4));
+    BillableUsageRemittanceEntity remittance3 =
+        remittance("account234", "product1", BillingProvider.RED_HAT.value(), 12.0, beginning);
+    // Outside range with matching orgId.
+    BillableUsageRemittanceEntity remittance4 =
+        remittance(
+            "account234", "product1", BillingProvider.AWS.value(), 12.0, beginning.minusDays(1));
+
+    var accountMonthlyList = List.of(remittance1, remittance2, remittance3, remittance4);
+    repository.saveAllAndFlush(accountMonthlyList);
+
+    BillableUsageRemittanceFilter filter =
+        BillableUsageRemittanceFilter.builder()
+            .orgId(remittance3.getOrgId())
+            .beginning(beginning)
+            .ending(ending)
+            .build();
+
+    List<BillableUsageRemittanceEntity> byDateRangeAndOrgId = repository.filterBy(filter);
+    assertEquals(1, byDateRangeAndOrgId.size());
+    assertEquals(remittance3, byDateRangeAndOrgId.get(0));
   }
 }
