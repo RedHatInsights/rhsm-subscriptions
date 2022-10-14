@@ -14,29 +14,10 @@ parameters:
     value: latest
 
 objects:
-- apiVersion: cloud.redhat.com/v1alpha1
-  kind: ClowdApp
-  metadata:
-    name: rhsm
-  spec:
-    # The name of the ClowdEnvironment providing the services
-    envName: ${ENV_NAME}
-    dependencies:
-      - host-inventory
-    optionalDependencies:
-      - cloudigrade
-
-    database:
-      # Must specify both a name and a major postgres version
-      name: rhsm-db
-      version: 12
-
-    pullSecrets:
-      name: ${IMAGE_PULL_SECRET}
-
-- apiVersion: v1
-  kind: Secret
-  metadata:
-    name: swatch-psks
-  data:
-    self: ZHVtbXk=
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdApp
+    metadata:
+      name: rhsm
+    spec:
+      # The name of the ClowdEnvironment providing the services
+      envName: ${ENV_NAME}

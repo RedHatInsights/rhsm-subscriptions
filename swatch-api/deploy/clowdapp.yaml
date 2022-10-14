@@ -63,6 +63,12 @@ objects:
         prometheus: rhsm
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
+
+    database:
+      sharedDbAppName: swatch-tally
+    dependencies:
+      - swatch-tally
+
     spec:
       envName: ${ENV_NAME}
       # Can't have this checked in like this, because stage gets upset since there
@@ -94,27 +100,27 @@ objects:
                   - name: DATABASE_HOST
                     valueFrom:
                       secretKeyRef:
-                        name: rhsm-db
+                        name: swatch-tally-db
                         key: db.host
                   - name: DATABASE_PORT
                     valueFrom:
                       secretKeyRef:
-                        name: rhsm-db
+                        name: swatch-tally-db
                         key: db.port
                   - name: DATABASE_USERNAME
                     valueFrom:
                       secretKeyRef:
-                        name: rhsm-db
+                        name: swatch-tally-db
                         key: db.user
                   - name: DATABASE_PASSWORD
                     valueFrom:
                       secretKeyRef:
-                        name: rhsm-db
+                        name: swatch-tally-db
                         key: db.password
                   - name: DATABASE_DATABASE
                     valueFrom:
                       secretKeyRef:
-                        name: rhsm-db
+                        name: swatch-tally-db
                         key: db.name
                 resources:
                   requests:
@@ -147,27 +153,27 @@ objects:
               - name: DATABASE_HOST
                 valueFrom:
                   secretKeyRef:
-                    name: rhsm-db
+                    name: swatch-tally-db
                     key: db.host
               - name: DATABASE_PORT
                 valueFrom:
                   secretKeyRef:
-                    name: rhsm-db
+                    name: swatch-tally-db
                     key: db.port
               - name: DATABASE_USERNAME
                 valueFrom:
                   secretKeyRef:
-                    name: rhsm-db
+                    name: swatch-tally-db
                     key: db.user
               - name: DATABASE_PASSWORD
                 valueFrom:
                   secretKeyRef:
-                    name: rhsm-db
+                    name: swatch-tally-db
                     key: db.password
               - name: DATABASE_DATABASE
                 valueFrom:
                   secretKeyRef:
-                    name: rhsm-db
+                    name: swatch-tally-db
                     key: db.name
               - name: DATABASE_CONNECTION_TIMEOUT_MS
                 value: ${DATABASE_CONNECTION_TIMEOUT_MS}

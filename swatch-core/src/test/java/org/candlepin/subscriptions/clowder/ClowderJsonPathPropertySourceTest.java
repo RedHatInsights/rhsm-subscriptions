@@ -251,6 +251,6 @@ class ClowderJsonPathPropertySourceTest {
     var clowder = new ClowderJsonPathPropertySource(jsonFromResource(TEST_CLOWDER_CONFIG_JSON));
     clowder.addToEnvironment(environment, logFactory.getLog(ClowderJsonPathPropertySource.class));
 
-    assertEquals("rhsm-db", environment.getProperty("clowder.database.name"));
+    assertEquals("swatch-tally-db", environment.getProperty("clowder.database.name"));
   }
 }

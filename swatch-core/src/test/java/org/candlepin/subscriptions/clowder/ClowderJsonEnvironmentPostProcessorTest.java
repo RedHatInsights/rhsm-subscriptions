@@ -52,7 +52,7 @@ class ClowderJsonEnvironmentPostProcessorTest {
     postProcessor.postProcessEnvironment(environment, null);
     assertEquals(
         "env-rhsm-kafka.rhsm.svc", environment.getProperty("clowder.kafka.brokers[0].hostname"));
-    assertEquals("rhsm-db", environment.getProperty("clowder.database.name"));
+    assertEquals("swatch-tally-db", environment.getProperty("clowder.database.name"));
   }
 
   @Test
@@ -65,7 +65,7 @@ class ClowderJsonEnvironmentPostProcessorTest {
     postProcessor.postProcessEnvironment(environment, null);
 
     assertEquals("default", environment.getProperty("testDefault"));
-    assertEquals("rhsm-db", environment.getProperty("testNoDefault"));
+    assertEquals("swatch-tally-db", environment.getProperty("testNoDefault"));
   }
 
   private void addClowderJson() {

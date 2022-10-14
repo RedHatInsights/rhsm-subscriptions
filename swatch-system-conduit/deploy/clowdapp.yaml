@@ -99,12 +99,10 @@ objects:
         partitions: 3
         topicName: platform.inventory.host-ingress
 
-# Can't have this checked in like this, because stage gets upset since there
-# is no rhsm ClowdApp deployed to the rhsm-stage namespace
-#      database:
-#        sharedDbAppName: rhsm
-#      dependencies:
-#        - rhsm
+    database:
+      sharedDbAppName: swatch-tally
+    dependencies:
+      - swatch-tally
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
@@ -208,27 +206,27 @@ objects:
             - name: DATABASE_HOST
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.host
             - name: DATABASE_PORT
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.port
             - name: DATABASE_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.user
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.password
             - name: DATABASE_DATABASE
               valueFrom:
                 secretKeyRef:
-                  name: rhsm-db
+                  name: swatch-tally-db
                   key: db.name
             - name: DATABASE_CONNECTION_TIMEOUT_MS
               value: ${DATABASE_CONNECTION_TIMEOUT_MS}
