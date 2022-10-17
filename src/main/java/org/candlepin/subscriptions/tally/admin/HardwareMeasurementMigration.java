@@ -40,7 +40,10 @@ public class HardwareMeasurementMigration extends DataMigration {
 
   public static final String INSERT_SQL =
       "insert into tally_measurements(snapshot_id, measurement_type, uom, value)\n"
-          + "values (?, ?, ?, ?)";
+          + "values (?, ?, ?, ?)\n"
+          + "on conflict(snapshot_id, measurement_type, uom)\n"
+          + "   do update set value=excluded.value\n"
+          + "   where tally_measurements.value != excluded.value";
 
   public static final String UPDATE_SQL =
       "update tally_measurements set value=? where snapshot_id=? and measurement_type=? and uom=?";
