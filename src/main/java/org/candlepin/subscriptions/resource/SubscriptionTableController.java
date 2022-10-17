@@ -29,6 +29,7 @@ import javax.validation.constraints.Min;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
+import org.candlepin.subscriptions.db.SubscriptionReportCategory;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Offering;
@@ -73,6 +74,7 @@ public class SubscriptionTableController {
       ProductId productId,
       @Min(0) Integer offset,
       @Min(1) Integer limit,
+      ReportCategory category,
       ServiceLevelType serviceLevel,
       UsageType usage,
       BillingProviderType billingProviderType,
@@ -95,17 +97,21 @@ public class SubscriptionTableController {
     Usage sanitizedUsage = sanitizeUsage(usage);
     BillingProvider sanitizedBillingProvider = sanitizeBillingProvider(billingProviderType);
     String sanitiziedBillingAccountId = sanitizeBillingAccountId(billingAccountId);
+    Set<SubscriptionReportCategory> subsReportCategories =
+        SubscriptionReportCategory.mapCategory(category);
 
     log.info(
         "Finding all subscription capacities for "
             + "orgId={}, "
             + "productId={}, "
+            + "categories={}, "
             + "Service Level={}, "
             + "Usage={} "
             + "between={} and {}"
             + "and uom={}",
         getOrgId(),
         productId,
+        subsReportCategories,
         sanitizedServiceLevel,
         sanitizedUsage,
         reportStart,
@@ -114,6 +120,7 @@ public class SubscriptionTableController {
     List<SubscriptionCapacityView> capacities =
         subscriptionCapacityViewRepository.findAllBy(
             getOrgId(),
+            subsReportCategories,
             productId.toString(),
             sanitizedServiceLevel,
             sanitizedUsage,
@@ -167,6 +174,7 @@ public class SubscriptionTableController {
                 .serviceLevel(serviceLevel)
                 .usage(usage)
                 .uom(uom)
+                .reportCategory(category)
                 .product(productId));
   }
 
@@ -179,6 +187,7 @@ public class SubscriptionTableController {
     return capacities.subList(offset, lastIndex);
   }
 
+  @SuppressWarnings("java:S107")
   private Collection<SkuCapacity> getOnDemandSkuCapacities(
       ProductId productId,
       ServiceLevel serviceLevel,

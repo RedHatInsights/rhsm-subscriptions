@@ -20,6 +20,11 @@
  */
 package org.candlepin.subscriptions.db;
 
+import static org.candlepin.subscriptions.db.SubscriptionReportCategory.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.everyItem;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -29,8 +34,10 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Offering;
@@ -41,6 +48,7 @@ import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView_;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.utilization.api.model.Uom;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -71,6 +79,7 @@ class SubscriptionCapacityViewRepositoryTest {
   static final String PRODUCT_ID = "123";
   static final String SUBSCRIPTION_ID = "123456";
   static final String ORG_ID = "orgId";
+  public static final String TEST_SKU = "testsku1";
 
   @Autowired private SubscriptionCapacityViewRepository repository;
 
@@ -116,6 +125,7 @@ class SubscriptionCapacityViewRepositoryTest {
     List<SubscriptionCapacityView> all =
         repository.findAllBy(
             premium.getOrgId(),
+            Collections.emptySet(),
             premium.getProductId(),
             premium.getServiceLevel(),
             premium.getUsage(),
@@ -159,7 +169,8 @@ class SubscriptionCapacityViewRepositoryTest {
             "role1"));
 
     List<SubscriptionCapacityView> all =
-        repository.findAllBy(null, null, ServiceLevel.PREMIUM, null, null, null, null);
+        repository.findAllBy(
+            null, Collections.emptySet(), null, ServiceLevel.PREMIUM, null, null, null, null);
     assertEquals(1, all.size());
   }
 
@@ -183,8 +194,11 @@ class SubscriptionCapacityViewRepositoryTest {
         arguments(NOWISH.minusYears(1), NOWISH.minusDays(1)));
   }
 
-  /** See the comment at
-   * {@link org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository#subscriptionIsActiveBetween(OffsetDateTime, OffsetDateTime)
+  /**
+   * See the comment at
+   * {@link
+   * org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository#subscriptionIsActiveBetween(OffsetDateTime,
+   * OffsetDateTime)
    */
   @ParameterizedTest
   @MethodSource("matchingReportRanges")
@@ -208,12 +222,16 @@ class SubscriptionCapacityViewRepositoryTest {
             premium.getUsage(),
             "role1"));
     List<SubscriptionCapacityView> all =
-        repository.findAllBy(null, null, null, null, reportBegin, reportEnd, null);
+        repository.findAllBy(
+            null, Collections.emptySet(), null, null, null, reportBegin, reportEnd, null);
     assertEquals(1, all.size());
   }
 
-  /** See the comment at
-   * {@link org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository#subscriptionIsActiveBetween(OffsetDateTime, OffsetDateTime)
+  /**
+   * See the comment at
+   * {@link
+   * org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository#subscriptionIsActiveBetween(OffsetDateTime,
+   * OffsetDateTime)
    */
   @ParameterizedTest
   @MethodSource("nonMatchingReportRanges")
@@ -237,7 +255,8 @@ class SubscriptionCapacityViewRepositoryTest {
             premium.getUsage(),
             "role1"));
     List<SubscriptionCapacityView> all =
-        repository.findAllBy(null, null, null, null, reportBegin, reportEnd, null);
+        repository.findAllBy(
+            null, Collections.emptySet(), null, null, null, reportBegin, reportEnd, null);
     assertEquals(0, all.size());
   }
 
@@ -246,7 +265,7 @@ class SubscriptionCapacityViewRepositoryTest {
   void shouldRequireBothOrgAndProductIds() {
     assertThrows(
         InvalidDataAccessApiUsageException.class,
-        () -> repository.findAllBy(null, PRODUCT_ID, null, null, null, null, null));
+        () -> repository.findAllBy(null, null, PRODUCT_ID, null, null, null, null, null));
   }
 
   @Transactional
@@ -283,7 +302,8 @@ class SubscriptionCapacityViewRepositoryTest {
             "role1"));
 
     List<SubscriptionCapacityView> all =
-        repository.findAllBy(null, null, null, null, NOWISH.plusDays(30), null, null);
+        repository.findAllBy(
+            null, Collections.emptySet(), null, null, null, NOWISH.plusDays(30), null, null);
     assertEquals(2, all.size());
   }
 
@@ -323,6 +343,7 @@ class SubscriptionCapacityViewRepositoryTest {
     List<SubscriptionCapacityView> all =
         repository.findAllBy(
             ORG_ID,
+            Collections.emptySet(),
             PRODUCT_ID,
             premium.getServiceLevel(),
             premium.getUsage(),
@@ -333,6 +354,7 @@ class SubscriptionCapacityViewRepositoryTest {
     assertEquals(premium.getServiceLevel(), all.get(0).getServiceLevel());
   }
 
+  @Transactional
   @Test
   void shouldMatchCapacityWithCoresIfSpecified() {
     SubscriptionCapacity sockets = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
@@ -390,7 +412,7 @@ class SubscriptionCapacityViewRepositoryTest {
             "role1"));
 
     List<SubscriptionCapacityView> found =
-        repository.findAllBy(null, null, null, null, null, null, Uom.CORES);
+        repository.findAllBy(null, Collections.emptySet(), null, null, null, null, null, Uom.CORES);
     assertEquals(2, found.size());
     found.forEach(
         subscriptionCapacityView -> {
@@ -399,6 +421,118 @@ class SubscriptionCapacityViewRepositoryTest {
         });
   }
 
+  @Transactional
+  @Test
+  void shouldFilterCapacityByCategory() {
+    SubscriptionCapacity hypervisor = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    hypervisor.setSubscriptionId("hypervisor");
+    hypervisor.setPhysicalSockets(10);
+    hypervisor.setVirtualSockets(10);
+    hypervisor.setPhysicalCores(10);
+    hypervisor.setVirtualCores(10);
+
+    SubscriptionCapacity nonHypervisor =
+        createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    nonHypervisor.setSubscriptionId("nonHypervisor");
+    nonHypervisor.setPhysicalSockets(10);
+    nonHypervisor.setVirtualSockets(0);
+    nonHypervisor.setPhysicalCores(10);
+    nonHypervisor.setVirtualCores(0);
+
+    SubscriptionCapacity noCoresNonHypervisor =
+        createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    noCoresNonHypervisor.setSubscriptionId("noCoresNonHypervisor");
+    noCoresNonHypervisor.setPhysicalSockets(10);
+    noCoresNonHypervisor.setVirtualSockets(0);
+    noCoresNonHypervisor.setPhysicalCores(0);
+    noCoresNonHypervisor.setVirtualCores(0);
+
+    subscriptionRepository.saveAllAndFlush(
+        List.of(
+            createSubscription(
+                ORG_ID,
+                ACCOUNT_NUMBER,
+                hypervisor.getSku(),
+                hypervisor.getSubscriptionId(),
+                hypervisor.getBeginDate(),
+                hypervisor.getEndDate()),
+            createSubscription(
+                ORG_ID,
+                ACCOUNT_NUMBER,
+                nonHypervisor.getSku(),
+                nonHypervisor.getSubscriptionId(),
+                nonHypervisor.getBeginDate(),
+                nonHypervisor.getEndDate()),
+            createSubscription(
+                ORG_ID,
+                ACCOUNT_NUMBER,
+                noCoresNonHypervisor.getSku(),
+                noCoresNonHypervisor.getSubscriptionId(),
+                noCoresNonHypervisor.getBeginDate(),
+                noCoresNonHypervisor.getEndDate())));
+
+    subscriptionCapacityRepository.saveAll(
+        List.of(hypervisor, nonHypervisor, noCoresNonHypervisor));
+    offeringRepository.saveAndFlush(
+        createOffering(TEST_SKU, Integer.parseInt(PRODUCT_ID), null, Usage.PRODUCTION, "role1"));
+    List<SubscriptionCapacityView> results =
+        repository.findAllBy(
+            ORG_ID,
+            Set.of(NON_HYPERVISOR),
+            PRODUCT_ID,
+            null,
+            null,
+            NOWISH,
+            FAR_FUTURE.plusDays(4),
+            null);
+    assertEquals(2, results.size());
+    assertThat(
+        results.stream()
+            .map(SubscriptionCapacityView::getPhysicalCores)
+            .collect(Collectors.toList()),
+        containsInAnyOrder(0, 10));
+    assertThat(
+        results.stream()
+            .map(SubscriptionCapacityView::getPhysicalSockets)
+            .collect(Collectors.toList()),
+        everyItem(Matchers.equalTo(10)));
+
+    results =
+        repository.findAllBy(
+            ORG_ID,
+            Set.of(HYPERVISOR),
+            PRODUCT_ID,
+            null,
+            null,
+            NOWISH,
+            FAR_FUTURE.plusDays(4),
+            null);
+    assertEquals(1, results.size());
+    var record = results.get(0);
+    assertAll(
+        () -> {
+          assertEquals(10, record.getVirtualCores());
+          assertEquals(10, record.getVirtualSockets());
+        });
+
+    results =
+        repository.findAllBy(
+            ORG_ID, null, PRODUCT_ID, null, null, NOWISH, FAR_FUTURE.plusDays(4), null);
+    assertEquals(3, results.size());
+    results =
+        repository.findAllBy(
+            ORG_ID,
+            Set.of(NON_HYPERVISOR, HYPERVISOR),
+            PRODUCT_ID,
+            null,
+            null,
+            NOWISH,
+            FAR_FUTURE.plusDays(4),
+            null);
+    assertEquals(3, results.size());
+  }
+
+  @Transactional
   @Test
   void shouldMatchCapacityWithSocketsIfSpecified() {
     SubscriptionCapacity sockets = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
@@ -455,7 +589,8 @@ class SubscriptionCapacityViewRepositoryTest {
             sockets.getUsage(),
             "role1"));
     List<SubscriptionCapacityView> found =
-        repository.findAllBy(null, null, null, null, null, null, Uom.SOCKETS);
+        repository.findAllBy(
+            null, Collections.emptySet(), null, null, null, null, null, Uom.SOCKETS);
     assertEquals(2, found.size());
     found.forEach(
         subscriptionCapacityView -> {
@@ -512,7 +647,7 @@ class SubscriptionCapacityViewRepositoryTest {
     capacity.setVirtualCores(40);
     capacity.setServiceLevel(ServiceLevel.PREMIUM);
     capacity.setUsage(Usage.PRODUCTION);
-    capacity.setSku("testsku1");
+    capacity.setSku(TEST_SKU);
     return capacity;
   }
 
