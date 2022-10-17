@@ -46,14 +46,4 @@
       on conflict(snapshot_id, measurement_type, uom) do update set value=excluded.value;
     </sql>
   </changeSet>
-  <changeSet id="202208251616-5" author="khowell" dbms="postgresql">
-    <comment>Copy data from hardware_measurements.instance_count to tally_measurements.</comment>
-    <sql>
-      insert into tally_measurements(snapshot_id, measurement_type, uom, value)
-      select snapshot_id, measurement_type, 'INSTANCES', instance_count
-      from hardware_measurements
-      where instance_count is not null
-      on conflict(snapshot_id, measurement_type, uom) do update set value=excluded.value;
-    </sql>
-  </changeSet>
 </databaseChangeLog>
