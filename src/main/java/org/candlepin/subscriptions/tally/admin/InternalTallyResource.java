@@ -20,26 +20,73 @@
  */
 package org.candlepin.subscriptions.tally.admin;
 
+import java.time.OffsetDateTime;
+import javax.ws.rs.BadRequestException;
+import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.tally.MarketplaceResendTallyController;
+import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.tally.admin.api.InternalApi;
 import org.candlepin.subscriptions.tally.admin.api.model.TallyResend;
 import org.candlepin.subscriptions.tally.admin.api.model.TallyResendData;
 import org.candlepin.subscriptions.tally.admin.api.model.UuidList;
 import org.candlepin.subscriptions.tally.billing.RemittanceController;
+import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
+import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.DateRange;
 import org.springframework.stereotype.Component;
 
 /** This resource is for exposing administrator REST endpoints for Tally. */
 @Component
+@Slf4j
 public class InternalTallyResource implements InternalApi {
 
+  private final ApplicationClock clock;
+  private final ApplicationProperties applicationProperties;
   private final MarketplaceResendTallyController resendTallyController;
   private final RemittanceController remittanceController;
+  private final TallySnapshotController tallySnapshotController;
+  private final CaptureSnapshotsTaskManager snapshotsTaskManager;
 
   public InternalTallyResource(
+      ApplicationClock clock,
+      ApplicationProperties applicationProperties,
       MarketplaceResendTallyController resendTallyController,
-      RemittanceController remittanceController) {
+      RemittanceController remittanceController,
+      TallySnapshotController tallySnapshotController,
+      CaptureSnapshotsTaskManager snapshotsTaskManager) {
+    this.clock = clock;
+    this.applicationProperties = applicationProperties;
     this.resendTallyController = resendTallyController;
     this.remittanceController = remittanceController;
+    this.tallySnapshotController = tallySnapshotController;
+    this.snapshotsTaskManager = snapshotsTaskManager;
+  }
+
+  @Override
+  public void performHourlyTallyForAccount(
+      String account,
+      OffsetDateTime start,
+      OffsetDateTime end,
+      Boolean xRhSwatchSynchronousRequest) {
+    DateRange range = new DateRange(start, end);
+    if (!clock.isHourlyRange(range)) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Start/End times must be at the top of the hour: [%s -> %s]",
+              range.getStartString(), range.getEndString()));
+    }
+
+    if (ResourceUtils.sanitizeBoolean(xRhSwatchSynchronousRequest, false)) {
+      if (!applicationProperties.isEnableSynchronousOperations()) {
+        throw new BadRequestException("Synchronous tally operations are not enabled.");
+      }
+      log.info("Synchronous hourly tally requested for account {}: {}", account, range);
+      tallySnapshotController.produceHourlySnapshotsForAccount(account, range);
+    } else {
+      snapshotsTaskManager.tallyAccountByHourly(account, range);
+    }
   }
 
   @Override

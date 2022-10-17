@@ -21,18 +21,17 @@
 package org.candlepin.subscriptions.metering.jmx;
 
 import java.time.OffsetDateTime;
-import java.time.format.DateTimeParseException;
+import java.util.Optional;
+import org.candlepin.subscriptions.metering.ResourceUtil;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.resource.ResourceUtils;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedOperationParameter;
 import org.springframework.jmx.export.annotation.ManagedResource;
-import org.springframework.util.StringUtils;
 
 /** Exposes the ability to trigger metering operations from JMX. */
 @ManagedResource
@@ -40,18 +39,16 @@ public class MeteringJmxBean {
 
   private static final Logger log = LoggerFactory.getLogger(MeteringJmxBean.class);
 
-  private PrometheusMetricsTaskManager tasks;
+  private ResourceUtil util;
 
-  private ApplicationClock clock;
+  private PrometheusMetricsTaskManager tasks;
 
   private MetricProperties metricProperties;
 
   @Autowired
   public MeteringJmxBean(
-      ApplicationClock clock,
-      PrometheusMetricsTaskManager tasks,
-      MetricProperties metricProperties) {
-    this.clock = clock;
+      ResourceUtil util, PrometheusMetricsTaskManager tasks, MetricProperties metricProperties) {
+    this.util = util;
     this.tasks = tasks;
     this.metricProperties = metricProperties;
   }
@@ -64,8 +61,8 @@ public class MeteringJmxBean {
     Object principal = ResourceUtils.getPrincipal();
     log.info("{} metering for {} triggered via JMX by {}", productTag, accountNumber, principal);
 
-    OffsetDateTime end = getDate(null);
-    OffsetDateTime start = getStartDate(end, metricProperties.getRangeInMinutes());
+    OffsetDateTime end = util.getDate(Optional.empty());
+    OffsetDateTime start = util.getStartDate(end, metricProperties.getRangeInMinutes());
 
     try {
       tasks.updateMetricsForAccount(accountNumber, productTag, start, end);
@@ -91,8 +88,8 @@ public class MeteringJmxBean {
       throws IllegalArgumentException {
     Object principal = ResourceUtils.getPrincipal();
 
-    OffsetDateTime end = getDate(endDate);
-    OffsetDateTime start = getStartDate(end, rangeInMinutes);
+    OffsetDateTime end = util.getDate(endDate);
+    OffsetDateTime start = util.getStartDate(end, rangeInMinutes);
     log.info(
         "{} metering for {} against range [{}, {}) triggered via JMX by {}",
         productTag,
@@ -135,8 +132,8 @@ public class MeteringJmxBean {
       throws IllegalArgumentException {
     Object principal = ResourceUtils.getPrincipal();
 
-    OffsetDateTime end = getDate(endDate);
-    OffsetDateTime start = getStartDate(end, rangeInMinutes);
+    OffsetDateTime end = util.getDate(endDate);
+    OffsetDateTime start = util.getStartDate(end, rangeInMinutes);
     log.info(
         "Metering for all accounts against range [{}, {}) triggered via JMX by {}",
         start,
@@ -148,43 +145,5 @@ public class MeteringJmxBean {
     } catch (Exception e) {
       log.error("Error triggering {} metering for all accounts via JMX.", productTag, e);
     }
-  }
-
-  private OffsetDateTime getDate(String dateToParse) {
-    if (StringUtils.hasText(dateToParse)) {
-      try {
-        // 2018-03-20T09:00:00Z
-        OffsetDateTime parsed = OffsetDateTime.parse(dateToParse);
-        if (!parsed.isEqual(clock.startOfHour(parsed))) {
-          throw new IllegalArgumentException(
-              String.format("Date must start at top of the hour: %s", parsed));
-        }
-        return parsed;
-      } catch (DateTimeParseException e) {
-        throw new IllegalArgumentException(
-            String.format("Unable to parse date arg '%s'. Invalid format.", dateToParse));
-      }
-    } else {
-      return clock.startOfCurrentHour();
-    }
-  }
-
-  private OffsetDateTime getStartDate(OffsetDateTime endDate, Integer rangeInMinutes) {
-    if (rangeInMinutes == null) {
-      throw new IllegalArgumentException("Required argument: rangeInMinutes");
-    }
-
-    if (rangeInMinutes < 0) {
-      throw new IllegalArgumentException("Invalid value specified (Must be >= 0): rangeInMinutes");
-    }
-
-    OffsetDateTime result = endDate.minusMinutes(rangeInMinutes);
-    if (!result.isEqual(clock.startOfHour(result))) {
-      throw new IllegalArgumentException(
-          String.format(
-              "endDate %s - range %s produces time not at top of the hour: %s",
-              endDate, rangeInMinutes, result));
-    }
-    return result;
   }
 }

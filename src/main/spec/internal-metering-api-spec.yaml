@@ -1,0 +1,55 @@
+openapi: "3.0.2"
+info:
+  title: "rhsm-subscriptions internal metering API"
+  version: 1.0.0
+
+paths:
+  /internal/metering/{productTag}:
+    description: 'Operations related to product metering.'
+    post:
+      operationId: meterProductForAccount
+      summary: "Perform product metering for account."
+      parameters:
+        - name: accountNumber
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: productTag
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+            description: "The end date for the metering request. (e.g. 22-05-03T10:00:00Z). Default: Top of the current hour."
+        - name: rangeInMinutes
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: x-rh-swatch-synchronous-request
+          in: header
+          required: false
+          schema:
+            type: boolean
+            default: "false"
+            description: "When present, a synchronous request is made."
+      responses:
+        '200':
+          description: "Metering was successful."
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - internalProductMetering
+  /internal-metering-openapi.json:
+    $ref: "../../../spec/openapi-paths.yaml#/openapi-json"
+  /internal-metering-openapi.yaml:
+    $ref: "../../../spec/openapi-paths.yaml#/openapi-yaml"

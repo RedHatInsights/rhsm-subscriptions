@@ -36,7 +36,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -50,6 +49,7 @@ import java.util.stream.Stream.Builder;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.*;
+import org.candlepin.subscriptions.db.model.config.AccountConfig;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.hamcrest.Matchers;
@@ -81,80 +81,87 @@ class InventoryAccountUsageCollectorTest {
 
   @Test
   void hypervisorCountsIgnoredForNonRhelProduct() {
-    String account = "A1";
+    AccountConfig accountConfig = createAccountConfig("A1");
+    String account = accountConfig.getAccountNumber();
+    String orgId = accountConfig.getOrgId();
 
-    InventoryHostFacts hypervisor = createHypervisor("A1", "O1", NON_RHEL_PRODUCT_ID);
+    InventoryHostFacts hypervisor = createHypervisor(account, orgId, NON_RHEL_PRODUCT_ID);
     hypervisor.setSystemProfileCoresPerSocket(4);
     hypervisor.setSystemProfileSockets(3);
 
     Map<String, String> expectedHypervisorMap = new HashMap<>();
     expectedHypervisorMap.put(
         hypervisor.getSubscriptionManagerId(), hypervisor.getSubscriptionManagerId());
-    mockReportedHypervisors(account, expectedHypervisorMap);
+    mockReportedHypervisors(orgId, expectedHypervisorMap);
 
-    when(inventoryRepo.getFacts(eq(List.of(account)), anyInt()))
+    when(inventoryRepo.getFacts(eq(List.of(orgId)), anyInt()))
         .thenReturn(Arrays.asList(hypervisor).stream());
 
-    Map<String, AccountUsageCalculation> calcs = collector.collect(NON_RHEL_PRODUCTS, account);
+    Map<String, AccountUsageCalculation> calcs =
+        collector.collect(NON_RHEL_PRODUCTS, accountConfig);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey("A1"));
+    assertThat(calcs, Matchers.hasKey(account));
 
-    AccountUsageCalculation calc = calcs.get("A1");
+    AccountUsageCalculation calc = calcs.get(account);
     // odd sockets are rounded up.
-    checkTotalsCalculation(calc, "A1", "O1", NON_RHEL, 12, 4, 1);
-    checkPhysicalTotalsCalculation(calc, "A1", "O1", NON_RHEL, 12, 4, 1);
+    checkTotalsCalculation(calc, account, orgId, NON_RHEL, 12, 4, 1);
+    checkPhysicalTotalsCalculation(calc, account, orgId, NON_RHEL, 12, 4, 1);
     assertNull(
         calc.getCalculation(createUsageKey(NON_RHEL)).getTotals(HardwareMeasurementType.VIRTUAL));
   }
 
   @Test
   void hypervisorTotalsForRHEL() {
-    String account = "A1";
+    AccountConfig accountConfig = createAccountConfig("A1");
+    String account = accountConfig.getAccountNumber();
+    String orgId = accountConfig.getOrgId();
 
-    InventoryHostFacts hypervisor = createHypervisor("A1", "O1", TEST_PRODUCT_ID);
+    InventoryHostFacts hypervisor = createHypervisor(account, orgId, TEST_PRODUCT_ID);
     hypervisor.setSystemProfileCoresPerSocket(4);
     hypervisor.setSystemProfileSockets(3);
 
     Map<String, String> expectedHypervisorMap = new HashMap<>();
     expectedHypervisorMap.put(
         hypervisor.getSubscriptionManagerId(), hypervisor.getSubscriptionManagerId());
-    mockReportedHypervisors(account, expectedHypervisorMap);
+    mockReportedHypervisors(orgId, expectedHypervisorMap);
 
-    when(inventoryRepo.getFacts(eq(List.of(account)), anyInt()))
+    when(inventoryRepo.getFacts(eq(List.of(orgId)), anyInt()))
         .thenReturn(Arrays.asList(hypervisor).stream());
 
-    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, account);
+    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, accountConfig);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey("A1"));
+    assertThat(calcs, Matchers.hasKey(account));
 
-    AccountUsageCalculation calc = calcs.get("A1");
+    AccountUsageCalculation calc = calcs.get(account);
     // odd sockets are rounded up.
-    checkTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
+    checkTotalsCalculation(calc, account, orgId, TEST_PRODUCT, 12, 4, 1);
     // no guests running RHEL means no hypervisor total...
     assertNull(
         calc.getCalculation(createUsageKey(TEST_PRODUCT))
             .getTotals(HardwareMeasurementType.VIRTUAL));
     // hypervisor itself gets counted
-    checkPhysicalTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
+    checkPhysicalTotalsCalculation(calc, account, orgId, TEST_PRODUCT, 12, 4, 1);
   }
 
   @Test
   void guestWithKnownHypervisorNotAddedToTotalsForRHEL() {
-    String account = "A1";
+    AccountConfig accountConfig = createAccountConfig("A1");
+    String account = accountConfig.getAccountNumber();
+    String orgId = accountConfig.getOrgId();
 
-    InventoryHostFacts guest = createGuest("hyper-1", "A1", "O1", TEST_PRODUCT_ID);
+    InventoryHostFacts guest = createGuest("hyper-1", account, orgId, TEST_PRODUCT_ID);
     Map<String, String> expectedHypervisorMap = new HashMap<>();
     expectedHypervisorMap.put(guest.getHypervisorUuid(), guest.getHypervisorUuid());
-    mockReportedHypervisors(account, expectedHypervisorMap);
+    mockReportedHypervisors(orgId, expectedHypervisorMap);
 
-    when(inventoryRepo.getFacts(eq(List.of(account)), anyInt()))
+    when(inventoryRepo.getFacts(eq(List.of(orgId)), anyInt()))
         .thenReturn(Arrays.asList(guest).stream());
 
-    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, account);
+    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, accountConfig);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey("A1"));
+    assertThat(calcs, Matchers.hasKey(account));
 
-    AccountUsageCalculation calc = calcs.get("A1");
+    AccountUsageCalculation calc = calcs.get(account);
     UsageCalculation productCalc = calc.getCalculation(createUsageKey(TEST_PRODUCT));
     assertNull(productCalc.getTotals(HardwareMeasurementType.TOTAL));
     assertNull(productCalc.getTotals(HardwareMeasurementType.PHYSICAL));
@@ -163,25 +170,28 @@ class InventoryAccountUsageCollectorTest {
 
   @Test
   void guestUnknownHypervisorTotalsForRHEL() {
-    String account = "A1";
-    InventoryHostFacts guest = createGuest(null, "A1", "O1", TEST_PRODUCT_ID);
+    AccountConfig accountConfig = createAccountConfig("A1");
+    String account = accountConfig.getAccountNumber();
+    String orgId = accountConfig.getOrgId();
+
+    InventoryHostFacts guest = createGuest(null, account, orgId, TEST_PRODUCT_ID);
     guest.setSystemProfileCoresPerSocket(4);
     guest.setSystemProfileSockets(3);
 
     Map<String, String> expectedHypervisorMap = new HashMap<>();
     expectedHypervisorMap.put(guest.getHypervisorUuid(), null);
-    mockReportedHypervisors(account, expectedHypervisorMap);
+    mockReportedHypervisors(orgId, expectedHypervisorMap);
 
-    when(inventoryRepo.getFacts(eq(List.of(account)), anyInt()))
+    when(inventoryRepo.getFacts(eq(List.of(orgId)), anyInt()))
         .thenReturn(Arrays.asList(guest).stream());
 
-    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, account);
+    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, accountConfig);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey("A1"));
+    assertThat(calcs, Matchers.hasKey(account));
 
-    AccountUsageCalculation calc = calcs.get("A1");
-    checkTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 1, 1);
-    checkHypervisorTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 1, 1);
+    AccountUsageCalculation calc = calcs.get(account);
+    checkTotalsCalculation(calc, account, orgId, TEST_PRODUCT, 12, 1, 1);
+    checkHypervisorTotalsCalculation(calc, account, orgId, TEST_PRODUCT, 12, 1, 1);
     assertNull(
         calc.getCalculation(createUsageKey(TEST_PRODUCT))
             .getTotals(HardwareMeasurementType.PHYSICAL));
@@ -189,25 +199,28 @@ class InventoryAccountUsageCollectorTest {
 
   @Test
   void physicalSystemTotalsForRHEL() {
-    String account = "A1";
+    AccountConfig accountConfig = createAccountConfig("A1");
+    String account = accountConfig.getAccountNumber();
+    String orgId = accountConfig.getOrgId();
+
     List<Integer> products = Arrays.asList(TEST_PRODUCT_ID);
 
-    InventoryHostFacts host = createRhsmHost("A1", "O1", products, "", OffsetDateTime.now());
+    InventoryHostFacts host = createRhsmHost(account, orgId, products, "", OffsetDateTime.now());
     host.setSystemProfileCoresPerSocket(4);
     host.setSystemProfileSockets(3);
-    mockReportedHypervisors(account, new HashMap<>());
+    mockReportedHypervisors(orgId, new HashMap<>());
 
-    when(inventoryRepo.getFacts(eq(List.of(account)), anyInt()))
+    when(inventoryRepo.getFacts(eq(List.of(orgId)), anyInt()))
         .thenReturn(Arrays.asList(host).stream());
 
-    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, account);
+    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, accountConfig);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey("A1"));
+    assertThat(calcs, Matchers.hasKey(account));
 
-    AccountUsageCalculation calc = calcs.get("A1");
+    AccountUsageCalculation calc = calcs.get(account);
     // odd sockets are rounded up.
-    checkTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
-    checkPhysicalTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
+    checkTotalsCalculation(calc, account, orgId, TEST_PRODUCT, 12, 4, 1);
+    checkPhysicalTotalsCalculation(calc, account, orgId, TEST_PRODUCT, 12, 4, 1);
     assertNull(
         calc.getCalculation(createUsageKey(TEST_PRODUCT))
             .getTotals(HardwareMeasurementType.VIRTUAL));
@@ -215,49 +228,58 @@ class InventoryAccountUsageCollectorTest {
 
   @Test
   void testTallyCoresAndSocketsOfRhelWhenInventoryFoundForAccount() throws Exception {
-    List<String> accounts = List.of("A1", "A2");
+    AccountConfig account1Config = createAccountConfig("A1");
+    String account1 = account1Config.getAccountNumber();
+    String orgId1 = account1Config.getOrgId();
+
+    AccountConfig account2Config = createAccountConfig("A2");
+    String account2 = account2Config.getAccountNumber();
+    String orgId2 = account2Config.getOrgId();
+
+    List<String> orgIds = List.of(orgId1, orgId2);
     List<Integer> products = Arrays.asList(TEST_PRODUCT_ID);
 
-    InventoryHostFacts host1 = createRhsmHost("A1", "O1", products, "", OffsetDateTime.now());
+    InventoryHostFacts host1 = createRhsmHost(account1, orgId1, products, "", OffsetDateTime.now());
     host1.setSystemProfileCoresPerSocket(1);
     host1.setSystemProfileSockets(4);
 
-    InventoryHostFacts host2 = createRhsmHost("A1", "O1", products, "", OffsetDateTime.now());
+    InventoryHostFacts host2 = createRhsmHost(account1, orgId1, products, "", OffsetDateTime.now());
     host2.setSystemProfileCoresPerSocket(2);
     host2.setSystemProfileSockets(4);
 
-    InventoryHostFacts host3 = createRhsmHost("A2", "O2", products, "", OffsetDateTime.now());
+    InventoryHostFacts host3 = createRhsmHost(account2, orgId2, products, "", OffsetDateTime.now());
     host3.setSystemProfileCoresPerSocket(3);
     host3.setSystemProfileSockets(2);
 
-    mockReportedHypervisors(accounts, new HashMap<>());
-    when(inventoryRepo.getFacts(eq(List.of("A1")), anyInt())).thenReturn(Stream.of(host1, host2));
-    when(inventoryRepo.getFacts(eq(List.of("A2")), anyInt())).thenReturn(Stream.of(host3));
+    mockReportedHypervisors(List.of(orgId1, orgId2), new HashMap<>());
+    when(inventoryRepo.getFacts(eq(List.of(orgId1)), anyInt())).thenReturn(Stream.of(host1, host2));
+    when(inventoryRepo.getFacts(eq(List.of(orgId2)), anyInt())).thenReturn(Stream.of(host3));
 
-    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, "A1");
-    calcs.putAll(collector.collect(RHEL_PRODUCTS, "A2"));
+    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, account1Config);
+    calcs.putAll(collector.collect(RHEL_PRODUCTS, account2Config));
     assertEquals(2, calcs.size());
-    assertThat(calcs, Matchers.hasKey("A1"));
-    assertThat(calcs, Matchers.hasKey("A2"));
+    assertThat(calcs, Matchers.hasKey(account1));
+    assertThat(calcs, Matchers.hasKey(account2));
 
-    AccountUsageCalculation a1Calc = calcs.get("A1");
+    AccountUsageCalculation a1Calc = calcs.get(account1);
     assertEquals(1, a1Calc.getProducts().size());
-    checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", 12, 8, 2);
+    checkTotalsCalculation(a1Calc, account1, orgId1, "RHEL", 12, 8, 2);
 
-    AccountUsageCalculation a2Calc = calcs.get("A2");
+    AccountUsageCalculation a2Calc = calcs.get(account2);
     assertEquals(1, a2Calc.getProducts().size());
-    checkTotalsCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 6, 2, 1);
+    checkTotalsCalculation(a2Calc, account2, orgId2, TEST_PRODUCT, 6, 2, 1);
   }
 
   @Test
   void testTallyForMultipleSlas() {
-    String account = "A1";
-    List<Integer> products = Collections.singletonList(TEST_PRODUCT_ID);
+    AccountConfig accountConfig = createAccountConfig("A1");
+    String account = accountConfig.getAccountNumber();
+    String orgId = accountConfig.getOrgId();
 
     InventoryHostFacts host1 =
         createRhsmHost(
-            "A1",
-            "O1",
+            account,
+            orgId,
             TEST_PRODUCT_ID.toString(),
             ServiceLevel.STANDARD,
             "",
@@ -267,34 +289,40 @@ class InventoryAccountUsageCollectorTest {
 
     InventoryHostFacts host2 =
         createRhsmHost(
-            "A1", "O1", TEST_PRODUCT_ID.toString(), ServiceLevel.PREMIUM, "", OffsetDateTime.now());
+            account,
+            orgId,
+            TEST_PRODUCT_ID.toString(),
+            ServiceLevel.PREMIUM,
+            "",
+            OffsetDateTime.now());
     host2.setSystemProfileCoresPerSocket(1);
     host2.setSystemProfileSockets(10);
 
-    mockReportedHypervisors(account, new HashMap<>());
-    when(inventoryRepo.getFacts(eq(List.of(account)), anyInt()))
-        .thenReturn(Stream.of(host1, host2));
+    mockReportedHypervisors(orgId, new HashMap<>());
+    when(inventoryRepo.getFacts(eq(List.of(orgId)), anyInt())).thenReturn(Stream.of(host1, host2));
 
-    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, account);
+    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, accountConfig);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey("A1"));
+    assertThat(calcs, Matchers.hasKey(account));
 
-    AccountUsageCalculation a1Calc = calcs.get("A1");
+    AccountUsageCalculation a1Calc = calcs.get(account);
     assertEquals(1, a1Calc.getProducts().size());
-    checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", 16, 16, 2);
-    checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", ServiceLevel._ANY, 16, 16, 2);
-    checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", ServiceLevel.STANDARD, 6, 6, 1);
-    checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", ServiceLevel.PREMIUM, 10, 10, 1);
+    checkTotalsCalculation(a1Calc, account, orgId, "RHEL", 16, 16, 2);
+    checkTotalsCalculation(a1Calc, account, orgId, "RHEL", ServiceLevel._ANY, 16, 16, 2);
+    checkTotalsCalculation(a1Calc, account, orgId, "RHEL", ServiceLevel.STANDARD, 6, 6, 1);
+    checkTotalsCalculation(a1Calc, account, orgId, "RHEL", ServiceLevel.PREMIUM, 10, 10, 1);
   }
 
   @Test
   void testTallyForMultipleUsages() {
-    String account = "A1";
+    AccountConfig accountConfig = createAccountConfig("A1");
+    String account = accountConfig.getAccountNumber();
+    String orgId = accountConfig.getOrgId();
 
     InventoryHostFacts host1 =
         createRhsmHost(
-            "A1",
-            "O1",
+            account,
+            orgId,
             TEST_PRODUCT_ID.toString(),
             ServiceLevel.EMPTY,
             Usage.DEVELOPMENT_TEST,
@@ -305,8 +333,8 @@ class InventoryAccountUsageCollectorTest {
 
     InventoryHostFacts host2 =
         createRhsmHost(
-            "A1",
-            "O1",
+            account,
+            orgId,
             TEST_PRODUCT_ID.toString(),
             ServiceLevel.EMPTY,
             Usage.PRODUCTION,
@@ -315,21 +343,20 @@ class InventoryAccountUsageCollectorTest {
     host2.setSystemProfileCoresPerSocket(1);
     host2.setSystemProfileSockets(10);
 
-    mockReportedHypervisors(account, new HashMap<>());
-    when(inventoryRepo.getFacts(eq(List.of(account)), anyInt()))
-        .thenReturn(Stream.of(host1, host2));
+    mockReportedHypervisors(orgId, new HashMap<>());
+    when(inventoryRepo.getFacts(eq(List.of(orgId)), anyInt())).thenReturn(Stream.of(host1, host2));
 
-    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, account);
+    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, accountConfig);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey("A1"));
+    assertThat(calcs, Matchers.hasKey(account));
 
-    AccountUsageCalculation a1Calc = calcs.get("A1");
+    AccountUsageCalculation a1Calc = calcs.get(account);
     assertEquals(1, a1Calc.getProducts().size());
-    checkTotalsCalculation(a1Calc, "A1", "O1", "RHEL", 16, 16, 2);
+    checkTotalsCalculation(a1Calc, account, orgId, "RHEL", 16, 16, 2);
     checkTotalsCalculation(
         a1Calc,
-        "A1",
-        "O1",
+        account,
+        orgId,
         "RHEL",
         ServiceLevel.EMPTY,
         Usage._ANY,
@@ -340,8 +367,8 @@ class InventoryAccountUsageCollectorTest {
         2);
     checkTotalsCalculation(
         a1Calc,
-        "A1",
-        "O1",
+        account,
+        orgId,
         "RHEL",
         ServiceLevel.EMPTY,
         Usage.DEVELOPMENT_TEST,
@@ -352,8 +379,8 @@ class InventoryAccountUsageCollectorTest {
         1);
     checkTotalsCalculation(
         a1Calc,
-        "A1",
-        "O1",
+        account,
+        orgId,
         "RHEL",
         ServiceLevel.EMPTY,
         Usage.PRODUCTION,
@@ -366,83 +393,96 @@ class InventoryAccountUsageCollectorTest {
 
   @Test
   void testTallyCoresAndSocketsOfRhelViaSystemProfileOnly() throws Exception {
-    List<String> accounts = List.of("A1", "A2");
+    AccountConfig account1Config = createAccountConfig("A1");
+    String account1 = account1Config.getAccountNumber();
+    String orgId1 = account1Config.getOrgId();
+
+    AccountConfig account2Config = createAccountConfig("A2");
+    String account2 = account2Config.getAccountNumber();
+    String orgId2 = account2Config.getOrgId();
+
+    List<String> orgIds = List.of(orgId1, orgId2);
 
     InventoryHostFacts host1 =
         createSystemProfileHost(
-            "A1", "O1", Arrays.asList(TEST_PRODUCT_ID), 1, 4, OffsetDateTime.now());
+            account1, orgId1, Arrays.asList(TEST_PRODUCT_ID), 1, 4, OffsetDateTime.now());
     InventoryHostFacts host2 =
         createSystemProfileHost(
-            "A1", "O1", Arrays.asList(TEST_PRODUCT_ID), 2, 4, OffsetDateTime.now());
+            account1, orgId1, Arrays.asList(TEST_PRODUCT_ID), 2, 4, OffsetDateTime.now());
     InventoryHostFacts host3 =
         createSystemProfileHost(
-            "A2", "O2", Arrays.asList(TEST_PRODUCT_ID), 2, 6, OffsetDateTime.now());
+            account2, orgId2, Arrays.asList(TEST_PRODUCT_ID), 2, 6, OffsetDateTime.now());
 
-    mockReportedHypervisors(accounts, new HashMap<>());
-    when(inventoryRepo.getFacts(eq(List.of("A1")), anyInt())).thenReturn(Stream.of(host1, host2));
-    when(inventoryRepo.getFacts(eq(List.of("A2")), anyInt())).thenReturn(Stream.of(host3));
+    mockReportedHypervisors(List.of(orgId1, orgId2), new HashMap<>());
+    when(inventoryRepo.getFacts(eq(List.of(orgId1)), anyInt())).thenReturn(Stream.of(host1, host2));
+    when(inventoryRepo.getFacts(eq(List.of(orgId2)), anyInt())).thenReturn(Stream.of(host3));
 
-    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, "A1");
-    calcs.putAll(collector.collect(RHEL_PRODUCTS, "A2"));
+    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, account1Config);
+    calcs.putAll(collector.collect(RHEL_PRODUCTS, account2Config));
     assertEquals(2, calcs.size());
-    assertThat(calcs, Matchers.hasKey("A1"));
-    assertThat(calcs, Matchers.hasKey("A2"));
+    assertThat(calcs, Matchers.hasKey(account1));
+    assertThat(calcs, Matchers.hasKey(account2));
 
-    AccountUsageCalculation a1Calc = calcs.get("A1");
+    AccountUsageCalculation a1Calc = calcs.get(account1);
     assertEquals(1, a1Calc.getProducts().size());
-    checkTotalsCalculation(a1Calc, "A1", "O1", TEST_PRODUCT, 12, 8, 2);
+    checkTotalsCalculation(a1Calc, account1, orgId1, TEST_PRODUCT, 12, 8, 2);
 
-    AccountUsageCalculation a2Calc = calcs.get("A2");
+    AccountUsageCalculation a2Calc = calcs.get(account2);
     assertEquals(1, a2Calc.getProducts().size());
-    checkTotalsCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 12, 6, 1);
+    checkTotalsCalculation(a2Calc, account2, orgId2, TEST_PRODUCT, 12, 6, 1);
   }
 
   @Test
   void testCalculationDoesNotIncludeHostWhenProductDoesntMatch() {
-    String account = "A1";
+    AccountConfig accountConfig = createAccountConfig("A1");
+    String account = accountConfig.getAccountNumber();
+    String orgId = accountConfig.getOrgId();
 
     InventoryHostFacts h1 =
-        createRhsmHost("A1", "Owner1", Arrays.asList(TEST_PRODUCT_ID), "", OffsetDateTime.now());
+        createRhsmHost(account, "Owner1", Arrays.asList(TEST_PRODUCT_ID), "", OffsetDateTime.now());
     h1.setSystemProfileCoresPerSocket(4);
     h1.setSystemProfileSockets(2);
 
     InventoryHostFacts h2 =
-        createRhsmHost("A1", "Owner1", Arrays.asList(32), "", OffsetDateTime.now());
+        createRhsmHost(account, "Owner1", Arrays.asList(32), "", OffsetDateTime.now());
     h2.setSystemProfileCoresPerSocket(12);
     h2.setSystemProfileSockets(14);
 
-    mockReportedHypervisors(account, new HashMap<>());
+    mockReportedHypervisors(orgId, new HashMap<>());
 
-    when(inventoryRepo.getFacts(eq(List.of(account)), anyInt()))
+    when(inventoryRepo.getFacts(eq(List.of(orgId)), anyInt()))
         .thenReturn(Arrays.asList(h1, h2).stream());
 
-    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, account);
+    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, accountConfig);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey("A1"));
+    assertThat(calcs, Matchers.hasKey(account));
 
-    AccountUsageCalculation accountCalc = calcs.get("A1");
+    AccountUsageCalculation accountCalc = calcs.get(account);
     assertEquals(1, accountCalc.getProducts().size());
-    checkTotalsCalculation(accountCalc, "A1", "Owner1", TEST_PRODUCT, 8, 2, 1);
+    checkTotalsCalculation(accountCalc, account, "Owner1", TEST_PRODUCT, 8, 2, 1);
   }
 
   @Test
   void throwsISEOnAttemptToCalculateFactsBelongingToADifferentOwnerForSameAccount() {
-    String account = "A1";
+    AccountConfig accountConfig = createAccountConfig("A1");
+    String account = accountConfig.getAccountNumber();
+    String orgId = accountConfig.getOrgId();
 
     InventoryHostFacts h1 =
-        createRhsmHost("A1", "Owner1", Arrays.asList(TEST_PRODUCT_ID), "", OffsetDateTime.now());
+        createRhsmHost(account, "Owner1", Arrays.asList(TEST_PRODUCT_ID), "", OffsetDateTime.now());
     h1.setSystemProfileCoresPerSocket(1);
     h1.setSystemProfileSockets(2);
 
     InventoryHostFacts h2 =
-        createRhsmHost("A1", "Owner2", Arrays.asList(TEST_PRODUCT_ID), "", OffsetDateTime.now());
+        createRhsmHost(account, "Owner2", Arrays.asList(TEST_PRODUCT_ID), "", OffsetDateTime.now());
 
-    mockReportedHypervisors(account, new HashMap<>());
-    when(inventoryRepo.getFacts(eq(List.of(account)), anyInt()))
+    mockReportedHypervisors(orgId, new HashMap<>());
+    when(inventoryRepo.getFacts(eq(List.of(orgId)), anyInt()))
         .thenReturn(Arrays.asList(h1, h2).stream());
 
     Throwable e =
-        assertThrows(IllegalStateException.class, () -> collector.collect(RHEL_PRODUCTS, account));
+        assertThrows(
+            IllegalStateException.class, () -> collector.collect(RHEL_PRODUCTS, accountConfig));
 
     String expectedMessage =
         String.format("Attempt to set a different owner for an account: %s:%s", "Owner1", "Owner2");
@@ -451,124 +491,137 @@ class InventoryAccountUsageCollectorTest {
 
   @Test
   void testTallyCoresAndSocketsOfRhelForPhysicalSystems() {
-    List<String> accounts = List.of("A1", "A2");
+    AccountConfig account1Config = createAccountConfig("A1");
+    String account1 = account1Config.getAccountNumber();
+    String orgId1 = account1Config.getOrgId();
+
+    AccountConfig account2Config = createAccountConfig("A2");
+    String account2 = account2Config.getAccountNumber();
+    String orgId2 = account2Config.getOrgId();
+
+    List<String> orgIds = List.of(orgId1, orgId2);
+
     InventoryHostFacts host1 =
-        createRhsmHost("A1", "O1", Arrays.asList(TEST_PRODUCT_ID), "", OffsetDateTime.now());
+        createRhsmHost(account1, orgId1, Arrays.asList(TEST_PRODUCT_ID), "", OffsetDateTime.now());
     host1.setSystemProfileCoresPerSocket(1);
     host1.setSystemProfileSockets(4);
 
-    InventoryHostFacts host2 = createHypervisor("A1", "O1", TEST_PRODUCT_ID);
+    InventoryHostFacts host2 = createHypervisor(account1, orgId1, TEST_PRODUCT_ID);
     host2.setSystemProfileCoresPerSocket(2);
     host2.setSystemProfileSockets(4);
 
     InventoryHostFacts host3 =
-        createRhsmHost("A2", "O2", Arrays.asList(TEST_PRODUCT_ID), "", OffsetDateTime.now());
+        createRhsmHost(account2, orgId2, Arrays.asList(TEST_PRODUCT_ID), "", OffsetDateTime.now());
     host3.setSystemProfileCoresPerSocket(5);
     host3.setSystemProfileSockets(1);
 
-    InventoryHostFacts host4 = createHypervisor("A2", "O2", TEST_PRODUCT_ID);
+    InventoryHostFacts host4 = createHypervisor(account2, orgId2, TEST_PRODUCT_ID);
     host4.setSystemProfileCoresPerSocket(5);
     host4.setSystemProfileSockets(1);
 
     Map<String, String> expectedHypervisorMap = new HashMap<>();
     expectedHypervisorMap.put(host2.getSubscriptionManagerId(), null);
     expectedHypervisorMap.put(host4.getSubscriptionManagerId(), null);
-    mockReportedHypervisors(accounts, expectedHypervisorMap);
+    mockReportedHypervisors(orgIds, expectedHypervisorMap);
 
-    when(inventoryRepo.getFacts(eq(List.of("A1")), anyInt())).thenReturn(Stream.of(host1, host2));
-    when(inventoryRepo.getFacts(eq(List.of("A2")), anyInt())).thenReturn(Stream.of(host3, host4));
+    when(inventoryRepo.getFacts(eq(List.of(orgId1)), anyInt())).thenReturn(Stream.of(host1, host2));
+    when(inventoryRepo.getFacts(eq(List.of(orgId2)), anyInt())).thenReturn(Stream.of(host3, host4));
 
-    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, "A1");
-    calcs.putAll(collector.collect(RHEL_PRODUCTS, "A2"));
+    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, account1Config);
+    calcs.putAll(collector.collect(RHEL_PRODUCTS, account2Config));
     assertEquals(2, calcs.size());
-    assertThat(calcs, Matchers.hasKey("A1"));
-    assertThat(calcs, Matchers.hasKey("A2"));
+    assertThat(calcs, Matchers.hasKey(account1));
+    assertThat(calcs, Matchers.hasKey(account2));
 
-    AccountUsageCalculation a1Calc = calcs.get("A1");
+    AccountUsageCalculation a1Calc = calcs.get(account1);
     assertEquals(1, a1Calc.getProducts().size());
-    checkTotalsCalculation(a1Calc, "A1", "O1", TEST_PRODUCT, 12, 8, 2);
-    checkPhysicalTotalsCalculation(a1Calc, "A1", "O1", TEST_PRODUCT, 12, 8, 2);
+    checkTotalsCalculation(a1Calc, account1, orgId1, TEST_PRODUCT, 12, 8, 2);
+    checkPhysicalTotalsCalculation(a1Calc, account1, orgId1, TEST_PRODUCT, 12, 8, 2);
 
-    AccountUsageCalculation a2Calc = calcs.get("A2");
+    AccountUsageCalculation a2Calc = calcs.get(account2);
     assertEquals(1, a2Calc.getProducts().size());
-    checkTotalsCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 10, 4, 2);
-    checkPhysicalTotalsCalculation(a2Calc, "A2", "O2", TEST_PRODUCT, 10, 4, 2);
+    checkTotalsCalculation(a2Calc, account2, orgId2, TEST_PRODUCT, 10, 4, 2);
+    checkPhysicalTotalsCalculation(a2Calc, account2, orgId2, TEST_PRODUCT, 10, 4, 2);
   }
 
   @Test
   void testHypervisorCalculationsWhenMapped() {
-    String account = "A1";
+    AccountConfig accountConfig = createAccountConfig("A1");
+    String account = accountConfig.getAccountNumber();
+    String orgId = accountConfig.getOrgId();
 
-    InventoryHostFacts hypervisor = createHypervisor("A1", "O1", TEST_PRODUCT_ID);
+    InventoryHostFacts hypervisor = createHypervisor(account, orgId, TEST_PRODUCT_ID);
     hypervisor.setSystemProfileCoresPerSocket(4);
     hypervisor.setSystemProfileSockets(3);
 
     // Guests should not end up in the total since only the hypervisor should be counted.
     InventoryHostFacts guest1 =
-        createGuest(hypervisor.getSubscriptionManagerId(), "A1", "O1", TEST_PRODUCT_ID);
+        createGuest(hypervisor.getSubscriptionManagerId(), account, orgId, TEST_PRODUCT_ID);
     guest1.setSystemProfileCoresPerSocket(4);
     guest1.setSystemProfileSockets(3);
 
     InventoryHostFacts guest2 =
-        createGuest(hypervisor.getSubscriptionManagerId(), "A1", "O1", TEST_PRODUCT_ID);
+        createGuest(hypervisor.getSubscriptionManagerId(), account, orgId, TEST_PRODUCT_ID);
     guest2.setSystemProfileCoresPerSocket(4);
     guest2.setSystemProfileSockets(2);
 
     Map<String, String> expectedHypervisorMap = new HashMap<>();
     expectedHypervisorMap.put(
         hypervisor.getSubscriptionManagerId(), hypervisor.getSubscriptionManagerId());
-    mockReportedHypervisors(account, expectedHypervisorMap);
+    mockReportedHypervisors(orgId, expectedHypervisorMap);
 
-    when(inventoryRepo.getFacts(eq(List.of(account)), anyInt()))
+    when(inventoryRepo.getFacts(eq(List.of(orgId)), anyInt()))
         .thenReturn(Stream.of(hypervisor, guest1, guest2));
 
-    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, account);
+    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, accountConfig);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey("A1"));
+    assertThat(calcs, Matchers.hasKey(account));
 
-    AccountUsageCalculation calc = calcs.get("A1");
+    AccountUsageCalculation calc = calcs.get(account);
     // odd sockets are rounded up for hypervisor.
     // hypervisor gets counted twice - once for itself, once for the guests
-    checkTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 24, 8, 2);
-    checkHypervisorTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
-    checkPhysicalTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
+    checkTotalsCalculation(calc, account, orgId, TEST_PRODUCT, 24, 8, 2);
+    checkHypervisorTotalsCalculation(calc, account, orgId, TEST_PRODUCT, 12, 4, 1);
+    checkPhysicalTotalsCalculation(calc, account, orgId, TEST_PRODUCT, 12, 4, 1);
   }
 
   @Test
   void testHypervisorCalculationsWhenMappedWithNoProductsOnHypervisor() {
-    String account = "A1";
+    AccountConfig accountConfig = createAccountConfig("A1");
+    String account = accountConfig.getAccountNumber();
+    String orgId = accountConfig.getOrgId();
 
-    InventoryHostFacts hypervisor = createHypervisor("A1", "O1", null);
+    InventoryHostFacts hypervisor = createHypervisor(account, orgId, null);
     hypervisor.setSystemProfileCoresPerSocket(4);
     hypervisor.setSystemProfileSockets(3);
 
     // Guests should not end up in the total since only the hypervisor should be counted.
     InventoryHostFacts guest1 =
-        createGuest(hypervisor.getSubscriptionManagerId(), "A1", "O1", TEST_PRODUCT_ID);
+        createGuest(hypervisor.getSubscriptionManagerId(), account, orgId, TEST_PRODUCT_ID);
     guest1.setSystemProfileCoresPerSocket(4);
     guest1.setSystemProfileSockets(3);
 
     InventoryHostFacts guest2 =
-        createGuest(hypervisor.getSubscriptionManagerId(), "A1", "O1", TEST_PRODUCT_ID);
+        createGuest(hypervisor.getSubscriptionManagerId(), account, orgId, TEST_PRODUCT_ID);
     guest2.setSystemProfileCoresPerSocket(4);
     guest2.setSystemProfileSockets(3);
 
     Map<String, String> expectedHypervisorMap = new HashMap<>();
     expectedHypervisorMap.put(
         hypervisor.getSubscriptionManagerId(), hypervisor.getSubscriptionManagerId());
-    mockReportedHypervisors(account, expectedHypervisorMap);
+    mockReportedHypervisors(orgId, expectedHypervisorMap);
 
-    when(inventoryRepo.getFacts(eq(List.of(account)), anyInt()))
+    when(inventoryRepo.getFacts(eq(List.of(orgId)), anyInt()))
         .thenReturn(Arrays.asList(hypervisor, guest1, guest2).stream());
 
-    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, account);
+    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, accountConfig);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey("A1"));
+    assertThat(calcs, Matchers.hasKey(account));
 
-    AccountUsageCalculation calc = calcs.get("A1");
+    AccountUsageCalculation calc = calcs.get(account);
     // odd sockets are rounded up for hypervisor.
-    checkTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
-    checkHypervisorTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
+    checkTotalsCalculation(calc, account, orgId, TEST_PRODUCT, 12, 4, 1);
+    checkHypervisorTotalsCalculation(calc, account, orgId, TEST_PRODUCT, 12, 4, 1);
     assertNull(
         calc.getCalculation(createUsageKey(TEST_PRODUCT))
             .getTotals(HardwareMeasurementType.PHYSICAL));
@@ -576,28 +629,30 @@ class InventoryAccountUsageCollectorTest {
 
   @Test
   void testGuestCountIsTrackedOnHost() {
-    String account = "A1";
+    AccountConfig accountConfig = createAccountConfig("A1");
+    String account = accountConfig.getAccountNumber();
+    String orgId = accountConfig.getOrgId();
 
-    InventoryHostFacts hypervisor = createHypervisor("A1", "O1", TEST_PRODUCT_ID);
+    InventoryHostFacts hypervisor = createHypervisor(account, orgId, TEST_PRODUCT_ID);
 
     // Guests should not end up in the total since only the hypervisor should be counted.
     InventoryHostFacts guest1 =
-        createGuest(hypervisor.getSubscriptionManagerId(), "A1", "O1", TEST_PRODUCT_ID);
+        createGuest(hypervisor.getSubscriptionManagerId(), account, orgId, TEST_PRODUCT_ID);
 
     InventoryHostFacts guest2 =
-        createGuest(hypervisor.getSubscriptionManagerId(), "A1", "O1", TEST_PRODUCT_ID);
+        createGuest(hypervisor.getSubscriptionManagerId(), account, orgId, TEST_PRODUCT_ID);
 
     Map<String, String> expectedHypervisorMap = new HashMap<>();
     expectedHypervisorMap.put(
         hypervisor.getSubscriptionManagerId(), hypervisor.getSubscriptionManagerId());
-    mockReportedHypervisors(account, expectedHypervisorMap);
+    mockReportedHypervisors(orgId, expectedHypervisorMap);
 
-    when(inventoryRepo.getFacts(eq(List.of(account)), anyInt()))
+    when(inventoryRepo.getFacts(eq(List.of(orgId)), anyInt()))
         .thenReturn(Stream.of(hypervisor, guest1, guest2));
 
-    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, account);
+    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, accountConfig);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey("A1"));
+    assertThat(calcs, Matchers.hasKey(account));
 
     ArgumentCaptor<AccountServiceInventory> accountService =
         ArgumentCaptor.forClass(AccountServiceInventory.class);
@@ -628,52 +683,58 @@ class InventoryAccountUsageCollectorTest {
 
   @Test
   void testTotalHosts() {
-    String account = "A1";
+    AccountConfig accountConfig = createAccountConfig("A1");
+    String account = accountConfig.getAccountNumber();
+    String orgId = accountConfig.getOrgId();
+
     Counter counter = meterRegistry.counter("rhsm-subscriptions.tally.hbi_hosts");
     double initialCount = counter.count();
 
-    InventoryHostFacts hypervisor = createHypervisor("A1", "O1", TEST_PRODUCT_ID);
+    InventoryHostFacts hypervisor = createHypervisor(account, orgId, TEST_PRODUCT_ID);
 
     Map<String, String> expectedHypervisorMap = new HashMap<>();
     expectedHypervisorMap.put(
         hypervisor.getSubscriptionManagerId(), hypervisor.getSubscriptionManagerId());
-    mockReportedHypervisors(account, expectedHypervisorMap);
+    mockReportedHypervisors(orgId, expectedHypervisorMap);
 
-    when(inventoryRepo.getFacts(eq(List.of(account)), anyInt()))
+    when(inventoryRepo.getFacts(eq(List.of(orgId)), anyInt()))
         .thenReturn(Arrays.asList(hypervisor).stream());
 
-    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, account);
+    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, accountConfig);
     assertEquals(1, calcs.size());
     assertEquals(1, counter.count() - initialCount);
   }
 
   @Test
   void accountsWithNullInventoryIdFiltered() {
-    String account = "A1";
+    AccountConfig accountConfig = createAccountConfig("A1");
+    String account = accountConfig.getAccountNumber();
+    String orgId = accountConfig.getOrgId();
+
     List<Integer> products = Arrays.asList(TEST_PRODUCT_ID);
-    InventoryHostFacts host = createRhsmHost(account, "O1", products, "", OffsetDateTime.now());
+    InventoryHostFacts host = createRhsmHost(account, orgId, products, "", OffsetDateTime.now());
     host.setSystemProfileCoresPerSocket(4);
     host.setSystemProfileSockets(3);
 
-    when(hostRepo.findByAccountNumber("A1"))
+    when(hostRepo.findByAccountNumber(accountConfig.getAccountNumber()))
         .thenReturn(
             List.of(
                 new Host(null, "insights1", host.getAccount(), host.getOrgId(), null),
                 new Host(null, "insights2", host.getAccount(), host.getOrgId(), null)));
 
-    mockReportedHypervisors(account, new HashMap<>());
+    mockReportedHypervisors(orgId, new HashMap<>());
 
-    when(inventoryRepo.getFacts(eq(List.of(account)), anyInt()))
+    when(inventoryRepo.getFacts(eq(List.of(orgId)), anyInt()))
         .thenReturn(Arrays.asList(host).stream());
 
-    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, account);
+    Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, accountConfig);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey("A1"));
+    assertThat(calcs, Matchers.hasKey(account));
 
-    AccountUsageCalculation calc = calcs.get("A1");
+    AccountUsageCalculation calc = calcs.get(account);
     // odd sockets are rounded up.
-    checkTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
-    checkPhysicalTotalsCalculation(calc, "A1", "O1", TEST_PRODUCT, 12, 4, 1);
+    checkTotalsCalculation(calc, account, orgId, TEST_PRODUCT, 12, 4, 1);
+    checkPhysicalTotalsCalculation(calc, account, orgId, TEST_PRODUCT, 12, 4, 1);
     assertNull(
         calc.getCalculation(createUsageKey(TEST_PRODUCT))
             .getTotals(HardwareMeasurementType.VIRTUAL));
@@ -681,9 +742,12 @@ class InventoryAccountUsageCollectorTest {
 
   @Test
   void removesDuplicateHostRecords() {
-    String account = "A1";
+    AccountConfig accountConfig = createAccountConfig("A1");
+    String account = accountConfig.getAccountNumber();
+    String orgId = accountConfig.getOrgId();
+
     List<Integer> products = Arrays.asList(TEST_PRODUCT_ID);
-    InventoryHostFacts host = createRhsmHost(account, "O1", products, "", OffsetDateTime.now());
+    InventoryHostFacts host = createRhsmHost(account, orgId, products, "", OffsetDateTime.now());
     host.setSystemProfileCoresPerSocket(4);
     host.setSystemProfileSockets(3);
     Host orig =
@@ -703,17 +767,18 @@ class InventoryAccountUsageCollectorTest {
             null);
     dupe.setInstanceId("i2");
 
-    AccountServiceInventory accountServiceInventory = new AccountServiceInventory("A1", "HBI_HOST");
+    AccountServiceInventory accountServiceInventory =
+        new AccountServiceInventory(account, "HBI_HOST");
     accountServiceInventory.getServiceInstances().put(host.getInventoryId().toString(), orig);
     accountServiceInventory.getServiceInstances().put("i2", dupe);
 
     when(accountServiceInventoryRepository.findById(
-            new AccountServiceInventoryId("A1", "HBI_HOST")))
+            new AccountServiceInventoryId(account, "HBI_HOST")))
         .thenReturn(Optional.of(accountServiceInventory));
 
-    when(inventoryRepo.getFacts(eq(List.of("A1")), any())).thenReturn(Stream.of(host));
+    when(inventoryRepo.getFacts(eq(List.of(orgId)), any())).thenReturn(Stream.of(host));
 
-    collector.collect(RHEL_PRODUCTS, account);
+    collector.collect(RHEL_PRODUCTS, accountConfig);
 
     assertEquals(1, accountServiceInventory.getServiceInstances().size());
   }
@@ -835,16 +900,22 @@ class InventoryAccountUsageCollectorTest {
     return new UsageCalculation.Key(product, sla, usage, billingProvider, billingAcctId);
   }
 
-  private void mockReportedHypervisors(String account, Map<String, String> expectedHypervisorMap) {
-    mockReportedHypervisors(List.of(account), expectedHypervisorMap);
+  private void mockReportedHypervisors(String orgId, Map<String, String> expectedHypervisorMap) {
+    mockReportedHypervisors(List.of(orgId), expectedHypervisorMap);
   }
 
   private void mockReportedHypervisors(
-      List<String> accounts, Map<String, String> expectedHypervisorMap) {
+      List<String> orgIds, Map<String, String> expectedHypervisorMap) {
     Builder streamBuilder = Stream.builder();
     for (Entry<String, String> entry : expectedHypervisorMap.entrySet()) {
       streamBuilder.accept(new Object[] {entry.getKey(), entry.getValue()});
     }
-    when(inventoryRepo.getReportedHypervisors(accounts)).thenReturn(streamBuilder.build());
+    when(inventoryRepo.getReportedHypervisors(orgIds)).thenReturn(streamBuilder.build());
+  }
+
+  private AccountConfig createAccountConfig(String account) {
+    AccountConfig accountConfig = new AccountConfig(account);
+    accountConfig.setOrgId("org_" + account);
+    return accountConfig;
   }
 }

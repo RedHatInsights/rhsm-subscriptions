@@ -64,6 +64,7 @@ public class WiremockRunner {
     wireMockServer.stubFor(
         any(urlMatching("/api/rhsm-subscriptions/v1/?.*"))
             .withQueryParam("accountNumber", equalTo("account123"))
+            .withQueryParam("orgId", equalTo("org123"))
             .willReturn(
                 aResponse()
                     .withHeader("Content-Type", "application/json")
@@ -78,6 +79,7 @@ public class WiremockRunner {
     wireMockServer.stubFor(
         any(urlMatching("/api/rhsm-subscriptions/v1/?.*"))
             .withQueryParam("accountNumber", equalTo("unconfigured"))
+            .withQueryParam("orgId", equalTo("unconfigured"))
             .willReturn(
                 aResponse()
                     .withHeader("Content-Type", "application/json")

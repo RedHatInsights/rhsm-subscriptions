@@ -22,15 +22,25 @@ package org.candlepin.subscriptions.tally;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.model.*;
+import org.candlepin.subscriptions.db.model.config.AccountConfig;
 import org.candlepin.subscriptions.inventory.db.InventoryDatabaseOperations;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollector;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
@@ -69,7 +79,15 @@ public class InventoryAccountUsageCollector {
 
   @SuppressWarnings("squid:S3776")
   @Transactional
-  public Map<String, AccountUsageCalculation> collect(Collection<String> products, String account) {
+  public Map<String, AccountUsageCalculation> collect(
+      Collection<String> products, AccountConfig accountConfig) {
+    String account = accountConfig.getAccountNumber();
+    String orgId = accountConfig.getOrgId();
+    if (Objects.isNull(account) || Objects.isNull(orgId)) {
+      throw new IllegalArgumentException(
+          String.format("Incomplete opt-in configuration - account=%s orgId=%s", account, orgId));
+    }
+    log.info("Finding HBI hosts for account={} org={}", account, orgId);
 
     AccountServiceInventory accountServiceInventory =
         accountServiceInventoryRepository
@@ -94,12 +112,13 @@ public class InventoryAccountUsageCollector {
     Map<String, Integer> hypervisorGuestCounts = new HashMap<>();
 
     inventory.reportedHypervisors(
-        List.of(account), reported -> hypMapping.put((String) reported[0], (String) reported[1]));
+        List.of(orgId), reported -> hypMapping.put((String) reported[0], (String) reported[1]));
     log.info("Found {} reported hypervisors.", hypMapping.size());
 
+    Map<String, Set<HostBucketKey>> hostSeenBucketKeysLookup = new HashMap<>();
     Map<String, AccountUsageCalculation> calcsByAccount = new HashMap<>();
     inventory.processHostFacts(
-        List.of(account),
+        List.of(orgId),
         culledOffsetDays,
         hostFacts -> {
           calcsByAccount.putIfAbsent(account, new AccountUsageCalculation(account));
@@ -126,16 +145,17 @@ public class InventoryAccountUsageCollector {
           Host existingHost = inventoryHostMap.remove(hostFacts.getInventoryId().toString());
           Host host = existingHost == null ? hostFromHbiFacts(hostFacts, facts) : existingHost;
           if (existingHost != null) {
-            host.getBuckets().clear(); // ensure we recalculate to remove any stale buckets
             populateHostFieldsFromHbi(host, hostFacts, facts);
           }
+          Set<HostBucketKey> seenBucketKeys =
+              hostSeenBucketKeysLookup.computeIfAbsent(host.getInstanceId(), h -> new HashSet<>());
 
           if (facts.isHypervisor()) {
             Map<String, NormalizedFacts> idToHypervisorMap =
                 accountHypervisorFacts.computeIfAbsent(account, a -> new HashMap<>());
             idToHypervisorMap.put(hostFacts.getSubscriptionManagerId(), facts);
             hypervisorHosts.put(hostFacts.getSubscriptionManagerId(), host);
-          } else if (facts.isVirtual() && !StringUtils.isEmpty(facts.getHypervisorUuid())) {
+          } else if (facts.isVirtual() && StringUtils.hasText(facts.getHypervisorUuid())) {
             Integer guests = hypervisorGuestCounts.getOrDefault(host.getHypervisorUuid(), 0);
             hypervisorGuestCounts.put(host.getHypervisorUuid(), ++guests);
           }
@@ -164,7 +184,13 @@ public class InventoryAccountUsageCollector {
                         }
                         Optional<HostTallyBucket> appliedBucket =
                             ProductUsageCollectorFactory.get(product).collect(calc, facts);
-                        appliedBucket.ifPresent(host::addBucket);
+                        appliedBucket.ifPresent(
+                            bucket -> {
+                              // host.addBucket changes bucket.key.hostId, so we do that first; to
+                              // avoid mutating the item in the set
+                              host.addBucket(bucket);
+                              seenBucketKeys.add(bucket.getKey());
+                            });
                       } catch (Exception e) {
                         log.error(
                             "Unable to collect usage data for host: {} product: {}",
@@ -176,7 +202,6 @@ public class InventoryAccountUsageCollector {
                   }
                 }
               });
-
           // Save the host now that the buckets have been determined. Hypervisor hosts will
           // be persisted once all potential guests have been processed.
           if (!facts.isHypervisor()) {
@@ -192,13 +217,26 @@ public class InventoryAccountUsageCollector {
         accountHypervisorFacts,
         hypervisorHosts,
         hypervisorGuestCounts,
-        calcsByAccount);
+        calcsByAccount,
+        hostSeenBucketKeysLookup);
 
     log.info(
         "Removing {} stale host records (HBI records no longer present).", inventoryHostMap.size());
     inventoryHostMap.values().stream()
         .map(Host::getInstanceId)
         .forEach(accountServiceInventory.getServiceInstances()::remove);
+
+    log.info("Removing stale buckets");
+    accountServiceInventory
+        .getServiceInstances()
+        .values()
+        .forEach(
+            host -> {
+              Set<HostBucketKey> seenBucketKeys =
+                  hostSeenBucketKeysLookup.computeIfAbsent(
+                      host.getInstanceId(), h -> new HashSet<>());
+              host.getBuckets().removeIf(b -> !seenBucketKeys.contains(b.getKey()));
+            });
 
     if (hypervisorHosts.size() > 0) {
       log.info("Persisting {} hypervisor hosts.", hypervisorHosts.size());
@@ -230,17 +268,21 @@ public class InventoryAccountUsageCollector {
   }
 
   private void collectHypervisorGuestData(
-      Map<String, Set<UsageCalculation.Key>> hypervisorUsageKeys,
+      Map<String, Set<Key>> hypervisorUsageKeys,
       Map<String, Map<String, NormalizedFacts>> accountHypervisorFacts,
       Map<String, Host> hypervisorHosts,
       Map<String, Integer> hypervisorGuestCounts,
-      Map<String, AccountUsageCalculation> calcsByAccount) {
+      Map<String, AccountUsageCalculation> calcsByAccount,
+      Map<String, Set<HostBucketKey>> hostSeenBucketKeyLookup) {
     accountHypervisorFacts.forEach(
         (account, accountHypervisors) -> {
           AccountUsageCalculation accountCalc = calcsByAccount.get(account);
           accountHypervisors.forEach(
               (hypervisorUuid, hypervisor) -> {
                 Host hypHost = hypervisorHosts.get(hypervisorUuid);
+                Set<HostBucketKey> hostBucketKeys =
+                    hostSeenBucketKeyLookup.computeIfAbsent(
+                        hypHost.getInstanceId(), h -> new HashSet<>());
                 hypHost.setNumOfGuests(hypervisorGuestCounts.getOrDefault(hypervisorUuid, 0));
                 Set<UsageCalculation.Key> usageKeys =
                     hypervisorUsageKeys.getOrDefault(hypervisorUuid, Collections.emptySet());
@@ -253,7 +295,13 @@ public class InventoryAccountUsageCollector {
                       Optional<HostTallyBucket> appliedBucket =
                           productUsageCollector.collectForHypervisor(
                               account, usageCalc, hypervisor);
-                      appliedBucket.ifPresent(hypHost::addBucket);
+                      appliedBucket.ifPresent(
+                          bucket -> {
+                            // hypHost.addBucket changes bucket.key.hostId, so we do that first; to
+                            // avoid mutating the item in the set
+                            hypHost.addBucket(bucket);
+                            hostBucketKeys.add(bucket.getKey());
+                          });
                     });
               });
         });

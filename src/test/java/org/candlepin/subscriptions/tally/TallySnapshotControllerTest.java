@@ -24,7 +24,10 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Optional;
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
+import org.candlepin.subscriptions.db.model.config.AccountConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,8 +41,11 @@ import org.springframework.test.context.ActiveProfiles;
 class TallySnapshotControllerTest {
 
   public static final String ACCOUNT = "foo123";
+  public static final String ORG_ID = "org123";
 
   @Autowired TallySnapshotController controller;
+
+  @MockBean AccountConfigRepository accountRepo;
 
   @MockBean CloudigradeAccountUsageCollector cloudigradeCollector;
 
@@ -53,6 +59,10 @@ class TallySnapshotControllerTest {
 
   @BeforeEach
   void setup() {
+    AccountConfig accountConfig = new AccountConfig(ACCOUNT);
+    accountConfig.setOrgId("ORG_" + ACCOUNT);
+    when(accountRepo.findById(ACCOUNT)).thenReturn(Optional.of(accountConfig));
+
     defaultCloudigradeIntegrationEnablement = props.isCloudigradeEnabled();
     when(inventoryCollector.collect(any(), any()))
         .thenReturn(ImmutableMap.of(ACCOUNT, new AccountUsageCalculation(ACCOUNT)));
@@ -66,13 +76,23 @@ class TallySnapshotControllerTest {
   @Test
   void testCloudigradeAccountUsageCollectorEnabled() throws Exception {
     props.setCloudigradeEnabled(true);
+    when(accountRepo.findOrgByAccountNumber(ACCOUNT)).thenReturn(ORG_ID);
     controller.produceSnapshotsForAccount(ACCOUNT);
     verify(cloudigradeCollector).enrichUsageWithCloudigradeData(any(), any(), any());
   }
 
   @Test
+  void testWhenCloudigradeAccountUsageCollectorEnabledAndMissingOrgId_EnrichmentNotInvoked()
+      throws Exception {
+    props.setCloudigradeEnabled(true);
+    controller.produceSnapshotsForAccount(ACCOUNT);
+    verifyNoInteractions(cloudigradeCollector);
+  }
+
+  @Test
   void testCloudigradeAccountUsageCollectorExceptionIgnored() throws Exception {
     props.setCloudigradeEnabled(true);
+    when(accountRepo.findOrgByAccountNumber(ACCOUNT)).thenReturn(ORG_ID);
     doThrow(new RuntimeException())
         .when(cloudigradeCollector)
         .enrichUsageWithCloudigradeData(any(), any(), any());

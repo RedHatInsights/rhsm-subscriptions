@@ -21,6 +21,8 @@
 package org.candlepin.subscriptions;
 
 import org.candlepin.subscriptions.clowder.KafkaJaasBeanPostProcessor;
+import org.candlepin.subscriptions.clowder.RdsSslBeanPostProcessor;
+import org.candlepin.subscriptions.validator.MacAddressValidator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -36,5 +38,28 @@ public class SystemConduitConfiguration {
   @Bean
   public KafkaJaasBeanPostProcessor kafkaJaasBeanPostProcessor(Environment env) {
     return new KafkaJaasBeanPostProcessor(env);
+  }
+
+  /**
+   * Unfortunately there's no one property to apply the MacAddress annotation to. We have to resort
+   * to calling the validator manually when we know we have a String we need to treat as a MAC
+   * address.
+   *
+   * @return an instance of MacAddressValidator
+   */
+  @Bean
+  public MacAddressValidator macAddressValidator() {
+    return new MacAddressValidator();
+  }
+
+  /**
+   * A bean post-processor responsible for setting up SSL for the database.
+   *
+   * @param env The Spring Environment
+   * @return a rdsSslBeanPostProcessor object
+   */
+  @Bean
+  public RdsSslBeanPostProcessor rdsSslBeanPostProcessor(Environment env) {
+    return new RdsSslBeanPostProcessor(env);
   }
 }

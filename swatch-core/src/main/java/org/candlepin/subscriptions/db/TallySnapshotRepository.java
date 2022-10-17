@@ -45,16 +45,27 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
   // method
 
   @Query(
-      "SELECT t FROM TallySnapshot t where "
-          + "t.accountNumber = :accountNumber and "
-          + "t.productId = :productId and "
-          + "t.granularity = :granularity  and "
-          + "t.serviceLevel = :serviceLevel and "
-          + "t.usage = :usage and "
-          + "t.billingProvider = :billingProvider and "
-          + "t.billingAccountId = :billingAcctId and "
-          + "t.snapshotDate between :beginning and :ending "
-          + "order by t.snapshotDate")
+      value =
+          "SELECT distinct t FROM TallySnapshot t left join fetch t.tallyMeasurements where "
+              + "t.accountNumber = :accountNumber and "
+              + "t.productId = :productId and "
+              + "t.granularity = :granularity  and "
+              + "t.serviceLevel = :serviceLevel and "
+              + "t.usage = :usage and "
+              + "t.billingProvider = :billingProvider and "
+              + "t.billingAccountId = :billingAcctId and "
+              + "t.snapshotDate between :beginning and :ending "
+              + "order by t.snapshotDate",
+      countQuery =
+          "SELECT count(t) FROM TallySnapshot t where "
+              + "t.accountNumber = :accountNumber and "
+              + "t.productId = :productId and "
+              + "t.granularity = :granularity  and "
+              + "t.serviceLevel = :serviceLevel and "
+              + "t.usage = :usage and "
+              + "t.billingProvider = :billingProvider and "
+              + "t.billingAccountId = :billingAcctId and "
+              + "t.snapshotDate between :beginning and :ending ")
   Page<TallySnapshot> findSnapshot( // NOSONAR
       @Param("accountNumber") String accountNumber,
       @Param("productId") String productId,
@@ -71,6 +82,20 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
   void deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(
       String accountNumber, Granularity granularity, OffsetDateTime cutoffDate);
 
+  @Query(
+      value =
+          "SELECT distinct t FROM TallySnapshot t left join fetch t.tallyMeasurements where "
+              + "t.accountNumber = :accountNumber and "
+              + "t.productId in (:productIds) and "
+              + "t.granularity = :granularity  and "
+              + "t.snapshotDate between :beginning and :ending "
+              + "order by t.snapshotDate",
+      countQuery =
+          "SELECT count(t) FROM TallySnapshot t where "
+              + "t.accountNumber = :accountNumber and "
+              + "t.productId in (:productIds) and "
+              + "t.granularity = :granularity  and "
+              + "t.snapshotDate between :beginning and :ending ")
   Stream<TallySnapshot> findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
       String accountNumber,
       Collection<String> productIds,

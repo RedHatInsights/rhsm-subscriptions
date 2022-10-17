@@ -35,6 +35,7 @@ import javax.validation.Validator;
 import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationWorkerConfiguration;
 import org.candlepin.subscriptions.clowder.KafkaJaasBeanPostProcessor;
+import org.candlepin.subscriptions.clowder.RdsSslBeanPostProcessor;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.metering.MeteringConfiguration;
 import org.candlepin.subscriptions.product.OfferingWorkerConfiguration;
@@ -166,7 +167,7 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   /* Do not declare a MethodValidationPostProcessor!
    *
    * The Spring Core documents instruct the user to create a MethodValidationPostProcessor in order to
-   * enable method validation.  However, Spring Boot takes care of creating that bean that itself:
+   * enable method validation.  However, Spring Boot takes care of creating that bean itself:
    * "The method validation feature supported by Bean Validation 1.1 is automatically enabled as long as a
    * JSR-303 implementation (such as Hibernate validator) is on the classpath" (from
    * https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#boot-features-validation).
@@ -197,5 +198,10 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   @Bean
   public KafkaJaasBeanPostProcessor kafkaJaasBeanPostProcessor(Environment env) {
     return new KafkaJaasBeanPostProcessor(env);
+  }
+
+  @Bean
+  public RdsSslBeanPostProcessor rdsSslBeanPostProcessor(Environment env) {
+    return new RdsSslBeanPostProcessor(env);
   }
 }

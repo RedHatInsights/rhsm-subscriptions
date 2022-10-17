@@ -26,7 +26,6 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.json.TallySummary;
-import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,7 +49,7 @@ public class SnapshotSummaryProducer {
       @Qualifier("tallySummaryKafkaTemplate")
           KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate,
       @Qualifier("tallySummaryKafkaRetryTemplate") RetryTemplate kafkaRetryTemplate,
-      @Qualifier("rhMarketplaceTasks") TaskQueueProperties props,
+      TallySummaryProperties props,
       TallySummaryMapper summaryMapper) {
     this.tallySummaryTopic = props.getTopic();
     this.kafkaRetryTemplate = kafkaRetryTemplate;

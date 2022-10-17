@@ -33,6 +33,7 @@ import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
@@ -55,6 +56,7 @@ import org.springframework.retry.support.RetryTemplate;
   TaskConsumerConfiguration.class,
   MeteringTasksConfiguration.class
 })
+@ComponentScan("org.candlepin.subscriptions.metering.api")
 public class OpenShiftWorkerProfile {
 
   @Bean(name = "openshiftMetricRetryTemplate")

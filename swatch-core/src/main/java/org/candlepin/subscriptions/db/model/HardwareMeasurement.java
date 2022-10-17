@@ -26,7 +26,11 @@ import javax.persistence.Embeddable;
 import lombok.Getter;
 import lombok.Setter;
 
-/** Class to represent rows in the hardware_measurements table */
+/**
+ * Class to represent rows in the hardware_measurements table
+ *
+ * <p>NOTE: to be removed by SWATCH-626
+ */
 @Embeddable
 @Getter
 @Setter

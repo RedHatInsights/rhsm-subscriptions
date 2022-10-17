@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.metering;
 
+import org.candlepin.subscriptions.util.ApplicationClock;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
@@ -29,4 +31,10 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 @ComponentScan({"org.candlepin.subscriptions.metering.profile"})
-public class MeteringConfiguration {}
+public class MeteringConfiguration {
+
+  @Bean
+  ResourceUtil meteringResourceUtils(ApplicationClock clock) {
+    return new ResourceUtil(clock);
+  }
+}

@@ -1111,6 +1111,7 @@ components:
         - physical
         - virtual
         - cloud
+        - hypervisor
     BillingAccountId:
       type: string
     Uom:

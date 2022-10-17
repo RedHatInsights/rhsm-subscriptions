@@ -31,6 +31,9 @@ public enum OptInType {
   /** Configured by an admin via the API. */
   API,
 
+  /** Configured by an admin via the API. */
+  INTERNAL_API,
+
   /** Configured via prometheus detection. */
   PROMETHEUS
 }

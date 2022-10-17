@@ -51,6 +51,15 @@ public class OrgConfig extends BaseConfig {
     return orgConfig;
   }
 
+  public static OrgConfig fromInternalApi(String orgId, OffsetDateTime timestamp) {
+    OrgConfig orgConfig = new OrgConfig(orgId);
+    orgConfig.setOptInType(OptInType.INTERNAL_API);
+    orgConfig.setSyncEnabled(true);
+    orgConfig.setCreated(timestamp);
+    orgConfig.setUpdated(timestamp);
+    return orgConfig;
+  }
+
   public String getOrgId() {
     return orgId;
   }

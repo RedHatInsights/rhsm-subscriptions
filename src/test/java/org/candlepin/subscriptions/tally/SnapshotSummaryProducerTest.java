@@ -45,7 +45,6 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.json.TallySummary;
-import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -63,13 +62,13 @@ class SnapshotSummaryProducerTest {
 
   @Captor private ArgumentCaptor<TallySummary> summaryCaptor;
 
-  private TaskQueueProperties props;
+  private TallySummaryProperties props;
 
   private SnapshotSummaryProducer producer;
 
   @BeforeEach
   void setup() {
-    props = new TaskQueueProperties();
+    props = new TallySummaryProperties();
     props.setTopic("summary-topic");
     RetryTemplate retryTemplate = new RetryTemplate();
     this.producer =

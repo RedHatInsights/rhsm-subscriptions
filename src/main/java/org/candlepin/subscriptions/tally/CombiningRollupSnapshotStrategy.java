@@ -99,25 +99,6 @@ public class CombiningRollupSnapshotStrategy {
         derivedExistingSnapshots,
         affectedProductTags);
 
-    // Reset the measurements for all existing finest granularity snapshots
-    // that fall in the affected date range, so that they reflect the values
-    // of the incoming account calculations.
-    totalExistingSnapshots.values().stream()
-        .filter(
-            existing ->
-                existing.getGranularity() == finestGranularity
-                    && affectedRange.contains(existing.getSnapshotDate()))
-        .forEach(
-            snapshot -> {
-              log.debug(
-                  "Clearing {} snapshot measurements occurring on {} for product {} and account {}",
-                  snapshot.getGranularity(),
-                  snapshot.getSnapshotDate(),
-                  snapshot.getProductId(),
-                  snapshot.getAccountNumber());
-              snapshot.getTallyMeasurements().clear();
-            });
-
     List<TallySnapshot> finestGranularitySnapshots =
         produceFinestGranularitySnapshots(totalExistingSnapshots, accountCalcs, finestGranularity);
 
@@ -237,11 +218,26 @@ public class CombiningRollupSnapshotStrategy {
     snapshot.setBillingAccountId(productCalc.getBillingAccountId());
     snapshot.setBillingProvider(productCalc.getBillingProvider());
 
+    Set<TallyMeasurementKey> seenMeasurements = new HashSet<>();
     // Copy the calculated hardware measurements to the snapshots
     for (HardwareMeasurementType type : HardwareMeasurementType.values()) {
       UsageCalculation.Totals calculatedTotals = productCalc.getTotals(type);
+      if (calculatedTotals != null) {
+        // track measurements that are present in calculated values, so that we can remove
+        // stale, unused measurements later
+        calculatedTotals
+            .getMeasurements()
+            .keySet()
+            .forEach(uom -> seenMeasurements.add(new TallyMeasurementKey(type, uom)));
+      }
       updateSnapshotWithHardwareMeasurements(snapshot, type, calculatedTotals);
     }
+    // remove stale, unused measurements
+    Set<TallyMeasurementKey> staleMeasurements =
+        snapshot.getTallyMeasurements().keySet().stream()
+            .filter(k -> !seenMeasurements.contains(k))
+            .collect(Collectors.toSet());
+    staleMeasurements.forEach(snapshot.getTallyMeasurements()::remove);
   }
 
   private Granularity calculateNextGranularity(Granularity granularity) {
@@ -314,8 +310,14 @@ public class CombiningRollupSnapshotStrategy {
           }
         });
 
-    // Add remaining snaps from the affected as they will have been reset.
-    affectedSnaps.values().forEach(snapshot -> toSave.add(tallyRepo.save(snapshot)));
+    // Reset remaining snaps, as they didn't have any calculations/events
+    affectedSnaps
+        .values()
+        .forEach(
+            snapshot -> {
+              snapshot.getTallyMeasurements().clear();
+              toSave.add(tallyRepo.save(snapshot));
+            });
     return toSave;
   }
 

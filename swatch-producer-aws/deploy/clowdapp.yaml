@@ -29,7 +29,7 @@ parameters:
   - name: SPLUNK_SOURCE_TYPE
     value: 'quarkus_service'
   - name: SPLUNK_HEC_BATCH_SIZE
-    value: '10'
+    value: '1000'
   - name: SPLUNK_HEC_BATCH_INTERVAL
     value: '10S'
   - name: SPLUNK_HEC_RETRY_COUNT
@@ -72,7 +72,7 @@ objects:
     kafkaTopics:
       - replicas: 1
         partitions: 1
-        topicName: platform.rhsm-subscriptions.tally
+        topicName: platform.rhsm-subscriptions.billable-usage
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
