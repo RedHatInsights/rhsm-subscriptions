@@ -26,7 +26,6 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.SqlRowSetResultSetExtractor;
@@ -45,16 +44,9 @@ public class HardwareMeasurementMigration extends DataMigration {
           + "   do update set value=excluded.value\n"
           + "   where tally_measurements.value != excluded.value";
 
-  public static final String UPDATE_SQL =
-      "update tally_measurements set value=? where snapshot_id=? and measurement_type=? and uom=?";
-
   private static final String HARDWARE_MEASUREMENT_QUERY =
-      "select h.snapshot_id, h.measurement_type, sockets, cores, s.value as s_value, c.value as c_value\n"
+      "select h.snapshot_id, h.measurement_type, sockets, cores\n"
           + "from hardware_measurements h\n"
-          + "         left join tally_measurements s\n"
-          + "                   on s.snapshot_id = h.snapshot_id and s.measurement_type = h.measurement_type and s.uom = 'SOCKETS'\n"
-          + "         left join tally_measurements c\n"
-          + "                   on c.snapshot_id = h.snapshot_id and c.measurement_type = h.measurement_type and c.uom = 'CORES'\n"
           + "where ?::uuid is null\n"
           + "   or h.snapshot_id > ?::uuid\n"
           + "order by h.snapshot_id\n"
@@ -80,7 +72,6 @@ public class HardwareMeasurementMigration extends DataMigration {
   public String transformAndLoad(SqlRowSet data) {
     String lastSeenSnapshotId = null;
     List<Object[]> insertList = new ArrayList<>();
-    List<Object[]> updateList = new ArrayList<>();
     int snapshotCount = 0;
     while (data.next()) {
       String snapshotId = data.getString("snapshot_id");
@@ -93,22 +84,15 @@ public class HardwareMeasurementMigration extends DataMigration {
       if (sockets != null && tallyMeasurementSockets == null) {
         log.debug("Inserting sockets for tally snapshotId: {}", snapshotId);
         insertList.add(new Object[] {snapshotId, measurementType, "SOCKETS", sockets});
-      } else if (!Objects.equals(tallyMeasurementSockets, sockets)) {
-        log.debug("Updating sockets for tally snapshotId: {}", snapshotId);
-        updateList.add(new Object[] {sockets, snapshotId, measurementType, "SOCKETS"});
       }
       if (cores != null && tallyMeasurementCores == null) {
         log.debug("Inserting cores for tally snapshotId: {}", snapshotId);
         insertList.add(new Object[] {snapshotId, measurementType, "CORES", cores});
-      } else if (!Objects.equals(tallyMeasurementCores, cores)) {
-        log.debug("Updating cores for tally snapshotId: {}", snapshotId);
-        updateList.add(new Object[] {cores, snapshotId, measurementType, "CORES"});
       }
       snapshotCount++;
     }
 
     jdbcTemplate.batchUpdate(INSERT_SQL, insertList);
-    jdbcTemplate.batchUpdate(UPDATE_SQL, updateList);
     counter.increment(snapshotCount);
     return lastSeenSnapshotId;
   }
