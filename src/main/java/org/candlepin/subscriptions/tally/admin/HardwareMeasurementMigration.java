@@ -79,16 +79,13 @@ public class HardwareMeasurementMigration extends DataMigration {
       String measurementType = data.getString("measurement_type");
       Double sockets = extractNullableDouble(data, "sockets");
       Double cores = extractNullableDouble(data, "cores");
-      Double tallyMeasurementSockets = extractNullableDouble(data, "s_value");
-      Double tallyMeasurementCores = extractNullableDouble(data, "c_value");
-      if (sockets != null && tallyMeasurementSockets == null) {
-        log.debug("Inserting sockets for tally snapshotId: {}", snapshotId);
-        insertList.add(new Object[] {snapshotId, measurementType, "SOCKETS", sockets});
-      }
-      if (cores != null && tallyMeasurementCores == null) {
-        log.debug("Inserting cores for tally snapshotId: {}", snapshotId);
-        insertList.add(new Object[] {snapshotId, measurementType, "CORES", cores});
-      }
+
+      log.debug("Inserting sockets for tally snapshotId: {}", snapshotId);
+      insertList.add(new Object[] {snapshotId, measurementType, "SOCKETS", sockets});
+
+      log.debug("Inserting cores for tally snapshotId: {}", snapshotId);
+      insertList.add(new Object[] {snapshotId, measurementType, "CORES", cores});
+
       snapshotCount++;
     }
 
