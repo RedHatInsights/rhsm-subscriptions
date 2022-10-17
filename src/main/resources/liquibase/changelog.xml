@@ -74,7 +74,11 @@
     <include file="liquibase/202208301033-default-null-hardware-measurements.xml"/>
     <include file="liquibase/202208301423-set-tally-snapshot-owner-id.xml"/>
     <include file="liquibase/202209121018-update-primary-key-of-account-config.xml"/>
+    <!--
+    NOTE: we're temporarily disabling 202208251616-migrate-cores-sockets-data.xml because the
+    migration blocks cronjobs, etc
     <include file="liquibase/202208251616-migrate-cores-sockets-data.xml"/>
+    -->
     <include file="liquibase/202208191129-add-version-to-host_tally_buckets.xml"/>
     <include file="liquibase/202209301035-migrate-org-id-to-hosts-table.xml"/>
     <include file="liquibase/202209301614-migrate-org-id-to-events-table.xml"/>
