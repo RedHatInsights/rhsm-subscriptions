@@ -1,0 +1,14 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202209301035-1" author="mstead" dbms="postgresql">
+    <comment>Migrate org_id to hosts table from account_config.</comment>
+    <sql>update hosts h set org_id = ac.org_id
+         from account_config ac
+         WHERE h.account_number = ac.account_number and ac.org_id IS NOT NULL and h.org_id is distinct from ac.org_id;</sql>
+  </changeSet>
+
+</databaseChangeLog>

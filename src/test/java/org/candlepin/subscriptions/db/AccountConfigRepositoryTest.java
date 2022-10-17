@@ -27,6 +27,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.config.AccountConfig;
@@ -55,6 +56,7 @@ class AccountConfigRepositoryTest {
 
     String account = "test-account";
     AccountConfig config = new AccountConfig(account);
+    config.setOrgId("test-og");
     config.setOptInType(OptInType.JMX);
     config.setReportingEnabled(true);
     config.setSyncEnabled(true);
@@ -81,7 +83,7 @@ class AccountConfigRepositoryTest {
 
   @Test
   void testDelete() {
-    AccountConfig config = createConfig("an-account", true, true);
+    AccountConfig config = createConfig("an-account", "an-org", true, true);
     repository.saveAndFlush(config);
 
     AccountConfig toDelete = repository.getOne(config.getAccountNumber());
@@ -96,10 +98,10 @@ class AccountConfigRepositoryTest {
   void testFindAccountsWithEnabledSync() {
     repository.saveAll(
         Arrays.asList(
-            createConfig("A1", true, true),
-            createConfig("A2", true, false),
-            createConfig("A3", false, true),
-            createConfig("A4", false, false)));
+            createConfig("A1", "O1", true, true),
+            createConfig("A2", "O2", true, false),
+            createConfig("A3", "O3", false, true),
+            createConfig("A4", "O4", false, false)));
     repository.flush();
 
     List<String> accountsWithSync =
@@ -112,10 +114,10 @@ class AccountConfigRepositoryTest {
   void testIsReportingEnabled() {
     repository.saveAll(
         Arrays.asList(
-            createConfig("A1", true, true),
-            createConfig("A2", true, false),
-            createConfig("A3", false, true),
-            createConfig("A4", false, false)));
+            createConfig("A1", "O1", true, true),
+            createConfig("A2", "O2", true, false),
+            createConfig("A3", "O3", false, true),
+            createConfig("A4", "O4", false, false)));
     repository.flush();
 
     assertTrue(repository.isReportingEnabled("A1"));
@@ -129,16 +131,16 @@ class AccountConfigRepositoryTest {
     OffsetDateTime begin = OffsetDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC).minusSeconds(1);
     OffsetDateTime end = begin.plusDays(1);
 
-    AccountConfig optInBefore = createConfig("A1", true, true);
+    AccountConfig optInBefore = createConfig("A1", "O1", true, true);
     optInBefore.setCreated(begin.minusSeconds(1));
 
-    AccountConfig optInBeginning = createConfig("A2", true, true);
+    AccountConfig optInBeginning = createConfig("A2", "O2", true, true);
     optInBeginning.setCreated(begin);
 
-    AccountConfig optInEnd = createConfig("A3", true, true);
+    AccountConfig optInEnd = createConfig("A3", "O3", true, true);
     optInEnd.setCreated(end);
 
-    AccountConfig optInAfter = createConfig("A4", true, true);
+    AccountConfig optInAfter = createConfig("A4", "O4", true, true);
     optInAfter.setCreated(end.plusSeconds(1));
 
     repository.saveAll(Arrays.asList(optInBefore, optInBeginning, optInEnd, optInAfter));
@@ -151,8 +153,26 @@ class AccountConfigRepositoryTest {
     assertEquals(2, count);
   }
 
-  private AccountConfig createConfig(String account, boolean canSync, boolean canReport) {
+  @Test
+  void testLookupOrgIdByAccountNumber() {
+    AccountConfig expectedConfig = createConfig("A2", "O2", true, false);
+    repository.saveAll(
+        Arrays.asList(
+            createConfig("A1", "O1", true, true),
+            expectedConfig,
+            createConfig("A3", "O3", false, true),
+            createConfig("A4", "O4", false, false)));
+    repository.flush();
+
+    Optional<AccountConfig> result = repository.findById(expectedConfig.getAccountNumber());
+    assertTrue(result.isPresent());
+    assertEquals(expectedConfig, result.get());
+  }
+
+  private AccountConfig createConfig(
+      String account, String orgId, boolean canSync, boolean canReport) {
     AccountConfig config = new AccountConfig(account);
+    config.setOrgId(orgId);
     config.setOptInType(OptInType.API);
     config.setSyncEnabled(canSync);
     config.setReportingEnabled(canReport);

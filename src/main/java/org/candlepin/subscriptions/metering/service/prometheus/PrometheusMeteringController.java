@@ -251,7 +251,7 @@ public class PrometheusMeteringController {
       BigDecimal value) {
     EventKey lookupKey =
         new EventKey(
-            account,
+            orgId,
             MeteringEventFactory.EVENT_SOURCE,
             MeteringEventFactory.getEventType(metricId),
             instanceId,

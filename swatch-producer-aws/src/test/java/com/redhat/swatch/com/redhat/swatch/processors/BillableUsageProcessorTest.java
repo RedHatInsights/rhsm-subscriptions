@@ -132,15 +132,18 @@ class BillableUsageProcessorTest {
 
   @Test
   void shouldLookupAwsContextOnApplicableSnapshot() throws ApiException {
-    when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(internalSubscriptionsApi.getAwsUsageContext(
+            any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(new AwsUsageContext());
     processor.process(RHOSAK_INSTANCE_HOURS_RECORD);
-    verify(internalSubscriptionsApi).getAwsUsageContext(any(), any(), any(), any(), any(), any());
+    verify(internalSubscriptionsApi)
+        .getAwsUsageContext(any(), any(), any(), any(), any(), any(), any());
   }
 
   @Test
   void shouldSendUsageForApplicableSnapshot() throws ApiException {
-    when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(internalSubscriptionsApi.getAwsUsageContext(
+            any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     processor.process(RHOSAK_INSTANCE_HOURS_RECORD);
@@ -155,7 +158,8 @@ class BillableUsageProcessorTest {
             .billingProvider(BillingProviderEnum.AWS)
             .uom(UomEnum.INSTANCE_HOURS)
             .value(new BigDecimal("42.0"));
-    when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(internalSubscriptionsApi.getAwsUsageContext(
+            any(), any(), any(), any(), any(), any(), any()))
         .thenThrow(AwsUsageContextLookupException.class);
     processor.process(usage);
     verifyNoInteractions(meteringClient);
@@ -175,15 +179,18 @@ class BillableUsageProcessorTest {
 
   @Test
   void shouldFindStorageAwsDimension() throws ApiException {
-    when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(internalSubscriptionsApi.getAwsUsageContext(
+            any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(new AwsUsageContext());
     processor.process(RHOSAK_STORAGE_GIB_MONTHS_RECORD);
-    verify(internalSubscriptionsApi).getAwsUsageContext(any(), any(), any(), any(), any(), any());
+    verify(internalSubscriptionsApi)
+        .getAwsUsageContext(any(), any(), any(), any(), any(), any(), any());
   }
 
   @Test
   void shouldIncrementAcceptedCounterIfSuccessful() throws ApiException {
-    when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(internalSubscriptionsApi.getAwsUsageContext(
+            any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
@@ -194,7 +201,8 @@ class BillableUsageProcessorTest {
 
   @Test
   void shouldIncrementFailureCounterIfUnprocessed() throws ApiException {
-    when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(internalSubscriptionsApi.getAwsUsageContext(
+            any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
@@ -208,7 +216,8 @@ class BillableUsageProcessorTest {
 
   @Test
   void shouldIncrementFailureCounterOnError() throws ApiException {
-    when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(internalSubscriptionsApi.getAwsUsageContext(
+            any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
@@ -226,7 +235,8 @@ class BillableUsageProcessorTest {
             internalSubscriptionsApi,
             clientFactory,
             Optional.of(true));
-    when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(internalSubscriptionsApi.getAwsUsageContext(
+            any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     processor.process(RHOSAK_INSTANCE_HOURS_RECORD);
     verifyNoInteractions(clientFactory, meteringClient);
@@ -240,7 +250,8 @@ class BillableUsageProcessorTest {
     errors.setErrors(Arrays.asList(error));
     var response = Response.serverError().entity(errors).build();
     var exception = new DefaultApiException(response, errors);
-    when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(internalSubscriptionsApi.getAwsUsageContext(
+            any(), any(), any(), any(), any(), any(), any()))
         .thenThrow(exception);
 
     assertThrows(
@@ -258,7 +269,8 @@ class BillableUsageProcessorTest {
     errors.setErrors(Arrays.asList(error));
     var response = Response.serverError().entity(errors).build();
     var exception = new DefaultApiException(response, errors);
-    when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+    when(internalSubscriptionsApi.getAwsUsageContext(
+            any(), any(), any(), any(), any(), any(), any()))
         .thenThrow(exception);
 
     processor.process(RHOSAK_INSTANCE_HOURS_RECORD);

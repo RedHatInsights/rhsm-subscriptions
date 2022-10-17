@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import io.micrometer.core.annotation.Timed;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -80,6 +81,10 @@ public class SubscriptionService {
     return monoRetryWrapper(supplier);
   }
 
+  @Timed(
+      description =
+          "Time taken to lookup, via RHIT subscription service, a subscription by subscription number (including retries)",
+      value = "swatch_get_subscriptions_by_subscription_number")
   public Subscription getSubscriptionBySubscriptionNumber(String subscriptionNumber) {
     Supplier<Subscription> supplier =
         () -> {
@@ -87,10 +92,7 @@ public class SubscriptionService {
             List<Subscription> matchingSubscriptions =
                 searchApi.getSubscriptionBySubscriptionNumber(subscriptionNumber);
             if (matchingSubscriptions.isEmpty()) {
-              throw new ExternalServiceException(
-                  ErrorCode.SUBSCRIPTION_SERVICE_REQUEST_ERROR,
-                  "No subscriptions found for subscriptionNumber=" + subscriptionNumber,
-                  null);
+              throw new SubscriptionNotFoundException(subscriptionNumber);
             }
             if (matchingSubscriptions.size() > 1) {
               throw new ExternalServiceException(

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202208251616-1" author="khowell" dbms="postgresql">
+    <comment>Copy data from hosts.cores to instance_measurements.</comment>
+    <sql>
+      insert into instance_measurements(instance_id, uom, value)
+      select id, 'CORES', cores
+      from hosts
+      where cores is not null on conflict(instance_id, uom) do
+      update set value =excluded.value;
+    </sql>
+  </changeSet>
+  <changeSet id="202208251616-2" author="khowell" dbms="postgresql">
+    <comment>Copy data from hosts.sockets to instance_measurements.</comment>
+    <sql>
+      insert into instance_measurements(instance_id, uom, value)
+      select id, 'SOCKETS', sockets
+      from hosts
+      where sockets is not null
+      on conflict(instance_id, uom) do update set value=excluded.value;
+    </sql>
+  </changeSet>
+  <changeSet id="202208251616-3" author="khowell" dbms="postgresql">
+    <comment>Copy data from hardware_measurements.sockets to tally_measurements.</comment>
+    <sql>
+      insert into tally_measurements(snapshot_id, measurement_type, uom, value)
+      select snapshot_id, measurement_type, 'SOCKETS', sockets
+      from hardware_measurements
+      where sockets is not null
+      on conflict(snapshot_id, measurement_type, uom) do update set value=excluded.value;
+    </sql>
+  </changeSet>
+  <changeSet id="202208251616-4" author="khowell" dbms="postgresql">
+    <comment>Copy data from hardware_measurements.cores to tally_measurements.</comment>
+    <sql>
+      insert into tally_measurements(snapshot_id, measurement_type, uom, value)
+      select snapshot_id, measurement_type, 'CORES', cores
+      from hardware_measurements
+      where cores is not null
+      on conflict(snapshot_id, measurement_type, uom) do update set value=excluded.value;
+    </sql>
+  </changeSet>
+  <changeSet id="202208251616-5" author="khowell" dbms="postgresql">
+    <comment>Copy data from hardware_measurements.instance_count to tally_measurements.</comment>
+    <sql>
+      insert into tally_measurements(snapshot_id, measurement_type, uom, value)
+      select snapshot_id, measurement_type, 'INSTANCES', instance_count
+      from hardware_measurements
+      where instance_count is not null
+      on conflict(snapshot_id, measurement_type, uom) do update set value=excluded.value;
+    </sql>
+  </changeSet>
+</databaseChangeLog>

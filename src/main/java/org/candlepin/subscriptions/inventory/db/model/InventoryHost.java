@@ -131,7 +131,7 @@ import lombok.Setter;
             + "cross join lateral ( "
             + "    select string_agg(items->>'id', ',') as system_profile_product_ids "
             + "    from jsonb_array_elements(h.system_profile_facts->'installed_products') as items) system_profile "
-            + "where account IN (:accounts)"
+            + "where h.org_id IN (:orgIds)"
             + "   and (h.facts->'rhsm'->>'BILLING_MODEL' IS NULL OR h.facts->'rhsm'->>'BILLING_MODEL' <> 'marketplace')"
             + "   and (h.system_profile_facts->>'host_type' IS NULL OR h.system_profile_facts->>'host_type' <> 'edge')"
             + "   and (stale_timestamp is null "

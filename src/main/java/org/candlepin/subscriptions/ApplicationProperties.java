@@ -125,4 +125,7 @@ public class ApplicationProperties {
 
   /** If enabled, will sync Subscriptions with the upstream subscription service. */
   private boolean subscriptionSyncEnabled = false;
+
+  /** If enabled, will allow synchronous operations when requested. */
+  private boolean enableSynchronousOperations = false;
 }

@@ -35,14 +35,14 @@ public interface InventoryRepository extends Repository<InventoryHost, UUID> {
 
   @Query(nativeQuery = true)
   Stream<InventoryHostFacts> getFacts(
-      @Param("accounts") Collection<String> accounts,
+      @Param("orgIds") Collection<String> orgIds,
       @Param("culledOffsetDays") Integer culledOffsetDays);
 
   /**
    * Get a mapping of hypervisor ID to associated hypervisor host's subscription-manager ID. If the
    * hypervisor hasn't been reported, then the hyp_subman_id value will be null.
    *
-   * @param accounts the accounts to filter hosts by.
+   * @param orgIds the orgIds to filter hosts by.
    * @return a stream of Object[] with each entry representing a hypervisor mapping.
    */
   @Query(
@@ -54,7 +54,7 @@ public interface InventoryRepository extends Repository<InventoryHost, UUID> {
               + "from hosts h "
               + "left outer join hosts h_ on h.facts->'rhsm'->>'VM_HOST_UUID' = h_.canonical_facts->>'subscription_manager_id' "
               + "where h.facts->'rhsm'->'VM_HOST_UUID' is not null "
-              + "and h.account IN (:accounts)"
+              + "and h.org_id IN (:orgIds)"
               + "union all "
               + "select "
               + "distinct h.facts->'satellite'->>'virtual_host_uuid' as hyp_id, "
@@ -62,6 +62,6 @@ public interface InventoryRepository extends Repository<InventoryHost, UUID> {
               + "from hosts h "
               + "left outer join hosts h_ on h.facts->'satellite'->>'virtual_host_uuid' = h_.canonical_facts->>'subscription_manager_id' "
               + "where h.facts->'satellite'->'virtual_host_uuid' is not null "
-              + "and h.account IN (:accounts)")
-  Stream<Object[]> getReportedHypervisors(@Param("accounts") Collection<String> accounts);
+              + "and h.org_id IN (:orgIds)")
+  Stream<Object[]> getReportedHypervisors(@Param("orgIds") Collection<String> orgIds);
 }

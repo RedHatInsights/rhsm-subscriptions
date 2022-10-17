@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202208301223-1" author="kflahert">
+    <comment>Set null instances of tally_snapshots.owner_id to account_config.org_id value</comment>
+    <update tableName="tally_snapshots">
+      <column name="owner_id" valueComputed="(SELECT a.org_id FROM account_config a WHERE a.account_number=tally_snapshots.account_number)"/>
+      <where>owner_id IS NULL</where>
+    </update>
+  </changeSet>
+
+</databaseChangeLog>
+  <!-- vim: set expandtab sts=4 sw=4 ai: -->

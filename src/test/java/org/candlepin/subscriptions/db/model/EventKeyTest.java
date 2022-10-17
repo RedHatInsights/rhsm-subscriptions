@@ -52,21 +52,21 @@ class EventKeyTest {
 
   @Test
   void testEquality() {
-    EventKey ek1 = new EventKey("account", "source", "type", "instance", clock.now());
-    EventKey ek2 = new EventKey("account", "source", "type", "instance", clock.now());
-    EventKey ek3 =
-        new EventKey("account3", "source3", "type3", "instance3", clock.now().minusDays(1));
+    EventKey ek1 = new EventKey("org", "source", "type", "instance", clock.now());
+    EventKey ek2 = new EventKey("org", "source", "type", "instance", clock.now());
+    EventKey ek3 = new EventKey("org3", "source3", "type3", "instance3", clock.now().minusDays(1));
 
     assertEquals(ek1, ek2);
     assertNotEquals(ek1, ek3);
   }
 
   private EventKey keyForInstanceId(String instanceId) {
-    return new EventKey("account", "source", "type", instanceId, clock.now());
+    return new EventKey("org", "source", "type", instanceId, clock.now());
   }
 
   private Event eventForInstanceId(String instanceId) {
     return new Event()
+        .withOrgId("org")
         .withAccountNumber("account")
         .withEventType("type")
         .withEventSource("source")

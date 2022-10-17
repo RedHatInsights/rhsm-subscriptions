@@ -1,4 +1,5 @@
 BILLABLE_USAGE_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.billable-usage')].name:platform.rhsm-subscriptions.billable-usage}
+TALLY_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.tally')].name:platform.rhsm-subscriptions.tally}
 
 rhsm-subscriptions:
   rh-marketplace:
@@ -19,3 +20,9 @@ rhsm-subscriptions:
         kafka-group-id: swatch-producer-rh-marketplace
         seek-override-end: ${RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_END:false}
         seek-override-timestamp: ${RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
+  rh-marketplace-tasks:
+    topic: ${TALLY_TOPIC}
+    kafka-group-id: rh-marketplace-worker
+    seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
+    seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
+    enabled: ${ENABLE_TALLY_SUMMARY_LISTENER:true}

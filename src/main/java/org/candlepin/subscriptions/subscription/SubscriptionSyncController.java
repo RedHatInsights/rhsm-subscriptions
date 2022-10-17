@@ -163,7 +163,15 @@ public class SubscriptionSyncController {
     log.debug("Syncing subscription from external service={}", newOrUpdated);
     // UMB doesn't provide all the fields, so if we have an existing DB record, we'll populate from
     // that; otherwise, use the subscription service to fetch missing info
-    enrichMissingFields(newOrUpdated, subscriptionOptional);
+    try {
+      enrichMissingFields(newOrUpdated, subscriptionOptional);
+    } catch (SubscriptionNotFoundException e) {
+      log.warn(
+          "Subscription not found in subscription service; unable to save subscriptionNumber={} for orgId={} without a subscription ID",
+          newOrUpdated.getSubscriptionNumber(),
+          newOrUpdated.getOwnerId());
+      return;
+    }
     log.debug("New subscription that will need to be saved={}", newOrUpdated);
 
     checkForMissingBillingProvider(newOrUpdated);

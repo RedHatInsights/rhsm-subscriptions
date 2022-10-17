@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.db.model;
 
 import java.time.OffsetDateTime;
 import java.util.Objects;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.candlepin.subscriptions.json.Event;
 
@@ -30,22 +31,23 @@ import org.candlepin.subscriptions.json.Event;
  * lookup tables while processing Events pulled from the DB.
  */
 @Getter
+@EqualsAndHashCode
 public class EventKey {
 
-  private String accountNumber;
+  private String orgId;
   private String eventType;
   private String eventSource;
   private String instanceId;
   private OffsetDateTime timestamp;
 
   public EventKey(
-      String accountNumber,
+      String orgId,
       String eventSource,
       String eventType,
       String instanceId,
       OffsetDateTime timestamp) {
-    Objects.requireNonNull(accountNumber, "EventKey requires a non null 'accountNumber'.");
-    this.accountNumber = accountNumber;
+    Objects.requireNonNull(orgId, "EventKey requires a non null 'orgId'.");
+    this.orgId = orgId;
 
     Objects.requireNonNull(eventType, "EventKey requires a non null 'eventType'.");
     this.eventType = eventType;
@@ -62,31 +64,10 @@ public class EventKey {
 
   public static EventKey fromEvent(Event event) {
     return new EventKey(
-        event.getAccountNumber(),
+        event.getOrgId(),
         event.getEventSource(),
         event.getEventType(),
         event.getInstanceId(),
         event.getTimestamp());
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    EventKey eventKey = (EventKey) o;
-    return Objects.equals(accountNumber, eventKey.accountNumber)
-        && Objects.equals(eventType, eventKey.eventType)
-        && Objects.equals(eventSource, eventKey.eventSource)
-        && Objects.equals(instanceId, eventKey.instanceId)
-        && Objects.equals(timestamp, eventKey.timestamp);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(accountNumber, eventType, eventSource, instanceId, timestamp);
   }
 }

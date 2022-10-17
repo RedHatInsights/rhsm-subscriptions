@@ -18,22 +18,25 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db.model;
+package org.candlepin.subscriptions.subscription;
 
-import java.io.Serializable;
-import javax.persistence.Column;
-import javax.persistence.Embeddable;
+import javax.ws.rs.core.Response.Status;
 import lombok.Getter;
-import lombok.Setter;
+import org.candlepin.subscriptions.exception.ErrorCode;
+import org.candlepin.subscriptions.exception.SubscriptionsException;
 
-/** Class to represent rows in the hardware_measurements table */
-@Embeddable
 @Getter
-@Setter
-public class HardwareMeasurement implements Serializable {
-  @Column(name = "instance_count")
-  private int instanceCount;
+public class SubscriptionNotFoundException extends SubscriptionsException {
 
-  private int cores;
-  private int sockets;
+  private final String subscriptionNumber;
+
+  public SubscriptionNotFoundException(String subscriptionNumber) {
+    super(
+        ErrorCode.SUBSCRIPTION_SERVICE_REQUEST_ERROR,
+        Status.INTERNAL_SERVER_ERROR,
+        "No subscriptions found for subscriptionNumber=" + subscriptionNumber,
+        null,
+        null);
+    this.subscriptionNumber = subscriptionNumber;
+  }
 }
