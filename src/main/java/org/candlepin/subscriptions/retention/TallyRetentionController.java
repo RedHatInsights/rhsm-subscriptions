@@ -23,11 +23,10 @@ package org.candlepin.subscriptions.retention;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.stream.Stream;
-import org.candlepin.subscriptions.db.AccountListSource;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
-import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,39 +40,39 @@ public class TallyRetentionController {
 
   private final TallySnapshotRepository tallySnapshotRepository;
   private final EventRecordRepository eventRecordRepository;
+  private final AccountConfigRepository accountConfigRepository;
   private final TallyRetentionPolicy policy;
   private final EventRecordsRetentionProperties eventRecordsRetentionProperties;
-  private final AccountListSource accountListSource;
 
   @Autowired
   public TallyRetentionController(
       TallySnapshotRepository tallySnapshotRepository,
       EventRecordRepository eventRecordRepository,
+      AccountConfigRepository accountConfigRepository,
       TallyRetentionPolicy policy,
-      EventRecordsRetentionProperties eventRecordsRetentionProperties,
-      AccountListSource accountListSource) {
+      EventRecordsRetentionProperties eventRecordsRetentionProperties) {
     this.tallySnapshotRepository = tallySnapshotRepository;
     this.eventRecordRepository = eventRecordRepository;
+    this.accountConfigRepository = accountConfigRepository;
     this.policy = policy;
     this.eventRecordsRetentionProperties = eventRecordsRetentionProperties;
-    this.accountListSource = accountListSource;
   }
 
   @Transactional
-  public void purgeSnapshots() throws AccountListSourceException {
-    try (Stream<String> accountList = accountListSource.purgeReportAccounts()) {
-      accountList.forEach(this::cleanStaleSnapshotsForAccount);
+  public void purgeSnapshots() {
+    try (Stream<String> orgList = accountConfigRepository.findSyncEnabledOrgs()) {
+      orgList.forEach(this::cleanStaleSnapshotsForOwnerId);
     }
   }
 
-  public void cleanStaleSnapshotsForAccount(String accountNumber) {
+  public void cleanStaleSnapshotsForOwnerId(String orgId) {
     for (Granularity granularity : Granularity.values()) {
       OffsetDateTime cutoffDate = policy.getCutoffDate(granularity);
       if (cutoffDate == null) {
         continue;
       }
-      tallySnapshotRepository.deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(
-          accountNumber, granularity, cutoffDate);
+      tallySnapshotRepository.deleteAllByOwnerIdAndGranularityAndSnapshotDateBefore(
+          orgId, granularity, cutoffDate);
     }
   }
 
