@@ -44,7 +44,7 @@ public class DatabaseAccountListSource implements AccountListSource {
   @Override
   public boolean containsReportingAccount(String accountNumber) throws AccountListSourceException {
     try {
-      return repository.isReportingEnabled(accountNumber);
+      return repository.existsByAccountNumber(accountNumber);
     } catch (Exception e) {
       throw new AccountListSourceException("Unable to determine if account was in allowlist.", e);
     }

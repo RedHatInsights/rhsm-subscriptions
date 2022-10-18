@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.security;
 
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.exception.OptInRequiredException;
-import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
@@ -33,10 +33,11 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class OptInChecker {
-  private OptInController optInController;
 
-  public OptInChecker(OptInController optInController) {
-    this.optInController = optInController;
+  private final AccountConfigRepository accountConfigRepository;
+
+  public OptInChecker(AccountConfigRepository accountConfigRepository) {
+    this.accountConfigRepository = accountConfigRepository;
   }
 
   public boolean checkAccess(Authentication authentication) {
@@ -49,10 +50,6 @@ public class OptInChecker {
     InsightsUserPrincipal insightsUserPrincipal =
         (InsightsUserPrincipal) authentication.getPrincipal();
 
-    OptInConfig optin =
-        optInController.getOptInConfig(
-            insightsUserPrincipal.getAccountNumber(), insightsUserPrincipal.getOwnerId());
-
     /* If not opted-in, throw an exception.  Ideally we would just return true/false, but if we return
      * false the user just gets a generic "Access Denied" message.  By throwing the exception here, we
      * ensure that they see the message indicating they have not opted in. If we just wanted to return
@@ -60,7 +57,7 @@ public class OptInChecker {
      * the OptInRequiredException in the AccessDecisionVoter.vote method and then our own
      * AbstractAccessDecisionManager capable of catching that exception and rethrowing it after all
      * the other voters had been consulted. */
-    if (Boolean.FALSE.equals(optin.getData().getOptInComplete())) {
+    if (!accountConfigRepository.existsByOrgId(insightsUserPrincipal.getOwnerId())) {
       throw new OptInRequiredException();
     }
     return true;

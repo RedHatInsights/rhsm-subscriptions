@@ -27,7 +27,6 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.config.AccountConfig;
@@ -55,7 +54,8 @@ class AccountConfigRepositoryTest {
     OffsetDateTime expectedUpdate = creation.plusDays(1);
 
     String account = "test-account";
-    AccountConfig config = new AccountConfig(account);
+    AccountConfig config = new AccountConfig();
+    config.setAccountNumber(account);
     config.setOrgId("test-og");
     config.setOptInType(OptInType.JMX);
     config.setReportingEnabled(true);
@@ -65,8 +65,7 @@ class AccountConfigRepositoryTest {
 
     repository.saveAndFlush(config);
 
-    AccountConfig found = repository.getOne(account);
-    assertNotNull(found);
+    AccountConfig found = repository.findByOrgId("test-og").orElseThrow();
     assertEquals(config, found);
 
     found.setReportingEnabled(false);
@@ -74,7 +73,7 @@ class AccountConfigRepositoryTest {
     found.setOptInType(OptInType.API);
     repository.saveAndFlush(found);
 
-    AccountConfig updated = repository.getOne(account);
+    AccountConfig updated = repository.findByOrgId("test-og").orElseThrow();
     assertNotNull(updated);
     assertEquals(Boolean.FALSE, updated.getReportingEnabled());
     assertEquals(Boolean.FALSE, updated.getSyncEnabled());
@@ -86,7 +85,7 @@ class AccountConfigRepositoryTest {
     AccountConfig config = createConfig("an-account", "an-org", true, true);
     repository.saveAndFlush(config);
 
-    AccountConfig toDelete = repository.getOne(config.getAccountNumber());
+    AccountConfig toDelete = repository.findByOrgId("an-org").orElseThrow();
     assertNotNull(toDelete);
     repository.delete(toDelete);
     repository.flush();
@@ -164,14 +163,13 @@ class AccountConfigRepositoryTest {
             createConfig("A4", "O4", false, false)));
     repository.flush();
 
-    Optional<AccountConfig> result = repository.findById(expectedConfig.getAccountNumber());
-    assertTrue(result.isPresent());
-    assertEquals(expectedConfig, result.get());
+    assertEquals("O2", repository.findOrgByAccountNumber("A2"));
   }
 
   private AccountConfig createConfig(
       String account, String orgId, boolean canSync, boolean canReport) {
-    AccountConfig config = new AccountConfig(account);
+    AccountConfig config = new AccountConfig();
+    config.setAccountNumber(account);
     config.setOrgId(orgId);
     config.setOptInType(OptInType.API);
     config.setSyncEnabled(canSync);

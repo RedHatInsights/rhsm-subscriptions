@@ -43,13 +43,13 @@ public class OptInResource implements OptInApi {
   @SubscriptionWatchAdminOnly
   @Override
   public void deleteOptInConfig() {
-    controller.optOut(validateAccountNumber(), validateOrgId());
+    controller.optOut(validateOrgId());
   }
 
   @SubscriptionWatchAdminOnly
   @Override
   public OptInConfig getOptInConfig() {
-    return controller.getOptInConfig(validateAccountNumber(), validateOrgId());
+    return controller.getOptInConfig(ResourceUtils.getAccountNumber(), validateOrgId());
   }
 
   @SubscriptionWatchAdminOnly
@@ -59,20 +59,12 @@ public class OptInResource implements OptInApi {
     // NOTE: All query params are defaulted to 'true' by the API definition, however we
     //       double check below.
     return controller.optIn(
-        validateAccountNumber(),
+        ResourceUtils.getAccountNumber(),
         validateOrgId(),
         OptInType.API,
         trueIfNull(enableTallySync),
         trueIfNull(enableTallyReporting),
         trueIfNull(enableConduitSync));
-  }
-
-  private String validateAccountNumber() {
-    String accountNumber = ResourceUtils.getAccountNumber();
-    if (accountNumber == null) {
-      throw new BadRequestException("Must specify an account number.");
-    }
-    return accountNumber;
   }
 
   private String validateOrgId() {

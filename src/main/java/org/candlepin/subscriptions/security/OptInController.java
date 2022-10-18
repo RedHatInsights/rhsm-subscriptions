@@ -111,7 +111,7 @@ public class OptInController {
       boolean enableTallySync,
       boolean enableTallyReporting,
       boolean enableConduitSync) {
-    if (accountConfigRepository.existsById(accountNumber)) {
+    if (accountConfigRepository.existsByAccountNumber(accountNumber)) {
       return;
     }
     String orgId = accountService.lookupOrgId(accountNumber);
@@ -147,9 +147,9 @@ public class OptInController {
   }
 
   @Transactional
-  public void optOut(String accountNumber, String orgId) {
-    if (accountConfigRepository.existsById(accountNumber)) {
-      accountConfigRepository.deleteById(accountNumber);
+  public void optOut(String orgId) {
+    if (accountConfigRepository.existsByOrgId(orgId)) {
+      accountConfigRepository.deleteByOrgId(orgId);
     }
 
     if (orgConfigRepository.existsById(orgId)) {
@@ -161,7 +161,7 @@ public class OptInController {
   public OptInConfig getOptInConfig(String accountNumber, String orgId) {
     Optional<AccountConfig> accountConfig =
         StringUtils.hasText(accountNumber)
-            ? accountConfigRepository.findById(accountNumber)
+            ? accountConfigRepository.findByOrgId(orgId)
             : Optional.empty();
     Optional<OrgConfig> orgConfig =
         StringUtils.hasText(orgId) ? orgConfigRepository.findById(orgId) : Optional.empty();

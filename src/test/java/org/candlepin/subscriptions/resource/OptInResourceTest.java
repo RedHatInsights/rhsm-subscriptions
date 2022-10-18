@@ -23,13 +23,12 @@ package org.candlepin.subscriptions.resource;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import java.io.IOException;
 import javax.ws.rs.BadRequestException;
 import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.tally.files.ReportingAccountAllowlist;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,22 +46,22 @@ class OptInResourceTest {
 
   private ApplicationClock clock;
 
-  @MockBean private ReportingAccountAllowlist reportingAccountAllowlist;
+  @MockBean AccountConfigRepository accountConfigRepository;
 
   @MockBean private OptInController controller;
 
   @Autowired private OptInResource resource;
 
   @BeforeEach
-  public void setupTests() throws IOException {
+  public void setupTests() {
     this.clock = new FixedClockConfiguration().fixedClock();
-    when(reportingAccountAllowlist.hasAccount("account123456")).thenReturn(true);
+    when(accountConfigRepository.existsByOrgId("owner123456")).thenReturn(true);
   }
 
   @Test
   void testDeleteOptInConfig() {
     resource.deleteOptInConfig();
-    Mockito.verify(controller).optOut("account123456", "owner123456");
+    Mockito.verify(controller).optOut("owner123456");
   }
 
   @Test
@@ -104,12 +103,6 @@ class OptInResourceTest {
   }
 
   @Test
-  @WithMockRedHatPrincipal(value = "123456", nullifyAccount = true)
-  void testMissingAccountOnDelete() {
-    assertThrows(BadRequestException.class, () -> resource.deleteOptInConfig());
-  }
-
-  @Test
   @WithMockRedHatPrincipal(
       value = "123456",
       roles = {})
@@ -124,12 +117,6 @@ class OptInResourceTest {
   }
 
   @Test
-  @WithMockRedHatPrincipal(value = "123456", nullifyAccount = true)
-  void testMissingAccountOnGet() {
-    assertThrows(BadRequestException.class, () -> resource.getOptInConfig());
-  }
-
-  @Test
   @WithMockRedHatPrincipal(
       value = "123456",
       roles = {})
@@ -140,12 +127,6 @@ class OptInResourceTest {
   @Test
   @WithMockRedHatPrincipal(value = "123456", nullifyOwner = true)
   void testMissingOrgOnPut() {
-    assertThrows(BadRequestException.class, () -> resource.putOptInConfig(true, true, true));
-  }
-
-  @Test
-  @WithMockRedHatPrincipal(value = "123456", nullifyAccount = true)
-  void testMissingAccountOnPut() {
     assertThrows(BadRequestException.class, () -> resource.putOptInConfig(true, true, true));
   }
 

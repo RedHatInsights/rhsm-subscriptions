@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Response;
 import org.candlepin.subscriptions.FixedClockConfiguration;
-import org.candlepin.subscriptions.db.AccountListSource;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
@@ -45,7 +45,6 @@ import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.RoleProvider;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.utilization.api.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -76,12 +75,12 @@ class TallyResourceTest {
   private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
   @MockBean TallySnapshotRepository repository;
   @MockBean PageLinkCreator pageLinkCreator;
-  @MockBean AccountListSource accountListSource;
+  @MockBean AccountConfigRepository accountConfigRepository;
   @Autowired TallyResource resource;
 
   @BeforeEach
-  public void setupTests() throws AccountListSourceException {
-    when(accountListSource.containsReportingAccount("account123456")).thenReturn(true);
+  public void setupTests() {
+    when(accountConfigRepository.existsByOrgId("owner123456")).thenReturn(true);
   }
 
   @Test
