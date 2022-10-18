@@ -41,8 +41,6 @@ public class AccountConfig extends BaseConfig {
   @Column(name = "org_id")
   private String orgId;
 
-  public AccountConfig() {}
-
   public String getAccountNumber() {
     return accountNumber;
   }
