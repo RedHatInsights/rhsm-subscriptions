@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.security;
 
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
-import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
@@ -42,7 +41,7 @@ public class AllowlistedAccountReportAccessService {
     this.accountConfigRepository = accountConfigRepository;
   }
 
-  public boolean providesAccessTo(Authentication auth) throws AccountListSourceException {
+  public boolean providesAccessTo(Authentication auth) {
     InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
     return accountConfigRepository.existsByOrgId(principal.getOwnerId());
   }
