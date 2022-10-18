@@ -618,6 +618,35 @@ oc extract -f dashboards/grafana-dashboard-subscription-watch.configmap.yaml --c
 
 Once you extract it from the .yaml that's checked into this repo, you can import it into the stage instance of grafana by going to Create -> Import from the left nav.
 
+
+## Kafka topics
+<details>
+<summary>Topics with their associated profiles and pods</summary>
+Service that syncs system data from Hosted Candlepin into HBI.
+
+| profile                   | topic(s)                                       | openshift pod                       |
+| ------------------------- | ---------------------------------------------- | ----------------------------------- |
+| openshift-metering-worker | platform.rhsm-subscriptions.metering-tasks     | swatch-metrics                      |
+| metering-job              | platform.rhsm-subscriptions.metering-tasks     | swatch-metrics-sync                 |
+| orgsync                   | platform.rhsm-conduit.tasks                    | swatch-system-conduit-sync          |
+| orgsync                   | platform.rhsm-conduit.tasks                    | swatch-system-conduit               |
+|                           | platform.inventory.host-ingress                | swatch-system-conduit               |
+| worker                    | platform.rhsm-subscriptions.tasks              | swatch-tally                        |
+| worker                    | platform.rhsm-subscriptions.tally              | swatch-tally                        |
+| worker                    | platform.rhsm-subscriptions.billable-usage     | swatch-tally                        |
+| purge-snapshots           |                                                |                                     |
+| capture-hourly-snapshots  | platform.rhsm-subscriptions.tasks              | swatch-tally-hourly                 |
+| capture-snapshots         | platform.rhsm-subscriptions.tasks              | swatch-tally-tally                  |
+| rh-marketplace            | platform.rhsm-subscriptions.billable-usage     | swatch-producer-red-hat-marketplace |
+|                           | platform.rhsm-subscriptions.billable-usage     | swatch-producer-aws                 |
+| subscription-sync         | platform.rhsm-subscriptions.subscription-sync  | swatch-subscription-sync-sync       |
+| offering-sync             | platform.rhsm-subscriptions.offering-sync      | swatch-subscription-sync-offering   |
+| capacity-ingress          | platform.rhsm-subscriptions.subscription-sync  | swatch-subscriptions-sync           |
+| capacity-ingress          | platform.rhsm-subscriptions.offering-sync      | swatch-subscriptions-sync           |
+| capacity-ingress          | platform.rhsm-subscriptions.capacity-reconcile | swatch-subscriptions-sync           |
+| capacity-ingress          | platform.rhsm-subscriptions.subscription-prune | swatch-subscriptions-sync           |
+</details>
+
 ## License
 
 Subscription watch components are licensed GPLv3 (see LICENSE for more details).

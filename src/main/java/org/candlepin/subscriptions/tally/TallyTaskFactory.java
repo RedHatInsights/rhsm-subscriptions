@@ -28,7 +28,7 @@ import javax.validation.ConstraintViolationException;
 import javax.validation.Validator;
 import javax.validation.executable.ExecutableValidator;
 import org.candlepin.subscriptions.tally.tasks.CaptureMetricsSnapshotTask;
-import org.candlepin.subscriptions.tally.tasks.UpdateAccountSnapshotsTask;
+import org.candlepin.subscriptions.tally.tasks.UpdateOrgSnapshotsTask;
 import org.candlepin.subscriptions.task.Task;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskFactory;
@@ -66,7 +66,13 @@ public class TallyTaskFactory implements TaskFactory {
   @Override
   public Task build(TaskDescriptor taskDescriptor) {
     if (taskDescriptor.getTaskType() == TaskType.UPDATE_SNAPSHOTS) {
-      return new UpdateAccountSnapshotsTask(snapshotController, taskDescriptor.getArg("accounts"));
+      if (taskDescriptor.hasArg("orgs")) {
+        log.debug("Task created for processing orgs");
+        return new UpdateOrgSnapshotsTask(snapshotController, taskDescriptor.getArg("orgs"));
+      } else {
+        log.error("Task descriptor with argument orgs is missing {}", taskDescriptor);
+        throw new IllegalArgumentException("Incorrect task descriptor");
+      }
     }
 
     if (taskDescriptor.getTaskType() == TaskType.UPDATE_HOURLY_SNAPSHOTS) {

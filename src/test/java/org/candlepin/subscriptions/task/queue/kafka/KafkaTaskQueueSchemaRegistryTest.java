@@ -56,11 +56,11 @@ import org.springframework.test.context.ActiveProfiles;
 @EmbeddedKafka(
     partitions = 1,
     topics = {"${rhsm-subscriptions.tasks.topic}"})
-public class KafkaTaskQueueSchemaRegistryTest extends KafkaTaskQueueTester {
+class KafkaTaskQueueSchemaRegistryTest extends KafkaTaskQueueTester {
 
   @Test
-  public void testSendAndReceiveTaskMessage() throws InterruptedException {
-    runSendAndReceiveTaskMessageTest();
+  void testSendAndReceiveTaskMessage() throws InterruptedException {
+    assertDoesNotThrow(() -> runSendAndReceiveTaskMessageTestWithOrg());
   }
 
   public static class TestingKafkaConfigurator extends KafkaConfigurator {

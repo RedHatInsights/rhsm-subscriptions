@@ -24,10 +24,8 @@ import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.candlepin.subscriptions.tally.TallyTaskFactory;
-import org.candlepin.subscriptions.task.Task;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskType;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -41,9 +39,12 @@ class TallyTaskFactoryTest {
 
   @Test
   void ensureFactoryBuildsUpdateAccountSnapshotTask() {
-    Task task =
-        factory.build(TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "my-group").build());
-    assertThat(task, Matchers.instanceOf(UpdateAccountSnapshotsTask.class));
+    TaskDescriptor task = TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "accounts").build();
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> {
+          factory.build(task);
+        });
   }
 
   @Test

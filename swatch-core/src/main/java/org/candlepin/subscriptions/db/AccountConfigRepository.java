@@ -35,6 +35,9 @@ public interface AccountConfigRepository extends JpaRepository<AccountConfig, St
   @Query("select distinct c.accountNumber from AccountConfig c where c.syncEnabled = TRUE")
   Stream<String> findSyncEnabledAccounts();
 
+  @Query("select distinct c.orgId from AccountConfig c where c.syncEnabled = TRUE")
+  Stream<String> findSyncEnabledOrgs();
+
   @Query("select distinct c.orgId from AccountConfig c where c.accountNumber = :account")
   String findOrgByAccountNumber(@Param("account") String accountNumber);
 

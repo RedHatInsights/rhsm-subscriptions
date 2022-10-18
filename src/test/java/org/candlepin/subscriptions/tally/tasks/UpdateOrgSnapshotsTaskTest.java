@@ -18,31 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.tally.job;
+package org.candlepin.subscriptions.tally.tasks;
 
-import org.candlepin.subscriptions.exception.JobFailureException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
+import java.util.List;
+import org.candlepin.subscriptions.tally.TallySnapshotController;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-/** A cron job that captures all usage snapshots on a configured schedule. */
-@Component
-public class CaptureSnapshotsJob implements Runnable {
+@ExtendWith(MockitoExtension.class)
+class UpdateOrgSnapshotsTaskTest {
 
-  private final CaptureSnapshotsTaskManager tasks;
+  @Mock private TallySnapshotController snapshotController;
 
-  @Autowired
-  public CaptureSnapshotsJob(CaptureSnapshotsTaskManager taskManager) {
-    this.tasks = taskManager;
-  }
-
-  @Override
-  @Scheduled(cron = "${rhsm-subscriptions.jobs.capture-snapshot-schedule}")
-  public void run() {
-    try {
-      tasks.updateSnapshotsForAllOrg();
-    } catch (Exception e) {
-      throw new JobFailureException("Failed to run CaptureSnapshotsJob.", e);
-    }
+  @Test
+  void testExecute() {
+    List<String> orgs = List.of("o1");
+    UpdateOrgSnapshotsTask task = new UpdateOrgSnapshotsTask(snapshotController, orgs);
+    task.execute();
+    Mockito.verify(snapshotController).produceSnapshotsForOrg("o1");
   }
 }

@@ -43,11 +43,11 @@ public class KafkaTaskQueueTester {
 
   @Autowired private TaskQueueProperties taskQueueProperties;
 
-  protected void runSendAndReceiveTaskMessageTest() throws InterruptedException {
-    String account = "12345";
+  protected void runSendAndReceiveTaskMessageTestWithOrg() throws InterruptedException {
+    String org = "o1";
     TaskDescriptor taskDescriptor =
         TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic())
-            .setSingleValuedArg("accounts", account)
+            .setSingleValuedArg("orgs", org)
             .build();
 
     // Expect the task to be ran once.
@@ -56,7 +56,7 @@ public class KafkaTaskQueueTester {
 
     when(factory.build(taskDescriptor)).thenReturn(cdt);
 
-    manager.updateAccountSnapshots(account);
+    manager.updateOrgSnapshots(org);
 
     // Wait a max of 5 seconds for the task to be executed
     latch.await(5L, TimeUnit.SECONDS);
