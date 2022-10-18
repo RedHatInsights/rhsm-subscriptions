@@ -644,6 +644,7 @@ class SubscriptionSyncControllerTest {
     incoming.setBillingProvider(BillingProvider.RED_HAT);
     incoming.setBillingProviderId("newBillingProviderId");
     incoming.setBillingAccountId("newBillingAccountId");
+    incoming.setAccountNumber("account123");
     Subscription existing = createSubscription("123", "testsku", "456");
     existing.setBillingProvider(BillingProvider.AWS);
     existing.setBillingAccountId("oldBillingAccountId");
@@ -659,6 +660,7 @@ class SubscriptionSyncControllerTest {
     assertEquals(BillingProvider.RED_HAT, existing.getBillingProvider());
     assertEquals("newBillingProviderId", existing.getBillingProviderId());
     assertEquals("newBillingAccountId", existing.getBillingAccountId());
+    assertEquals("account123", existing.getAccountNumber());
   }
 
   private Subscription createSubscription(String orgId, String sku, String subId) {
