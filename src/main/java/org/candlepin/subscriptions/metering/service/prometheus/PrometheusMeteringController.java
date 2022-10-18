@@ -95,7 +95,7 @@ public class PrometheusMeteringController {
   @Timed("rhsm-subscriptions.metering.openshift")
   @Transactional
   public void collectMetrics(
-      String tag, Uom metric, String account, OffsetDateTime start, OffsetDateTime end) {
+      String tag, Uom metric, String orgId, OffsetDateTime start, OffsetDateTime end) {
     Optional<TagMetric> tagMetric = tagProfile.getTagMetric(tag, metric);
     if (tagMetric.isEmpty()) {
       throw new UnsupportedOperationException(
@@ -116,16 +116,18 @@ public class PrometheusMeteringController {
     - it should already be)
      */
     OffsetDateTime startDate = clock.startOfHour(start).plusHours(1);
-    log.debug("Ensuring marketplace account {} has been set up for syncing/reporting.", account);
-    ensureOptIn(account);
+    log.debug("Ensuring orgId={} has been set up for syncing/reporting.", orgId);
+    // NOTE: https://issues.redhat.com/browse/SWATCH-262 should remove this workaround.
+    // with SWATCH-262, ensureOptIn can be called without using its return value.
+    String accountNumberFromOptIn = ensureOptIn(orgId);
     openshiftRetry.execute(
         context -> {
           try {
 
-            log.info("Collecting metrics for account {}: {} {}", account, tag, metric);
+            log.info("Collecting metrics for orgId={}: {} {}", orgId, tag, metric);
             QueryResult metricData =
                 prometheusService.runRangeQuery(
-                    buildPromQLForMetering(account, tagMetric.get()),
+                    buildPromQLForMetering(orgId, tagMetric.get()),
                     startDate,
                     end,
                     metricProperties.getStep(),
@@ -139,7 +141,7 @@ public class PrometheusMeteringController {
 
             Map<EventKey, Event> existing =
                 eventController.mapEventsInTimeRange(
-                    account,
+                    orgId,
                     MeteringEventFactory.EVENT_SOURCE,
                     MeteringEventFactory.getEventType(tagMetric.get().getMetricId()),
                     // We need to shift the start and end dates by the step, to account for the
@@ -160,13 +162,21 @@ public class PrometheusMeteringController {
               String clusterId = labels.get("_id");
               String sla = labels.get("support");
               String usage = labels.get("usage");
+
+              // These were added as an edge case with RHODS as it doesn't have product as a label
+              // in prometheus
+              String product = labels.get("product");
+              String resourceName = labels.get("resource_name");
+
               // NOTE: Role comes from the product label despite its name. The values set here
               //       are NOT engineering or swatch product IDs. They map to the roles in the
               //       tag profile. For openshift, the values will be 'ocp' or 'osd'.
-              String role = labels.get("product");
+              String role = product == null ? resourceName : product;
               String billingProvider = labels.get("billing_marketplace");
               String billingAccountId = labels.get("billing_marketplace_account");
-              String orgId = labels.get("external_organization");
+              String account = labels.get("ebs_account");
+              // NOTE: https://issues.redhat.com/browse/SWATCH-262 should remove this workaround.
+              account = ensureAccountNumber(account, accountNumberFromOptIn);
 
               // For the openshift metrics, we expect our results to be a 'matrix'
               // vector [(instant_time,value), ...] so we only look at the result's getValues()
@@ -220,16 +230,31 @@ public class PrometheusMeteringController {
         });
   }
 
-  private void ensureOptIn(String account) {
+  // SWATCH-262 should remove this method
+  private String ensureAccountNumber(String account, String accountNumberFromOptIn) {
+    if (StringUtils.hasText(account)) {
+      return account;
+    }
+    if (!StringUtils.hasText(accountNumberFromOptIn)) {
+      // For now, refuse to process an event that is completely missing accountNumber.
+      // Otherwise, we'd potentially end up in a state where a customer can't view the
+      // tally data.
+      throw new IllegalStateException("Refusing to persist event without accountNumber");
+    }
+    return accountNumberFromOptIn;
+  }
+
+  private String ensureOptIn(String orgId) {
     try {
-      optInController.optInByAccountNumber(account, OptInType.PROMETHEUS, true, true, true);
+      return optInController.optInByOrgId(orgId, OptInType.PROMETHEUS, true, true, true);
     } catch (Exception e) {
-      log.warn("Error while attempting to automatically opt-in account {}", account);
+      log.warn("Error while attempting to automatically opt-in orgId={}", orgId);
       // Keep the logs clean unless specified.
       if (log.isDebugEnabled()) {
-        log.debug("Opt-in error for account {}.", account, e);
+        log.debug("Opt-in error for orgId={}.", orgId, e);
       }
     }
+    return null;
   }
 
   @SuppressWarnings("java:S107")
@@ -286,17 +311,14 @@ public class PrometheusMeteringController {
     }
   }
 
-  private String buildPromQLForMetering(String account, TagMetric tagMetric) {
-    Map<String, String> args = new HashMap<>();
-    args.put("account", account);
-
+  private String buildPromQLForMetering(String orgId, TagMetric tagMetric) {
     // Default the query template if the tag profile didn't specify one.
     if (!StringUtils.hasText(tagMetric.getQueryKey())) {
       tagMetric.setQueryKey(QueryBuilder.DEFAULT_METRIC_QUERY_KEY);
     }
 
     QueryDescriptor descriptor = new QueryDescriptor(tagMetric);
-    descriptor.addRuntimeVar("account", account);
+    descriptor.addRuntimeVar("orgId", orgId);
     return prometheusQueryBuilder.build(descriptor);
   }
 }

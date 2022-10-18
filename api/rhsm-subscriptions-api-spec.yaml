@@ -1094,6 +1094,7 @@ components:
         - OpenShift-dedicated-metrics
         - rhosak
         - rhacs
+        - rhods
     MetricId:
       type: string
       enum:

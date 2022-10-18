@@ -72,6 +72,24 @@ public class MeteringJmxBean {
     }
   }
 
+  @ManagedOperation(description = "Perform product metering for a single orgId.")
+  @ManagedOperationParameter(name = "orgId", description = "Red Hat Org ID")
+  @ManagedOperationParameter(name = "productTag", description = "Product tag identifier")
+  public void performMeteringForOrgId(String orgId, String productTag)
+      throws IllegalArgumentException {
+    Object principal = ResourceUtils.getPrincipal();
+    log.info("{} metering for orgId={} triggered via JMX by {}", productTag, orgId, principal);
+
+    OffsetDateTime end = util.getDate(Optional.empty());
+    OffsetDateTime start = util.getStartDate(end, metricProperties.getRangeInMinutes());
+
+    try {
+      tasks.updateMetricsForOrgId(orgId, productTag, start, end);
+    } catch (Exception e) {
+      log.error("Error triggering {} metering for orgId={} via JMX.", productTag, orgId, e);
+    }
+  }
+
   @ManagedOperation(description = "Perform custom product metering for a single account.")
   @ManagedOperationParameter(name = "accountNumber", description = "Red Hat Account Number")
   @ManagedOperationParameter(name = "productTag", description = "Product tag identifier")
@@ -103,6 +121,39 @@ public class MeteringJmxBean {
     } catch (Exception e) {
       log.error(
           "Error triggering {} metering for account {} via JMX.", productTag, accountNumber, e);
+    }
+  }
+
+  @ManagedOperation(description = "Perform custom product metering for a single account.")
+  @ManagedOperationParameter(name = "accountNumber", description = "Red Hat Account Number")
+  @ManagedOperationParameter(name = "productTag", description = "Product tag identifier")
+  @ManagedOperationParameter(
+      name = "endDate",
+      description =
+          "The end date for metrics gathering. Must start at top of the hour. i.e 2018-03-20T09:00:00Z")
+  @ManagedOperationParameter(
+      name = "rangeInMinutes",
+      description =
+          "Period of time (before the end date) to start metrics gathering. Must be >= 0.")
+  public void performCustomMeteringForOrgId(
+      String orgId, String productTag, String endDate, Integer rangeInMinutes)
+      throws IllegalArgumentException {
+    Object principal = ResourceUtils.getPrincipal();
+
+    OffsetDateTime end = util.getDate(endDate);
+    OffsetDateTime start = util.getStartDate(end, rangeInMinutes);
+    log.info(
+        "{} metering for {} against range [{}, {}) triggered via JMX by {}",
+        productTag,
+        orgId,
+        start,
+        end,
+        principal);
+
+    try {
+      tasks.updateMetricsForOrgId(orgId, productTag, start, end);
+    } catch (Exception e) {
+      log.error("Error triggering {} metering for orgId {} via JMX.", productTag, orgId, e);
     }
   }
 

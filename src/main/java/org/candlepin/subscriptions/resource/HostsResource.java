@@ -33,6 +33,7 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Host;
@@ -110,13 +111,18 @@ public class HostsResource implements HostsApi {
   }
 
   private final HostRepository repository;
+  private final AccountConfigRepository accountConfigRepo;
   private final PageLinkCreator pageLinkCreator;
   private final TagProfile tagProfile;
   @Context UriInfo uriInfo;
 
   public HostsResource(
-      HostRepository repository, PageLinkCreator pageLinkCreator, TagProfile tagProfile) {
+      HostRepository repository,
+      AccountConfigRepository accountConfigRepo,
+      PageLinkCreator pageLinkCreator,
+      TagProfile tagProfile) {
     this.repository = repository;
+    this.accountConfigRepo = accountConfigRepo;
     this.pageLinkCreator = pageLinkCreator;
     this.tagProfile = tagProfile;
   }
@@ -154,6 +160,9 @@ public class HostsResource implements HostsApi {
     }
 
     String accountNumber = ResourceUtils.getAccountNumber();
+    // This should be removed as part of https://issues.redhat.com/browse/SWATCH-268
+    String orgId = accountConfigRepo.findOrgByAccountNumber(accountNumber);
+
     ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
     Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
     String sanitizedDisplayNameSubstring =
@@ -183,7 +192,7 @@ public class HostsResource implements HostsApi {
       Measurement.Uom referenceUom = SORT_TO_UOM_MAP.get(sort);
       hosts =
           repository.findAllBy(
-              accountNumber,
+              orgId,
               productId.toString(),
               sanitizedSla,
               sanitizedUsage,

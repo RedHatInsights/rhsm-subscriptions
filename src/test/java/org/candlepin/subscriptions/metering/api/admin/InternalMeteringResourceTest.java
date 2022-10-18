@@ -32,6 +32,7 @@ import java.util.Set;
 import javax.ws.rs.BadRequestException;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.ResourceUtil;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
@@ -52,6 +53,7 @@ class InternalMeteringResourceTest {
   @Mock private TagProfile tagProfile;
   @Mock private PrometheusMetricsTaskManager tasks;
   @Mock private PrometheusMeteringController controller;
+  @Mock private AccountConfigRepository accountConfigRepository;
 
   private ApplicationProperties appProps;
   private ResourceUtil util;
@@ -67,7 +69,10 @@ class InternalMeteringResourceTest {
     lenient()
         .when(tagProfile.getSupportedMetricsForProduct(VALID_PRODUCT))
         .thenReturn(Set.of(Uom.INSTANCE_HOURS));
-    resource = new InternalMeteringResource(util, appProps, tagProfile, tasks, controller);
+    lenient().when(accountConfigRepository.findOrgByAccountNumber("account1")).thenReturn("org1");
+    resource =
+        new InternalMeteringResource(
+            util, appProps, tagProfile, tasks, controller, accountConfigRepository);
   }
 
   @Test
@@ -78,7 +83,7 @@ class InternalMeteringResourceTest {
     OffsetDateTime end = clock.startOfCurrentHour();
     assertThrows(
         BadRequestException.class,
-        () -> resource.meterProductForAccount("account1", productId, 120, end, false));
+        () -> resource.meterProductForAccount(productId, 120, null, "org1", end, false));
   }
 
   @Test
@@ -89,20 +94,22 @@ class InternalMeteringResourceTest {
     IllegalArgumentException iae1 =
         assertThrows(
             IllegalArgumentException.class,
-            () -> resource.meterProductForAccount("account1", VALID_PRODUCT, 120, end, false));
+            () ->
+                resource.meterProductForAccount(VALID_PRODUCT, 120, "account1", null, end, false));
     assertEquals("Date must start at top of the hour: 2019-05-24T12:05Z", iae1.getMessage());
-    resource.meterProductForAccount("account1", VALID_PRODUCT, 120, clock.startOfHour(end), false);
+    resource.meterProductForAccount(
+        VALID_PRODUCT, 120, null, "org1", clock.startOfHour(end), false);
 
     // synchronous
     IllegalArgumentException iae2 =
         assertThrows(
             IllegalArgumentException.class,
-            () -> resource.meterProductForAccount("account1", VALID_PRODUCT, 120, end, true));
+            () -> resource.meterProductForAccount(VALID_PRODUCT, 120, null, "org1", end, true));
     assertEquals("Date must start at top of the hour: 2019-05-24T12:05Z", iae2.getMessage());
 
     // Avoid additional exception by enabling synchronous operations.
     appProps.setEnableSynchronousOperations(true);
-    resource.meterProductForAccount("account1", VALID_PRODUCT, 120, clock.startOfHour(end), true);
+    resource.meterProductForAccount(VALID_PRODUCT, 120, null, "org1", clock.startOfHour(end), true);
   }
 
   @Test
@@ -111,7 +118,7 @@ class InternalMeteringResourceTest {
     BadRequestException bre =
         assertThrows(
             BadRequestException.class,
-            () -> resource.meterProductForAccount("account1", VALID_PRODUCT, 120, end, true));
+            () -> resource.meterProductForAccount(VALID_PRODUCT, 120, "account1", null, end, true));
     assertEquals("Synchronous metering operations are not enabled.", bre.getMessage());
   }
 
@@ -119,8 +126,8 @@ class InternalMeteringResourceTest {
   void allowAsynchronousMeteringForAccountWhenSyncRequestsDisabled() {
     OffsetDateTime endDate = clock.startOfCurrentHour();
     OffsetDateTime startDate = endDate.minusMinutes(120);
-    resource.meterProductForAccount("account1", VALID_PRODUCT, 120, endDate, false);
-    verify(tasks).updateMetricsForAccount("account1", VALID_PRODUCT, startDate, endDate);
+    resource.meterProductForAccount(VALID_PRODUCT, 120, "account1", null, endDate, false);
+    verify(tasks).updateMetricsForOrgId("org1", VALID_PRODUCT, startDate, endDate);
     verifyNoInteractions(controller);
   }
 
@@ -130,9 +137,9 @@ class InternalMeteringResourceTest {
 
     OffsetDateTime endDate = clock.startOfCurrentHour();
     OffsetDateTime startDate = endDate.minusMinutes(120);
-    resource.meterProductForAccount("account1", VALID_PRODUCT, 120, endDate, true);
+    resource.meterProductForAccount(VALID_PRODUCT, 120, "account1", null, endDate, true);
     verify(controller)
-        .collectMetrics(VALID_PRODUCT, Uom.INSTANCE_HOURS, "account1", startDate, endDate);
+        .collectMetrics(VALID_PRODUCT, Uom.INSTANCE_HOURS, "org1", startDate, endDate);
     verifyNoInteractions(tasks);
   }
 
@@ -142,8 +149,29 @@ class InternalMeteringResourceTest {
 
     OffsetDateTime endDate = clock.startOfCurrentHour();
     OffsetDateTime startDate = endDate.minusMinutes(120);
-    resource.meterProductForAccount("account1", VALID_PRODUCT, 120, endDate, false);
-    verify(tasks).updateMetricsForAccount("account1", VALID_PRODUCT, startDate, endDate);
+    resource.meterProductForAccount(VALID_PRODUCT, 120, null, "org1", endDate, false);
+    verify(tasks).updateMetricsForOrgId("org1", VALID_PRODUCT, startDate, endDate);
     verifyNoInteractions(controller);
+  }
+
+  @Test
+  void meterProductForAccountLooksUpOrgIdWhenNotProvided() {
+    OffsetDateTime endDate = clock.startOfCurrentHour();
+    OffsetDateTime startDate = endDate.minusMinutes(120);
+    resource.meterProductForAccount(VALID_PRODUCT, 120, "account1", null, endDate, false);
+    verify(tasks).updateMetricsForOrgId("org1", VALID_PRODUCT, startDate, endDate);
+    verifyNoInteractions(controller);
+  }
+
+  @Test
+  void meterProductForAccountThrowExceptionWhenOrgIdCannotBeFound() {
+    OffsetDateTime endDate = clock.startOfCurrentHour();
+    BadRequestException bre =
+        assertThrows(
+            BadRequestException.class,
+            () ->
+                resource.meterProductForAccount(
+                    VALID_PRODUCT, 120, "account2", null, endDate, false));
+    assertEquals("Unable to look up orgId for accountNumber: account2", bre.getMessage());
   }
 }

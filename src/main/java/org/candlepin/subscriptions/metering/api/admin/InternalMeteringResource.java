@@ -25,6 +25,7 @@ import java.util.Optional;
 import javax.ws.rs.BadRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.metering.ResourceUtil;
 import org.candlepin.subscriptions.metering.admin.api.InternalApi;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
@@ -41,6 +42,7 @@ public class InternalMeteringResource implements InternalApi {
   private final ApplicationProperties applicationProperties;
   private final PrometheusMetricsTaskManager tasks;
   private final PrometheusMeteringController controller;
+  private final AccountConfigRepository accountConfigRepository;
   private final TagProfile tagProfile;
 
   public InternalMeteringResource(
@@ -48,22 +50,35 @@ public class InternalMeteringResource implements InternalApi {
       ApplicationProperties applicationProperties,
       TagProfile tagProfile,
       PrometheusMetricsTaskManager tasks,
-      PrometheusMeteringController controller) {
+      PrometheusMeteringController controller,
+      AccountConfigRepository accountConfigRepository) {
     this.util = util;
     this.applicationProperties = applicationProperties;
     this.tagProfile = tagProfile;
     this.tasks = tasks;
     this.controller = controller;
+    this.accountConfigRepository = accountConfigRepository;
   }
 
   @Override
   public void meterProductForAccount(
-      String accountNumber,
       String productTag,
       Integer rangeInMinutes,
+      String accountNumber,
+      String orgId,
       OffsetDateTime endDate,
       Boolean xRhSwatchSynchronousRequest) {
     Object principal = ResourceUtils.getPrincipal();
+
+    if (orgId == null && accountNumber == null) {
+      throw new BadRequestException("Neither orgId nor accountNumber specified");
+    } else if (orgId == null) {
+      orgId = accountConfigRepository.findOrgByAccountNumber(accountNumber);
+      if (orgId == null) {
+        throw new BadRequestException(
+            String.format("Unable to look up orgId for accountNumber: %s", accountNumber));
+      }
+    }
 
     if (!tagProfile.tagIsPrometheusEnabled(productTag)) {
       throw new BadRequestException(String.format("Invalid product tag specified: %s", productTag));
@@ -83,25 +98,25 @@ public class InternalMeteringResource implements InternalApi {
       if (!applicationProperties.isEnableSynchronousOperations()) {
         throw new BadRequestException("Synchronous metering operations are not enabled.");
       }
-      performMeteringForAccount(accountNumber, productTag, start, end);
+      performMeteringForOrgId(orgId, productTag, start, end);
     } else {
-      queueMeteringForAccount(accountNumber, productTag, start, end);
+      queueMeteringForOrgId(orgId, productTag, start, end);
     }
   }
 
-  private void performMeteringForAccount(
-      String accountNumber, String productTag, OffsetDateTime start, OffsetDateTime end) {
-    log.info("Performing {} metering for account {} via API.", productTag, accountNumber);
+  private void performMeteringForOrgId(
+      String orgId, String productTag, OffsetDateTime start, OffsetDateTime end) {
+    log.info("Performing {} metering for orgId={} via API.", productTag, orgId);
     tagProfile
         .getSupportedMetricsForProduct(productTag)
         .forEach(
             metric -> {
               try {
-                controller.collectMetrics(productTag, metric, accountNumber, start, end);
+                controller.collectMetrics(productTag, metric, orgId, start, end);
               } catch (Exception e) {
                 log.error(
                     "Problem collecting metrics: {} {} {} [{} -> {}]",
-                    accountNumber,
+                    orgId,
                     productTag,
                     metric,
                     start,
@@ -111,13 +126,13 @@ public class InternalMeteringResource implements InternalApi {
             });
   }
 
-  private void queueMeteringForAccount(
-      String accountNumber, String productTag, OffsetDateTime start, OffsetDateTime end) {
+  private void queueMeteringForOrgId(
+      String orgId, String productTag, OffsetDateTime start, OffsetDateTime end) {
     try {
-      log.info("Queuing {} metering for account {} via API.", productTag, accountNumber);
-      tasks.updateMetricsForAccount(accountNumber, productTag, start, end);
+      log.info("Queuing {} metering for orgId={} via API.", productTag, orgId);
+      tasks.updateMetricsForOrgId(orgId, productTag, start, end);
     } catch (Exception e) {
-      log.error("Error queuing {} metering for account {} via API.", productTag, accountNumber, e);
+      log.error("Error queuing {} metering for orgId={} via API.", productTag, orgId, e);
     }
   }
 }

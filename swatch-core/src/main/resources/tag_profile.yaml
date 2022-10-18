@@ -98,6 +98,11 @@ tagMappings:
     valueType: role
     tags:
       - rhacs
+  - value: addon-open-data-hub
+    valueType: role
+    tags:
+      - rhods
+
   - value: Red Hat Enterprise Linux Server
     valueType: role
     tags:
@@ -134,6 +139,11 @@ tagMappings:
     valueType: productName
     tags:
       - rhacs
+
+  - value: OpenShift Data Science
+    valueType: productName
+    tags:
+      - rhods
 
   # System Architecture
   - value: aarch64
@@ -263,6 +273,19 @@ tagMetrics:
       prometheusMetric: rhacs:rox_central_cluster_metrics_cpu_capacity:avg_over_time1h
       prometheusMetadataMetric: subscription_labels
 
+   #RHODS metrics
+  - tag: rhods
+    metricId: redhat.com:openshift_data_science:cpu_hours
+    rhmMetricId: redhat.com:openshift_data_science:cpu_hours
+    awsDimension: cpu_hour
+    uom: CORES
+    billingWindow: MONTHLY
+    queryKey: addonSamples
+    queryParams:
+      resourceName: addon-open-data-hub
+      prometheusMetric: cluster:usage:workload:capacity_physical_cpu_hours
+      prometheusMetadataMetric: ocm_subscription_resource
+
 # The tagMetaData section defines additional information around how a tag is tallied.  Most notably,
 # tags need to have their finest granularity defined so that we can create accurate snapshots.  A
 # tag that only supports DAILY granularity shouldn't be tallied hourly, for example.  Other metadata
@@ -305,6 +328,13 @@ tagMetaData:
   - tags:
       - rhacs
     serviceType: Rhacs Cluster
+    finestGranularity: HOURLY
+    defaultSla: PREMIUM
+    defaultUsage: PRODUCTION
+    billingModel: PAYG
+  - tags:
+      - rhods
+    serviceType: Rhods Cluster
     finestGranularity: HOURLY
     defaultSla: PREMIUM
     defaultUsage: PRODUCTION

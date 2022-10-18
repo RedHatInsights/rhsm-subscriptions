@@ -69,7 +69,7 @@ class PrometheusMeteringTaskFactoryTest {
     Task task =
         factory.build(
             TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group")
-                .setSingleValuedArg("account", "12234")
+                .setSingleValuedArg("orgId", "12234")
                 .setSingleValuedArg("productTag", "OpenShift")
                 .setSingleValuedArg("metric", "Cores")
                 .setSingleValuedArg("start", start.toString())
@@ -83,7 +83,7 @@ class PrometheusMeteringTaskFactoryTest {
   }
 
   @Test
-  void testOpenshiftMetricsTaskMissingAccount() {
+  void testOpenshiftMetricsTaskMissingOrgId() {
     TaskDescriptor descriptor =
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group")
             .setSingleValuedArg("start", "2018-03-20T09:12:28Z")
@@ -93,14 +93,14 @@ class PrometheusMeteringTaskFactoryTest {
             .setSingleValuedArg("step", "1h")
             .build();
     Throwable e = assertThrows(IllegalArgumentException.class, () -> factory.build(descriptor));
-    assertEquals("Could not build task. Missing task argument: account", e.getMessage());
+    assertEquals("Could not build task. Missing task argument: orgId", e.getMessage());
   }
 
   @Test
   void testOpenshiftMetricsTaskInvalidStartDateFormat() {
     TaskDescriptor descriptor =
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group")
-            .setSingleValuedArg("account", "1234")
+            .setSingleValuedArg("orgId", "1234")
             .setSingleValuedArg("productTag", "OpenShift")
             .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("start", "2018-03-20")
@@ -116,7 +116,7 @@ class PrometheusMeteringTaskFactoryTest {
   void testOpenshiftMetricsTaskInvalidEndDateFormat() {
     TaskDescriptor descriptor =
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group")
-            .setSingleValuedArg("account", "1234")
+            .setSingleValuedArg("orgId", "1234")
             .setSingleValuedArg("productTag", "OpenShift")
             .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("start", "2018-03-20T09:12:28Z")
