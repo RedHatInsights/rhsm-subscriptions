@@ -371,6 +371,7 @@ public class SubscriptionSyncController {
         .subscriptionNumber(subscription.getSubscriptionNumber())
         .sku(SubscriptionDtoUtil.extractSku(subscription))
         .ownerId(subscription.getWebCustomerId().toString())
+        .accountNumber(String.valueOf(subscription.getOracleAccountNumber()))
         .quantity(subscription.getQuantity())
         .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))
         .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
@@ -405,6 +406,8 @@ public class SubscriptionSyncController {
     entity.setBillingProvider(newOrUpdated.getBillingProvider());
     entity.setBillingAccountId(newOrUpdated.getBillingAccountId());
     entity.setBillingProviderId(newOrUpdated.getBillingProviderId());
+    entity.setAccountNumber(newOrUpdated.getAccountNumber());
+    entity.setOwnerId(newOrUpdated.getOwnerId());
   }
 
   public void saveSubscriptions(String subscriptionsJson, boolean reconcileCapacity) {
