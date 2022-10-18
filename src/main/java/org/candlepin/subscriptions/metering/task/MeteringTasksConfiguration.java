@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.metering.task;
 
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
@@ -74,11 +75,12 @@ public class MeteringTasksConfiguration {
       TaskQueue queue,
       @Qualifier("meteringTaskQueueProperties") TaskQueueProperties queueProps,
       PrometheusAccountSource accountSource,
+      AccountConfigRepository accountConfigRepository,
       TagProfile tagProfile,
       ApplicationClock clock,
       ApplicationProperties appProps) {
     return new PrometheusMetricsTaskManager(
-        queue, queueProps, accountSource, tagProfile, clock, appProps);
+        queue, queueProps, accountSource, accountConfigRepository, tagProfile, clock, appProps);
   }
 
   // The following beans are defined for the worker profile only allowing

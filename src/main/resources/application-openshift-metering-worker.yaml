@@ -12,11 +12,15 @@ rhsm-subscriptions:
           default: >-
             #{metric.queryParams[prometheusMetric]}
             * on(_id) group_right
-            min_over_time(#{metric.queryParams[prometheusMetadataMetric]}{product="#{metric.queryParams[product]}", ebs_account="#{runtime[account]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
+            min_over_time(#{metric.queryParams[prometheusMetadataMetric]}{product="#{metric.queryParams[product]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
           5mSamples: >-
             max(sum_over_time(#{metric.queryParams[prometheusMetric]}[1h:5m]) / 13.0) by (_id)
             * on(_id) group_right
-            min_over_time(#{metric.queryParams[prometheusMetadataMetric]}{product="#{metric.queryParams[product]}", ebs_account="#{runtime[account]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
+            min_over_time(#{metric.queryParams[prometheusMetadataMetric]}{product="#{metric.queryParams[product]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
+          addonSamples: >-
+            #{metric.queryParams[prometheusMetric]}
+            * on(_id) group_right
+            min_over_time(#{metric.queryParams[prometheusMetadataMetric]}{resource_type="addon",resource_name="#{metric.queryParams[resourceName]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
         maxAttempts: ${OPENSHIFT_MAX_ATTEMPTS:50}
         backOffMaxInterval: ${OPENSHIFT_BACK_OFF_MAX_INTERVAL:50000}
         backOffInitialInterval: ${OPENSHIFT_BACK_OFF_INITIAL_INTERVAL:1000}

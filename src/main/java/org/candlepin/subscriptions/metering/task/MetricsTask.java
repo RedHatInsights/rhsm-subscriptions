@@ -34,7 +34,7 @@ public class MetricsTask implements Task {
 
   private static final Logger log = LoggerFactory.getLogger(MetricsTask.class);
 
-  private final String account;
+  private final String orgId;
   private final String productTag;
   private final Uom metric;
   private final OffsetDateTime start;
@@ -44,13 +44,13 @@ public class MetricsTask implements Task {
 
   public MetricsTask(
       PrometheusMeteringController controller,
-      String account,
+      String orgId,
       String productTag,
       Uom metric,
       OffsetDateTime start,
       OffsetDateTime end) {
     this.controller = controller;
-    this.account = account;
+    this.orgId = orgId;
     this.productTag = productTag;
     this.metric = metric;
     this.start = start;
@@ -59,9 +59,9 @@ public class MetricsTask implements Task {
 
   @Override
   public void execute() {
-    log.info("Running {} {} metrics update task for account: {}", productTag, metric, account);
+    log.info("Running {} {} metrics update task for orgId: {}", productTag, metric, orgId);
     try {
-      controller.collectMetrics(productTag, metric, this.account, start, end);
+      controller.collectMetrics(productTag, metric, orgId, start, end);
       log.info("{} {} metrics task complete.", productTag, metric);
     } catch (Exception e) {
       log.error("Problem running task: {}", this.getClass().getSimpleName(), e);

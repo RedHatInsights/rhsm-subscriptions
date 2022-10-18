@@ -30,6 +30,7 @@ import java.time.OffsetDateTime;
 import java.util.Set;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -58,6 +59,8 @@ class PrometheusMetricsTaskManagerTest {
 
   @Mock private TagProfile tagProfile;
 
+  @Mock private AccountConfigRepository accountConfigRepository;
+
   private PrometheusMetricsTaskManager manager;
 
   @BeforeEach
@@ -67,24 +70,32 @@ class PrometheusMetricsTaskManagerTest {
     ApplicationClock clock = new FixedClockConfiguration().fixedClock();
     manager =
         new PrometheusMetricsTaskManager(
-            queue, queueProperties, accountSource, tagProfile, clock, new ApplicationProperties());
+            queue,
+            queueProperties,
+            accountSource,
+            accountConfigRepository,
+            tagProfile,
+            clock,
+            new ApplicationProperties());
   }
 
   @Test
   void updateForSingleAccount() throws Exception {
-    String account = "single-account";
+    String orgId = "single-account";
     OffsetDateTime end = OffsetDateTime.now();
     OffsetDateTime start = end.minusDays(1);
 
+    when(accountConfigRepository.findOrgByAccountNumber(any())).thenReturn("single-account-orgId");
+
     TaskDescriptor expectedTask =
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, TASK_TOPIC)
-            .setSingleValuedArg("account", account)
+            .setSingleValuedArg("orgId", "single-account-orgId")
             .setSingleValuedArg("productTag", TEST_PROFILE_ID)
             .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("start", start.toString())
             .setSingleValuedArg("end", end.toString())
             .build();
-    manager.updateMetricsForAccount(account, TEST_PROFILE_ID, start, end);
+    manager.updateMetricsForAccount(orgId, TEST_PROFILE_ID, start, end);
     verify(queue).enqueue(expectedTask);
   }
 
@@ -94,10 +105,10 @@ class PrometheusMetricsTaskManagerTest {
     OffsetDateTime start = end.minusDays(1);
 
     when(accountSource.getMarketplaceAccounts(eq(TEST_PROFILE_ID), eq(Uom.CORES), any(), any()))
-        .thenReturn(Set.of("a1", "a2"));
+        .thenReturn(Set.of("org1", "org2"));
     TaskDescriptor account1Task =
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, TASK_TOPIC)
-            .setSingleValuedArg("account", "a1")
+            .setSingleValuedArg("orgId", "org1")
             .setSingleValuedArg("productTag", TEST_PROFILE_ID)
             .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("start", start.toString())
@@ -105,7 +116,7 @@ class PrometheusMetricsTaskManagerTest {
             .build();
     TaskDescriptor account2Task =
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, TASK_TOPIC)
-            .setSingleValuedArg("account", "a2")
+            .setSingleValuedArg("orgId", "org2")
             .setSingleValuedArg("productTag", TEST_PROFILE_ID)
             .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("start", start.toString())

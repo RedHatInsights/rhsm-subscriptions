@@ -24,6 +24,7 @@ import java.time.OffsetDateTime;
 import java.util.stream.Stream;
 import javax.transaction.Transactional;
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -35,6 +36,7 @@ import org.candlepin.subscriptions.task.queue.TaskQueue;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
@@ -44,6 +46,7 @@ import org.springframework.stereotype.Component;
 public class PrometheusMetricsTaskManager {
 
   private static final Logger log = LoggerFactory.getLogger(PrometheusMetricsTaskManager.class);
+  private final AccountConfigRepository accountConfigRepository;
 
   private String topic;
 
@@ -57,13 +60,16 @@ public class PrometheusMetricsTaskManager {
 
   private ApplicationProperties appProps;
 
+  @Autowired
   public PrometheusMetricsTaskManager(
       TaskQueue queue,
       @Qualifier("meteringTaskQueueProperties") TaskQueueProperties queueProps,
       PrometheusAccountSource accountSource,
+      AccountConfigRepository accountConfigRepository,
       TagProfile tagProfile,
       ApplicationClock clock,
       ApplicationProperties appProps) {
+    this.accountConfigRepository = accountConfigRepository;
     log.info("Initializing metering manager. Topic: {}", queueProps.getTopic());
     this.queue = queue;
     this.topic = queueProps.getTopic();
@@ -75,26 +81,36 @@ public class PrometheusMetricsTaskManager {
 
   public void updateMetricsForAccount(
       String account, String productTag, OffsetDateTime start, OffsetDateTime end) {
+    String orgId = accountConfigRepository.findOrgByAccountNumber(account);
+    if (orgId == null) {
+      throw new IllegalArgumentException(
+          String.format("Could not find orgId for accountNumber: %s", account));
+    }
+    updateMetricsForOrgId(orgId, productTag, start, end);
+  }
+
+  public void updateMetricsForOrgId(
+      String orgId, String productTag, OffsetDateTime start, OffsetDateTime end) {
     tagProfile
         .getSupportedMetricsForProduct(productTag)
         .forEach(
             metric -> {
-              log.info("Queuing {} {} metric updates for account {}.", productTag, metric, account);
-              queueMetricUpdateForAccount(account, productTag, metric, start, end);
+              log.info("Queuing {} {} metric updates for orgId={}.", productTag, metric, orgId);
+              queueMetricUpdateForOrgId(orgId, productTag, metric, start, end);
               log.info("Done queuing updates of {} {} metric", productTag, metric);
             });
   }
 
-  private void queueMetricUpdateForAccount(
-      String account, String productTag, Uom metric, OffsetDateTime start, OffsetDateTime end) {
+  private void queueMetricUpdateForOrgId(
+      String orgId, String productTag, Uom metric, OffsetDateTime start, OffsetDateTime end) {
     log.info(
-        "Queuing {} {} metric update for account {} for range [{}, {})",
+        "Queuing {} {} metric update for orgId={} for range [{}, {})",
         productTag,
         metric,
-        account,
+        orgId,
         start,
         end);
-    this.queue.enqueue(createMetricsTask(account, productTag, metric, start, end));
+    this.queue.enqueue(createMetricsTask(orgId, productTag, metric, start, end));
   }
 
   @Transactional
@@ -136,27 +152,22 @@ public class PrometheusMetricsTaskManager {
 
   private void queueMetricUpdateForAllAccounts(
       String productTag, Uom metric, OffsetDateTime start, OffsetDateTime end) {
-    try (Stream<String> accountStream =
+    try (Stream<String> orgIdStream =
         accountSource.getMarketplaceAccounts(productTag, metric, start, end).stream()) {
       log.info("Queuing {} {} metric updates for all configured accounts.", productTag, metric);
-      accountStream.forEach(
-          account -> queueMetricUpdateForAccount(account, productTag, metric, start, end));
+      orgIdStream.forEach(
+          orgId -> queueMetricUpdateForOrgId(orgId, productTag, metric, start, end));
       log.info("Done queuing updates of {} {} metric", productTag, metric);
     }
   }
 
   private TaskDescriptor createMetricsTask(
-      String account, String productTag, Uom metric, OffsetDateTime start, OffsetDateTime end) {
+      String orgId, String productTag, Uom metric, OffsetDateTime start, OffsetDateTime end) {
     log.info(
-        "ACCOUNT: {} TAG: {} METRIC: {} START: {} END: {}",
-        account,
-        productTag,
-        metric,
-        start,
-        end);
+        "ORGID: {} TAG: {} METRIC: {} START: {} END: {}", orgId, productTag, metric, start, end);
     TaskDescriptorBuilder builder =
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, topic)
-            .setSingleValuedArg("account", account)
+            .setSingleValuedArg("orgId", orgId)
             .setSingleValuedArg("productTag", productTag)
             .setSingleValuedArg("metric", metric.value())
             .setSingleValuedArg("start", start.toString());
