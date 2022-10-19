@@ -67,11 +67,4 @@ public class OptInResource implements OptInApi {
     }
     return ownerId;
   }
-
-  private Boolean trueIfNull(Boolean toVerify) {
-    if (toVerify == null) {
-      return true;
-    }
-    return toVerify;
-  }
 }
