@@ -32,10 +32,10 @@ import org.springframework.data.repository.query.Param;
 /** Defines all operations for storing account config entries. */
 public interface AccountConfigRepository extends JpaRepository<AccountConfig, String> {
 
-  @Query("select distinct c.accountNumber from AccountConfig c where c.syncEnabled = TRUE")
+  @Query("select distinct c.accountNumber from AccountConfig c")
   Stream<String> findSyncEnabledAccounts();
 
-  @Query("select distinct c.orgId from AccountConfig c where c.syncEnabled = TRUE")
+  @Query("select distinct c.orgId from AccountConfig c")
   Stream<String> findSyncEnabledOrgs();
 
   @Query("select distinct c.orgId from AccountConfig c where c.accountNumber = :account")
@@ -43,11 +43,6 @@ public interface AccountConfigRepository extends JpaRepository<AccountConfig, St
 
   @Query("select distinct c.accountNumber from AccountConfig c where c.orgId = :orgId")
   String findAccountNumberByOrgId(@Param("orgId") String orgId);
-
-  @Query(
-      "select case when count(c) > 0 then true else false end from AccountConfig c "
-          + "where c.accountNumber = :account and c.reportingEnabled = TRUE")
-  boolean isReportingEnabled(@Param("account") String accountNumber);
 
   @Query(
       "select count(c) from AccountConfig c "
@@ -63,12 +58,7 @@ public interface AccountConfigRepository extends JpaRepository<AccountConfig, St
   void deleteByOrgId(String accountNumber);
 
   default Optional<AccountConfig> createOrUpdateAccountConfig(
-      String account,
-      String orgId,
-      OffsetDateTime current,
-      OptInType optInType,
-      boolean enableSync,
-      boolean enableReporting) {
+      String account, String orgId, OffsetDateTime current, OptInType optInType) {
     Optional<AccountConfig> found = findByOrgId(orgId);
     AccountConfig accountConfig = found.orElse(new AccountConfig());
     if (!found.isPresent()) {
@@ -78,8 +68,6 @@ public interface AccountConfigRepository extends JpaRepository<AccountConfig, St
     }
     accountConfig.setAccountNumber(account);
     accountConfig.setOrgId(orgId);
-    accountConfig.setSyncEnabled(enableSync);
-    accountConfig.setReportingEnabled(enableReporting);
     accountConfig.setUpdated(current);
     return Optional.of(save(accountConfig));
   }

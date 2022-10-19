@@ -72,28 +72,8 @@ class OptInResourceTest {
 
   @Test
   void testPut() {
-    resource.putOptInConfig(false, false, false);
-    Mockito.verify(controller)
-        .optIn(
-            "account123456",
-            "owner123456",
-            OptInType.API,
-            Boolean.FALSE,
-            Boolean.FALSE,
-            Boolean.FALSE);
-  }
-
-  @Test
-  void testPutDefaultsToTrue() {
-    resource.putOptInConfig(null, null, null);
-    Mockito.verify(controller)
-        .optIn(
-            "account123456",
-            "owner123456",
-            OptInType.API,
-            Boolean.TRUE,
-            Boolean.TRUE,
-            Boolean.TRUE);
+    resource.putOptInConfig();
+    Mockito.verify(controller).optIn("account123456", "owner123456", OptInType.API);
   }
 
   @Test
@@ -127,7 +107,7 @@ class OptInResourceTest {
   @Test
   @WithMockRedHatPrincipal(value = "123456", nullifyOwner = true)
   void testMissingOrgOnPut() {
-    assertThrows(BadRequestException.class, () -> resource.putOptInConfig(true, true, true));
+    assertThrows(BadRequestException.class, () -> resource.putOptInConfig());
   }
 
   @Test
@@ -135,6 +115,6 @@ class OptInResourceTest {
       value = "123456",
       roles = {})
   void testAccessDeniedForOptInWhenUserIsNotAnAdmin() {
-    assertThrows(AccessDeniedException.class, () -> resource.putOptInConfig(true, true, true));
+    assertThrows(AccessDeniedException.class, () -> resource.putOptInConfig());
   }
 }

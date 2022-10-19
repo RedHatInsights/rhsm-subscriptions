@@ -246,7 +246,7 @@ public class PrometheusMeteringController {
 
   private String ensureOptIn(String orgId) {
     try {
-      return optInController.optInByOrgId(orgId, OptInType.PROMETHEUS, true, true, true);
+      return optInController.optInByOrgId(orgId, OptInType.PROMETHEUS);
     } catch (Exception e) {
       log.warn("Error while attempting to automatically opt-in orgId={}", orgId);
       // Keep the logs clean unless specified.

@@ -201,7 +201,7 @@ class PrometheusMeteringControllerTest {
             end,
             metricProperties.getStep(),
             metricProperties.getQueryTimeout());
-    verify(optInController).optInByOrgId(expectedOrgId, OptInType.PROMETHEUS, true, true, true);
+    verify(optInController).optInByOrgId(expectedOrgId, OptInType.PROMETHEUS);
   }
 
   @Test

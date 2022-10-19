@@ -100,14 +100,7 @@ public class OptInJmxBean {
     log.info(
         "Opt in for account {}, org {} triggered via JMX by {}", accountNumber, orgId, principal);
     log.debug("Creating OptInConfig over JMX for account {}, org {}", accountNumber, orgId);
-    OptInConfig config =
-        controller.optIn(
-            accountNumber,
-            orgId,
-            OptInType.JMX,
-            enableTallySync,
-            enableTallyReporting,
-            enableConduitSync);
+    OptInConfig config = controller.optIn(accountNumber, orgId, OptInType.JMX);
 
     String text = "Completed opt in for account %s and org %s:\n%s";
     return String.format(text, accountNumber, orgId, config.toString());
@@ -119,8 +112,7 @@ public class OptInJmxBean {
       boolean enableTallySync,
       boolean enableTallyReporting,
       boolean enableConduitSync) {
-    controller.optInByAccountNumber(
-        accountNumber, OptInType.JMX, enableTallySync, enableTallyReporting, enableConduitSync);
+    controller.optInByAccountNumber(accountNumber, OptInType.JMX);
     return String.format("Completed opt in for account %s", accountNumber);
   }
 
@@ -130,8 +122,7 @@ public class OptInJmxBean {
       boolean enableTallySync,
       boolean enableTallyReporting,
       boolean enableConduitSync) {
-    controller.optInByOrgId(
-        orgId, OptInType.JMX, enableTallySync, enableTallyReporting, enableConduitSync);
+    controller.optInByOrgId(orgId, OptInType.JMX);
     return String.format("Completed opt in for orgId %s", orgId);
   }
 

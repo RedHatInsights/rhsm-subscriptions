@@ -83,5 +83,6 @@
     <include file="liquibase/202209301614-migrate-org-id-to-events-table.xml"/>
     <include file="liquibase/202209301230-migrate-org-id-to-billable-usage-table.xml"/>
     <include file="liquibase/202210101553-make-account-config-org-id-nullable.xml"/>
+    <include file="liquibase/202210101642-drop-unused-opt-in-flags.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
