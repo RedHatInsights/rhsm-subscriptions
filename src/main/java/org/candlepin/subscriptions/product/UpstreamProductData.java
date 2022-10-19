@@ -133,8 +133,10 @@ class UpstreamProductData {
     offer.attrs.put(Attr.X_DESCRIPTION, name);
     // Though theoretically possible, none of the products in use by Candlepin (which includes the
     // allowlisted swatch products) ever has more than one role.
-    String role = parent.getRoles().stream().findFirst().orElse(null);
-    offer.attrs.put(Attr.X_ROLE, role);
+    if (parent.getRoles() != null) {
+      String role = parent.getRoles().stream().findFirst().orElse(null);
+      offer.attrs.put(Attr.X_ROLE, role);
+    }
     offer.mapAttributes(parent);
 
     // For each child, merge its unconflicting information into the parent.
