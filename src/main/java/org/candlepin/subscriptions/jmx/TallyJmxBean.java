@@ -79,6 +79,7 @@ public class TallyJmxBean {
     tasks.updateSnapshotsForAllOrg();
   }
 
+  // SWATCH-644 Deprecate this method after org id migration
   @ManagedOperation(description = "Trigger hourly tally for an account within a timeframe.")
   @ManagedOperationParameter(name = "accountNumber", description = "Which account to tally.")
   @ManagedOperationParameter(
@@ -104,9 +105,35 @@ public class TallyJmxBean {
     tasks.tallyAccountByHourly(accountNumber, tallyRange);
   }
 
+  @ManagedOperation(description = "Trigger hourly tally for an org within a timeframe.")
+  @ManagedOperationParameter(name = "orgId", description = "Which org to tally.")
+  @ManagedOperationParameter(
+      name = "startDateTime",
+      description =
+          "Beginning of the range of time the tally should include. "
+              + "Should be top of the hour and expected to be in ISO 8601 format (e.g. 2020-08-02T14:00Z).")
+  @ManagedOperationParameter(
+      name = "endDateTime",
+      description =
+          "Ending of the range of time the tally should include. "
+              + "Should be top of the hour and expected to be in ISO 8601 format (e.g. 2020-08-02T14:00Z).")
+  @ParameterDuration("@jmxProperties.tallyBean.hourlyTallyDurationLimitDays")
+  public void tallyOrgByHourly(
+      String orgId, @NotNull String startDateTime, @NotNull String endDateTime) {
+    log.info(
+        "Hourly tally between {} and {} for orgId {} triggered over JMX by {}",
+        startDateTime,
+        endDateTime,
+        orgId,
+        ResourceUtils.getPrincipal());
+    var tallyRange = DateRange.fromStrings(startDateTime, endDateTime);
+    tasks.tallyOrgByHourly(orgId, tallyRange);
+  }
+
+  // SWATCH-614 Rename the endpoint to tallyAllOrgsByHourly
   @ManagedOperation(
       description =
-          "Trigger hourly tally for all configured accounts for the specified range. The 'start' and "
+          "Trigger hourly tally for all configured orgs for the specified range. The 'start' and "
               + "'end' parameters MUST be specified as a pair to complete a range. If they are left empty, "
               + "a date range is used based on NOW with the configured offsets applied (identical to if "
               + " the job was run).")
@@ -118,14 +145,14 @@ public class TallyJmxBean {
       name = "end",
       description =
           "The end date for the tally (e.g. 22-05-03T16:00:00Z). Must be specified along with the start parameter.")
-  public void tallyAllAccountsByHourly(String start, String end) throws IllegalArgumentException {
+  public void tallyAllOrgsByHourly(String start, String end) throws IllegalArgumentException {
 
     DateRange range = null;
     if (StringUtils.hasText(start) || StringUtils.hasText(end)) {
       try {
         range = DateRange.fromStrings(start, end);
         log.info(
-            "Hourly tally for all accounts triggered for range {} over JMX by {}",
+            "Hourly tally for all orgs triggered for range {} over JMX by {}",
             range,
             ResourceUtils.getPrincipal());
       } catch (Exception e) {
@@ -137,7 +164,7 @@ public class TallyJmxBean {
           "Hourly tally for all accounts triggered over JMX by {}", ResourceUtils.getPrincipal());
     }
 
-    tasks.updateHourlySnapshotsForAllAccounts(Optional.ofNullable(range));
+    tasks.updateHourlySnapshotsForAllOrgs(Optional.ofNullable(range));
   }
 
   @ManagedOperation(description = "Trigger hardware_measurements migration")

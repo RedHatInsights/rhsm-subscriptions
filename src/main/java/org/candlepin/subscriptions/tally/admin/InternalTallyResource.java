@@ -65,11 +65,8 @@ public class InternalTallyResource implements InternalApi {
   }
 
   @Override
-  public void performHourlyTallyForAccount(
-      String account,
-      OffsetDateTime start,
-      OffsetDateTime end,
-      Boolean xRhSwatchSynchronousRequest) {
+  public void performHourlyTallyForOrg(
+      String orgId, OffsetDateTime start, OffsetDateTime end, Boolean xRhSwatchSynchronousRequest) {
     DateRange range = new DateRange(start, end);
     if (!clock.isHourlyRange(range)) {
       throw new IllegalArgumentException(
@@ -82,10 +79,10 @@ public class InternalTallyResource implements InternalApi {
       if (!applicationProperties.isEnableSynchronousOperations()) {
         throw new BadRequestException("Synchronous tally operations are not enabled.");
       }
-      log.info("Synchronous hourly tally requested for account {}: {}", account, range);
-      tallySnapshotController.produceHourlySnapshotsForAccount(account, range);
+      log.info("Synchronous hourly tally requested for orgId {}: {}", orgId, range);
+      tallySnapshotController.produceHourlySnapshotsForOrg(orgId, range);
     } else {
-      snapshotsTaskManager.tallyAccountByHourly(account, range);
+      snapshotsTaskManager.tallyOrgByHourly(orgId, range);
     }
   }
 

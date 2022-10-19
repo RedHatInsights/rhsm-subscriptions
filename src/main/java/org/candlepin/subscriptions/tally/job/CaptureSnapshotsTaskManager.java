@@ -27,8 +27,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
-import org.candlepin.subscriptions.db.AccountListSource;
-import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.tally.TallyTaskQueueConfiguration;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskManagerException;
@@ -60,7 +58,6 @@ public class CaptureSnapshotsTaskManager {
   private final ApplicationProperties appProperties;
   private final TaskQueueProperties taskQueueProperties;
   private final TaskQueue queue;
-  private final AccountListSource accountListSource;
   private final ApplicationClock applicationClock;
 
   private final AccountConfigRepository accountRepo;
@@ -70,14 +67,12 @@ public class CaptureSnapshotsTaskManager {
       ApplicationProperties appProperties,
       @Qualifier("tallyTaskQueueProperties") TaskQueueProperties tallyTaskQueueProperties,
       TaskQueue queue,
-      AccountListSource accountListSource,
       ApplicationClock applicationClock,
       AccountConfigRepository accountRepo) {
 
     this.appProperties = appProperties;
     this.taskQueueProperties = tallyTaskQueueProperties;
     this.queue = queue;
-    this.accountListSource = accountListSource;
     this.applicationClock = applicationClock;
     this.accountRepo = accountRepo;
   }
@@ -150,24 +145,46 @@ public class CaptureSnapshotsTaskManager {
               "Start/End times must be at the top of the hour: [%s -> %s]",
               tallyRange.getStartString(), tallyRange.getEndString()));
     }
+    log.info("Find org by account number {}", accountNumber);
+    String orgId = accountRepo.findOrgByAccountNumber(accountNumber);
+    if (StringUtils.hasText(orgId)) {
+      tallyOrgByHourly(orgId, tallyRange);
+    } else {
+      throw new IllegalArgumentException(
+          String.format(
+              "Incomplete opt-in configuration - account=%s orgId=%s", accountNumber, orgId));
+    }
+  }
+
+  public void tallyOrgByHourly(String orgId, DateRange tallyRange) {
+    if (!applicationClock.isHourlyRange(tallyRange)) {
+      log.error(
+          "Hourly snapshot production for orgId {} will not be queued. "
+              + "Invalid start/end times specified.",
+          orgId);
+      throw new IllegalArgumentException(
+          String.format(
+              "Start/End times must be at the top of the hour: [%s -> %s]",
+              tallyRange.getStartString(), tallyRange.getEndString()));
+    }
 
     log.info(
-        "Queuing hourly snapshot production for accountNumber {} between {} and {}",
-        accountNumber,
+        "Queuing hourly snapshot production for orgId {} between {} and {}",
+        orgId,
         tallyRange.getStartString(),
         tallyRange.getEndString());
 
     queue.enqueue(
         TaskDescriptor.builder(TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic())
-            .setSingleValuedArg("accountNumber", accountNumber)
+            .setSingleValuedArg("orgId", orgId)
             .setSingleValuedArg("startDateTime", tallyRange.getStartString())
             .setSingleValuedArg("endDateTime", tallyRange.getEndString())
             .build());
   }
 
   @Transactional
-  public void updateHourlySnapshotsForAllAccounts(Optional<DateRange> dateRange) {
-    try (Stream<String> accountStream = accountListSource.syncableAccounts()) {
+  public void updateHourlySnapshotsForAllOrgs(Optional<DateRange> dateRange) {
+    try (Stream<String> orgStream = accountRepo.findSyncEnabledOrgs()) {
       AtomicInteger count = new AtomicInteger(0);
 
       OffsetDateTime startDateTime;
@@ -189,17 +206,18 @@ public class CaptureSnapshotsTaskManager {
         endDateTime = applicationClock.startOfHour(dateRange.get().getEndDate());
       }
 
-      accountStream.forEach(
-          accountNumber -> {
-            tallyAccountByHourly(accountNumber, new DateRange(startDateTime, endDateTime));
+      log.info("Queuing all org hourly snapshot in batches of size one");
+
+      orgStream.forEach(
+          orgId -> {
+            tallyOrgByHourly(orgId, new DateRange(startDateTime, endDateTime));
             count.addAndGet(1);
           });
 
       log.info("Done queuing hourly snapshot production for {} accounts.", count.intValue());
 
-    } catch (AccountListSourceException e) {
-      throw new TaskManagerException(
-          "Could not list accounts for update snapshot task generation", e);
+    } catch (Exception e) {
+      throw new TaskManagerException("Could not list orgs for update snapshot task generation", e);
     }
   }
 

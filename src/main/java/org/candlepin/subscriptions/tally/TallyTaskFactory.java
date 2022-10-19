@@ -78,20 +78,20 @@ public class TallyTaskFactory implements TaskFactory {
     if (taskDescriptor.getTaskType() == TaskType.UPDATE_HOURLY_SNAPSHOTS) {
       validateHourlySnapshotTaskArgs(taskDescriptor);
 
-      String accountNumber = taskDescriptor.getArg("accountNumber").get(0);
+      String orgId = taskDescriptor.getArg("orgId").get(0);
       String startDateTime = taskDescriptor.getArg("startDateTime").get(0);
       String endDateTime = taskDescriptor.getArg("endDateTime").get(0);
 
       // CaptureMetricsSnapshotTask is not a Spring managed bean, so we have to invoke the validator
       // ourselves. This code relies on the CaptureMetricSnapshotTask only having one constructor.
       Constructor<?> ctor = CaptureMetricsSnapshotTask.class.getConstructors()[0];
-      Object[] args = new Object[] {snapshotController, accountNumber, startDateTime, endDateTime};
+      Object[] args = new Object[] {snapshotController, orgId, startDateTime, endDateTime};
       Set<? extends ConstraintViolation<?>> constraintViolations =
           validator.validateConstructorParameters(ctor, args);
 
       if (constraintViolations.isEmpty()) {
         return new CaptureMetricsSnapshotTask(
-            snapshotController, accountNumber, startDateTime, endDateTime);
+            snapshotController, orgId, startDateTime, endDateTime);
       } else {
         String message =
             constraintViolations.stream()
@@ -107,12 +107,12 @@ public class TallyTaskFactory implements TaskFactory {
   }
 
   protected void validateHourlySnapshotTaskArgs(TaskDescriptor taskDescriptor) {
-    if (CollectionUtils.isEmpty(taskDescriptor.getArg("accountNumber"))
+    if (CollectionUtils.isEmpty(taskDescriptor.getArg("orgId"))
         || CollectionUtils.isEmpty(taskDescriptor.getArg("startDateTime"))
         || CollectionUtils.isEmpty(taskDescriptor.getArg("endDateTime"))) {
       throw new IllegalArgumentException(
           String.format(
-              "Could not build %s task. accountNumber, startDateTime, endDateTime are all required",
+              "Could not build %s task. orgId, startDateTime, endDateTime are all required",
               TaskType.UPDATE_HOURLY_SNAPSHOTS));
     }
   }

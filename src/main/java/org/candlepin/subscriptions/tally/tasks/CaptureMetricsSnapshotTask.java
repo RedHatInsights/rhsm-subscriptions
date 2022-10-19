@@ -30,23 +30,23 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 public class CaptureMetricsSnapshotTask implements Task {
 
-  private final String accountNumber;
+  private final String orgId;
   private final TallySnapshotController snapshotController;
   private final DateRange dateRange;
 
   @ParameterDuration("@jmxProperties.tallyBean.hourlyTallyDurationLimitDays")
   public CaptureMetricsSnapshotTask(
       TallySnapshotController snapshotController,
-      String accountNumber,
+      String orgId,
       String startDateTime,
       String endDateTime) {
     this.snapshotController = snapshotController;
-    this.accountNumber = accountNumber;
+    this.orgId = orgId;
     this.dateRange = DateRange.fromStrings(startDateTime, endDateTime);
   }
 
   @Override
   public void execute() {
-    snapshotController.produceHourlySnapshotsForAccount(accountNumber, dateRange);
+    snapshotController.produceHourlySnapshotsForOrg(orgId, dateRange);
   }
 }

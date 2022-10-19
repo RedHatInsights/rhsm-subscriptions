@@ -69,7 +69,8 @@ public class MetricUsageCollector {
   }
 
   @Transactional
-  public CollectionResult collect(String serviceType, String accountNumber, DateRange range) {
+  public CollectionResult collect(
+      String serviceType, String accountNumber, String orgId, DateRange range) {
     if (!clock.isHourlyRange(range)) {
       throw new IllegalArgumentException(
           String.format(
@@ -89,12 +90,7 @@ public class MetricUsageCollector {
             .findById(new AccountServiceInventoryId(accountNumber, serviceType))
             .orElse(new AccountServiceInventory(accountNumber, serviceType));
 
-    // SWATCH-261 This logic should be implemented much cleaner
-    accountServiceInventory.getServiceInstances().values().stream()
-        .map(Host::getOrgId)
-        .filter(Objects::nonNull)
-        .findFirst()
-        .ifPresent(accountServiceInventory::setOrgId);
+    accountServiceInventory.setOrgId(orgId);
     /*
     Evaluate latest state to determine if we are doing a recalculation and filter to host records for only
     the product profile we're working on
