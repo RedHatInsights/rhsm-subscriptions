@@ -36,5 +36,5 @@ public interface SubscriptionCapacityRepository
 
   Stream<SubscriptionCapacity> findByKeyOwnerId(String ownerId);
 
-  void deleteByAccountNumber(String accountNumber);
+  void deleteByKeyOwnerId(String ownerId);
 }

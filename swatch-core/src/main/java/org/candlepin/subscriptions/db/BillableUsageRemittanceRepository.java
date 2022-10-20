@@ -31,7 +31,7 @@ public interface BillableUsageRemittanceRepository
     extends JpaRepository<BillableUsageRemittanceEntity, BillableUsageRemittanceEntityPK> {
 
   @Query
-  void deleteByKeyAccountNumber(String accountNumber);
+  void deleteByOrgId(String orgId);
 
   @Query
   List<BillableUsageRemittanceEntity> findAllByOrgIdAndKey_ProductIdAndKey_MetricId( // NOSONAR

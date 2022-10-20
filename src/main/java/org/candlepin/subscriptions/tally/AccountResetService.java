@@ -61,14 +61,14 @@ public class AccountResetService {
   }
 
   @Transactional
-  public void deleteDataForAccount(String accountNumber) {
+  public void deleteDataForOrg(String orgId) {
 
-    accountServiceInventoryRepository.deleteByIdAccountNumber(accountNumber);
-    hostRepo.deleteByAccountNumber(accountNumber);
-    eventRecordRepo.deleteByAccountNumber(accountNumber);
-    tallySnapshotRepository.deleteByAccountNumber(accountNumber);
-    subscriptionRepository.deleteByAccountNumber(accountNumber);
-    subscriptionCapacityRepository.deleteByAccountNumber(accountNumber);
-    remittanceRepository.deleteByKeyAccountNumber(accountNumber);
+    accountServiceInventoryRepository.deleteByOrgId(orgId);
+    hostRepo.deleteByOrgId(orgId);
+    eventRecordRepo.deleteByOrgId(orgId);
+    tallySnapshotRepository.deleteByOwnerId(orgId);
+    subscriptionRepository.deleteByOwnerId(orgId);
+    subscriptionCapacityRepository.deleteByKeyOwnerId(orgId);
+    remittanceRepository.deleteByOrgId(orgId);
   }
 }
