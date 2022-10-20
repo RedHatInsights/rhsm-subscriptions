@@ -147,7 +147,7 @@ objects:
 
     deployments:
       - name: service
-        minReplicas: 1
+        replicas: ${{REPLICAS}}
         webServices:
           public:
             enabled: true
