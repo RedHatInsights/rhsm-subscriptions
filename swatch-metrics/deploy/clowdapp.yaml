@@ -127,7 +127,7 @@ objects:
               enabled: true
             metrics:
               enabled: true
-          replicas: ${REPLICAS}
+          replicas: ${{REPLICAS}}
           podSpec:
             image: ${IMAGE}:${IMAGE_TAG}
             command:

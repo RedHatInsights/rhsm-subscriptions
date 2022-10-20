@@ -81,7 +81,7 @@ objects:
 
     deployments:
       - name: service
-        replicas: ${REPLICAS}
+        replicas: ${{REPLICAS}}
         webServices:
           public:
             enabled: true
