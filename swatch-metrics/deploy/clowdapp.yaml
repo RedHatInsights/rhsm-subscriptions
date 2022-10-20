@@ -6,6 +6,8 @@ metadata:
 parameters:
   - name: ENV_NAME
     value: env-swatch-metrics
+  - name: REPLICAS
+    value: '1'
   - name: IMAGE
     value: quay.io/cloudservices/rhsm-subscriptions
   - name: IMAGE_TAG
@@ -125,7 +127,7 @@ objects:
               enabled: true
             metrics:
               enabled: true
-          minReplicas: 1
+          replicas: ${REPLICAS}
           podSpec:
             image: ${IMAGE}:${IMAGE_TAG}
             command:

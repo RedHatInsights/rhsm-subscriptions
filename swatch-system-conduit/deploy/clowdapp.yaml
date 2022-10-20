@@ -114,7 +114,7 @@ objects:
             enabled: true
           metrics:
             enable: true
-        minReplicas: 1
+        replicas: ${REPLICAS}
         podSpec:
           image: ${CONDUIT_IMAGE}:${IMAGE_TAG}
           command:

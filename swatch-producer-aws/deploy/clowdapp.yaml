@@ -16,6 +16,8 @@ parameters:
     value: 1500m
   - name: ENV_NAME
     value: env-swatch-producer-aws
+  - name: REPLICAS
+    value: '1'
   - name: IMAGE
     value: quay.io/cloudservices/swatch-producer-aws
   - name: IMAGE_TAG
@@ -79,7 +81,7 @@ objects:
 
     deployments:
       - name: service
-        minReplicas: 1
+        replicas: ${REPLICAS}
         webServices:
           public:
             enabled: true
