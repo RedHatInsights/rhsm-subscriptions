@@ -277,7 +277,7 @@ tagMetrics:
   - tag: rhods
     metricId: redhat.com:openshift_data_science:cpu_hours
     rhmMetricId: redhat.com:openshift_data_science:cpu_hours
-    awsDimension: cpu_hour
+    awsDimension: cluster_cpu_hours
     uom: CORES
     billingWindow: MONTHLY
     queryKey: addonSamples
