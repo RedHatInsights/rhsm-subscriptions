@@ -145,7 +145,7 @@ public class TallyJmxBean {
       name = "end",
       description =
           "The end date for the tally (e.g. 22-05-03T16:00:00Z). Must be specified along with the start parameter.")
-  public void tallyAllOrgsByHourly(String start, String end) throws IllegalArgumentException {
+  public void tallyAllAccountsByHourly(String start, String end) throws IllegalArgumentException {
 
     DateRange range = null;
     if (StringUtils.hasText(start) || StringUtils.hasText(end)) {
