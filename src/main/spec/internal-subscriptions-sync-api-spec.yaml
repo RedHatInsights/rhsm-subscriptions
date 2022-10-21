@@ -67,7 +67,6 @@ paths:
         description: "Customer's Account Number"
       - name: orgId
         in: query
-        required: true
         schema:
           type: string
         description: "Customer's Org Id"
