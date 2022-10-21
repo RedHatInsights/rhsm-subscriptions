@@ -75,9 +75,9 @@ public class InternalSubscriptionResource implements InternalApi {
   @Override
   public AwsUsageContext getAwsUsageContext(
       String accountNumber,
-      String orgId,
       OffsetDateTime date,
       String productId,
+      String orgId,
       String sla,
       String usage,
       String billingAccountId) {
