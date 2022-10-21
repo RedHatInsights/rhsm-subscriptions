@@ -145,9 +145,9 @@ public class BillableUsageProcessor {
     try {
       return internalSubscriptionsApi.getAwsUsageContext(
           billableUsage.getAccountNumber(),
-          billableUsage.getOrgId(),
           billableUsage.getSnapshotDate(),
           billableUsage.getProductId(),
+          billableUsage.getOrgId(),
           Optional.ofNullable(billableUsage.getSla()).map(SlaEnum::value).orElse(null),
           Optional.ofNullable(billableUsage.getUsage()).map(UsageEnum::value).orElse(null),
           Optional.ofNullable(billableUsage.getBillingAccountId()).orElse("_ANY"));
