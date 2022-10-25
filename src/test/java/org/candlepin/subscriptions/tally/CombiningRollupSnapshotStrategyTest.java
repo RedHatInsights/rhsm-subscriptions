@@ -480,6 +480,64 @@ class CombiningRollupSnapshotStrategyTest {
     assertThat(talliesToSend, containsInAnyOrder(afternoonSnapshot, dailySnapshot));
   }
 
+  @Test
+  void testExistingOlderFinestGranularitySnapshotMeasurementsPreserved() {
+    TallySnapshot existingSnapshot =
+        createTallySnapshot(Granularity.HOURLY, "2022-10-24T12:00:00Z", 4.0);
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
+            any(), any(), any(), any(), any()))
+        .then(invocation -> Stream.of(existingSnapshot));
+    combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
+        "account123",
+        new DateRange(
+            OffsetDateTime.parse("2022-10-24T13:00:00Z"),
+            OffsetDateTime.parse("2022-10-24T14:00:00Z")),
+        tagProfile.getTagsWithPrometheusEnabledLookup(),
+        Map.of(),
+        Granularity.HOURLY,
+        Double::sum);
+    assertEquals(4.0, existingSnapshot.getMeasurement(HardwareMeasurementType.PHYSICAL, Uom.CORES));
+  }
+
+  @Test
+  void testExistingNewerFinestGranularitySnapshotMeasurementsPreserved() {
+    TallySnapshot existingSnapshot =
+        createTallySnapshot(Granularity.HOURLY, "2022-10-24T14:00:00Z", 4.0);
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
+            any(), any(), any(), any(), any()))
+        .then(invocation -> Stream.of(existingSnapshot));
+    combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
+        "account123",
+        new DateRange(
+            OffsetDateTime.parse("2022-10-24T13:00:00Z"),
+            OffsetDateTime.parse("2022-10-24T14:00:00Z")),
+        tagProfile.getTagsWithPrometheusEnabledLookup(),
+        Map.of(),
+        Granularity.HOURLY,
+        Double::sum);
+    assertEquals(4.0, existingSnapshot.getMeasurement(HardwareMeasurementType.PHYSICAL, Uom.CORES));
+  }
+
+  @Test
+  void testFinestGranularitySnapshotClearedWhenUsageNotPresent() {
+    TallySnapshot existingSnapshot =
+        createTallySnapshot(Granularity.HOURLY, "2022-10-24T13:00:00Z", 4.0);
+    when(repo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
+            any(), any(), any(), any(), any()))
+        .then(invocation -> Stream.of(existingSnapshot));
+    when(repo.save(any())).then(invocation -> invocation.getArgument(0));
+    combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
+        "account123",
+        new DateRange(
+            OffsetDateTime.parse("2022-10-24T13:00:00Z"),
+            OffsetDateTime.parse("2022-10-24T14:00:00Z")),
+        tagProfile.getTagsWithPrometheusEnabledLookup(),
+        Map.of(),
+        Granularity.HOURLY,
+        Double::sum);
+    assertTrue(existingSnapshot.getTallyMeasurements().isEmpty());
+  }
+
   private AccountUsageCalculation createAccountUsageCalculation(
       UsageCalculation.Key usageKey, double v) {
     AccountUsageCalculation usage = new AccountUsageCalculation("account123");
