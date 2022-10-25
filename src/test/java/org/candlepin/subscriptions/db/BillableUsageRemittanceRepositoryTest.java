@@ -61,16 +61,18 @@ class BillableUsageRemittanceRepositoryTest {
   }
 
   @Test
-  void deleteByAccount() {
+  void deleteByOrgId() {
     BillableUsageRemittanceEntity remittance1 =
         remittance("account123", "product1", 12.0, clock.startOfCurrentMonth());
+    remittance1.setOrgId("org123");
     BillableUsageRemittanceEntity remittance2 =
         remittance("account555", "product1", 12.0, clock.startOfCurrentMonth());
+    remittance2.setOrgId("org555");
 
     List<BillableUsageRemittanceEntity> toSave = List.of(remittance1, remittance2);
     repository.saveAllAndFlush(toSave);
 
-    repository.deleteByKeyAccountNumber("account123");
+    repository.deleteByOrgId("org123");
     repository.flush();
     assertTrue(repository.findById(remittance1.getKey()).isEmpty());
     Optional<BillableUsageRemittanceEntity> found = repository.findById(remittance2.getKey());

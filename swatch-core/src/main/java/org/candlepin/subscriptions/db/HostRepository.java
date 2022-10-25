@@ -199,5 +199,5 @@ public interface HostRepository
 
   Optional<Host> findById(UUID id);
 
-  void deleteByAccountNumber(String accountNumber);
+  void deleteByOrgId(String orgId);
 }

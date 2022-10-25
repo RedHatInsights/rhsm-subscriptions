@@ -62,7 +62,7 @@ public interface SubscriptionRepository
 
   void deleteBySubscriptionId(String subscriptionId);
 
-  void deleteByAccountNumber(String accountNumber);
+  void deleteByOwnerId(String ownerId);
 
   default List<Subscription> findByCriteria(ReportCriteria reportCriteria, Sort sort) {
     List<SearchCriteria> searchCriteria = new ArrayList<>();

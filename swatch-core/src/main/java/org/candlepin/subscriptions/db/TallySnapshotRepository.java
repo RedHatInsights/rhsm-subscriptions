@@ -103,7 +103,7 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
       OffsetDateTime beginning,
       OffsetDateTime ending);
 
-  void deleteByAccountNumber(String accountNumber);
+  void deleteByOwnerId(String ownerId);
 
   @SuppressWarnings("java:S107") // repository method has a lot of params, deal with it
   @Query(
