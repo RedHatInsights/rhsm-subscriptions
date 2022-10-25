@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.tally;
 import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getProducerProperties;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -174,6 +175,7 @@ public class TallyWorkerConfiguration {
       KafkaProperties kafkaProperties, ObjectMapper objectMapper) {
     DefaultKafkaProducerFactory<String, TallySummary> factory =
         new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
+    factory.setPhysicalCloseTimeout((int) Duration.ofMinutes(30).toSeconds());
     /*
     Use our customized ObjectMapper. Notably, the spring-kafka default ObjectMapper writes dates as
     timestamps, which produces messages not compatible with JSON-B deserialization.

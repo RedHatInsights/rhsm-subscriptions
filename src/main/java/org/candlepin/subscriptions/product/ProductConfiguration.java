@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.product;
 
 import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getProducerProperties;
 
+import java.time.Duration;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -57,7 +58,11 @@ public class ProductConfiguration {
   @Bean
   public ProducerFactory<String, OfferingSyncTask> offeringSyncProducerFactory(
       KafkaProperties kafkaProperties) {
-    return new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
+    DefaultKafkaProducerFactory<String, OfferingSyncTask> defaultKafkaProducerFactory =
+        new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
+    // NOTE this should be configurable
+    defaultKafkaProducerFactory.setPhysicalCloseTimeout((int) Duration.ofMinutes(30).toSeconds());
+    return defaultKafkaProducerFactory;
   }
 
   @Bean

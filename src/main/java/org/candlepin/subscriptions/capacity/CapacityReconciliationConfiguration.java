@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.capacity;
 
 import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getProducerProperties;
 
+import java.time.Duration;
 import org.candlepin.subscriptions.subscription.PruneSubscriptionsTask;
 import org.candlepin.subscriptions.subscription.SyncSubscriptionsTask;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -42,7 +43,11 @@ public class CapacityReconciliationConfiguration {
   @Bean
   public ProducerFactory<String, SyncSubscriptionsTask> syncSubscriptionsProducerFactory(
       KafkaProperties kafkaProperties) {
-    return new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
+    DefaultKafkaProducerFactory<String, SyncSubscriptionsTask> defaultKafkaProducerFactory =
+        new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
+    // NOTE this should be configurable
+    defaultKafkaProducerFactory.setPhysicalCloseTimeout((int) Duration.ofMinutes(30).toSeconds());
+    return defaultKafkaProducerFactory;
   }
 
   @Bean
