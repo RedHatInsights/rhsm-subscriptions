@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.tally.billing;
 import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getProducerProperties;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Duration;
 import java.util.Map;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.candlepin.subscriptions.json.BillableUsage;
@@ -131,6 +132,7 @@ public class BillingProducerConfiguration {
       KafkaProperties kafkaProperties, ObjectMapper objectMapper) {
     DefaultKafkaProducerFactory<String, BillableUsage> factory =
         new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
+    factory.setPhysicalCloseTimeout((int) Duration.ofMinutes(30).toSeconds());
     /*
     Use our customized ObjectMapper. Notably, the spring-kafka default ObjectMapper writes dates as
     timestamps, which produces messages not compatible with JSON-B deserialization.

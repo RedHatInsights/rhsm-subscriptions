@@ -24,6 +24,7 @@ import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroDeserializerConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import java.time.Duration;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -66,7 +67,11 @@ public class KafkaConfigurator {
     producerConfig.put(
         ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
         bypassRegistry ? AvroSerializer.class : KafkaAvroSerializer.class);
-    return new DefaultKafkaProducerFactory<>(producerConfig);
+    DefaultKafkaProducerFactory<String, TaskMessage> defaultKafkaProducerFactory =
+        new DefaultKafkaProducerFactory<>(producerConfig);
+    // NOTE this should be configurable
+    defaultKafkaProducerFactory.setPhysicalCloseTimeout((int) Duration.ofMinutes(30).toSeconds());
+    return defaultKafkaProducerFactory;
   }
 
   public ConsumerFactory<String, TaskMessage> defaultConsumerFactory(
