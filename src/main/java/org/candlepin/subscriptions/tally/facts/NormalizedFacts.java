@@ -50,7 +50,6 @@ public class NormalizedFacts {
   /** Subscription-manager ID (UUID) of the hypervisor for this system */
   private String hypervisorUuid;
 
-  private boolean isVirtual;
   private boolean isHypervisor;
   private boolean isHypervisorUnknown;
   private boolean isMarketplace;
@@ -81,6 +80,10 @@ public class NormalizedFacts {
    */
   public void setHypervisorUuid(String hypervisorUuid) {
     this.hypervisorUuid = hypervisorUuid;
+  }
+
+  public boolean isVirtual() {
+    return getHardwareType() == HostHardwareType.VIRTUALIZED;
   }
 
   public Map<String, Object> toInventoryPayload() {

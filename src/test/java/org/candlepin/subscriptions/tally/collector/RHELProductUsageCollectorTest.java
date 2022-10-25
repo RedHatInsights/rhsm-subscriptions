@@ -104,6 +104,7 @@ class RHELProductUsageCollectorTest {
   @Test
   void hypervisorReportedWithNoSocketsDefaultToZero() {
     NormalizedFacts facts = new NormalizedFacts();
+    facts.setHardwareType(HostHardwareType.PHYSICAL);
     facts.setHypervisor(true);
 
     UsageCalculation calc = new UsageCalculation(createUsageKey());

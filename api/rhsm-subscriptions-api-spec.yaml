@@ -1128,7 +1128,6 @@ components:
         meta:
           type: object
           required:
-            - account_number
             - org_id
           properties:
             account_number:
@@ -1145,7 +1144,6 @@ components:
             account:
               type: object
               required:
-                - account_number
                 - opt_in_type
                 - created
                 - last_updated
