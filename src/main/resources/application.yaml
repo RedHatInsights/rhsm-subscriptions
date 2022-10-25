@@ -23,6 +23,8 @@ spring:
       - rh-marketplace
       - kafka-queue
   kafka:
+    properties:
+      request.timeout.ms: 1800000 # set request timeout to 30 minutes
     bootstrap-servers: ${KAFKA_BOOTSTRAP_HOST}:${KAFKA_BOOTSTRAP_PORT}
     listener:
       # The number of threads that will be processing messages (should match
