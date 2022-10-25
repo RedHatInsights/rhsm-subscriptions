@@ -100,7 +100,8 @@ public class CombiningRollupSnapshotStrategy {
         affectedProductTags);
 
     List<TallySnapshot> finestGranularitySnapshots =
-        produceFinestGranularitySnapshots(totalExistingSnapshots, accountCalcs, finestGranularity);
+        produceFinestGranularitySnapshots(
+            totalExistingSnapshots, accountCalcs, finestGranularity, affectedRange);
 
     Map<TallySnapshotNaturalKey, List<TallySnapshot>> groupedFinestSnapshots =
         finestGranularitySnapshots.stream()
@@ -270,12 +271,14 @@ public class CombiningRollupSnapshotStrategy {
   private List<TallySnapshot> produceFinestGranularitySnapshots(
       Map<TallySnapshotNaturalKey, TallySnapshot> existingSnapshotLookup,
       Map<OffsetDateTime, AccountUsageCalculation> accountCalcs,
-      Granularity granularity) {
+      Granularity granularity,
+      DateRange dateRange) {
 
     List<TallySnapshot> toSave = new ArrayList<>();
 
     Map<TallySnapshotNaturalKey, TallySnapshot> affectedSnaps =
         existingSnapshotLookup.entrySet().stream()
+            .filter(s -> snapshotAffectedByRange(s.getValue(), dateRange))
             .filter(existing -> existing.getValue().getGranularity() == granularity)
             .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
 
@@ -319,6 +322,14 @@ public class CombiningRollupSnapshotStrategy {
               toSave.add(tallyRepo.save(snapshot));
             });
     return toSave;
+  }
+
+  private boolean snapshotAffectedByRange(TallySnapshot tallySnapshot, DateRange dateRange) {
+    // NOTE: we can't simply use contains here, because contains includes a match on the end date
+    // e.g. a tally in range 9:00 - 10:00 should match records w/ date 9:00, but not w/ date 10:00
+    return (dateRange.getStartDate().isEqual(tallySnapshot.getSnapshotDate())
+            || dateRange.getStartDate().isBefore(tallySnapshot.getSnapshotDate()))
+        && dateRange.getEndDate().isAfter(tallySnapshot.getSnapshotDate());
   }
 
   private List<TallySnapshot> produceRollups(
