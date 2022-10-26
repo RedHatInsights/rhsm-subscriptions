@@ -367,7 +367,9 @@ public class InventoryController {
   private List<HbiNetworkInterface> populateNICs(Map<String, String> rhsmFacts) {
     var nicSet = new ArrayList<HbiNetworkInterface>();
     for (Map.Entry<String, String> entry : rhsmFacts.entrySet()) {
-      if (entry.getKey().startsWith(MAC_PREFIX) && entry.getKey().endsWith(MAC_SUFFIX)) {
+      if (entry.getKey().startsWith(MAC_PREFIX)
+          && entry.getKey().endsWith(MAC_SUFFIX)
+          && macValidator.isValid(entry.getValue(), null)) {
         String[] nicsName = entry.getKey().split(PERIOD_REGEX);
         var mac = entry.getValue();
         var networkInterface = new HbiNetworkInterface();

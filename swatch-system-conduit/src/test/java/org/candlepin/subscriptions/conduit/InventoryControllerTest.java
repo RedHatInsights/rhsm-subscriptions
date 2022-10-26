@@ -418,7 +418,7 @@ class InventoryControllerTest {
     Consumer consumer = new Consumer();
     consumer.setUuid(uuid);
 
-    consumer.getFacts().put(factPrefix + "mac_address", "CO:FF:E0:OO:PP:D8");
+    consumer.getFacts().put(factPrefix + "mac_address", "C0:FF:E0:00:00:D8");
     consumer.getFacts().put(factPrefix + "ipv4_address_list", truncatedIpFact);
 
     ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
@@ -440,7 +440,7 @@ class InventoryControllerTest {
     Consumer consumer = new Consumer();
     consumer.setUuid(uuid);
 
-    consumer.getFacts().put(factPrefix + "mac_address", "CO:FF:E0:OO:PP:D8");
+    consumer.getFacts().put(factPrefix + "mac_address", "C0:FF:E0:00:00:D8");
     consumer.getFacts().put(factPrefix + "ipv6_address.global_list", truncatedIpFact);
     consumer.getFacts().put(factPrefix + "ipv6_address.link_list", truncatedIpFact2);
 
@@ -452,6 +452,31 @@ class InventoryControllerTest {
         Matchers.containsInAnyOrder(
             "fe80::2323:912a:177a:d8e6", "0088::99aa:bbcc:ddee:ff33", "::1"));
     assertEquals(3, nic.getIpv6Addresses().size());
+  }
+
+  @Test
+  void testBadMacIsIgnoredForNics() {
+    String factPrefix = "net.interface.";
+
+    String badMac = "0.0.0.0";
+    String goodMac = "33:33:ff:81:0f:75";
+    String ip = "192.168.0.1";
+    String uuid = UUID.randomUUID().toString();
+    Consumer consumer = new Consumer();
+    consumer.setUuid(uuid);
+
+    consumer.getFacts().put(factPrefix + "virbr0.mac_address", badMac);
+    consumer.getFacts().put(factPrefix + "virbr0.ipv4_address.global_list", ip);
+    consumer.getFacts().put(factPrefix + "virbr0.ipv4_address.link_list", ip);
+
+    consumer.getFacts().put(factPrefix + "virbr0.mac_address", goodMac);
+    consumer.getFacts().put(factPrefix + "virbr0.ipv4_address.global_list", ip);
+    consumer.getFacts().put(factPrefix + "virbr0.ipv4_address.link_list", ip);
+
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertEquals(uuid, conduitFacts.getSubscriptionManagerId());
+    var nic = conduitFacts.getNetworkInterfaces().get(0);
+    assertEquals(nic.getMacAddress(), goodMac);
   }
 
   @Test
@@ -762,7 +787,7 @@ class InventoryControllerTest {
     var expectedNIC1 = new HbiNetworkInterface();
     expectedNIC1.setName("virbr0");
     expectedNIC1.setIpv4Addresses(List.of("192.168.122.1", "ipv4ListTest"));
-    expectedNIC1.setMacAddress("CO:FF:E0:OO:PP:D8");
+    expectedNIC1.setMacAddress("C0:FF:E0:00:00:D8");
 
     var expectedNIC2 = new HbiNetworkInterface();
     expectedNIC2.setName("eth0");
@@ -780,7 +805,7 @@ class InventoryControllerTest {
     consumer
         .getFacts()
         .put("net.interface.virbr0.ipv4_address_list", "192.168.122.1, ipv4ListTest");
-    consumer.getFacts().put("net.interface.virbr0.mac_address", "CO:FF:E0:OO:PP:D8");
+    consumer.getFacts().put("net.interface.virbr0.mac_address", "C0:FF:E0:00:00:D8");
     consumer.getFacts().put("net.interface.eth0.ipv6_address.link", "fe80::f2de:f1ff:fe9e:ccdd");
     consumer.getFacts().put("net.interface.eth0.ipv6_address.global", "ipv6Test");
     consumer.getFacts().put("net.interface.eth0.mac_address", "CA:FE:D1:9E:CC:DD");
