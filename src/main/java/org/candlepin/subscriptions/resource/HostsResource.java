@@ -33,7 +33,6 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Host;
@@ -111,18 +110,13 @@ public class HostsResource implements HostsApi {
   }
 
   private final HostRepository repository;
-  private final AccountConfigRepository accountConfigRepo;
   private final PageLinkCreator pageLinkCreator;
   private final TagProfile tagProfile;
   @Context UriInfo uriInfo;
 
   public HostsResource(
-      HostRepository repository,
-      AccountConfigRepository accountConfigRepo,
-      PageLinkCreator pageLinkCreator,
-      TagProfile tagProfile) {
+      HostRepository repository, PageLinkCreator pageLinkCreator, TagProfile tagProfile) {
     this.repository = repository;
-    this.accountConfigRepo = accountConfigRepo;
     this.pageLinkCreator = pageLinkCreator;
     this.tagProfile = tagProfile;
   }
