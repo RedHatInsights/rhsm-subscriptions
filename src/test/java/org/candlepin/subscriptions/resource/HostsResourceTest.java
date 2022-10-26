@@ -83,7 +83,7 @@ class HostsResourceTest {
     when(repository.getTallyHostViews(
             any(), any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any()))
         .thenReturn(mockPage);
-    when(accountConfigRepo.findOrgByAccountNumber("account123456")).thenReturn("owner123456");
+    when(accountConfigRepo.findOrgByAccountNumber("owner123456")).thenReturn("owner123456");
     when(accountConfigRepo.existsByOrgId("owner123456")).thenReturn(true);
   }
 
@@ -105,7 +105,7 @@ class HostsResourceTest {
 
     verify(repository, only())
         .getTallyHostViews(
-            "account123456",
+            "owner123456",
             ProductId.RHEL.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
@@ -140,7 +140,7 @@ class HostsResourceTest {
 
     verify(repository, only())
         .getTallyHostViews(
-            "account123456",
+            "owner123456",
             ProductId.RHEL.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
@@ -174,7 +174,7 @@ class HostsResourceTest {
 
     verify(repository, only())
         .getTallyHostViews(
-            "account123456",
+            "owner123456",
             ProductId.RHEL.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
@@ -209,7 +209,7 @@ class HostsResourceTest {
 
     verify(repository, only())
         .getTallyHostViews(
-            "account123456",
+            "owner123456",
             ProductId.RHEL.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
@@ -244,7 +244,7 @@ class HostsResourceTest {
 
     verify(repository, only())
         .getTallyHostViews(
-            "account123456",
+            "owner123456",
             ProductId.RHEL.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
@@ -279,7 +279,7 @@ class HostsResourceTest {
 
     verify(repository, only())
         .getTallyHostViews(
-            "account123456",
+            "owner123456",
             ProductId.RHEL.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
@@ -308,7 +308,7 @@ class HostsResourceTest {
 
     verify(repository, only())
         .getTallyHostViews(
-            "account123456",
+            "owner123456",
             ProductId.RHEL.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
@@ -342,7 +342,7 @@ class HostsResourceTest {
         null);
     verify(repository, only())
         .getTallyHostViews(
-            "account123456",
+            "owner123456",
             ProductId.RHEL.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
@@ -371,7 +371,7 @@ class HostsResourceTest {
 
     verify(repository, only())
         .getTallyHostViews(
-            "account123456",
+            "owner123456",
             ProductId.RHEL.toString(),
             ServiceLevel._ANY,
             Usage._ANY,

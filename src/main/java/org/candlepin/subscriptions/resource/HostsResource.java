@@ -159,9 +159,7 @@ public class HostsResource implements HostsApi {
       minSockets = 1;
     }
 
-    String accountNumber = ResourceUtils.getAccountNumber();
-    // This should be removed as part of https://issues.redhat.com/browse/SWATCH-268
-    String orgId = accountConfigRepo.findOrgByAccountNumber(accountNumber);
+    String orgId = ResourceUtils.getOrgId();
 
     ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
     Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
@@ -217,7 +215,7 @@ public class HostsResource implements HostsApi {
       Pageable page = ResourceUtils.getPageable(offset, limit, sortValue);
       hosts =
           repository.getTallyHostViews(
-              accountNumber,
+              orgId,
               productId.toString(),
               sanitizedSla,
               sanitizedUsage,
@@ -265,9 +263,9 @@ public class HostsResource implements HostsApi {
   @ReportingAccessRequired
   public HypervisorGuestReport getHypervisorGuests(
       String hypervisorUuid, Integer offset, Integer limit) {
-    String accountNumber = ResourceUtils.getAccountNumber();
+    String orgId = ResourceUtils.getOrgId();
     Pageable page = ResourceUtils.getPageable(offset, limit);
-    Page<Host> guests = repository.getHostsByHypervisor(accountNumber, hypervisorUuid, page);
+    Page<Host> guests = repository.getHostsByHypervisor(orgId, hypervisorUuid, page);
     PageLinks links;
     if (offset != null || limit != null) {
       links = pageLinkCreator.getPaginationLinks(uriInfo, guests);
