@@ -176,10 +176,20 @@ public class BillableUsageProcessor {
             .build();
 
     if (isDryRun.isPresent() && Boolean.TRUE.equals(isDryRun.get())) {
-      log.info("[DRY RUN] Sending usage request to AWS: {}", request);
+      log.info(
+          "[DRY RUN] Sending usage request to AWS: {}, organization={}, account={}, product_id={}",
+          request,
+          billableUsage.getOrgId(),
+          billableUsage.getAccountNumber(),
+          billableUsage.getProductId());
       return;
     } else {
-      log.info("Sending usage request to AWS: {}", request);
+      log.info(
+          "Sending usage request to AWS: {}, organization={}, account={}, product_id={}",
+          request,
+          billableUsage.getOrgId(),
+          billableUsage.getAccountNumber(),
+          billableUsage.getProductId());
     }
 
     try {
@@ -191,10 +201,25 @@ public class BillableUsageProcessor {
           .results()
           .forEach(
               result -> {
-                if (result.status() != UsageRecordResultStatus.SUCCESS) {
-                  log.error("{}", result);
+                if (result.status() == UsageRecordResultStatus.CUSTOMER_NOT_SUBSCRIBED) {
+                  log.warn(
+                      "No subscription found for organization={}, account={}, product_id={}, result={}",
+                      billableUsage.getOrgId(),
+                      billableUsage.getAccountNumber(),
+                      billableUsage.getProductId(),
+                      result);
+                } else if (result.status() != UsageRecordResultStatus.SUCCESS) {
+                  log.warn(
+                      "{}, organization={}, account={}",
+                      result,
+                      billableUsage.getOrgId(),
+                      billableUsage.getAccountNumber());
                 } else {
-                  log.info("{}", result);
+                  log.info(
+                      "{}, organization={}, account={}",
+                      result,
+                      billableUsage.getOrgId(),
+                      billableUsage.getAccountNumber());
                   acceptedCounter.increment(response.results().size());
                 }
               });
