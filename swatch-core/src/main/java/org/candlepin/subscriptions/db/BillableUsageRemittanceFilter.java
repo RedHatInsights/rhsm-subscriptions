@@ -24,11 +24,19 @@ import java.time.OffsetDateTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Path;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK_;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity_;
+import org.springframework.data.jpa.domain.Specification;
 
 /**
  * A filter used to find {@link org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity}
@@ -38,7 +46,8 @@ import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity_;
 @Builder
 @Getter
 @Setter
-public class BillableUsageRemittanceFilter {
+public class BillableUsageRemittanceFilter extends BaseSpecification
+    implements Specification<BillableUsageRemittanceEntity> {
   private String productId;
   private String account;
   private String orgId;
@@ -48,7 +57,25 @@ public class BillableUsageRemittanceFilter {
   private OffsetDateTime beginning;
   private OffsetDateTime ending;
 
-  public List<SearchCriteria> getSearchCriteria() {
+  @Override
+  public Predicate toPredicate(
+      Root<BillableUsageRemittanceEntity> root, CriteriaQuery<?> query, CriteriaBuilder builder) {
+
+    Path<Object> embeddedKeyPath = root.get(BillableUsageRemittanceEntity_.KEY);
+    Set<String> keyAttributes = getAttributes(embeddedKeyPath);
+
+    return builder.and(
+        buildFilterCriteria().stream()
+            .map(
+                c -> {
+                  Path<?> path = keyAttributes.contains(c.getKey()) ? embeddedKeyPath : root;
+                  return mapCriteriaToPredicate(path, c, builder);
+                })
+            .filter(Objects::nonNull)
+            .toArray(Predicate[]::new));
+  }
+
+  private List<SearchCriteria> buildFilterCriteria() {
     List<SearchCriteria> criteria = new LinkedList<>();
 
     equalIfNotNull(criteria, BillableUsageRemittanceEntityPK_.ACCOUNT_NUMBER, this.account);

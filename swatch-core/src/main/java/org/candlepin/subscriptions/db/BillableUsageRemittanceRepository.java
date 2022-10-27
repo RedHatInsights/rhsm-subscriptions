@@ -35,9 +35,6 @@ public interface BillableUsageRemittanceRepository
   void deleteByOrgId(String orgId);
 
   default List<BillableUsageRemittanceEntity> filterBy(BillableUsageRemittanceFilter filter) {
-    BillableUsageRemittanceSpecification spec =
-        BillableUsageRemittanceSpecification.builder().criteria(filter.getSearchCriteria()).build();
-
-    return this.findAll(spec);
+    return this.findAll(filter);
   }
 }
