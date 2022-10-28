@@ -79,8 +79,8 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
       @Param("pageable") Pageable pageable);
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  void deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(
-      String accountNumber, Granularity granularity, OffsetDateTime cutoffDate);
+  void deleteAllByOwnerIdAndGranularityAndSnapshotDateBefore(
+      String orgId, Granularity granularity, OffsetDateTime cutoffDate);
 
   @Query(
       value =

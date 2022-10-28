@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.retention;
 
 import org.candlepin.subscriptions.exception.JobFailureException;
-import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,7 +46,7 @@ public class PurgeSnapshotsJob implements Runnable {
     try {
       retentionController.purgeSnapshots();
       log.info("Snapshot purge complete.");
-    } catch (AccountListSourceException e) {
+    } catch (Exception e) {
       throw new JobFailureException("Could not purge snapshots.", e);
     }
   }
