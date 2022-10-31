@@ -379,6 +379,7 @@ public class CapacityResource implements CapacityApi {
       Optional<ReportCategory> reportCategory) {
     int value = 0;
     boolean hasData = false;
+    boolean hasInfiniteQuantity = false;
 
     for (SubscriptionCapacity capacity : matches) {
       if (capacity.getBeginDate().isBefore(date) && capacity.getEndDate().isAfter(date)) {
@@ -388,10 +389,15 @@ public class CapacityResource implements CapacityApi {
         } else if (metricId.equals(MetricId.CORES)) {
           value += calculateCoresCapacity(reportCategory, capacity);
         }
+        hasInfiniteQuantity |= Optional.ofNullable(capacity.getHasUnlimitedUsage()).orElse(false);
       }
     }
 
-    return new CapacitySnapshotByMetricId().date(date).value(value).hasData(hasData);
+    return new CapacitySnapshotByMetricId()
+        .date(date)
+        .value(value)
+        .hasData(hasData)
+        .hasInfiniteQuantity(hasInfiniteQuantity);
   }
 
   private int calculateSocketsCapacity(

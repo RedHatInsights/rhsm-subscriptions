@@ -157,42 +157,46 @@ public class CustomizedSubscriptionCapacityRepositoryImpl
       Root<SubscriptionCapacity> capacity,
       MetricId metricId,
       ReportCategory reportCategory) {
+    Predicate metricPredicate = null;
     if (metricId.equals(MetricId.CORES)) {
       if (reportCategory != null) {
         switch (reportCategory) {
           case PHYSICAL:
-            predicates.add(cb.greaterThan(capacity.get("physicalCores"), 0));
+            metricPredicate = cb.greaterThan(capacity.get("physicalCores"), 0);
             break;
           case VIRTUAL:
-            predicates.add(cb.greaterThan(capacity.get("virtualCores"), 0));
+            metricPredicate = cb.greaterThan(capacity.get("virtualCores"), 0);
             break;
           default:
             break;
         }
       } else {
-        predicates.add(
+        metricPredicate =
             cb.or(
                 cb.greaterThan(capacity.get("physicalCores"), 0),
-                cb.greaterThan(capacity.get("virtualCores"), 0)));
+                cb.greaterThan(capacity.get("virtualCores"), 0));
       }
     } else if (metricId.equals(MetricId.SOCKETS)) {
       if (reportCategory != null) {
         switch (reportCategory) {
           case PHYSICAL:
-            predicates.add(cb.greaterThan(capacity.get("physicalSockets"), 0));
+            metricPredicate = cb.greaterThan(capacity.get("physicalSockets"), 0);
             break;
           case VIRTUAL:
-            predicates.add(cb.greaterThan(capacity.get("virtualSockets"), 0));
+            metricPredicate = cb.greaterThan(capacity.get("virtualSockets"), 0);
             break;
           default:
             break;
         }
       } else {
-        predicates.add(
+        metricPredicate =
             cb.or(
                 cb.greaterThan(capacity.get("physicalSockets"), 0),
-                cb.greaterThan(capacity.get("virtualSockets"), 0)));
+                cb.greaterThan(capacity.get("virtualSockets"), 0));
       }
+    }
+    if (metricPredicate != null) {
+      predicates.add(cb.or(metricPredicate, cb.isTrue(capacity.get("hasUnlimitedUsage"))));
     }
   }
 }
