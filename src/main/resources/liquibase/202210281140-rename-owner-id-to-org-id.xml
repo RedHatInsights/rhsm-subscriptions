@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202210281140-1"  author="kflahert">
+    <comment>Rename owner_id column to org_id in subscription table</comment>
+    <renameColumn  newColumnName="org_id"
+      oldColumnName="owner_id"
+      tableName="subscription"/>
+  </changeSet>
+
+  <changeSet id="202210281140-2"  author="kflahert">
+    <comment>Rename owner_id column to org_id in subscription_capacity table</comment>
+    <renameColumn  newColumnName="org_id"
+      oldColumnName="owner_id"
+      tableName="subscription_capacity"/>
+  </changeSet>
+
+  <changeSet id="202210281140-3"  author="kflahert">
+    <comment>Rename owner_id column to org_id in tally_snapshots table</comment>
+    <renameColumn  newColumnName="org_id"
+      oldColumnName="owner_id"
+      tableName="tally_snapshots"/>
+  </changeSet>
+
+</databaseChangeLog>
+  <!-- vim: set expandtab sts=4 sw=4 ai: -->

@@ -39,8 +39,8 @@ import org.springframework.transaction.annotation.Transactional;
 public interface CustomizedSubscriptionCapacityRepository {
 
   @Transactional
-  List<SubscriptionCapacity> findByOwnerAndProductId(
-      String ownerId,
+  List<SubscriptionCapacity> findByOrgIdAndProductId(
+      String orgId,
       String productId,
       ServiceLevel serviceLevel,
       Usage usage,
@@ -49,8 +49,8 @@ public interface CustomizedSubscriptionCapacityRepository {
 
   @Transactional
   @SuppressWarnings("java:S107")
-  List<SubscriptionCapacity> findByOwnerAndProductIdAndMetricId(
-      String ownerId,
+  List<SubscriptionCapacity> findByOrgIdAndProductIdAndMetricId(
+      String orgId,
       String productId,
       MetricId metricId,
       ReportCategory reportCategory,

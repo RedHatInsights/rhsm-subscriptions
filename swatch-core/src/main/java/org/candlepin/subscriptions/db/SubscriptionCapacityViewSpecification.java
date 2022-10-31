@@ -55,7 +55,7 @@ public class SubscriptionCapacityViewSpecification extends BaseSpecification
       Root<SubscriptionCapacityView> root, SearchCriteria criteria, CriteriaBuilder builder) {
 
     Path<?> expression = root;
-    if (SubscriptionCapacityKey_.OWNER_ID.equals(criteria.getKey())
+    if (SubscriptionCapacityKey_.ORG_ID.equals(criteria.getKey())
         || SubscriptionCapacityKey_.SUBSCRIPTION_ID.equals(criteria.getKey())
         || SubscriptionCapacityKey_.PRODUCT_ID.equals(criteria.getKey()))
       expression = root.get("key");

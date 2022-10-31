@@ -51,8 +51,8 @@ public class CustomizedSubscriptionCapacityRepositoryImpl
   }
 
   @Override
-  public List<SubscriptionCapacity> findByOwnerAndProductId(
-      String ownerId,
+  public List<SubscriptionCapacity> findByOrgIdAndProductId(
+      String orgId,
       String productId,
       ServiceLevel serviceLevel,
       Usage usage,
@@ -64,7 +64,7 @@ public class CustomizedSubscriptionCapacityRepositoryImpl
     Root<SubscriptionCapacity> capacity = cq.from(SubscriptionCapacity.class);
 
     List<Predicate> predicates = new ArrayList<>();
-    addBasePredicates(cb, capacity, predicates, ownerId, productId);
+    addBasePredicates(cb, capacity, predicates, orgId, productId);
     addServiceLevelPredicates(cb, capacity, predicates, serviceLevel);
     addUsagePredicates(cb, capacity, predicates, usage);
     addDatePredicates(cb, capacity, predicates, reportBegin, reportEnd);
@@ -75,8 +75,8 @@ public class CustomizedSubscriptionCapacityRepositoryImpl
   }
 
   @Override
-  public List<SubscriptionCapacity> findByOwnerAndProductIdAndMetricId(
-      String ownerId,
+  public List<SubscriptionCapacity> findByOrgIdAndProductIdAndMetricId(
+      String orgId,
       String productId,
       MetricId metricId,
       ReportCategory reportCategory,
@@ -91,7 +91,7 @@ public class CustomizedSubscriptionCapacityRepositoryImpl
 
     List<Predicate> predicates = new ArrayList<>();
 
-    addBasePredicates(cb, capacity, predicates, ownerId, productId);
+    addBasePredicates(cb, capacity, predicates, orgId, productId);
     addServiceLevelPredicates(cb, capacity, predicates, serviceLevel);
     addUsagePredicates(cb, capacity, predicates, usage);
     addDatePredicates(cb, capacity, predicates, reportBegin, reportEnd);
@@ -106,9 +106,9 @@ public class CustomizedSubscriptionCapacityRepositoryImpl
       CriteriaBuilder cb,
       Root<SubscriptionCapacity> capacity,
       List<Predicate> predicates,
-      String ownerId,
+      String orgId,
       String productId) {
-    predicates.add(cb.equal(capacity.get("key").get("ownerId"), ownerId));
+    predicates.add(cb.equal(capacity.get("key").get("orgId"), orgId));
     predicates.add(cb.equal(capacity.get("key").get("productId"), productId));
   }
 

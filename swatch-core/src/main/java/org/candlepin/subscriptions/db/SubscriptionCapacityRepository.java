@@ -31,10 +31,10 @@ public interface SubscriptionCapacityRepository
     extends JpaRepository<SubscriptionCapacity, SubscriptionCapacityKey>,
         CustomizedSubscriptionCapacityRepository {
 
-  List<SubscriptionCapacity> findByKeyOwnerIdAndKeySubscriptionIdIn(
-      String ownerId, List<String> subscriptionIds);
+  List<SubscriptionCapacity> findByKeyOrgIdAndKeySubscriptionIdIn(
+      String orgId, List<String> subscriptionIds);
 
-  Stream<SubscriptionCapacity> findByKeyOwnerId(String ownerId);
+  Stream<SubscriptionCapacity> findByKeyOrgId(String orgId);
 
-  void deleteByKeyOwnerId(String ownerId);
+  void deleteByKeyOrgId(String orgId);
 }

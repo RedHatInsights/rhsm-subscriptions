@@ -68,8 +68,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductId(
-            "ownerId", "product", ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductId(
+            "orgId", "product", ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
     assertEquals(1, found.size());
     SubscriptionCapacity capacity = found.get(0);
     assertEquals("account", capacity.getAccountNumber());
@@ -79,7 +79,7 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals(20, capacity.getVirtualSockets().intValue());
     assertEquals(8, capacity.getPhysicalCores().intValue());
     assertEquals(40, capacity.getVirtualCores().intValue());
-    assertEquals("ownerId", capacity.getOwnerId());
+    assertEquals("orgId", capacity.getOrgId());
     assertEquals(NOWISH.minusDays(1), capacity.getBeginDate());
     assertEquals(FAR_FUTURE.minusDays(1), capacity.getEndDate());
     assertFalse(capacity.getHasUnlimitedUsage());
@@ -93,8 +93,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductId(
-            "ownerId", "product", ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductId(
+            "orgId", "product", ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
     assertEquals(1, found.size());
     SubscriptionCapacity capacity = found.get(0);
     assertEquals("account", capacity.getAccountNumber());
@@ -104,7 +104,7 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals(20, capacity.getVirtualSockets().intValue());
     assertEquals(8, capacity.getPhysicalCores().intValue());
     assertEquals(40, capacity.getVirtualCores().intValue());
-    assertEquals("ownerId", capacity.getOwnerId());
+    assertEquals("orgId", capacity.getOrgId());
     assertEquals(NOWISH.minusDays(1), capacity.getBeginDate());
     assertEquals(FAR_FUTURE.plusDays(1), capacity.getEndDate());
     assertFalse(capacity.getHasUnlimitedUsage());
@@ -118,8 +118,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductId(
-            "ownerId", "product", ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductId(
+            "orgId", "product", ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
     assertEquals(1, found.size());
     SubscriptionCapacity capacity = found.get(0);
     assertEquals("account", capacity.getAccountNumber());
@@ -129,7 +129,7 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals(20, capacity.getVirtualSockets().intValue());
     assertEquals(8, capacity.getPhysicalCores().intValue());
     assertEquals(40, capacity.getVirtualCores().intValue());
-    assertEquals("ownerId", capacity.getOwnerId());
+    assertEquals("orgId", capacity.getOrgId());
     assertEquals(NOWISH.plusDays(1), capacity.getBeginDate());
     assertEquals(FAR_FUTURE.minusDays(1), capacity.getEndDate());
     assertFalse(capacity.getHasUnlimitedUsage());
@@ -143,8 +143,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductId(
-            "ownerId", "product", ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductId(
+            "orgId", "product", ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
     assertEquals(1, found.size());
     SubscriptionCapacity capacity = found.get(0);
     assertEquals("account", capacity.getAccountNumber());
@@ -154,7 +154,7 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals(20, capacity.getVirtualSockets().intValue());
     assertEquals(8, capacity.getPhysicalCores().intValue());
     assertEquals(40, capacity.getVirtualCores().intValue());
-    assertEquals("ownerId", capacity.getOwnerId());
+    assertEquals("orgId", capacity.getOrgId());
     assertEquals(NOWISH.plusDays(1), capacity.getBeginDate());
     assertEquals(FAR_FUTURE.plusDays(1), capacity.getEndDate());
     assertFalse(capacity.getHasUnlimitedUsage());
@@ -168,8 +168,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductId(
-            "ownerId", "product", ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductId(
+            "orgId", "product", ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
     assertEquals(0, found.size());
   }
 
@@ -181,8 +181,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductId(
-            "ownerId", "product", ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductId(
+            "orgId", "product", ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
     assertEquals(0, found.size());
   }
 
@@ -194,8 +194,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductId(
-            "ownerId", "product", ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductId(
+            "orgId", "product", ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
     assertEquals(1, found.size());
   }
 
@@ -206,8 +206,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductId(
-            "ownerId", "product", ServiceLevel.STANDARD, Usage._ANY, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductId(
+            "orgId", "product", ServiceLevel.STANDARD, Usage._ANY, NOWISH, FAR_FUTURE);
     assertEquals(0, found.size());
   }
 
@@ -218,8 +218,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductId(
-            "ownerId", "product", ServiceLevel._ANY, Usage.DEVELOPMENT_TEST, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductId(
+            "orgId", "product", ServiceLevel._ANY, Usage.DEVELOPMENT_TEST, NOWISH, FAR_FUTURE);
     assertEquals(0, found.size());
   }
 
@@ -230,8 +230,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductId(
-            "ownerId", "product", ServiceLevel.PREMIUM, Usage._ANY, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductId(
+            "orgId", "product", ServiceLevel.PREMIUM, Usage._ANY, NOWISH, FAR_FUTURE);
 
     assertEquals(1, found.size());
   }
@@ -243,8 +243,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductId(
-            "ownerId", "product", ServiceLevel._ANY, Usage.PRODUCTION, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductId(
+            "orgId", "product", ServiceLevel._ANY, Usage.PRODUCTION, NOWISH, FAR_FUTURE);
     assertEquals(1, found.size());
   }
 
@@ -263,8 +263,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductId(
-            "ownerId", "product", null, Usage.PRODUCTION, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductId(
+            "orgId", "product", null, Usage.PRODUCTION, NOWISH, FAR_FUTURE);
     assertEquals(3, found.size());
   }
 
@@ -283,8 +283,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductId(
-            "ownerId", "product", ServiceLevel.EMPTY, Usage.PRODUCTION, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductId(
+            "orgId", "product", ServiceLevel.EMPTY, Usage.PRODUCTION, NOWISH, FAR_FUTURE);
     assertEquals(1, found.size());
     assertEquals(ServiceLevel.EMPTY, found.get(0).getServiceLevel());
   }
@@ -304,8 +304,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductId(
-            "ownerId", "product", ServiceLevel._ANY, Usage.PRODUCTION, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductId(
+            "orgId", "product", ServiceLevel._ANY, Usage.PRODUCTION, NOWISH, FAR_FUTURE);
     assertEquals(3, found.size());
   }
 
@@ -324,8 +324,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductId(
-            "ownerId", "product", ServiceLevel._ANY, null, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductId(
+            "orgId", "product", ServiceLevel._ANY, null, NOWISH, FAR_FUTURE);
     assertEquals(3, found.size());
   }
 
@@ -344,8 +344,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductId(
-            "ownerId", "product", ServiceLevel._ANY, Usage.EMPTY, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductId(
+            "orgId", "product", ServiceLevel._ANY, Usage.EMPTY, NOWISH, FAR_FUTURE);
     assertEquals(1, found.size());
     assertEquals(Usage.EMPTY, found.get(0).getUsage());
   }
@@ -365,8 +365,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductId(
-            "ownerId", "product", ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductId(
+            "orgId", "product", ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
     assertEquals(3, found.size());
   }
 
@@ -378,8 +378,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId", "product", CORES, null, ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId", "product", CORES, null, ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
     assertEquals(1, found.size());
     SubscriptionCapacity capacity = found.get(0);
     assertEquals("account", capacity.getAccountNumber());
@@ -389,7 +389,7 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals(20, capacity.getVirtualSockets().intValue());
     assertEquals(8, capacity.getPhysicalCores().intValue());
     assertEquals(40, capacity.getVirtualCores().intValue());
-    assertEquals("ownerId", capacity.getOwnerId());
+    assertEquals("orgId", capacity.getOrgId());
     assertEquals(NOWISH.minusDays(1), capacity.getBeginDate());
     assertEquals(FAR_FUTURE.minusDays(1), capacity.getEndDate());
     assertFalse(capacity.getHasUnlimitedUsage());
@@ -403,8 +403,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId", "product", CORES, null, ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId", "product", CORES, null, ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
     assertEquals(1, found.size());
     SubscriptionCapacity capacity = found.get(0);
     assertEquals("account", capacity.getAccountNumber());
@@ -414,7 +414,7 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals(20, capacity.getVirtualSockets().intValue());
     assertEquals(8, capacity.getPhysicalCores().intValue());
     assertEquals(40, capacity.getVirtualCores().intValue());
-    assertEquals("ownerId", capacity.getOwnerId());
+    assertEquals("orgId", capacity.getOrgId());
     assertEquals(NOWISH.minusDays(1), capacity.getBeginDate());
     assertEquals(FAR_FUTURE.plusDays(1), capacity.getEndDate());
     assertFalse(capacity.getHasUnlimitedUsage());
@@ -428,8 +428,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId", "product", CORES, null, ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId", "product", CORES, null, ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
     assertEquals(1, found.size());
     SubscriptionCapacity capacity = found.get(0);
     assertEquals("account", capacity.getAccountNumber());
@@ -439,7 +439,7 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals(20, capacity.getVirtualSockets().intValue());
     assertEquals(8, capacity.getPhysicalCores().intValue());
     assertEquals(40, capacity.getVirtualCores().intValue());
-    assertEquals("ownerId", capacity.getOwnerId());
+    assertEquals("orgId", capacity.getOrgId());
     assertEquals(NOWISH.plusDays(1), capacity.getBeginDate());
     assertEquals(FAR_FUTURE.minusDays(1), capacity.getEndDate());
     assertFalse(capacity.getHasUnlimitedUsage());
@@ -453,8 +453,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId", "product", CORES, null, ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId", "product", CORES, null, ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
     assertEquals(1, found.size());
     SubscriptionCapacity capacity = found.get(0);
     assertEquals("account", capacity.getAccountNumber());
@@ -464,7 +464,7 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals(20, capacity.getVirtualSockets().intValue());
     assertEquals(8, capacity.getPhysicalCores().intValue());
     assertEquals(40, capacity.getVirtualCores().intValue());
-    assertEquals("ownerId", capacity.getOwnerId());
+    assertEquals("orgId", capacity.getOrgId());
     assertEquals(NOWISH.plusDays(1), capacity.getBeginDate());
     assertEquals(FAR_FUTURE.plusDays(1), capacity.getEndDate());
     assertFalse(capacity.getHasUnlimitedUsage());
@@ -478,8 +478,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId", "product", CORES, null, ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId", "product", CORES, null, ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
     assertEquals(0, found.size());
   }
 
@@ -491,8 +491,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId", "product", CORES, null, ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId", "product", CORES, null, ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
     assertEquals(0, found.size());
   }
 
@@ -504,8 +504,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId", "product", CORES, null, ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId", "product", CORES, null, ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
     assertEquals(1, found.size());
   }
 
@@ -516,15 +516,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId",
-            "product",
-            CORES,
-            null,
-            ServiceLevel.STANDARD,
-            Usage._ANY,
-            NOWISH,
-            FAR_FUTURE);
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId", "product", CORES, null, ServiceLevel.STANDARD, Usage._ANY, NOWISH, FAR_FUTURE);
     assertEquals(0, found.size());
   }
 
@@ -535,8 +528,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId",
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId",
             "product",
             CORES,
             null,
@@ -554,15 +547,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId",
-            "product",
-            CORES,
-            null,
-            ServiceLevel.PREMIUM,
-            Usage._ANY,
-            NOWISH,
-            FAR_FUTURE);
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId", "product", CORES, null, ServiceLevel.PREMIUM, Usage._ANY, NOWISH, FAR_FUTURE);
 
     assertEquals(1, found.size());
   }
@@ -574,8 +560,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId",
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId",
             "product",
             CORES,
             null,
@@ -601,8 +587,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId", "product", CORES, null, null, Usage.PRODUCTION, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId", "product", CORES, null, null, Usage.PRODUCTION, NOWISH, FAR_FUTURE);
     assertEquals(3, found.size());
   }
 
@@ -621,8 +607,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId",
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId",
             "product",
             CORES,
             null,
@@ -649,8 +635,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId",
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId",
             "product",
             CORES,
             null,
@@ -676,8 +662,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId", "product", CORES, null, ServiceLevel._ANY, null, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId", "product", CORES, null, ServiceLevel._ANY, null, NOWISH, FAR_FUTURE);
     assertEquals(3, found.size());
   }
 
@@ -696,8 +682,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId", "product", CORES, null, ServiceLevel._ANY, Usage.EMPTY, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId", "product", CORES, null, ServiceLevel._ANY, Usage.EMPTY, NOWISH, FAR_FUTURE);
     assertEquals(1, found.size());
     assertEquals(Usage.EMPTY, found.get(0).getUsage());
   }
@@ -717,8 +703,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId", "product", CORES, null, ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId", "product", CORES, null, ServiceLevel._ANY, Usage._ANY, NOWISH, FAR_FUTURE);
     assertEquals(3, found.size());
   }
 
@@ -736,8 +722,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId",
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId",
             "product",
             CORES,
             null,
@@ -768,8 +754,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId",
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId",
             "product",
             CORES,
             ReportCategory.VIRTUAL,
@@ -800,8 +786,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId",
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId",
             "product",
             CORES,
             ReportCategory.PHYSICAL,
@@ -828,8 +814,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId",
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId",
             "product",
             SOCKETS,
             null,
@@ -860,8 +846,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId",
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId",
             "product",
             SOCKETS,
             ReportCategory.VIRTUAL,
@@ -892,8 +878,8 @@ class SubscriptionCapacityRepositoryTest {
     repository.flush();
 
     List<SubscriptionCapacity> found =
-        repository.findByOwnerAndProductIdAndMetricId(
-            "ownerId",
+        repository.findByOrgIdAndProductIdAndMetricId(
+            "orgId",
             "product",
             SOCKETS,
             ReportCategory.PHYSICAL,
@@ -914,7 +900,7 @@ class SubscriptionCapacityRepositoryTest {
     capacity.setBeginDate(begin);
     capacity.setEndDate(end);
     capacity.setHasUnlimitedUsage(false);
-    capacity.setOwnerId("ownerId");
+    capacity.setOrgId("orgId");
     capacity.setPhysicalSockets(4);
     capacity.setVirtualSockets(20);
     capacity.setPhysicalCores(8);

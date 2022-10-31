@@ -61,10 +61,10 @@ public class OptInResource implements OptInApi {
   }
 
   private String validateOrgId() {
-    String ownerId = ResourceUtils.getOwnerId();
-    if (ownerId == null) {
+    String orgId = ResourceUtils.getOrgId();
+    if (orgId == null) {
       throw new BadRequestException("Must specify an org ID.");
     }
-    return ownerId;
+    return orgId;
   }
 }

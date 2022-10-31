@@ -332,7 +332,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
   private AccountUsageCalculation createAccountCalc(
       String account,
-      String owner,
+      String orgId,
       String product,
       int totalCores,
       int totalSockets,
@@ -351,7 +351,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
             });
 
     AccountUsageCalculation calc = new AccountUsageCalculation(account);
-    calc.setOwner(owner);
+    calc.setOrgId(orgId);
     calc.addCalculation(productCalc);
 
     return calc;

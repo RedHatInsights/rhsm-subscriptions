@@ -55,7 +55,7 @@ class SubscriptionCapacityViewRepositoryTest {
   static final String ACCOUNT_NUMBER = "account";
   static final String PRODUCT_ID = "123";
   static final String SUBSCRIPTION_ID = "123456";
-  static final String OWNER_ID = "ownerId";
+  static final String ORG_ID = "orgId";
 
   @Autowired private SubscriptionCapacityViewRepository repository;
 
@@ -77,14 +77,14 @@ class SubscriptionCapacityViewRepositoryTest {
     subscriptionRepository.saveAllAndFlush(
         List.of(
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 premium.getSku(),
                 premium.getSubscriptionId(),
                 premium.getBeginDate(),
                 premium.getEndDate()),
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 premium.getSku(),
                 anotherPremium.getSubscriptionId(),
@@ -104,9 +104,9 @@ class SubscriptionCapacityViewRepositoryTest {
             .criteria(
                 List.of(
                     SearchCriteria.builder()
-                        .key("ownerId")
+                        .key("orgId")
                         .operation(SearchOperation.EQUAL)
-                        .value(premium.getOwnerId())
+                        .value(premium.getOrgId())
                         .build(),
                     SearchCriteria.builder()
                         .key("productId")
@@ -150,14 +150,14 @@ class SubscriptionCapacityViewRepositoryTest {
     subscriptionRepository.saveAllAndFlush(
         List.of(
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 premium.getSku(),
                 premium.getSubscriptionId(),
                 premium.getBeginDate(),
                 premium.getEndDate()),
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 premium.getSku(),
                 standard.getSubscriptionId(),
@@ -202,21 +202,21 @@ class SubscriptionCapacityViewRepositoryTest {
     subscriptionRepository.saveAllAndFlush(
         List.of(
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 premium.getSku(),
                 premium.getSubscriptionId(),
                 premium.getBeginDate(),
                 premium.getEndDate()),
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 premium.getSku(),
                 any.getSubscriptionId(),
                 any.getBeginDate(),
                 any.getEndDate()),
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 premium.getSku(),
                 noSLA.getSubscriptionId(),
@@ -269,21 +269,21 @@ class SubscriptionCapacityViewRepositoryTest {
     subscriptionRepository.saveAllAndFlush(
         List.of(
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 premium.getSku(),
                 premium.getSubscriptionId(),
                 premium.getBeginDate(),
                 premium.getEndDate()),
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 premium.getSku(),
                 standard.getSubscriptionId(),
                 standard.getBeginDate(),
                 standard.getEndDate()),
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 premium.getSku(),
                 noSLA.getSubscriptionId(),
@@ -332,14 +332,14 @@ class SubscriptionCapacityViewRepositoryTest {
     subscriptionRepository.saveAllAndFlush(
         List.of(
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 premium.getSku(),
                 premium.getSubscriptionId(),
                 premium.getBeginDate(),
                 premium.getEndDate()),
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 premium.getSku(),
                 standard.getSubscriptionId(),
@@ -380,14 +380,14 @@ class SubscriptionCapacityViewRepositoryTest {
     subscriptionRepository.saveAllAndFlush(
         List.of(
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 premium.getSku(),
                 premium.getSubscriptionId(),
                 premium.getBeginDate(),
                 premium.getEndDate()),
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 premium.getSku(),
                 standard.getSubscriptionId(),
@@ -428,14 +428,14 @@ class SubscriptionCapacityViewRepositoryTest {
     subscriptionRepository.saveAllAndFlush(
         List.of(
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 premium.getSku(),
                 premium.getSubscriptionId(),
                 premium.getBeginDate(),
                 premium.getEndDate()),
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 standard.getSku(),
                 standard.getSubscriptionId(),
@@ -455,9 +455,9 @@ class SubscriptionCapacityViewRepositoryTest {
             .criteria(
                 List.of(
                     SearchCriteria.builder()
-                        .key("ownerId")
+                        .key("orgId")
                         .operation(SearchOperation.EQUAL)
-                        .value(premium.getOwnerId())
+                        .value(premium.getOrgId())
                         .build(),
                     SearchCriteria.builder()
                         .key("productId")
@@ -518,21 +518,21 @@ class SubscriptionCapacityViewRepositoryTest {
     subscriptionRepository.saveAllAndFlush(
         List.of(
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 sockets.getSku(),
                 sockets.getSubscriptionId(),
                 sockets.getBeginDate(),
                 sockets.getEndDate()),
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 cores.getSku(),
                 cores.getSubscriptionId(),
                 cores.getBeginDate(),
                 cores.getEndDate()),
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 socketsAndCores.getSku(),
                 socketsAndCores.getSubscriptionId(),
@@ -591,21 +591,21 @@ class SubscriptionCapacityViewRepositoryTest {
     subscriptionRepository.saveAllAndFlush(
         List.of(
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 sockets.getSku(),
                 sockets.getSubscriptionId(),
                 sockets.getBeginDate(),
                 sockets.getEndDate()),
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 cores.getSku(),
                 cores.getSubscriptionId(),
                 cores.getBeginDate(),
                 cores.getEndDate()),
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 socketsAndCores.getSku(),
                 socketsAndCores.getSubscriptionId(),
@@ -647,7 +647,7 @@ class SubscriptionCapacityViewRepositoryTest {
     subscriptionRepository.saveAllAndFlush(
         List.of(
             createSubscription(
-                OWNER_ID,
+                ORG_ID,
                 ACCOUNT_NUMBER,
                 standard.getSku(),
                 standard.getSubscriptionId(),
@@ -687,7 +687,7 @@ class SubscriptionCapacityViewRepositoryTest {
     capacity.setBeginDate(begin);
     capacity.setEndDate(end);
     capacity.setHasUnlimitedUsage(false);
-    capacity.setOwnerId(OWNER_ID);
+    capacity.setOrgId(ORG_ID);
     capacity.setPhysicalSockets(4);
     capacity.setVirtualSockets(20);
     capacity.setPhysicalCores(8);
@@ -727,7 +727,7 @@ class SubscriptionCapacityViewRepositoryTest {
     Subscription subscription = new Subscription();
     subscription.setBillingProviderId("bananas");
     subscription.setSubscriptionId(subId);
-    subscription.setOwnerId(orgId);
+    subscription.setOrgId(orgId);
     subscription.setAccountNumber(accountNumber);
     subscription.setQuantity(4L);
     subscription.setSku(sku);

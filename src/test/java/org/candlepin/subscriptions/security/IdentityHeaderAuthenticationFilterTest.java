@@ -155,7 +155,7 @@ class IdentityHeaderAuthenticationFilterTest {
     assertTrue(preAuthPrincipal instanceof InsightsUserPrincipal);
 
     InsightsUserPrincipal principal = (InsightsUserPrincipal) preAuthPrincipal;
-    assertEquals(expOrgId, principal.getOwnerId());
+    assertEquals(expOrgId, principal.getOrgId());
     assertEquals(expAccountNumber, principal.getAccountNumber());
   }
 }

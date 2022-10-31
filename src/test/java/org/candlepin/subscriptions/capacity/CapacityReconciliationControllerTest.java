@@ -99,7 +99,7 @@ class CapacityReconciliationControllerTest {
     when(allowlist.productIdMatches(any())).thenReturn(true);
     when(capacityProductExtractor.getProducts(offering)).thenReturn(new HashSet<>(productIds));
     when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(offering));
-    when(subscriptionCapacityRepository.findByKeyOwnerIdAndKeySubscriptionIdIn(
+    when(subscriptionCapacityRepository.findByKeyOrgIdAndKeySubscriptionIdIn(
             "123", Collections.singletonList("456")))
         .thenReturn(Collections.emptyList());
 
@@ -129,7 +129,7 @@ class CapacityReconciliationControllerTest {
                 .key(
                     SubscriptionCapacityKey.builder()
                         .subscriptionId("456")
-                        .ownerId("123")
+                        .orgId("123")
                         .productId("RHEL")
                         .build())
                 .physicalCores(10)
@@ -139,7 +139,7 @@ class CapacityReconciliationControllerTest {
                 .key(
                     SubscriptionCapacityKey.builder()
                         .subscriptionId("456")
-                        .ownerId("123")
+                        .orgId("123")
                         .productId("RHEL Workstation")
                         .build())
                 .physicalCores(10)
@@ -156,7 +156,7 @@ class CapacityReconciliationControllerTest {
     when(allowlist.productIdMatches(any())).thenReturn(true);
     when(capacityProductExtractor.getProducts(updatedOffering)).thenReturn(productIds);
     when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(updatedOffering));
-    when(subscriptionCapacityRepository.findByKeyOwnerIdAndKeySubscriptionIdIn(
+    when(subscriptionCapacityRepository.findByKeyOrgIdAndKeySubscriptionIdIn(
             "123", Collections.singletonList("456")))
         .thenReturn(existingCapacities);
 
@@ -178,7 +178,7 @@ class CapacityReconciliationControllerTest {
                 .key(
                     SubscriptionCapacityKey.builder()
                         .subscriptionId("456")
-                        .ownerId("123")
+                        .orgId("123")
                         .productId("RHEL")
                         .build())
                 .physicalCores(10)
@@ -188,7 +188,7 @@ class CapacityReconciliationControllerTest {
                 .key(
                     SubscriptionCapacityKey.builder()
                         .subscriptionId("456")
-                        .ownerId("123")
+                        .orgId("123")
                         .productId("RHEL Workstation")
                         .build())
                 .physicalCores(10)
@@ -199,7 +199,7 @@ class CapacityReconciliationControllerTest {
     when(capacityProductExtractor.getProducts(offering))
         .thenReturn(Set.of("RHEL", "RHEL Workstation"));
     when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(offering));
-    when(subscriptionCapacityRepository.findByKeyOwnerIdAndKeySubscriptionIdIn(
+    when(subscriptionCapacityRepository.findByKeyOrgIdAndKeySubscriptionIdIn(
             "123", Collections.singletonList("456")))
         .thenReturn(existingCapacities);
 
@@ -219,7 +219,7 @@ class CapacityReconciliationControllerTest {
     when(allowlist.productIdMatches(any())).thenReturn(false);
     when(capacityProductExtractor.getProducts(offering)).thenReturn(Set.of("RHEL1", "RHEL2"));
     when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(offering));
-    when(subscriptionCapacityRepository.findByKeyOwnerIdAndKeySubscriptionIdIn(
+    when(subscriptionCapacityRepository.findByKeyOrgIdAndKeySubscriptionIdIn(
             "123", Collections.singletonList("456")))
         .thenReturn(Collections.emptyList());
 
@@ -243,7 +243,7 @@ class CapacityReconciliationControllerTest {
                 .key(
                     SubscriptionCapacityKey.builder()
                         .subscriptionId("456")
-                        .ownerId("123")
+                        .orgId("123")
                         .productId("STALE RHEL")
                         .build())
                 .physicalCores(10)
@@ -253,7 +253,7 @@ class CapacityReconciliationControllerTest {
                 .key(
                     SubscriptionCapacityKey.builder()
                         .subscriptionId("456")
-                        .ownerId("123")
+                        .orgId("123")
                         .productId("STALE RHEL Workstation")
                         .build())
                 .physicalCores(10)
@@ -263,7 +263,7 @@ class CapacityReconciliationControllerTest {
     when(allowlist.productIdMatches(any())).thenReturn(true);
     when(capacityProductExtractor.getProducts(offering)).thenReturn(productIds);
     when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(offering));
-    when(subscriptionCapacityRepository.findByKeyOwnerIdAndKeySubscriptionIdIn(
+    when(subscriptionCapacityRepository.findByKeyOrgIdAndKeySubscriptionIdIn(
             "123", Collections.singletonList("456")))
         .thenReturn(staleCapacities);
 
@@ -309,7 +309,7 @@ class CapacityReconciliationControllerTest {
   private Subscription createSubscription(String subId, int quantity) {
 
     return Subscription.builder()
-        .ownerId("123")
+        .orgId("123")
         .subscriptionId(subId)
         .quantity(quantity)
         .startDate(NOW)

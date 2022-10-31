@@ -34,7 +34,7 @@ public interface SubscriptionCapacityViewRepository
         JpaSpecificationExecutor<SubscriptionCapacityView> {
 
   default List<SubscriptionCapacityView> findAllBy(
-      String ownerId,
+      String orgId,
       String productId,
       ServiceLevel serviceLevel,
       Usage usage,
@@ -46,17 +46,17 @@ public interface SubscriptionCapacityViewRepository
         SubscriptionCapacityViewSpecification.builder()
             .criteria(
                 buildSearchCriteria(
-                    ownerId, productId, serviceLevel, usage, reportStart, reportEnd, uom))
+                    orgId, productId, serviceLevel, usage, reportStart, reportEnd, uom))
             .build());
   }
 
-  private List<SearchCriteria> defaultSearchCriteria(String ownerId, String productId) {
+  private List<SearchCriteria> defaultSearchCriteria(String orgId, String productId) {
     return new ArrayList<>(
         List.of(
             SearchCriteria.builder()
-                .key(SubscriptionCapacityKey_.ownerId.getName())
+                .key(SubscriptionCapacityKey_.orgId.getName())
                 .operation(SearchOperation.EQUAL)
-                .value(ownerId)
+                .value(orgId)
                 .build(),
             SearchCriteria.builder()
                 .key(SubscriptionCapacityKey_.productId.getName())
@@ -111,7 +111,7 @@ public interface SubscriptionCapacityViewRepository
   }
 
   private List<SearchCriteria> buildSearchCriteria(
-      String ownerId,
+      String orgId,
       String productId,
       ServiceLevel serviceLevel,
       Usage usage,
@@ -119,7 +119,7 @@ public interface SubscriptionCapacityViewRepository
       OffsetDateTime reportEnd,
       Uom uom) {
 
-    List<SearchCriteria> searchCriteria = defaultSearchCriteria(ownerId, productId);
+    List<SearchCriteria> searchCriteria = defaultSearchCriteria(orgId, productId);
     if (Uom.CORES.equals(uom)) searchCriteria.add(searchCriteriaMatchingUomOfCores());
     if (Uom.SOCKETS.equals(uom)) searchCriteria.add(searchCriteriaMatchingUomOfSockets());
     if (Objects.nonNull(serviceLevel) && !serviceLevel.equals(ServiceLevel._ANY))

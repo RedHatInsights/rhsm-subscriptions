@@ -67,8 +67,7 @@ public class SnapshotSummaryProducer {
                 // from the snapshot when they are mapped to a summary.
                 .map(
                     snapshot ->
-                        summaryMapper.mapSnapshots(
-                            account, snapshot.getOwnerId(), List.of(snapshot)))
+                        summaryMapper.mapSnapshots(account, snapshot.getOrgId(), List.of(snapshot)))
                 .forEach(
                     summary -> {
                       if (validateTallySummary(summary)) {

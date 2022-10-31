@@ -31,7 +31,7 @@ import org.candlepin.subscriptions.json.Measurement;
 public class AccountUsageCalculation {
 
   private String account;
-  private String owner;
+  private String orgId;
   private Map<UsageCalculation.Key, UsageCalculation> calculations;
   private Set<String> products;
 
@@ -54,12 +54,12 @@ public class AccountUsageCalculation {
     return account;
   }
 
-  public String getOwner() {
-    return owner;
+  public String getOrgId() {
+    return orgId;
   }
 
-  public void setOwner(String owner) {
-    this.owner = owner;
+  public void setOrgId(String orgId) {
+    this.orgId = orgId;
   }
 
   public void addCalculation(UsageCalculation calc) {
@@ -104,7 +104,7 @@ public class AccountUsageCalculation {
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
-    builder.append(String.format("[Account: %s, Owner: %s, Calculations: [", account, owner));
+    builder.append(String.format("[Account: %s, OrgId: %s, Calculations: [", account, orgId));
     for (UsageCalculation calc : this.calculations.values()) {
       builder.append(calc);
     }

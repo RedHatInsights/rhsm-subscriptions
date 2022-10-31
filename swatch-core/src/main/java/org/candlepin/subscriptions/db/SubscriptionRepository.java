@@ -56,13 +56,13 @@ public interface SubscriptionRepository
 
   Page<Subscription> findBySku(String sku, Pageable pageable);
 
-  Stream<Subscription> findByOwnerId(String ownerId);
+  Stream<Subscription> findByOrgId(String orgId);
 
-  List<Subscription> findByOwnerIdAndEndDateAfter(String ownerId, OffsetDateTime date);
+  List<Subscription> findByOrgIdAndEndDateAfter(String orgId, OffsetDateTime date);
 
   void deleteBySubscriptionId(String subscriptionId);
 
-  void deleteByOwnerId(String ownerId);
+  void deleteByOrgId(String orgId);
 
   default List<Subscription> findByCriteria(ReportCriteria reportCriteria, Sort sort) {
     List<SearchCriteria> searchCriteria = new ArrayList<>();
@@ -135,7 +135,7 @@ public interface SubscriptionRepository
 
   private SearchCriteria searchCriteriaMatchingOrgId(String orgId) {
     return SearchCriteria.builder()
-        .key(Subscription_.OWNER_ID)
+        .key(Subscription_.ORG_ID)
         .operation(SearchOperation.EQUAL)
         .value(orgId)
         .build();

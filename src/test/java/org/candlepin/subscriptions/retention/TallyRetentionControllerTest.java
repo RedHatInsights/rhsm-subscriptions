@@ -57,16 +57,16 @@ class TallyRetentionControllerTest {
   void retentionControllerShouldRemoveSnapshotsForGranularitiesConfigured() throws Exception {
     OffsetDateTime cutoff = OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
     when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(cutoff);
-    controller.cleanStaleSnapshotsForOwnerId("123456");
+    controller.cleanStaleSnapshotsForOrgId("123456");
     verify(repository)
-        .deleteAllByOwnerIdAndGranularityAndSnapshotDateBefore("123456", Granularity.DAILY, cutoff);
+        .deleteAllByOrgIdAndGranularityAndSnapshotDateBefore("123456", Granularity.DAILY, cutoff);
     verifyNoMoreInteractions(repository);
   }
 
   @Test
   void retentionControllerShouldIgnoreGranularityWithoutCutoff() throws Exception {
     when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(null);
-    controller.cleanStaleSnapshotsForOwnerId("123456");
+    controller.cleanStaleSnapshotsForOrgId("123456");
     verifyNoInteractions(repository);
   }
 
@@ -81,7 +81,7 @@ class TallyRetentionControllerTest {
     controller.purgeSnapshots();
 
     verify(repository, times(4))
-        .deleteAllByOwnerIdAndGranularityAndSnapshotDateBefore(
+        .deleteAllByOrgIdAndGranularityAndSnapshotDateBefore(
             anyString(), eq(Granularity.DAILY), eq(cutoff));
   }
 }

@@ -79,7 +79,7 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
       @Param("pageable") Pageable pageable);
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  void deleteAllByOwnerIdAndGranularityAndSnapshotDateBefore(
+  void deleteAllByOrgIdAndGranularityAndSnapshotDateBefore(
       String orgId, Granularity granularity, OffsetDateTime cutoffDate);
 
   @Query(
@@ -103,7 +103,7 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
       OffsetDateTime beginning,
       OffsetDateTime ending);
 
-  void deleteByOwnerId(String ownerId);
+  void deleteByOrgId(String orgId);
 
   @SuppressWarnings("java:S107") // repository method has a lot of params, deal with it
   @Query(
