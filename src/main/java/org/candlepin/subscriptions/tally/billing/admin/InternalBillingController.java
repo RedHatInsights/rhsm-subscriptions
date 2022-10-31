@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.billing.admin.api.model.MonthlyRemittance;
+import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
 import org.springframework.stereotype.Component;
@@ -38,43 +39,31 @@ public class InternalBillingController {
     this.remittanceRepository = remittanceRepository;
   }
 
-  public List<MonthlyRemittance> process(
-      String accountNumber, String productId, String orgId, String metricId) {
-    if (accountNumber == null && orgId == null) {
+  public List<MonthlyRemittance> process(BillableUsageRemittanceFilter filter) {
+    if (filter.getAccount() == null && filter.getOrgId() == null) {
       log.debug("Must provide either accountNumber or orgId in query");
       return Collections.emptyList();
     }
     MonthlyRemittance emptyRemittance =
         new MonthlyRemittance()
-            .accountNumber(accountNumber)
-            .orgId(orgId)
-            .productId(productId)
-            .metricId(metricId)
+            .accountNumber(filter.getAccount())
+            .orgId(filter.getOrgId())
+            .productId(filter.getProductId())
+            .metricId(filter.getMetricId())
+            .billingProvider(filter.getBillingProvider())
+            .billingAccountId(filter.getBillingAccountId())
             .remittedValue(0.0);
-    var remittances = findUsageRemittance(accountNumber, productId, metricId, orgId);
+    var remittances = remittanceRepository.filterBy(filter);
     List<MonthlyRemittance> accountRemittanceList = transformUsageToMonthlyRemittance(remittances);
     if (accountRemittanceList.isEmpty()) {
       log.debug("This Account Remittance could not be found.");
       return List.of(emptyRemittance);
     }
     log.debug(
-        "Found {} matches for Account Number: {}", accountRemittanceList.size(), accountNumber);
+        "Found {} matches for Account Number: {}",
+        accountRemittanceList.size(),
+        filter.getAccount());
     return accountRemittanceList;
-  }
-
-  private List<BillableUsageRemittanceEntity> findUsageRemittance(
-      String accountNumber, String productId, String metricId, String orgId) {
-    if (orgId != null) {
-      if (metricId == null) {
-        return remittanceRepository.findAllRemittancesByOrgId(orgId, productId);
-      }
-      return remittanceRepository.findAllByOrgIdAndKey_ProductIdAndKey_MetricId(
-          orgId, productId, metricId);
-    } else if (metricId == null) {
-      return remittanceRepository.findAllRemittancesByAccountNumber(accountNumber, productId);
-    }
-    return remittanceRepository.findAllByKey_AccountNumberAndKey_ProductIdAndKey_MetricId(
-        accountNumber, productId, metricId);
   }
 
   private List<MonthlyRemittance> transformUsageToMonthlyRemittance(
@@ -91,6 +80,8 @@ public class InternalBillingController {
               .orgId(entity.getOrgId())
               .productId(entity.getKey().getProductId())
               .metricId(entity.getKey().getMetricId())
+              .billingProvider(entity.getKey().getBillingProvider())
+              .billingAccountId(entity.getKey().getBillingAccountId())
               .remittedValue(entity.getRemittedValue())
               .remittanceDate(entity.getRemittanceDate())
               .accumulationPeriod(entity.getKey().getAccumulationPeriod());

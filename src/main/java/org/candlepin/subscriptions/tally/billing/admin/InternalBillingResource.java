@@ -20,9 +20,13 @@
  */
 package org.candlepin.subscriptions.tally.billing.admin;
 
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
+import javax.ws.rs.BadRequestException;
 import org.candlepin.subscriptions.billing.admin.api.InternalApi;
 import org.candlepin.subscriptions.billing.admin.api.model.MonthlyRemittance;
+import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
 import org.springframework.stereotype.Component;
 
 /** This resource is for exposing administrator REST endpoints for Remittance. */
@@ -35,9 +39,36 @@ public class InternalBillingResource implements InternalApi {
     this.billingController = billingController;
   }
 
-  @Override
   public List<MonthlyRemittance> getRemittances(
-      String productId, String accountNumber, String orgId, String metricId) {
-    return billingController.process(accountNumber, productId, orgId, metricId);
+      String productId,
+      String accountNumber,
+      String orgId,
+      String metricId,
+      String billingProvider,
+      String billingAccountId,
+      OffsetDateTime beginning,
+      OffsetDateTime ending) {
+
+    if (Objects.isNull(accountNumber) && Objects.isNull(orgId)) {
+      throw new BadRequestException(
+          "Must provide either 'accountNumber' or 'orgId' query parameters.");
+    }
+
+    if (Objects.nonNull(beginning) && Objects.nonNull(ending) && beginning.isAfter(ending)) {
+      throw new BadRequestException("Query parameter 'beginning' must be before 'ending'.");
+    }
+
+    BillableUsageRemittanceFilter filter =
+        BillableUsageRemittanceFilter.builder()
+            .account(accountNumber)
+            .orgId(orgId)
+            .productId(productId)
+            .metricId(metricId)
+            .billingProvider(billingProvider)
+            .billingAccountId(billingAccountId)
+            .beginning(beginning)
+            .ending(ending)
+            .build();
+    return billingController.process(filter);
   }
 }
