@@ -63,18 +63,22 @@ class TallySnapshotRepositoryTest {
   @Test
   void testSave() {
     TallySnapshot t =
-        createUnpersisted("Hello", "World", Granularity.DAILY, 2, 3, 4, OffsetDateTime.now());
+        createUnpersisted(
+            "orgHello", "Hello", "World", Granularity.DAILY, 2, 3, 4, OffsetDateTime.now());
     TallySnapshot saved = repository.saveAndFlush(t);
     assertNotNull(saved.getId());
   }
 
   @SuppressWarnings("linelength")
   @Test
-  void findByAccountNumberAndProductIdAndGranularityAndServiceLevelAndUsage() {
-    TallySnapshot t1 = createUnpersisted("Hello", "World", Granularity.DAILY, 2, 3, 4, NOWISH);
-    TallySnapshot t2 = createUnpersisted("Bugs", "Bunny", Granularity.DAILY, 9999, 999, 99, NOWISH);
+  void findByOrgIdAndProductIdAndGranularityAndServiceLevelAndUsage() {
+    TallySnapshot t1 =
+        createUnpersisted("orgHello", "Hello", "World", Granularity.DAILY, 2, 3, 4, NOWISH);
+    TallySnapshot t2 =
+        createUnpersisted("orgBugs", "Bugs", "Bunny", Granularity.DAILY, 9999, 999, 99, NOWISH);
     TallySnapshot t3 =
         createUnpersisted(
+            "orgBugs",
             "Bugs",
             "Bunny",
             Granularity.DAILY,
@@ -93,7 +97,7 @@ class TallySnapshotRepositoryTest {
     List<TallySnapshot> found =
         repository
             .findSnapshot(
-                "Bugs",
+                "orgBugs",
                 "Bunny",
                 Granularity.DAILY,
                 ServiceLevel.STANDARD,
@@ -107,9 +111,9 @@ class TallySnapshotRepositoryTest {
             .collect(Collectors.toList());
     assertEquals(1, found.size());
     TallySnapshot snapshot = found.get(0);
+    assertEquals("orgBugs", snapshot.getOrgId());
     assertEquals("Bugs", snapshot.getAccountNumber());
     assertEquals("Bunny", snapshot.getProductId());
-    assertEquals("N/A", snapshot.getOrgId());
     assertEquals(Usage.PRODUCTION, snapshot.getUsage());
     assertEquals(NOWISH, found.get(0).getSnapshotDate());
 
@@ -122,6 +126,7 @@ class TallySnapshotRepositoryTest {
   void testFindByEmptyServiceLevelAndUsage() {
     TallySnapshot t1 =
         createUnpersisted(
+            "orgA1",
             "A1",
             "P1",
             Granularity.DAILY,
@@ -140,7 +145,7 @@ class TallySnapshotRepositoryTest {
     List<TallySnapshot> found =
         repository
             .findSnapshot(
-                "A1",
+                "orgA1",
                 "P1",
                 Granularity.DAILY,
                 ServiceLevel.EMPTY,
@@ -154,9 +159,8 @@ class TallySnapshotRepositoryTest {
             .collect(Collectors.toList());
     assertEquals(1, found.size());
     TallySnapshot snapshot = found.get(0);
+    assertEquals("orgA1", snapshot.getOrgId());
     assertEquals("A1", snapshot.getAccountNumber());
-    assertEquals("P1", snapshot.getProductId());
-    assertEquals("N/A", snapshot.getOrgId());
     assertEquals(NOWISH, found.get(0).getSnapshotDate());
 
     int cores = snapshot.getMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES).intValue();
@@ -169,19 +173,20 @@ class TallySnapshotRepositoryTest {
     String product2 = "Product2";
     // Will not be found - out of date range.
     TallySnapshot t1 =
-        createUnpersisted("Account1", product1, Granularity.DAILY, 2, 3, 4, LONG_AGO);
+        createUnpersisted("Org1", "Account1", product1, Granularity.DAILY, 2, 3, 4, LONG_AGO);
     // Will be found.
     TallySnapshot t2 =
-        createUnpersisted("Account1", product1, Granularity.DAILY, 9, 10, 11, NOWISH);
+        createUnpersisted("Org1", "Account1", product1, Granularity.DAILY, 9, 10, 11, NOWISH);
     // Will not be found, incorrect granularity
     TallySnapshot t3 =
-        createUnpersisted("Account1", product2, Granularity.WEEKLY, 19, 20, 21, NOWISH);
+        createUnpersisted("Org1", "Account1", product2, Granularity.WEEKLY, 19, 20, 21, NOWISH);
     // Will not be in result - Account not in query
     TallySnapshot t4 =
-        createUnpersisted("Account2", product1, Granularity.DAILY, 99, 100, 101, FAR_FUTURE);
+        createUnpersisted(
+            "Org1", "Account2", product1, Granularity.DAILY, 99, 100, 101, FAR_FUTURE);
     // Will not be found - incorrect granularity
     TallySnapshot t5 =
-        createUnpersisted("Account1", product1, Granularity.WEEKLY, 20, 22, 23, NOWISH);
+        createUnpersisted("Org1", "Account1", product1, Granularity.WEEKLY, 20, 22, 23, NOWISH);
 
     repository.saveAll(Arrays.asList(t1, t2, t3, t4, t5));
     repository.flush();
@@ -211,7 +216,8 @@ class TallySnapshotRepositoryTest {
   @Test
   void testPersistsHardwareMeasurements() {
     TallySnapshot snap =
-        createUnpersisted("Acme Inc.", "rocket-skates", Granularity.DAILY, 1, 2, 3, NOWISH);
+        createUnpersisted(
+            "OrgAcme", "Acme Inc.", "rocket-skates", Granularity.DAILY, 1, 2, 3, NOWISH);
 
     snap.setMeasurement(HardwareMeasurementType.PHYSICAL, Uom.CORES, 9.0);
     snap.setMeasurement(HardwareMeasurementType.PHYSICAL, Uom.SOCKETS, 8.0);
@@ -244,6 +250,7 @@ class TallySnapshotRepositoryTest {
   }
 
   private TallySnapshot createUnpersisted(
+      String orgId,
       String account,
       String product,
       Granularity granularity,
@@ -252,6 +259,7 @@ class TallySnapshotRepositoryTest {
       int instances,
       OffsetDateTime date) {
     return createUnpersisted(
+        orgId,
         account,
         product,
         granularity,
@@ -266,6 +274,7 @@ class TallySnapshotRepositoryTest {
   }
 
   private TallySnapshot createUnpersisted(
+      String orgId,
       String account,
       String product,
       Granularity granularity,
@@ -278,9 +287,9 @@ class TallySnapshotRepositoryTest {
       int instances,
       OffsetDateTime date) {
     TallySnapshot tally = new TallySnapshot();
+    tally.setOrgId(orgId);
     tally.setAccountNumber(account);
     tally.setProductId(product);
-    tally.setOrgId("N/A");
     tally.setGranularity(granularity);
     tally.setServiceLevel(serviceLevel);
     tally.setUsage(usage);
@@ -418,7 +427,8 @@ class TallySnapshotRepositoryTest {
     List<TallySnapshot> snaps = new ArrayList<>();
     OffsetDateTime next = start;
     for (int i = 1; i <= numOfSnaps; i++) {
-      TallySnapshot snap = createUnpersisted(accoutNumber, product, granularity, 1, 2, 3, next);
+      TallySnapshot snap =
+          createUnpersisted("orgSeq", accoutNumber, product, granularity, 1, 2, 3, next);
       snap.setMeasurement(HardwareMeasurementType.PHYSICAL, Uom.CORES, 1.0);
       snap.setMeasurement(measurementType, measurementUom, measurementValue);
       snaps.add(snap);

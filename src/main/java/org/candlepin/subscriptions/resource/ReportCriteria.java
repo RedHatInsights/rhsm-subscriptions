@@ -33,7 +33,7 @@ import org.springframework.data.domain.Pageable;
 @Data
 @Builder
 public class ReportCriteria {
-  private String accountNumber;
+  private String orgId;
   private String productId;
   private String metricId;
   private ReportCategory reportCategory;
