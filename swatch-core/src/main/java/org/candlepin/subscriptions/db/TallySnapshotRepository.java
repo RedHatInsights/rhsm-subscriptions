@@ -47,7 +47,7 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
   @Query(
       value =
           "SELECT distinct t FROM TallySnapshot t left join fetch t.tallyMeasurements where "
-              + "t.accountNumber = :accountNumber and "
+              + "t.orgId = :orgId and "
               + "t.productId = :productId and "
               + "t.granularity = :granularity  and "
               + "t.serviceLevel = :serviceLevel and "
@@ -58,7 +58,7 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
               + "order by t.snapshotDate",
       countQuery =
           "SELECT count(t) FROM TallySnapshot t where "
-              + "t.accountNumber = :accountNumber and "
+              + "t.orgId = :orgId and "
               + "t.productId = :productId and "
               + "t.granularity = :granularity  and "
               + "t.serviceLevel = :serviceLevel and "
@@ -67,7 +67,7 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
               + "t.billingAccountId = :billingAcctId and "
               + "t.snapshotDate between :beginning and :ending ")
   Page<TallySnapshot> findSnapshot( // NOSONAR
-      @Param("accountNumber") String accountNumber,
+      @Param("orgId") String orgId,
       @Param("productId") String productId,
       @Param("granularity") Granularity granularity,
       @Param("serviceLevel") ServiceLevel serviceLevel,
