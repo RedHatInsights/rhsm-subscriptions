@@ -763,7 +763,7 @@ class InventoryAccountUsageCollectorTest {
       int sockets,
       int instances) {
     assertEquals(account, calc.getAccount());
-    assertEquals(owner, calc.getOwner());
+    assertEquals(owner, calc.getOrgId());
     assertTrue(
         calc.containsCalculation(
             createUsageKey(product, serviceLevel, usage, billingProvider, billingAccountId)));
@@ -788,7 +788,7 @@ class InventoryAccountUsageCollectorTest {
       int physicalSockets,
       int physicalInstances) {
     assertEquals(account, calc.getAccount());
-    assertEquals(owner, calc.getOwner());
+    assertEquals(owner, calc.getOrgId());
     assertTrue(calc.containsCalculation(createUsageKey(product)));
 
     UsageCalculation prodCalc = calc.getCalculation(createUsageKey(product));
@@ -805,7 +805,7 @@ class InventoryAccountUsageCollectorTest {
       int hypSockets,
       int hypInstances) {
     assertEquals(account, calc.getAccount());
-    assertEquals(owner, calc.getOwner());
+    assertEquals(owner, calc.getOrgId());
     assertTrue(calc.containsCalculation(createUsageKey(product)));
 
     UsageCalculation prodCalc = calc.getCalculation(createUsageKey(product));

@@ -95,7 +95,7 @@ public class CapacityReconciliationController {
     Collection<SubscriptionCapacity> newCapacities = mapSubscriptionToCapacities(subscription);
     reconcileSubscriptionCapacities(
         newCapacities,
-        subscription.getOwnerId(),
+        subscription.getOrgId(),
         subscription.getSubscriptionId(),
         subscription.getSku());
   }
@@ -136,15 +136,14 @@ public class CapacityReconciliationController {
 
   private void reconcileSubscriptionCapacities(
       Collection<SubscriptionCapacity> newCapacities,
-      String ownerId,
+      String orgId,
       String subscriptionId,
       String sku) {
 
     Collection<SubscriptionCapacity> toSave = new ArrayList<>();
     Map<SubscriptionCapacityKey, SubscriptionCapacity> existingCapacityMap =
         subscriptionCapacityRepository
-            .findByKeyOwnerIdAndKeySubscriptionIdIn(
-                ownerId, Collections.singletonList(subscriptionId))
+            .findByKeyOrgIdAndKeySubscriptionIdIn(orgId, Collections.singletonList(subscriptionId))
             .stream()
             .collect(Collectors.toMap(SubscriptionCapacity::getKey, Function.identity()));
 

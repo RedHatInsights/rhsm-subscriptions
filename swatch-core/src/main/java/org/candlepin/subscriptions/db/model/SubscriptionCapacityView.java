@@ -35,7 +35,7 @@ import org.hibernate.annotations.Subselect;
 @Subselect(
     "SELECT "
         + "sc.subscription_id,\n"
-        + "sc.owner_id, \n"
+        + "sc.org_id, \n"
         + "sc.product_id, \n"
         + "sc.sku, \n"
         + "sc.sla, \n"

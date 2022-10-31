@@ -351,10 +351,10 @@ class SubscriptionSyncControllerTest {
     var subList = Arrays.asList(dto1, dto2);
     var subDaoList = Arrays.asList(convertDto(dto1), convertDto(dto2));
     when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(subList);
-    when(subscriptionRepository.findByOwnerIdAndEndDateAfter(eq("123"), any()))
+    when(subscriptionRepository.findByOrgIdAndEndDateAfter(eq("123"), any()))
         .thenReturn(subDaoList);
     subscriptionSyncController.forceSyncSubscriptionsForOrg("123", false);
-    verify(subscriptionRepository).findByOwnerIdAndEndDateAfter(eq("123"), any());
+    verify(subscriptionRepository).findByOrgIdAndEndDateAfter(eq("123"), any());
     verify(subscriptionRepository, never()).findActiveSubscription(any());
   }
 
@@ -666,7 +666,7 @@ class SubscriptionSyncControllerTest {
   private Subscription createSubscription(String orgId, String sku, String subId) {
     final Subscription subscription = new Subscription();
     subscription.setSubscriptionId(subId);
-    subscription.setOwnerId(orgId);
+    subscription.setOrgId(orgId);
     subscription.setQuantity(4L);
     subscription.setSku(sku);
     subscription.setStartDate(NOW);
@@ -704,7 +704,7 @@ class SubscriptionSyncControllerTest {
     return org.candlepin.subscriptions.db.model.Subscription.builder()
         .subscriptionId(String.valueOf(subscription.getId()))
         .sku(SubscriptionDtoUtil.extractSku(subscription))
-        .ownerId(subscription.getWebCustomerId().toString())
+        .orgId(subscription.getWebCustomerId().toString())
         .accountNumber(String.valueOf(subscription.getOracleAccountNumber()))
         .quantity(subscription.getQuantity())
         .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))

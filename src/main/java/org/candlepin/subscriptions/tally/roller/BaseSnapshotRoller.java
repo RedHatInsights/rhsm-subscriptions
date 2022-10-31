@@ -75,7 +75,7 @@ public abstract class BaseSnapshotRoller {
       String account, Collection<AccountUsageCalculation> accountCalcs);
 
   protected TallySnapshot createSnapshotFromProductUsageCalculation(
-      String account, String owner, UsageCalculation productCalc, Granularity granularity) {
+      String account, String orgId, UsageCalculation productCalc, Granularity granularity) {
     TallySnapshot snapshot = new TallySnapshot();
     snapshot.setProductId(productCalc.getProductId());
     snapshot.setServiceLevel(productCalc.getSla());
@@ -83,7 +83,7 @@ public abstract class BaseSnapshotRoller {
     snapshot.setBillingProvider(productCalc.getBillingProvider());
     snapshot.setBillingAccountId(productCalc.getBillingAccountId());
     snapshot.setGranularity(granularity);
-    snapshot.setOwnerId(owner);
+    snapshot.setOrgId(orgId);
     snapshot.setAccountNumber(account);
     snapshot.setSnapshotDate(getSnapshotDate(granularity));
 
@@ -167,7 +167,7 @@ public abstract class BaseSnapshotRoller {
             snap =
                 createSnapshotFromProductUsageCalculation(
                     accountCalc.getAccount(),
-                    accountCalc.getOwner(),
+                    accountCalc.getOrgId(),
                     productCalc,
                     targetGranularity);
             snaps.add(snap);

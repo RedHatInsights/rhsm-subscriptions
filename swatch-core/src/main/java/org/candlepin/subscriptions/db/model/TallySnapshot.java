@@ -73,8 +73,8 @@ public class TallySnapshot implements Serializable {
   @Column(name = "product_id")
   private String productId;
 
-  @Column(name = "owner_id")
-  private String ownerId;
+  @Column(name = "org_id")
+  private String orgId;
 
   @Column(name = "account_number")
   private String accountNumber;
@@ -313,7 +313,7 @@ public class TallySnapshot implements Serializable {
     TallySnapshot that = (TallySnapshot) o;
     return Objects.equals(snapshotDate, that.snapshotDate)
         && Objects.equals(productId, that.productId)
-        && Objects.equals(ownerId, that.ownerId)
+        && Objects.equals(orgId, that.orgId)
         && Objects.equals(accountNumber, that.accountNumber)
         && serviceLevel == that.serviceLevel
         && usage == that.usage
@@ -327,7 +327,7 @@ public class TallySnapshot implements Serializable {
     return Objects.hash(
         snapshotDate,
         productId,
-        ownerId,
+        orgId,
         accountNumber,
         serviceLevel,
         usage,

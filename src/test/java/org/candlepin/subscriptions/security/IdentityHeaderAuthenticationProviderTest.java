@@ -60,7 +60,7 @@ class IdentityHeaderAuthenticationProviderTest {
     Authentication auth = token(null, "account");
     AuthenticationException e =
         assertThrows(AuthenticationException.class, () -> manager.authenticate(auth));
-    assertEquals("x-rh-identity contains no owner ID for the principal", e.getCause().getMessage());
+    assertEquals("x-rh-identity contains no org ID for the principal", e.getCause().getMessage());
   }
 
   @Test

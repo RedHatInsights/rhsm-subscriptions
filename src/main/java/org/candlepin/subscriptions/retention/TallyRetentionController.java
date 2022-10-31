@@ -61,17 +61,17 @@ public class TallyRetentionController {
   @Transactional
   public void purgeSnapshots() {
     try (Stream<String> orgList = accountConfigRepository.findSyncEnabledOrgs()) {
-      orgList.forEach(this::cleanStaleSnapshotsForOwnerId);
+      orgList.forEach(this::cleanStaleSnapshotsForOrgId);
     }
   }
 
-  public void cleanStaleSnapshotsForOwnerId(String orgId) {
+  public void cleanStaleSnapshotsForOrgId(String orgId) {
     for (Granularity granularity : Granularity.values()) {
       OffsetDateTime cutoffDate = policy.getCutoffDate(granularity);
       if (cutoffDate == null) {
         continue;
       }
-      tallySnapshotRepository.deleteAllByOwnerIdAndGranularityAndSnapshotDateBefore(
+      tallySnapshotRepository.deleteAllByOrgIdAndGranularityAndSnapshotDateBefore(
           orgId, granularity, cutoffDate);
     }
   }

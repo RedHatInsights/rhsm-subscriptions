@@ -92,12 +92,12 @@ public class SubscriptionCapacity implements Serializable {
     key.setSubscriptionId(subscriptionId);
   }
 
-  public String getOwnerId() {
-    return key.getOwnerId();
+  public String getOrgId() {
+    return key.getOrgId();
   }
 
-  public void setOwnerId(String ownerId) {
-    key.setOwnerId(ownerId);
+  public void setOrgId(String orgId) {
+    key.setOrgId(orgId);
   }
 
   public Boolean getHasUnlimitedUsage() {
@@ -110,7 +110,7 @@ public class SubscriptionCapacity implements Serializable {
         .key(
             SubscriptionCapacityKey.builder()
                 .subscriptionId(subscription.getSubscriptionId())
-                .ownerId(subscription.getOwnerId())
+                .orgId(subscription.getOrgId())
                 .productId(product)
                 .build())
         .accountNumber(subscription.getAccountNumber())

@@ -62,14 +62,14 @@ public class ResourceUtils {
   }
 
   /**
-   * Get the owner ID of the authenticated user.
+   * Get the org ID of the authenticated user.
    *
-   * @return ownerId as a String
+   * @return orgId as a String
    */
-  public static String getOwnerId() {
+  public static String getOrgId() {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
-    return principal.getOwnerId();
+    return principal.getOrgId();
   }
 
   /**

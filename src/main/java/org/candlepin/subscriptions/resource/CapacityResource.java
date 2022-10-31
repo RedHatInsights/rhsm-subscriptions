@@ -108,10 +108,10 @@ public class CapacityResource implements CapacityApi {
     }
 
     Granularity granularityValue = Granularity.fromString(granularityType.toString());
-    String ownerId = ResourceUtils.getOwnerId();
+    String orgId = ResourceUtils.getOrgId();
     List<CapacitySnapshot> capacities =
         getCapacities(
-            ownerId,
+            orgId,
             productId,
             sanitizedServiceLevel,
             sanitizedUsage,
@@ -177,10 +177,10 @@ public class CapacityResource implements CapacityApi {
     }
 
     Granularity granularityValue = Granularity.fromString(granularityType.toString());
-    String ownerId = ResourceUtils.getOwnerId();
+    String orgId = ResourceUtils.getOrgId();
     List<CapacitySnapshotByMetricId> capacities =
         getCapacitiesByMetricId(
-            ownerId,
+            orgId,
             productId,
             metricId,
             reportCategory,
@@ -225,7 +225,7 @@ public class CapacityResource implements CapacityApi {
   }
 
   protected List<CapacitySnapshot> getCapacities(
-      String ownerId,
+      String orgId,
       ProductId productId,
       ServiceLevel sla,
       Usage usage,
@@ -245,8 +245,8 @@ public class CapacityResource implements CapacityApi {
 
     List<SubscriptionCapacity> matches;
     matches =
-        repository.findByOwnerAndProductId(
-            ownerId, productId.toString(), sla, usage, reportBegin, reportEnd);
+        repository.findByOrgIdAndProductId(
+            orgId, productId.toString(), sla, usage, reportBegin, reportEnd);
 
     SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
 
@@ -267,7 +267,7 @@ public class CapacityResource implements CapacityApi {
 
   @SuppressWarnings("java:S107")
   protected List<CapacitySnapshotByMetricId> getCapacitiesByMetricId(
-      String ownerId,
+      String orgId,
       ProductId productId,
       MetricId metricId,
       ReportCategory reportCategory,
@@ -289,8 +289,8 @@ public class CapacityResource implements CapacityApi {
 
     List<SubscriptionCapacity> matches;
     matches =
-        repository.findByOwnerAndProductIdAndMetricId(
-            ownerId,
+        repository.findByOrgIdAndProductIdAndMetricId(
+            orgId,
             productId.toString(),
             metricId,
             reportCategory,

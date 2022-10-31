@@ -98,13 +98,13 @@ public class SubscriptionTableController {
 
     log.info(
         "Finding all subscription capacities for "
-            + "owner={}, "
+            + "orgId={}, "
             + "productId={}, "
             + "Service Level={}, "
             + "Usage={} "
             + "between={} and {}"
             + "and uom={}",
-        getOwnerId(),
+        getOrgId(),
         productId,
         sanitizedServiceLevel,
         sanitizedUsage,
@@ -113,7 +113,7 @@ public class SubscriptionTableController {
         uom);
     List<SubscriptionCapacityView> capacities =
         subscriptionCapacityViewRepository.findAllBy(
-            getOwnerId(),
+            getOrgId(),
             productId.toString(),
             sanitizedServiceLevel,
             sanitizedUsage,
@@ -198,7 +198,7 @@ public class SubscriptionTableController {
     var subscriptions =
         subscriptionRepository.findByCriteria(
             ReportCriteria.builder()
-                .orgId(getOwnerId())
+                .orgId(getOrgId())
                 .productNames(productNames)
                 .serviceLevel(serviceLevel)
                 .usage(usage)

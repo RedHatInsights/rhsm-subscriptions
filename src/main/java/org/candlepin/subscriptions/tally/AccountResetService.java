@@ -66,9 +66,9 @@ public class AccountResetService {
     accountServiceInventoryRepository.deleteByOrgId(orgId);
     hostRepo.deleteByOrgId(orgId);
     eventRecordRepo.deleteByOrgId(orgId);
-    tallySnapshotRepository.deleteByOwnerId(orgId);
-    subscriptionRepository.deleteByOwnerId(orgId);
-    subscriptionCapacityRepository.deleteByKeyOwnerId(orgId);
+    tallySnapshotRepository.deleteByOrgId(orgId);
+    subscriptionRepository.deleteByOrgId(orgId);
+    subscriptionCapacityRepository.deleteByKeyOrgId(orgId);
     remittanceRepository.deleteByOrgId(orgId);
   }
 }

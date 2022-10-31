@@ -85,5 +85,6 @@
     <include file="liquibase/202210101553-make-account-config-org-id-nullable.xml"/>
     <include file="liquibase/202210101642-drop-unused-opt-in-flags.xml"/>
     <include file="liquibase/202210211001-set-account-services-org-id.xml"/>
+    <include file="liquibase/202210281140-rename-owner-id-to-org-id.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

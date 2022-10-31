@@ -218,7 +218,7 @@ class SnapshotSummaryProducerTest {
     measurements.put(new TallyMeasurementKey(HardwareMeasurementType.TOTAL, uom), val);
     return TallySnapshot.builder()
         .accountNumber(account)
-        .ownerId(orgId)
+        .orgId(orgId)
         .productId(productId)
         .snapshotDate(OffsetDateTime.now())
         .tallyMeasurements(measurements)

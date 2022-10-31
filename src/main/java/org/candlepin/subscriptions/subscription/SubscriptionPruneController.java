@@ -79,7 +79,7 @@ public class SubscriptionPruneController {
 
   @Transactional
   public void pruneUnlistedSubscriptions(String orgId) {
-    Stream<Subscription> subscriptions = subscriptionRepository.findByOwnerId(orgId);
+    Stream<Subscription> subscriptions = subscriptionRepository.findByOrgId(orgId);
     subscriptions.forEach(
         subscription -> {
           if (!productAllowlist.productIdMatches(subscription.getSku())) {
@@ -92,7 +92,7 @@ public class SubscriptionPruneController {
           }
         });
     Stream<org.candlepin.subscriptions.db.model.SubscriptionCapacity> capacityRecords =
-        subscriptionCapacityRepository.findByKeyOwnerId(orgId);
+        subscriptionCapacityRepository.findByKeyOrgId(orgId);
     capacityRecords.forEach(
         capacityRecord -> {
           if (!productAllowlist.productIdMatches(capacityRecord.getSku())) {

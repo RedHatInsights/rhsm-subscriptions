@@ -58,7 +58,7 @@ public class InsightsUserPrincipal implements RhIdentity.Identity {
 
   private Internal internal = new Internal();
 
-  public String getOwnerId() {
+  public String getOrgId() {
     return internal.getOrgId();
   }
 
@@ -79,7 +79,7 @@ public class InsightsUserPrincipal implements RhIdentity.Identity {
   }
 
   public String toString() {
-    return String.format("[Account: %s, Owner: %s]", accountNumber, getOwnerId());
+    return String.format("[Account: %s, OrgId: %s]", accountNumber, getOrgId());
   }
 
   @Override
@@ -91,12 +91,12 @@ public class InsightsUserPrincipal implements RhIdentity.Identity {
       return false;
     }
     InsightsUserPrincipal principal = (InsightsUserPrincipal) o;
-    return Objects.equals(getOwnerId(), principal.getOwnerId())
+    return Objects.equals(getOrgId(), principal.getOrgId())
         && Objects.equals(getAccountNumber(), principal.getAccountNumber());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getOwnerId(), getAccountNumber());
+    return Objects.hash(getOrgId(), getAccountNumber());
   }
 }

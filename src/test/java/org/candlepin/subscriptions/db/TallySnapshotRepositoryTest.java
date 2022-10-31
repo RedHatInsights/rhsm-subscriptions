@@ -109,7 +109,7 @@ class TallySnapshotRepositoryTest {
     TallySnapshot snapshot = found.get(0);
     assertEquals("Bugs", snapshot.getAccountNumber());
     assertEquals("Bunny", snapshot.getProductId());
-    assertEquals("N/A", snapshot.getOwnerId());
+    assertEquals("N/A", snapshot.getOrgId());
     assertEquals(Usage.PRODUCTION, snapshot.getUsage());
     assertEquals(NOWISH, found.get(0).getSnapshotDate());
 
@@ -156,7 +156,7 @@ class TallySnapshotRepositoryTest {
     TallySnapshot snapshot = found.get(0);
     assertEquals("A1", snapshot.getAccountNumber());
     assertEquals("P1", snapshot.getProductId());
-    assertEquals("N/A", snapshot.getOwnerId());
+    assertEquals("N/A", snapshot.getOrgId());
     assertEquals(NOWISH, found.get(0).getSnapshotDate());
 
     int cores = snapshot.getMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES).intValue();
@@ -280,7 +280,7 @@ class TallySnapshotRepositoryTest {
     TallySnapshot tally = new TallySnapshot();
     tally.setAccountNumber(account);
     tally.setProductId(product);
-    tally.setOwnerId("N/A");
+    tally.setOrgId("N/A");
     tally.setGranularity(granularity);
     tally.setServiceLevel(serviceLevel);
     tally.setUsage(usage);

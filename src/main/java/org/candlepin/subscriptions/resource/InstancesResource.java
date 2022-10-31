@@ -111,7 +111,7 @@ public class InstancesResource implements InstancesApi {
     int minCores = 0;
     int minSockets = 0;
 
-    String orgId = ResourceUtils.getOwnerId();
+    String orgId = ResourceUtils.getOrgId();
     ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
     Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
     BillingProvider sanitizedBillingProvider =
