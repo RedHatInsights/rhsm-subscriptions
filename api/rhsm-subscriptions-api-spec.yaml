@@ -849,7 +849,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/InstanceResponse'
   /subscriptions/products/{product_id}:
-    description: "Operations for total capacity by SKU for all of the owner's active subscriptions for given Swatch product ID."
+    description: "Operations for total capacity by SKU for all of the org's active subscriptions for given Swatch product ID."
     parameters:
       - name: product_id
         in: path
@@ -870,7 +870,7 @@ paths:
           minimum: 1
         description: "The numbers of items to return"
     get:
-      summary: "Returns the total capacity by SKU for all of the owner's active subscriptions for given Swatch product ID."
+      summary: "Returns the total capacity by SKU for all of the org's active subscriptions for given Swatch product ID."
       operationId: getSkuCapacityReport
       parameters:
         - name: sla

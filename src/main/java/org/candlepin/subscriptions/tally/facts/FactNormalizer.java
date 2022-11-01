@@ -284,7 +284,7 @@ public class FactNormalizer {
 
       // Check for cores and sockets. If not included, default to 0.
 
-      normalizedFacts.setOwner(hostFacts.getOrgId());
+      normalizedFacts.setOrgId(hostFacts.getOrgId());
       handleRole(normalizedFacts, hostFacts.getSyspurposeRole());
       handleSla(normalizedFacts, hostFacts, hostFacts.getSyspurposeSla());
       handleUsage(normalizedFacts, hostFacts, hostFacts.getSyspurposeUsage());
@@ -306,7 +306,7 @@ public class FactNormalizer {
     if (usage != null && effectiveUsage == Usage.EMPTY && log.isDebugEnabled()) {
 
       log.debug(
-          "Owner {} host {} has unsupported value for Usage: {}",
+          "OrgId {} host {} has unsupported value for Usage: {}",
           hostFacts.getOrgId(),
           hostFacts.getSubscriptionManagerId(),
           usage);
@@ -322,7 +322,7 @@ public class FactNormalizer {
     if (sla != null && effectiveSla == ServiceLevel.EMPTY && log.isDebugEnabled()) {
 
       log.debug(
-          "Owner {} host {} has unsupported value for SLA: {}",
+          "OrgId {} host {} has unsupported value for SLA: {}",
           hostFacts.getOrgId(),
           hostFacts.getSubscriptionManagerId(),
           sla);

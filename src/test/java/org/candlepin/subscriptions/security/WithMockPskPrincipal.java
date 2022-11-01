@@ -25,8 +25,8 @@ import java.lang.annotation.RetentionPolicy;
 import org.springframework.security.test.context.support.WithSecurityContext;
 
 /**
- * Creates a mock Red Hat principal for testing, with account$value and owner$value as account
- * number and owner ID.
+ * Creates a mock Red Hat principal for testing, with account$value and orgId$value as account
+ * number and org ID.
  *
  * <p>Defaults to granting ROLE_OPT_IN, but can be overridden.
  */

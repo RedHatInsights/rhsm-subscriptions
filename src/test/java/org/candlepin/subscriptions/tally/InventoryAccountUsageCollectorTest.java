@@ -448,7 +448,7 @@ class InventoryAccountUsageCollectorTest {
             IllegalStateException.class, () -> collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID));
 
     String expectedMessage =
-        String.format("Attempt to set a different owner for an account: %s:%s", "Owner1", "Owner2");
+        String.format("Attempt to set a different org for an account: %s:%s", "Owner1", "Owner2");
     assertEquals(expectedMessage, e.getMessage());
   }
 
