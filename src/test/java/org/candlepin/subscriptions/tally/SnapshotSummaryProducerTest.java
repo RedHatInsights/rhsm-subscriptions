@@ -79,7 +79,7 @@ class SnapshotSummaryProducerTest {
   void testProduceSummary() {
     Map<String, List<TallySnapshot>> updateMap = new HashMap<>();
     updateMap.put(
-        "a1",
+        "org1",
         List.of(
             buildSnapshot(
                 "a1",
@@ -92,7 +92,7 @@ class SnapshotSummaryProducerTest {
                 Uom.CORES,
                 20.4)));
     updateMap.put(
-        "a2",
+        "org2",
         List.of(
             buildSnapshot(
                 "a2",

@@ -73,17 +73,17 @@ public class MaxSeenSnapshotStrategy {
 
   @Transactional
   public List<TallySnapshot> produceSnapshotsFromCalculations(
-      String account, Collection<AccountUsageCalculation> accountCalcs) {
+      String orgId, Collection<AccountUsageCalculation> accountCalcs) {
     Stream<BaseSnapshotRoller> rollers =
         Stream.of(
             hourlyRoller, dailyRoller, weeklyRoller, monthlyRoller, quarterlyRoller, yearlyRoller);
     var newAndUpdatedSnapshots =
         rollers
-            .map(roller -> roller.rollSnapshots(account, accountCalcs))
+            .map(roller -> roller.rollSnapshots(orgId, accountCalcs))
             .flatMap(Collection::stream)
             .collect(Collectors.toList());
-    summaryProducer.produceTallySummaryMessages(Map.of(account, newAndUpdatedSnapshots));
-    log.info("Finished producing snapshots for account {}", account);
+    summaryProducer.produceTallySummaryMessages(Map.of(orgId, newAndUpdatedSnapshots));
+    log.info("Finished producing snapshots for orgId={}", orgId);
     return newAndUpdatedSnapshots;
   }
 }

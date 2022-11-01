@@ -100,9 +100,9 @@ class InventoryAccountUsageCollectorTest {
     Map<String, AccountUsageCalculation> calcs =
         collector.collect(NON_RHEL_PRODUCTS, ACCOUNT, ORG_ID);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey(ACCOUNT));
+    assertThat(calcs, Matchers.hasKey(ORG_ID));
 
-    AccountUsageCalculation calc = calcs.get(ACCOUNT);
+    AccountUsageCalculation calc = calcs.get(ORG_ID);
     // odd sockets are rounded up.
     checkTotalsCalculation(calc, ACCOUNT, ORG_ID, NON_RHEL, 12, 4, 1);
     checkPhysicalTotalsCalculation(calc, ACCOUNT, ORG_ID, NON_RHEL, 12, 4, 1);
@@ -126,9 +126,9 @@ class InventoryAccountUsageCollectorTest {
 
     Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey(ACCOUNT));
+    assertThat(calcs, Matchers.hasKey(ORG_ID));
 
-    AccountUsageCalculation calc = calcs.get(ACCOUNT);
+    AccountUsageCalculation calc = calcs.get(ORG_ID);
     // odd sockets are rounded up.
     checkTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
     // no guests running RHEL means no hypervisor total...
@@ -151,9 +151,9 @@ class InventoryAccountUsageCollectorTest {
 
     Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey(ACCOUNT));
+    assertThat(calcs, Matchers.hasKey(ORG_ID));
 
-    AccountUsageCalculation calc = calcs.get(ACCOUNT);
+    AccountUsageCalculation calc = calcs.get(ORG_ID);
     UsageCalculation productCalc = calc.getCalculation(createUsageKey(TEST_PRODUCT));
     assertNull(productCalc.getTotals(HardwareMeasurementType.TOTAL));
     assertNull(productCalc.getTotals(HardwareMeasurementType.PHYSICAL));
@@ -175,9 +175,9 @@ class InventoryAccountUsageCollectorTest {
 
     Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey(ACCOUNT));
+    assertThat(calcs, Matchers.hasKey(ORG_ID));
 
-    AccountUsageCalculation calc = calcs.get(ACCOUNT);
+    AccountUsageCalculation calc = calcs.get(ORG_ID);
     checkTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 1, 1);
     checkVirtualTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 1, 1);
     assertNull(
@@ -202,9 +202,9 @@ class InventoryAccountUsageCollectorTest {
 
     Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey(ACCOUNT));
+    assertThat(calcs, Matchers.hasKey(ORG_ID));
 
-    AccountUsageCalculation calc = calcs.get(ACCOUNT);
+    AccountUsageCalculation calc = calcs.get(ORG_ID);
     // odd sockets are rounded up.
     checkTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
     checkPhysicalTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
@@ -243,14 +243,14 @@ class InventoryAccountUsageCollectorTest {
     Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, account1, orgId1);
     calcs.putAll(collector.collect(RHEL_PRODUCTS, account2, orgId2));
     assertEquals(2, calcs.size());
-    assertThat(calcs, Matchers.hasKey(account1));
-    assertThat(calcs, Matchers.hasKey(account2));
+    assertThat(calcs, Matchers.hasKey(orgId1));
+    assertThat(calcs, Matchers.hasKey(orgId2));
 
-    AccountUsageCalculation a1Calc = calcs.get(account1);
+    AccountUsageCalculation a1Calc = calcs.get(orgId1);
     assertEquals(1, a1Calc.getProducts().size());
     checkTotalsCalculation(a1Calc, account1, orgId1, "RHEL", 12, 8, 2);
 
-    AccountUsageCalculation a2Calc = calcs.get(account2);
+    AccountUsageCalculation a2Calc = calcs.get(orgId2);
     assertEquals(1, a2Calc.getProducts().size());
     checkTotalsCalculation(a2Calc, account2, orgId2, TEST_PRODUCT, 6, 2, 1);
   }
@@ -284,9 +284,9 @@ class InventoryAccountUsageCollectorTest {
 
     Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey(ACCOUNT));
+    assertThat(calcs, Matchers.hasKey(ORG_ID));
 
-    AccountUsageCalculation a1Calc = calcs.get(ACCOUNT);
+    AccountUsageCalculation a1Calc = calcs.get(ORG_ID);
     assertEquals(1, a1Calc.getProducts().size());
     checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, "RHEL", 16, 16, 2);
     checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, "RHEL", ServiceLevel._ANY, 16, 16, 2);
@@ -325,9 +325,9 @@ class InventoryAccountUsageCollectorTest {
 
     Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey(ACCOUNT));
+    assertThat(calcs, Matchers.hasKey(ORG_ID));
 
-    AccountUsageCalculation a1Calc = calcs.get(ACCOUNT);
+    AccountUsageCalculation a1Calc = calcs.get(ORG_ID);
     assertEquals(1, a1Calc.getProducts().size());
     checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, "RHEL", 16, 16, 2);
     checkTotalsCalculation(
@@ -395,14 +395,14 @@ class InventoryAccountUsageCollectorTest {
     Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, account1, orgId1);
     calcs.putAll(collector.collect(RHEL_PRODUCTS, account2, orgId2));
     assertEquals(2, calcs.size());
-    assertThat(calcs, Matchers.hasKey(account1));
-    assertThat(calcs, Matchers.hasKey(account2));
+    assertThat(calcs, Matchers.hasKey(orgId1));
+    assertThat(calcs, Matchers.hasKey(orgId2));
 
-    AccountUsageCalculation a1Calc = calcs.get(account1);
+    AccountUsageCalculation a1Calc = calcs.get(orgId1);
     assertEquals(1, a1Calc.getProducts().size());
     checkTotalsCalculation(a1Calc, account1, orgId1, TEST_PRODUCT, 12, 8, 2);
 
-    AccountUsageCalculation a2Calc = calcs.get(account2);
+    AccountUsageCalculation a2Calc = calcs.get(orgId2);
     assertEquals(1, a2Calc.getProducts().size());
     checkTotalsCalculation(a2Calc, account2, orgId2, TEST_PRODUCT, 12, 6, 1);
   }
@@ -426,22 +426,24 @@ class InventoryAccountUsageCollectorTest {
 
     Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey(ACCOUNT));
+    assertThat(calcs, Matchers.hasKey(ORG_ID));
 
-    AccountUsageCalculation accountCalc = calcs.get(ACCOUNT);
+    AccountUsageCalculation accountCalc = calcs.get(ORG_ID);
     assertEquals(1, accountCalc.getProducts().size());
     checkTotalsCalculation(accountCalc, ACCOUNT, ORG_ID, TEST_PRODUCT, 8, 2, 1);
   }
 
   @Test
-  void throwsISEOnAttemptToCalculateFactsBelongingToADifferentOwnerForSameAccount() {
+  void throwsISEOnAttemptToCalculateFactsBelongingToADifferentAccountForSameOrgId() {
     InventoryHostFacts h1 =
-        createRhsmHost(ACCOUNT, "Owner1", Arrays.asList(TEST_PRODUCT_ID), "", OffsetDateTime.now());
+        createRhsmHost(
+            "Account1", ORG_ID, Arrays.asList(TEST_PRODUCT_ID), "", OffsetDateTime.now());
     h1.setSystemProfileCoresPerSocket(1);
     h1.setSystemProfileSockets(2);
 
     InventoryHostFacts h2 =
-        createRhsmHost(ACCOUNT, "Owner2", Arrays.asList(TEST_PRODUCT_ID), "", OffsetDateTime.now());
+        createRhsmHost(
+            "Account2", ORG_ID, Arrays.asList(TEST_PRODUCT_ID), "", OffsetDateTime.now());
 
     mockReportedHypervisors(ORG_ID, new HashMap<>());
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt()))
@@ -452,7 +454,8 @@ class InventoryAccountUsageCollectorTest {
             IllegalStateException.class, () -> collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID));
 
     String expectedMessage =
-        String.format("Attempt to set a different org for an account: %s:%s", "Owner1", "Owner2");
+        String.format(
+            "Attempt to set a different account for an org: %s:%s", "Account1", "Account2");
     assertEquals(expectedMessage, e.getMessage());
   }
 
@@ -495,15 +498,15 @@ class InventoryAccountUsageCollectorTest {
     Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, account1, orgId1);
     calcs.putAll(collector.collect(RHEL_PRODUCTS, account2, orgId2));
     assertEquals(2, calcs.size());
-    assertThat(calcs, Matchers.hasKey(account1));
-    assertThat(calcs, Matchers.hasKey(account2));
+    assertThat(calcs, Matchers.hasKey(orgId1));
+    assertThat(calcs, Matchers.hasKey(orgId2));
 
-    AccountUsageCalculation a1Calc = calcs.get(account1);
+    AccountUsageCalculation a1Calc = calcs.get(orgId1);
     assertEquals(1, a1Calc.getProducts().size());
     checkTotalsCalculation(a1Calc, account1, orgId1, TEST_PRODUCT, 12, 8, 2);
     checkPhysicalTotalsCalculation(a1Calc, account1, orgId1, TEST_PRODUCT, 12, 8, 2);
 
-    AccountUsageCalculation a2Calc = calcs.get(account2);
+    AccountUsageCalculation a2Calc = calcs.get(orgId2);
     assertEquals(1, a2Calc.getProducts().size());
     checkTotalsCalculation(a2Calc, account2, orgId2, TEST_PRODUCT, 10, 4, 2);
     checkPhysicalTotalsCalculation(a2Calc, account2, orgId2, TEST_PRODUCT, 10, 4, 2);
@@ -536,9 +539,9 @@ class InventoryAccountUsageCollectorTest {
 
     Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey(ACCOUNT));
+    assertThat(calcs, Matchers.hasKey(ORG_ID));
 
-    AccountUsageCalculation calc = calcs.get(ACCOUNT);
+    AccountUsageCalculation calc = calcs.get(ORG_ID);
     // odd sockets are rounded up for hypervisor.
     // hypervisor gets counted twice - once for itself, once for the guests
     checkTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 24, 8, 2);
@@ -573,9 +576,9 @@ class InventoryAccountUsageCollectorTest {
 
     Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey(ACCOUNT));
+    assertThat(calcs, Matchers.hasKey(ORG_ID));
 
-    AccountUsageCalculation calc = calcs.get(ACCOUNT);
+    AccountUsageCalculation calc = calcs.get(ORG_ID);
     // odd sockets are rounded up for hypervisor.
     checkTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
     checkHypervisorTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
@@ -605,7 +608,7 @@ class InventoryAccountUsageCollectorTest {
 
     Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey(ACCOUNT));
+    assertThat(calcs, Matchers.hasKey(ORG_ID));
 
     ArgumentCaptor<AccountServiceInventory> accountService =
         ArgumentCaptor.forClass(AccountServiceInventory.class);
@@ -668,9 +671,9 @@ class InventoryAccountUsageCollectorTest {
 
     Map<String, AccountUsageCalculation> calcs = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
     assertEquals(1, calcs.size());
-    assertThat(calcs, Matchers.hasKey(ACCOUNT));
+    assertThat(calcs, Matchers.hasKey(ORG_ID));
 
-    AccountUsageCalculation calc = calcs.get(ACCOUNT);
+    AccountUsageCalculation calc = calcs.get(ORG_ID);
     // odd sockets are rounded up.
     checkTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
     checkPhysicalTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);

@@ -104,9 +104,12 @@ public class InventoryAccountUsageCollector {
                     (h1, h2) -> handleDuplicateHost(duplicateInstanceIds, h1, h2)));
     duplicateInstanceIds.forEach(accountServiceInventory.getServiceInstances()::remove);
 
+    // Maps hypervisor ID to associated hypervisor host's subscription-manager ID.
     Map<String, String> hypMapping = new HashMap<>();
+    // Mapped by Host.hypervisorUuid
     Map<String, Set<UsageCalculation.Key>> hypervisorUsageKeys = new HashMap<>();
-    Map<String, Map<String, NormalizedFacts>> accountHypervisorFacts = new HashMap<>();
+
+    Map<String, Map<String, NormalizedFacts>> orgHypervisorFacts = new HashMap<>();
     Map<String, Host> hypervisorHosts = new HashMap<>();
     Map<String, Integer> hypervisorGuestCounts = new HashMap<>();
 
@@ -115,29 +118,30 @@ public class InventoryAccountUsageCollector {
     log.info("Found {} reported hypervisors.", hypMapping.size());
 
     Map<String, Set<HostBucketKey>> hostSeenBucketKeysLookup = new HashMap<>();
-    Map<String, AccountUsageCalculation> calcsByAccount = new HashMap<>();
+    Map<String, AccountUsageCalculation> calcsByOrgId = new HashMap<>();
     inventory.processHostFacts(
         List.of(orgId),
         culledOffsetDays,
         hostFacts -> {
-          calcsByAccount.putIfAbsent(account, new AccountUsageCalculation(account));
+          calcsByOrgId.putIfAbsent(orgId, new AccountUsageCalculation(orgId));
 
-          AccountUsageCalculation accountCalc = calcsByAccount.get(account);
+          AccountUsageCalculation accountCalc = calcsByOrgId.get(orgId);
           NormalizedFacts facts = factNormalizer.normalize(hostFacts, hypMapping);
 
-          // Validate and set the orgId.
-          // Don't set null orgId as it may overwrite an existing value.
+          // Validate and set the account number.
+          // Don't set null account as it may overwrite an existing value.
           // Likely won't happen, but there could be stale data in inventory
-          // with no org set.
-          String org = facts.getOrgId();
-          if (org != null) {
-            String currentOrg = accountCalc.getOrgId();
-            if (currentOrg != null && !currentOrg.equalsIgnoreCase(org)) {
+          // with no account set.
+          String hostAccount = facts.getAccount();
+          if (hostAccount != null) {
+            String currentAccount = accountCalc.getAccount();
+            if (currentAccount != null && !currentAccount.equalsIgnoreCase(hostAccount)) {
               throw new IllegalStateException(
                   String.format(
-                      "Attempt to set a different org for an account: %s:%s", currentOrg, org));
+                      "Attempt to set a different account for an org: %s:%s",
+                      currentAccount, hostAccount));
             }
-            accountCalc.setOrgId(org);
+            accountCalc.setAccount(hostAccount);
           }
 
           Host existingHost = inventoryHostMap.remove(hostFacts.getInventoryId().toString());
@@ -150,7 +154,7 @@ public class InventoryAccountUsageCollector {
 
           if (facts.isHypervisor()) {
             Map<String, NormalizedFacts> idToHypervisorMap =
-                accountHypervisorFacts.computeIfAbsent(account, a -> new HashMap<>());
+                orgHypervisorFacts.computeIfAbsent(orgId, a -> new HashMap<>());
             idToHypervisorMap.put(hostFacts.getSubscriptionManagerId(), facts);
             hypervisorHosts.put(hostFacts.getSubscriptionManagerId(), host);
           } else if (facts.isVirtual() && StringUtils.hasText(facts.getHypervisorUuid())) {
@@ -212,10 +216,10 @@ public class InventoryAccountUsageCollector {
     // apply data from guests to hypervisor records
     collectHypervisorGuestData(
         hypervisorUsageKeys,
-        accountHypervisorFacts,
+        orgHypervisorFacts,
         hypervisorHosts,
         hypervisorGuestCounts,
-        calcsByAccount,
+        calcsByOrgId,
         hostSeenBucketKeysLookup);
 
     log.info(
@@ -246,13 +250,13 @@ public class InventoryAccountUsageCollector {
     }
 
     if (log.isDebugEnabled()) {
-      calcsByAccount.values().forEach(calc -> log.debug("Account Usage: {}", calc));
+      calcsByOrgId.values().forEach(calc -> log.debug("Account Usage: {}", calc));
     }
 
     accountServiceInventory.setOrgId(orgId);
     accountServiceInventoryRepository.save(accountServiceInventory);
 
-    return calcsByAccount;
+    return calcsByOrgId;
   }
 
   private Host handleDuplicateHost(Set<String> duplicateInstanceIds, Host host1, Host host2) {
@@ -263,14 +267,14 @@ public class InventoryAccountUsageCollector {
 
   private void collectHypervisorGuestData(
       Map<String, Set<Key>> hypervisorUsageKeys,
-      Map<String, Map<String, NormalizedFacts>> accountHypervisorFacts,
+      Map<String, Map<String, NormalizedFacts>> orgHypervisorFacts,
       Map<String, Host> hypervisorHosts,
       Map<String, Integer> hypervisorGuestCounts,
-      Map<String, AccountUsageCalculation> calcsByAccount,
+      Map<String, AccountUsageCalculation> calcsByOrgId,
       Map<String, Set<HostBucketKey>> hostSeenBucketKeyLookup) {
-    accountHypervisorFacts.forEach(
-        (account, accountHypervisors) -> {
-          AccountUsageCalculation accountCalc = calcsByAccount.get(account);
+    orgHypervisorFacts.forEach(
+        (orgId, accountHypervisors) -> {
+          AccountUsageCalculation accountCalc = calcsByOrgId.get(orgId);
           accountHypervisors.forEach(
               (hypervisorUuid, hypervisor) -> {
                 Host hypHost = hypervisorHosts.get(hypervisorUuid);
@@ -287,8 +291,7 @@ public class InventoryAccountUsageCollector {
                       ProductUsageCollector productUsageCollector =
                           ProductUsageCollectorFactory.get(key.getProductId());
                       Optional<HostTallyBucket> appliedBucket =
-                          productUsageCollector.collectForHypervisor(
-                              account, usageCalc, hypervisor);
+                          productUsageCollector.collectForHypervisor(orgId, usageCalc, hypervisor);
                       appliedBucket.ifPresent(
                           bucket -> {
                             // hypHost.addBucket changes bucket.key.hostId, so we do that first; to

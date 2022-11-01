@@ -52,14 +52,14 @@ public class YearlySnapshotRoller extends BaseSnapshotRoller {
   @Override
   @Transactional
   public Collection<TallySnapshot> rollSnapshots(
-      String account, Collection<AccountUsageCalculation> accountCalcs) {
-    log.debug("Producing yearly snapshots for account {}.", account);
+      String orgId, Collection<AccountUsageCalculation> accountCalcs) {
+    log.debug("Producing yearly snapshots for orgId={}.", orgId);
 
     Map<String, List<TallySnapshot>> currentYearlySnaps =
         Map.of(
-            account,
-            getCurrentSnapshotsByAccount(
-                account,
+            orgId,
+            getCurrentSnapshotsByOrgId(
+                orgId,
                 getApplicableProducts(accountCalcs, YEARLY),
                 YEARLY,
                 clock.startOfCurrentYear(),

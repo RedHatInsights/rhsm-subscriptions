@@ -116,18 +116,19 @@ public class TallySnapshotController {
 
       if (props.isCloudigradeEnabled()) {
         if (StringUtils.hasText(orgId)) {
-          attemptCloudigradeEnrichment(account, accountCalcs, orgId);
+          attemptCloudigradeEnrichment(accountCalcs, orgId);
         } else {
           log.warn(
               "Org Id {} not found for account {} during cloudigrade enrichment", orgId, account);
         }
       }
     } catch (Exception e) {
-      log.error("Could not collect existing usage snapshots for account {}", account, e);
+      log.error(
+          "Could not collect existing usage snapshots for orgId={} account={}", orgId, account, e);
       return;
     }
 
-    maxSeenSnapshotStrategy.produceSnapshotsFromCalculations(account, accountCalcs.values());
+    maxSeenSnapshotStrategy.produceSnapshotsFromCalculations(orgId, accountCalcs.values());
   }
 
   // Because we want to ensure that our DB operations have been completed before
@@ -171,7 +172,7 @@ public class TallySnapshotController {
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
                 Map<String, List<TallySnapshot>> totalSnapshots =
                     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
-                        accountNumber,
+                        orgId,
                         result.getRange(),
                         tagProfile.getTagsForServiceType(serviceType),
                         applicableUsageCalculations,
@@ -194,13 +195,13 @@ public class TallySnapshotController {
   }
 
   private void attemptCloudigradeEnrichment(
-      String account, Map<String, AccountUsageCalculation> accountCalcs, String orgId) {
+      Map<String, AccountUsageCalculation> accountCalcs, String orgId) {
     log.info("Adding cloudigrade reports to calculations.");
     try {
       cloudigradeRetryTemplate.execute(
           context -> {
             try {
-              cloudigradeCollector.enrichUsageWithCloudigradeData(accountCalcs, account, orgId);
+              cloudigradeCollector.enrichUsageWithCloudigradeData(accountCalcs, orgId);
             } catch (Exception e) {
               throw new ExternalServiceException(
                   ErrorCode.REQUEST_PROCESSING_ERROR,

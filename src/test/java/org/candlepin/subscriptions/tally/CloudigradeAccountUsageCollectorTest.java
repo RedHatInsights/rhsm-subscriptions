@@ -52,7 +52,6 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
 class CloudigradeAccountUsageCollectorTest {
-  public static final String ACCOUNT = "foo123";
   public static final String ORG_ID = "Org123";
 
   @MockBean CloudigradeService cloudigradeService;
@@ -63,7 +62,7 @@ class CloudigradeAccountUsageCollectorTest {
   void testEnrichUsageWithCloudigradeDataHaltsWithBadOrg() throws Exception {
     when(cloudigradeService.cloudigradeUserExists(ORG_ID)).thenReturn(false);
     var calculations = new HashMap<String, AccountUsageCalculation>();
-    collector.enrichUsageWithCloudigradeData(calculations, ACCOUNT, ORG_ID);
+    collector.enrichUsageWithCloudigradeData(calculations, ORG_ID);
     verify(cloudigradeService, never())
         .listDailyConcurrentUsages(any(), any(), any(), any(), any());
   }
@@ -88,7 +87,7 @@ class CloudigradeAccountUsageCollectorTest {
     when(cloudigradeService.cloudigradeUserExists(ORG_ID)).thenReturn(true);
     when(cloudigradeService.listDailyConcurrentUsages(any(), any(), any(), any(), any()))
         .thenReturn(report);
-    collector.enrichUsageWithCloudigradeData(calculations, ACCOUNT, ORG_ID);
+    collector.enrichUsageWithCloudigradeData(calculations, ORG_ID);
     assertEquals(1, calculations.size());
   }
 
@@ -106,8 +105,8 @@ class CloudigradeAccountUsageCollectorTest {
     when(cloudigradeService.listDailyConcurrentUsages(any(), any(), any(), any(), any()))
         .thenReturn(report);
 
-    AccountUsageCalculation accountUsage = new AccountUsageCalculation(ACCOUNT);
-    collector.enrichUsageWithCloudigradeData(usageMapOf(ACCOUNT, accountUsage), ACCOUNT, ORG_ID);
+    AccountUsageCalculation accountUsage = new AccountUsageCalculation(ORG_ID);
+    collector.enrichUsageWithCloudigradeData(usageMapOf(ORG_ID, accountUsage), ORG_ID);
     assertEquals(
         1,
         accountUsage
@@ -137,8 +136,8 @@ class CloudigradeAccountUsageCollectorTest {
     when(cloudigradeService.listDailyConcurrentUsages(any(), any(), any(), any(), any()))
         .thenReturn(report);
 
-    AccountUsageCalculation accountUsage = new AccountUsageCalculation(ACCOUNT);
-    collector.enrichUsageWithCloudigradeData(usageMapOf(ACCOUNT, accountUsage), ACCOUNT, ORG_ID);
+    AccountUsageCalculation accountUsage = new AccountUsageCalculation(ORG_ID);
+    collector.enrichUsageWithCloudigradeData(usageMapOf(ORG_ID, accountUsage), ORG_ID);
     assertEquals(0, accountUsage.getKeys().size());
   }
 
@@ -164,8 +163,8 @@ class CloudigradeAccountUsageCollectorTest {
     when(cloudigradeService.cloudigradeUserExists(ORG_ID)).thenReturn(true);
     when(cloudigradeService.listDailyConcurrentUsages(any(), any(), any(), any(), any()))
         .thenReturn(report);
-    AccountUsageCalculation accountUsage = new AccountUsageCalculation(ACCOUNT);
-    collector.enrichUsageWithCloudigradeData(usageMapOf(ACCOUNT, accountUsage), ACCOUNT, ORG_ID);
+    AccountUsageCalculation accountUsage = new AccountUsageCalculation(ORG_ID);
+    collector.enrichUsageWithCloudigradeData(usageMapOf(ORG_ID, accountUsage), ORG_ID);
     assertEquals(
         1,
         accountUsage
@@ -193,8 +192,8 @@ class CloudigradeAccountUsageCollectorTest {
         new ConcurrencyReport().data(Collections.singletonList(concurrentUsage));
     when(cloudigradeService.listDailyConcurrentUsages(any(), any(), any(), any(), any()))
         .thenReturn(report);
-    AccountUsageCalculation accountUsage = new AccountUsageCalculation(ACCOUNT);
-    collector.enrichUsageWithCloudigradeData(usageMapOf(ACCOUNT, accountUsage), ACCOUNT, ORG_ID);
+    AccountUsageCalculation accountUsage = new AccountUsageCalculation(ORG_ID);
+    collector.enrichUsageWithCloudigradeData(usageMapOf(ORG_ID, accountUsage), ORG_ID);
     assertEquals(0, accountUsage.getKeys().size());
   }
 
@@ -211,8 +210,8 @@ class CloudigradeAccountUsageCollectorTest {
     when(cloudigradeService.cloudigradeUserExists(ORG_ID)).thenReturn(true);
     when(cloudigradeService.listDailyConcurrentUsages(any(), any(), any(), any(), any()))
         .thenReturn(report);
-    AccountUsageCalculation accountUsage = new AccountUsageCalculation(ACCOUNT);
-    collector.enrichUsageWithCloudigradeData(usageMapOf(ACCOUNT, accountUsage), ACCOUNT, ORG_ID);
+    AccountUsageCalculation accountUsage = new AccountUsageCalculation(ORG_ID);
+    collector.enrichUsageWithCloudigradeData(usageMapOf(ORG_ID, accountUsage), ORG_ID);
     assertEquals(0, accountUsage.getKeys().size());
   }
 
@@ -244,8 +243,8 @@ class CloudigradeAccountUsageCollectorTest {
     when(cloudigradeService.cloudigradeUserExists(ORG_ID)).thenReturn(true);
     when(cloudigradeService.listDailyConcurrentUsages(any(), any(), any(), any(), any()))
         .thenReturn(report);
-    AccountUsageCalculation accountUsage = new AccountUsageCalculation(ACCOUNT);
-    collector.enrichUsageWithCloudigradeData(usageMapOf(ACCOUNT, accountUsage), ACCOUNT, ORG_ID);
+    AccountUsageCalculation accountUsage = new AccountUsageCalculation(ORG_ID);
+    collector.enrichUsageWithCloudigradeData(usageMapOf(ORG_ID, accountUsage), ORG_ID);
     assertEquals(1, accountUsage.getKeys().size());
     Optional<UsageCalculation.Key> usageKey = accountUsage.getKeys().stream().findFirst();
     assertTrue(usageKey.isPresent());
@@ -258,9 +257,9 @@ class CloudigradeAccountUsageCollectorTest {
   }
 
   private Map<String, AccountUsageCalculation> usageMapOf(
-      String account, AccountUsageCalculation accountUsage) {
+      String orgId, AccountUsageCalculation accountUsage) {
     HashMap<String, AccountUsageCalculation> map = new HashMap<>();
-    map.put(account, accountUsage);
+    map.put(orgId, accountUsage);
     return map;
   }
 }

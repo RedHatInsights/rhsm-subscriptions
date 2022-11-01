@@ -85,19 +85,19 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
   @Query(
       value =
           "SELECT distinct t FROM TallySnapshot t left join fetch t.tallyMeasurements where "
-              + "t.accountNumber = :accountNumber and "
+              + "t.orgId = :orgId and "
               + "t.productId in (:productIds) and "
               + "t.granularity = :granularity  and "
               + "t.snapshotDate between :beginning and :ending "
               + "order by t.snapshotDate",
       countQuery =
           "SELECT count(t) FROM TallySnapshot t where "
-              + "t.accountNumber = :accountNumber and "
+              + "t.orgId = :orgId and "
               + "t.productId in (:productIds) and "
               + "t.granularity = :granularity  and "
               + "t.snapshotDate between :beginning and :ending ")
-  Stream<TallySnapshot> findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
-      String accountNumber,
+  Stream<TallySnapshot> findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+      String orgId,
       Collection<String> productIds,
       Granularity granularity,
       OffsetDateTime beginning,

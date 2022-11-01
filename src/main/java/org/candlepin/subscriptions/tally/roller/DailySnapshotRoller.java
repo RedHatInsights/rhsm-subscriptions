@@ -52,14 +52,14 @@ public class DailySnapshotRoller extends BaseSnapshotRoller {
   @Override
   @Transactional
   public Collection<TallySnapshot> rollSnapshots(
-      String account, Collection<AccountUsageCalculation> accountCalcs) {
-    log.debug("Producing daily snapshots for account {}.", account);
+      String orgId, Collection<AccountUsageCalculation> accountCalcs) {
+    log.debug("Producing daily snapshots for orgId={}.", orgId);
 
     Map<String, List<TallySnapshot>> existingSnapsForToday =
         Map.of(
-            account,
-            getCurrentSnapshotsByAccount(
-                account,
+            orgId,
+            getCurrentSnapshotsByOrgId(
+                orgId,
                 getApplicableProducts(accountCalcs, DAILY),
                 DAILY,
                 clock.startOfToday(),
