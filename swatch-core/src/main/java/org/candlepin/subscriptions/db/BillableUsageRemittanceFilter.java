@@ -21,22 +21,9 @@
 package org.candlepin.subscriptions.db;
 
 import java.time.OffsetDateTime;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Path;
-import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
-import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
-import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK_;
-import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity_;
-import org.springframework.data.jpa.domain.Specification;
 
 /**
  * A filter used to find {@link org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity}
@@ -46,8 +33,7 @@ import org.springframework.data.jpa.domain.Specification;
 @Builder
 @Getter
 @Setter
-public class BillableUsageRemittanceFilter extends BaseSpecification
-    implements Specification<BillableUsageRemittanceEntity> {
+public class BillableUsageRemittanceFilter {
   private String productId;
   private String account;
   private String orgId;
@@ -56,60 +42,4 @@ public class BillableUsageRemittanceFilter extends BaseSpecification
   private String billingAccountId;
   private OffsetDateTime beginning;
   private OffsetDateTime ending;
-
-  @Override
-  public Predicate toPredicate(
-      Root<BillableUsageRemittanceEntity> root, CriteriaQuery<?> query, CriteriaBuilder builder) {
-
-    Path<Object> embeddedKeyPath = root.get(BillableUsageRemittanceEntity_.KEY);
-    Set<String> keyAttributes = getAttributes(embeddedKeyPath);
-
-    return builder.and(
-        buildFilterCriteria().stream()
-            .map(
-                c -> {
-                  Path<?> path = keyAttributes.contains(c.getKey()) ? embeddedKeyPath : root;
-                  return mapCriteriaToPredicate(path, c, builder);
-                })
-            .filter(Objects::nonNull)
-            .toArray(Predicate[]::new));
-  }
-
-  private List<SearchCriteria> buildFilterCriteria() {
-    List<SearchCriteria> criteria = new LinkedList<>();
-
-    equalIfNotNull(criteria, BillableUsageRemittanceEntityPK_.ACCOUNT_NUMBER, this.account);
-    equalIfNotNull(criteria, BillableUsageRemittanceEntity_.ORG_ID, this.orgId);
-    equalIfNotNull(criteria, BillableUsageRemittanceEntityPK_.PRODUCT_ID, this.productId);
-    equalIfNotNull(criteria, BillableUsageRemittanceEntityPK_.METRIC_ID, this.metricId);
-    equalIfNotNull(
-        criteria, BillableUsageRemittanceEntityPK_.BILLING_PROVIDER, this.billingProvider);
-    equalIfNotNull(
-        criteria, BillableUsageRemittanceEntityPK_.BILLING_ACCOUNT_ID, this.billingAccountId);
-
-    if (Objects.nonNull(this.beginning)) {
-      criteria.add(
-          new SearchCriteria(
-              BillableUsageRemittanceEntity_.REMITTANCE_DATE,
-              beginning,
-              SearchOperation.AFTER_OR_ON));
-    }
-
-    if (Objects.nonNull(this.ending)) {
-      criteria.add(
-          new SearchCriteria(
-              BillableUsageRemittanceEntity_.REMITTANCE_DATE,
-              ending,
-              SearchOperation.BEFORE_OR_ON));
-    }
-
-    return criteria;
-  }
-
-  private void equalIfNotNull(
-      List<SearchCriteria> existingCriteria, String attribute, String value) {
-    if (Objects.nonNull(value)) {
-      existingCriteria.add(new SearchCriteria(attribute, value, SearchOperation.EQUAL));
-    }
-  }
 }

@@ -58,8 +58,7 @@ class SubscriptionRepositoryTest {
     Subscription retrieved = subscriptionRepo.findActiveSubscription("123").orElse(null);
 
     // because of an issue with precision related to findActiveSubscription passing the entity
-    // cache,
-    // we'll have to check fields
+    // cache, we'll have to check fields
     assertEquals(subscription.getSubscriptionId(), retrieved.getSubscriptionId());
     assertEquals(subscription.getSku(), retrieved.getSku());
     assertEquals(subscription.getOrgId(), retrieved.getOrgId());
