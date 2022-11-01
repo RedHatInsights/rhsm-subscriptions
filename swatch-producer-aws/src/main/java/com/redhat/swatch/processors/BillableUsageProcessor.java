@@ -44,6 +44,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.slf4j.MDC;
 import software.amazon.awssdk.services.marketplacemetering.MarketplaceMeteringClient;
 import software.amazon.awssdk.services.marketplacemetering.model.BatchMeterUsageRequest;
 import software.amazon.awssdk.services.marketplacemetering.model.BatchMeterUsageResponse;
@@ -78,13 +79,18 @@ public class BillableUsageProcessor {
   @Incoming("tally-in")
   @Blocking
   public void process(BillableUsage billableUsage) {
-    if (log.isDebugEnabled()) {
-      log.debug("Picked up billable usage message {} to process", billableUsage);
-    }
+    log.debug("Picked up billable usage message {} to process", billableUsage);
     if (billableUsage == null) {
       log.warn("Skipping null billable usage: deserialization failure?");
       return;
     }
+    if (billableUsage.getOrgId() != null) {
+      MDC.put("org_id", billableUsage.getOrgId());
+    }
+    if (billableUsage.getAccountNumber() != null) {
+      MDC.put("account_id", billableUsage.getAccountNumber());
+    }
+
     if (!isApplicable(billableUsage)) {
       log.debug("Skipping billable usage because it is not applicable: {}", billableUsage);
       return;
