@@ -77,7 +77,7 @@ class OptInResourceTest {
   }
 
   @Test
-  @WithMockRedHatPrincipal(value = "123456", nullifyOwner = true)
+  @WithMockRedHatPrincipal(value = "123456", nullifyOrgId = true)
   void testMissingOrgOnDelete() {
     assertThrows(BadRequestException.class, () -> resource.deleteOptInConfig());
   }
@@ -91,7 +91,7 @@ class OptInResourceTest {
   }
 
   @Test
-  @WithMockRedHatPrincipal(value = "123456", nullifyOwner = true)
+  @WithMockRedHatPrincipal(value = "123456", nullifyOrgId = true)
   void testMissingOrgOnGet() {
     assertThrows(BadRequestException.class, () -> resource.getOptInConfig());
   }
@@ -105,7 +105,7 @@ class OptInResourceTest {
   }
 
   @Test
-  @WithMockRedHatPrincipal(value = "123456", nullifyOwner = true)
+  @WithMockRedHatPrincipal(value = "123456", nullifyOrgId = true)
   void testMissingOrgOnPut() {
     assertThrows(BadRequestException.class, () -> resource.putOptInConfig());
   }

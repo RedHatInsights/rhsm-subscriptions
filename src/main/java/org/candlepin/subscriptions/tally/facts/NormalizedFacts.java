@@ -20,9 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.facts;
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
@@ -36,17 +34,12 @@ import org.candlepin.subscriptions.db.model.Usage;
 @Setter
 public class NormalizedFacts {
 
-  public static final String PRODUCTS_KEY = "products";
-  public static final String CORES_KEY = "cores";
-  public static final String SOCKETS_KEY = "sockets";
-  public static final String OWNER_KEY = "owner";
-
   private Set<String> products;
   private ServiceLevel sla = ServiceLevel.EMPTY;
   private Usage usage = Usage.EMPTY;
   private Integer cores;
   private Integer sockets;
-  private String owner;
+  private String orgId;
   /** Subscription-manager ID (UUID) of the hypervisor for this system */
   private String hypervisorUuid;
 
@@ -84,14 +77,5 @@ public class NormalizedFacts {
 
   public boolean isVirtual() {
     return getHardwareType() == HostHardwareType.VIRTUALIZED;
-  }
-
-  public Map<String, Object> toInventoryPayload() {
-    Map<String, Object> payload = new HashMap<>();
-    payload.put(PRODUCTS_KEY, this.products);
-    payload.put(CORES_KEY, this.cores);
-    payload.put(SOCKETS_KEY, this.sockets);
-    payload.put(OWNER_KEY, this.owner);
-    return payload;
   }
 }
