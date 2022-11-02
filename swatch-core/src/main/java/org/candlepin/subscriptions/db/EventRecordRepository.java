@@ -87,8 +87,7 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
   void deleteEventRecordsByTimestampBefore(OffsetDateTime cutoffDate);
 
   /**
-   * Check if any Events exist for the specified org and service type during the specified
-   * range.
+   * Check if any Events exist for the specified org and service type during the specified range.
    *
    * @param orgId
    * @param serviceType
