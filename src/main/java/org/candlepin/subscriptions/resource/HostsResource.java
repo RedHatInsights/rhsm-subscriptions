@@ -33,7 +33,6 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Host;
@@ -111,18 +110,13 @@ public class HostsResource implements HostsApi {
   }
 
   private final HostRepository repository;
-  private final AccountConfigRepository accountConfigRepo;
   private final PageLinkCreator pageLinkCreator;
   private final TagProfile tagProfile;
   @Context UriInfo uriInfo;
 
   public HostsResource(
-      HostRepository repository,
-      AccountConfigRepository accountConfigRepo,
-      PageLinkCreator pageLinkCreator,
-      TagProfile tagProfile) {
+      HostRepository repository, PageLinkCreator pageLinkCreator, TagProfile tagProfile) {
     this.repository = repository;
-    this.accountConfigRepo = accountConfigRepo;
     this.pageLinkCreator = pageLinkCreator;
     this.tagProfile = tagProfile;
   }
@@ -159,9 +153,7 @@ public class HostsResource implements HostsApi {
       minSockets = 1;
     }
 
-    String accountNumber = ResourceUtils.getAccountNumber();
-    // This should be removed as part of https://issues.redhat.com/browse/SWATCH-268
-    String orgId = accountConfigRepo.findOrgByAccountNumber(accountNumber);
+    String orgId = ResourceUtils.getOrgId();
 
     ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
     Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
@@ -217,7 +209,7 @@ public class HostsResource implements HostsApi {
       Pageable page = ResourceUtils.getPageable(offset, limit, sortValue);
       hosts =
           repository.getTallyHostViews(
-              accountNumber,
+              orgId,
               productId.toString(),
               sanitizedSla,
               sanitizedUsage,
@@ -265,9 +257,9 @@ public class HostsResource implements HostsApi {
   @ReportingAccessRequired
   public HypervisorGuestReport getHypervisorGuests(
       String hypervisorUuid, Integer offset, Integer limit) {
-    String accountNumber = ResourceUtils.getAccountNumber();
+    String orgId = ResourceUtils.getOrgId();
     Pageable page = ResourceUtils.getPageable(offset, limit);
-    Page<Host> guests = repository.getHostsByHypervisor(accountNumber, hypervisorUuid, page);
+    Page<Host> guests = repository.getHostsByHypervisor(orgId, hypervisorUuid, page);
     PageLinks links;
     if (offset != null || limit != null) {
       links = pageLinkCreator.getPaginationLinks(uriInfo, guests);

@@ -54,7 +54,7 @@ public interface HostRepository
    * Find all Hosts by bucket criteria and return a page of TallyHostView objects. A TallyHostView
    * is a Host representation detailing what 'bucket' was applied to the current daily snapshots.
    *
-   * @param accountNumber The account number of the hosts to query (required).
+   * @param orgId The orgId of the hosts to query (required).
    * @param productId The bucket product ID to filter Host by (pass null to ignore).
    * @param sla The bucket service level to filter Hosts by (pass null to ignore).
    * @param usage The bucket usage to filter Hosts by (pass null to ignore).
@@ -71,7 +71,7 @@ public interface HostRepository
   @Query(
       value =
           "select b from HostTallyBucket b join fetch b.host h where "
-              + "h.accountNumber = :account and "
+              + "h.orgId = :orgId and "
               + "b.key.productId = :product and "
               + "b.key.sla = :sla and b.key.usage = :usage and "
               + "b.key.billingProvider = :billingProvider and "
@@ -86,7 +86,7 @@ public interface HostRepository
       // is used.
       countQuery =
           "select count(b) from HostTallyBucket b join b.host h where "
-              + "h.accountNumber = :account and "
+              + "h.orgId = :orgId and "
               + "b.key.productId = :product and "
               + "b.key.sla = :sla and b.key.usage = :usage and "
               + "b.key.sla = :sla and b.key.usage = :usage and "
@@ -95,7 +95,7 @@ public interface HostRepository
               + "((lower(h.displayName) LIKE lower(concat('%', :displayNameSubstring,'%')))) and "
               + "b.cores >= :minCores and b.sockets >= :minSockets")
   Page<TallyHostView> getTallyHostViews(
-      @Param("account") String accountNumber,
+      @Param("orgId") String orgId,
       @Param("product") String productId,
       @Param("sla") ServiceLevel sla,
       @Param("usage") Usage usage,
@@ -188,12 +188,10 @@ public interface HostRepository
 
   @Query(
       "select distinct h from Host h where "
-          + "h.accountNumber = :account and "
+          + "h.orgId = :orgId and "
           + "h.hypervisorUuid = :hypervisor_id")
   Page<Host> getHostsByHypervisor(
-      @Param("account") String accountNumber,
-      @Param("hypervisor_id") String hypervisorId,
-      Pageable pageable);
+      @Param("orgId") String orgId, @Param("hypervisor_id") String hypervisorId, Pageable pageable);
 
   List<Host> findByAccountNumber(String accountNumber);
 
