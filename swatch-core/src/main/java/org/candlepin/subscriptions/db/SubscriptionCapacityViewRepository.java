@@ -21,11 +21,16 @@
 package org.candlepin.subscriptions.db;
 
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import org.candlepin.subscriptions.db.model.*;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey_;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityView_;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.utilization.api.model.Uom;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
@@ -43,74 +48,99 @@ public interface SubscriptionCapacityViewRepository
       Uom uom) {
 
     return findAll(
-        SubscriptionCapacityViewSpecification.builder()
-            .criteria(
-                buildSearchCriteria(
-                    orgId, productId, serviceLevel, usage, reportStart, reportEnd, uom))
-            .build());
+        buildSearchSpecification(
+            orgId, productId, serviceLevel, usage, reportStart, reportEnd, uom));
   }
 
-  private List<SearchCriteria> defaultSearchCriteria(String orgId, String productId) {
-    return new ArrayList<>(
-        List.of(
-            SearchCriteria.builder()
-                .key(SubscriptionCapacityKey_.orgId.getName())
-                .operation(SearchOperation.EQUAL)
-                .value(orgId)
-                .build(),
-            SearchCriteria.builder()
-                .key(SubscriptionCapacityKey_.productId.getName())
-                .operation(SearchOperation.EQUAL)
-                .value(productId)
-                .build()));
+  static Specification<SubscriptionCapacityView> orgAndProductEquals(
+      String orgId, String productId) {
+    return (root, query, builder) -> {
+      var key = root.get(SubscriptionCapacityView_.key);
+      return builder.and(
+          builder.equal(key.get(SubscriptionCapacityKey_.orgId), orgId),
+          builder.equal(key.get(SubscriptionCapacityKey_.productId), productId));
+    };
   }
 
-  private List<SearchCriteria> searchCriteriaForReportDuration(
+  /**
+   * This method looks for subscriptions that are active between the two dates given. The logic is
+   * not intuitive: subscription_begin &lt;= report_end && subscription_end &gt;= report_begin. Here
+   * is how this predicate is derived. There are four points that need to be considered: the
+   * subscription begin date (Sb), the subscription end date (Se), the report begin date (Rb), and
+   * the report end date (Re). Those dates can be in five different relationships.
+   *
+   * <ol>
+   *   <li>Sb Se Rb Re (a subscription that expires before the report period even starts
+   *   <li>Sb Rb Se Re (a subscription that has started before the report period and ends during it.
+   *   <li>Rb Sb Se Re (a subscription that falls entirely within the report period)
+   *   <li>Rb Sb Re Se (a subscription that starts inside the report period but continues past the
+   *       end of the period)
+   *   <li>Rb Re Sb Se (a subscription that does not start until after the period has already ended)
+   * </ol>
+   *
+   * <p>We want this method to return subscriptions that are active within the report period. That
+   * means cases 2, 3, and 4. Here are the relationships for those cases:
+   *
+   * <ol>
+   *   <li>Sb &lt; Rb, Sb &lt; Re, Se &gt; Rb, Se &lt; Re
+   *   <li>Sb &gt; Rb, Sb &lt; Re, Se &gt; Rb, Se &lt; Re
+   *   <li>Sb &gt; Rb, Sb &lt; Re, Se &gt; Rb, Se &gt; Re
+   * </ol>
+   *
+   * Looking at those inequalities, we can see that the two invariant relationships are Sb &lt; Re
+   * and Se &gt; Rb. Then we add the "or equal to" to the inequalities to capture edge cases.
+   *
+   * @param reportStart the date the reporting period starts
+   * @param reportEnd the date the reporting period ends
+   * @return A specification that determines if a subscription is active during the given period
+   */
+  static Specification<SubscriptionCapacityView> subscriptionIsActiveBetween(
       OffsetDateTime reportStart, OffsetDateTime reportEnd) {
-    return List.of(
-        SearchCriteria.builder()
-            .key(SubscriptionCapacityView_.beginDate.getName())
-            .operation(SearchOperation.BEFORE_OR_ON)
-            .value(reportEnd)
-            .build(),
-        SearchCriteria.builder()
-            .key(SubscriptionCapacityView_.endDate.getName())
-            .operation(SearchOperation.AFTER_OR_ON)
-            .value(reportStart)
-            .build());
+    return (root, query, builder) -> {
+      var p = builder.conjunction();
+      if (Objects.nonNull(reportEnd)) {
+        p.getExpressions()
+            .add(
+                builder.lessThanOrEqualTo(
+                    root.get(SubscriptionCapacityView_.beginDate), reportEnd));
+      }
+      if (Objects.nonNull(reportStart)) {
+        p.getExpressions()
+            .add(
+                builder.greaterThanOrEqualTo(
+                    root.get(SubscriptionCapacityView_.endDate), reportStart));
+      }
+      return p;
+    };
   }
 
-  private SearchCriteria searchCriteriaMatchingSLA(ServiceLevel serviceLevel) {
-    return SearchCriteria.builder()
-        .key(SubscriptionCapacityView_.serviceLevel.getName())
-        .operation(SearchOperation.EQUAL)
-        .value(serviceLevel)
-        .build();
+  static Specification<SubscriptionCapacityView> slaEquals(ServiceLevel sla) {
+    return (root, query, builder) ->
+        builder.equal(root.get(SubscriptionCapacityView_.serviceLevel), sla);
   }
 
-  private SearchCriteria searchCriteriaMatchingUsage(Usage usage) {
-    return SearchCriteria.builder()
-        .key(SubscriptionCapacityView_.usage.getName())
-        .operation(SearchOperation.EQUAL)
-        .value(usage)
-        .build();
+  static Specification<SubscriptionCapacityView> usageEquals(Usage usage) {
+    return (root, query, builder) ->
+        builder.equal(root.get(SubscriptionCapacityView_.usage), usage);
   }
 
-  private SearchCriteria searchCriteriaMatchingUomOfCores() {
-    return SearchCriteria.builder()
-        .key(SubscriptionCapacityView_.physicalCores.getName())
-        .operation(SearchOperation.IS_NOT_NULL)
-        .build();
+  static Specification<SubscriptionCapacityView> matchingUomForCores() {
+    return (root, query, builder) ->
+        builder.or(
+            builder.isNotNull(root.get(SubscriptionCapacityView_.physicalCores)),
+            builder.isNotNull(root.get(SubscriptionCapacityView_.virtualCores)),
+            builder.isTrue(root.get(SubscriptionCapacityView_.hasUnlimitedUsage)));
   }
 
-  private SearchCriteria searchCriteriaMatchingUomOfSockets() {
-    return SearchCriteria.builder()
-        .key(SubscriptionCapacityView_.physicalSockets.getName())
-        .operation(SearchOperation.IS_NOT_NULL)
-        .build();
+  static Specification<SubscriptionCapacityView> matchingUomForSockets() {
+    return (root, query, builder) ->
+        builder.or(
+            builder.isNotNull(root.get(SubscriptionCapacityView_.physicalSockets)),
+            builder.isNotNull(root.get(SubscriptionCapacityView_.virtualSockets)),
+            builder.isTrue(root.get(SubscriptionCapacityView_.hasUnlimitedUsage)));
   }
 
-  private List<SearchCriteria> buildSearchCriteria(
+  default Specification<SubscriptionCapacityView> buildSearchSpecification(
       String orgId,
       String productId,
       ServiceLevel serviceLevel,
@@ -119,14 +149,33 @@ public interface SubscriptionCapacityViewRepository
       OffsetDateTime reportEnd,
       Uom uom) {
 
-    List<SearchCriteria> searchCriteria = defaultSearchCriteria(orgId, productId);
-    if (Uom.CORES.equals(uom)) searchCriteria.add(searchCriteriaMatchingUomOfCores());
-    if (Uom.SOCKETS.equals(uom)) searchCriteria.add(searchCriteriaMatchingUomOfSockets());
-    if (Objects.nonNull(serviceLevel) && !serviceLevel.equals(ServiceLevel._ANY))
-      searchCriteria.add(searchCriteriaMatchingSLA(serviceLevel));
-    if (Objects.nonNull(usage) && !usage.equals(Usage._ANY))
-      searchCriteria.add(searchCriteriaMatchingUsage(usage));
-    searchCriteria.addAll(searchCriteriaForReportDuration(reportStart, reportEnd));
+    /* The where call allows us to build a Specification object to operate on even if the
+     * first specification method we call returns null (it won't be null in this case, but it's
+     * good practice to handle it) */
+    var searchCriteria = Specification.where(subscriptionIsActiveBetween(reportStart, reportEnd));
+
+    if ((orgId == null && productId != null) || (orgId != null && productId == null)) {
+      throw new IllegalStateException(
+          "Either both orgId and productId must be supplied or neither value at all.");
+    }
+    // If orgId is nonNull, then productId must be nonNull too based on the previous if statement
+    // but for clarity's sake, I'm leaving both tests instead of leaving a logic puzzle for a
+    // developer to work through
+    if (Objects.nonNull(orgId) && Objects.nonNull(productId)) { // NOSONAR
+      searchCriteria = searchCriteria.and(orgAndProductEquals(orgId, productId));
+    }
+    if (Uom.CORES.equals(uom)) {
+      searchCriteria = searchCriteria.and(matchingUomForCores());
+    }
+    if (Uom.SOCKETS.equals(uom)) {
+      searchCriteria = searchCriteria.and(matchingUomForSockets());
+    }
+    if (Objects.nonNull(serviceLevel) && !serviceLevel.equals(ServiceLevel._ANY)) {
+      searchCriteria = searchCriteria.and(slaEquals(serviceLevel));
+    }
+    if (Objects.nonNull(usage) && !usage.equals(Usage._ANY)) {
+      searchCriteria = searchCriteria.and(usageEquals(usage));
+    }
     return searchCriteria;
   }
 }

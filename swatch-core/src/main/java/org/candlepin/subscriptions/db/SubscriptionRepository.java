@@ -21,13 +21,14 @@
 package org.candlepin.subscriptions.db;
 
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
+import javax.persistence.criteria.Root;
 import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.Offering_;
 import org.candlepin.subscriptions.db.model.ReportCriteria;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -37,10 +38,12 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.util.ObjectUtils;
 
 /** Repository for Subscription Entities */
 public interface SubscriptionRepository
@@ -64,127 +67,128 @@ public interface SubscriptionRepository
 
   void deleteByOrgId(String orgId);
 
-  default List<Subscription> findByCriteria(ReportCriteria reportCriteria, Sort sort) {
-    List<SearchCriteria> searchCriteria = new ArrayList<>();
+  private Specification<Subscription> buildSearchSpecification(ReportCriteria reportCriteria) {
+    /* The where call allows us to build a Specification object to operate on even if the first
+     * specification method we call returns null (which it won't in this case, but it's good
+     * practice to handle it. */
+    Specification<Subscription> searchCriteria =
+        Specification.where(
+            subscriptionIsActiveBetween(reportCriteria.getBeginning(), reportCriteria.getEnding()));
     if (Objects.nonNull(reportCriteria.getOrgId())) {
-      searchCriteria.add(searchCriteriaMatchingOrgId(reportCriteria.getOrgId()));
+      searchCriteria = searchCriteria.and(orgIdEquals(reportCriteria.getOrgId()));
     } else {
-      searchCriteria.add(searchCriteriaMatchingAccountNumber(reportCriteria.getAccountNumber()));
+      searchCriteria = searchCriteria.and(accountNumberEquals(reportCriteria.getAccountNumber()));
     }
     if (reportCriteria.isPayg()) {
       // NOTE: we expect payg subscription records to always populate billingProviderId
-      searchCriteria.add(searchCriteriaHavingNonNullBillingProviderId());
-      searchCriteria.add(searchCriteriaMatchingNonEmptyBillingProviderId());
+      searchCriteria = searchCriteria.and(hasBillingProviderId());
     }
     // TODO: ENT-5042 should move away from using product name values here //NOSONAR
-    searchCriteria.add(searchCriteriaMatchingProductNames(reportCriteria.getProductNames()));
+    if (!ObjectUtils.isEmpty(reportCriteria.getProductNames())) {
+      searchCriteria = searchCriteria.and(productNameIn(reportCriteria.getProductNames()));
+    }
     if (Objects.nonNull(reportCriteria.getServiceLevel())
         && !reportCriteria.getServiceLevel().equals(ServiceLevel._ANY)) {
-      searchCriteria.add(searchCriteriaMatchingSLA(reportCriteria.getServiceLevel()));
+      searchCriteria = searchCriteria.and(slaEquals(reportCriteria.getServiceLevel()));
     }
     if (Objects.nonNull(reportCriteria.getUsage())
         && !reportCriteria.getUsage().equals(Usage._ANY)) {
-      searchCriteria.add(searchCriteriaMatchingUsage(reportCriteria.getUsage()));
+      searchCriteria = searchCriteria.and(usageEquals(reportCriteria.getUsage()));
     }
     if (Objects.nonNull(reportCriteria.getBillingProvider())
         && !reportCriteria.getBillingProvider().equals(BillingProvider._ANY)) {
-      searchCriteria.add(
-          searchCriteriaMatchingBillingProvider(reportCriteria.getBillingProvider()));
+      searchCriteria =
+          searchCriteria.and(billingProviderEquals(reportCriteria.getBillingProvider()));
     }
     if (Objects.nonNull(reportCriteria.getBillingAccountId())
         && !reportCriteria.getBillingAccountId().equals("_ANY")) {
-      searchCriteria.add(
-          searchCriteriaMatchingBillingAccountId(reportCriteria.getBillingAccountId()));
+      searchCriteria =
+          searchCriteria.and(billingAccountIdEquals(reportCriteria.getBillingAccountId()));
     }
-    searchCriteria.addAll(
-        searchCriteriaForReportDuration(reportCriteria.getBeginning(), reportCriteria.getEnding()));
-    return findAll(
-        OnDemandSubscriptionSpecification.builder().criteria(searchCriteria).build(), sort);
+    return searchCriteria;
   }
 
-  private SearchCriteria searchCriteriaHavingNonNullBillingProviderId() {
-    return SearchCriteria.builder()
-        .key(Subscription_.BILLING_PROVIDER_ID)
-        .operation(SearchOperation.IS_NOT_NULL)
-        .build();
+  default List<Subscription> findByCriteria(ReportCriteria reportCriteria, Sort sort) {
+    return findAll(buildSearchSpecification(reportCriteria), sort);
   }
 
-  private SearchCriteria searchCriteriaMatchingNonEmptyBillingProviderId() {
-    return SearchCriteria.builder()
-        .key(Subscription_.BILLING_PROVIDER_ID)
-        .operation(SearchOperation.NOT_EQUAL)
-        .value("")
-        .build();
+  private static Specification<Subscription> hasBillingProviderId() {
+    return (root, query, builder) ->
+        builder.and(
+            builder.isNotNull(root.get(Subscription_.billingProviderId)),
+            builder.notEqual(root.get(Subscription_.billingProviderId), ""));
   }
 
-  private SearchCriteria searchCriteriaMatchingProductNames(Set<String> productNames) {
-    return SearchCriteria.builder()
-        .key(Offering_.PRODUCT_NAME)
-        .operation(SearchOperation.IN)
-        .value(productNames)
-        .build();
+  private static Specification<Subscription> productNameIn(Set<String> productNames) {
+    return (root, query, builder) -> {
+      Root<Offering> offeringRoot = query.from(Offering.class);
+      return builder.and(
+          builder.equal(root.get(Subscription_.sku), offeringRoot.get(Offering_.sku)),
+          offeringRoot.get(Offering_.productName).in(productNames));
+    };
   }
 
-  private SearchCriteria searchCriteriaMatchingAccountNumber(String accountNumber) {
-    return SearchCriteria.builder()
-        .key(Subscription_.ACCOUNT_NUMBER)
-        .operation(SearchOperation.EQUAL)
-        .value(accountNumber)
-        .build();
+  private static Specification<Subscription> accountNumberEquals(String accountNumber) {
+    return (root, query, builder) ->
+        builder.equal(root.get(Subscription_.accountNumber), accountNumber);
   }
 
-  private SearchCriteria searchCriteriaMatchingOrgId(String orgId) {
-    return SearchCriteria.builder()
-        .key(Subscription_.ORG_ID)
-        .operation(SearchOperation.EQUAL)
-        .value(orgId)
-        .build();
+  private static Specification<Subscription> orgIdEquals(String orgId) {
+    return (root, query, builder) -> builder.equal(root.get(Subscription_.orgId), orgId);
   }
 
-  private List<SearchCriteria> searchCriteriaForReportDuration(
+  /**
+   * This method looks for subscriptions that are active between the two dates given. The logic is
+   * not intuitive: subscription_begin &lt;= report_end && subscription_end &gt;= report_begin. See
+   * {@link SubscriptionCapacityViewRepository#subscriptionIsActiveBetween(OffsetDateTime,
+   * OffsetDateTime)} for a detailed explanation of how this predicate is derived.
+   *
+   * @param reportStart the date the reporting period starts
+   * @param reportEnd the date the reporting period ends
+   * @return A Specification that determines if a subscription is active during the given period.
+   */
+  private Specification<Subscription> subscriptionIsActiveBetween(
       OffsetDateTime reportStart, OffsetDateTime reportEnd) {
-    return List.of(
-        SearchCriteria.builder()
-            .key(Subscription_.startDate.getName())
-            .operation(SearchOperation.BEFORE_OR_ON)
-            .value(reportEnd)
-            .build(),
-        SearchCriteria.builder()
-            .key(Subscription_.endDate.getName())
-            .operation(SearchOperation.AFTER_OR_ON)
-            .value(reportStart)
-            .build());
+    return (root, query, builder) -> {
+      var p = builder.conjunction();
+      if (Objects.nonNull(reportEnd)) {
+        p.getExpressions()
+            .add(builder.lessThanOrEqualTo(root.get(Subscription_.startDate), reportEnd));
+      }
+      if (Objects.nonNull(reportStart)) {
+        p.getExpressions()
+            .add(builder.greaterThanOrEqualTo(root.get(Subscription_.endDate), reportStart));
+      }
+      return p;
+    };
   }
 
-  private SearchCriteria searchCriteriaMatchingSLA(ServiceLevel serviceLevel) {
-    return SearchCriteria.builder()
-        .key(Offering_.serviceLevel.getName())
-        .operation(SearchOperation.EQUAL)
-        .value(serviceLevel)
-        .build();
+  private static Specification<Subscription> slaEquals(ServiceLevel sla) {
+    return (root, query, builder) -> {
+      Root<Offering> offeringRoot = query.from(Offering.class);
+      return builder.and(
+          builder.equal(root.get(Subscription_.sku), offeringRoot.get(Offering_.sku)),
+          builder.equal(offeringRoot.get(Offering_.serviceLevel), sla));
+    };
   }
 
-  private SearchCriteria searchCriteriaMatchingUsage(Usage usage) {
-    return SearchCriteria.builder()
-        .key(Offering_.usage.getName())
-        .operation(SearchOperation.EQUAL)
-        .value(usage)
-        .build();
+  private static Specification<Subscription> usageEquals(Usage usage) {
+    return (root, query, builder) -> {
+      Root<Offering> offeringRoot = query.from(Offering.class);
+      return builder.and(
+          builder.equal(root.get(Subscription_.sku), offeringRoot.get(Offering_.sku)),
+          builder.equal(offeringRoot.get(Offering_.usage), usage));
+    };
   }
 
-  default SearchCriteria searchCriteriaMatchingBillingProvider(BillingProvider billingProvider) {
-    return SearchCriteria.builder()
-        .key(Subscription_.BILLING_PROVIDER)
-        .operation(SearchOperation.EQUAL)
-        .value(billingProvider)
-        .build();
+  private static Specification<Subscription> billingProviderEquals(
+      BillingProvider billingProvider) {
+    return (root, query, builder) ->
+        builder.equal(root.get(Subscription_.billingProvider), billingProvider);
   }
 
-  default SearchCriteria searchCriteriaMatchingBillingAccountId(String billingAccountId) {
-    return SearchCriteria.builder()
-        .key(Subscription_.BILLING_ACCOUNT_ID)
-        .operation(SearchOperation.EQUAL)
-        .value(billingAccountId)
-        .build();
+  private static Specification<Subscription> billingAccountIdEquals(String billingAccountId) {
+    return (root, query, builder) ->
+        builder.equal(root.get(Subscription_.billingAccountId), billingAccountId);
   }
 }

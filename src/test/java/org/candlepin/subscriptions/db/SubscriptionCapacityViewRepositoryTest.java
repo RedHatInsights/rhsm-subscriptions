@@ -22,6 +22,8 @@ package org.candlepin.subscriptions.db;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -29,11 +31,24 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
-import org.assertj.core.api.Assertions;
-import org.candlepin.subscriptions.db.model.*;
+import java.util.stream.Stream;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.Offering;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacityView_;
+import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.utilization.api.model.Uom;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,7 +83,6 @@ class SubscriptionCapacityViewRepositoryTest {
   @Transactional
   @Test
   void shouldFindAllSubsWithMatchingCriteria() {
-
     SubscriptionCapacity premium = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
     premium.setSubscriptionId("12345");
     SubscriptionCapacity anotherPremium =
@@ -99,49 +113,21 @@ class SubscriptionCapacityViewRepositoryTest {
             premium.getUsage(),
             "role1"));
 
-    SubscriptionCapacityViewSpecification specification =
-        SubscriptionCapacityViewSpecification.builder()
-            .criteria(
-                List.of(
-                    SearchCriteria.builder()
-                        .key("orgId")
-                        .operation(SearchOperation.EQUAL)
-                        .value(premium.getOrgId())
-                        .build(),
-                    SearchCriteria.builder()
-                        .key("productId")
-                        .operation(SearchOperation.EQUAL)
-                        .value(premium.getProductId())
-                        .build(),
-                    SearchCriteria.builder()
-                        .key("serviceLevel")
-                        .operation(SearchOperation.EQUAL)
-                        .value(premium.getServiceLevel())
-                        .build(),
-                    SearchCriteria.builder()
-                        .key("usage")
-                        .operation(SearchOperation.EQUAL)
-                        .value(premium.getUsage())
-                        .build(),
-                    SearchCriteria.builder()
-                        .key("beginDate")
-                        .operation(SearchOperation.AFTER_OR_ON)
-                        .value(premium.getBeginDate())
-                        .build(),
-                    SearchCriteria.builder()
-                        .key("endDate")
-                        .operation(SearchOperation.BEFORE_OR_ON)
-                        .value(premium.getEndDate())
-                        .build()))
-            .build();
-    List<SubscriptionCapacityView> all = repository.findAll(specification);
+    List<SubscriptionCapacityView> all =
+        repository.findAllBy(
+            premium.getOrgId(),
+            premium.getProductId(),
+            premium.getServiceLevel(),
+            premium.getUsage(),
+            premium.getBeginDate(),
+            premium.getEndDate(),
+            null);
     assertEquals(2, all.size());
   }
 
   @Transactional
   @Test
   void shouldFindAllSubsWithMatchingSLA() {
-
     SubscriptionCapacity premium = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
     premium.setSubscriptionId("12345");
     SubscriptionCapacity standard = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
@@ -172,57 +158,48 @@ class SubscriptionCapacityViewRepositoryTest {
             premium.getUsage(),
             "role1"));
 
-    SubscriptionCapacityViewSpecification specification =
-        SubscriptionCapacityViewSpecification.builder()
-            .criteria(
-                List.of(
-                    SearchCriteria.builder()
-                        .key("serviceLevel")
-                        .operation(SearchOperation.EQUAL)
-                        .value(ServiceLevel.PREMIUM)
-                        .build()))
-            .build();
-    List<SubscriptionCapacityView> all = repository.findAll(specification);
+    List<SubscriptionCapacityView> all =
+        repository.findAllBy(null, null, ServiceLevel.PREMIUM, null, null, null, null);
     assertEquals(1, all.size());
   }
 
-  @Transactional
-  @Test
-  void shouldFindAllSubsNotInAListOfValues() {
+  static Stream<Arguments> matchingReportRanges() {
+    // The subscription lasts from NOWISH to FAR_FUTURE
+    return Stream.of(
+        // Subscription begins before the range but ends within it
+        arguments(NOWISH.plusDays(1), FAR_FUTURE.plusYears(1)),
+        // Subscription lies entirely within the range
+        arguments(NOWISH.minusYears(1), FAR_FUTURE.plusYears(1)),
+        // Subscription begins within the range but ends past it
+        arguments(NOWISH.minusYears(1), FAR_FUTURE.minusDays(1)));
+  }
 
-    SubscriptionCapacity premium = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+  static Stream<Arguments> nonMatchingReportRanges() {
+    // The subscription lasts from NOWISH to FAR_FUTURE
+    return Stream.of(
+        // Subscription begins and ends before the reporting range
+        arguments(FAR_FUTURE.plusDays(1), FAR_FUTURE.plusYears(1)),
+        // Subscription begins and ends after the reporting range
+        arguments(NOWISH.minusYears(1), NOWISH.minusDays(1)));
+  }
+
+  /** See the comment at
+   * {@link org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository#subscriptionIsActiveBetween(OffsetDateTime, OffsetDateTime)
+   */
+  @ParameterizedTest
+  @MethodSource("matchingReportRanges")
+  void shouldFindAllActiveSubsInDateRange(OffsetDateTime reportBegin, OffsetDateTime reportEnd) {
+    SubscriptionCapacity premium = createUnpersisted(NOWISH, FAR_FUTURE);
     premium.setSubscriptionId("12345");
-    SubscriptionCapacity any = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
-    any.setSubscriptionId("12346");
-    any.setServiceLevel(ServiceLevel._ANY);
-    SubscriptionCapacity noSLA = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
-    noSLA.setSubscriptionId("12347");
-    noSLA.setServiceLevel(ServiceLevel.EMPTY);
-
-    subscriptionRepository.saveAllAndFlush(
-        List.of(
-            createSubscription(
-                ORG_ID,
-                ACCOUNT_NUMBER,
-                premium.getSku(),
-                premium.getSubscriptionId(),
-                premium.getBeginDate(),
-                premium.getEndDate()),
-            createSubscription(
-                ORG_ID,
-                ACCOUNT_NUMBER,
-                premium.getSku(),
-                any.getSubscriptionId(),
-                any.getBeginDate(),
-                any.getEndDate()),
-            createSubscription(
-                ORG_ID,
-                ACCOUNT_NUMBER,
-                premium.getSku(),
-                noSLA.getSubscriptionId(),
-                noSLA.getBeginDate(),
-                noSLA.getEndDate())));
-    subscriptionCapacityRepository.saveAll(List.of(premium, any, noSLA));
+    subscriptionRepository.saveAndFlush(
+        createSubscription(
+            ORG_ID,
+            ACCOUNT_NUMBER,
+            premium.getSku(),
+            premium.getSubscriptionId(),
+            premium.getBeginDate(),
+            premium.getEndDate()));
+    subscriptionCapacityRepository.save(premium);
     offeringRepository.saveAndFlush(
         createOffering(
             premium.getSku(),
@@ -230,66 +207,28 @@ class SubscriptionCapacityViewRepositoryTest {
             null,
             premium.getUsage(),
             "role1"));
-
-    SubscriptionCapacityViewSpecification specification =
-        SubscriptionCapacityViewSpecification.builder()
-            .criteria(
-                List.of(
-                    SearchCriteria.builder()
-                        .key("serviceLevel")
-                        .operation(SearchOperation.NOT_IN)
-                        .value(
-                            List.of(
-                                ServiceLevel.PREMIUM,
-                                ServiceLevel.STANDARD,
-                                ServiceLevel.SELF_SUPPORT))
-                        .build()))
-            .build();
-
-    List<SubscriptionCapacityView> all = repository.findAll(specification);
-    Assertions.assertThat(all)
-        .hasSize(2)
-        .extracting("serviceLevel")
-        .contains(ServiceLevel.EMPTY, ServiceLevel._ANY);
+    List<SubscriptionCapacityView> all =
+        repository.findAllBy(null, null, null, null, reportBegin, reportEnd, null);
+    assertEquals(1, all.size());
   }
 
-  @Transactional
-  @Test
-  void shouldFindAllSubsInAListOfValues() {
-
-    SubscriptionCapacity premium = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+  /** See the comment at
+   * {@link org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository#subscriptionIsActiveBetween(OffsetDateTime, OffsetDateTime)
+   */
+  @ParameterizedTest
+  @MethodSource("nonMatchingReportRanges")
+  void shouldFindNoActiveSubsInDateRange(OffsetDateTime reportBegin, OffsetDateTime reportEnd) {
+    SubscriptionCapacity premium = createUnpersisted(NOWISH, FAR_FUTURE);
     premium.setSubscriptionId("12345");
-    SubscriptionCapacity standard = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
-    standard.setSubscriptionId("12346");
-    standard.setServiceLevel(ServiceLevel.STANDARD);
-    SubscriptionCapacity noSLA = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
-    noSLA.setSubscriptionId("12347");
-    noSLA.setServiceLevel(ServiceLevel.EMPTY);
-
-    subscriptionRepository.saveAllAndFlush(
-        List.of(
-            createSubscription(
-                ORG_ID,
-                ACCOUNT_NUMBER,
-                premium.getSku(),
-                premium.getSubscriptionId(),
-                premium.getBeginDate(),
-                premium.getEndDate()),
-            createSubscription(
-                ORG_ID,
-                ACCOUNT_NUMBER,
-                premium.getSku(),
-                standard.getSubscriptionId(),
-                standard.getBeginDate(),
-                standard.getEndDate()),
-            createSubscription(
-                ORG_ID,
-                ACCOUNT_NUMBER,
-                premium.getSku(),
-                noSLA.getSubscriptionId(),
-                noSLA.getBeginDate(),
-                noSLA.getEndDate())));
-    subscriptionCapacityRepository.saveAll(List.of(premium, standard, noSLA));
+    subscriptionRepository.saveAndFlush(
+        createSubscription(
+            ORG_ID,
+            ACCOUNT_NUMBER,
+            premium.getSku(),
+            premium.getSubscriptionId(),
+            premium.getBeginDate(),
+            premium.getEndDate()));
+    subscriptionCapacityRepository.save(premium);
     offeringRepository.saveAndFlush(
         createOffering(
             premium.getSku(),
@@ -297,33 +236,22 @@ class SubscriptionCapacityViewRepositoryTest {
             null,
             premium.getUsage(),
             "role1"));
-
-    SubscriptionCapacityViewSpecification specification =
-        SubscriptionCapacityViewSpecification.builder()
-            .criteria(
-                List.of(
-                    SearchCriteria.builder()
-                        .key("serviceLevel")
-                        .operation(SearchOperation.IN)
-                        .value(
-                            List.of(
-                                ServiceLevel.PREMIUM,
-                                ServiceLevel.STANDARD,
-                                ServiceLevel.SELF_SUPPORT))
-                        .build()))
-            .build();
-
-    List<SubscriptionCapacityView> all = repository.findAll(specification);
-    Assertions.assertThat(all)
-        .hasSize(2)
-        .extracting("serviceLevel")
-        .contains(ServiceLevel.PREMIUM, ServiceLevel.STANDARD);
+    List<SubscriptionCapacityView> all =
+        repository.findAllBy(null, null, null, null, reportBegin, reportEnd, null);
+    assertEquals(0, all.size());
   }
 
   @Transactional
   @Test
-  void shouldFindAllSubsWithStartDateAfterOrOnThanGivenDate() {
+  void shouldRequireBothOrgAndProductIds() {
+    assertThrows(
+        InvalidDataAccessApiUsageException.class,
+        () -> repository.findAllBy(null, PRODUCT_ID, null, null, null, null, null));
+  }
 
+  @Transactional
+  @Test
+  void shouldFindAllRecordsWithEndDateAfterOrOnThanGivenReportStartDate() {
     SubscriptionCapacity premium = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
     premium.setSubscriptionId("12345");
     SubscriptionCapacity standard = createUnpersisted(NOWISH.plusDays(3), FAR_FUTURE.plusDays(1));
@@ -354,72 +282,14 @@ class SubscriptionCapacityViewRepositoryTest {
             premium.getUsage(),
             "role1"));
 
-    SubscriptionCapacityViewSpecification specification =
-        SubscriptionCapacityViewSpecification.builder()
-            .criteria(
-                List.of(
-                    SearchCriteria.builder()
-                        .key("beginDate")
-                        .operation(SearchOperation.AFTER_OR_ON)
-                        .value(NOWISH.plusDays(1))
-                        .build()))
-            .build();
-    List<SubscriptionCapacityView> found = repository.findAll(specification);
-    assertEquals(2, found.size());
-  }
-
-  @Transactional
-  @Test
-  void shouldFindAllRecordsWithEndDateBeforeOrOnThanGivenDate() {
-
-    SubscriptionCapacity premium = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
-    premium.setSubscriptionId("12345");
-    SubscriptionCapacity standard = createUnpersisted(NOWISH.plusDays(3), FAR_FUTURE.plusDays(1));
-    standard.setSubscriptionId("12346");
-    standard.setServiceLevel(ServiceLevel.STANDARD);
-    subscriptionRepository.saveAllAndFlush(
-        List.of(
-            createSubscription(
-                ORG_ID,
-                ACCOUNT_NUMBER,
-                premium.getSku(),
-                premium.getSubscriptionId(),
-                premium.getBeginDate(),
-                premium.getEndDate()),
-            createSubscription(
-                ORG_ID,
-                ACCOUNT_NUMBER,
-                premium.getSku(),
-                standard.getSubscriptionId(),
-                standard.getBeginDate(),
-                standard.getEndDate())));
-    subscriptionCapacityRepository.saveAll(List.of(premium, standard));
-    offeringRepository.saveAndFlush(
-        createOffering(
-            premium.getSku(),
-            Integer.parseInt(premium.getProductId()),
-            null,
-            premium.getUsage(),
-            "role1"));
-
-    SubscriptionCapacityViewSpecification specification =
-        SubscriptionCapacityViewSpecification.builder()
-            .criteria(
-                List.of(
-                    SearchCriteria.builder()
-                        .key("beginDate")
-                        .operation(SearchOperation.BEFORE_OR_ON)
-                        .value(FAR_FUTURE.plusYears(1))
-                        .build()))
-            .build();
-    List<SubscriptionCapacityView> found = repository.findAll(specification);
-    assertEquals(2, found.size());
+    List<SubscriptionCapacityView> all =
+        repository.findAllBy(null, null, null, null, NOWISH.plusDays(30), null, null);
+    assertEquals(2, all.size());
   }
 
   @Transactional
   @Test
   void shouldFilterCapacityWithUnmatchedSLA() {
-
     SubscriptionCapacity premium = createUnpersisted(NOWISH, FAR_FUTURE.plusDays(1));
     premium.setSubscriptionId("12345");
     SubscriptionCapacity standard = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
@@ -450,45 +320,17 @@ class SubscriptionCapacityViewRepositoryTest {
             premium.getUsage(),
             "role1"));
 
-    SubscriptionCapacityViewSpecification specification =
-        SubscriptionCapacityViewSpecification.builder()
-            .criteria(
-                List.of(
-                    SearchCriteria.builder()
-                        .key("orgId")
-                        .operation(SearchOperation.EQUAL)
-                        .value(premium.getOrgId())
-                        .build(),
-                    SearchCriteria.builder()
-                        .key("productId")
-                        .operation(SearchOperation.EQUAL)
-                        .value(premium.getProductId())
-                        .build(),
-                    SearchCriteria.builder()
-                        .key("serviceLevel")
-                        .operation(SearchOperation.EQUAL)
-                        .value(premium.getServiceLevel())
-                        .build(),
-                    SearchCriteria.builder()
-                        .key("usage")
-                        .operation(SearchOperation.EQUAL)
-                        .value(premium.getUsage())
-                        .build(),
-                    SearchCriteria.builder()
-                        .key("beginDate")
-                        .operation(SearchOperation.AFTER_OR_ON)
-                        .value(NOWISH.minusYears(1))
-                        .build(),
-                    SearchCriteria.builder()
-                        .key("endDate")
-                        .operation(SearchOperation.BEFORE_OR_ON)
-                        .value(FAR_FUTURE.plusMonths(1))
-                        .build()))
-            .build();
-
-    List<SubscriptionCapacityView> found = repository.findAll(specification);
-    assertEquals(1, found.size());
-    assertEquals(premium.getServiceLevel(), found.get(0).getServiceLevel());
+    List<SubscriptionCapacityView> all =
+        repository.findAllBy(
+            ORG_ID,
+            PRODUCT_ID,
+            premium.getServiceLevel(),
+            premium.getUsage(),
+            NOWISH.minusYears(1),
+            FAR_FUTURE.plusMonths(1),
+            null);
+    assertEquals(1, all.size());
+    assertEquals(premium.getServiceLevel(), all.get(0).getServiceLevel());
   }
 
   @Test
@@ -546,16 +388,9 @@ class SubscriptionCapacityViewRepositoryTest {
             null,
             sockets.getUsage(),
             "role1"));
-    SubscriptionCapacityViewSpecification specification =
-        SubscriptionCapacityViewSpecification.builder()
-            .criteria(
-                List.of(
-                    SearchCriteria.builder()
-                        .key(SubscriptionCapacityView_.physicalCores.getName())
-                        .operation(SearchOperation.IS_NOT_NULL)
-                        .build()))
-            .build();
-    List<SubscriptionCapacityView> found = repository.findAll(specification);
+
+    List<SubscriptionCapacityView> found =
+        repository.findAllBy(null, null, null, null, null, null, Uom.CORES);
     assertEquals(2, found.size());
     found.forEach(
         subscriptionCapacityView -> {
@@ -619,17 +454,8 @@ class SubscriptionCapacityViewRepositoryTest {
             null,
             sockets.getUsage(),
             "role1"));
-    SubscriptionCapacityViewSpecification specification =
-        SubscriptionCapacityViewSpecification.builder()
-            .criteria(
-                List.of(
-                    SearchCriteria.builder()
-                        .key(SubscriptionCapacityView_.physicalSockets.getName())
-                        .operation(SearchOperation.IS_NOT_NULL)
-                        .build()))
-            .build();
-
-    List<SubscriptionCapacityView> found = repository.findAll(specification);
+    List<SubscriptionCapacityView> found =
+        repository.findAllBy(null, null, null, null, null, null, Uom.SOCKETS);
     assertEquals(2, found.size());
     found.forEach(
         subscriptionCapacityView -> {
@@ -663,18 +489,10 @@ class SubscriptionCapacityViewRepositoryTest {
             "role1");
     offeringRepository.saveAndFlush(offering);
 
-    SubscriptionCapacityViewSpecification specification =
-        SubscriptionCapacityViewSpecification.builder()
-            .criteria(
-                List.of(
-                    SearchCriteria.builder()
-                        .key(SubscriptionCapacityView_.sku.getName())
-                        .operation(SearchOperation.EQUAL)
-                        .value(standard.getSku())
-                        .build()))
-            .build();
-
-    List<SubscriptionCapacityView> found = repository.findAll(specification);
+    Specification<SubscriptionCapacityView> skuSpec =
+        (root, query, builder) ->
+            builder.equal(root.get(SubscriptionCapacityView_.sku), standard.getSku());
+    List<SubscriptionCapacityView> found = repository.findAll(skuSpec);
     assertEquals(1, found.size());
     assertEquals(offering.getDescription(), found.get(0).getProductName());
   }
