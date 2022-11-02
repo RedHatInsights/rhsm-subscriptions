@@ -51,8 +51,8 @@ public class CustomizedSubscriptionCapacityRepositoryImpl
   }
 
   @Override
-  public List<SubscriptionCapacity> findByOwnerAndProductId(
-      String ownerId,
+  public List<SubscriptionCapacity> findByOrgIdAndProductId(
+      String orgId,
       String productId,
       ServiceLevel serviceLevel,
       Usage usage,
@@ -64,7 +64,7 @@ public class CustomizedSubscriptionCapacityRepositoryImpl
     Root<SubscriptionCapacity> capacity = cq.from(SubscriptionCapacity.class);
 
     List<Predicate> predicates = new ArrayList<>();
-    addBasePredicates(cb, capacity, predicates, ownerId, productId);
+    addBasePredicates(cb, capacity, predicates, orgId, productId);
     addServiceLevelPredicates(cb, capacity, predicates, serviceLevel);
     addUsagePredicates(cb, capacity, predicates, usage);
     addDatePredicates(cb, capacity, predicates, reportBegin, reportEnd);
@@ -75,8 +75,8 @@ public class CustomizedSubscriptionCapacityRepositoryImpl
   }
 
   @Override
-  public List<SubscriptionCapacity> findByOwnerAndProductIdAndMetricId(
-      String ownerId,
+  public List<SubscriptionCapacity> findByOrgIdAndProductIdAndMetricId(
+      String orgId,
       String productId,
       MetricId metricId,
       ReportCategory reportCategory,
@@ -91,7 +91,7 @@ public class CustomizedSubscriptionCapacityRepositoryImpl
 
     List<Predicate> predicates = new ArrayList<>();
 
-    addBasePredicates(cb, capacity, predicates, ownerId, productId);
+    addBasePredicates(cb, capacity, predicates, orgId, productId);
     addServiceLevelPredicates(cb, capacity, predicates, serviceLevel);
     addUsagePredicates(cb, capacity, predicates, usage);
     addDatePredicates(cb, capacity, predicates, reportBegin, reportEnd);
@@ -106,9 +106,9 @@ public class CustomizedSubscriptionCapacityRepositoryImpl
       CriteriaBuilder cb,
       Root<SubscriptionCapacity> capacity,
       List<Predicate> predicates,
-      String ownerId,
+      String orgId,
       String productId) {
-    predicates.add(cb.equal(capacity.get("key").get("ownerId"), ownerId));
+    predicates.add(cb.equal(capacity.get("key").get("orgId"), orgId));
     predicates.add(cb.equal(capacity.get("key").get("productId"), productId));
   }
 
@@ -157,42 +157,46 @@ public class CustomizedSubscriptionCapacityRepositoryImpl
       Root<SubscriptionCapacity> capacity,
       MetricId metricId,
       ReportCategory reportCategory) {
+    Predicate metricPredicate = null;
     if (metricId.equals(MetricId.CORES)) {
       if (reportCategory != null) {
         switch (reportCategory) {
           case PHYSICAL:
-            predicates.add(cb.greaterThan(capacity.get("physicalCores"), 0));
+            metricPredicate = cb.greaterThan(capacity.get("physicalCores"), 0);
             break;
           case VIRTUAL:
-            predicates.add(cb.greaterThan(capacity.get("virtualCores"), 0));
+            metricPredicate = cb.greaterThan(capacity.get("virtualCores"), 0);
             break;
           default:
             break;
         }
       } else {
-        predicates.add(
+        metricPredicate =
             cb.or(
                 cb.greaterThan(capacity.get("physicalCores"), 0),
-                cb.greaterThan(capacity.get("virtualCores"), 0)));
+                cb.greaterThan(capacity.get("virtualCores"), 0));
       }
     } else if (metricId.equals(MetricId.SOCKETS)) {
       if (reportCategory != null) {
         switch (reportCategory) {
           case PHYSICAL:
-            predicates.add(cb.greaterThan(capacity.get("physicalSockets"), 0));
+            metricPredicate = cb.greaterThan(capacity.get("physicalSockets"), 0);
             break;
           case VIRTUAL:
-            predicates.add(cb.greaterThan(capacity.get("virtualSockets"), 0));
+            metricPredicate = cb.greaterThan(capacity.get("virtualSockets"), 0);
             break;
           default:
             break;
         }
       } else {
-        predicates.add(
+        metricPredicate =
             cb.or(
                 cb.greaterThan(capacity.get("physicalSockets"), 0),
-                cb.greaterThan(capacity.get("virtualSockets"), 0)));
+                cb.greaterThan(capacity.get("virtualSockets"), 0));
       }
+    }
+    if (metricPredicate != null) {
+      predicates.add(cb.or(metricPredicate, cb.isTrue(capacity.get("hasUnlimitedUsage"))));
     }
   }
 }

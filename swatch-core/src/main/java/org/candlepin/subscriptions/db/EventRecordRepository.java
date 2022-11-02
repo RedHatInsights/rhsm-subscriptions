@@ -64,7 +64,7 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
    * * from events where timestamp between '2021-01-01T00:00:00Z' and '2021-01-01T01:00:00Z` would
    * match events at midnight UTC and 1am UTC.
    *
-   * @param accountNumber account number
+   * @param orgId account number
    * @param eventSource event source
    * @param eventType event type
    * @param begin start of the time range (inclusive)
@@ -127,5 +127,5 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
           @Param("begin") OffsetDateTime begin,
           @Param("end") OffsetDateTime end);
 
-  void deleteByAccountNumber(String accountNumber);
+  void deleteByOrgId(String orgId);
 }

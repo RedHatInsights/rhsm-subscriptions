@@ -152,7 +152,7 @@ public class MetricUsageCollector {
         accountCalcs.put(offset, accountUsageCalculation);
       }
     }
-    accountCalcs.values().forEach(calc -> calc.setOwner(accountServiceInventory.getOrgId()));
+    accountCalcs.values().forEach(calc -> calc.setOrgId(accountServiceInventory.getOrgId()));
     accountServiceInventoryRepository.save(accountServiceInventory);
 
     return new CollectionResult(

@@ -48,8 +48,8 @@ public class Subscription {
   @Column(name = "sku")
   private String sku;
 
-  @Column(name = "owner_id")
-  private String ownerId;
+  @Column(name = "org_id")
+  private String orgId;
 
   @Column(name = "quantity")
   private long quantity;

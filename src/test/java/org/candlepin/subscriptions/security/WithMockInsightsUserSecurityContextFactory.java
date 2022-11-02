@@ -39,10 +39,9 @@ public class WithMockInsightsUserSecurityContextFactory
 
     String account =
         annotation.nullifyAccount() ? null : String.format("account%s", annotation.value());
-    String ownerId =
-        annotation.nullifyOwner() ? null : String.format("owner%s", annotation.value());
+    String orgId = annotation.nullifyOwner() ? null : String.format("owner%s", annotation.value());
 
-    InsightsUserPrincipal principal = new InsightsUserPrincipal(ownerId, account);
+    InsightsUserPrincipal principal = new InsightsUserPrincipal(orgId, account);
 
     List<SimpleGrantedAuthority> authorities =
         Arrays.stream(annotation.roles())

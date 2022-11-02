@@ -200,7 +200,7 @@ class HostRepositoryTest {
 
     Page<TallyHostView> hosts =
         repo.getTallyHostViews(
-            expAccount,
+            expOrg,
             RHEL,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -339,7 +339,7 @@ class HostRepositoryTest {
   void testFindHostsWhenAccountIsDifferent() {
     Page<TallyHostView> hosts =
         repo.getTallyHostViews(
-            "account1",
+            "ORG_account1",
             RHEL,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -360,7 +360,7 @@ class HostRepositoryTest {
   void testFindHostsWhenProductIsDifferent() {
     Page<TallyHostView> hosts =
         repo.getTallyHostViews(
-            "account2",
+            "ORG_account2",
             COOL_PROD,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -381,7 +381,7 @@ class HostRepositoryTest {
   void testFindHostsWhenSLAIsDifferent() {
     Page<TallyHostView> hosts =
         repo.getTallyHostViews(
-            "account2",
+            "ORG_account2",
             RHEL,
             ServiceLevel.SELF_SUPPORT,
             Usage.PRODUCTION,
@@ -402,7 +402,7 @@ class HostRepositoryTest {
   void testFindHostsWhenUsageIsDifferent() {
     Page<TallyHostView> hosts =
         repo.getTallyHostViews(
-            "account2",
+            "ORG_account2",
             RHEL,
             ServiceLevel.SELF_SUPPORT,
             Usage.DISASTER_RECOVERY,
@@ -428,7 +428,7 @@ class HostRepositoryTest {
     // When a host has no buckets, it will not be returned.
     Page<TallyHostView> hosts =
         repo.getTallyHostViews(
-            "account4", null, null, null, null, null, null, 0, 0, PageRequest.of(0, 10));
+            "ORG_account4", null, null, null, null, null, null, 0, 0, PageRequest.of(0, 10));
     assertEquals(0, hosts.stream().count());
   }
 
@@ -455,7 +455,7 @@ class HostRepositoryTest {
     toSave.forEach(x -> x.setDisplayName(DEFAULT_DISPLAY_NAME));
     persistHosts(toSave.toArray(new Host[] {}));
 
-    Page<Host> guests = repo.getHostsByHypervisor(account, uuid, PageRequest.of(0, 10));
+    Page<Host> guests = repo.getHostsByHypervisor("ORG_" + account, uuid, PageRequest.of(0, 10));
     assertEquals(1, guests.getTotalElements());
     assertEquals(uuid, guests.getContent().get(0).getHypervisorUuid());
     assertEquals("guest", guests.getContent().get(0).getInventoryId());
@@ -467,7 +467,7 @@ class HostRepositoryTest {
   void testCanSortByIdForImplicitSort() {
     Page<TallyHostView> hosts =
         repo.getTallyHostViews(
-            "account2",
+            "ORG_account2",
             "RHEL",
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -488,7 +488,7 @@ class HostRepositoryTest {
   void testCanSortByDisplayName() {
     Page<TallyHostView> hosts =
         repo.getTallyHostViews(
-            "account2",
+            "ORG_account2",
             "RHEL",
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -513,7 +513,7 @@ class HostRepositoryTest {
   void testCanSortByMeasurementType() {
     Page<TallyHostView> hosts =
         repo.getTallyHostViews(
-            "account3",
+            "ORG_account3",
             RHEL,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -538,7 +538,7 @@ class HostRepositoryTest {
   void testCanSortByCores() {
     Page<TallyHostView> hosts =
         repo.getTallyHostViews(
-            "account2",
+            "ORG_account2",
             "RHEL",
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -563,7 +563,7 @@ class HostRepositoryTest {
   void testCanSortBySockets() {
     Page<TallyHostView> hosts =
         repo.getTallyHostViews(
-            "account2",
+            "ORG_account2",
             "RHEL",
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -588,7 +588,7 @@ class HostRepositoryTest {
   void testCanSortByLastSeen() {
     Page<TallyHostView> hosts =
         repo.getTallyHostViews(
-            "account2",
+            "ORG_account2",
             "RHEL",
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -613,7 +613,7 @@ class HostRepositoryTest {
   void testCanSortByHardwareType() {
     Page<TallyHostView> hosts =
         repo.getTallyHostViews(
-            "account2",
+            "ORG_account2",
             "RHEL",
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -683,7 +683,7 @@ class HostRepositoryTest {
 
     Page<TallyHostView> results =
         repo.getTallyHostViews(
-            "my_acct",
+            "my_org",
             "RHEL",
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -763,7 +763,16 @@ class HostRepositoryTest {
     Pageable page = PageRequest.of(0, 1, Sort.by(sort));
     assertNotNull(
         repo.getTallyHostViews(
-            "account1234", "product", ServiceLevel._ANY, Usage._ANY, null, null, "", 1, 0, page));
+            "ORG_account1234",
+            "product",
+            ServiceLevel._ANY,
+            Usage._ANY,
+            null,
+            null,
+            "",
+            1,
+            0,
+            page));
   }
 
   @Transactional
@@ -790,7 +799,7 @@ class HostRepositoryTest {
 
     Page<TallyHostView> results =
         repo.getTallyHostViews(
-            "my_acct",
+            "my_org",
             "RHEL",
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -853,7 +862,7 @@ class HostRepositoryTest {
 
     Page<TallyHostView> results =
         repo.getTallyHostViews(
-            "my_acct",
+            "my_org",
             "RHEL",
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -915,7 +924,7 @@ class HostRepositoryTest {
 
     Page<TallyHostView> results =
         repo.getTallyHostViews(
-            "my_acct",
+            "my_org",
             "RHEL",
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -1167,7 +1176,7 @@ class HostRepositoryTest {
 
     Page<TallyHostView> results =
         repo.getTallyHostViews(
-            acctNumber,
+            "ORG_ACCT",
             RHEL,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,

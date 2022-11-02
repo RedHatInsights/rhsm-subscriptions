@@ -914,7 +914,7 @@ class SubscriptionTableControllerTest {
       return SubscriptionCapacityView.builder()
           .key(
               SubscriptionCapacityKey.builder()
-                  .ownerId(org.orgId())
+                  .orgId(org.orgId())
                   .productId(productId.toString())
                   .subscriptionId(sub.id)
                   .build())

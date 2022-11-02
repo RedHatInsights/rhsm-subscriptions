@@ -90,25 +90,25 @@ class SubscriptionPruneControllerTest {
   void testPruneDoesNothingIfSkuOnAllowlist() {
     Subscription allowedSub = new Subscription();
     allowedSub.setSku("allowed");
-    when(subscriptionRepo.findByOwnerId("up-to-date")).thenReturn(Stream.of(allowedSub));
+    when(subscriptionRepo.findByOrgId("up-to-date")).thenReturn(Stream.of(allowedSub));
     SubscriptionCapacity allowedCapacity = new SubscriptionCapacity();
     allowedCapacity.setSku("allowed");
-    when(capacityRepo.findByKeyOwnerId("up-to-date")).thenReturn(Stream.of(allowedCapacity));
+    when(capacityRepo.findByKeyOrgId("up-to-date")).thenReturn(Stream.of(allowedCapacity));
     controller.pruneUnlistedSubscriptions("up-to-date");
-    verify(subscriptionRepo).findByOwnerId("up-to-date");
-    verify(capacityRepo).findByKeyOwnerId("up-to-date");
+    verify(subscriptionRepo).findByOrgId("up-to-date");
+    verify(capacityRepo).findByKeyOrgId("up-to-date");
     verifyNoMoreInteractions(subscriptionRepo, capacityRepo);
   }
 
   @Test
   void testPruneRemovesDelistedCapacity() {
-    when(subscriptionRepo.findByOwnerId("stale-capacity")).thenReturn(Stream.of());
+    when(subscriptionRepo.findByOrgId("stale-capacity")).thenReturn(Stream.of());
     SubscriptionCapacity staleCapacity = new SubscriptionCapacity();
     staleCapacity.setSku("denied");
-    when(capacityRepo.findByKeyOwnerId("stale-capacity")).thenReturn(Stream.of(staleCapacity));
+    when(capacityRepo.findByKeyOrgId("stale-capacity")).thenReturn(Stream.of(staleCapacity));
     controller.pruneUnlistedSubscriptions("stale-capacity");
-    verify(subscriptionRepo).findByOwnerId("stale-capacity");
-    verify(capacityRepo).findByKeyOwnerId("stale-capacity");
+    verify(subscriptionRepo).findByOrgId("stale-capacity");
+    verify(capacityRepo).findByKeyOrgId("stale-capacity");
     verify(capacityRepo).delete(staleCapacity);
     verifyNoMoreInteractions(subscriptionRepo);
   }
@@ -117,11 +117,11 @@ class SubscriptionPruneControllerTest {
   void testPruneRemovesDelistedSubscription() {
     Subscription staleSub = new Subscription();
     staleSub.setSku("denied");
-    when(subscriptionRepo.findByOwnerId("stale-sub")).thenReturn(Stream.of(staleSub));
-    when(capacityRepo.findByKeyOwnerId("stale-sub")).thenReturn(Stream.of());
+    when(subscriptionRepo.findByOrgId("stale-sub")).thenReturn(Stream.of(staleSub));
+    when(capacityRepo.findByKeyOrgId("stale-sub")).thenReturn(Stream.of());
     controller.pruneUnlistedSubscriptions("stale-sub");
-    verify(subscriptionRepo).findByOwnerId("stale-sub");
-    verify(capacityRepo).findByKeyOwnerId("stale-sub");
+    verify(subscriptionRepo).findByOrgId("stale-sub");
+    verify(capacityRepo).findByKeyOrgId("stale-sub");
     verify(subscriptionRepo).delete(staleSub);
     verifyNoMoreInteractions(capacityRepo);
   }

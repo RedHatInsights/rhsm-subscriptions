@@ -35,7 +35,7 @@ import org.springframework.security.test.context.support.WithSecurityContext;
 public @interface WithMockRedHatPrincipal {
 
   /**
-   * Set account and ownerId to account$value and owner$value respectively.
+   * Set account and orgId to account$value and owner$value respectively.
    *
    * @return
    */

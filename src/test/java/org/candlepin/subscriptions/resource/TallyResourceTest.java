@@ -106,7 +106,7 @@ class TallyResourceTest {
 
     Mockito.when(
             repository.findSnapshot(
-                Mockito.eq("account123456"),
+                Mockito.eq("owner123456"),
                 Mockito.eq(RHEL_PRODUCT_ID.toString()),
                 Mockito.eq(Granularity.DAILY),
                 Mockito.eq(ServiceLevel._ANY),
@@ -134,7 +134,7 @@ class TallyResourceTest {
     Pageable expectedPageable = PageRequest.of(1, 10);
     Mockito.verify(repository)
         .findSnapshot(
-            "account123456",
+            "owner123456",
             RHEL_PRODUCT_ID.toString(),
             Granularity.DAILY,
             ServiceLevel._ANY,
@@ -178,7 +178,7 @@ class TallyResourceTest {
 
     Mockito.when(
             repository.findSnapshot(
-                Mockito.eq("account123456"),
+                Mockito.eq("owner123456"),
                 Mockito.eq(RHEL_PRODUCT_ID.toString()),
                 Mockito.eq(Granularity.DAILY),
                 Mockito.eq(ServiceLevel.PREMIUM),
@@ -205,7 +205,7 @@ class TallyResourceTest {
     Pageable expectedPageable = PageRequest.of(1, 10);
     Mockito.verify(repository)
         .findSnapshot(
-            "account123456",
+            "owner123456",
             RHEL_PRODUCT_ID.toString(),
             Granularity.DAILY,
             ServiceLevel.PREMIUM,
@@ -233,7 +233,7 @@ class TallyResourceTest {
 
     Mockito.when(
             repository.findSnapshot(
-                Mockito.eq("account123456"),
+                Mockito.eq("owner123456"),
                 Mockito.eq(RHEL_PRODUCT_ID.toString()),
                 Mockito.eq(Granularity.DAILY),
                 Mockito.eq(ServiceLevel.EMPTY),
@@ -261,7 +261,7 @@ class TallyResourceTest {
     Pageable expectedPageable = PageRequest.of(1, 10);
     Mockito.verify(repository)
         .findSnapshot(
-            "account123456",
+            "owner123456",
             RHEL_PRODUCT_ID.toString(),
             Granularity.DAILY,
             ServiceLevel.EMPTY,
@@ -288,7 +288,7 @@ class TallyResourceTest {
 
     Mockito.when(
             repository.findSnapshot(
-                Mockito.eq("account123456"),
+                Mockito.eq("owner123456"),
                 Mockito.eq(RHEL_PRODUCT_ID.toString()),
                 Mockito.eq(Granularity.DAILY),
                 Mockito.eq(ServiceLevel.PREMIUM),
@@ -316,7 +316,7 @@ class TallyResourceTest {
     Pageable expectedPageable = PageRequest.of(1, 10);
     Mockito.verify(repository)
         .findSnapshot(
-            "account123456",
+            "owner123456",
             RHEL_PRODUCT_ID.toString(),
             Granularity.DAILY,
             ServiceLevel.PREMIUM,
@@ -343,7 +343,7 @@ class TallyResourceTest {
 
     Mockito.when(
             repository.findSnapshot(
-                Mockito.eq("account123456"),
+                Mockito.eq("owner123456"),
                 Mockito.eq(RHEL_PRODUCT_ID.toString()),
                 Mockito.eq(Granularity.DAILY),
                 Mockito.eq(ServiceLevel.PREMIUM),
@@ -371,7 +371,7 @@ class TallyResourceTest {
     Pageable expectedPageable = PageRequest.of(1, 10);
     Mockito.verify(repository)
         .findSnapshot(
-            "account123456",
+            "owner123456",
             RHEL_PRODUCT_ID.toString(),
             Granularity.DAILY,
             ServiceLevel.PREMIUM,
@@ -409,7 +409,7 @@ class TallyResourceTest {
 
     Mockito.when(
             repository.findSnapshot(
-                "account123456",
+                "owner123456",
                 ProductId.OPENSHIFT_DEDICATED_METRICS.toString(),
                 Granularity.DAILY,
                 ServiceLevel.PREMIUM,
@@ -455,7 +455,7 @@ class TallyResourceTest {
 
     Mockito.when(
             repository.findSnapshot(
-                Mockito.eq("account123456"),
+                Mockito.eq("owner123456"),
                 Mockito.eq(RHEL_PRODUCT_ID.toString()),
                 Mockito.eq(Granularity.DAILY),
                 Mockito.eq(ServiceLevel.PREMIUM),
@@ -483,7 +483,7 @@ class TallyResourceTest {
     Pageable expectedPageable = PageRequest.of(1, 10);
     Mockito.verify(repository)
         .findSnapshot(
-            "account123456",
+            "owner123456",
             RHEL_PRODUCT_ID.toString(),
             Granularity.DAILY,
             ServiceLevel.PREMIUM,
@@ -502,7 +502,7 @@ class TallyResourceTest {
 
     Mockito.when(
             repository.findSnapshot(
-                Mockito.eq("account123456"),
+                Mockito.eq("owner123456"),
                 Mockito.eq(RHEL_PRODUCT_ID.toString()),
                 Mockito.eq(Granularity.DAILY),
                 Mockito.eq(ServiceLevel.PREMIUM),
@@ -531,7 +531,7 @@ class TallyResourceTest {
     Pageable expectedPageable = PageRequest.of(1, 10);
     Mockito.verify(repository)
         .findSnapshot(
-            "account123456",
+            "owner123456",
             RHEL_PRODUCT_ID.toString(),
             Granularity.DAILY,
             ServiceLevel.PREMIUM,
@@ -566,7 +566,7 @@ class TallyResourceTest {
   void reportDataShouldGetFilledWhenPagingParametersAreNotPassed() {
     Mockito.when(
             repository.findSnapshot(
-                "account123456",
+                "owner123456",
                 RHEL_PRODUCT_ID.toString(),
                 Granularity.DAILY,
                 ServiceLevel._ANY,
@@ -612,7 +612,7 @@ class TallyResourceTest {
   void canReportWithOnlyReportingRole() {
     Mockito.when(
             repository.findSnapshot(
-                "account123456",
+                "owner123456",
                 RHEL_PRODUCT_ID.toString(),
                 Granularity.DAILY,
                 ServiceLevel._ANY,
@@ -658,6 +658,8 @@ class TallyResourceTest {
   void testTallyReportDataTotalUsingHardwareMeasurements() {
     TallySnapshot snapshot = new TallySnapshot();
     snapshot.setAccountNumber("account123");
+    snapshot.setOrgId("org123");
+    ;
     snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
     snapshot.setMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES, 4.0);
     when(repository.findSnapshot(

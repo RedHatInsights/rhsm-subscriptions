@@ -40,8 +40,8 @@ import lombok.Setter;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class SubscriptionCapacityKey implements Serializable {
 
-  @Column(name = "owner_id")
-  private String ownerId;
+  @Column(name = "org_id")
+  private String orgId;
 
   @Column(name = "product_id")
   private String productId;
@@ -51,7 +51,7 @@ public class SubscriptionCapacityKey implements Serializable {
 
   @Override
   public int hashCode() {
-    return Objects.hash(ownerId, productId, subscriptionId);
+    return Objects.hash(orgId, productId, subscriptionId);
   }
 
   @Override
@@ -63,7 +63,7 @@ public class SubscriptionCapacityKey implements Serializable {
       return false;
     }
     SubscriptionCapacityKey other = (SubscriptionCapacityKey) obj;
-    return Objects.equals(getOwnerId(), other.getOwnerId())
+    return Objects.equals(getOrgId(), other.getOrgId())
         && Objects.equals(getProductId(), other.getProductId())
         && Objects.equals(getSubscriptionId(), other.getSubscriptionId());
   }

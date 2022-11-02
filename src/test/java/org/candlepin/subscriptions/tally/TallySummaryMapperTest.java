@@ -129,7 +129,7 @@ class TallySummaryMapperTest {
 
     return TallySnapshot.builder()
         .accountNumber(account)
-        .ownerId(orgId)
+        .orgId(orgId)
         .productId(productId)
         .snapshotDate(OffsetDateTime.now())
         .tallyMeasurements(measurements)

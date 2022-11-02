@@ -1499,6 +1499,8 @@ components:
           type: integer
           format: int32
           minimum: 0
+        has_infinite_quantity:
+          type: boolean
     HostReportSort:
       type: string
       enum:

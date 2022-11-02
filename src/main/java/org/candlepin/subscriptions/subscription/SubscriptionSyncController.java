@@ -145,7 +145,7 @@ public class SubscriptionSyncController {
           "Sku {} not on allowlist, skipping subscription sync for subscriptionId: {} in org: {} ",
           sku,
           newOrUpdated.getSubscriptionId(),
-          newOrUpdated.getOwnerId());
+          newOrUpdated.getOrgId());
       return;
     }
 
@@ -156,7 +156,7 @@ public class SubscriptionSyncController {
           "Sku={} not in Offering repository, skipping subscription sync for subscriptionId={} in org={}",
           sku,
           newOrUpdated.getSubscriptionId(),
-          newOrUpdated.getOwnerId());
+          newOrUpdated.getOrgId());
       return;
     }
 
@@ -169,7 +169,7 @@ public class SubscriptionSyncController {
       log.warn(
           "Subscription not found in subscription service; unable to save subscriptionNumber={} for orgId={} without a subscription ID",
           newOrUpdated.getSubscriptionNumber(),
-          newOrUpdated.getOwnerId());
+          newOrUpdated.getOrgId());
       return;
     }
     log.debug("New subscription that will need to be saved={}", newOrUpdated);
@@ -190,7 +190,7 @@ public class SubscriptionSyncController {
             org.candlepin.subscriptions.db.model.Subscription.builder()
                 .subscriptionId(existingSubscription.getSubscriptionId())
                 .sku(existingSubscription.getSku())
-                .ownerId(existingSubscription.getOwnerId())
+                .orgId(existingSubscription.getOrgId())
                 .accountNumber(existingSubscription.getAccountNumber())
                 .quantity(newOrUpdated.getQuantity())
                 .startDate(OffsetDateTime.now())
@@ -370,7 +370,7 @@ public class SubscriptionSyncController {
         .subscriptionId(String.valueOf(subscription.getId()))
         .subscriptionNumber(subscription.getSubscriptionNumber())
         .sku(SubscriptionDtoUtil.extractSku(subscription))
-        .ownerId(subscription.getWebCustomerId().toString())
+        .orgId(subscription.getWebCustomerId().toString())
         .accountNumber(String.valueOf(subscription.getOracleAccountNumber()))
         .quantity(subscription.getQuantity())
         .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))
@@ -387,7 +387,7 @@ public class SubscriptionSyncController {
         // NOTE: UMB messages don't include subscriptionId
         .subscriptionNumber(subscription.getSubscriptionNumber())
         .sku(subscription.getSku())
-        .ownerId(subscription.getWebCustomerId())
+        .orgId(subscription.getWebCustomerId())
         .accountNumber(String.valueOf(subscription.getEbsAccountNumber()))
         .quantity(subscription.getQuantity())
         .startDate(subscription.getEffectiveStartDateInUtc())
@@ -407,7 +407,7 @@ public class SubscriptionSyncController {
     entity.setBillingAccountId(newOrUpdated.getBillingAccountId());
     entity.setBillingProviderId(newOrUpdated.getBillingProviderId());
     entity.setAccountNumber(newOrUpdated.getAccountNumber());
-    entity.setOwnerId(newOrUpdated.getOwnerId());
+    entity.setOrgId(newOrUpdated.getOrgId());
   }
 
   public void saveSubscriptions(String subscriptionsJson, boolean reconcileCapacity) {
@@ -523,9 +523,7 @@ public class SubscriptionSyncController {
 
   private Stream<org.candlepin.subscriptions.db.model.Subscription> getActiveSubscriptionsForOrg(
       String orgId) {
-    return subscriptionRepository
-        .findByOwnerIdAndEndDateAfter(orgId, OffsetDateTime.now())
-        .stream();
+    return subscriptionRepository.findByOrgIdAndEndDateAfter(orgId, OffsetDateTime.now()).stream();
   }
 
   @Transactional

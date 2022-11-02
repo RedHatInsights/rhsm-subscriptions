@@ -51,23 +51,23 @@ public class AccountResetJmxBean {
   @Transactional
   @ManagedOperation(
       description =
-          "Clear tallies, hosts, and events for a given account number.  Enabled via ENABLE_ACCOUNT_RESET environment variable.  Intended only for non-prod environments.")
-  @ManagedOperationParameter(name = "accountNumber", description = "Account number")
-  public String deleteDataAssociatedWithAccount(String accountNumber) {
+          "Clear tallies, hosts, and events for a given org ID.  Enabled via ENABLE_ACCOUNT_RESET environment variable.  Intended only for non-prod environments.")
+  @ManagedOperationParameter(name = "orgId", description = "Organization ID")
+  public String deleteDataAssociatedWithOrg(String orgId) {
     if (!properties.isResetAccountEnabled() && !properties.isDevMode()) {
       log.error(FEATURE_NOT_ENABLED_MESSSAGE);
       throw new JmxException(FEATURE_NOT_ENABLED_MESSSAGE);
     }
 
-    log.info("Received request to delete all data associated with account {}", accountNumber);
+    log.info("Received request to delete all data associated with orgId {}", orgId);
 
     try {
-      accountResetService.deleteDataForAccount(accountNumber);
+      accountResetService.deleteDataForOrg(orgId);
     } catch (Exception e) {
-      throw new JmxException("Unable to delete data for account " + accountNumber, e);
+      throw new JmxException("Unable to delete data for organization " + orgId, e);
     }
 
-    var successMessage = "Finished deleting data associated with account " + accountNumber;
+    var successMessage = "Finished deleting data associated with organization " + orgId;
 
     log.info(successMessage);
 

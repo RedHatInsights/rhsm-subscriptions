@@ -587,7 +587,7 @@ class SubscriptionTableControllerOnDemandTest {
 
     public Subscription createSubscription(Org org, ProductId productId) {
       return Subscription.builder()
-          .ownerId(org.orgId())
+          .orgId(org.orgId())
           .subscriptionId(sub.id)
           .quantity(sub.quantity)
           .subscriptionNumber(sub.number)

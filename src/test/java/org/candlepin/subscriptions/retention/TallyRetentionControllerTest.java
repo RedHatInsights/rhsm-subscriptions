@@ -27,7 +27,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
-import org.candlepin.subscriptions.db.AccountListSource;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.junit.jupiter.api.Test;
@@ -49,7 +49,7 @@ class TallyRetentionControllerTest {
 
   @MockBean private TallyRetentionPolicy policy;
   @MockBean private TallySnapshotRepository repository;
-  @MockBean private AccountListSource accountListSource;
+  @MockBean private AccountConfigRepository accountConfigRepository;
 
   @Autowired private TallyRetentionController controller;
 
@@ -57,17 +57,16 @@ class TallyRetentionControllerTest {
   void retentionControllerShouldRemoveSnapshotsForGranularitiesConfigured() throws Exception {
     OffsetDateTime cutoff = OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
     when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(cutoff);
-    controller.cleanStaleSnapshotsForAccount("123456");
+    controller.cleanStaleSnapshotsForOrgId("123456");
     verify(repository)
-        .deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(
-            "123456", Granularity.DAILY, cutoff);
+        .deleteAllByOrgIdAndGranularityAndSnapshotDateBefore("123456", Granularity.DAILY, cutoff);
     verifyNoMoreInteractions(repository);
   }
 
   @Test
   void retentionControllerShouldIgnoreGranularityWithoutCutoff() throws Exception {
     when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(null);
-    controller.cleanStaleSnapshotsForAccount("123456");
+    controller.cleanStaleSnapshotsForOrgId("123456");
     verifyNoInteractions(repository);
   }
 
@@ -77,12 +76,12 @@ class TallyRetentionControllerTest {
     when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(cutoff);
 
     List<String> testList = Arrays.asList("1", "2", "3", "4");
-    when(accountListSource.purgeReportAccounts()).thenReturn(testList.stream());
+    when(accountConfigRepository.findSyncEnabledOrgs()).thenReturn(testList.stream());
 
     controller.purgeSnapshots();
 
     verify(repository, times(4))
-        .deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(
+        .deleteAllByOrgIdAndGranularityAndSnapshotDateBefore(
             anyString(), eq(Granularity.DAILY), eq(cutoff));
   }
 }

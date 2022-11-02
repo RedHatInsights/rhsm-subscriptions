@@ -43,6 +43,6 @@ public class AllowlistedAccountReportAccessService {
 
   public boolean providesAccessTo(Authentication auth) {
     InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
-    return accountConfigRepository.existsByOrgId(principal.getOwnerId());
+    return accountConfigRepository.existsByOrgId(principal.getOrgId());
   }
 }

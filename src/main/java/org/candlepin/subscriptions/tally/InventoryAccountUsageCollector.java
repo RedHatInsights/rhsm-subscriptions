@@ -118,20 +118,20 @@ public class InventoryAccountUsageCollector {
           AccountUsageCalculation accountCalc = calcsByAccount.get(account);
           NormalizedFacts facts = factNormalizer.normalize(hostFacts, hypMapping);
 
-          // Validate and set the owner.
-          // Don't set null owner as it may overwrite an existing value.
+          // Validate and set the orgId.
+          // Don't set null orgId as it may overwrite an existing value.
           // Likely won't happen, but there could be stale data in inventory
           // with no owner set.
           String owner = facts.getOwner();
           if (owner != null) {
-            String currentOwner = accountCalc.getOwner();
+            String currentOwner = accountCalc.getOrgId();
             if (currentOwner != null && !currentOwner.equalsIgnoreCase(owner)) {
               throw new IllegalStateException(
                   String.format(
                       "Attempt to set a different owner for an account: %s:%s",
                       currentOwner, owner));
             }
-            accountCalc.setOwner(owner);
+            accountCalc.setOrgId(owner);
           }
 
           Host existingHost = inventoryHostMap.remove(hostFacts.getInventoryId().toString());

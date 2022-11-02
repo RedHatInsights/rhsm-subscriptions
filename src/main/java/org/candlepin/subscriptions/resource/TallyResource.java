@@ -117,7 +117,7 @@ public class TallyResource implements TallyApi {
 
     Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage =
         repository.findSnapshot(
-            reportCriteria.getAccountNumber(),
+            reportCriteria.getOrgId(),
             reportCriteria.getProductId(),
             reportCriteria.getGranularity(),
             reportCriteria.getServiceLevel(),
@@ -281,7 +281,7 @@ public class TallyResource implements TallyApi {
       throw new BadRequestException(e.getMessage());
     }
     return ReportCriteria.builder()
-        .accountNumber(ResourceUtils.getAccountNumber())
+        .orgId(ResourceUtils.getOrgId())
         .productId(productId.toString())
         .metricId(Optional.ofNullable(metricId).map(MetricId::toString).orElse(null))
         .granularity(granularityFromValue)
@@ -354,7 +354,7 @@ public class TallyResource implements TallyApi {
 
     Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage =
         repository.findSnapshot(
-            reportCriteria.getAccountNumber(),
+            reportCriteria.getOrgId(),
             reportCriteria.getProductId(),
             reportCriteria.getGranularity(),
             reportCriteria.getServiceLevel(),

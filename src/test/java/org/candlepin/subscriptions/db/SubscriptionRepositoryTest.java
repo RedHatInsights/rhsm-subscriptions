@@ -62,7 +62,7 @@ class SubscriptionRepositoryTest {
     // we'll have to check fields
     assertEquals(subscription.getSubscriptionId(), retrieved.getSubscriptionId());
     assertEquals(subscription.getSku(), retrieved.getSku());
-    assertEquals(subscription.getOwnerId(), retrieved.getOwnerId());
+    assertEquals(subscription.getOrgId(), retrieved.getOrgId());
     assertEquals(subscription.getQuantity(), retrieved.getQuantity());
     assertTrue(
         Duration.between(subscription.getStartDate(), retrieved.getStartDate()).abs().getSeconds()
@@ -289,7 +289,7 @@ class SubscriptionRepositoryTest {
     Subscription subscription = new Subscription();
     subscription.setBillingProviderId("bananas");
     subscription.setSubscriptionId(subId);
-    subscription.setOwnerId(orgId);
+    subscription.setOrgId(orgId);
     subscription.setAccountNumber(accountNumber);
     subscription.setQuantity(4L);
     subscription.setSku(sku);

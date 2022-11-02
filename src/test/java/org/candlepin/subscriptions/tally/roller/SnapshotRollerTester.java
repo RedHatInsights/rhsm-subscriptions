@@ -78,7 +78,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     List<TallySnapshot> currentSnaps =
         repository
             .findSnapshot(
-                account,
+                a1Calc.getOrgId(),
                 getTestProduct(),
                 granularity,
                 ServiceLevel.EMPTY,
@@ -101,12 +101,13 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
       OffsetDateTime endOfGranularPeriod) {
     AccountUsageCalculation a1Calc = createTestData();
     String account = a1Calc.getAccount();
+    String orgId = a1Calc.getOrgId();
     roller.rollSnapshots(account, Arrays.asList(a1Calc));
 
     List<TallySnapshot> currentSnaps =
         repository
             .findSnapshot(
-                account,
+                orgId,
                 getTestProduct(),
                 granularity,
                 ServiceLevel.EMPTY,
@@ -131,7 +132,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     List<TallySnapshot> updatedSnaps =
         repository
             .findSnapshot(
-                account,
+                orgId,
                 getTestProduct(),
                 granularity,
                 ServiceLevel.EMPTY,
@@ -165,10 +166,11 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     int highInstances = 10;
 
     String account = "A1";
+    String orgId = "01";
     AccountUsageCalculation a1HighCalc =
-        createAccountCalc(account, "O1", getTestProduct(), highCores, highSockets, highInstances);
+        createAccountCalc(account, orgId, getTestProduct(), highCores, highSockets, highInstances);
     AccountUsageCalculation a1LowCalc =
-        createAccountCalc(account, "O1", getTestProduct(), lowCores, lowSockets, lowInstances);
+        createAccountCalc(account, orgId, getTestProduct(), lowCores, lowSockets, lowInstances);
 
     AccountUsageCalculation expectedCalc = expectMaxAccepted ? a1HighCalc : a1LowCalc;
 
@@ -178,7 +180,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     List<TallySnapshot> currentSnaps =
         repository
             .findSnapshot(
-                "A1",
+                orgId,
                 getTestProduct(),
                 granularity,
                 ServiceLevel.EMPTY,
@@ -202,7 +204,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     List<TallySnapshot> updatedSnaps =
         repository
             .findSnapshot(
-                account,
+                orgId,
                 getTestProduct(),
                 granularity,
                 ServiceLevel.EMPTY,
@@ -258,9 +260,11 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
     AccountUsageCalculation a1Calc = createTestData();
     String account = a1Calc.getAccount();
+    String orgId = a1Calc.getOrgId();
 
     TallySnapshot orig = new TallySnapshot();
     orig.setAccountNumber("my_account");
+    orig.setOrgId(orgId);
     orig.setServiceLevel(ServiceLevel.EMPTY);
     orig.setUsage(Usage.EMPTY);
     orig.setBillingProvider(BillingProvider.EMPTY);
@@ -271,6 +275,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
     TallySnapshot dupe = new TallySnapshot();
     dupe.setAccountNumber("my_account");
+    dupe.setOrgId(orgId);
     dupe.setServiceLevel(ServiceLevel.EMPTY);
     dupe.setUsage(Usage.EMPTY);
     dupe.setBillingProvider(BillingProvider.EMPTY);
@@ -284,7 +289,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     List<TallySnapshot> currentSnaps =
         repository
             .findSnapshot(
-                account,
+                orgId,
                 getTestProduct(),
                 granularity,
                 ServiceLevel.EMPTY,
@@ -306,7 +311,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     List<TallySnapshot> updatedSnaps =
         repository
             .findSnapshot(
-                account,
+                orgId,
                 getTestProduct(),
                 granularity,
                 ServiceLevel.EMPTY,
@@ -332,7 +337,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
   private AccountUsageCalculation createAccountCalc(
       String account,
-      String owner,
+      String orgId,
       String product,
       int totalCores,
       int totalSockets,
@@ -351,7 +356,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
             });
 
     AccountUsageCalculation calc = new AccountUsageCalculation(account);
-    calc.setOwner(owner);
+    calc.setOrgId(orgId);
     calc.addCalculation(productCalc);
 
     return calc;

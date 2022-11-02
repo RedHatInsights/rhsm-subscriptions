@@ -47,7 +47,7 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
   @Query(
       value =
           "SELECT distinct t FROM TallySnapshot t left join fetch t.tallyMeasurements where "
-              + "t.accountNumber = :accountNumber and "
+              + "t.orgId = :orgId and "
               + "t.productId = :productId and "
               + "t.granularity = :granularity  and "
               + "t.serviceLevel = :serviceLevel and "
@@ -58,7 +58,7 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
               + "order by t.snapshotDate",
       countQuery =
           "SELECT count(t) FROM TallySnapshot t where "
-              + "t.accountNumber = :accountNumber and "
+              + "t.orgId = :orgId and "
               + "t.productId = :productId and "
               + "t.granularity = :granularity  and "
               + "t.serviceLevel = :serviceLevel and "
@@ -67,7 +67,7 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
               + "t.billingAccountId = :billingAcctId and "
               + "t.snapshotDate between :beginning and :ending ")
   Page<TallySnapshot> findSnapshot( // NOSONAR
-      @Param("accountNumber") String accountNumber,
+      @Param("orgId") String orgId,
       @Param("productId") String productId,
       @Param("granularity") Granularity granularity,
       @Param("serviceLevel") ServiceLevel serviceLevel,
@@ -79,8 +79,8 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
       @Param("pageable") Pageable pageable);
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  void deleteAllByAccountNumberAndGranularityAndSnapshotDateBefore(
-      String accountNumber, Granularity granularity, OffsetDateTime cutoffDate);
+  void deleteAllByOrgIdAndGranularityAndSnapshotDateBefore(
+      String orgId, Granularity granularity, OffsetDateTime cutoffDate);
 
   @Query(
       value =
@@ -103,7 +103,7 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
       OffsetDateTime beginning,
       OffsetDateTime ending);
 
-  void deleteByAccountNumber(String accountNumber);
+  void deleteByOrgId(String orgId);
 
   @SuppressWarnings("java:S107") // repository method has a lot of params, deal with it
   @Query(
