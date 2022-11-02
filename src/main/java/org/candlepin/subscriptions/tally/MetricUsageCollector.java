@@ -79,11 +79,12 @@ public class MetricUsageCollector {
     }
 
     if (!eventController.hasEventsInTimeRange(
-        accountNumber, serviceType, range.getStartDate(), range.getEndDate())) {
+        orgId, serviceType, range.getStartDate(), range.getEndDate())) {
       log.info("No event metrics to process for service type {} in range: {}", serviceType, range);
       return null;
     }
 
+    log.info("Event exists for org {} of service type {} in range: {}", orgId, serviceType, range);
     /* load the latest accountServiceInventory state, so we can update host records conveniently */
     AccountServiceInventory accountServiceInventory =
         accountServiceInventoryRepository

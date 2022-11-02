@@ -87,10 +87,10 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
   void deleteEventRecordsByTimestampBefore(OffsetDateTime cutoffDate);
 
   /**
-   * Check if any Events exist for the specified account and service type during the specified
+   * Check if any Events exist for the specified org and service type during the specified
    * range.
    *
-   * @param accountNumber
+   * @param orgId
    * @param serviceType
    * @param begin
    * @param end
@@ -99,9 +99,9 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
   @Query(
       nativeQuery = true,
       value =
-          "select exists(select 1 from events where account_number=:accountNumber and data->>'service_type'=:serviceType and timestamp >= :begin and timestamp < :end order by timestamp)")
-  boolean existsByAccountNumberAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThan(
-      @Param("accountNumber") String accountNumber,
+          "select exists(select 1 from events where org_id=:orgId and data->>'service_type'=:serviceType and timestamp >= :begin and timestamp < :end order by timestamp)")
+  boolean existsByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThan(
+      @Param("orgId") String orgId,
       @Param("serviceType") String serviceType,
       @Param("begin") OffsetDateTime begin,
       @Param("end") OffsetDateTime end);

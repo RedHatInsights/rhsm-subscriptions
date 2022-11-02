@@ -140,11 +140,11 @@ public class TallyJmxBean {
   @ManagedOperationParameter(
       name = "start",
       description =
-          "The start date for the tally (e.g. 22-05-03T10:00:00Z). Must be specified along with the end parameter.")
+          "The start date for the tally (e.g. 2022-05-03T10:00:00Z). Must be specified along with the end parameter.")
   @ManagedOperationParameter(
       name = "end",
       description =
-          "The end date for the tally (e.g. 22-05-03T16:00:00Z). Must be specified along with the start parameter.")
+          "The end date for the tally (e.g. 2022-05-03T16:00:00Z). Must be specified along with the start parameter.")
   public void tallyAllAccountsByHourly(String start, String end) throws IllegalArgumentException {
 
     DateRange range = null;

@@ -132,8 +132,8 @@ public class EventController {
 
   @Transactional
   public boolean hasEventsInTimeRange(
-      String accountNumber, String serviceType, OffsetDateTime startDate, OffsetDateTime endDate) {
-    return repo.existsByAccountNumberAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThan(
-        accountNumber, serviceType, startDate, endDate);
+      String orgId, String serviceType, OffsetDateTime startDate, OffsetDateTime endDate) {
+    return repo.existsByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThan(
+        orgId, serviceType, startDate, endDate);
   }
 }
