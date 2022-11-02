@@ -64,19 +64,14 @@ objects:
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
 
-    database:
-      sharedDbAppName: swatch-tally
-    dependencies:
-      - swatch-tally
-
     spec:
       envName: ${ENV_NAME}
-      # Can't have this checked in like this, because stage gets upset since there
-      # is no rhsm ClowdApp deployed to the rhsm-stage namespace
-      # database:
-      #   sharedDbAppName: rhsm
-      # dependencies:
-      #   - rhsm
+
+      database:
+        sharedDbAppName: swatch-tally
+      dependencies:
+        - swatch-tally
+
       deployments:
         - name: service
           replicas: ${{REPLICAS}}
