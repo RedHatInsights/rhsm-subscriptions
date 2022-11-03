@@ -249,10 +249,7 @@ public class PrometheusMeteringController {
       return optInController.optInByOrgId(orgId, OptInType.PROMETHEUS);
     } catch (Exception e) {
       log.warn("Error while attempting to automatically opt-in orgId={}", orgId);
-      // Keep the logs clean unless specified.
-      if (log.isDebugEnabled()) {
-        log.debug("Opt-in error for orgId={}.", orgId, e);
-      }
+      log.debug("Opt-in error for orgId=" + orgId, e);
     }
     return null;
   }
