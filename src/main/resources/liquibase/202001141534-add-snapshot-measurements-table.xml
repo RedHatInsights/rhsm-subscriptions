@@ -38,10 +38,6 @@
         </addColumn>
     </changeSet>
 
-    <changeSet id="202001141534-4" author="awood">
-        <customChange class="org.candlepin.subscriptions.liquibase.MigrateTallyColumnsTask"/>
-    </changeSet>
-
     <changeSet id="202001141534-5" author="awood" dbms="postgresql">
         <createProcedure>
             CREATE FUNCTION copy_measurement() RETURNS trigger AS $$
