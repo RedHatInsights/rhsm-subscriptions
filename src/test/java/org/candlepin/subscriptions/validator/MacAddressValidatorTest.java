@@ -47,6 +47,8 @@ class MacAddressValidatorTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
+        "0.0.0.0",
+        "192.168.0.10",
         "01:23:45-67:89:aB", // Mixed delimiters
         "xx:23:45:67:89:aB",
         "I am not a mac address"

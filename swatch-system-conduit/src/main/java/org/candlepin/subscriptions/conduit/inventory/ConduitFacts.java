@@ -24,11 +24,11 @@ import java.util.List;
 import java.util.Objects;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Positive;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiNetworkInterface;
 import org.candlepin.subscriptions.utilization.api.model.ConsumerInventory;
 import org.candlepin.subscriptions.validator.IpAddress;
+import org.candlepin.subscriptions.validator.MacAddress;
 import org.hibernate.validator.constraints.Length;
 
 /** POJO that validates all facts scoped for collection by the conduit. */
@@ -62,12 +62,9 @@ public class ConduitFacts extends ConsumerInventory {
     return super.getIpAddresses();
   }
 
-  // See https://stackoverflow.com/a/4260512/6124862
-  // Also a soft validation.  A mixed delimiter MAC like a1:b2-c3:d4-e5:f6 will still validate
   @Valid
   @Override
-  public List<@Pattern(regexp = "^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$") String>
-      getMacAddresses() {
+  public List<@MacAddress String> getMacAddresses() {
     return super.getMacAddresses();
   }
 
