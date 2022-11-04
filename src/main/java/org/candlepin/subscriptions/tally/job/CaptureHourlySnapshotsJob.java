@@ -45,7 +45,7 @@ public class CaptureHourlySnapshotsJob implements Runnable {
   @Scheduled(cron = "${rhsm-subscriptions.jobs.capture-hourly-snapshot-schedule}")
   public void run() {
     try {
-      log.info("Hourly all org tally snapshot triggered by cron job");
+      log.info("Capture hourly snapshots for all orgs triggered by cron job");
       tasks.updateHourlySnapshotsForAllOrgs(Optional.empty());
     } catch (Exception e) {
       throw new JobFailureException("Failed to run CaptureHourlySnapshotsJob.", e);

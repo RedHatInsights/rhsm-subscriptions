@@ -119,7 +119,7 @@ public class TallyJmxBean {
               + "Should be top of the hour and expected to be in ISO 8601 format (e.g. 2020-08-02T14:00Z).")
   @ParameterDuration("@jmxProperties.tallyBean.hourlyTallyDurationLimitDays")
   public void tallyOrgByHourly(
-      String orgId, @NotNull String startDateTime, @NotNull String endDateTime) {
+      @NotNull String orgId, @NotNull String startDateTime, @NotNull String endDateTime) {
     log.info(
         "Hourly tally between {} and {} for orgId {} triggered over JMX by {}",
         startDateTime,
