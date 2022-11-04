@@ -27,8 +27,7 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
-      "id": 540,
-      "iteration": 1662728700464,
+      "iteration": 1667394379897,
       "links": [],
       "liveNow": false,
       "panels": [
@@ -86,8 +85,7 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green",
-                        "value": null
+                        "color": "green"
                       },
                       {
                         "color": "red",
@@ -651,6 +649,133 @@ data:
               "yaxis": {
                 "align": false
               }
+            },
+            {
+              "datasource": {
+                "type": "cloudwatch",
+                "uid": "${rdsdatasource}"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 0,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "max": 100,
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  }
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 0,
+                "y": 11
+              },
+              "id": 92,
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "single",
+                  "sort": "none"
+                }
+              },
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "cloudwatch",
+                    "uid": "${rdsdatasource}"
+                  },
+                  "dimensions": {
+                    "DBInstanceIdentifier": "rhsm-prod"
+                  },
+                  "expression": "",
+                  "id": "",
+                  "label": "",
+                  "matchExact": true,
+                  "metricEditorMode": 0,
+                  "metricName": "BurstBalance",
+                  "metricQueryType": 0,
+                  "namespace": "AWS/RDS",
+                  "period": "",
+                  "queryMode": "Metrics",
+                  "refId": "A",
+                  "region": "default",
+                  "sqlExpression": "",
+                  "statistic": "Average"
+                },
+                {
+                  "datasource": {
+                    "type": "cloudwatch",
+                    "uid": "${rdsdatasource}"
+                  },
+                  "dimensions": {
+                    "DBInstanceIdentifier": "rhsm-stage"
+                  },
+                  "expression": "",
+                  "hide": false,
+                  "id": "",
+                  "label": "",
+                  "matchExact": true,
+                  "metricEditorMode": 0,
+                  "metricName": "BurstBalance",
+                  "metricQueryType": 0,
+                  "namespace": "AWS/RDS",
+                  "period": "",
+                  "queryMode": "Metrics",
+                  "refId": "B",
+                  "region": "default",
+                  "sqlExpression": "",
+                  "statistic": "Average"
+                }
+              ],
+              "title": "BurstBalance %",
+              "type": "timeseries"
             }
           ],
           "title": "DB Stats",
@@ -681,8 +806,7 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green",
-                        "value": null
+                        "color": "green"
                       }
                     ]
                   }
@@ -3104,8 +3228,7 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green",
-                        "value": null
+                        "color": "green"
                       }
                     ]
                   },
@@ -3124,8 +3247,7 @@ data:
                           "mode": "absolute",
                           "steps": [
                             {
-                              "color": "green",
-                              "value": null
+                              "color": "green"
                             },
                             {
                               "color": "red",
@@ -3202,9 +3324,9 @@ data:
         "list": [
           {
             "current": {
-              "selected": false,
-              "text": "crcs02ue1-prometheus",
-              "value": "crcs02ue1-prometheus"
+              "selected": true,
+              "text": "crcp01ue1-prometheus",
+              "value": "crcp01ue1-prometheus"
             },
             "hide": 0,
             "includeAll": false,
@@ -3220,9 +3342,9 @@ data:
           },
           {
             "current": {
-              "selected": false,
-              "text": "AWS insights-stage",
-              "value": "AWS insights-stage"
+              "selected": true,
+              "text": "AWS insights-prod",
+              "value": "AWS insights-prod"
             },
             "hide": 0,
             "includeAll": false,
@@ -3270,7 +3392,7 @@ data:
       "timezone": "utc",
       "title": "Subscription Watch",
       "uid": "lkPhH-1Zk",
-      "version": 286092,
+      "version": 3,
       "weekStart": ""
     }
 kind: ConfigMap
