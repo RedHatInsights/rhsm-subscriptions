@@ -72,6 +72,17 @@ class UsageCalculationTest {
     UsageCalculation calculation = new UsageCalculation(createUsageKey("Product"));
     IntStream.rangeClosed(0, 4).forEach(i -> calculation.addHypervisor(i + 2, i + 1, i));
 
+    assertHardwareMeasurementTotals(calculation, HardwareMeasurementType.HYPERVISOR, 15, 20, 10);
+    assertHardwareMeasurementTotals(calculation, HardwareMeasurementType.TOTAL, 15, 20, 10);
+    assertNullExcept(
+        calculation, HardwareMeasurementType.TOTAL, HardwareMeasurementType.HYPERVISOR);
+  }
+
+  @Test
+  void testVirtualTotal() {
+    UsageCalculation calculation = new UsageCalculation(createUsageKey("Product"));
+    IntStream.rangeClosed(0, 4).forEach(i -> calculation.addUnmappedGuest(i + 2, i + 1, i));
+
     assertHardwareMeasurementTotals(calculation, HardwareMeasurementType.VIRTUAL, 15, 20, 10);
     assertHardwareMeasurementTotals(calculation, HardwareMeasurementType.TOTAL, 15, 20, 10);
     assertNullExcept(calculation, HardwareMeasurementType.TOTAL, HardwareMeasurementType.VIRTUAL);

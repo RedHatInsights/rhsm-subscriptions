@@ -25,6 +25,7 @@ import static org.candlepin.subscriptions.tally.collector.Assertions.assertHyper
 import static org.candlepin.subscriptions.tally.collector.Assertions.assertNullExcept;
 import static org.candlepin.subscriptions.tally.collector.Assertions.assertPhysicalTotalsCalculation;
 import static org.candlepin.subscriptions.tally.collector.Assertions.assertTotalsCalculation;
+import static org.candlepin.subscriptions.tally.collector.Assertions.assertVirtualTotalsCalculation;
 import static org.candlepin.subscriptions.tally.collector.TestHelper.cloudMachineFacts;
 import static org.candlepin.subscriptions.tally.collector.TestHelper.guestFacts;
 import static org.candlepin.subscriptions.tally.collector.TestHelper.hypervisorFacts;
@@ -58,6 +59,11 @@ class RHELProductUsageCollectorTest {
 
     // Expects no hypervisor totals in this case.
     assertNull(calc.getTotals(HardwareMeasurementType.VIRTUAL));
+    // Expects no virtual totals in this case.
+    assertNull(calc.getTotals(HardwareMeasurementType.HYPERVISOR));
+
+    collector.collectForHypervisor("foo", calc, facts);
+    assertHypervisorTotalsCalculation(calc, 4, 12, 1);
   }
 
   @Test
@@ -72,6 +78,7 @@ class RHELProductUsageCollectorTest {
     assertNull(calc.getTotals(HardwareMeasurementType.TOTAL));
     assertNull(calc.getTotals(HardwareMeasurementType.PHYSICAL));
     assertNull(calc.getTotals(HardwareMeasurementType.VIRTUAL));
+    assertNull(calc.getTotals(HardwareMeasurementType.HYPERVISOR));
   }
 
   @Test
@@ -82,10 +89,10 @@ class RHELProductUsageCollectorTest {
     collector.collect(calc, facts);
 
     // A guest with an unknown hypervisor contributes to the overall totals
-    // It is considered as having its own unique hypervisor and therefore
-    // contributes its own values to the hypervisor counts.
+    // It is counted as virtual
     assertTotalsCalculation(calc, 1, 12, 1);
-    assertHypervisorTotalsCalculation(calc, 1, 12, 1);
+    assertVirtualTotalsCalculation(calc, 1, 12, 1);
+    assertNull(calc.getTotals(HardwareMeasurementType.HYPERVISOR));
     assertNull(calc.getTotals(HardwareMeasurementType.PHYSICAL));
   }
 
@@ -99,6 +106,7 @@ class RHELProductUsageCollectorTest {
     assertTotalsCalculation(calc, 4, 12, 1);
     assertPhysicalTotalsCalculation(calc, 4, 12, 1);
     assertNull(calc.getTotals(HardwareMeasurementType.VIRTUAL));
+    assertNull(calc.getTotals(HardwareMeasurementType.HYPERVISOR));
   }
 
   @Test

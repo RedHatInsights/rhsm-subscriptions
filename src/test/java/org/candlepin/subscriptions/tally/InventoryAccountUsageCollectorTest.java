@@ -27,6 +27,7 @@ import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.crea
 import static org.candlepin.subscriptions.tally.collector.Assertions.assertHypervisorTotalsCalculation;
 import static org.candlepin.subscriptions.tally.collector.Assertions.assertPhysicalTotalsCalculation;
 import static org.candlepin.subscriptions.tally.collector.Assertions.assertTotalsCalculation;
+import static org.candlepin.subscriptions.tally.collector.Assertions.assertVirtualTotalsCalculation;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -133,7 +134,7 @@ class InventoryAccountUsageCollectorTest {
     // no guests running RHEL means no hypervisor total...
     assertNull(
         calc.getCalculation(createUsageKey(TEST_PRODUCT))
-            .getTotals(HardwareMeasurementType.VIRTUAL));
+            .getTotals(HardwareMeasurementType.HYPERVISOR));
     // hypervisor itself gets counted
     checkPhysicalTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
   }
@@ -178,10 +179,13 @@ class InventoryAccountUsageCollectorTest {
 
     AccountUsageCalculation calc = calcs.get(ACCOUNT);
     checkTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 1, 1);
-    checkHypervisorTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 1, 1);
+    checkVirtualTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 1, 1);
     assertNull(
         calc.getCalculation(createUsageKey(TEST_PRODUCT))
             .getTotals(HardwareMeasurementType.PHYSICAL));
+    assertNull(
+        calc.getCalculation(createUsageKey(TEST_PRODUCT))
+            .getTotals(HardwareMeasurementType.HYPERVISOR));
   }
 
   @Test
@@ -794,6 +798,23 @@ class InventoryAccountUsageCollectorTest {
     UsageCalculation prodCalc = calc.getCalculation(createUsageKey(product));
     assertEquals(product, prodCalc.getProductId());
     assertPhysicalTotalsCalculation(prodCalc, physicalSockets, physicalCores, physicalInstances);
+  }
+
+  private void checkVirtualTotalsCalculation(
+      AccountUsageCalculation calc,
+      String account,
+      String orgId,
+      String product,
+      int cores,
+      int sockets,
+      int instances) {
+    assertEquals(account, calc.getAccount());
+    assertEquals(orgId, calc.getOrgId());
+    assertTrue(calc.containsCalculation(createUsageKey(product)));
+
+    UsageCalculation prodCalc = calc.getCalculation(createUsageKey(product));
+    assertEquals(product, prodCalc.getProductId());
+    assertVirtualTotalsCalculation(prodCalc, sockets, cores, instances);
   }
 
   private void checkHypervisorTotalsCalculation(
