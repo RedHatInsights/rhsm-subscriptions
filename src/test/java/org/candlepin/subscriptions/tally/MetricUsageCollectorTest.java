@@ -546,6 +546,7 @@ class MetricUsageCollectorTest {
     metricUsageCollector.collect(
         SERVICE_TYPE,
         "account123",
+        "org123",
         new DateRange(instanceDate.minusHours(1), instanceDate.plusHours(1)));
     assertEquals(
         Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
@@ -597,6 +598,7 @@ class MetricUsageCollectorTest {
     metricUsageCollector.collect(
         SERVICE_TYPE,
         "account123",
+        "org123",
         new DateRange(instanceDate.minusHours(1), instanceDate.plusHours(1)));
     assertEquals(
         Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
@@ -608,7 +610,7 @@ class MetricUsageCollectorTest {
     DateRange range = new DateRange(clock.startOfCurrentHour(), clock.now());
     assertThrows(
         IllegalArgumentException.class,
-        () -> metricUsageCollector.collect(SERVICE_TYPE, "account123", range));
+        () -> metricUsageCollector.collect(SERVICE_TYPE, "account123", "org123", range));
   }
 
   @Test
@@ -657,6 +659,7 @@ class MetricUsageCollectorTest {
     metricUsageCollector.collect(
         SERVICE_TYPE,
         "account123",
+        "org123",
         new DateRange(
             clock.startOfCurrentHour().minusHours(1), clock.startOfCurrentHour().plusHours(1)));
     Mockito.verifyNoInteractions(accountRepo);

@@ -179,9 +179,9 @@ class CaptureSnapshotsTaskManagerTest {
    * @throws Exception
    */
   @Test
-  void testHourlySnapshotTallyOffset() throws Exception {
-    List<String> expectedAccounts = Arrays.asList("a1", "a2");
-    when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
+  void testHourlySnapshotTallyOffset() {
+    List<String> expectedOrgs = Arrays.asList("o1", "o2");
+    when(accountRepo.findSyncEnabledOrgs()).thenReturn(expectedOrgs.stream());
 
     Duration metricRange = appProperties.getMetricLookupRangeDuration();
     Duration prometheusLatencyDuration = appProperties.getPrometheusLatencyDuration();
@@ -193,15 +193,15 @@ class CaptureSnapshotsTaskManagerTest {
             prometheusLatencyDuration);
     OffsetDateTime startDateTime = endDateTime.minus(metricRange);
 
-    manager.updateHourlySnapshotsForAllAccounts(Optional.empty());
+    manager.updateHourlySnapshotsForAllOrgs(Optional.empty());
 
-    expectedAccounts.forEach(
-        accountNumber -> {
+    expectedOrgs.forEach(
+        orgId -> {
           verify(queue, times(1))
               .enqueue(
                   TaskDescriptor.builder(
                           TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic())
-                      .setSingleValuedArg("accountNumber", accountNumber)
+                      .setSingleValuedArg("orgId", orgId)
                       // 2019-05-24T12:35Z truncated to top of the hour - 1 hour tally range
                       .setSingleValuedArg("startDateTime", "2019-05-24T10:00:00Z")
                       .setSingleValuedArg("endDateTime", "2019-05-24T11:00:00Z")
@@ -211,21 +211,21 @@ class CaptureSnapshotsTaskManagerTest {
 
   @Test
   void testHourlySnapshotForAllAccountsForDateRange() throws Exception {
-    List<String> expectedAccounts = Arrays.asList("a1", "a2");
-    when(accountListSource.syncableAccounts()).thenReturn(expectedAccounts.stream());
+    List<String> expectedOrgs = Arrays.asList("o1", "o2");
+    when(accountRepo.findSyncEnabledOrgs()).thenReturn(expectedOrgs.stream());
 
     DateRange range =
         new DateRange(applicationClock.now().minusDays(10L), applicationClock.now().minusDays(5L));
 
-    manager.updateHourlySnapshotsForAllAccounts(Optional.of(range));
+    manager.updateHourlySnapshotsForAllOrgs(Optional.of(range));
 
-    expectedAccounts.forEach(
-        accountNumber -> {
+    expectedOrgs.forEach(
+        orgId -> {
           verify(queue, times(1))
               .enqueue(
                   TaskDescriptor.builder(
                           TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic())
-                      .setSingleValuedArg("accountNumber", accountNumber)
+                      .setSingleValuedArg("orgId", orgId)
                       // 10 days less than the test clock at the top of the hour.
                       .setSingleValuedArg("startDateTime", "2019-05-14T12:00:00Z")
                       // 5 days less than the test clock at the top of the hour.

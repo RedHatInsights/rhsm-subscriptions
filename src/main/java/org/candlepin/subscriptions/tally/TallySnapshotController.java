@@ -136,15 +136,22 @@ public class TallySnapshotController {
   // from within an existing DB transaction, an exception will be thrown.
   @Transactional(propagation = Propagation.NEVER)
   @Timed("rhsm-subscriptions.snapshots.single.hourly")
-  public void produceHourlySnapshotsForAccount(String accountNumber, DateRange snapshotRange) {
+  public void produceHourlySnapshotsForOrg(String orgId, DateRange snapshotRange) {
+    String accountNumber = accountRepo.findAccountNumberByOrgId(orgId);
+    if (Objects.isNull(accountNumber) || Objects.isNull(orgId)) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Incomplete opt-in configuration - account=%s orgId=%s", accountNumber, orgId));
+    }
+    log.info("Producing snapshots for Org ID {} with Account {}.", orgId, accountNumber);
     tagProfile
         .getServiceTypes()
         .forEach(
             serviceType -> {
               log.info(
-                  "Producing hourly snapshots for account {} for service type {} "
+                  "Producing hourly snapshots for orgId {} for service type {} "
                       + "between startDateTime {} and endDateTime {}",
-                  accountNumber,
+                  orgId,
                   serviceType,
                   snapshotRange.getStartString(),
                   snapshotRange.getEndString());
@@ -153,7 +160,7 @@ public class TallySnapshotController {
                     retryTemplate.execute(
                         context ->
                             metricUsageCollector.collect(
-                                serviceType, accountNumber, snapshotRange));
+                                serviceType, accountNumber, orgId, snapshotRange));
                 if (result == null) {
                   return;
                 }
@@ -172,11 +179,15 @@ public class TallySnapshotController {
                         Double::sum);
 
                 summaryProducer.produceTallySummaryMessages(totalSnapshots);
-                log.info("Finished producing hourly snapshots for account: {}", accountNumber);
+                log.info(
+                    "Finished producing hourly snapshots for account {} with orgId {}",
+                    accountNumber,
+                    orgId);
               } catch (Exception e) {
                 log.error(
-                    "Could not collect metrics and/or produce snapshots for account {}",
+                    "Could not collect metrics and/or produce snapshots for account {} with orgId {}",
                     accountNumber,
+                    orgId,
                     e);
               }
             });

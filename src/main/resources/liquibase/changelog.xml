@@ -85,6 +85,7 @@
     <include file="liquibase/202210101553-make-account-config-org-id-nullable.xml"/>
     <include file="liquibase/202210101642-drop-unused-opt-in-flags.xml"/>
     <include file="liquibase/202210211001-set-account-services-org-id.xml"/>
+    <include file="liquibase/202210251446-change-constraints-indexes-fields-to-events.xml"/>
     <include file="liquibase/202210281140-rename-owner-id-to-org-id.xml"/>
     <include file="liquibase/202211011504-drop-hardware-measurements-table.xml"/>
 </databaseChangeLog>

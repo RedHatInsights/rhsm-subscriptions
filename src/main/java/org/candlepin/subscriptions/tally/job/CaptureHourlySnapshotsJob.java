@@ -22,6 +22,8 @@ package org.candlepin.subscriptions.tally.job;
 
 import java.util.Optional;
 import org.candlepin.subscriptions.exception.JobFailureException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -32,6 +34,8 @@ public class CaptureHourlySnapshotsJob implements Runnable {
 
   private final CaptureSnapshotsTaskManager tasks;
 
+  private static final Logger log = LoggerFactory.getLogger(CaptureHourlySnapshotsJob.class);
+
   @Autowired
   public CaptureHourlySnapshotsJob(CaptureSnapshotsTaskManager taskManager) {
     this.tasks = taskManager;
@@ -41,7 +45,8 @@ public class CaptureHourlySnapshotsJob implements Runnable {
   @Scheduled(cron = "${rhsm-subscriptions.jobs.capture-hourly-snapshot-schedule}")
   public void run() {
     try {
-      tasks.updateHourlySnapshotsForAllAccounts(Optional.empty());
+      log.info("Capture hourly snapshots for all orgs triggered by cron job");
+      tasks.updateHourlySnapshotsForAllOrgs(Optional.empty());
     } catch (Exception e) {
       throw new JobFailureException("Failed to run CaptureHourlySnapshotsJob.", e);
     }

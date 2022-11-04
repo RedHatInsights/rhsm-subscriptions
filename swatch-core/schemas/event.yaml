@@ -18,7 +18,7 @@ properties:
   account_number:
     description: Account identifier for the relevant account.
     type: string
-    required: true
+    required: false
   org_id:
     description: Organization identifier associated with this event.
     type: string

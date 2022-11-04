@@ -68,74 +68,71 @@ class InternalTallyResourceTest {
   }
 
   @Test
-  void ensurePerformHourlyTallyForAccountValidatesDateRange() {
+  void ensurePerformHourlyTallyForOrgValidatesDateRange() {
     OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = start.plusMinutes(5L);
     // asynchronous
     IllegalArgumentException iae1 =
         assertThrows(
             IllegalArgumentException.class,
-            () -> resource.performHourlyTallyForAccount("account1", start, end, false));
+            () -> resource.performHourlyTallyForOrg("org1", start, end, false));
     assertEquals(
         "Start/End times must be at the top of the hour: [2019-05-24T12:00:00Z -> 2019-05-24T12:05:00Z]",
         iae1.getMessage());
 
-    resource.performHourlyTallyForAccount(
-        "account1", start, clock.startOfHour(end.plusHours(1)), false);
+    resource.performHourlyTallyForOrg("org1", start, clock.startOfHour(end.plusHours(1)), false);
 
     // synchronous
     IllegalArgumentException iae2 =
         assertThrows(
             IllegalArgumentException.class,
-            () -> resource.performHourlyTallyForAccount("account1", start, end, true));
+            () -> resource.performHourlyTallyForOrg("org1", start, end, true));
     assertEquals(
         "Start/End times must be at the top of the hour: [2019-05-24T12:00:00Z -> 2019-05-24T12:05:00Z]",
         iae2.getMessage());
 
     // Avoid additional exception by enabling synchronous operations.
     appProps.setEnableSynchronousOperations(true);
-    resource.performHourlyTallyForAccount(
-        "account1", start, clock.startOfHour(end.plusHours(1)), true);
+    resource.performHourlyTallyForOrg("org1", start, clock.startOfHour(end.plusHours(1)), true);
   }
 
   @Test
-  void preventSynchronousHourlyTallyForAccountWhenSynchronousOperationsDisabled() {
+  void preventSynchronousHourlyTallyForOrgWhenSynchronousOperationsDisabled() {
     OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = start.plusHours(1L);
     BadRequestException e =
         assertThrows(
             BadRequestException.class,
-            () -> resource.performHourlyTallyForAccount("account1", start, end, true));
+            () -> resource.performHourlyTallyForOrg("org1", start, end, true));
     assertEquals("Synchronous tally operations are not enabled.", e.getMessage());
   }
 
   @Test
-  void allowSynchronousHourlyTallyForAccountWhenSynchronousOperationsEnabled() {
+  void allowSynchronousHourlyTallyForOrgWhenSynchronousOperationsEnabled() {
     appProps.setEnableSynchronousOperations(true);
     OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = start.plusHours(1L);
-    resource.performHourlyTallyForAccount("account1", start, end, true);
-    verify(snapshotController)
-        .produceHourlySnapshotsForAccount("account1", new DateRange(start, end));
+    resource.performHourlyTallyForOrg("org1", start, end, true);
+    verify(snapshotController).produceHourlySnapshotsForOrg("org1", new DateRange(start, end));
     verifyNoInteractions(snapshotTaskManager);
   }
 
   @Test
-  void performAsyncHourlyTallyForAccountWhenSynchronousOperationsEnabled() {
+  void performAsyncHourlyTallyForOrgWhenSynchronousOperationsEnabled() {
     appProps.setEnableSynchronousOperations(true);
     OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = start.plusHours(1L);
-    resource.performHourlyTallyForAccount("account1", start, end, false);
-    verify(snapshotTaskManager).tallyAccountByHourly("account1", new DateRange(start, end));
+    resource.performHourlyTallyForOrg("org1", start, end, false);
+    verify(snapshotTaskManager).tallyOrgByHourly("org1", new DateRange(start, end));
     verifyNoInteractions(snapshotController);
   }
 
   @Test
-  void performAsyncHourlyTallyForAccountWhenSynchronousOperationsDisabled() {
+  void performAsyncHourlyTallyForOrgWhenSynchronousOperationsDisabled() {
     OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = start.plusHours(1L);
-    resource.performHourlyTallyForAccount("account1", start, end, false);
-    verify(snapshotTaskManager).tallyAccountByHourly("account1", new DateRange(start, end));
+    resource.performHourlyTallyForOrg("org1", start, end, false);
+    verify(snapshotTaskManager).tallyOrgByHourly("org1", new DateRange(start, end));
     verifyNoInteractions(snapshotController);
   }
 }

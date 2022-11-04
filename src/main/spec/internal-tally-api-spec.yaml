@@ -43,15 +43,15 @@ paths:
   /internal/tally/hourly:
     description: 'Operations pertaining to the hourly tally.'
     post:
-      operationId: performHourlyTallyForAccount
-      summary: "Immediately perform the hourly tally for a specific account."
+      operationId: performHourlyTallyForOrg
+      summary: "Immediately perform the hourly tally for a specific org."
       parameters:
-        - name: account
+        - name: org
           in: query
           required: true
           schema:
             type: string
-          description: "The account number to tally."
+          description: "The orgId to tally."
         - name: start
           in: query
           required: true
@@ -75,7 +75,7 @@ paths:
             description: "When present, a synchronous request is made."
       responses:
         '200':
-          description: "The hourly tally operation succeeded for the specified account."
+          description: "The hourly tally operation succeeded for the specified orgId."
         '400':
           $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
