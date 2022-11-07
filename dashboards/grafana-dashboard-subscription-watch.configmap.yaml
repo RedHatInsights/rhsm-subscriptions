@@ -26,8 +26,8 @@ data:
       },
       "editable": true,
       "fiscalYearStartMonth": 0,
-      "graphTooltip": 0,
-      "iteration": 1667394379897,
+      "graphTooltip": 1,
+      "iteration": 1667586950301,
       "links": [],
       "liveNow": false,
       "panels": [
@@ -85,7 +85,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -146,509 +147,579 @@ data:
           "id": 70,
           "panels": [
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
+                "type": "cloudwatch",
                 "uid": "${rdsdatasource}"
               },
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "max": 100,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "percent"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 9,
                 "w": 6,
                 "x": 0,
                 "y": 2
               },
-              "hiddenSeries": false,
               "id": 47,
-              "legend": {
-                "avg": true,
-                "current": true,
-                "max": true,
-                "min": true,
-                "show": true,
-                "total": false,
-                "values": true
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [
+                    "mean",
+                    "lastNotNull",
+                    "max",
+                    "min"
+                  ],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": false,
-              "steppedLine": false,
               "targets": [
                 {
                   "alias": "rhsm-prod",
+                  "datasource": {
+                    "type": "cloudwatch",
+                    "uid": "C_IyqZfnz"
+                  },
                   "dimensions": {
                     "DBInstanceIdentifier": "rhsm-prod"
                   },
                   "expression": "",
                   "id": "",
+                  "label": "rhsm-prod",
                   "matchExact": true,
                   "metricEditorMode": 0,
                   "metricName": "CPUUtilization",
                   "metricQueryType": 0,
                   "namespace": "AWS/RDS",
                   "period": "",
+                  "queryMode": "Metrics",
                   "refId": "A",
                   "region": "default",
+                  "sqlExpression": "",
                   "statistic": "Average"
                 },
                 {
                   "alias": "rhsm-stage",
+                  "datasource": {
+                    "type": "cloudwatch",
+                    "uid": "C_IyqZfnz"
+                  },
                   "dimensions": {
                     "DBInstanceIdentifier": "rhsm-stage"
                   },
                   "expression": "",
                   "id": "",
+                  "label": "rhsm-stage",
                   "matchExact": true,
                   "metricEditorMode": 0,
                   "metricName": "CPUUtilization",
                   "metricQueryType": 0,
                   "namespace": "AWS/RDS",
                   "period": "",
+                  "queryMode": "Metrics",
                   "refId": "B",
                   "region": "default",
+                  "sqlExpression": "",
                   "statistic": "Average"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "DB CPU usage",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:419",
-                  "format": "percent",
-                  "logBase": 1,
-                  "max": "100",
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:420",
-                  "format": "short",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
+                "type": "cloudwatch",
                 "uid": "${rdsdatasource}"
               },
               "fieldConfig": {
                 "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
                   "unit": "bytes"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 9,
                 "w": 6,
                 "x": 6,
                 "y": 2
               },
-              "hiddenSeries": false,
               "hideTimeOverride": false,
               "id": 52,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 2,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": false,
-              "steppedLine": false,
               "targets": [
                 {
                   "alias": "rhsm-prod",
+                  "datasource": {
+                    "type": "cloudwatch",
+                    "uid": "C_IyqZfnz"
+                  },
                   "dimensions": {
                     "DBInstanceIdentifier": "rhsm-prod"
                   },
                   "expression": "",
                   "id": "",
+                  "label": "rhsm-prod",
                   "matchExact": true,
                   "metricEditorMode": 0,
                   "metricName": "FreeStorageSpace",
                   "metricQueryType": 0,
                   "namespace": "AWS/RDS",
                   "period": "",
+                  "queryMode": "Metrics",
                   "refId": "A",
                   "region": "default",
+                  "sqlExpression": "",
                   "statistic": "Average"
                 },
                 {
                   "alias": "rhsm-stage",
+                  "datasource": {
+                    "type": "cloudwatch",
+                    "uid": "C_IyqZfnz"
+                  },
                   "dimensions": {
                     "DBInstanceIdentifier": "rhsm-stage"
                   },
                   "expression": "",
                   "id": "",
+                  "label": "rhsm-stage",
                   "matchExact": true,
                   "metricEditorMode": 0,
                   "metricName": "FreeStorageSpace",
                   "metricQueryType": 0,
                   "namespace": "AWS/RDS",
                   "period": "",
+                  "queryMode": "Metrics",
                   "refId": "B",
                   "region": "default",
+                  "sqlExpression": "",
                   "statistic": "Average"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "DB Free Space",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:893",
-                  "format": "bytes",
-                  "logBase": 1,
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:894",
-                  "format": "short",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
+                "type": "cloudwatch",
                 "uid": "${rdsdatasource}"
               },
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "iops"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 9,
                 "w": 6,
                 "x": 12,
                 "y": 2
               },
-              "hiddenSeries": false,
               "id": 54,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": false,
-              "steppedLine": false,
               "targets": [
                 {
                   "alias": "rhsm-prod read iops avg",
+                  "datasource": {
+                    "type": "cloudwatch",
+                    "uid": "C_IyqZfnz"
+                  },
                   "dimensions": {
                     "DBInstanceIdentifier": "rhsm-prod"
                   },
                   "expression": "",
                   "id": "",
+                  "label": "rhsm-prod read iops avg",
                   "matchExact": true,
                   "metricEditorMode": 0,
                   "metricName": "ReadIOPS",
                   "metricQueryType": 0,
                   "namespace": "AWS/RDS",
                   "period": "",
+                  "queryMode": "Metrics",
                   "refId": "A",
                   "region": "default",
+                  "sqlExpression": "",
                   "statistic": "Average"
                 },
                 {
                   "alias": "rhsm-prod write iops avg",
+                  "datasource": {
+                    "type": "cloudwatch",
+                    "uid": "C_IyqZfnz"
+                  },
                   "dimensions": {
                     "DBInstanceIdentifier": "rhsm-prod"
                   },
                   "expression": "",
                   "id": "",
+                  "label": "rhsm-prod write iops avg",
                   "matchExact": true,
                   "metricEditorMode": 0,
                   "metricName": "WriteIOPS",
                   "metricQueryType": 0,
                   "namespace": "AWS/RDS",
                   "period": "",
+                  "queryMode": "Metrics",
                   "refId": "B",
                   "region": "default",
+                  "sqlExpression": "",
                   "statistic": "Average"
                 },
                 {
                   "alias": "rhsm-stage read iops avg",
+                  "datasource": {
+                    "type": "cloudwatch",
+                    "uid": "C_IyqZfnz"
+                  },
                   "dimensions": {
                     "DBInstanceIdentifier": "rhsm-stage"
                   },
                   "expression": "",
                   "id": "",
+                  "label": "rhsm-stage read iops avg",
                   "matchExact": true,
                   "metricEditorMode": 0,
                   "metricName": "ReadIOPS",
                   "metricQueryType": 0,
                   "namespace": "AWS/RDS",
                   "period": "",
+                  "queryMode": "Metrics",
                   "refId": "C",
                   "region": "default",
+                  "sqlExpression": "",
                   "statistic": "Average"
                 },
                 {
                   "alias": "rhsm-stage write iops avg",
+                  "datasource": {
+                    "type": "cloudwatch",
+                    "uid": "C_IyqZfnz"
+                  },
                   "dimensions": {
                     "DBInstanceIdentifier": "rhsm-stage"
                   },
                   "expression": "",
                   "id": "",
+                  "label": "rhsm-stage write iops avg",
                   "matchExact": true,
                   "metricEditorMode": 0,
                   "metricName": "WriteIOPS",
                   "metricQueryType": 0,
                   "namespace": "AWS/RDS",
                   "period": "",
+                  "queryMode": "Metrics",
                   "refId": "D",
                   "region": "default",
+                  "sqlExpression": "",
                   "statistic": "Average"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "DB IOPs",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:834",
-                  "format": "iops",
-                  "logBase": 1,
-                  "min": "0",
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:835",
-                  "format": "short",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
+                "type": "cloudwatch",
                 "uid": "${rdsdatasource}"
               },
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "bytes"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 9,
                 "w": 6,
                 "x": 18,
                 "y": 2
               },
-              "hiddenSeries": false,
               "id": 56,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": false,
-              "steppedLine": false,
               "targets": [
                 {
                   "alias": "rhsm-prod",
+                  "datasource": {
+                    "type": "cloudwatch",
+                    "uid": "C_IyqZfnz"
+                  },
                   "dimensions": {
                     "DBInstanceIdentifier": "rhsm-prod"
                   },
                   "expression": "",
                   "id": "",
+                  "label": "rhsm-prod",
                   "matchExact": true,
                   "metricEditorMode": 0,
                   "metricName": "FreeableMemory",
                   "metricQueryType": 0,
                   "namespace": "AWS/RDS",
                   "period": "",
+                  "queryMode": "Metrics",
                   "refId": "A",
                   "region": "default",
+                  "sqlExpression": "",
                   "statistic": "Average"
                 },
                 {
                   "alias": "rhsm-stage",
+                  "datasource": {
+                    "type": "cloudwatch",
+                    "uid": "C_IyqZfnz"
+                  },
                   "dimensions": {
                     "DBInstanceIdentifier": "rhsm-stage"
                   },
                   "expression": "",
                   "id": "",
+                  "label": "rhsm-stage",
                   "matchExact": true,
                   "metricEditorMode": 0,
                   "metricName": "FreeableMemory",
                   "metricQueryType": 0,
                   "namespace": "AWS/RDS",
                   "period": "",
+                  "queryMode": "Metrics",
                   "refId": "B",
                   "region": "default",
+                  "sqlExpression": "",
                   "statistic": "Average"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "DB Freeable Memory",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:559",
-                  "format": "bytes",
-                  "logBase": 1,
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:560",
-                  "format": "short",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
               "datasource": {
@@ -806,7 +877,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       }
                     ]
                   }
@@ -854,55 +926,86 @@ data:
               "type": "stat"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "uid": "${datasource}"
               },
-              "decimals": 3,
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "short"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 10,
                 "w": 6,
                 "x": 6,
                 "y": 3
               },
-              "hiddenSeries": false,
               "id": 40,
-              "legend": {
-                "avg": true,
-                "current": true,
-                "max": true,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": true
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [
+                    "mean",
+                    "lastNotNull",
+                    "max"
+                  ],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": false,
-              "steppedLine": false,
               "targets": [
                 {
                   "expr": "sum(kafka_consumergroup_group_lag{topic=~'.*platform.rhsm-conduit.tasks'}) by (topic)",
@@ -945,89 +1048,87 @@ data:
                   "tags": []
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "swatch-system-conduit consumer group lag",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:1564",
-                  "format": "short",
-                  "logBase": 1,
-                  "min": "0",
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:1565",
-                  "format": "short",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "uid": "${datasource}"
               },
               "description": "",
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "message/sec",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "short"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 10,
                 "w": 6,
                 "x": 12,
                 "y": 3
               },
-              "hiddenSeries": false,
               "id": 59,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": false,
-              "steppedLine": false,
               "targets": [
                 {
                   "expr": "rate(rhsm_conduit_send_inventory_message_total[$__interval])",
@@ -1038,90 +1139,86 @@ data:
                   "refId": "A"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "HBI host production rate",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:1808",
-                  "format": "short",
-                  "label": "message/sec",
-                  "logBase": 1,
-                  "min": "0",
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:1809",
-                  "format": "short",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "s"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 10,
                 "w": 6,
                 "x": 18,
                 "y": 3
               },
-              "hiddenSeries": false,
               "id": 4,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": false,
-              "steppedLine": false,
               "targets": [
                 {
                   "expr": "max(spring_kafka_listener_seconds_max{service=\"swatch-system-conduit-service\"})",
@@ -1132,87 +1229,90 @@ data:
                   "refId": "A"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "swatch-system-conduit max sync duration",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:1663",
-                  "format": "s",
-                  "logBase": 1,
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:1664",
-                  "format": "short",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "uid": "${datasource}"
               },
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "orgs/sec",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "none"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 10,
                 "w": 6,
                 "x": 0,
                 "y": 13
               },
-              "hiddenSeries": false,
               "id": 41,
-              "legend": {
-                "avg": true,
-                "current": true,
-                "max": true,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": true
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [
+                    "mean",
+                    "lastNotNull",
+                    "max"
+                  ],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": false,
-              "steppedLine": false,
               "targets": [
                 {
                   "expr": "sum by (topic) (rate(kafka_consumergroup_group_offset{topic=~'.*platform.rhsm-conduit.tasks'}[$__interval]))",
@@ -1255,89 +1355,85 @@ data:
                   "tags": []
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "swatch-system-conduit topic consumption rate (orgs/second)",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:1750",
-                  "format": "none",
-                  "label": "orgs/sec",
-                  "logBase": 1,
-                  "min": "0",
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:1751",
-                  "format": "short",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "uid": "${datasource}"
               },
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "percentunit"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 10,
                 "w": 6,
                 "x": 6,
                 "y": 13
               },
-              "hiddenSeries": false,
               "id": 8,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": false,
-              "steppedLine": false,
               "targets": [
                 {
                   "expr": "sum(process_cpu_usage{service=\"swatch-system-conduit-service\"}) by (pod)",
@@ -1348,87 +1444,85 @@ data:
                   "refId": "A"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "swatch-system-conduit CPU",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:1692",
-                  "format": "percentunit",
-                  "logBase": 1,
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:1693",
-                  "format": "percent",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "uid": "${datasource}"
               },
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "bytes"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 10,
                 "w": 6,
                 "x": 12,
                 "y": 13
               },
-              "hiddenSeries": false,
               "id": 10,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": false,
-              "steppedLine": false,
               "targets": [
                 {
                   "expr": "sum by (id, pod) (jvm_memory_used_bytes{service=\"swatch-system-conduit-service\"})",
@@ -1439,37 +1533,8 @@ data:
                   "refId": "A"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "JVM Memory Used",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:1721",
-                  "format": "bytes",
-                  "logBase": 1,
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:1722",
-                  "format": "bytes",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             }
           ],
           "title": "swatch-system-conduit (aka rhsm-conduit)",
@@ -1490,55 +1555,86 @@ data:
           "id": 45,
           "panels": [
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "uid": "${datasource}"
               },
-              "decimals": 3,
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "short"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 8,
                 "w": 6,
                 "x": 0,
                 "y": 4
               },
-              "hiddenSeries": false,
               "id": 63,
-              "legend": {
-                "avg": true,
-                "current": true,
-                "max": true,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": true
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [
+                    "mean",
+                    "lastNotNull",
+                    "max"
+                  ],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": false,
-              "steppedLine": false,
               "targets": [
                 {
                   "expr": "sum(kafka_consumergroup_group_lag{topic=~'.*platform.rhsm-subscriptions.tasks'})",
@@ -1581,89 +1677,90 @@ data:
                   "tags": []
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "tally consumer group lag",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:276",
-                  "format": "short",
-                  "logBase": 1,
-                  "min": "0",
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:277",
-                  "format": "short",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "uid": "${datasource}"
               },
-              "decimals": 3,
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "short"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 8,
                 "w": 6,
                 "x": 6,
                 "y": 4
               },
-              "hiddenSeries": false,
               "id": 64,
-              "legend": {
-                "avg": true,
-                "current": true,
-                "max": true,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": true
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [
+                    "mean",
+                    "lastNotNull",
+                    "max"
+                  ],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": false,
-              "steppedLine": false,
               "targets": [
                 {
                   "expr": "sum(rate(kafka_consumergroup_group_offset{topic=~\".*platform.rhsm-subscriptions.tasks\"}[$__interval]))",
@@ -1706,88 +1803,85 @@ data:
                   "tags": []
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "tally org rate (orgs/sec)",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:363",
-                  "format": "short",
-                  "logBase": 1,
-                  "min": "0",
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:364",
-                  "format": "short",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "uid": "${datasource}"
               },
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "percentunit"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 8,
                 "w": 6,
                 "x": 12,
                 "y": 4
               },
-              "hiddenSeries": false,
               "id": 66,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": false,
-              "steppedLine": false,
               "targets": [
                 {
                   "expr": "sum(process_cpu_usage{service=~\"swatch-tally-service\"}) by (pod)",
@@ -1804,87 +1898,85 @@ data:
                   "refId": "B"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "swatch-tally CPU",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:247",
-                  "format": "percentunit",
-                  "logBase": 1,
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:248",
-                  "format": "percent",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "uid": "${datasource}"
               },
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "bytes"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 8,
                 "w": 6,
                 "x": 18,
                 "y": 4
               },
-              "hiddenSeries": false,
               "id": 68,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": false,
-              "steppedLine": false,
               "targets": [
                 {
                   "expr": "jvm_memory_used_bytes{service=\"swatch-tally-service\",id=~\"PS Old Gen|PS Survivor Space|PS Eden Space\"}",
@@ -1895,37 +1987,8 @@ data:
                   "refId": "A"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "tally JVM Memory Used",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:218",
-                  "format": "bytes",
-                  "logBase": 1,
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:219",
-                  "format": "bytes",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             }
           ],
           "title": "swatch-tally",
@@ -1946,54 +2009,81 @@ data:
           "id": 31,
           "panels": [
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "uid": "${datasource}"
               },
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "reqps"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 9,
                 "w": 6,
                 "x": 0,
                 "y": 5
               },
-              "hiddenSeries": false,
               "id": 32,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": false,
-              "steppedLine": false,
               "targets": [
                 {
                   "expr": "sum by (uri) (rate(http_server_requests_seconds_count{service=\"swatch-api-service\",uri=~\"/api/rhsm-subscriptions.*\"}[1m]))",
@@ -2004,88 +2094,85 @@ data:
                   "refId": "A"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "API request rate",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:1218",
-                  "format": "reqps",
-                  "label": "",
-                  "logBase": 1,
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:1219",
-                  "format": "short",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "uid": "${datasource}"
               },
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "time per batch",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "s"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 9,
                 "w": 6,
                 "x": 6,
                 "y": 5
               },
-              "hiddenSeries": false,
               "id": 33,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": false,
-              "steppedLine": false,
               "targets": [
                 {
                   "expr": "sum by (uri) (rate(http_server_requests_seconds_sum{service=\"swatch-api-service\",uri=~\"/api/rhsm-subscriptions.*\"}[1m]) / rate(http_server_requests_seconds_count{service=\"swatch-api-service\",uri=~\"/api/rhsm-subscriptions.*\"}[1m]))",
@@ -2095,86 +2182,85 @@ data:
                   "refId": "A"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "request latency",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "format": "s",
-                  "label": "time per batch",
-                  "logBase": 1,
-                  "show": true
-                },
-                {
-                  "format": "short",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "uid": "${datasource}"
               },
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "reqps"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 9,
                 "w": 12,
                 "x": 12,
                 "y": 5
               },
-              "hiddenSeries": false,
               "id": 34,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": false,
-              "steppedLine": false,
               "targets": [
                 {
                   "expr": "rate(http_server_requests_seconds_count{service=\"swatch-api-service\",exception!=\"None\"}[$__interval])",
@@ -2185,87 +2271,85 @@ data:
                   "refId": "A"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "Error Rate",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:1073",
-                  "format": "reqps",
-                  "logBase": 1,
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:1074",
-                  "format": "short",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "uid": "${datasource}"
               },
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "percentunit"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 11,
                 "w": 6,
                 "x": 0,
                 "y": 14
               },
-              "hiddenSeries": false,
               "id": 35,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": false,
-              "steppedLine": false,
               "targets": [
                 {
                   "expr": "sum(process_cpu_usage{service=\"swatch-api-service\"}) by (pod)",
@@ -2276,87 +2360,85 @@ data:
                   "refId": "A"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "CPU",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:1158",
-                  "format": "percentunit",
-                  "logBase": 1,
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:1159",
-                  "format": "percent",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "uid": "${datasource}"
               },
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "bytes"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 11,
                 "w": 6,
                 "x": 6,
                 "y": 14
               },
-              "hiddenSeries": false,
               "id": 36,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": false,
-              "steppedLine": false,
               "targets": [
                 {
                   "expr": "sum by (id, pod) (jvm_memory_used_bytes{service=\"swatch-api-service\"})",
@@ -2367,37 +2449,8 @@ data:
                   "refId": "A"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "JVM Memory Used",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:1102",
-                  "format": "bytes",
-                  "logBase": 1,
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:1103",
-                  "format": "bytes",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             }
           ],
           "title": "swatch-api",
@@ -2418,55 +2471,83 @@ data:
           "id": 16,
           "panels": [
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "normal"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "short"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 9,
                 "w": 6,
                 "x": 0,
                 "y": 6
               },
-              "hiddenSeries": false,
               "id": 20,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": true,
-              "steppedLine": false,
               "targets": [
                 {
                   "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.subscription-sync\"}) by (group, partition)",
@@ -2478,45 +2559,10 @@ data:
                   "refId": "A"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "Subscription Sync Task Lag",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:2120",
-                  "format": "short",
-                  "label": "",
-                  "logBase": 1,
-                  "min": "0",
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:2121",
-                  "format": "short",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
@@ -2524,45 +2570,77 @@ data:
               "description": "",
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "normal"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "short"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 9,
                 "w": 6,
                 "x": 6,
                 "y": 6
               },
-              "hiddenSeries": false,
               "id": 89,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": true,
-              "steppedLine": false,
               "targets": [
                 {
                   "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.offering-sync\"}) by (group, partition)",
@@ -2574,45 +2652,10 @@ data:
                   "refId": "A"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "Offering Sync Task Lag",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:2120",
-                  "format": "short",
-                  "label": "",
-                  "logBase": 1,
-                  "min": "0",
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:2121",
-                  "format": "short",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
@@ -2620,45 +2663,77 @@ data:
               "description": "",
               "fieldConfig": {
                 "defaults": {
-                  "links": []
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "normal"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "short"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 9,
                 "w": 6,
                 "x": 12,
                 "y": 6
               },
-              "hiddenSeries": false,
               "id": 90,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": true,
-              "steppedLine": false,
               "targets": [
                 {
                   "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.capacity-reconcile\"}) by (group, partition)",
@@ -2670,39 +2745,8 @@ data:
                   "refId": "A"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "Capacity Reconcile Task Lag",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:2120",
-                  "format": "short",
-                  "label": "",
-                  "logBase": 1,
-                  "min": "0",
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:2121",
-                  "format": "short",
-                  "logBase": 1,
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             }
           ],
           "title": "swatch-subscription-sync",
@@ -2723,51 +2767,83 @@ data:
           "id": 74,
           "panels": [
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "uid": "${datasource}"
               },
               "description": "⬇️ OCM provides usage metrics that are read by the metering collector job ⬇️\n\n(TIP: if this isn't working, data will not land in swatch DB at all)",
-              "fill": 1,
-              "fillGradient": 0,
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "normal"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "short"
+                },
+                "overrides": []
+              },
               "gridPos": {
                 "h": 9,
                 "w": 6,
                 "x": 0,
                 "y": 7
               },
-              "hiddenSeries": false,
               "id": 76,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "maxPerRow": 12,
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
               "repeatDirection": "v",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": true,
-              "steppedLine": false,
               "targets": [
                 {
                   "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.metering-tasks\"}) by (group, partition)",
@@ -2779,86 +2855,87 @@ data:
                   "refId": "A"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "OpenShift Metering Task Lag",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:361",
-                  "format": "short",
-                  "logBase": 1,
-                  "min": "0",
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:362",
-                  "format": "short",
-                  "logBase": 1,
-                  "min": "0",
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "uid": "${datasource}"
               },
               "description": "⬇️ Sampled metrics stored in DB are \"collapsed\" into summary metrics ⬇️\n\n(TIP: Summary metrics are displayed in web UI)",
-              "fill": 1,
-              "fillGradient": 0,
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "normal"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "short"
+                },
+                "overrides": []
+              },
               "gridPos": {
                 "h": 9,
                 "w": 6,
                 "x": 6,
                 "y": 7
               },
-              "hiddenSeries": false,
               "id": 78,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "maxPerRow": 12,
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
               "repeatDirection": "v",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": true,
-              "steppedLine": false,
               "targets": [
                 {
                   "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.tasks\"}) by (group, partition)",
@@ -2870,45 +2947,10 @@ data:
                   "refId": "A"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "Tally Task Lag",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:390",
-                  "format": "short",
-                  "logBase": 1,
-                  "min": "0",
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:391",
-                  "format": "short",
-                  "logBase": 1,
-                  "min": "0",
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
@@ -2916,46 +2958,77 @@ data:
               "description": "swatch-tally-service produces TallySummary messages for consumption by Billing Usage service",
               "fieldConfig": {
                 "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "normal"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
                   "unit": "none"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 9,
                 "w": 6,
                 "x": 12,
                 "y": 7
               },
-              "hiddenSeries": false,
               "id": 80,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
               "repeatDirection": "h",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": true,
-              "steppedLine": false,
               "targets": [
                 {
                   "datasource": {
@@ -2971,45 +3044,10 @@ data:
                   "refId": "A"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "Tally to Billable Usage Lag",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:332",
-                  "format": "none",
-                  "logBase": 1,
-                  "min": "0",
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:333",
-                  "format": "short",
-                  "logBase": 1,
-                  "min": "0",
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
@@ -3017,46 +3055,77 @@ data:
               "description": "Billable Usage service emits messages with usage data for swatch billing provider services to consume.  This widget monitors the consumer group connected to the swatch-producer-aws service)",
               "fieldConfig": {
                 "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "normal"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
                   "unit": "none"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 9,
                 "w": 6,
                 "x": 0,
                 "y": 16
               },
-              "hiddenSeries": false,
               "id": 83,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
               "repeatDirection": "h",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": true,
-              "steppedLine": false,
               "targets": [
                 {
                   "datasource": {
@@ -3072,45 +3141,10 @@ data:
                   "refId": "A"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "AWS Billable Usage Lag",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:332",
-                  "format": "none",
-                  "logBase": 1,
-                  "min": "0",
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:333",
-                  "format": "short",
-                  "logBase": 1,
-                  "min": "0",
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
-              "aliasColors": {},
-              "bars": false,
-              "dashLength": 10,
-              "dashes": false,
               "datasource": {
                 "type": "prometheus",
                 "uid": "${datasource}"
@@ -3118,46 +3152,77 @@ data:
               "description": "Billable Usage service emits messages with usage data for swatch billing provider services to consume.  This widget monitors the rh-marketplace-worker consumer group (consumed by the swatch-producer-red-hat-marketplace service)",
               "fieldConfig": {
                 "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "normal"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
                   "unit": "none"
                 },
                 "overrides": []
               },
-              "fill": 1,
-              "fillGradient": 0,
               "gridPos": {
                 "h": 9,
                 "w": 6,
                 "x": 6,
                 "y": 16
               },
-              "hiddenSeries": false,
               "id": 84,
-              "legend": {
-                "avg": false,
-                "current": false,
-                "max": false,
-                "min": false,
-                "show": true,
-                "total": false,
-                "values": false
-              },
-              "lines": true,
-              "linewidth": 1,
               "links": [],
-              "nullPointMode": "null",
               "options": {
-                "alertThreshold": true
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
               },
-              "percentage": false,
               "pluginVersion": "9.0.3",
-              "pointradius": 5,
-              "points": false,
-              "renderer": "flot",
               "repeatDirection": "h",
-              "seriesOverrides": [],
-              "spaceLength": 10,
-              "stack": true,
-              "steppedLine": false,
               "targets": [
                 {
                   "datasource": {
@@ -3173,39 +3238,8 @@ data:
                   "refId": "A"
                 }
               ],
-              "thresholds": [],
-              "timeRegions": [],
               "title": "RH Marketplace Billable Usage Lag",
-              "tooltip": {
-                "shared": true,
-                "sort": 0,
-                "value_type": "individual"
-              },
-              "type": "graph",
-              "xaxis": {
-                "mode": "time",
-                "show": true,
-                "values": []
-              },
-              "yaxes": [
-                {
-                  "$$hashKey": "object:332",
-                  "format": "none",
-                  "logBase": 1,
-                  "min": "0",
-                  "show": true
-                },
-                {
-                  "$$hashKey": "object:333",
-                  "format": "short",
-                  "logBase": 1,
-                  "min": "0",
-                  "show": true
-                }
-              ],
-              "yaxis": {
-                "align": false
-              }
+              "type": "timeseries"
             },
             {
               "datasource": {
@@ -3228,7 +3262,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       }
                     ]
                   },
@@ -3247,7 +3282,8 @@ data:
                           "mode": "absolute",
                           "steps": [
                             {
-                              "color": "green"
+                              "color": "green",
+                              "value": null
                             },
                             {
                               "color": "red",
@@ -3392,7 +3428,7 @@ data:
       "timezone": "utc",
       "title": "Subscription Watch",
       "uid": "lkPhH-1Zk",
-      "version": 3,
+      "version": 5,
       "weekStart": ""
     }
 kind: ConfigMap
