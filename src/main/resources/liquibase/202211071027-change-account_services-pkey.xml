@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202211071027-1" author="khowell">
+    <comment>Delete account_services rows missing orgId.</comment>
+    <delete tableName="account_services">
+      <where>org_id is null</where>
+    </delete>
+  </changeSet>
+
+  <changeSet id="202211071027-2" author="khowell">
+    <comment>Drop the hosts FK reference to account_services temporarily.</comment>
+    <dropForeignKeyConstraint baseTableName="hosts" constraintName="fk_hosts_account_services"/>
+  </changeSet>
+
+  <changeSet id="202211071027-3" author="khowell">
+    <comment>Drop primary key.</comment>
+    <dropPrimaryKey tableName="account_services"/>
+  </changeSet>
+
+  <changeSet id="202211071027-4" author="khowell">
+    <comment>Create PK for account_services w/ org_id.</comment>
+    <addPrimaryKey tableName="account_services" columnNames="org_id,service_type"/>
+  </changeSet>
+
+  <changeSet id="202211071027-5" author="khowell">
+    <comment>Drop orphaned host records.</comment>
+    <delete tableName="hosts">
+      <where>
+        org_id is null
+      </where>
+    </delete>
+  </changeSet>
+
+  <changeSet id="202211071027-6" author="khowell">
+    <comment>Create index for hosts referencing account_services w/ org_id.</comment>
+    <addForeignKeyConstraint constraintName="fk_hosts_account_services"
+      baseTableName="hosts" baseColumnNames="org_id,instance_type"
+      referencedTableName="account_services" referencedColumnNames="org_id,service_type"/>
+  </changeSet>
+
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->

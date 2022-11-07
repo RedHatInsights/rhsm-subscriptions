@@ -28,5 +28,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface AccountServiceInventoryRepository
     extends JpaRepository<AccountServiceInventory, AccountServiceInventoryId> {
 
-  void deleteByOrgId(String orgId);
+  void deleteByIdOrgId(String orgId);
 }

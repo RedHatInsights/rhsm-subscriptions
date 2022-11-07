@@ -142,8 +142,14 @@ class HostRepositoryTest {
             host -> {
               AccountServiceInventory accountServiceInventory =
                   accountServiceInventoryRepository
-                      .findById(new AccountServiceInventoryId(host.getAccountNumber(), "HBI_HOST"))
-                      .orElse(new AccountServiceInventory(host.getAccountNumber(), "HBI_HOST"));
+                      .findById(
+                          AccountServiceInventoryId.builder()
+                              .orgId(host.getOrgId())
+                              .serviceType("HBI_HOST")
+                              .build())
+                      .orElse(
+                          AccountServiceInventory.forOrgIdAndServiceType(
+                              host.getOrgId(), "HBI_HOST"));
               accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host);
               accountServiceInventory =
                   accountServiceInventoryRepository.save(accountServiceInventory);

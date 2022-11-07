@@ -88,5 +88,6 @@
     <include file="liquibase/202210251446-change-constraints-indexes-fields-to-events.xml"/>
     <include file="liquibase/202210281140-rename-owner-id-to-org-id.xml"/>
     <include file="liquibase/202211011504-drop-hardware-measurements-table.xml"/>
+    <include file="liquibase/202211071027-change-account_services-pkey.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

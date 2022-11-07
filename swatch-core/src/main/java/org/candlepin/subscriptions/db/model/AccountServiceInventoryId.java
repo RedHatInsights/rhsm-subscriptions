@@ -24,16 +24,18 @@ import java.io.Serializable;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
+@Builder
 @Embeddable
 @NoArgsConstructor
 @AllArgsConstructor
 public class AccountServiceInventoryId implements Serializable {
-  @Column(name = "account_number")
-  private String accountNumber;
+  @Column(name = "org_id")
+  private String orgId;
 
   @Column(name = "service_type")
   private String serviceType;

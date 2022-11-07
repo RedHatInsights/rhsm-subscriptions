@@ -83,8 +83,15 @@ public class InventoryAccountUsageCollector {
 
     AccountServiceInventory accountServiceInventory =
         accountServiceInventoryRepository
-            .findById(new AccountServiceInventoryId(account, HBI_INSTANCE_TYPE))
-            .orElse(new AccountServiceInventory(account, HBI_INSTANCE_TYPE));
+            .findById(
+                AccountServiceInventoryId.builder()
+                    .orgId(orgId)
+                    .serviceType(HBI_INSTANCE_TYPE)
+                    .build())
+            .orElse(AccountServiceInventory.forOrgIdAndServiceType(orgId, HBI_INSTANCE_TYPE));
+    if (account != null) {
+      accountServiceInventory.setAccountNumber(account);
+    }
 
     Set<String> duplicateInstanceIds = new HashSet<>();
     Map<String, Host> inventoryHostMap =
