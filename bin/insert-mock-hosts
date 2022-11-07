@@ -40,7 +40,7 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
                 },
             }),
             'canonical_facts': json.dumps({
-                'subscription_manager_id': subscription_manager_id,
+                'subscription_manager_id': subscription_manager_id or str(uuid.uuid4()),
                 'insights_id': str(insights_id),
             }),
             'system_profile_facts': json.dumps({

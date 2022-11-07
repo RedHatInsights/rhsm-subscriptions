@@ -165,6 +165,10 @@ public class UsageCalculation {
   }
 
   public void addHypervisor(int cores, int sockets, int instances) {
+    add(HardwareMeasurementType.HYPERVISOR, cores, sockets, instances);
+  }
+
+  public void addUnmappedGuest(int cores, int sockets, int instances) {
     add(HardwareMeasurementType.VIRTUAL, cores, sockets, instances);
   }
 

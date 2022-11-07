@@ -62,7 +62,7 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
       // unique hypervisor instance contributing to the hypervisor counts.
       // Since the guest is unmapped, we only contribute a single socket.
       appliedSockets = normalizedFacts.isMarketplace() ? 0 : 1;
-      prodCalc.addHypervisor(appliedCores, appliedSockets, 1);
+      prodCalc.addUnmappedGuest(appliedCores, appliedSockets, 1);
       return Optional.of(
           createBucket(
               prodCalc, true, appliedCores, appliedSockets, HardwareMeasurementType.VIRTUAL));
