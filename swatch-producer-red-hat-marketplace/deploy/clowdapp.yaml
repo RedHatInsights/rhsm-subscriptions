@@ -118,6 +118,14 @@ parameters:
     value: 'false'
   - name: DEV_MODE
     value: 'false'
+  - name: KAFKA_BILLABLE_USAGE_REPLICAS
+    value: '3'
+  - name: KAFKA_BILLABLE_USAGE_PARTITIONS
+    value: '3'
+  - name: KAFKA_TALLY_REPLICAS
+    value: '3'
+  - name: KAFKA_TALLY_PARTITIONS
+    value: '3'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -130,11 +138,11 @@ objects:
     envName: ${ENV_NAME}
 
     kafkaTopics:
-      - replicas: 3
-        partitions: 3
+      - replicas: ${{KAFKA_TALLY_REPLICAS}}
+        partitions: ${{KAFKA_TALLY_PARTITIONS}}
         topicName: platform.rhsm-subscriptions.tally
-      - replicas: 3
-        partitions: 3
+      - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}
+        partitions: ${{KAFKA_BILLABLE_USAGE_PARTITIONS}}
         topicName: platform.rhsm-subscriptions.billable-usage
 
     database:

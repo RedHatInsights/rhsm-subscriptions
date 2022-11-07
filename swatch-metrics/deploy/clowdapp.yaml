@@ -95,6 +95,10 @@ parameters:
     value: 'host-inventory-db'
   - name: INVENTORY_SECRET_KEY_NAME_PREFIX
     value: ''
+  - name: KAFKA_METERING_TASKS_REPLICAS
+    value: '3'
+  - name: KAFKA_METERING_TASKS_PARTITIONS
+    value: '3'
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -113,8 +117,8 @@ objects:
         - swatch-tally
 
       kafkaTopics:
-        - replicas: 3
-          partitions: 3
+        - replicas: ${{KAFKA_METERING_TASKS_REPLICAS}}
+          partitions: ${{KAFKA_METERING_TASKS_PARTITIONS}}
           topicName: platform.rhsm-subscriptions.metering-tasks
 
       pullSecrets:

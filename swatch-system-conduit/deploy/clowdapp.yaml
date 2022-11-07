@@ -79,6 +79,14 @@ parameters:
     value: 350m
   - name: CURL_CRON_CPU_LIMIT
     value: 500m
+  - name: KAFKA_CONDUIT_TASKS_REPLICAS
+    value: '3'
+  - name: KAFKA_CONDUIT_TASKS_PARTITIONS
+    value: '3'
+  - name: KAFKA_HOST_INGRESS_REPLICAS
+    value: '3'
+  - name: KAFKA_HOST_INGRESS_PARTITIONS
+    value: '3'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -92,11 +100,11 @@ objects:
     envName: ${ENV_NAME}
 
     kafkaTopics:
-      - replicas: 3
-        partitions: 3
+      - replicas: ${{KAFKA_CONDUIT_TASKS_REPLICAS}}
+        partitions: ${{KAFKA_CONDUIT_TASKS_PARTITIONS}}
         topicName: platform.rhsm-conduit.tasks
-      - replicas: 3
-        partitions: 3
+      - replicas: ${{KAFKA_HOST_INGRESS_REPLICAS}}
+        partitions: ${{KAFKA_HOST_INGRESS_PARTITIONS}}
         topicName: platform.inventory.host-ingress
 
     database:

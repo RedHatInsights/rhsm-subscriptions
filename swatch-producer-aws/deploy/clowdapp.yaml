@@ -56,6 +56,10 @@ parameters:
     value: ''
   - name: ENABLE_AWS_DRY_RUN
     value: 'false'
+  - name: KAFKA_BILLABLE_USAGE_REPLICAS
+    value: '3'
+  - name: KAFKA_BILLABLE_USAGE_PARTITIONS
+    value: '3'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -72,8 +76,8 @@ objects:
     envName: ${ENV_NAME}
 
     kafkaTopics:
-      - replicas: 1
-        partitions: 1
+      - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}
+        partitions: ${{KAFKA_BILLABLE_USAGE_PARTITIONS}}
         topicName: platform.rhsm-subscriptions.billable-usage
 
     pullSecrets:
