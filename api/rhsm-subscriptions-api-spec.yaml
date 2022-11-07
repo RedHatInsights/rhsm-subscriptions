@@ -495,7 +495,7 @@ paths:
         description: "The numbers of items to return"
     get:
       deprecated: true
-      summary: "Fetch a capacity report for an account and product."
+      summary: "(Deprecated) Fetch a capacity report for an account and product."
       operationId: getCapacityReport
       parameters:
         - name: granularity
@@ -873,6 +873,11 @@ paths:
       summary: "Returns the total capacity by SKU for all of the org's active subscriptions for given Swatch product ID."
       operationId: getSkuCapacityReport
       parameters:
+        - name: category
+          in: query
+          schema:
+            $ref: '#/components/schemas/ReportCategory'
+          description: 'The category to fetch data for'
         - name: sla
           in: query
           schema:
@@ -1865,6 +1870,8 @@ components:
               $ref: '#/components/schemas/Uom'
             subscription_type:
               $ref: '#/components/schemas/SubscriptionType'
+            report_category:
+              $ref: '#/components/schemas/ReportCategory'
           required:
             - count
             - product

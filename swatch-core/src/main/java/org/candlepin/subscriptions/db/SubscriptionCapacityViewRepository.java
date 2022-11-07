@@ -23,6 +23,8 @@ package org.candlepin.subscriptions.db;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import javax.persistence.criteria.Expression;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey_;
@@ -33,13 +35,16 @@ import org.candlepin.subscriptions.utilization.api.model.Uom;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.util.ObjectUtils;
 
 public interface SubscriptionCapacityViewRepository
     extends JpaRepository<SubscriptionCapacityView, SubscriptionCapacityKey>,
         JpaSpecificationExecutor<SubscriptionCapacityView> {
 
+  @SuppressWarnings("java:S107")
   default List<SubscriptionCapacityView> findAllBy(
       String orgId,
+      Set<SubscriptionReportCategory> subsReportCategories,
       String productId,
       ServiceLevel serviceLevel,
       Usage usage,
@@ -49,7 +54,14 @@ public interface SubscriptionCapacityViewRepository
 
     return findAll(
         buildSearchSpecification(
-            orgId, productId, serviceLevel, usage, reportStart, reportEnd, uom));
+            orgId,
+            subsReportCategories,
+            productId,
+            serviceLevel,
+            usage,
+            reportStart,
+            reportEnd,
+            uom));
   }
 
   static Specification<SubscriptionCapacityView> orgAndProductEquals(
@@ -87,8 +99,8 @@ public interface SubscriptionCapacityViewRepository
    *   <li>Sb &gt; Rb, Sb &lt; Re, Se &gt; Rb, Se &gt; Re
    * </ol>
    *
-   * Looking at those inequalities, we can see that the two invariant relationships are Sb &lt; Re
-   * and Se &gt; Rb. Then we add the "or equal to" to the inequalities to capture edge cases.
+   * <p>Looking at those inequalities, we can see that the two invariant relationships are Sb &lt;
+   * Re and Se &gt; Rb. Then we add the "or equal to" to the inequalities to capture edge cases.
    *
    * @param reportStart the date the reporting period starts
    * @param reportEnd the date the reporting period ends
@@ -140,8 +152,34 @@ public interface SubscriptionCapacityViewRepository
             builder.isTrue(root.get(SubscriptionCapacityView_.hasUnlimitedUsage)));
   }
 
+  static Specification<SubscriptionCapacityView> matchesCategories(
+      Set<SubscriptionReportCategory> subsReportCategories) {
+    return (root, query, builder) -> {
+      var predicate = builder.conjunction();
+      if (subsReportCategories.contains(SubscriptionReportCategory.NON_HYPERVISOR)) {
+        Expression<Boolean> nonhypervisorExp =
+            // Has no virt capacity
+            builder.and(
+                builder.equal(root.get(SubscriptionCapacityView_.virtualSockets), 0),
+                builder.equal(root.get(SubscriptionCapacityView_.virtualCores), 0));
+        predicate.getExpressions().add(nonhypervisorExp);
+      }
+      if (subsReportCategories.contains(SubscriptionReportCategory.HYPERVISOR)) {
+        Expression<Boolean> hypervisorExp =
+            // Has some virt capacity
+            builder.or(
+                builder.greaterThan(root.get(SubscriptionCapacityView_.virtualSockets), 0),
+                builder.greaterThan(root.get(SubscriptionCapacityView_.virtualCores), 0));
+        predicate.getExpressions().add(hypervisorExp);
+      }
+      return predicate;
+    };
+  }
+
+  @SuppressWarnings("java:S107")
   default Specification<SubscriptionCapacityView> buildSearchSpecification(
       String orgId,
+      Set<SubscriptionReportCategory> subsReportCategories,
       String productId,
       ServiceLevel serviceLevel,
       Usage usage,
@@ -175,6 +213,12 @@ public interface SubscriptionCapacityViewRepository
     }
     if (Objects.nonNull(usage) && !usage.equals(Usage._ANY)) {
       searchCriteria = searchCriteria.and(usageEquals(usage));
+    }
+    // If the category set is empty or contains all possible categories, then there is no need to
+    // add an extra predicate that performs zero actual filtering
+    if (!ObjectUtils.isEmpty(subsReportCategories)
+        && !subsReportCategories.containsAll(List.of(SubscriptionReportCategory.values()))) {
+      searchCriteria = searchCriteria.and(matchesCategories(subsReportCategories));
     }
     return searchCriteria;
   }
