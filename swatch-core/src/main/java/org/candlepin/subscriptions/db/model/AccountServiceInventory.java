@@ -44,16 +44,19 @@ public class AccountServiceInventory implements Serializable {
     id = new AccountServiceInventoryId();
   }
 
-  public AccountServiceInventory(String accountNumber, String serviceType) {
-    id = new AccountServiceInventoryId(accountNumber, serviceType);
+  public static AccountServiceInventory forOrgIdAndServiceType(String orgId, String serviceType) {
+    AccountServiceInventory inventory = new AccountServiceInventory();
+    inventory.id =
+        AccountServiceInventoryId.builder().orgId(orgId).serviceType(serviceType).build();
+    return inventory;
   }
 
-  public String getAccountNumber() {
-    return id.getAccountNumber();
+  public String getOrgId() {
+    return id.getOrgId();
   }
 
-  public void setAccountNumber(String accountNumber) {
-    id.setAccountNumber(accountNumber);
+  public void setOrgId(String orgId) {
+    id.setOrgId(orgId);
   }
 
   public String getServiceType() {
@@ -66,8 +69,8 @@ public class AccountServiceInventory implements Serializable {
 
   @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
   @JoinColumn(
-      name = "account_number",
-      referencedColumnName = "account_number",
+      name = "org_id",
+      referencedColumnName = "org_id",
       insertable = false,
       updatable = false)
   @JoinColumn(
@@ -80,6 +83,6 @@ public class AccountServiceInventory implements Serializable {
   @MapKeyColumn(name = "instance_id", updatable = false, insertable = false)
   private Map<String, Host> serviceInstances = new HashMap<>();
 
-  @Column(name = "org_id")
-  private String orgId;
+  @Column(name = "account_number")
+  private String accountNumber;
 }

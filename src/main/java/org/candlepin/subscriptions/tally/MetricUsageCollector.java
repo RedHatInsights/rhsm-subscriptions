@@ -88,10 +88,13 @@ public class MetricUsageCollector {
     /* load the latest accountServiceInventory state, so we can update host records conveniently */
     AccountServiceInventory accountServiceInventory =
         accountServiceInventoryRepository
-            .findById(new AccountServiceInventoryId(accountNumber, serviceType))
-            .orElse(new AccountServiceInventory(accountNumber, serviceType));
+            .findById(
+                AccountServiceInventoryId.builder().orgId(orgId).serviceType(serviceType).build())
+            .orElse(AccountServiceInventory.forOrgIdAndServiceType(orgId, serviceType));
 
-    accountServiceInventory.setOrgId(orgId);
+    if (accountNumber != null) {
+      accountServiceInventory.setAccountNumber(accountNumber);
+    }
     /*
     Evaluate latest state to determine if we are doing a recalculation and filter to host records for only
     the product profile we're working on

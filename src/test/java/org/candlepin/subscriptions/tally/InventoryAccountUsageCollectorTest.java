@@ -703,12 +703,12 @@ class InventoryAccountUsageCollectorTest {
     dupe.setInstanceId("i2");
 
     AccountServiceInventory accountServiceInventory =
-        new AccountServiceInventory(ACCOUNT, "HBI_HOST");
+        AccountServiceInventory.forOrgIdAndServiceType(ORG_ID, "HBI_HOST");
     accountServiceInventory.getServiceInstances().put(host.getInventoryId().toString(), orig);
     accountServiceInventory.getServiceInstances().put("i2", dupe);
 
     when(accountServiceInventoryRepository.findById(
-            new AccountServiceInventoryId(ACCOUNT, "HBI_HOST")))
+            AccountServiceInventoryId.builder().orgId(ORG_ID).serviceType("HBI_HOST").build()))
         .thenReturn(Optional.of(accountServiceInventory));
 
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), any())).thenReturn(Stream.of(host));

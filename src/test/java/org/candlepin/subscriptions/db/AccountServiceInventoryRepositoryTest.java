@@ -50,10 +50,12 @@ class AccountServiceInventoryRepositoryTest {
   @Transactional
   @BeforeAll
   void setupTestData() {
-    AccountServiceInventory service = new AccountServiceInventory("account123", "HBI_HOST");
+    AccountServiceInventory service =
+        AccountServiceInventory.forOrgIdAndServiceType("org123", "HBI_HOST");
 
     Host host = new Host();
     host.setAccountNumber("account123");
+    host.setOrgId("org123");
     host.setInstanceId("1c474d4e-c277-472c-94ab-8229a40417eb");
     host.setDisplayName("name");
     host.setInstanceType("HBI_HOST");
@@ -74,13 +76,17 @@ class AccountServiceInventoryRepositoryTest {
 
   @Test
   void testHbiHostCanBeLoaded() {
-    assertTrue(repo.findById(new AccountServiceInventoryId("account123", "HBI_HOST")).isPresent());
+    assertTrue(
+        repo.findById(
+                AccountServiceInventoryId.builder().orgId("org123").serviceType("HBI_HOST").build())
+            .isPresent());
   }
 
   @Test
   void testCanFetchExistingInstancesViaAccountRepository() {
     Optional<AccountServiceInventory> account =
-        repo.findById(new AccountServiceInventoryId("account123", "HBI_HOST"));
+        repo.findById(
+            AccountServiceInventoryId.builder().orgId("org123").serviceType("HBI_HOST").build());
 
     assertTrue(account.isPresent());
     Map<String, Host> existingInstances = account.get().getServiceInstances();
@@ -89,6 +95,7 @@ class AccountServiceInventoryRepositoryTest {
 
     Host expected = new Host();
     expected.setAccountNumber("account123");
+    expected.setOrgId("org123");
     expected.setDisplayName("name");
     expected.setInstanceId("1c474d4e-c277-472c-94ab-8229a40417eb");
     expected.setInstanceType("HBI_HOST");
@@ -102,7 +109,9 @@ class AccountServiceInventoryRepositoryTest {
   @Test
   void testCanAddHostViaRepo() {
     AccountServiceInventory accountServiceInventory =
-        repo.findById(new AccountServiceInventoryId("account123", "HBI_HOST")).orElseThrow();
+        repo.findById(
+                AccountServiceInventoryId.builder().orgId("org123").serviceType("HBI_HOST").build())
+            .orElseThrow();
 
     String instanceId = "478edb89-b105-4dfd-9a46-0f1427514b76";
     Host host = new Host();
@@ -129,7 +138,9 @@ class AccountServiceInventoryRepositoryTest {
     repo.flush();
 
     AccountServiceInventory fetched =
-        repo.findById(new AccountServiceInventoryId("account123", "HBI_HOST")).orElseThrow();
+        repo.findById(
+                AccountServiceInventoryId.builder().orgId("org123").serviceType("HBI_HOST").build())
+            .orElseThrow();
     assertTrue(fetched.getServiceInstances().containsKey(instanceId));
     Host fetchedInstance = fetched.getServiceInstances().get(instanceId);
     // set ID in order to compare, because JPA doesn't populate the existing object's ID
@@ -142,14 +153,18 @@ class AccountServiceInventoryRepositoryTest {
   @Test
   void testCanRemoveHostViaRepo() {
     AccountServiceInventory accountServiceInventory =
-        repo.findById(new AccountServiceInventoryId("account123", "HBI_HOST")).orElseThrow();
+        repo.findById(
+                AccountServiceInventoryId.builder().orgId("org123").serviceType("HBI_HOST").build())
+            .orElseThrow();
 
     accountServiceInventory.getServiceInstances().clear();
     repo.save(accountServiceInventory);
     repo.flush();
 
     AccountServiceInventory fetched =
-        repo.findById(new AccountServiceInventoryId("account123", "HBI_HOST")).orElseThrow();
+        repo.findById(
+                AccountServiceInventoryId.builder().orgId("org123").serviceType("HBI_HOST").build())
+            .orElseThrow();
     assertTrue(fetched.getServiceInstances().isEmpty());
   }
 }
