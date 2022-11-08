@@ -20,6 +20,10 @@ Kafka Topics
 * platform.rhsm-subscriptions.offering-sync
 * platform.rhsm-subscriptions.subscription-prune
 
+## Caching
+
+The product-allowlist is cached and the component may need to be rebooted in order to pickup new changes. To reboot you can use hawtio at `{HAWTIO_URL}/app/rhsm-capacity-ingress/hawtio/jmx/operations?nid=root-org.springframework.boot-Endpoint-Shutdown`
+
 
 
 ## deploying to ephemeral environment
