@@ -43,7 +43,7 @@ public class JmxProperties {
   @Setter
   public static class TallyBean {
     /**
-     * Since the two parameters sent to {@link TallyJmxBean#tallyAccountByHourly(String, String,
+     * Since the two parameters sent to {@link TallyJmxBean#tallyOrgByHourly(String, String,
      * String)} are actually ISO 8601 timestamps we are using a Duration rather than a Period since
      * Duration captures time and not just dates. However, the default ChronoUnit we're using is
      * days since that's what the range is meant to be on the order of. If the value is specified in
