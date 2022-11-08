@@ -14,6 +14,8 @@ repositories {
 dependencies {
     implementation gradleApi()
 
+    // Needed to work around https://github.com/nebula-plugins/nebula-release-plugin/issues/229
+    implementation project.ext.libraries["grgit-core"]
     // add all plugin artifacts to gradle classpath as defined in dependencies.gradle
     // this makes them available via plugin ID only across *all* projects
     for (pluginDependency in project.ext.plugins) {
