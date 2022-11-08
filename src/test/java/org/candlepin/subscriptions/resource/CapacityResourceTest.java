@@ -88,7 +88,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(min);
     capacity.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductId(
+    when(repository.findAllBy(
             "owner123456", RHEL.toString(), ServiceLevel._ANY, Usage._ANY, min, max))
         .thenReturn(Collections.singletonList(capacity));
 
@@ -104,7 +104,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(min);
     capacity.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductId(
+    when(repository.findAllBy(
             "owner123456", RHEL.toString(), ServiceLevel.PREMIUM, Usage._ANY, min, max))
         .thenReturn(Collections.singletonList(capacity));
 
@@ -121,7 +121,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(min);
     capacity.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductId(
+    when(repository.findAllBy(
             "owner123456", RHEL.toString(), ServiceLevel._ANY, Usage.PRODUCTION, min, max))
         .thenReturn(Collections.singletonList(capacity));
 
@@ -138,7 +138,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(min);
     capacity.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductId(
+    when(repository.findAllBy(
             "owner123456", RHEL.toString(), ServiceLevel._ANY, Usage._ANY, min, max))
         .thenReturn(Collections.singletonList(capacity));
 
@@ -155,7 +155,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(min);
     capacity.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductId(
+    when(repository.findAllBy(
             "owner123456", RHEL.toString(), ServiceLevel._ANY, Usage._ANY, min, max))
         .thenReturn(Collections.singletonList(capacity));
 
@@ -184,7 +184,7 @@ class CapacityResourceTest {
     capacity2.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     capacity2.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductId("owner123456", RHEL.toString(), null, null, min, max))
+    when(repository.findAllBy("owner123456", RHEL.toString(), null, null, min, max))
         .thenReturn(Arrays.asList(capacity, capacity2));
 
     CapacityReport report =
@@ -214,7 +214,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(min);
     capacity.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductId(
+    when(repository.findAllBy(
             "owner123456", RHEL.toString(), ServiceLevel._ANY, Usage._ANY, min, max))
         .thenReturn(Collections.singletonList(capacity));
 
@@ -257,7 +257,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(begin);
     capacity.setEndDate(end);
 
-    when(repository.findByOrgIdAndProductId(
+    when(repository.findAllBy(
             "owner123456", RHEL.toString(), ServiceLevel._ANY, Usage.PRODUCTION, begin, end))
         .thenReturn(Collections.singletonList(capacity));
 
@@ -283,7 +283,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     capacity.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductId("owner123456", RHEL.toString(), null, null, min, max))
+    when(repository.findAllBy("owner123456", RHEL.toString(), null, null, min, max))
         .thenReturn(Arrays.asList(capacity));
 
     CapacityReport report =
@@ -296,7 +296,7 @@ class CapacityResourceTest {
   @ParameterizedTest
   @MethodSource("usageLists")
   void testShouldCalculateCapacityRegardlessOfUsageSeenFirst(List<SubscriptionCapacity> usages) {
-    when(repository.findByOrgIdAndProductId("owner123456", RHEL.toString(), null, null, min, max))
+    when(repository.findAllBy("owner123456", RHEL.toString(), null, null, min, max))
         .thenReturn(usages);
 
     CapacityReport report =
@@ -312,7 +312,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(min);
     capacity.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductIdAndMetricId(
+    when(repository.findAllBy(
             "owner123456",
             RHEL.toString(),
             MetricId.CORES,
@@ -345,7 +345,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(min);
     capacity.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductIdAndMetricId(
+    when(repository.findAllBy(
             "owner123456",
             RHEL.toString(),
             MetricId.CORES,
@@ -378,7 +378,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(min);
     capacity.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductIdAndMetricId(
+    when(repository.findAllBy(
             "owner123456",
             RHEL.toString(),
             MetricId.CORES,
@@ -411,7 +411,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(min);
     capacity.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductIdAndMetricId(
+    when(repository.findAllBy(
             "owner123456",
             RHEL.toString(),
             MetricId.CORES,
@@ -444,7 +444,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(min);
     capacity.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductIdAndMetricId(
+    when(repository.findAllBy(
             "owner123456",
             RHEL.toString(),
             MetricId.CORES,
@@ -489,7 +489,7 @@ class CapacityResourceTest {
     capacity2.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     capacity2.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductIdAndMetricId(
+    when(repository.findAllBy(
             "owner123456", RHEL.toString(), MetricId.CORES, null, null, null, min, max))
         .thenReturn(Arrays.asList(capacity, capacity2));
 
@@ -511,7 +511,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     capacity.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductIdAndMetricId(
+    when(repository.findAllBy(
             "owner123456", RHEL.toString(), MetricId.SOCKETS, null, null, null, min, max))
         .thenReturn(Arrays.asList(capacity));
 
@@ -533,7 +533,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     capacity.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductIdAndMetricId(
+    when(repository.findAllBy(
             "owner123456",
             RHEL.toString(),
             MetricId.SOCKETS,
@@ -571,7 +571,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     capacity.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductIdAndMetricId(
+    when(repository.findAllBy(
             "owner123456",
             RHEL.toString(),
             MetricId.SOCKETS,
@@ -609,7 +609,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     capacity.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductIdAndMetricId(
+    when(repository.findAllBy(
             "owner123456", RHEL.toString(), MetricId.CORES, null, null, null, min, max))
         .thenReturn(Arrays.asList(capacity));
 
@@ -631,7 +631,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     capacity.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductIdAndMetricId(
+    when(repository.findAllBy(
             "owner123456",
             RHEL.toString(),
             MetricId.CORES,
@@ -669,7 +669,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     capacity.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductIdAndMetricId(
+    when(repository.findAllBy(
             "owner123456",
             RHEL.toString(),
             MetricId.CORES,
@@ -715,7 +715,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(min);
     capacity.setEndDate(max);
 
-    when(repository.findByOrgIdAndProductIdAndMetricId(
+    when(repository.findAllBy(
             "owner123456",
             RHEL.toString(),
             MetricId.CORES,
@@ -768,7 +768,7 @@ class CapacityResourceTest {
     capacity.setBeginDate(begin);
     capacity.setEndDate(end);
 
-    when(repository.findByOrgIdAndProductIdAndMetricId(
+    when(repository.findAllBy(
             "owner123456",
             RHEL.toString(),
             MetricId.CORES,
@@ -800,7 +800,7 @@ class CapacityResourceTest {
   @MethodSource("usageLists")
   void testReportByMetricIdShouldCalculateCapacityRegardlessOfUsageSeenFirst(
       List<SubscriptionCapacity> usages) {
-    when(repository.findByOrgIdAndProductIdAndMetricId(
+    when(repository.findAllBy(
             "owner123456", RHEL.toString(), MetricId.CORES, null, null, null, min, max))
         .thenReturn(usages);
 

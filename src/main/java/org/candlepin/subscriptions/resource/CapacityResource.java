@@ -244,9 +244,7 @@ public class CapacityResource implements CapacityApi {
     }
 
     List<SubscriptionCapacity> matches;
-    matches =
-        repository.findByOrgIdAndProductId(
-            orgId, productId.toString(), sla, usage, reportBegin, reportEnd);
+    matches = repository.findAllBy(orgId, productId.toString(), sla, usage, reportBegin, reportEnd);
 
     SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
 
@@ -289,7 +287,7 @@ public class CapacityResource implements CapacityApi {
 
     List<SubscriptionCapacity> matches;
     matches =
-        repository.findByOrgIdAndProductIdAndMetricId(
+        repository.findAllBy(
             orgId,
             productId.toString(),
             metricId,
