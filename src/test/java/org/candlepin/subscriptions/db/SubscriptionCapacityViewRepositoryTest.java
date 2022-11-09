@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.candlepin.subscriptions.db.SubscriptionReportCategory.*;
+import static org.candlepin.subscriptions.db.HypervisorReportCategory.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.everyItem;
@@ -34,7 +34,6 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -125,7 +124,7 @@ class SubscriptionCapacityViewRepositoryTest {
     List<SubscriptionCapacityView> all =
         repository.findAllBy(
             premium.getOrgId(),
-            Collections.emptySet(),
+            null,
             premium.getProductId(),
             premium.getServiceLevel(),
             premium.getUsage(),
@@ -169,8 +168,7 @@ class SubscriptionCapacityViewRepositoryTest {
             "role1"));
 
     List<SubscriptionCapacityView> all =
-        repository.findAllBy(
-            null, Collections.emptySet(), null, ServiceLevel.PREMIUM, null, null, null, null);
+        repository.findAllBy(null, null, null, ServiceLevel.PREMIUM, null, null, null, null);
     assertEquals(1, all.size());
   }
 
@@ -222,8 +220,7 @@ class SubscriptionCapacityViewRepositoryTest {
             premium.getUsage(),
             "role1"));
     List<SubscriptionCapacityView> all =
-        repository.findAllBy(
-            null, Collections.emptySet(), null, null, null, reportBegin, reportEnd, null);
+        repository.findAllBy(null, null, null, null, null, reportBegin, reportEnd, null);
     assertEquals(1, all.size());
   }
 
@@ -255,8 +252,7 @@ class SubscriptionCapacityViewRepositoryTest {
             premium.getUsage(),
             "role1"));
     List<SubscriptionCapacityView> all =
-        repository.findAllBy(
-            null, Collections.emptySet(), null, null, null, reportBegin, reportEnd, null);
+        repository.findAllBy(null, null, null, null, null, reportBegin, reportEnd, null);
     assertEquals(0, all.size());
   }
 
@@ -302,8 +298,7 @@ class SubscriptionCapacityViewRepositoryTest {
             "role1"));
 
     List<SubscriptionCapacityView> all =
-        repository.findAllBy(
-            null, Collections.emptySet(), null, null, null, NOWISH.plusDays(30), null, null);
+        repository.findAllBy(null, null, null, null, null, NOWISH.plusDays(30), null, null);
     assertEquals(2, all.size());
   }
 
@@ -343,7 +338,7 @@ class SubscriptionCapacityViewRepositoryTest {
     List<SubscriptionCapacityView> all =
         repository.findAllBy(
             ORG_ID,
-            Collections.emptySet(),
+            null,
             PRODUCT_ID,
             premium.getServiceLevel(),
             premium.getUsage(),
@@ -412,7 +407,7 @@ class SubscriptionCapacityViewRepositoryTest {
             "role1"));
 
     List<SubscriptionCapacityView> found =
-        repository.findAllBy(null, Collections.emptySet(), null, null, null, null, null, Uom.CORES);
+        repository.findAllBy(null, null, null, null, null, null, null, Uom.CORES);
     assertEquals(2, found.size());
     found.forEach(
         subscriptionCapacityView -> {
@@ -477,14 +472,7 @@ class SubscriptionCapacityViewRepositoryTest {
         createOffering(TEST_SKU, Integer.parseInt(PRODUCT_ID), null, Usage.PRODUCTION, "role1"));
     List<SubscriptionCapacityView> results =
         repository.findAllBy(
-            ORG_ID,
-            Set.of(NON_HYPERVISOR),
-            PRODUCT_ID,
-            null,
-            null,
-            NOWISH,
-            FAR_FUTURE.plusDays(4),
-            null);
+            ORG_ID, NON_HYPERVISOR, PRODUCT_ID, null, null, NOWISH, FAR_FUTURE.plusDays(4), null);
     assertEquals(2, results.size());
     assertThat(
         results.stream()
@@ -499,14 +487,7 @@ class SubscriptionCapacityViewRepositoryTest {
 
     results =
         repository.findAllBy(
-            ORG_ID,
-            Set.of(HYPERVISOR),
-            PRODUCT_ID,
-            null,
-            null,
-            NOWISH,
-            FAR_FUTURE.plusDays(4),
-            null);
+            ORG_ID, HYPERVISOR, PRODUCT_ID, null, null, NOWISH, FAR_FUTURE.plusDays(4), null);
     assertEquals(1, results.size());
     var record = results.get(0);
     assertAll(
@@ -521,14 +502,7 @@ class SubscriptionCapacityViewRepositoryTest {
     assertEquals(3, results.size());
     results =
         repository.findAllBy(
-            ORG_ID,
-            Set.of(NON_HYPERVISOR, HYPERVISOR),
-            PRODUCT_ID,
-            null,
-            null,
-            NOWISH,
-            FAR_FUTURE.plusDays(4),
-            null);
+            ORG_ID, null, PRODUCT_ID, null, null, NOWISH, FAR_FUTURE.plusDays(4), null);
     assertEquals(3, results.size());
   }
 
@@ -589,8 +563,7 @@ class SubscriptionCapacityViewRepositoryTest {
             sockets.getUsage(),
             "role1"));
     List<SubscriptionCapacityView> found =
-        repository.findAllBy(
-            null, Collections.emptySet(), null, null, null, null, null, Uom.SOCKETS);
+        repository.findAllBy(null, null, null, null, null, null, null, Uom.SOCKETS);
     assertEquals(2, found.size());
     found.forEach(
         subscriptionCapacityView -> {
