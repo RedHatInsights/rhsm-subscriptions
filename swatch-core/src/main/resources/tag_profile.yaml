@@ -283,7 +283,7 @@ tagMetrics:
     queryKey: addonSamples
     queryParams:
       resourceName: addon-open-data-hub
-      prometheusMetric: cluster:usage:workload:capacity_physical_cpu_hours
+      prometheusMetric: cluster:usage:workload:capacity_virtual_cpu_hours
       prometheusMetadataMetric: ocm_subscription_resource
 
 # The tagMetaData section defines additional information around how a tag is tallied.  Most notably,
