@@ -37,7 +37,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 
-/** Exposes the ability to trigger a tally for an account from JMX. */
+/** Exposes the ability to trigger a tally for an org from JMX. */
 @Component
 @Validated
 @ManagedResource
@@ -54,17 +54,8 @@ public class TallyJmxBean {
     this.dataMigrationRunner = dataMigrationRunner;
   }
 
-  // SWATCH-614 Deprecate this method after org id migration
-  @ManagedOperation(description = "Trigger a tally for an account")
-  @ManagedOperationParameter(name = "accountNumber", description = "Which account to tally.")
-  public void tallyAccount(String accountNumber) {
-    Object principal = ResourceUtils.getPrincipal();
-    log.info("Tally for account {} triggered over JMX by {}", accountNumber, principal);
-    tasks.updateAccountSnapshots(accountNumber);
-  }
-
   @ManagedOperation(description = "Trigger a tally for an org")
-  @ManagedOperationParameter(name = "orgId", description = "Which account to tally.")
+  @ManagedOperationParameter(name = "orgId", description = "Which org to tally.")
   public void tallyOrg(String orgId) {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Tally for org {} triggered over JMX by {}", orgId, principal);
@@ -77,32 +68,6 @@ public class TallyJmxBean {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Tally for all orgs triggered over JMX by {}", principal);
     tasks.updateSnapshotsForAllOrg();
-  }
-
-  // SWATCH-644 Deprecate this method after org id migration
-  @ManagedOperation(description = "Trigger hourly tally for an account within a timeframe.")
-  @ManagedOperationParameter(name = "accountNumber", description = "Which account to tally.")
-  @ManagedOperationParameter(
-      name = "startDateTime",
-      description =
-          "Beginning of the range of time the tally should include. "
-              + "Should be top of the hour and expected to be in ISO 8601 format (e.g. 2020-08-02T14:00Z).")
-  @ManagedOperationParameter(
-      name = "endDateTime",
-      description =
-          "Ending of the range of time the tally should include. "
-              + "Should be top of the hour and expected to be in ISO 8601 format (e.g. 2020-08-02T14:00Z).")
-  @ParameterDuration("@jmxProperties.tallyBean.hourlyTallyDurationLimitDays")
-  public void tallyAccountByHourly(
-      String accountNumber, @NotNull String startDateTime, @NotNull String endDateTime) {
-    log.info(
-        "Hourly tally between {} and {} for account {} triggered over JMX by {}",
-        startDateTime,
-        endDateTime,
-        accountNumber,
-        ResourceUtils.getPrincipal());
-    var tallyRange = DateRange.fromStrings(startDateTime, endDateTime);
-    tasks.tallyAccountByHourly(accountNumber, tallyRange);
   }
 
   @ManagedOperation(description = "Trigger hourly tally for an org within a timeframe.")

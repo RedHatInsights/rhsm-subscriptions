@@ -43,7 +43,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Import;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 /**
  * Producer of tally snapshot production tasks.
@@ -75,24 +74,6 @@ public class CaptureSnapshotsTaskManager {
     this.queue = queue;
     this.applicationClock = applicationClock;
     this.accountRepo = accountRepo;
-  }
-
-  // SWATCH-614 Deprecate this method after org id migration
-  /**
-   * Initiates a task that will update the snapshots for the specified account.
-   *
-   * @param accountNumber the account number in which to update.
-   */
-  @SuppressWarnings("indentation")
-  public void updateAccountSnapshots(String accountNumber) {
-    String orgId = accountRepo.findOrgByAccountNumber(accountNumber);
-    if (StringUtils.hasText(orgId)) {
-      updateOrgSnapshots(orgId);
-    } else {
-      throw new IllegalArgumentException(
-          String.format(
-              "Incomplete opt-in configuration - account=%s orgId=%s", accountNumber, orgId));
-    }
   }
 
   /**
@@ -131,28 +112,6 @@ public class CaptureSnapshotsTaskManager {
       log.info("Done queuing snapshot production for {} org list.", count.intValue());
     } catch (Exception e) {
       throw new TaskManagerException("Could not list org for update snapshot task generation", e);
-    }
-  }
-
-  public void tallyAccountByHourly(String accountNumber, DateRange tallyRange) {
-    if (!applicationClock.isHourlyRange(tallyRange)) {
-      log.error(
-          "Hourly snapshot production for accountNumber {} will not be queued. "
-              + "Invalid start/end times specified.",
-          accountNumber);
-      throw new IllegalArgumentException(
-          String.format(
-              "Start/End times must be at the top of the hour: [%s -> %s]",
-              tallyRange.getStartString(), tallyRange.getEndString()));
-    }
-    log.info("Find org by account number {}", accountNumber);
-    String orgId = accountRepo.findOrgByAccountNumber(accountNumber);
-    if (StringUtils.hasText(orgId)) {
-      tallyOrgByHourly(orgId, tallyRange);
-    } else {
-      throw new IllegalArgumentException(
-          String.format(
-              "Incomplete opt-in configuration - account=%s orgId=%s", accountNumber, orgId));
     }
   }
 

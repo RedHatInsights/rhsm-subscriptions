@@ -74,25 +74,6 @@ class CaptureSnapshotsTaskManagerTest {
   public static final String ORG_ID = "org123";
   public static final String ACCOUNT = "foo123";
 
-  // Deprecate this test once accountNumber to orgId is finished.
-  @Test
-  void testUpdateForSingleAccount_WhenOrgPresent() {
-    when(accountRepo.findOrgByAccountNumber(ACCOUNT)).thenReturn(ORG_ID);
-    manager.updateAccountSnapshots(ACCOUNT);
-    verify(queue).enqueue(createDescriptorOrg(ORG_ID));
-  }
-
-  // SWATCH-614 Deprecate this test once accountNumber to orgId is finished.
-  @Test
-  void testUpdateForSingleAccount_WhenOrgAbsent() {
-    when(accountRepo.findOrgByAccountNumber(ACCOUNT)).thenReturn(null);
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> {
-          manager.updateAccountSnapshots(ACCOUNT);
-        });
-  }
-
   @Test
   void testUpdateForSingleOrg() {
     manager.updateOrgSnapshots(ORG_ID);
