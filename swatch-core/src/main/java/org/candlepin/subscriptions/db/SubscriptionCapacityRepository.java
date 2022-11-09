@@ -131,22 +131,22 @@ public interface SubscriptionCapacityRepository
       HypervisorReportCategory hypervisorReportCategory) {
     return metricsCriteria(
         hypervisorReportCategory,
-        SubscriptionCapacity_.physicalCores,
-        SubscriptionCapacity_.virtualCores);
+        SubscriptionCapacity_.cores,
+        SubscriptionCapacity_.hypervisorCores);
   }
 
   static Specification<SubscriptionCapacity> socketsCriteria(
       HypervisorReportCategory hypervisorReportCategory) {
     return metricsCriteria(
         hypervisorReportCategory,
-        SubscriptionCapacity_.physicalSockets,
-        SubscriptionCapacity_.virtualSockets);
+        SubscriptionCapacity_.sockets,
+        SubscriptionCapacity_.hypervisorSockets);
   }
 
   static Specification<SubscriptionCapacity> metricsCriteria(
       HypervisorReportCategory hypervisorReportCategory,
-      SingularAttribute<SubscriptionCapacity, Integer> physicalAttribute,
-      SingularAttribute<SubscriptionCapacity, Integer> virtualAttribute) {
+      SingularAttribute<SubscriptionCapacity, Integer> standardAttribute,
+      SingularAttribute<SubscriptionCapacity, Integer> hypervisorAttribute) {
     return (root, query, builder) -> {
       // Note this is a *disjunction* (i.e. an "or" operation)
       var metricPredicate = builder.disjunction();
@@ -154,24 +154,24 @@ public interface SubscriptionCapacityRepository
           .getExpressions()
           .add(builder.isTrue(root.get(SubscriptionCapacity_.hasUnlimitedUsage)));
 
-      var physicalPredicate = builder.greaterThan(root.get(physicalAttribute), 0);
-      var virtualPredicate = builder.greaterThan(root.get(virtualAttribute), 0);
-      // Has no virt capacity at all
-      var nonVirtualPredicate = builder.equal(root.get(virtualAttribute), 0);
+      var standardPredicate = builder.greaterThan(root.get(standardAttribute), 0);
+      var hypervisorPredicate = builder.greaterThan(root.get(hypervisorAttribute), 0);
+      // Has no hypervisor capacity at all
+      var nonHypervisorPredicate = builder.equal(root.get(hypervisorAttribute), 0);
 
       if (Objects.nonNull(hypervisorReportCategory)) {
         switch (hypervisorReportCategory) {
           case NON_HYPERVISOR:
-            metricPredicate.getExpressions().add(nonVirtualPredicate);
+            metricPredicate.getExpressions().add(nonHypervisorPredicate);
             break;
           case HYPERVISOR:
-            metricPredicate.getExpressions().add(virtualPredicate);
+            metricPredicate.getExpressions().add(hypervisorPredicate);
             break;
           default:
             throw new IllegalStateException("Unhandled HypervisorReportCategory value");
         }
       } else {
-        metricPredicate.getExpressions().addAll(Set.of(physicalPredicate, virtualPredicate));
+        metricPredicate.getExpressions().addAll(Set.of(standardPredicate, hypervisorPredicate));
       }
 
       return metricPredicate;

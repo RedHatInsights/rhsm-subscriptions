@@ -40,17 +40,17 @@ public class SubscriptionCapacity implements Serializable {
   @Column(name = "account_number")
   private String accountNumber;
 
-  @Column(name = "physical_sockets")
-  private Integer physicalSockets;
+  @Column(name = "sockets")
+  private Integer sockets;
 
-  @Column(name = "virtual_sockets")
-  private Integer virtualSockets;
+  @Column(name = "hypervisor_sockets")
+  private Integer hypervisorSockets;
 
-  @Column(name = "physical_cores")
-  private Integer physicalCores;
+  @Column(name = "cores")
+  private Integer cores;
 
-  @Column(name = "virtual_cores")
-  private Integer virtualCores;
+  @Column(name = "hypervisor_cores")
+  private Integer hypervisorCores;
 
   // Lombok would name the getter "isHasUnlimitedGuestSockets"
   @Getter(AccessLevel.NONE)
@@ -119,10 +119,11 @@ public class SubscriptionCapacity implements Serializable {
         .serviceLevel(offering.getServiceLevel())
         .usage(offering.getUsage())
         .sku(offering.getSku())
-        .physicalSockets(totalCapacity(offering.getPhysicalSockets(), subscription.getQuantity()))
-        .virtualSockets(totalCapacity(offering.getVirtualSockets(), subscription.getQuantity()))
-        .virtualCores(totalCapacity(offering.getVirtualCores(), subscription.getQuantity()))
-        .physicalCores(totalCapacity(offering.getPhysicalCores(), subscription.getQuantity()))
+        .sockets(totalCapacity(offering.getSockets(), subscription.getQuantity()))
+        .hypervisorSockets(
+            totalCapacity(offering.getHypervisorSockets(), subscription.getQuantity()))
+        .hypervisorCores(totalCapacity(offering.getHypervisorCores(), subscription.getQuantity()))
+        .cores(totalCapacity(offering.getCores(), subscription.getQuantity()))
         .hasUnlimitedUsage(offering.getHasUnlimitedUsage())
         .build();
   }

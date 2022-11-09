@@ -40,10 +40,10 @@ import org.hibernate.annotations.Subselect;
         + "sc.sku, \n"
         + "sc.sla, \n"
         + "sc.usage, \n"
-        + "sc.physical_sockets, \n"
-        + "sc.virtual_sockets, \n"
-        + "sc.physical_cores, \n"
-        + "sc.virtual_cores, \n"
+        + "sc.sockets, \n"
+        + "sc.hypervisor_sockets, \n"
+        + "sc.cores, \n"
+        + "sc.hypervisor_cores, \n"
         + "sc.end_date, \n"
         + "sc.begin_date, \n"
         + "sc.account_number, \n"
@@ -80,17 +80,17 @@ public class SubscriptionCapacityView {
   @Column(name = "usage")
   private Usage usage;
 
-  @Column(name = "physical_sockets")
-  private Integer physicalSockets;
+  @Column(name = "sockets")
+  private Integer sockets;
 
-  @Column(name = "virtual_sockets")
-  private Integer virtualSockets;
+  @Column(name = "hypervisor_sockets")
+  private Integer hypervisorSockets;
 
-  @Column(name = "physical_cores")
-  private Integer physicalCores;
+  @Column(name = "cores")
+  private Integer cores;
 
-  @Column(name = "virtual_cores")
-  private Integer virtualCores;
+  @Column(name = "hypervisor_cores")
+  private Integer hypervisorCores;
 
   @Column(name = "end_date")
   private OffsetDateTime endDate;
@@ -107,19 +107,19 @@ public class SubscriptionCapacityView {
   @Column(name = "has_unlimited_usage")
   private Boolean hasUnlimitedUsage;
 
-  public Integer getPhysicalSockets() {
-    return Objects.isNull(physicalSockets) ? 0 : physicalSockets;
+  public Integer getSockets() {
+    return Objects.isNull(sockets) ? 0 : sockets;
   }
 
-  public Integer getPhysicalCores() {
-    return Objects.isNull(physicalCores) ? 0 : physicalCores;
+  public Integer getCores() {
+    return Objects.isNull(cores) ? 0 : cores;
   }
 
-  public Integer getVirtualCores() {
-    return Objects.isNull(virtualCores) ? 0 : virtualCores;
+  public Integer getHypervisorCores() {
+    return Objects.isNull(hypervisorCores) ? 0 : hypervisorCores;
   }
 
-  public Integer getVirtualSockets() {
-    return Objects.isNull(virtualSockets) ? 0 : virtualSockets;
+  public Integer getHypervisorSockets() {
+    return Objects.isNull(hypervisorSockets) ? 0 : hypervisorSockets;
   }
 }

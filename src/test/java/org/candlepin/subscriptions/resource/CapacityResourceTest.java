@@ -170,18 +170,18 @@ class CapacityResourceTest {
   @Test
   void testShouldCalculateCapacityBasedOnMultipleSubscriptions() {
     SubscriptionCapacity capacity = new SubscriptionCapacity();
-    capacity.setVirtualSockets(5);
-    capacity.setPhysicalSockets(2);
-    capacity.setVirtualCores(20);
-    capacity.setPhysicalCores(8);
+    capacity.setHypervisorSockets(5);
+    capacity.setSockets(2);
+    capacity.setHypervisorCores(20);
+    capacity.setCores(8);
     capacity.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     capacity.setEndDate(max);
 
     SubscriptionCapacity capacity2 = new SubscriptionCapacity();
-    capacity2.setVirtualSockets(7);
-    capacity2.setPhysicalSockets(11);
-    capacity2.setVirtualCores(14);
-    capacity2.setPhysicalCores(22);
+    capacity2.setHypervisorSockets(7);
+    capacity2.setSockets(11);
+    capacity2.setHypervisorCores(14);
+    capacity2.setCores(22);
     capacity2.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     capacity2.setEndDate(max);
 
@@ -475,18 +475,18 @@ class CapacityResourceTest {
   @Test
   void testReportByMetricIdShouldCalculateCapacityBasedOnMultipleSubscriptions() {
     SubscriptionCapacity capacity = new SubscriptionCapacity();
-    capacity.setVirtualSockets(5);
-    capacity.setPhysicalSockets(2);
-    capacity.setVirtualCores(20);
-    capacity.setPhysicalCores(8);
+    capacity.setHypervisorSockets(5);
+    capacity.setSockets(2);
+    capacity.setHypervisorCores(20);
+    capacity.setCores(8);
     capacity.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     capacity.setEndDate(max);
 
     SubscriptionCapacity capacity2 = new SubscriptionCapacity();
-    capacity2.setVirtualSockets(7);
-    capacity2.setPhysicalSockets(11);
-    capacity2.setVirtualCores(14);
-    capacity2.setPhysicalCores(22);
+    capacity2.setHypervisorSockets(7);
+    capacity2.setSockets(11);
+    capacity2.setHypervisorCores(14);
+    capacity2.setCores(22);
     capacity2.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     capacity2.setEndDate(max);
 
@@ -505,10 +505,10 @@ class CapacityResourceTest {
   @Test
   void testReportByMetricIdShouldCalculateCapacityAllSockets() {
     SubscriptionCapacity capacity = new SubscriptionCapacity();
-    capacity.setVirtualSockets(5);
-    capacity.setPhysicalSockets(2);
-    capacity.setVirtualCores(20);
-    capacity.setPhysicalCores(8);
+    capacity.setHypervisorSockets(5);
+    capacity.setSockets(2);
+    capacity.setHypervisorCores(20);
+    capacity.setCores(8);
     capacity.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     capacity.setEndDate(max);
 
@@ -527,10 +527,10 @@ class CapacityResourceTest {
   @Test
   void testReportByMetricIdShouldCalculateCapacityVirtualSockets() {
     SubscriptionCapacity capacity = new SubscriptionCapacity();
-    capacity.setVirtualSockets(5);
-    capacity.setPhysicalSockets(2);
-    capacity.setVirtualCores(20);
-    capacity.setPhysicalCores(8);
+    capacity.setHypervisorSockets(5);
+    capacity.setSockets(2);
+    capacity.setHypervisorCores(20);
+    capacity.setCores(8);
     capacity.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     capacity.setEndDate(max);
 
@@ -565,10 +565,10 @@ class CapacityResourceTest {
   @Test
   void testReportByMetricIdShouldCalculateCapacityPhysicalSockets() {
     SubscriptionCapacity capacity = new SubscriptionCapacity();
-    capacity.setVirtualSockets(5);
-    capacity.setPhysicalSockets(2);
-    capacity.setVirtualCores(20);
-    capacity.setPhysicalCores(8);
+    capacity.setHypervisorSockets(5);
+    capacity.setSockets(2);
+    capacity.setHypervisorCores(20);
+    capacity.setCores(8);
     capacity.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     capacity.setEndDate(max);
 
@@ -603,10 +603,10 @@ class CapacityResourceTest {
   @Test
   void testReportByMetricIdShouldCalculateCapacityAllCores() {
     SubscriptionCapacity capacity = new SubscriptionCapacity();
-    capacity.setVirtualSockets(5);
-    capacity.setPhysicalSockets(2);
-    capacity.setVirtualCores(20);
-    capacity.setPhysicalCores(8);
+    capacity.setHypervisorSockets(5);
+    capacity.setSockets(2);
+    capacity.setHypervisorCores(20);
+    capacity.setCores(8);
     capacity.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     capacity.setEndDate(max);
 
@@ -625,10 +625,10 @@ class CapacityResourceTest {
   @Test
   void testReportByMetricIdShouldCalculateCapacityVirtualCores() {
     SubscriptionCapacity capacity = new SubscriptionCapacity();
-    capacity.setVirtualSockets(5);
-    capacity.setPhysicalSockets(2);
-    capacity.setVirtualCores(20);
-    capacity.setPhysicalCores(8);
+    capacity.setHypervisorSockets(5);
+    capacity.setSockets(2);
+    capacity.setHypervisorCores(20);
+    capacity.setCores(8);
     capacity.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     capacity.setEndDate(max);
 
@@ -663,10 +663,10 @@ class CapacityResourceTest {
   @Test
   void testReportByMetricIdShouldCalculateCapacityPhysicalCores() {
     SubscriptionCapacity capacity = new SubscriptionCapacity();
-    capacity.setVirtualSockets(5);
-    capacity.setPhysicalSockets(2);
-    capacity.setVirtualCores(20);
-    capacity.setPhysicalCores(8);
+    capacity.setHypervisorSockets(5);
+    capacity.setSockets(2);
+    capacity.setHypervisorCores(20);
+    capacity.setCores(8);
     capacity.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     capacity.setEndDate(max);
 
@@ -816,7 +816,7 @@ class CapacityResourceTest {
   static Stream<Arguments> usageLists() {
     SubscriptionCapacity limited = new SubscriptionCapacity();
     limited.setHasUnlimitedUsage(false);
-    limited.setPhysicalCores(4);
+    limited.setCores(4);
     limited.setBeginDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
     limited.setEndDate(max);
     SubscriptionCapacity unlimited = new SubscriptionCapacity();

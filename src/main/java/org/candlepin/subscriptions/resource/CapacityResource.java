@@ -345,18 +345,18 @@ public class CapacityResource implements CapacityApi {
 
     for (SubscriptionCapacity capacity : matches) {
       if (capacity.getBeginDate().isBefore(date) && capacity.getEndDate().isAfter(date)) {
-        int capacityVirtSockets = sanitize(capacity.getVirtualSockets());
+        int capacityVirtSockets = sanitize(capacity.getHypervisorSockets());
         sockets += capacityVirtSockets;
         hypervisorSockets += capacityVirtSockets;
 
-        int capacityPhysicalSockets = sanitize(capacity.getPhysicalSockets());
+        int capacityPhysicalSockets = sanitize(capacity.getSockets());
         sockets += capacityPhysicalSockets;
         physicalSockets += capacityPhysicalSockets;
-        int capacityPhysCores = sanitize(capacity.getPhysicalCores());
+        int capacityPhysCores = sanitize(capacity.getCores());
         cores += capacityPhysCores;
         physicalCores += capacityPhysCores;
 
-        int capacityVirtCores = sanitize(capacity.getVirtualCores());
+        int capacityVirtCores = sanitize(capacity.getHypervisorCores());
         cores += capacityVirtCores;
         hypervisorCores += capacityVirtCores;
 
@@ -408,12 +408,12 @@ public class CapacityResource implements CapacityApi {
     int value = 0;
     if (reportCategory.isPresent()) {
       if (reportCategory.get().equals(ReportCategory.PHYSICAL)) {
-        value += sanitize(capacity.getPhysicalSockets());
+        value += sanitize(capacity.getSockets());
       } else if (reportCategory.get().equals(ReportCategory.VIRTUAL)) {
-        value += sanitize(capacity.getVirtualSockets());
+        value += sanitize(capacity.getHypervisorSockets());
       }
     } else {
-      value += sanitize(capacity.getVirtualSockets()) + sanitize(capacity.getPhysicalSockets());
+      value += sanitize(capacity.getHypervisorSockets()) + sanitize(capacity.getSockets());
     }
     return value;
   }
@@ -423,12 +423,12 @@ public class CapacityResource implements CapacityApi {
     int value = 0;
     if (reportCategory.isPresent()) {
       if (reportCategory.get().equals(ReportCategory.PHYSICAL)) {
-        value += sanitize(capacity.getPhysicalCores());
+        value += sanitize(capacity.getCores());
       } else if (reportCategory.get().equals(ReportCategory.VIRTUAL)) {
-        value += sanitize(capacity.getVirtualCores());
+        value += sanitize(capacity.getHypervisorCores());
       }
     } else {
-      value += sanitize(capacity.getVirtualCores()) + sanitize(capacity.getPhysicalCores());
+      value += sanitize(capacity.getHypervisorCores()) + sanitize(capacity.getCores());
     }
     return value;
   }

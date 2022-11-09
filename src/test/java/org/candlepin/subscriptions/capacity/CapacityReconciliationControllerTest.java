@@ -114,12 +114,7 @@ class CapacityReconciliationControllerTest {
 
     Set<String> productIds = Set.of("RHEL", "RHEL Workstation");
     Offering updatedOffering =
-        Offering.builder()
-            .productIds(Set.of(45, 25))
-            .sku("MCT3718")
-            .physicalCores(20)
-            .physicalSockets(40)
-            .build();
+        Offering.builder().productIds(Set.of(45, 25)).sku("MCT3718").cores(20).sockets(40).build();
 
     Subscription updatedSubscription = createSubscription("456", 10);
 
@@ -132,8 +127,8 @@ class CapacityReconciliationControllerTest {
                         .orgId("123")
                         .productId("RHEL")
                         .build())
-                .physicalCores(10)
-                .physicalSockets(15)
+                .cores(10)
+                .sockets(15)
                 .build(),
             SubscriptionCapacity.builder()
                 .key(
@@ -142,8 +137,8 @@ class CapacityReconciliationControllerTest {
                         .orgId("123")
                         .productId("RHEL Workstation")
                         .build())
-                .physicalCores(10)
-                .physicalSockets(15)
+                .cores(10)
+                .sockets(15)
                 .build());
 
     List<SubscriptionCapacity> updatedCapacities =
@@ -181,8 +176,8 @@ class CapacityReconciliationControllerTest {
                         .orgId("123")
                         .productId("RHEL")
                         .build())
-                .physicalCores(10)
-                .physicalSockets(15)
+                .cores(10)
+                .sockets(15)
                 .build(),
             SubscriptionCapacity.builder()
                 .key(
@@ -191,8 +186,8 @@ class CapacityReconciliationControllerTest {
                         .orgId("123")
                         .productId("RHEL Workstation")
                         .build())
-                .physicalCores(10)
-                .physicalSockets(15)
+                .cores(10)
+                .sockets(15)
                 .build());
 
     when(allowlist.productIdMatches(any())).thenReturn(false);
@@ -246,8 +241,8 @@ class CapacityReconciliationControllerTest {
                         .orgId("123")
                         .productId("STALE RHEL")
                         .build())
-                .physicalCores(10)
-                .physicalSockets(15)
+                .cores(10)
+                .sockets(15)
                 .build(),
             SubscriptionCapacity.builder()
                 .key(
@@ -256,8 +251,8 @@ class CapacityReconciliationControllerTest {
                         .orgId("123")
                         .productId("STALE RHEL Workstation")
                         .build())
-                .physicalCores(10)
-                .physicalSockets(15)
+                .cores(10)
+                .sockets(15)
                 .build());
 
     when(allowlist.productIdMatches(any())).thenReturn(true);
