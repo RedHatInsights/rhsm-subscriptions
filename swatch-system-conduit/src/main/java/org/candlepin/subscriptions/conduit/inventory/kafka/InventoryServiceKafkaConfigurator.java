@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.conduit.inventory.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Duration;
 import java.util.Map;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -45,6 +46,7 @@ public class InventoryServiceKafkaConfigurator {
 
     DefaultKafkaProducerFactory<String, CreateUpdateHostMessage> factory =
         new DefaultKafkaProducerFactory<>(producerConfig);
+    factory.setPhysicalCloseTimeout((int) Duration.ofMinutes(30).toSeconds());
     // Because inventory requires us to not sent JSON fields that have null values,
     // we need to customize the ObjectMapper used by spring-kafka. There is no way to customize
     // it via configuration properties, so we use the custom one that is configured for the
