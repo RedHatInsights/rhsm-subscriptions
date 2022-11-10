@@ -30,6 +30,7 @@ import javax.validation.constraints.NotNull;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+import org.candlepin.subscriptions.db.HypervisorReportCategory;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -62,6 +63,7 @@ import org.springframework.stereotype.Component;
 /** Capacity API implementation. */
 @Component
 public class CapacityResource implements CapacityApi {
+
   private final SubscriptionCapacityRepository repository;
   private final PageLinkCreator pageLinkCreator;
   private final ApplicationClock clock;
@@ -159,9 +161,9 @@ public class CapacityResource implements CapacityApi {
       @NotNull GranularityType granularityType,
       @NotNull OffsetDateTime beginning,
       @NotNull OffsetDateTime ending,
-      ReportCategory reportCategory,
       Integer offset,
       @Min(1) Integer limit,
+      ReportCategory reportCategory,
       ServiceLevelType sla,
       UsageType usage) {
 
@@ -206,17 +208,19 @@ public class CapacityResource implements CapacityApi {
     CapacityReportByMetricId report = new CapacityReportByMetricId();
     report.setData(data);
     report.setMeta(new CapacityReportByMetricIdMeta());
-    report.getMeta().setGranularity(granularityType);
-    report.getMeta().setProduct(productId);
-    report.getMeta().setMetricId(metricId);
-    report.getMeta().setCount(report.getData().size());
+    var meta = report.getMeta();
+    meta.setGranularity(granularityType);
+    meta.setProduct(productId);
+    meta.setMetricId(metricId);
+    meta.setCategory(reportCategory);
+    meta.setCount(report.getData().size());
 
     if (sanitizedServiceLevel != null) {
-      report.getMeta().setServiceLevel(sanitizedServiceLevel.asOpenApiEnum());
+      meta.setServiceLevel(sanitizedServiceLevel.asOpenApiEnum());
     }
 
     if (sanitizedUsage != null) {
-      report.getMeta().setUsage(sanitizedUsage.asOpenApiEnum());
+      meta.setUsage(sanitizedUsage.asOpenApiEnum());
     }
 
     report.setLinks(links);
@@ -285,13 +289,14 @@ public class CapacityResource implements CapacityApi {
       throw new BadRequestException(e.getMessage());
     }
 
-    List<SubscriptionCapacity> matches;
-    matches =
+    HypervisorReportCategory hypervisorReportCategory =
+        HypervisorReportCategory.mapCategory(reportCategory);
+    List<SubscriptionCapacity> matches =
         repository.findAllBy(
             orgId,
             productId.toString(),
             metricId,
-            reportCategory,
+            hypervisorReportCategory,
             sla,
             usage,
             reportBegin,

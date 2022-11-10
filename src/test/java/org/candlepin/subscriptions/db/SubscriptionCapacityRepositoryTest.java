@@ -22,7 +22,9 @@ package org.candlepin.subscriptions.db;
 
 import static org.candlepin.subscriptions.utilization.api.model.MetricId.CORES;
 import static org.candlepin.subscriptions.utilization.api.model.MetricId.SOCKETS;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -33,7 +35,6 @@ import java.util.List;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -748,7 +749,7 @@ class SubscriptionCapacityRepositoryTest {
             "orgId",
             "product",
             CORES,
-            ReportCategory.VIRTUAL,
+            HypervisorReportCategory.HYPERVISOR,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             NOWISH,
@@ -780,7 +781,7 @@ class SubscriptionCapacityRepositoryTest {
             "orgId",
             "product",
             CORES,
-            ReportCategory.PHYSICAL,
+            HypervisorReportCategory.NON_HYPERVISOR,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             NOWISH,
@@ -840,7 +841,7 @@ class SubscriptionCapacityRepositoryTest {
             "orgId",
             "product",
             SOCKETS,
-            ReportCategory.VIRTUAL,
+            HypervisorReportCategory.HYPERVISOR,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             NOWISH,
@@ -872,7 +873,7 @@ class SubscriptionCapacityRepositoryTest {
             "orgId",
             "product",
             SOCKETS,
-            ReportCategory.PHYSICAL,
+            HypervisorReportCategory.NON_HYPERVISOR,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             NOWISH,
