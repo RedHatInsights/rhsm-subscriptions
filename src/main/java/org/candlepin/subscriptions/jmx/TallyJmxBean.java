@@ -25,6 +25,7 @@ import javax.validation.constraints.NotNull;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.tally.admin.DataMigrationRunner;
 import org.candlepin.subscriptions.tally.admin.HardwareMeasurementMigration;
+import org.candlepin.subscriptions.tally.admin.OrgIdToTallySnapshotMigration;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.util.DateRange;
 import org.candlepin.subscriptions.validator.ParameterDuration;
@@ -138,10 +139,30 @@ public class TallyJmxBean {
       description = "Offset to start from (may be null to start from beginning)")
   @ManagedOperationParameter(name = "batchSize", description = "Batch size")
   public void migrateHardwareMeasurements(String snapshotId, int batchSize) {
+    if (batchSize < 1) {
+      throw new IllegalArgumentException("Batch size cannot be zero");
+    }
     log.info(
         "hardware_measurements migration triggered over JMX by {}", ResourceUtils.getPrincipal());
     dataMigrationRunner.migrate(
         HardwareMeasurementMigration.class,
+        StringUtils.hasText(snapshotId) ? snapshotId : null,
+        batchSize);
+  }
+
+  @ManagedOperation(description = "Trigger tally_snapshots Org_id migration")
+  @ManagedOperationParameter(
+      name = "snapshotId",
+      description = "Offset to start from (may be null to start from beginning)")
+  @ManagedOperationParameter(name = "batchSize", description = "Batch size")
+  public void migrateOrgIdToTallySnapshot(String snapshotId, int batchSize) {
+    if (batchSize < 1) {
+      throw new IllegalArgumentException("Batch size cannot be zero");
+    }
+    log.info(
+        "Org_id tally_snapshot migration triggered over JMX by {}", ResourceUtils.getPrincipal());
+    dataMigrationRunner.migrate(
+        OrgIdToTallySnapshotMigration.class,
         StringUtils.hasText(snapshotId) ? snapshotId : null,
         batchSize);
   }
