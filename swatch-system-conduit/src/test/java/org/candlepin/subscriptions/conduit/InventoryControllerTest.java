@@ -102,6 +102,8 @@ class InventoryControllerTest {
     expectedFacts1.setOrgId("123");
     expectedFacts1.setAccountNumber("account");
     expectedFacts1.setSubscriptionManagerId(uuid1.toString());
+    expectedFacts1.setRhProd(new ArrayList<>());
+    expectedFacts1.setSysPurposeAddons(new ArrayList<>());
 
     Consumer consumer2 = new Consumer();
     consumer2.setOrgId("123");
@@ -112,6 +114,8 @@ class InventoryControllerTest {
     expectedFacts2.setOrgId("123");
     expectedFacts2.setAccountNumber("account");
     expectedFacts2.setSubscriptionManagerId(uuid2.toString());
+    expectedFacts2.setRhProd(new ArrayList<>());
+    expectedFacts2.setSysPurposeAddons(new ArrayList<>());
 
     when(rhsmService.getPageOfConsumers(eq("123"), nullable(String.class), anyString()))
         .thenReturn(pageOf(consumer1, consumer2));
@@ -159,6 +163,9 @@ class InventoryControllerTest {
     expected.setOrgId("456");
     expected.setAccountNumber("account");
     expected.setSubscriptionManagerId(uuid.toString());
+    expected.setRhProd(new ArrayList<>());
+    expected.setSysPurposeAddons(new ArrayList<>());
+
     verify(inventoryService).scheduleHostUpdate(expected);
     verify(inventoryService, times(1)).flushHostUpdates();
   }
@@ -194,6 +201,8 @@ class InventoryControllerTest {
     expected.setOrgId("456");
     expected.setAccountNumber("account");
     expected.setSubscriptionManagerId(uuid1.toString());
+    expected.setRhProd(new ArrayList<>());
+    expected.setSysPurposeAddons(new ArrayList<>());
     verify(inventoryService).scheduleHostUpdate(expected);
     verify(inventoryService, times(1)).flushHostUpdates();
     verifyNoMoreInteractions(inventoryService);
@@ -249,6 +258,8 @@ class InventoryControllerTest {
     expected.setOrgId("123");
     expected.setAccountNumber("account");
     expected.setSubscriptionManagerId(uuid1.toString());
+    expected.setRhProd(new ArrayList<>());
+    expected.setSysPurposeAddons(new ArrayList<>());
 
     when(rhsmService.getPageOfConsumers(eq("123"), nullable(String.class), anyString()))
         .thenReturn(pageOf(consumer1, consumer2));
@@ -378,7 +389,7 @@ class InventoryControllerTest {
 
     ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
     assertEquals(uuid, conduitFacts.getSubscriptionManagerId());
-    assertThat(conduitFacts.getMacAddresses(), Matchers.empty());
+    assertThat(conduitFacts.getMacAddresses(), Matchers.nullValue());
   }
 
   @Test
@@ -390,7 +401,7 @@ class InventoryControllerTest {
 
     ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
     assertEquals(uuid, conduitFacts.getSubscriptionManagerId());
-    assertThat(conduitFacts.getMacAddresses(), Matchers.empty());
+    assertThat(conduitFacts.getMacAddresses(), Matchers.nullValue());
   }
 
   @Test
@@ -589,10 +600,14 @@ class InventoryControllerTest {
     cfacts1.setAccountNumber("account");
     cfacts1.setSubscriptionManagerId(uuid1.toString());
     cfacts1.setBiosUuid(bios1);
+    cfacts1.setRhProd(new ArrayList<>());
+    cfacts1.setSysPurposeAddons(new ArrayList<>());
     ConduitFacts cfacts2 = new ConduitFacts();
     cfacts2.setOrgId("456");
     cfacts2.setAccountNumber("account");
     cfacts2.setSubscriptionManagerId(uuid2.toString());
+    cfacts2.setRhProd(new ArrayList<>());
+    cfacts2.setSysPurposeAddons(new ArrayList<>());
     verify(inventoryService).scheduleHostUpdate(cfacts1);
     verify(inventoryService).scheduleHostUpdate(cfacts2);
     verify(inventoryService, times(1)).flushHostUpdates();
@@ -674,6 +689,8 @@ class InventoryControllerTest {
     cfacts.setAccountNumber("account");
     cfacts.setSubscriptionManagerId(uuid.toString());
     cfacts.setSysPurposeSla("Premium");
+    cfacts.setRhProd(new ArrayList<>());
+    cfacts.setSysPurposeAddons(new ArrayList<>());
     verify(inventoryService).scheduleHostUpdate(cfacts);
     verify(inventoryService, times(1)).flushHostUpdates();
   }
@@ -768,6 +785,8 @@ class InventoryControllerTest {
     expected.setAccountNumber("account");
     expected.setDisplayName("JustAnotherCluster");
     expected.setSubscriptionManagerId(uuid.toString());
+    expected.setRhProd(new ArrayList<>());
+    expected.setSysPurposeAddons(new ArrayList<>());
 
     when(rhsmService.getPageOfConsumers(eq("123"), nullable(String.class), anyString()))
         .thenReturn(pageOf(consumer));
@@ -834,6 +853,8 @@ class InventoryControllerTest {
     expected.setOrgId("org123");
     expected.setSubscriptionManagerId(uuid.toString());
     expected.setAccountNumber("account123");
+    expected.setRhProd(new ArrayList<>());
+    expected.setSysPurposeAddons(new ArrayList<>());
 
     when(rhsmService.getPageOfConsumers(eq("org123"), nullable(String.class), anyString()))
         .thenReturn(pageOf(consumer));

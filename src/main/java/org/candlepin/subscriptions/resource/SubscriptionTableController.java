@@ -262,6 +262,7 @@ public class SubscriptionTableController {
 
   public SkuCapacity initializeOnDemandSkuCapacity(Subscription subscription, Offering offering) {
     var inv = new SkuCapacity();
+    inv.setSubscriptions(new ArrayList<>());
     inv.setSku(subscription.getSku());
     inv.setProductName(offering.getProductName());
     inv.setServiceLevel(
@@ -297,7 +298,7 @@ public class SubscriptionTableController {
     var invSub = new SkuCapacitySubscription();
     invSub.setId(subscription.getSubscriptionId());
     Optional.ofNullable(subscription.getSubscriptionNumber()).ifPresent(invSub::setNumber);
-    skuCapacity.getSubscriptions().add(invSub);
+    skuCapacity.addSubscriptionsItem(invSub);
     skuCapacity.setQuantity(skuCapacity.getQuantity() + (int) subscription.getQuantity());
     OffsetDateTime subEnd = subscription.getEndDate();
     OffsetDateTime nearestEventDate = skuCapacity.getNextEventDate();
@@ -314,7 +315,7 @@ public class SubscriptionTableController {
     invSub.setId(subscriptionCapacityView.getKey().getSubscriptionId());
     Optional.ofNullable(subscriptionCapacityView.getSubscriptionNumber())
         .ifPresent(invSub::setNumber);
-    skuCapacity.getSubscriptions().add(invSub);
+    skuCapacity.addSubscriptionsItem(invSub);
     skuCapacity.setQuantity(
         skuCapacity.getQuantity() + (int) subscriptionCapacityView.getQuantity());
   }
