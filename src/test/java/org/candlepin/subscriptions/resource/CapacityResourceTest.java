@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.stream.Stream;
 import javax.ws.rs.core.Response;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
+import org.candlepin.subscriptions.db.HypervisorReportCategory;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -316,7 +317,7 @@ class CapacityResourceTest {
             "owner123456",
             RHEL.toString(),
             MetricId.CORES,
-            ReportCategory.PHYSICAL,
+            HypervisorReportCategory.NON_HYPERVISOR,
             ServiceLevel._ANY,
             Usage._ANY,
             min,
@@ -330,9 +331,9 @@ class CapacityResourceTest {
             GranularityType.DAILY,
             min,
             max,
+            null,
+            null,
             ReportCategory.PHYSICAL,
-            null,
-            null,
             null,
             null);
 
@@ -537,7 +538,7 @@ class CapacityResourceTest {
             "owner123456",
             RHEL.toString(),
             MetricId.SOCKETS,
-            ReportCategory.VIRTUAL,
+            HypervisorReportCategory.NON_HYPERVISOR,
             null,
             null,
             min,
@@ -551,9 +552,9 @@ class CapacityResourceTest {
             GranularityType.DAILY,
             min,
             max,
+            null,
+            null,
             ReportCategory.VIRTUAL,
-            null,
-            null,
             null,
             null);
 
@@ -575,7 +576,7 @@ class CapacityResourceTest {
             "owner123456",
             RHEL.toString(),
             MetricId.SOCKETS,
-            ReportCategory.PHYSICAL,
+            HypervisorReportCategory.NON_HYPERVISOR,
             null,
             null,
             min,
@@ -589,9 +590,9 @@ class CapacityResourceTest {
             GranularityType.DAILY,
             min,
             max,
+            null,
+            null,
             ReportCategory.PHYSICAL,
-            null,
-            null,
             null,
             null);
 
@@ -635,7 +636,7 @@ class CapacityResourceTest {
             "owner123456",
             RHEL.toString(),
             MetricId.CORES,
-            ReportCategory.VIRTUAL,
+            HypervisorReportCategory.NON_HYPERVISOR,
             null,
             null,
             min,
@@ -649,9 +650,9 @@ class CapacityResourceTest {
             GranularityType.DAILY,
             min,
             max,
+            null,
+            null,
             ReportCategory.VIRTUAL,
-            null,
-            null,
             null,
             null);
 
@@ -673,7 +674,7 @@ class CapacityResourceTest {
             "owner123456",
             RHEL.toString(),
             MetricId.CORES,
-            ReportCategory.PHYSICAL,
+            HypervisorReportCategory.NON_HYPERVISOR,
             null,
             null,
             min,
@@ -687,9 +688,9 @@ class CapacityResourceTest {
             GranularityType.DAILY,
             min,
             max,
+            null,
+            null,
             ReportCategory.PHYSICAL,
-            null,
-            null,
             null,
             null);
 
@@ -704,7 +705,7 @@ class CapacityResourceTest {
             SubscriptionsException.class,
             () -> {
               resource.getCapacityReportByMetricId(
-                  RHEL, MetricId.CORES, GranularityType.DAILY, min, max, null, 11, 10, null, null);
+                  RHEL, MetricId.CORES, GranularityType.DAILY, min, max, 11, 10, null, null, null);
             });
     assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
   }
@@ -728,7 +729,7 @@ class CapacityResourceTest {
 
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
-            RHEL, MetricId.CORES, GranularityType.DAILY, min, max, null, 1, 1, null, null);
+            RHEL, MetricId.CORES, GranularityType.DAILY, min, max, 1, 1, null, null, null);
 
     assertEquals(1, report.getData().size());
     assertEquals(
@@ -772,7 +773,7 @@ class CapacityResourceTest {
             "owner123456",
             RHEL.toString(),
             MetricId.CORES,
-            ReportCategory.VIRTUAL,
+            HypervisorReportCategory.HYPERVISOR,
             ServiceLevel._ANY,
             Usage.PRODUCTION,
             min,

@@ -33,7 +33,6 @@ import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey_;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacity_;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.utilization.api.model.MetricId;
-import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -55,7 +54,7 @@ public interface SubscriptionCapacityRepository
       String orgId,
       String productId,
       MetricId metricId,
-      ReportCategory reportCategory,
+      HypervisorReportCategory hypervisorReportCategory,
       ServiceLevel serviceLevel,
       Usage usage,
       OffsetDateTime reportBegin,
@@ -65,7 +64,7 @@ public interface SubscriptionCapacityRepository
             orgId,
             productId,
             metricId,
-            reportCategory,
+            hypervisorReportCategory,
             serviceLevel,
             usage,
             reportBegin,
@@ -128,18 +127,24 @@ public interface SubscriptionCapacityRepository
     return (root, query, builder) -> builder.equal(root.get(SubscriptionCapacity_.usage), usage);
   }
 
-  static Specification<SubscriptionCapacity> coresCriteria(ReportCategory category) {
+  static Specification<SubscriptionCapacity> coresCriteria(
+      HypervisorReportCategory hypervisorReportCategory) {
     return metricsCriteria(
-        category, SubscriptionCapacity_.physicalCores, SubscriptionCapacity_.virtualCores);
+        hypervisorReportCategory,
+        SubscriptionCapacity_.physicalCores,
+        SubscriptionCapacity_.virtualCores);
   }
 
-  static Specification<SubscriptionCapacity> socketsCriteria(ReportCategory category) {
+  static Specification<SubscriptionCapacity> socketsCriteria(
+      HypervisorReportCategory hypervisorReportCategory) {
     return metricsCriteria(
-        category, SubscriptionCapacity_.physicalSockets, SubscriptionCapacity_.virtualSockets);
+        hypervisorReportCategory,
+        SubscriptionCapacity_.physicalSockets,
+        SubscriptionCapacity_.virtualSockets);
   }
 
   static Specification<SubscriptionCapacity> metricsCriteria(
-      ReportCategory category,
+      HypervisorReportCategory hypervisorReportCategory,
       SingularAttribute<SubscriptionCapacity, Integer> physicalAttribute,
       SingularAttribute<SubscriptionCapacity, Integer> virtualAttribute) {
     return (root, query, builder) -> {
@@ -151,17 +156,19 @@ public interface SubscriptionCapacityRepository
 
       var physicalPredicate = builder.greaterThan(root.get(physicalAttribute), 0);
       var virtualPredicate = builder.greaterThan(root.get(virtualAttribute), 0);
+      // Has no virt capacity at all
+      var nonVirtualPredicate = builder.equal(root.get(virtualAttribute), 0);
 
-      if (Objects.nonNull(category)) {
-        switch (category) {
-          case PHYSICAL:
-            metricPredicate.getExpressions().add(physicalPredicate);
+      if (Objects.nonNull(hypervisorReportCategory)) {
+        switch (hypervisorReportCategory) {
+          case NON_HYPERVISOR:
+            metricPredicate.getExpressions().add(nonVirtualPredicate);
             break;
-          case VIRTUAL:
+          case HYPERVISOR:
             metricPredicate.getExpressions().add(virtualPredicate);
             break;
           default:
-            break;
+            throw new IllegalStateException("Unhandled HypervisorReportCategory value");
         }
       } else {
         metricPredicate.getExpressions().addAll(Set.of(physicalPredicate, virtualPredicate));
@@ -176,7 +183,7 @@ public interface SubscriptionCapacityRepository
       String orgId,
       String productId,
       MetricId metricId,
-      ReportCategory reportCategory,
+      HypervisorReportCategory hypervisorReportCategory,
       ServiceLevel serviceLevel,
       Usage usage,
       OffsetDateTime reportBegin,
@@ -186,8 +193,9 @@ public interface SubscriptionCapacityRepository
           "Either both orgId and productId must be supplied or neither value at all.");
     }
 
-    if (metricId == null && reportCategory != null) {
-      throw new IllegalStateException("Report category requires the presence of a metricId");
+    if (metricId == null && hypervisorReportCategory != null) {
+      throw new IllegalStateException(
+          "Hypervisor report category requires the presence of a metricId");
     }
 
     /* The where call allows us to build a Specification object to operate on even if the
@@ -211,10 +219,10 @@ public interface SubscriptionCapacityRepository
     if (Objects.nonNull(metricId)) {
       switch (metricId) {
         case CORES:
-          searchCriteria = searchCriteria.and(coresCriteria(reportCategory));
+          searchCriteria = searchCriteria.and(coresCriteria(hypervisorReportCategory));
           break;
         case SOCKETS:
-          searchCriteria = searchCriteria.and(socketsCriteria(reportCategory));
+          searchCriteria = searchCriteria.and(socketsCriteria(hypervisorReportCategory));
           break;
         default:
           throw new IllegalStateException(metricId + " is not a support metricId for this query");
