@@ -56,7 +56,7 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
             'reporter': 'rhsm-conduit',
         }
     else:
-        _create_account_service(account, 'HBI_HOST')
+        _create_account_service(account, 'HBI_HOST', org)
         host_fields = {
             'id': host_id,
             'instance_id': inventory_id,
@@ -128,9 +128,9 @@ def _generate_buckets(host_id, product, sla, usage, as_hypervisor=False, measure
             _generate_insert("host_tally_buckets", sla=next_sla, usage=next_usage, **bucket_fields)
 
 
-def _create_account_service(account, service_type):
-    fields = ','.join(['account_number', 'service_type'])
-    values = ','.join(db_repr(value) for value in [account, service_type])
+def _create_account_service(account, service_type, org_id):
+    fields = ','.join(['account_number', 'service_type', 'org_id'])
+    values = ','.join(db_repr(value) for value in [account, service_type, org_id])
     output.write(
         f'insert into account_services ({fields}) values ({values}) ON CONFLICT ON CONSTRAINT account_services_pkey DO NOTHING;\n')
 

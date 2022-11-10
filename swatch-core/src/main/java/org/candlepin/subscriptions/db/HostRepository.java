@@ -21,10 +21,12 @@
 package org.candlepin.subscriptions.db;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import javax.validation.constraints.NotNull;
 import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostBucketKey_;
 import org.candlepin.subscriptions.db.model.HostTallyBucket_;
@@ -140,6 +142,7 @@ public interface HostRepository
       Uom referenceUom,
       BillingProvider billingProvider,
       String billingAccountId,
+      List<HardwareMeasurementType> hardwareMeasurementTypes,
       Pageable pageable) {
 
     HostSpecification searchCriteria = new HostSpecification();
@@ -175,6 +178,11 @@ public interface HostRepository
                 new InstanceMonthlyTotalKey(month, effectiveUom),
                 SearchOperation.EQUAL));
       }
+    }
+    if (Objects.nonNull(hardwareMeasurementTypes) && !hardwareMeasurementTypes.isEmpty()) {
+      searchCriteria.add(
+          new SearchCriteria(
+              HostTallyBucket_.MEASUREMENT_TYPE, hardwareMeasurementTypes, SearchOperation.IN));
     }
 
     return findAll(searchCriteria, pageable);

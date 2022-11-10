@@ -32,7 +32,10 @@ import java.util.*;
 import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostBucketKey;
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
@@ -74,6 +77,11 @@ class InstancesResourceTest {
     host.setNumOfGuests(3);
     host.setLastSeen(OffsetDateTime.now());
 
+    var bucket = new HostTallyBucket();
+    bucket.setMeasurementType(HardwareMeasurementType.VIRTUAL);
+    bucket.setKey(new HostBucketKey());
+    host.addBucket(bucket);
+
     Mockito.when(
             repository.findAllBy(
                 eq("owner123456"),
@@ -83,6 +91,7 @@ class InstancesResourceTest {
                 any(),
                 anyInt(),
                 anyInt(),
+                any(),
                 any(),
                 any(),
                 any(),
@@ -107,6 +116,7 @@ class InstancesResourceTest {
     data.setLastSeen(host.getLastSeen());
     data.setMeasurements(expectedMeasurement);
     data.setNumberOfGuests(host.getNumOfGuests());
+    data.setCategory(HardwareMeasurementType.VIRTUAL.toString());
 
     var meta = new InstanceMeta();
     meta.setCount(1);
@@ -128,6 +138,7 @@ class InstancesResourceTest {
             ServiceLevelType.PREMIUM,
             UsageType.PRODUCTION,
             expectedBillingProvider.asOpenApiEnum(),
+            null,
             null,
             null,
             null,

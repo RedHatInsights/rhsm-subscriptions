@@ -801,6 +801,11 @@ paths:
             #Default to empty string to prevent complex jpql statement later
             default: ''
           in: query
+        - name: report_category
+          in: query
+          schema:
+            $ref: '#/components/schemas/ReportCategory'
+          description: "Include only hosts for the specified category."
         - name: beginning
           in: query
           required: false
@@ -1704,6 +1709,8 @@ components:
           type: string
         number_of_guests:
           type: integer
+        category:
+          type: string
       example:
         id: d6214a0b-b344-4778-831c-d53dcacb2da3
         display_name: rhv.example.com

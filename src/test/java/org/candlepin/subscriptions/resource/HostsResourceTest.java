@@ -416,6 +416,7 @@ class HostsResourceTest {
             null,
             BillingProvider._ANY,
             "_ANY",
+            null,
             PageRequest.of(0, 1, Sort.by(IMPLICIT_ORDER))))
         .thenReturn(page);
 
