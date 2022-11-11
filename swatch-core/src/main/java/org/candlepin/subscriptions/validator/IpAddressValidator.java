@@ -34,9 +34,11 @@ public class IpAddressValidator implements ConstraintValidator<IpAddress, String
 
   @Override
   public boolean isValid(String value, ConstraintValidatorContext context) {
-    // A null or empty value is considered invalid.
-    if (value == null || value.isEmpty()) {
-      return false;
+    // Note that the Jakarta Bean Validation specification recommends to consider null values as
+    // being valid. If null is not a valid value for an element, it should be annotated with
+    // @NotNull explicitly
+    if (value == null) {
+      return true;
     }
     return InetAddresses.isInetAddress(value);
   }
