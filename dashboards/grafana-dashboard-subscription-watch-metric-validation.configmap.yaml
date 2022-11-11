@@ -28,8 +28,8 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
-      "id": 27046,
-      "iteration": 1668111424781,
+      "id": 27048,
+      "iteration": 1668113526792,
       "links": [],
       "liveNow": false,
       "panels": [
@@ -110,7 +110,7 @@ data:
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "sum_over_time(${metric}[$__range:1h])\n* on(_id) group_right\nmin_over_time(ocm_subscription_resource{resource_type=~\"${resource_type}\", resource_name=~\"${resource_name}\", _id=~\"${id_regex}\", external_organization=~\"${org_id_regex}\", billing_model=\"marketplace\", support=~\"Premium|Standard|Self-Support|None\"}[1h])",
+              "expr": "sum(\n    sum_over_time(${metric}[$__range:1h])\n    * on(_id) group_right\n    min_over_time(ocm_subscription_resource{resource_type=~\"${resource_type}\", resource_name=~\"${resource_name}\", _id=~\"${id_regex}\", external_organization=~\"${org_id_regex}\", billing_model=\"marketplace\", support=~\"Premium|Standard|Self-Support|None\"}[1h]\n    )\n)",
               "instant": true,
               "interval": "3600",
               "legendFormat": "__auto",
@@ -261,8 +261,8 @@ data:
                 },
                 "properties": [
                   {
-                    "id": "custom.hidden",
-                    "value": true
+                    "id": "displayName",
+                    "value": "metric value over selected time period"
                   }
                 ]
               }
@@ -294,7 +294,7 @@ data:
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "max(ocm_subscription_resource{resource_type=~\"${resource_type}\", resource_name=~\"${resource_name}\", _id=~\"${id_regex}\", external_organization=~\"${org_id_regex}\", billing_model=\"marketplace\", support=~\"Premium|Standard|Self-Support|None\"}) by (_id, external_organization, billing_marketplace_account, billing_marketplace, support)",
+              "expr": "sum(\n    sum_over_time(${metric}[$__range:1h])\n    * on(_id) group_right\n    min_over_time(ocm_subscription_resource{resource_type=~\"${resource_type}\", resource_name=~\"${resource_name}\", _id=~\"${id_regex}\", external_organization=~\"${org_id_regex}\", billing_model=\"marketplace\", support=~\"Premium|Standard|Self-Support|None\"}[1h]\n    )\n) by (_id, external_organization, billing_marketplace_account, billing_marketplace, support)",
               "format": "table",
               "instant": true,
               "interval": "3600",
@@ -399,7 +399,7 @@ data:
           },
           {
             "current": {
-              "selected": true,
+              "selected": false,
               "text": "addon",
               "value": "addon"
             },
@@ -426,7 +426,7 @@ data:
           },
           {
             "current": {
-              "selected": true,
+              "selected": false,
               "text": "addon-open-data-hub",
               "value": "addon-open-data-hub"
             },
@@ -461,7 +461,7 @@ data:
       "timezone": "",
       "title": "Subscription Watch - Metric Validation",
       "uid": "lhpiu2v4k",
-      "version": 2,
+      "version": 3,
       "weekStart": ""
     }
 kind: ConfigMap
