@@ -23,8 +23,6 @@ package org.candlepin.subscriptions.db;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
-import javax.persistence.criteria.Expression;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey_;
@@ -35,7 +33,6 @@ import org.candlepin.subscriptions.utilization.api.model.Uom;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.util.ObjectUtils;
 
 public interface SubscriptionCapacityViewRepository
     extends JpaRepository<SubscriptionCapacityView, SubscriptionCapacityKey>,
@@ -44,7 +41,7 @@ public interface SubscriptionCapacityViewRepository
   @SuppressWarnings("java:S107")
   default List<SubscriptionCapacityView> findAllBy(
       String orgId,
-      Set<SubscriptionReportCategory> subsReportCategories,
+      HypervisorReportCategory hypervisorReportCategory,
       String productId,
       ServiceLevel serviceLevel,
       Usage usage,
@@ -55,7 +52,7 @@ public interface SubscriptionCapacityViewRepository
     return findAll(
         buildSearchSpecification(
             orgId,
-            subsReportCategories,
+            hypervisorReportCategory,
             productId,
             serviceLevel,
             usage,
@@ -153,33 +150,29 @@ public interface SubscriptionCapacityViewRepository
   }
 
   static Specification<SubscriptionCapacityView> matchesCategories(
-      Set<SubscriptionReportCategory> subsReportCategories) {
+      HypervisorReportCategory hypervisorReportCategory) {
     return (root, query, builder) -> {
-      var predicate = builder.conjunction();
-      if (subsReportCategories.contains(SubscriptionReportCategory.NON_HYPERVISOR)) {
-        Expression<Boolean> nonhypervisorExp =
-            // Has no virt capacity
-            builder.and(
-                builder.equal(root.get(SubscriptionCapacityView_.virtualSockets), 0),
-                builder.equal(root.get(SubscriptionCapacityView_.virtualCores), 0));
-        predicate.getExpressions().add(nonhypervisorExp);
+      switch (hypervisorReportCategory) {
+        case NON_HYPERVISOR:
+          // Has no virt capacity
+          return builder.and(
+              builder.equal(root.get(SubscriptionCapacityView_.virtualSockets), 0),
+              builder.equal(root.get(SubscriptionCapacityView_.virtualCores), 0));
+        case HYPERVISOR:
+          // Has some virt capacity
+          return builder.or(
+              builder.greaterThan(root.get(SubscriptionCapacityView_.virtualSockets), 0),
+              builder.greaterThan(root.get(SubscriptionCapacityView_.virtualCores), 0));
+        default:
+          throw new IllegalStateException("Unhandled HypervisorReportCategory value");
       }
-      if (subsReportCategories.contains(SubscriptionReportCategory.HYPERVISOR)) {
-        Expression<Boolean> hypervisorExp =
-            // Has some virt capacity
-            builder.or(
-                builder.greaterThan(root.get(SubscriptionCapacityView_.virtualSockets), 0),
-                builder.greaterThan(root.get(SubscriptionCapacityView_.virtualCores), 0));
-        predicate.getExpressions().add(hypervisorExp);
-      }
-      return predicate;
     };
   }
 
   @SuppressWarnings("java:S107")
   default Specification<SubscriptionCapacityView> buildSearchSpecification(
       String orgId,
-      Set<SubscriptionReportCategory> subsReportCategories,
+      HypervisorReportCategory hypervisorReportCategory,
       String productId,
       ServiceLevel serviceLevel,
       Usage usage,
@@ -214,11 +207,8 @@ public interface SubscriptionCapacityViewRepository
     if (Objects.nonNull(usage) && !usage.equals(Usage._ANY)) {
       searchCriteria = searchCriteria.and(usageEquals(usage));
     }
-    // If the category set is empty or contains all possible categories, then there is no need to
-    // add an extra predicate that performs zero actual filtering
-    if (!ObjectUtils.isEmpty(subsReportCategories)
-        && !subsReportCategories.containsAll(List.of(SubscriptionReportCategory.values()))) {
-      searchCriteria = searchCriteria.and(matchesCategories(subsReportCategories));
+    if (Objects.nonNull(hypervisorReportCategory)) {
+      searchCriteria = searchCriteria.and(matchesCategories(hypervisorReportCategory));
     }
     return searchCriteria;
   }

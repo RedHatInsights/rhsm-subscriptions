@@ -170,7 +170,7 @@ class SubscriptionTableControllerTest {
         givenCapacities(Org.STANDARD, productId, RH0180191.withSub(expectedSub));
 
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anySet(), anyString(), any(), any(), any(), any(), any()))
+            any(), any(), anyString(), any(), any(), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product,
@@ -206,7 +206,7 @@ class SubscriptionTableControllerTest {
             RH0180191.withSub(expectedOlderSub),
             RH0180191.withSub(expectedNewerSub));
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anySet(), anyString(), any(), any(), any(), any(), any()))
+            any(), any(), anyString(), any(), any(), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product,
@@ -254,7 +254,7 @@ class SubscriptionTableControllerTest {
             RH0180191.withSub(expectedNewerSub),
             RH00604F5.withSub(expectedOlderSub));
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anySet(), anyString(), any(), any(), any(), any(), any()))
+            any(), any(), anyString(), any(), any(), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product, sorted by SKU
@@ -309,7 +309,7 @@ class SubscriptionTableControllerTest {
     // Given an org with no active subs,
     ProductId productId = RHEL_SERVER;
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anySet(), anyString(), any(), any(), any(), any(), any()))
+            any(), any(), anyString(), any(), any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
 
     // When requesting a SKU capacity report for an eng product,
@@ -336,7 +336,7 @@ class SubscriptionTableControllerTest {
 
     when(subscriptionCapacityViewRepository.findAllBy(
             eq("owner123456"),
-            anySet(),
+            any(),
             eq(RHEL.toString()),
             eq(ServiceLevel._ANY),
             eq(Usage._ANY),
@@ -364,7 +364,7 @@ class SubscriptionTableControllerTest {
             RH0180191.withSub(expectedNewerSub));
 
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anySet(), any(), eq(ServiceLevel.STANDARD), any(), any(), any(), any()))
+            any(), any(), any(), eq(ServiceLevel.STANDARD), any(), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     SkuCapacityReport reportForUnmatchedSLA =
@@ -412,7 +412,7 @@ class SubscriptionTableControllerTest {
             RH0180191.withSub(expectedNewerSub));
 
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anySet(), any(), any(), eq(Usage.PRODUCTION), any(), any(), any()))
+            any(), any(), any(), any(), eq(Usage.PRODUCTION), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     SkuCapacityReport reportForUnmatchedUsage =
@@ -490,7 +490,7 @@ class SubscriptionTableControllerTest {
                 .withSub(Sub.sub("1239", "1235", 4, 5, 7)));
 
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anySet(), any(), any(), any(), any(), any(), any()))
+            any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     SkuCapacityReport reportWithOffsetAndLimit =
@@ -521,17 +521,10 @@ class SubscriptionTableControllerTest {
             RH0180194_SOCKETS_AND_CORES.withSub(expectedMuchOlderSub));
 
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anySet(), any(), eq(ServiceLevel.STANDARD), any(), any(), any(), eq(Uom.CORES)))
+            any(), any(), any(), eq(ServiceLevel.STANDARD), any(), any(), any(), eq(Uom.CORES)))
         .thenReturn(capacitiesWithCores);
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(),
-            anySet(),
-            any(),
-            eq(ServiceLevel.STANDARD),
-            any(),
-            any(),
-            any(),
-            eq(Uom.SOCKETS)))
+            any(), any(), any(), eq(ServiceLevel.STANDARD), any(), any(), any(), eq(Uom.SOCKETS)))
         .thenReturn(capacitiesWithSockets);
 
     SkuCapacityReport reportForMatchingCoresUom =
@@ -589,7 +582,7 @@ class SubscriptionTableControllerTest {
   @Test
   void testShouldPopulateAnnualSubscriptionType() {
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anySet(), any(), any(), any(), any(), any(), any()))
+            any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
 
     SkuCapacityReport report =
@@ -612,7 +605,7 @@ class SubscriptionTableControllerTest {
   @Test
   void testShouldPopulateOnDemandSubscriptionType() {
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anySet(), any(), any(), any(), any(), any(), any()))
+            any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
 
     SkuCapacityReport report =
@@ -642,7 +635,7 @@ class SubscriptionTableControllerTest {
         givenCapacities(Org.STANDARD, productId, RH0180195_UNLIMITED_USAGE.withSub(expectedSub));
 
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anySet(), anyString(), any(), any(), any(), any(), any()))
+            any(), any(), anyString(), any(), any(), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product,
@@ -672,7 +665,7 @@ class SubscriptionTableControllerTest {
             RH0180191.withSub(expectedNewerSub),
             RH0180195_UNLIMITED_USAGE.withSub(expectedOlderSub));
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anySet(), anyString(), any(), any(), any(), any(), any()))
+            any(), any(), anyString(), any(), any(), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product, sorted by quantity
@@ -722,7 +715,7 @@ class SubscriptionTableControllerTest {
             RH0180191.withSub(expectedNewerSub),
             RH0180195_UNLIMITED_USAGE.withSub(expectedOlderSub));
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anySet(), anyString(), any(), any(), any(), any(), any()))
+            any(), any(), anyString(), any(), any(), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product, sorted by quantity
@@ -767,7 +760,7 @@ class SubscriptionTableControllerTest {
         givenCapacities(Org.STANDARD, productId, RH0180196_VIRTUAL_SOCKETS.withSub(expectedSub));
 
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anySet(), anyString(), any(), any(), any(), any(), any()))
+            any(), any(), anyString(), any(), any(), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product,
@@ -793,7 +786,7 @@ class SubscriptionTableControllerTest {
         givenCapacities(Org.STANDARD, productId, RH0180197_VIRTUAL_CORES.withSub(expectedSub));
 
     when(subscriptionCapacityViewRepository.findAllBy(
-            any(), anySet(), anyString(), any(), any(), any(), any(), any()))
+            any(), any(), anyString(), any(), any(), any(), any(), any()))
         .thenReturn(givenCapacities);
 
     // When requesting a SKU capacity report for the eng product,

@@ -27,9 +27,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 import javax.validation.constraints.Min;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.db.HypervisorReportCategory;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
-import org.candlepin.subscriptions.db.SubscriptionReportCategory;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Offering;
@@ -97,8 +97,8 @@ public class SubscriptionTableController {
     Usage sanitizedUsage = sanitizeUsage(usage);
     BillingProvider sanitizedBillingProvider = sanitizeBillingProvider(billingProviderType);
     String sanitiziedBillingAccountId = sanitizeBillingAccountId(billingAccountId);
-    Set<SubscriptionReportCategory> subsReportCategories =
-        SubscriptionReportCategory.mapCategory(category);
+    HypervisorReportCategory hypervisorReportCategory =
+        HypervisorReportCategory.mapCategory(category);
 
     log.info(
         "Finding all subscription capacities for "
@@ -111,7 +111,7 @@ public class SubscriptionTableController {
             + "and uom={}",
         getOrgId(),
         productId,
-        subsReportCategories,
+        hypervisorReportCategory,
         sanitizedServiceLevel,
         sanitizedUsage,
         reportStart,
@@ -120,7 +120,7 @@ public class SubscriptionTableController {
     List<SubscriptionCapacityView> capacities =
         subscriptionCapacityViewRepository.findAllBy(
             getOrgId(),
-            subsReportCategories,
+            hypervisorReportCategory,
             productId.toString(),
             sanitizedServiceLevel,
             sanitizedUsage,

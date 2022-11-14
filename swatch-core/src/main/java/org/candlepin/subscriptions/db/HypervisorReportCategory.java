@@ -20,27 +20,26 @@
  */
 package org.candlepin.subscriptions.db;
 
-import java.util.EnumSet;
-import java.util.Set;
 import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 
-public enum SubscriptionReportCategory {
+public enum HypervisorReportCategory {
   HYPERVISOR,
   NON_HYPERVISOR;
 
-  public static Set<SubscriptionReportCategory> mapCategory(ReportCategory reportCategory) {
+  public static HypervisorReportCategory mapCategory(ReportCategory reportCategory) {
     if (reportCategory == null) {
-      return EnumSet.of(HYPERVISOR, NON_HYPERVISOR);
+      return null;
     }
     switch (reportCategory) {
       case PHYSICAL:
       case VIRTUAL:
       case CLOUD:
-        return EnumSet.of(NON_HYPERVISOR);
+        return NON_HYPERVISOR;
       case HYPERVISOR:
-        return EnumSet.of(HYPERVISOR);
+        return HYPERVISOR;
       default:
-        return EnumSet.of(HYPERVISOR, NON_HYPERVISOR);
+        throw new IllegalStateException(
+            "Unable to map " + reportCategory + " to a " + "HypervisorReportCategory");
     }
   }
 }
