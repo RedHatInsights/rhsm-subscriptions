@@ -499,11 +499,10 @@ class InventoryControllerTest {
     rhsmFacts.put("net.interface.eth0.ipv6_address.link", "fe80::2323:912a:177a:d8e6");
     rhsmFacts.put("net.interface.eth0.ipv6_address.link_list", "0088::99aa:bbcc:ddee:ff33");
 
-    ConduitFacts conduitFacts = new ConduitFacts();
-    controller.extractIpAddresses(rhsmFacts, conduitFacts);
+    var results = controller.extractIpAddresses(rhsmFacts);
 
     assertThat(
-        conduitFacts.getIpAddresses(),
+        results,
         Matchers.containsInAnyOrder(
             "192.168.1.1",
             "1.2.3.4",
@@ -511,7 +510,7 @@ class InventoryControllerTest {
             "fe80::2323:912a:177a:d8e6",
             "0088::99aa:bbcc:ddee:ff33"));
     // testing whether the duplicates have been removed
-    assertEquals(5, conduitFacts.getIpAddresses().size());
+    assertEquals(5, results.size());
   }
 
   @Test
@@ -552,11 +551,10 @@ class InventoryControllerTest {
     rhsmFacts.put("net.interface.virbr0.ipv4_address", "192.168.122.1");
     rhsmFacts.put("net.interface.wlan0.ipv4_address", "Unknown");
 
-    ConduitFacts conduitFacts = new ConduitFacts();
-    controller.extractIpAddresses(rhsmFacts, conduitFacts);
+    var results = controller.extractIpAddresses(rhsmFacts);
 
     assertThat(
-        conduitFacts.getIpAddresses(),
+        results,
         Matchers.containsInAnyOrder(
             "192.168.1.1", "127.0.0.1", "fe80::2323:912a:177a:d8e6", "192.168.122.1"));
   }
@@ -567,11 +565,10 @@ class InventoryControllerTest {
     rhsmFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
     rhsmFacts.put("net.interface.lo.ipv4_address", "127.0.0.1, 192.168.2.1,192.168.2.2,192...");
 
-    ConduitFacts conduitFacts = new ConduitFacts();
-    controller.extractIpAddresses(rhsmFacts, conduitFacts);
-    assertEquals(4, conduitFacts.getIpAddresses().size());
+    var results = controller.extractIpAddresses(rhsmFacts);
+    assertEquals(4, results.size());
     assertThat(
-        conduitFacts.getIpAddresses(),
+        results,
         Matchers.containsInAnyOrder("192.168.1.1", "127.0.0.1", "192.168.2.1", "192.168.2.2"));
   }
 
@@ -803,15 +800,15 @@ class InventoryControllerTest {
     consumer.getFacts().put("distribution.name", "Red Hat Enterprise Linux Workstation");
     consumer.getFacts().put("distribution.version", "6.3");
 
-    var expectedNIC1 = new HbiNetworkInterface();
-    expectedNIC1.setName("virbr0");
-    expectedNIC1.setIpv4Addresses(List.of("192.168.122.1", "ipv4ListTest"));
-    expectedNIC1.setMacAddress("C0:FF:E0:00:00:D8");
+    var virbr0NIC = new HbiNetworkInterface();
+    virbr0NIC.setName("virbr0");
+    virbr0NIC.setIpv4Addresses(List.of("192.168.122.1"));
+    virbr0NIC.setMacAddress("C0:FF:E0:00:00:D8");
 
-    var expectedNIC2 = new HbiNetworkInterface();
-    expectedNIC2.setName("eth0");
-    expectedNIC2.setIpv6Addresses(List.of("ipv6Test", "fe80::f2de:f1ff:fe9e:ccdd"));
-    expectedNIC2.setMacAddress("CA:FE:D1:9E:CC:DD");
+    var eth0NIC = new HbiNetworkInterface();
+    eth0NIC.setName("eth0");
+    eth0NIC.setIpv6Addresses(List.of("fe80::f2de:f1ff:fe9e:ccdd"));
+    eth0NIC.setMacAddress("CA:FE:D1:9E:CC:DD");
 
     var loNIC = new HbiNetworkInterface();
     loNIC.setName("lo");
@@ -833,11 +830,10 @@ class InventoryControllerTest {
     assertEquals("Red Hat Enterprise Linux Workstation", conduitFacts.getOsName());
     assertEquals("6.3", conduitFacts.getOsVersion());
     assertEquals(
-        List.of(expectedNIC1, expectedNIC2, loNIC).size(),
-        conduitFacts.getNetworkInterfaces().size());
+        List.of(virbr0NIC, eth0NIC, loNIC).size(), conduitFacts.getNetworkInterfaces().size());
     assertThat(
         conduitFacts.getNetworkInterfaces(),
-        Matchers.containsInAnyOrder(expectedNIC1, expectedNIC2, loNIC));
+        Matchers.containsInAnyOrder(virbr0NIC, eth0NIC, loNIC));
   }
 
   @Test
