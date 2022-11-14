@@ -36,6 +36,7 @@ import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -216,7 +217,11 @@ public class InstancesResource implements InstancesApi {
               .orElse(0.0));
     }
     if (!host.getBuckets().isEmpty()) {
-      instance.setCategory(host.getBuckets().iterator().next().getMeasurementType().toString());
+      host.getBuckets().stream()
+          .findFirst()
+          .map(HostTallyBucket::getMeasurementType)
+          .map(Objects::toString)
+          .ifPresent(instance::setCategory);
     }
     instance.setBillingAccountId(host.getBillingAccountId());
     instance.setMeasurements(measurementList);
@@ -241,7 +246,7 @@ public class InstancesResource implements InstancesApi {
       case CLOUD:
         return HardwareMeasurementType.getCloudProviderTypes();
       default:
-        return new ArrayList<>();
+        throw new IllegalArgumentException("Invalid category.");
     }
   }
 

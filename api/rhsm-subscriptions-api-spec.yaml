@@ -801,7 +801,7 @@ paths:
             #Default to empty string to prevent complex jpql statement later
             default: ''
           in: query
-        - name: report_category
+        - name: category
           in: query
           schema:
             $ref: '#/components/schemas/ReportCategory'
