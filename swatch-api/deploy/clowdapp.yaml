@@ -249,7 +249,7 @@ objects:
                 secret:
                   secretName: pinhead
         - name: nginx-proxy
-          minReplicas: 1
+          replicas: ${{REPLICAS}}
           webServices:
             public:
               enabled: true
