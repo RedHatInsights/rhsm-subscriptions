@@ -26,6 +26,7 @@ import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.task.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.validation.annotation.Validated;
 
 /** Updates the usage snapshots for a given org. */
@@ -45,7 +46,11 @@ public class UpdateOrgSnapshotsTask implements Task {
   @Override
   public void execute() {
     String org = orgList.get(0);
+    if (org != null) {
+      MDC.put("org_id", org);
+    }
     log.info("Updating snapshots for org {}.", org);
     snapshotController.produceSnapshotsForOrg(org);
+    MDC.clear();
   }
 }
