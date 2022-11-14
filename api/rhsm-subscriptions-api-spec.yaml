@@ -367,11 +367,6 @@ paths:
         schema:
           $ref: '#/components/schemas/MetricId'
         description: "The metric ID for the product we wish to query"
-      - name: category
-        in: query
-        schema:
-          $ref: '#/components/schemas/ReportCategory'
-        description: 'The category to fetch graph data for (optional)'
       - name: offset
         in: query
         schema:
@@ -393,6 +388,11 @@ paths:
           schema:
             $ref: '#/components/schemas/GranularityType'
           description: "The level of granularity to return."
+        - name: category
+          in: query
+          schema:
+            $ref: '#/components/schemas/ReportCategory'
+          description: 'The category to fetch data for'
         - name: sla
           in: query
           schema:
@@ -1430,6 +1430,8 @@ components:
               $ref: '#/components/schemas/ServiceLevelType'
             usage:
               $ref: '#/components/schemas/UsageType'
+            category:
+              $ref: '#/components/schemas/ReportCategory'
           required:
             - count
             - product

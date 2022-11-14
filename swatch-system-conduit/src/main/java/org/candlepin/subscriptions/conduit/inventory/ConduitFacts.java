@@ -58,13 +58,13 @@ public class ConduitFacts extends ConsumerInventory {
 
   @Valid
   @Override
-  public List<@IpAddress String> getIpAddresses() {
+  public List<@IpAddress @NotNull String> getIpAddresses() {
     return super.getIpAddresses();
   }
 
   @Valid
   @Override
-  public List<@MacAddress String> getMacAddresses() {
+  public List<@MacAddress @NotNull String> getMacAddresses() {
     return super.getMacAddresses();
   }
 

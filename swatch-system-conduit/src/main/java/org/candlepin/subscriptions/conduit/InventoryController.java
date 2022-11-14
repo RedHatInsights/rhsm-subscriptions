@@ -53,7 +53,9 @@ import org.candlepin.subscriptions.conduit.rhsm.client.model.InstalledProducts;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.Pagination;
 import org.candlepin.subscriptions.exception.MissingAccountNumberException;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
+import org.candlepin.subscriptions.validator.IpAddressValidator;
 import org.candlepin.subscriptions.validator.MacAddressValidator;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,7 +80,7 @@ public class InventoryController {
   public static final String DMI_SYSTEM_UUID = "dmi.system.uuid";
   public static final String DMI_BIOS_VERSION = "dmi.bios.version";
   public static final String DMI_BIOS_VENDOR = "dmi.bios.vendor";
-  public static final String MAC_PREFIX = "net.interface.";
+  public static final String NIC_PREFIX = "net.interface.";
   public static final String MAC_SUFFIX = ".mac_address";
 
   // We should instead pull ip addresses from the following facts:
@@ -110,6 +112,7 @@ public class InventoryController {
   private RhsmService rhsmService;
   private Validator validator;
   private MacAddressValidator macValidator;
+  private IpAddressValidator ipValidator;
   private OrgSyncTaskManager taskManager;
   private Counter queueNextPageCounter;
   private Counter finalizeOrgCounter;
@@ -124,6 +127,7 @@ public class InventoryController {
       RhsmService rhsmService,
       Validator validator,
       MacAddressValidator macValidator,
+      IpAddressValidator ipValidator,
       OrgSyncTaskManager taskManager,
       MeterRegistry meterRegistry) {
 
@@ -131,6 +135,7 @@ public class InventoryController {
     this.rhsmService = rhsmService;
     this.validator = validator;
     this.macValidator = macValidator;
+    this.ipValidator = ipValidator;
     this.taskManager = taskManager;
     this.queueNextPageCounter = meterRegistry.counter("rhsm-conduit.queue.next-page");
     this.finalizeOrgCounter = meterRegistry.counter("rhsm-conduit.finalize.org");
@@ -138,7 +143,7 @@ public class InventoryController {
     this.validateHostTimer = meterRegistry.timer("rhsm-conduit.validate.host");
   }
 
-  public ConduitFacts getFactsFromConsumer(Consumer consumer) {
+  protected ConduitFacts getFactsFromConsumer(Consumer consumer) {
     final Map<String, String> rhsmFacts = consumer.getFacts();
     ConduitFacts facts = new ConduitFacts();
     facts.setOrgId(consumer.getOrgId());
@@ -299,10 +304,21 @@ public class InventoryController {
       facts.setNetworkInterfaces(networkInterfaces);
     }
 
-    List<String> macAddresses = new ArrayList<>();
+    var macAddresses = extractMacAddresses(rhsmFacts);
+    if (!macAddresses.isEmpty()) {
+      facts.setMacAddresses(new ArrayList<>(macAddresses));
+    }
+    var ipAddresses = extractIpAddresses(rhsmFacts);
+    if (!ipAddresses.isEmpty()) {
+      facts.setIpAddresses(new ArrayList<>(ipAddresses));
+    }
+  }
+
+  protected Set<String> extractMacAddresses(Map<String, String> rhsmFacts) {
+    Set<String> macAddresses = new HashSet<>();
     rhsmFacts.entrySet().stream()
         .filter(
-            entry -> entry.getKey().startsWith(MAC_PREFIX) && entry.getKey().endsWith(MAC_SUFFIX))
+            entry -> entry.getKey().startsWith(NIC_PREFIX) && entry.getKey().endsWith(MAC_SUFFIX))
         .forEach(
             entry -> {
               var macString = entry.getValue();
@@ -311,14 +327,10 @@ public class InventoryController {
               macAddresses.addAll(splitMacs);
             });
 
-    if (!macAddresses.isEmpty()) {
-      facts.setMacAddresses(macAddresses);
-    }
-    extractIpAddresses(rhsmFacts, facts);
+    return macAddresses;
   }
 
-  @SuppressWarnings("indentation")
-  protected void extractIpAddresses(Map<String, String> rhsmFacts, ConduitFacts facts) {
+  protected Set<String> extractIpAddresses(Map<String, String> rhsmFacts) {
     Set<String> ipAddresses = new HashSet<>();
     rhsmFacts.entrySet().stream()
         .filter(
@@ -333,30 +345,33 @@ public class InventoryController {
               ipAddresses.addAll(splitAddrs);
             });
 
-    if (!ipAddresses.isEmpty()) {
-      facts.setIpAddresses(new ArrayList<>(ipAddresses));
-    }
+    return ipAddresses;
   }
 
   protected List<String> filterIps(String s, String factKey) {
-    Predicate<String> ipTests =
-        addr ->
-            StringUtils.hasLength(addr)
-                && !addr.equalsIgnoreCase(UNKNOWN)
-                && !isTruncated(addr, factKey);
-    return filterCommaDelimitedList(s, ipTests);
+    Predicate<String> ipTests = getIpTests();
+    // A truncated IP would fail the validator, but we check it separately and
+    // before the validator so that we can log that the fact is truncated.
+    Predicate<String> truncation = ip -> !isTruncated(ip, factKey);
+    return filterCommaDelimitedList(s, truncation.and(ipTests));
+  }
+
+  @NotNull
+  private Predicate<String> getIpTests() {
+    return addr -> StringUtils.hasLength(addr) && ipValidator.isValid(addr, null);
   }
 
   protected List<String> filterMacs(String s, String factKey) {
-    Predicate<String> macTests =
-        mac ->
-            mac != null
-                && !mac.equalsIgnoreCase(NONE)
-                && !mac.equalsIgnoreCase(UNKNOWN)
-                && !isTruncated(mac, factKey)
-                && macValidator.isValid(mac, null);
+    // A truncated MAC would fail the validator, but we check it separately and
+    // before the validator so that we can log that the fact is truncated.
+    Predicate<String> truncation = mac -> !isTruncated(mac, factKey);
+    Predicate<String> macTests = getMacTests();
+    return filterCommaDelimitedList(s, truncation.and(macTests));
+  }
 
-    return filterCommaDelimitedList(s, macTests);
+  @NotNull
+  private Predicate<String> getMacTests() {
+    return mac -> StringUtils.hasLength(mac) && macValidator.isValid(mac, null);
   }
 
   protected List<String> filterCommaDelimitedList(String s, Predicate<String> predicate) {
@@ -367,8 +382,10 @@ public class InventoryController {
   private List<HbiNetworkInterface> populateNICs(Map<String, String> rhsmFacts) {
     var nicSet = new ArrayList<HbiNetworkInterface>();
     for (Map.Entry<String, String> entry : rhsmFacts.entrySet()) {
-      if (entry.getKey().startsWith(MAC_PREFIX)
+      if (entry.getKey().startsWith(NIC_PREFIX)
           && entry.getKey().endsWith(MAC_SUFFIX)
+          // If the MAC address is invalid, ignore the entry rather than have the ConduitFacts
+          // object fail validation in validateConsumer
           && macValidator.isValid(entry.getValue(), null)) {
         String[] nicsName = entry.getKey().split(PERIOD_REGEX);
         var mac = entry.getValue();
@@ -387,30 +404,33 @@ public class InventoryController {
 
   private void mapInterfaceIps(
       HbiNetworkInterface networkInterface, Map<String, String> facts, String suffix) {
-    String prefix = MAC_PREFIX + networkInterface.getName() + suffix;
+    String prefix = NIC_PREFIX + networkInterface.getName() + suffix;
 
     var ipv4List = new HashSet<String>();
     var ipv6List = new HashSet<String>();
 
-    if (suffix.equalsIgnoreCase(".ipv4") && facts.containsKey(prefix + "_address_list")) {
-      var fact = prefix + "_address_list";
-      ipv4List.addAll(filterIps(facts.get(fact), fact));
-    } else if (facts.containsKey(prefix + "_address")) {
-      ipv4List.add(facts.get(prefix + "_address"));
+    var fact = prefix + "_address";
+    var listFact = prefix + "_address_list";
+    if (suffix.equalsIgnoreCase(".ipv4") && facts.containsKey(listFact)) {
+      ipv4List.addAll(filterIps(facts.get(listFact), fact));
+    } else if (facts.containsKey(fact) && getIpTests().test(facts.get(fact))) {
+      ipv4List.add(facts.get(fact));
     }
 
-    if (facts.containsKey(prefix + "_address.global_list")) {
-      var fact = prefix + "_address.global_list";
-      ipv6List.addAll(filterIps(facts.get(fact), fact));
-    } else if (facts.containsKey(prefix + "_address.global")) {
-      ipv6List.add(facts.get(prefix + "_address.global"));
+    fact = prefix + "_address.global";
+    listFact = prefix + "_address.global_list";
+    if (facts.containsKey(listFact)) {
+      ipv6List.addAll(filterIps(facts.get(listFact), fact));
+    } else if (facts.containsKey(fact) && getIpTests().test(facts.get(fact))) {
+      ipv6List.add(facts.get(fact));
     }
 
-    if (facts.containsKey(prefix + "_address.link_list")) {
-      var fact = prefix + "_address.link_list";
-      ipv6List.addAll(filterIps(facts.get(fact), fact));
-    } else if (facts.containsKey(prefix + "_address.link")) {
-      ipv6List.add(facts.get(prefix + "_address.link"));
+    fact = prefix + "_address.link";
+    listFact = prefix + "_address.link_list";
+    if (facts.containsKey(listFact)) {
+      ipv6List.addAll(filterIps(facts.get(listFact), fact));
+    } else if (facts.containsKey(fact) && getIpTests().test(facts.get(fact))) {
+      ipv6List.add(facts.get(fact));
     }
 
     if (!ipv4List.isEmpty()) {

@@ -22,6 +22,7 @@ package org.candlepin.subscriptions;
 
 import org.candlepin.subscriptions.clowder.KafkaJaasBeanPostProcessor;
 import org.candlepin.subscriptions.clowder.RdsSslBeanPostProcessor;
+import org.candlepin.subscriptions.validator.IpAddressValidator;
 import org.candlepin.subscriptions.validator.MacAddressValidator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,15 +42,30 @@ public class SystemConduitConfiguration {
   }
 
   /**
-   * Unfortunately there's no one property to apply the MacAddress annotation to. We have to resort
-   * to calling the validator manually when we know we have a String we need to treat as a MAC
-   * address.
+   * An instance of the MacAddressValidator that we use to detect NICs with bad MAC addresses.
+   * Rather than having a ConduitFacts object that fails validation, we use an instance of
+   * MacAddressValidator to skip NICs that have bad MAC addresses and therefore construct a
+   * compliant ConduitFacts object that will pass bean validation later (since the relevant field in
+   * ConduitFacts is tagged with the @MacAddress validation annotation).
    *
    * @return an instance of MacAddressValidator
    */
   @Bean
   public MacAddressValidator macAddressValidator() {
     return new MacAddressValidator();
+  }
+  /**
+   * An instance of the ipAddressValidator that we use to detect NICs with bad IP addresses. Rather
+   * than having a ConduitFacts object that fails validation, we use an instance of
+   * IpAddressValidator to skip NICs that have bad IP addresses and therefore construct a compliant
+   * ConduitFacts object that will pass bean validation later (since the relevant field in
+   * ConduitFacts are tagged with the @IpAddress validation annotation).
+   *
+   * @return an instance of MacAddressValidator
+   */
+  @Bean
+  public IpAddressValidator ipAddressValidator() {
+    return new IpAddressValidator();
   }
 
   /**
