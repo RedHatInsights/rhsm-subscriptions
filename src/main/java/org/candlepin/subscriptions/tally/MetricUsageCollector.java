@@ -173,10 +173,9 @@ public class MetricUsageCollector {
     OffsetDateTime endDateTime = startDateTime.plusHours(1);
 
     Map<String, List<Event>> eventToHostMapping =
-        // FIXME This needs to do the lookup by OrgId
         eventController
             .fetchEventsInTimeRangeByServiceType(
-                accountServiceInventory.getAccountNumber(),
+                accountServiceInventory.getOrgId(),
                 accountServiceInventory.getServiceType(),
                 startDateTime,
                 endDateTime)
