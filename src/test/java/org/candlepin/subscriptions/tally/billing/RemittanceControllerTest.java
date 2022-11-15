@@ -22,8 +22,6 @@ package org.candlepin.subscriptions.tally.billing;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -139,7 +137,9 @@ class RemittanceControllerTest {
 
     controller.syncRemittance();
     verify(remittanceRepo, times(2)).save(savedRemittance.capture());
-    assertThat(savedRemittance.getAllValues(), containsInAnyOrder(expectedRemittance1, expectedRemittance2));
+    assertThat(
+        savedRemittance.getAllValues(),
+        containsInAnyOrder(expectedRemittance1, expectedRemittance2));
   }
 
   @Test
