@@ -306,9 +306,9 @@ class TallySnapshotRepositoryTest {
   }
 
   @Test
-  void testFindMontlyTotal() {
+  void testFindMonthlyTotal() {
     //    List<TallySnapshot> tallySnapshots = new ArrayList<>();
-    String expectedAccountNumber = "Acme Inc.";
+    String expectedOrgId = "Acme Inc.";
     String expectedProduct = "rocket-skates";
     Granularity expectedGranularity = Granularity.HOURLY;
     ServiceLevel expectedServiceLevel = ServiceLevel.PREMIUM;
@@ -325,7 +325,7 @@ class TallySnapshotRepositoryTest {
         createSequencedSnapshots(
             NOWISH,
             5,
-            expectedAccountNumber,
+            expectedOrgId,
             expectedProduct,
             expectedGranularity,
             expectedMeasurementType,
@@ -337,7 +337,7 @@ class TallySnapshotRepositoryTest {
     TallyMeasurementKey key = new TallyMeasurementKey(expectedMeasurementType, expectedUom);
     Double monthlyTotal =
         repository.sumMeasurementValueForPeriod(
-            expectedAccountNumber,
+            expectedOrgId,
             expectedProduct,
             expectedGranularity,
             expectedServiceLevel,
@@ -351,8 +351,8 @@ class TallySnapshotRepositoryTest {
   }
 
   @Test
-  void testFindMontlyTotalForDateRange() {
-    String expectedAccountNumber = "Acme Inc.";
+  void testFindMonthlyTotalForDateRange() {
+    String expectedOrgId = "Acme Inc.";
     String expectedProduct = "rocket-skates";
     Granularity expectedGranularity = Granularity.HOURLY;
     ServiceLevel expectedServiceLevel = ServiceLevel.PREMIUM;
@@ -369,7 +369,7 @@ class TallySnapshotRepositoryTest {
         createSequencedSnapshots(
             NOWISH,
             5,
-            expectedAccountNumber,
+            expectedOrgId,
             expectedProduct,
             expectedGranularity,
             expectedMeasurementType,
@@ -383,7 +383,7 @@ class TallySnapshotRepositoryTest {
         new TallyMeasurementKey(HardwareMeasurementType.AWS, Uom.STORAGE_GIBIBYTES);
     Double monthlyTotal =
         repository.sumMeasurementValueForPeriod(
-            expectedAccountNumber,
+            expectedOrgId,
             expectedProduct,
             expectedGranularity,
             expectedServiceLevel,
@@ -403,7 +403,7 @@ class TallySnapshotRepositoryTest {
     assertEquals(
         0.0,
         repository.sumMeasurementValueForPeriod(
-            "account1",
+            "org1",
             "p1",
             Granularity.DAILY,
             ServiceLevel.STANDARD,
@@ -418,7 +418,7 @@ class TallySnapshotRepositoryTest {
   private List<TallySnapshot> createSequencedSnapshots(
       OffsetDateTime start,
       int numOfSnaps,
-      String accoutNumber,
+      String orgId,
       String product,
       Granularity granularity,
       HardwareMeasurementType measurementType,
@@ -428,7 +428,7 @@ class TallySnapshotRepositoryTest {
     OffsetDateTime next = start;
     for (int i = 1; i <= numOfSnaps; i++) {
       TallySnapshot snap =
-          createUnpersisted("orgSeq", accoutNumber, product, granularity, 1, 2, 3, next);
+          createUnpersisted(orgId, "accountSeq", product, granularity, 1, 2, 3, next);
       snap.setMeasurement(HardwareMeasurementType.PHYSICAL, Uom.CORES, 1.0);
       snap.setMeasurement(measurementType, measurementUom, measurementValue);
       snaps.add(snap);
