@@ -9,7 +9,7 @@ objects:
   metadata:
     name: rhsm-post-deployment-tests-${IMAGE_TAG}-${UID}
   spec:
-    appName: rhsm
+    appName: swatch-tally
     testing:
       iqe:
         debug: false
