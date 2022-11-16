@@ -7,7 +7,7 @@ info:
   version: 1.0.0
 
 paths:
-  /id={id}/options/options;products=ALL:
+  /id={id}/options/options;products=ALL/:
     description: "Get a subscription by ID"
     parameters:
       - name: id
@@ -28,7 +28,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Subscription"
-  /search/criteria;subscription_number={subscriptionNumber}/options;products=ALL;showExternalReferences=true:
+  /search/criteria;subscription_number={subscriptionNumber}/options;products=ALL;showExternalReferences=true/:
     description: "Find a subscription by subscription number"
     parameters:
       - name: subscriptionNumber
@@ -51,7 +51,7 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Subscription"
-  /search/criteria;oracle_account_number={accountNumber}/options;products=ALL;showExternalReferences=true;firstResultIndex={index};maxResults={pageSize}:
+  /search/criteria;oracle_account_number={accountNumber}/options;products=ALL;showExternalReferences=true;firstResultIndex={index};maxResults={pageSize}/:
     description: "Search subscriptions on owner, index, and pageSize"
     parameters:
       - name: accountNumber
@@ -86,7 +86,7 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Subscription"
-  /search/criteria;web_customer_id={orgId}/options;products=ALL;showExternalReferences=true;firstResultIndex={index};maxResults={pageSize}:
+  /search/criteria;web_customer_id={orgId}/options;products=ALL;showExternalReferences=true;firstResultIndex={index};maxResults={pageSize}/:
     description: "Search subscriptions on owner, index, and pageSize"
     parameters:
       - name: orgId
