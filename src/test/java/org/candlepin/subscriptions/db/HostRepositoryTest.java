@@ -747,6 +747,7 @@ class HostRepositoryTest {
             referenceUom,
             BillingProvider._ANY,
             "_ANY",
+            null,
             page);
 
     assertEquals(2, results.getTotalElements());
@@ -1026,6 +1027,7 @@ class HostRepositoryTest {
             null,
             BillingProvider.AWS,
             "_ANY",
+            null,
             page);
     assertEquals(1L, results.getTotalElements());
     assertEquals(BillingProvider.AWS, results.getContent().get(0).getBillingProvider());
@@ -1043,6 +1045,7 @@ class HostRepositoryTest {
             null,
             BillingProvider._ANY,
             "_ANY",
+            null,
             page);
     assertEquals(3L, allResults.getTotalElements());
     Map<String, Host> hostToBill =
@@ -1146,6 +1149,7 @@ class HostRepositoryTest {
             null,
             BillingProvider._ANY,
             "_ANY",
+            null,
             page);
     assertEquals(4L, results.getTotalElements());
     assertNull(results.getContent().get(0).getBillingProvider());
@@ -1197,6 +1201,173 @@ class HostRepositoryTest {
     int actual = results.getContent().size();
 
     assertEquals(expected, actual);
+  }
+
+  @Transactional
+  @Test
+  void testFilterByHardwareMeasurementTypes() {
+    Host host1 = createHost("i1", "a1");
+    host1.setBillingProvider(BillingProvider.RED_HAT);
+    addBucketToHost(
+        host1,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider.RED_HAT);
+
+    Host host2 = createHost("i2", "a1");
+    host2.setBillingProvider(BillingProvider.RED_HAT);
+    addBucketToHost(
+        host2,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.VIRTUAL,
+        BillingProvider.RED_HAT);
+
+    Host host3 = createHost("i3", "a1");
+    addBucketToHost(
+        host3,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.HYPERVISOR,
+        BillingProvider.RED_HAT);
+
+    persistHosts(host1, host2, host3);
+
+    HostReportSort sort = HostReportSort.CORES;
+    String sortValue = HostsResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
+    Pageable page = PageRequest.of(0, 10, Sort.by(sortValue));
+
+    Page<Host> results =
+        repo.findAllBy(
+            "ORG_a1",
+            COOL_PROD,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            "",
+            0,
+            0,
+            null,
+            null,
+            BillingProvider.RED_HAT,
+            "_ANY",
+            List.of(HardwareMeasurementType.VIRTUAL),
+            page);
+    assertEquals(1L, results.getTotalElements());
+    assertEquals(
+        HardwareMeasurementType.VIRTUAL,
+        results.getContent().get(0).getBuckets().iterator().next().getMeasurementType());
+
+    Page<Host> allResults =
+        repo.findAllBy(
+            "ORG_a1",
+            COOL_PROD,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            "",
+            0,
+            0,
+            null,
+            null,
+            BillingProvider.RED_HAT,
+            "_ANY",
+            null,
+            page);
+    assertEquals(3L, allResults.getTotalElements());
+    Map<String, Host> hostToBill =
+        allResults.stream().collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
+    assertTrue(
+        hostToBill.keySet().containsAll(Arrays.asList("i1", "i2", "i3")),
+        "Result did not contain expected hosts!");
+    assertEquals(
+        HardwareMeasurementType.PHYSICAL,
+        hostToBill.get("i1").getBuckets().iterator().next().getMeasurementType());
+    assertEquals(
+        HardwareMeasurementType.VIRTUAL,
+        hostToBill.get("i2").getBuckets().iterator().next().getMeasurementType());
+    assertEquals(
+        HardwareMeasurementType.HYPERVISOR,
+        hostToBill.get("i3").getBuckets().iterator().next().getMeasurementType());
+  }
+
+  @Transactional
+  @Test
+  void testFilterByCloudHardwareMeasurementTypes() {
+    Host host1 = createHost("i1", "a1");
+    host1.setBillingProvider(BillingProvider.RED_HAT);
+    addBucketToHost(
+        host1,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.AWS,
+        BillingProvider.RED_HAT);
+
+    Host host2 = createHost("i2", "a1");
+    host2.setBillingProvider(BillingProvider.RED_HAT);
+    addBucketToHost(
+        host2,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.AZURE,
+        BillingProvider.RED_HAT);
+
+    Host host3 = createHost("i3", "a1");
+    addBucketToHost(
+        host3,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.GOOGLE,
+        BillingProvider.RED_HAT);
+
+    Host host4 = createHost("i4", "a1");
+    addBucketToHost(
+        host4,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.AWS_CLOUDIGRADE,
+        BillingProvider.RED_HAT);
+
+    Host host5 = createHost("i5", "a1");
+    addBucketToHost(
+        host5,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider.RED_HAT);
+
+    persistHosts(host1, host2, host3, host4, host5);
+
+    HostReportSort sort = HostReportSort.CORES;
+    String sortValue = HostsResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
+    Pageable page = PageRequest.of(0, 10, Sort.by(sortValue));
+
+    Page<Host> results =
+        repo.findAllBy(
+            "ORG_a1",
+            COOL_PROD,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            "",
+            0,
+            0,
+            null,
+            null,
+            BillingProvider.RED_HAT,
+            "_ANY",
+            HardwareMeasurementType.getCloudProviderTypes(),
+            page);
+    assertEquals(4L, results.getTotalElements());
+    Map<String, Host> hostToBill =
+        results.stream().collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
+    assertTrue(hostToBill.keySet().containsAll(Arrays.asList("i1", "i2", "i3", "i4")));
   }
 
   private Host createHost(String inventoryId, String account) {

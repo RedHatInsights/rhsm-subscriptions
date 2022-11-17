@@ -34,7 +34,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -48,6 +50,7 @@ import org.candlepin.subscriptions.utilization.api.model.InstanceReportSort;
 import org.candlepin.subscriptions.utilization.api.model.InstanceResponse;
 import org.candlepin.subscriptions.utilization.api.model.PageLinks;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
+import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.SortDirection;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
@@ -98,6 +101,7 @@ public class InstancesResource implements InstancesApi {
       BillingProviderType billingProviderType,
       String billingAccountId,
       String displayNameContains,
+      ReportCategory reportCategory,
       OffsetDateTime beginning,
       OffsetDateTime ending,
       InstanceReportSort sort,
@@ -121,6 +125,9 @@ public class InstancesResource implements InstancesApi {
 
     String sanitizedDisplayNameSubstring =
         Objects.nonNull(displayNameContains) ? displayNameContains : "";
+
+    List<HardwareMeasurementType> hardwareMeasurementTypes =
+        getHardwareMeasurementTypesFromCategory(reportCategory);
 
     List<InstanceData> payload;
     Page<Host> hosts;
@@ -158,6 +165,7 @@ public class InstancesResource implements InstancesApi {
             referenceUom,
             sanitizedBillingProvider,
             sanitizedBillingAccountId,
+            hardwareMeasurementTypes,
             page);
     payload =
         hosts.getContent().stream()
@@ -209,12 +217,38 @@ public class InstancesResource implements InstancesApi {
           Optional.ofNullable(host.getMonthlyTotal(monthId, Measurement.Uom.fromValue(uom)))
               .orElse(0.0));
     }
+    if (!host.getBuckets().isEmpty()) {
+      host.getBuckets().stream()
+          .findFirst()
+          .map(HostTallyBucket::getMeasurementType)
+          .map(Objects::toString)
+          .ifPresent(instance::setCategory);
+    }
     instance.setBillingAccountId(host.getBillingAccountId());
     instance.setMeasurements(measurementList);
     instance.setLastSeen(host.getLastSeen());
     instance.setNumberOfGuests(host.getNumOfGuests());
 
     return instance;
+  }
+
+  private static List<HardwareMeasurementType> getHardwareMeasurementTypesFromCategory(
+      ReportCategory reportCategory) {
+    if (Objects.isNull(reportCategory)) {
+      return new ArrayList<>();
+    }
+    switch (reportCategory) {
+      case VIRTUAL:
+        return List.of(HardwareMeasurementType.VIRTUAL);
+      case PHYSICAL:
+        return List.of(HardwareMeasurementType.PHYSICAL);
+      case HYPERVISOR:
+        return List.of(HardwareMeasurementType.HYPERVISOR);
+      case CLOUD:
+        return HardwareMeasurementType.getCloudProviderTypes();
+      default:
+        throw new IllegalArgumentException("Invalid category.");
+    }
   }
 
   private static Map<InstanceReportSort, Measurement.Uom> getSortToUomMap() {

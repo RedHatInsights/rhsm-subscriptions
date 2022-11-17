@@ -195,6 +195,7 @@ public class HostsResource implements HostsApi {
               referenceUom,
               BillingProvider._ANY,
               BILLING_ACCOUNT_ID,
+              null,
               page);
       payload =
           ((Page<Host>) hosts)
