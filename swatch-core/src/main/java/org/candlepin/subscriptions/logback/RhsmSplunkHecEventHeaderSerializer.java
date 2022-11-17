@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.logback;
 import com.splunk.logging.EventHeaderSerializer;
 import com.splunk.logging.HttpEventCollectorEventInfo;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -36,7 +37,7 @@ public class RhsmSplunkHecEventHeaderSerializer implements EventHeaderSerializer
   @Override
   public Map<String, Object> serializeEventHeader(
       HttpEventCollectorEventInfo eventInfo, Map<String, Object> metadata) {
-
+    metadata.put("time", String.format(Locale.US, "%.3f", eventInfo.getTime()));
     var fields = (Map<String, Object>) metadata.getOrDefault("fields", new HashMap<>());
 
     // TODO
