@@ -153,7 +153,7 @@ class BillableUsageControllerTest {
         new TallyMeasurementKey(
             HardwareMeasurementType.PHYSICAL, Measurement.Uom.fromValue(usage.getUom().value()));
     when(snapshotRepo.sumMeasurementValueForPeriod(
-            usage.getAccountNumber(),
+            usage.getOrgId(),
             usage.getProductId(),
             Granularity.HOURLY,
             ServiceLevel.fromString(usage.getSla().value()),
@@ -172,7 +172,6 @@ class BillableUsageControllerTest {
     BillableUsageRemittanceEntityPK remKey = keyFrom(usage);
     return BillableUsageRemittanceEntity.builder()
         .key(remKey)
-        .accountNumber(usage.getAccountNumber())
         .remittanceDate(remittedDate)
         .remittedValue(value)
         .build();
