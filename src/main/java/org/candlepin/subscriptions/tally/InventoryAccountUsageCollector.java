@@ -81,14 +81,12 @@ public class InventoryAccountUsageCollector {
       Collection<String> products, String account, String orgId) {
     log.info("Finding HBI hosts for account={} org={}", account, orgId);
 
+    AccountServiceInventoryId inventoryId =
+        AccountServiceInventoryId.builder().orgId(orgId).serviceType(HBI_INSTANCE_TYPE).build();
     AccountServiceInventory accountServiceInventory =
         accountServiceInventoryRepository
-            .findById(
-                AccountServiceInventoryId.builder()
-                    .orgId(orgId)
-                    .serviceType(HBI_INSTANCE_TYPE)
-                    .build())
-            .orElse(AccountServiceInventory.forOrgIdAndServiceType(orgId, HBI_INSTANCE_TYPE));
+            .findById(inventoryId)
+            .orElse(new AccountServiceInventory(inventoryId));
     if (account != null) {
       accountServiceInventory.setAccountNumber(account);
     }
@@ -179,10 +177,9 @@ public class InventoryAccountUsageCollector {
                       try {
                         String hypervisorUuid = facts.getHypervisorUuid();
                         if (hypervisorUuid != null) {
-                          Set<UsageCalculation.Key> keys =
-                              hypervisorUsageKeys.computeIfAbsent(
-                                  hypervisorUuid, uuid -> new HashSet<>());
-                          keys.add(key);
+                          hypervisorUsageKeys
+                              .computeIfAbsent(hypervisorUuid, uuid -> new HashSet<>())
+                              .add(key);
                         }
                         Optional<HostTallyBucket> appliedBucket =
                             ProductUsageCollectorFactory.get(product).collect(calc, facts);

@@ -147,9 +147,7 @@ class HostRepositoryTest {
                               .orgId(host.getOrgId())
                               .serviceType("HBI_HOST")
                               .build())
-                      .orElse(
-                          AccountServiceInventory.forOrgIdAndServiceType(
-                              host.getOrgId(), "HBI_HOST"));
+                      .orElse(new AccountServiceInventory(host.getOrgId(), "HBI_HOST"));
               accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host);
               accountServiceInventory =
                   accountServiceInventoryRepository.save(accountServiceInventory);

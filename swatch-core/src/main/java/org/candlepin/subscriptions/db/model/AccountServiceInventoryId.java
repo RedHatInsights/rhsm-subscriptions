@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.db.model;
 import java.io.Serializable;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -32,7 +33,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @Embeddable
 @NoArgsConstructor
-@AllArgsConstructor
+// Use the builder only since the arguments are both of the same type
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class AccountServiceInventoryId implements Serializable {
   @Column(name = "org_id")
   private String orgId;

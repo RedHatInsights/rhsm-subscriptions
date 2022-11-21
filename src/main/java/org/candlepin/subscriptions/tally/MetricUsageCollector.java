@@ -86,11 +86,12 @@ public class MetricUsageCollector {
 
     log.info("Event exists for org {} of service type {} in range: {}", orgId, serviceType, range);
     /* load the latest accountServiceInventory state, so we can update host records conveniently */
+    AccountServiceInventoryId inventoryId =
+        AccountServiceInventoryId.builder().orgId(orgId).serviceType(serviceType).build();
     AccountServiceInventory accountServiceInventory =
         accountServiceInventoryRepository
-            .findById(
-                AccountServiceInventoryId.builder().orgId(orgId).serviceType(serviceType).build())
-            .orElse(AccountServiceInventory.forOrgIdAndServiceType(orgId, serviceType));
+            .findById(inventoryId)
+            .orElse(new AccountServiceInventory(inventoryId));
 
     if (accountNumber != null) {
       accountServiceInventory.setAccountNumber(accountNumber);
