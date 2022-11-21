@@ -144,8 +144,8 @@ public class BillableUsageController {
   private boolean updateRemittance(
       BillableUsageRemittanceEntity remittance, String orgId, BillableUsageCalculation usageCalc) {
     boolean updated = false;
-    if (!Objects.equals(remittance.getOrgId(), orgId) && StringUtils.hasText(orgId)) {
-      remittance.setOrgId(orgId);
+    if (!Objects.equals(remittance.getKey().getOrgId(), orgId) && StringUtils.hasText(orgId)) {
+      remittance.getKey().setOrgId(orgId);
       updated = true;
     }
     if (!Objects.equals(remittance.getRemittedValue(), usageCalc.getRemittedValue())) {

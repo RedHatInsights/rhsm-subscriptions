@@ -76,8 +76,8 @@ public class InternalBillingController {
     for (BillableUsageRemittanceEntity entity : billableUsageRemittanceEntities) {
       MonthlyRemittance accountRemittance =
           new MonthlyRemittance()
-              .accountNumber(entity.getKey().getAccountNumber())
-              .orgId(entity.getOrgId())
+              .accountNumber(entity.getAccountNumber())
+              .orgId(entity.getKey().getOrgId())
               .productId(entity.getKey().getProductId())
               .metricId(entity.getKey().getMetricId())
               .billingProvider(entity.getKey().getBillingProvider())

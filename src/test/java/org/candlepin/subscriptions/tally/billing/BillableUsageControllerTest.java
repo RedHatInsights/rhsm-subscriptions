@@ -138,7 +138,7 @@ class BillableUsageControllerTest {
   private BillableUsageRemittanceEntityPK keyFrom(BillableUsage billableUsage) {
     return BillableUsageRemittanceEntityPK.builder()
         .usage(billableUsage.getUsage().value())
-        .accountNumber(billableUsage.getAccountNumber())
+        .orgId(billableUsage.getOrgId())
         .billingProvider(billableUsage.getBillingProvider().value())
         .billingAccountId(billableUsage.getBillingAccountId())
         .productId(billableUsage.getProductId())
@@ -172,7 +172,7 @@ class BillableUsageControllerTest {
     BillableUsageRemittanceEntityPK remKey = keyFrom(usage);
     return BillableUsageRemittanceEntity.builder()
         .key(remKey)
-        .orgId(usage.getOrgId())
+        .accountNumber(usage.getAccountNumber())
         .remittanceDate(remittedDate)
         .remittedValue(value)
         .build();

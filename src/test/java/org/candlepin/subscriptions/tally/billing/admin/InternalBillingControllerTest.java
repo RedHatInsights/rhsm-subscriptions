@@ -61,18 +61,15 @@ class InternalBillingControllerTest {
     BillableUsageRemittanceEntity remittance1 =
         remittance("111", "product1", BillingProvider.AWS, 24.0, clock.startOfCurrentMonth());
     BillableUsageRemittanceEntity remittance2 =
-        remittance(
-            "account123", "product1", BillingProvider.AWS, 12.0, clock.endOfCurrentQuarter());
+        remittance("org123", "product1", BillingProvider.AWS, 12.0, clock.endOfCurrentQuarter());
     BillableUsageRemittanceEntity remittance3 =
         remittance(
-            "account123", "product1", BillingProvider.RED_HAT, 12.0, clock.startOfCurrentMonth());
+            "org123", "product1", BillingProvider.RED_HAT, 12.0, clock.startOfCurrentMonth());
     remittance3.getKey().setMetricId(BillableUsage.Uom.TRANSFER_GIBIBYTES.value());
     BillableUsageRemittanceEntity remittance4 =
-        remittance(
-            "account345", "product2", BillingProvider.RED_HAT, 8.0, clock.startOfCurrentMonth());
+        remittance("org345", "product2", BillingProvider.RED_HAT, 8.0, clock.startOfCurrentMonth());
     BillableUsageRemittanceEntity remittance5 =
-        remittance(
-            "account345", "product3", BillingProvider.AZURE, 4.0, clock.startOfCurrentMonth());
+        remittance("org345", "product3", BillingProvider.AZURE, 4.0, clock.startOfCurrentMonth());
 
     remittanceRepo.saveAllAndFlush(
         List.of(remittance1, remittance2, remittance3, remittance4, remittance5));
@@ -83,7 +80,7 @@ class InternalBillingControllerTest {
     var response =
         controller.process(
             BillableUsageRemittanceFilter.builder()
-                .account("not_found")
+                .orgId("not_found")
                 .productId("product1")
                 .build());
     assertFalse(response.isEmpty());
@@ -94,7 +91,7 @@ class InternalBillingControllerTest {
   void testFilterByOrgId() {
     var response =
         controller.process(
-            BillableUsageRemittanceFilter.builder().productId("product1").orgId("org_111").build());
+            BillableUsageRemittanceFilter.builder().productId("product1").orgId("111").build());
     assertFalse(response.isEmpty());
     assertEquals(24.0, response.get(0).getRemittedValue());
     assertEquals(BillableUsage.Uom.INSTANCE_HOURS.value(), response.get(0).getMetricId());
@@ -104,10 +101,7 @@ class InternalBillingControllerTest {
   void testFilterByAccountAndProduct() {
     var response =
         controller.process(
-            BillableUsageRemittanceFilter.builder()
-                .account("account123")
-                .productId("product1")
-                .build());
+            BillableUsageRemittanceFilter.builder().orgId("org123").productId("product1").build());
     assertFalse(response.isEmpty());
     assertEquals(2, response.size());
     assertEquals(24.0, response.get(0).getRemittedValue() + response.get(1).getRemittedValue());
@@ -118,7 +112,7 @@ class InternalBillingControllerTest {
     var response =
         controller.process(
             BillableUsageRemittanceFilter.builder()
-                .account("account123")
+                .orgId("org123")
                 .productId("product1")
                 .metricId(BillableUsage.Uom.TRANSFER_GIBIBYTES.value())
                 .build());
@@ -134,14 +128,14 @@ class InternalBillingControllerTest {
     var response =
         controller.process(
             BillableUsageRemittanceFilter.builder()
-                .orgId("org_account123")
+                .orgId("org123")
                 .productId("product1")
                 .metricId(BillableUsage.Uom.INSTANCE_HOURS.value())
                 .build());
     assertEquals(1, response.size());
     MonthlyRemittance result = response.get(0);
     assertEquals("product1", result.getProductId());
-    assertEquals("org_account123", result.getOrgId());
+    assertEquals("org123", result.getOrgId());
     assertEquals(BillableUsage.Uom.INSTANCE_HOURS.value(), result.getMetricId());
     assertEquals(12, result.getRemittedValue());
     assertEquals(BillingProvider.AWS.value(), result.getBillingProvider());
@@ -163,14 +157,14 @@ class InternalBillingControllerTest {
     var response =
         controller.process(
             BillableUsageRemittanceFilter.builder()
-                .orgId("org_account123")
+                .orgId("org123")
                 .billingProvider(BillingProvider.RED_HAT.value())
                 .build());
     assertFalse(response.isEmpty());
     assertEquals(1, response.size());
     MonthlyRemittance result = response.get(0);
     assertEquals(BillingProvider.RED_HAT.value(), result.getBillingProvider());
-    assertEquals("org_account123", result.getOrgId());
+    assertEquals("org123", result.getOrgId());
     assertEquals(12, result.getRemittedValue());
   }
 
@@ -179,20 +173,20 @@ class InternalBillingControllerTest {
     var response =
         controller.process(
             BillableUsageRemittanceFilter.builder()
-                .orgId("org_account345")
-                .billingAccountId("account345_product3_ba")
+                .orgId("org345")
+                .billingAccountId("org345_product3_ba")
                 .build());
     assertFalse(response.isEmpty());
     assertEquals(1, response.size());
     MonthlyRemittance result = response.get(0);
-    assertEquals("account345_product3_ba", result.getBillingAccountId());
-    assertEquals("org_account345", result.getOrgId());
+    assertEquals("org345_product3_ba", result.getBillingAccountId());
+    assertEquals("org345", result.getOrgId());
     assertEquals(BillingProvider.AZURE.value(), result.getBillingProvider());
     assertEquals(4, result.getRemittedValue());
   }
 
   private BillableUsageRemittanceEntity remittance(
-      String accountNumber,
+      String orgId,
       String productId,
       BillingProvider billingProvider,
       Double value,
@@ -200,9 +194,9 @@ class InternalBillingControllerTest {
     BillableUsageRemittanceEntityPK key =
         BillableUsageRemittanceEntityPK.builder()
             .usage(BillableUsage.Usage.PRODUCTION.value())
-            .accountNumber(accountNumber)
+            .orgId(orgId)
             .billingProvider(billingProvider.value())
-            .billingAccountId(String.format("%s_%s_ba", accountNumber, productId))
+            .billingAccountId(String.format("%s_%s_ba", orgId, productId))
             .productId(productId)
             .sla(BillableUsage.Sla.PREMIUM.value())
             .metricId(BillableUsage.Uom.INSTANCE_HOURS.value())
@@ -212,7 +206,6 @@ class InternalBillingControllerTest {
         .key(key)
         .remittanceDate(remittanceDate)
         .remittedValue(value)
-        .orgId("org_" + accountNumber)
         .build();
   }
 }

@@ -199,7 +199,7 @@ class RemittanceControllerTest {
     return BillableUsageRemittanceEntity.builder()
         .key(
             BillableUsageRemittanceEntityPK.builder()
-                .accountNumber(snapshot.getAccountNumber())
+                .orgId(snapshot.getOrgId())
                 .accumulationPeriod(
                     BillableUsageRemittanceEntityPK.getAccumulationPeriod(
                         snapshot.getSnapshotDate()))
@@ -210,7 +210,6 @@ class RemittanceControllerTest {
                 .sla(snapshot.getServiceLevel().getValue())
                 .usage(snapshot.getUsage().getValue())
                 .build())
-        .orgId(snapshot.getOrgId())
         // NOTE: We are mocking the repository's sum call, so this value doesn't have to match the
         // snapshot.
         .remittedValue(remittedValue)
