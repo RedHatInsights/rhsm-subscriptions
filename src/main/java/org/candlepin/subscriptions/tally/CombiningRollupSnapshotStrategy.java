@@ -199,7 +199,7 @@ public class CombiningRollupSnapshotStrategy {
     try (Stream<TallySnapshot> snapStream =
         tallyRepo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             orgId, products, granularity, begin, end)) {
-      return snapStream.collect(Collectors.groupingBy(TallySnapshot::getAccountNumber));
+      return snapStream.collect(Collectors.groupingBy(TallySnapshot::getOrgId));
     }
   }
 

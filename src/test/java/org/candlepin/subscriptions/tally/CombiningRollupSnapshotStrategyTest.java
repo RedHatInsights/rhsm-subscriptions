@@ -74,7 +74,7 @@ class CombiningRollupSnapshotStrategyTest {
     AccountUsageCalculation noonUsage = createAccountUsageCalculation(usageKey, 4.0);
     AccountUsageCalculation afternoonUsage = createAccountUsageCalculation(usageKey, 3.0);
     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
-        "account123",
+        "org123",
         new DateRange(
             OffsetDateTime.parse("2021-02-24T12:00:00Z"),
             OffsetDateTime.parse("2021-02-26T12:00:00Z")),
@@ -128,7 +128,7 @@ class CombiningRollupSnapshotStrategyTest {
     AccountUsageCalculation day1Usage = createAccountUsageCalculation(usageKey, 4.0);
     AccountUsageCalculation day2Usage = createAccountUsageCalculation(usageKey, 3.0);
     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
-        "account123",
+        "org123",
         new DateRange(
             OffsetDateTime.parse("2021-02-24T12:00:00Z"),
             OffsetDateTime.parse("2021-02-26T12:00:00Z")),
@@ -196,7 +196,7 @@ class CombiningRollupSnapshotStrategyTest {
     AccountUsageCalculation noonUsage = createAccountUsageCalculation(usageKey, 4.0);
     AccountUsageCalculation afternoonUsage = createAccountUsageCalculation(usageKey, 3.0);
     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
-        "account123",
+        "org123",
         new DateRange(
             OffsetDateTime.parse("2021-02-24T12:00:00Z"),
             OffsetDateTime.parse("2021-02-26T12:00:00Z")),
@@ -250,7 +250,7 @@ class CombiningRollupSnapshotStrategyTest {
     AccountUsageCalculation afternoonUsage = createAccountUsageCalculation(usageKey, 3.0);
 
     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
-        "account123",
+        "org123",
         new DateRange(
             OffsetDateTime.parse("2021-02-24T12:00:00Z"),
             OffsetDateTime.parse("2021-02-26T12:00:00Z")),
@@ -310,7 +310,7 @@ class CombiningRollupSnapshotStrategyTest {
     AccountUsageCalculation afternoonUsage = createAccountUsageCalculation(usageKey, 3.0);
 
     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
-        "account123",
+        "org123",
         new DateRange(
             OffsetDateTime.parse("2021-02-24T12:00:00Z"),
             OffsetDateTime.parse("2021-02-26T12:00:00Z")),
@@ -392,7 +392,7 @@ class CombiningRollupSnapshotStrategyTest {
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
 
     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
-        "account123",
+        "org123",
         new DateRange(
             OffsetDateTime.parse("2021-02-24T12:00:00Z"),
             OffsetDateTime.parse("2021-02-26T12:00:00Z")),
@@ -488,7 +488,7 @@ class CombiningRollupSnapshotStrategyTest {
             any(), any(), any(), any(), any()))
         .then(invocation -> Stream.of(existingSnapshot));
     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
-        "account123",
+        "org123",
         new DateRange(
             OffsetDateTime.parse("2022-10-24T13:00:00Z"),
             OffsetDateTime.parse("2022-10-24T14:00:00Z")),
@@ -507,7 +507,7 @@ class CombiningRollupSnapshotStrategyTest {
             any(), any(), any(), any(), any()))
         .then(invocation -> Stream.of(existingSnapshot));
     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
-        "account123",
+        "org123",
         new DateRange(
             OffsetDateTime.parse("2022-10-24T13:00:00Z"),
             OffsetDateTime.parse("2022-10-24T14:00:00Z")),
@@ -527,7 +527,7 @@ class CombiningRollupSnapshotStrategyTest {
         .then(invocation -> Stream.of(existingSnapshot));
     when(repo.save(any())).then(invocation -> invocation.getArgument(0));
     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
-        "account123",
+        "org123",
         new DateRange(
             OffsetDateTime.parse("2022-10-24T13:00:00Z"),
             OffsetDateTime.parse("2022-10-24T14:00:00Z")),
