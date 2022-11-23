@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
@@ -71,7 +72,7 @@ class RemittanceControllerTest {
   @Mock private BillableUsageRemittanceRepository remittanceRepo;
   @Mock private TallySnapshotRepository snapshotRepo;
   @Mock private KafkaTemplate<String, BillableUsage> billableTemplate;
-
+  @Mock private AccountConfigRepository accountConfigRepository;
   private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
 
   private TagProfile tagProfile;
@@ -84,7 +85,8 @@ class RemittanceControllerTest {
     BillingProducer billingProducer =
         new BillingProducer(new TaskQueueProperties(), billableTemplate);
     BillableUsageController usageController =
-        new BillableUsageController(clock, billingProducer, remittanceRepo, snapshotRepo);
+        new BillableUsageController(
+            clock, billingProducer, remittanceRepo, snapshotRepo, accountConfigRepository);
     controller =
         new RemittanceController(
             clock,

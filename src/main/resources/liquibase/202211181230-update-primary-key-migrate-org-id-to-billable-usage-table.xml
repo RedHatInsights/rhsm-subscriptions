@@ -25,4 +25,9 @@
         billing_account_id"/>
     </changeSet>
 
+    <changeSet id="202211181230-4" author="kshah">
+        <comment>Drop not null constraint on account_number</comment>
+        <dropNotNullConstraint tableName="billable_usage_remittance" columnName="account_number"/>
+    </changeSet>
+
 </databaseChangeLog>

@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.tally.billing;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
@@ -48,16 +49,19 @@ public class BillableUsageController {
   private final BillingProducer billingProducer;
   private final BillableUsageRemittanceRepository billableUsageRemittanceRepository;
   private final TallySnapshotRepository snapshotRepository;
+  private AccountConfigRepository accountConfigRepository;
 
   public BillableUsageController(
       ApplicationClock clock,
       BillingProducer billingProducer,
       BillableUsageRemittanceRepository billableUsageRemittanceRepository,
-      TallySnapshotRepository snapshotRepository) {
+      TallySnapshotRepository snapshotRepository,
+      AccountConfigRepository accountConfigRepository) {
     this.clock = clock;
     this.billingProducer = billingProducer;
     this.billableUsageRemittanceRepository = billableUsageRemittanceRepository;
     this.snapshotRepository = snapshotRepository;
+    this.accountConfigRepository = accountConfigRepository;
   }
 
   public void submitBillableUsage(BillingWindow billingWindow, BillableUsage usage) {
@@ -132,11 +136,12 @@ public class BillableUsageController {
     // Update the reported usage value to the newly calculated one.
     usage.setValue(usageCalc.getBillableValue());
 
-    // The orgId might not have been available when remittance
-    // was originally created, so we attempt to set here.
     if (updateRemittance(remittance, usage.getOrgId(), usageCalc)) {
+      remittance.setAccountNumber(
+          accountConfigRepository.findAccountNumberByOrgId(usage.getOrgId()));
       log.debug("Updating remittance: {}", remittance);
       billableUsageRemittanceRepository.save(remittance);
+      log.info("Finished producing monthly billable");
     }
     return usage;
   }
