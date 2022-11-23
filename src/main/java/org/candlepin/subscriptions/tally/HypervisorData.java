@@ -20,14 +20,20 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostBucketKey;
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
+import org.candlepin.subscriptions.tally.collector.ProductUsageCollector;
+import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 @Data
@@ -70,5 +76,47 @@ public class HypervisorData {
 
   public void addHost(String hypervisorUuid, Host host) {
     hypervisorHosts.put(hypervisorUuid, host);
+  }
+
+  public void collectGuestData(
+      Map<String, AccountUsageCalculation> calcsByOrgId,
+      Map<String, Set<HostBucketKey>> hostBucketKeys) {
+    orgHypervisorFacts.forEach(
+        (orgId, uuidToHypervisor) -> {
+          AccountUsageCalculation accountCalc = calcsByOrgId.get(orgId);
+          uuidToHypervisor.forEach(
+              (hypervisorUuid, hypervisor) ->
+                  enhanceUsageKeys(orgId, accountCalc, hypervisorUuid, hypervisor, hostBucketKeys));
+        });
+  }
+
+  private void enhanceUsageKeys(
+      String orgId,
+      AccountUsageCalculation accountCalc,
+      String hypervisorUuid,
+      NormalizedFacts hypervisor,
+      Map<String, Set<HostBucketKey>> hostBucketKeys) {
+    Host host = hypervisorHosts.get(hypervisorUuid);
+    host.setNumOfGuests(hypervisorGuestCounts.getOrDefault(hypervisorUuid, 0));
+
+    Set<HostBucketKey> bucketKeys =
+        hostBucketKeys.computeIfAbsent(host.getInstanceId(), h -> new HashSet<>());
+    Set<UsageCalculation.Key> usageKeys =
+        hypervisorUsageKeys.getOrDefault(hypervisorUuid, Collections.emptySet());
+
+    for (Key key : usageKeys) {
+      UsageCalculation usageCalc = accountCalc.getOrCreateCalculation(key);
+      ProductUsageCollector productUsageCollector =
+          ProductUsageCollectorFactory.get(key.getProductId());
+      Optional<HostTallyBucket> appliedBucket =
+          productUsageCollector.collectForHypervisor(orgId, usageCalc, hypervisor);
+
+      // addBucket changes bucket.key.hostId, so do that first to avoid mutating the item in the set
+      appliedBucket.ifPresent(
+          bucket -> {
+            host.addBucket(bucket);
+            bucketKeys.add(bucket.getKey());
+          });
+    }
   }
 }

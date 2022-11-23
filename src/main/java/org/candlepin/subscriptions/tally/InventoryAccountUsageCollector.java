@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.tally;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -38,8 +37,6 @@ import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.inventory.db.InventoryDatabaseOperations;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.tally.UsageCalculation.Key;
-import org.candlepin.subscriptions.tally.collector.ProductUsageCollector;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
@@ -201,13 +198,7 @@ public class InventoryAccountUsageCollector {
         });
 
     // apply data from guests to hypervisor records
-    collectHypervisorGuestData(
-        hypervisorData.getHypervisorUsageKeys(),
-        hypervisorData.getOrgHypervisorFacts(),
-        hypervisorData.getHypervisorHosts(),
-        hypervisorData.getHypervisorGuestCounts(),
-        calcsByOrgId,
-        hostSeenBucketKeysLookup);
+    hypervisorData.collectGuestData(calcsByOrgId, hostSeenBucketKeysLookup);
 
     log.info(
         "Removing {} stale host records (HBI records no longer present).", inventoryHostMap.size());
@@ -251,45 +242,6 @@ public class InventoryAccountUsageCollector {
     log.warn("Removing duplicate host record w/ inventory ID: {}", host2.getInventoryId());
     duplicateInstanceIds.add(host2.getInstanceId());
     return host1;
-  }
-
-  private void collectHypervisorGuestData(
-      Map<String, Set<Key>> hypervisorUsageKeys,
-      Map<String, Map<String, NormalizedFacts>> orgHypervisorFacts,
-      Map<String, Host> hypervisorHosts,
-      Map<String, Integer> hypervisorGuestCounts,
-      Map<String, AccountUsageCalculation> calcsByOrgId,
-      Map<String, Set<HostBucketKey>> hostSeenBucketKeyLookup) {
-    orgHypervisorFacts.forEach(
-        (orgId, accountHypervisors) -> {
-          AccountUsageCalculation accountCalc = calcsByOrgId.get(orgId);
-          accountHypervisors.forEach(
-              (hypervisorUuid, hypervisor) -> {
-                Host hypHost = hypervisorHosts.get(hypervisorUuid);
-                Set<HostBucketKey> hostBucketKeys =
-                    hostSeenBucketKeyLookup.computeIfAbsent(
-                        hypHost.getInstanceId(), h -> new HashSet<>());
-                hypHost.setNumOfGuests(hypervisorGuestCounts.getOrDefault(hypervisorUuid, 0));
-                Set<UsageCalculation.Key> usageKeys =
-                    hypervisorUsageKeys.getOrDefault(hypervisorUuid, Collections.emptySet());
-
-                usageKeys.forEach(
-                    key -> {
-                      UsageCalculation usageCalc = accountCalc.getOrCreateCalculation(key);
-                      ProductUsageCollector productUsageCollector =
-                          ProductUsageCollectorFactory.get(key.getProductId());
-                      Optional<HostTallyBucket> appliedBucket =
-                          productUsageCollector.collectForHypervisor(orgId, usageCalc, hypervisor);
-                      appliedBucket.ifPresent(
-                          bucket -> {
-                            // hypHost.addBucket changes bucket.key.hostId, so we do that first; to
-                            // avoid mutating the item in the set
-                            hypHost.addBucket(bucket);
-                            hostBucketKeys.add(bucket.getKey());
-                          });
-                    });
-              });
-        });
   }
 
   public static void populateHostFieldsFromHbi(
