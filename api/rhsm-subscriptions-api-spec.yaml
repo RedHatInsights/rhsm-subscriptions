@@ -945,8 +945,8 @@ paths:
                     next_event_date: "2020-04-01T00:00:00Z"
                     next_event_type: Subscription Begin
                     quantity: 3
-                    physical_capacity: 3
-                    virtual_capacity: 3
+                    capacity: 3
+                    hypervisor_capacity: 3
                     total_capacity: 6
                     uom: Sockets
                   - sku: RH00010
@@ -963,8 +963,8 @@ paths:
                     next_event_date: "2020-04-02T00:00:00Z"
                     next_event_type: Subscription Begin
                     quantity: 3
-                    physical_capacity: 3
-                    virtual_capacity": 3
+                    capacity: 3
+                    hypervisor_capacity: 3
                     total_capacity": 6
                     uom: Sockets
                   - sku: RH00009
@@ -981,8 +981,8 @@ paths:
                     next_event_date: "2020-04-01T00:00:00Z"
                     next_event_type: Subscription End
                     quantity: 3
-                    physical_capacity: 6
-                    virtual_capacity: 6
+                    capacity: 6
+                    hypervisor_capacity: 6
                     total_capacity: 12
                     uom: Cores
                 meta:
@@ -1383,6 +1383,7 @@ components:
           type: boolean
           default: false
     CapacityReport:
+      deprecated: true
       properties:
         data:
           type: array
@@ -1437,6 +1438,7 @@ components:
             - product
             - granularity
     CapacitySnapshot:
+      deprecated: true
       required:
         - date
         - has_infinite_quantity
@@ -1817,16 +1819,16 @@ components:
           description: "The summed subscription quantities across the active subscriptions for the offering."
           type: integer
           format: int32
-        physical_capacity:
-          description: "The summed physical capacity of the unit-of-measure of the active subscriptions for the offering."
+        capacity:
+          description: "The summed standard capacity of the unit-of-measure of the active subscriptions for the offering."
           type: integer
           format: int32
-        virtual_capacity:
-          description: "The summed virutal capacity of the unit-of-measure of the active subscriptions for the offering."
+        hypervisor_capacity:
+          description: "The summed hypervisor capacity of the unit-of-measure of the active subscriptions for the offering."
           type: integer
           format: int32
         total_capacity:
-          description: "The combined (physical and virtual) capacity for the offering."
+          description: "The combined (standard and hypervisor) capacity for the offering."
           type: integer
           format: int32
         has_infinite_quantity:

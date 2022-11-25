@@ -81,17 +81,17 @@ class UpstreamProductDataTest {
     assertEquals(expected, actual);
   }
 
-  /** Valid given MW00330 sku with core value set to 16, physical core value is 16 */
+  /** Valid given MW00330 sku with core value set to 16, standard core value is 16 */
   @Test
-  void testOfferingFromUpstreamOpenShiftPhysicalCores() {
+  void testOfferingFromUpstreamOpenShiftStandardCores() {
     // Given an Openshift SKU that exists upstream,
     var sku = "MW00330";
 
-    // When given the result of a physical,
+    // When given the result of a standard,
     var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
 
     // Then cores equals 16
-    assertEquals(16, actual.getPhysicalCores());
+    assertEquals(16, actual.getCores());
   }
 
   @Test
@@ -108,9 +108,10 @@ class UpstreamProductDataTest {
         Set.of(
             69, 70, 83, 84, 86, 91, 92, 93, 127, 176, 180, 182, 201, 205, 240, 241, 246, 248, 317,
             318, 394, 395, 408, 479, 491, 588));
-    // (because there is a derived sku, no physical capacity should be set, only virtual capacity.
-    // See https://issues.redhat.com/browse/ENT-4301?focusedCommentId=19210665 for details)
-    expected.setVirtualSockets(2);
+    // (because there is a derived sku, no standard capacity should be set, only hypervisor
+    // capacity. See https://issues.redhat.com/browse/ENT-4301?focusedCommentId=19210665 for
+    // details)
+    expected.setHypervisorSockets(2);
     expected.setProductFamily("Red Hat Enterprise Linux");
     expected.setProductName("RHEL for SAP HANA");
     expected.setDescription(
@@ -124,7 +125,7 @@ class UpstreamProductDataTest {
     // When getting the upstream Offering,
     var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
 
-    // Then the resulting Offering has the expected virtual sockets from derived sku,
+    // Then the resulting Offering has the expected hypervisor sockets from derived sku,
     // and engOIDs from the derived sku child.
     assertEquals(expected, actual);
   }
@@ -143,7 +144,7 @@ class UpstreamProductDataTest {
             69, 70, 84, 86, 91, 92, 93, 94, 127, 133, 176, 180, 182, 201, 205, 240, 246, 271, 272,
             273, 274, 317, 318, 394, 395, 408, 479, 491, 588, 605));
     expected.setRole("Red Hat Enterprise Linux Server");
-    expected.setPhysicalSockets(2);
+    expected.setSockets(2);
     expected.setProductFamily("Red Hat Enterprise Linux");
     expected.setProductName("RHEL Server");
     expected.setDescription(
@@ -173,8 +174,8 @@ class UpstreamProductDataTest {
             68, 69, 70, 71, 83, 84, 85, 86, 90, 91, 92, 93, 132, 133, 172, 176, 179, 180, 190, 201,
             202, 203, 205, 206, 207, 240, 242, 244, 246, 273, 274, 287, 293, 317, 318, 342, 343,
             394, 395, 396, 397, 408, 479, 491, 588));
-    expected.setPhysicalCores(4); // Because IFL is 1 which gets multiplied by magical constant 4
-    expected.setPhysicalSockets(2);
+    expected.setCores(4); // Because IFL is 1 which gets multiplied by magical constant 4
+    expected.setSockets(2);
     expected.setProductFamily("Red Hat Enterprise Linux");
     expected.setProductName("RHEL Developer Workstation");
     expected.setDescription("Red Hat Enterprise Linux Developer Workstation, Enterprise");

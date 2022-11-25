@@ -136,16 +136,16 @@ public interface SubscriptionCapacityViewRepository
   static Specification<SubscriptionCapacityView> matchingUomForCores() {
     return (root, query, builder) ->
         builder.or(
-            builder.isNotNull(root.get(SubscriptionCapacityView_.physicalCores)),
-            builder.isNotNull(root.get(SubscriptionCapacityView_.virtualCores)),
+            builder.isNotNull(root.get(SubscriptionCapacityView_.cores)),
+            builder.isNotNull(root.get(SubscriptionCapacityView_.hypervisorCores)),
             builder.isTrue(root.get(SubscriptionCapacityView_.hasUnlimitedUsage)));
   }
 
   static Specification<SubscriptionCapacityView> matchingUomForSockets() {
     return (root, query, builder) ->
         builder.or(
-            builder.isNotNull(root.get(SubscriptionCapacityView_.physicalSockets)),
-            builder.isNotNull(root.get(SubscriptionCapacityView_.virtualSockets)),
+            builder.isNotNull(root.get(SubscriptionCapacityView_.sockets)),
+            builder.isNotNull(root.get(SubscriptionCapacityView_.hypervisorSockets)),
             builder.isTrue(root.get(SubscriptionCapacityView_.hasUnlimitedUsage)));
   }
 
@@ -156,13 +156,13 @@ public interface SubscriptionCapacityViewRepository
         case NON_HYPERVISOR:
           // Has no virt capacity
           return builder.and(
-              builder.equal(root.get(SubscriptionCapacityView_.virtualSockets), 0),
-              builder.equal(root.get(SubscriptionCapacityView_.virtualCores), 0));
+              builder.equal(root.get(SubscriptionCapacityView_.hypervisorSockets), 0),
+              builder.equal(root.get(SubscriptionCapacityView_.hypervisorCores), 0));
         case HYPERVISOR:
           // Has some virt capacity
           return builder.or(
-              builder.greaterThan(root.get(SubscriptionCapacityView_.virtualSockets), 0),
-              builder.greaterThan(root.get(SubscriptionCapacityView_.virtualCores), 0));
+              builder.greaterThan(root.get(SubscriptionCapacityView_.hypervisorSockets), 0),
+              builder.greaterThan(root.get(SubscriptionCapacityView_.hypervisorCores), 0));
         default:
           throw new IllegalStateException("Unhandled HypervisorReportCategory value");
       }

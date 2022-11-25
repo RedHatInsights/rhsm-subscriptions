@@ -253,8 +253,8 @@ public class SubscriptionTableController {
       inv.setUom(uom);
     }
     inv.setQuantity(0);
-    inv.setPhysicalCapacity(0);
-    inv.setVirtualCapacity(0);
+    inv.setCapacity(0);
+    inv.setHypervisorCapacity(0);
     inv.setTotalCapacity(0);
     inv.setSubscriptions(new ArrayList<>());
     return inv;
@@ -327,25 +327,25 @@ public class SubscriptionTableController {
         skuCapacity,
         subscriptionCapacityView);
 
-    var physicalSockets = subscriptionCapacityView.getPhysicalSockets();
-    var physicalCores = subscriptionCapacityView.getPhysicalCores();
-    var virtualSockets = subscriptionCapacityView.getVirtualSockets();
-    var virtualCores = subscriptionCapacityView.getVirtualCores();
+    var sockets = subscriptionCapacityView.getSockets();
+    var cores = subscriptionCapacityView.getCores();
+    var hypervisorSockets = subscriptionCapacityView.getHypervisorSockets();
+    var hypervisorCores = subscriptionCapacityView.getHypervisorCores();
     if (skuCapacity.getUom() == Uom.SOCKETS) {
-      skuCapacity.setPhysicalCapacity(skuCapacity.getPhysicalCapacity() + physicalSockets);
-      skuCapacity.setVirtualCapacity(skuCapacity.getVirtualCapacity() + virtualSockets);
+      skuCapacity.setCapacity(skuCapacity.getCapacity() + sockets);
+      skuCapacity.setHypervisorCapacity(skuCapacity.getHypervisorCapacity() + hypervisorSockets);
     } else if (skuCapacity.getUom() == Uom.CORES) {
-      skuCapacity.setPhysicalCapacity(skuCapacity.getPhysicalCapacity() + physicalCores);
-      skuCapacity.setVirtualCapacity(skuCapacity.getVirtualCapacity() + virtualCores);
-    } else if (physicalSockets != 0 || virtualSockets != 0) {
-      skuCapacity.setPhysicalCapacity(skuCapacity.getPhysicalCapacity() + physicalSockets);
-      skuCapacity.setVirtualCapacity(skuCapacity.getVirtualCapacity() + virtualSockets);
+      skuCapacity.setCapacity(skuCapacity.getCapacity() + cores);
+      skuCapacity.setHypervisorCapacity(skuCapacity.getHypervisorCapacity() + hypervisorCores);
+    } else if (sockets != 0 || hypervisorSockets != 0) {
+      skuCapacity.setCapacity(skuCapacity.getCapacity() + sockets);
+      skuCapacity.setHypervisorCapacity(skuCapacity.getHypervisorCapacity() + hypervisorSockets);
       if (skuCapacity.getUom() == null) {
         skuCapacity.setUom(Uom.SOCKETS);
       }
-    } else if (physicalCores != 0 || virtualCores != 0) {
-      skuCapacity.setPhysicalCapacity(skuCapacity.getPhysicalCapacity() + physicalCores);
-      skuCapacity.setVirtualCapacity(skuCapacity.getVirtualCapacity() + virtualCores);
+    } else if (cores != 0 || hypervisorCores != 0) {
+      skuCapacity.setCapacity(skuCapacity.getCapacity() + cores);
+      skuCapacity.setHypervisorCapacity(skuCapacity.getHypervisorCapacity() + hypervisorCores);
       if (skuCapacity.getUom() == null) {
         skuCapacity.setUom(Uom.CORES);
       }
@@ -354,8 +354,7 @@ public class SubscriptionTableController {
     boolean hasInfiniteQuantity =
         Optional.ofNullable(subscriptionCapacityView.getHasUnlimitedUsage()).orElse(false);
 
-    skuCapacity.setTotalCapacity(
-        skuCapacity.getPhysicalCapacity() + skuCapacity.getVirtualCapacity());
+    skuCapacity.setTotalCapacity(skuCapacity.getCapacity() + skuCapacity.getHypervisorCapacity());
     skuCapacity.setHasInfiniteQuantity(hasInfiniteQuantity);
   }
 

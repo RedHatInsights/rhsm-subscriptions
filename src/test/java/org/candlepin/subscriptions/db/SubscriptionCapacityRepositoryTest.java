@@ -75,10 +75,10 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals("account", capacity.getAccountNumber());
     assertEquals("product", capacity.getProductId());
     assertEquals("subscription", capacity.getSubscriptionId());
-    assertEquals(4, capacity.getPhysicalSockets().intValue());
-    assertEquals(20, capacity.getVirtualSockets().intValue());
-    assertEquals(8, capacity.getPhysicalCores().intValue());
-    assertEquals(40, capacity.getVirtualCores().intValue());
+    assertEquals(4, capacity.getSockets().intValue());
+    assertEquals(20, capacity.getHypervisorSockets().intValue());
+    assertEquals(8, capacity.getCores().intValue());
+    assertEquals(40, capacity.getHypervisorCores().intValue());
     assertEquals("orgId", capacity.getOrgId());
     assertEquals(NOWISH.minusDays(1), capacity.getBeginDate());
     assertEquals(FAR_FUTURE.minusDays(1), capacity.getEndDate());
@@ -99,10 +99,10 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals("account", capacity.getAccountNumber());
     assertEquals("product", capacity.getProductId());
     assertEquals("subscription", capacity.getSubscriptionId());
-    assertEquals(4, capacity.getPhysicalSockets().intValue());
-    assertEquals(20, capacity.getVirtualSockets().intValue());
-    assertEquals(8, capacity.getPhysicalCores().intValue());
-    assertEquals(40, capacity.getVirtualCores().intValue());
+    assertEquals(4, capacity.getSockets().intValue());
+    assertEquals(20, capacity.getHypervisorSockets().intValue());
+    assertEquals(8, capacity.getCores().intValue());
+    assertEquals(40, capacity.getHypervisorCores().intValue());
     assertEquals("orgId", capacity.getOrgId());
     assertEquals(NOWISH.minusDays(1), capacity.getBeginDate());
     assertEquals(FAR_FUTURE.plusDays(1), capacity.getEndDate());
@@ -123,10 +123,10 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals("account", capacity.getAccountNumber());
     assertEquals("product", capacity.getProductId());
     assertEquals("subscription", capacity.getSubscriptionId());
-    assertEquals(4, capacity.getPhysicalSockets().intValue());
-    assertEquals(20, capacity.getVirtualSockets().intValue());
-    assertEquals(8, capacity.getPhysicalCores().intValue());
-    assertEquals(40, capacity.getVirtualCores().intValue());
+    assertEquals(4, capacity.getSockets().intValue());
+    assertEquals(20, capacity.getHypervisorSockets().intValue());
+    assertEquals(8, capacity.getCores().intValue());
+    assertEquals(40, capacity.getHypervisorCores().intValue());
     assertEquals("orgId", capacity.getOrgId());
     assertEquals(NOWISH.plusDays(1), capacity.getBeginDate());
     assertEquals(FAR_FUTURE.minusDays(1), capacity.getEndDate());
@@ -147,10 +147,10 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals("account", capacity.getAccountNumber());
     assertEquals("product", capacity.getProductId());
     assertEquals("subscription", capacity.getSubscriptionId());
-    assertEquals(4, capacity.getPhysicalSockets().intValue());
-    assertEquals(20, capacity.getVirtualSockets().intValue());
-    assertEquals(8, capacity.getPhysicalCores().intValue());
-    assertEquals(40, capacity.getVirtualCores().intValue());
+    assertEquals(4, capacity.getSockets().intValue());
+    assertEquals(20, capacity.getHypervisorSockets().intValue());
+    assertEquals(8, capacity.getCores().intValue());
+    assertEquals(40, capacity.getHypervisorCores().intValue());
     assertEquals("orgId", capacity.getOrgId());
     assertEquals(NOWISH.plusDays(1), capacity.getBeginDate());
     assertEquals(FAR_FUTURE.plusDays(1), capacity.getEndDate());
@@ -376,10 +376,10 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals("account", capacity.getAccountNumber());
     assertEquals("product", capacity.getProductId());
     assertEquals("subscription", capacity.getSubscriptionId());
-    assertEquals(4, capacity.getPhysicalSockets().intValue());
-    assertEquals(20, capacity.getVirtualSockets().intValue());
-    assertEquals(8, capacity.getPhysicalCores().intValue());
-    assertEquals(40, capacity.getVirtualCores().intValue());
+    assertEquals(4, capacity.getSockets().intValue());
+    assertEquals(20, capacity.getHypervisorSockets().intValue());
+    assertEquals(8, capacity.getCores().intValue());
+    assertEquals(40, capacity.getHypervisorCores().intValue());
     assertEquals("orgId", capacity.getOrgId());
     assertEquals(NOWISH.minusDays(1), capacity.getBeginDate());
     assertEquals(FAR_FUTURE.minusDays(1), capacity.getEndDate());
@@ -401,10 +401,10 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals("account", capacity.getAccountNumber());
     assertEquals("product", capacity.getProductId());
     assertEquals("subscription", capacity.getSubscriptionId());
-    assertEquals(4, capacity.getPhysicalSockets().intValue());
-    assertEquals(20, capacity.getVirtualSockets().intValue());
-    assertEquals(8, capacity.getPhysicalCores().intValue());
-    assertEquals(40, capacity.getVirtualCores().intValue());
+    assertEquals(4, capacity.getSockets().intValue());
+    assertEquals(20, capacity.getHypervisorSockets().intValue());
+    assertEquals(8, capacity.getCores().intValue());
+    assertEquals(40, capacity.getHypervisorCores().intValue());
     assertEquals("orgId", capacity.getOrgId());
     assertEquals(NOWISH.minusDays(1), capacity.getBeginDate());
     assertEquals(FAR_FUTURE.plusDays(1), capacity.getEndDate());
@@ -426,10 +426,10 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals("account", capacity.getAccountNumber());
     assertEquals("product", capacity.getProductId());
     assertEquals("subscription", capacity.getSubscriptionId());
-    assertEquals(4, capacity.getPhysicalSockets().intValue());
-    assertEquals(20, capacity.getVirtualSockets().intValue());
-    assertEquals(8, capacity.getPhysicalCores().intValue());
-    assertEquals(40, capacity.getVirtualCores().intValue());
+    assertEquals(4, capacity.getSockets().intValue());
+    assertEquals(20, capacity.getHypervisorSockets().intValue());
+    assertEquals(8, capacity.getCores().intValue());
+    assertEquals(40, capacity.getHypervisorCores().intValue());
     assertEquals("orgId", capacity.getOrgId());
     assertEquals(NOWISH.plusDays(1), capacity.getBeginDate());
     assertEquals(FAR_FUTURE.minusDays(1), capacity.getEndDate());
@@ -451,10 +451,10 @@ class SubscriptionCapacityRepositoryTest {
     assertEquals("account", capacity.getAccountNumber());
     assertEquals("product", capacity.getProductId());
     assertEquals("subscription", capacity.getSubscriptionId());
-    assertEquals(4, capacity.getPhysicalSockets().intValue());
-    assertEquals(20, capacity.getVirtualSockets().intValue());
-    assertEquals(8, capacity.getPhysicalCores().intValue());
-    assertEquals(40, capacity.getVirtualCores().intValue());
+    assertEquals(4, capacity.getSockets().intValue());
+    assertEquals(20, capacity.getHypervisorSockets().intValue());
+    assertEquals(8, capacity.getCores().intValue());
+    assertEquals(40, capacity.getHypervisorCores().intValue());
     assertEquals("orgId", capacity.getOrgId());
     assertEquals(NOWISH.plusDays(1), capacity.getBeginDate());
     assertEquals(FAR_FUTURE.plusDays(1), capacity.getEndDate());
@@ -703,11 +703,11 @@ class SubscriptionCapacityRepositoryTest {
   void testFindByMetricIdOnlyRetrieveCoresCapacity() {
     SubscriptionCapacity cores = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
     SubscriptionCapacity sockets = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
-    cores.setVirtualSockets(0);
-    cores.setPhysicalSockets(0);
+    cores.setHypervisorSockets(0);
+    cores.setSockets(0);
     cores.setSubscriptionId("cores");
-    sockets.setPhysicalCores(0);
-    sockets.setVirtualCores(0);
+    sockets.setCores(0);
+    sockets.setHypervisorCores(0);
     sockets.setSubscriptionId("sockets");
     repository.saveAll(Arrays.asList(cores, sockets));
     repository.flush();
@@ -723,25 +723,24 @@ class SubscriptionCapacityRepositoryTest {
             NOWISH,
             FAR_FUTURE);
     assertEquals(1, found.size());
-    assertEquals(8, found.get(0).getPhysicalCores());
-    assertEquals(40, found.get(0).getVirtualCores());
+    assertEquals(8, found.get(0).getCores());
+    assertEquals(40, found.get(0).getHypervisorCores());
   }
 
   @Test
-  void testFindByMetricIdOnlyRetrieveVirtualCoresCapacity() {
-    SubscriptionCapacity virtualCores =
+  void testFindByMetricIdOnlyRetrieveHypervisorCoresCapacity() {
+    SubscriptionCapacity hypervisorCores =
         createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
-    SubscriptionCapacity physicalCores =
-        createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
-    virtualCores.setVirtualSockets(0);
-    virtualCores.setPhysicalSockets(0);
-    virtualCores.setPhysicalCores(0);
-    virtualCores.setSubscriptionId("virtualCores");
-    physicalCores.setPhysicalSockets(0);
-    physicalCores.setVirtualSockets(0);
-    physicalCores.setVirtualCores(0);
-    physicalCores.setSubscriptionId("physicalCores");
-    repository.saveAll(Arrays.asList(virtualCores, physicalCores));
+    SubscriptionCapacity cores = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    hypervisorCores.setHypervisorSockets(0);
+    hypervisorCores.setSockets(0);
+    hypervisorCores.setCores(0);
+    hypervisorCores.setSubscriptionId("hypervisorCores");
+    cores.setSockets(0);
+    cores.setHypervisorSockets(0);
+    cores.setHypervisorCores(0);
+    cores.setSubscriptionId("cores");
+    repository.saveAll(Arrays.asList(hypervisorCores, cores));
     repository.flush();
 
     List<SubscriptionCapacity> found =
@@ -756,24 +755,23 @@ class SubscriptionCapacityRepositoryTest {
             FAR_FUTURE);
 
     assertEquals(1, found.size());
-    assertEquals(40, found.get(0).getVirtualCores());
+    assertEquals(40, found.get(0).getHypervisorCores());
   }
 
   @Test
-  void testFindByMetricIdOnlyRetrievePhysicalCoresCapacity() {
-    SubscriptionCapacity virtualCores =
+  void testFindByMetricIdOnlyRetrieveStandardCoresCapacity() {
+    SubscriptionCapacity hypervisorCores =
         createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
-    SubscriptionCapacity physicalCores =
-        createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
-    virtualCores.setVirtualSockets(0);
-    virtualCores.setPhysicalSockets(0);
-    virtualCores.setPhysicalCores(0);
-    virtualCores.setSubscriptionId("virtualCores");
-    physicalCores.setPhysicalSockets(0);
-    physicalCores.setVirtualSockets(0);
-    physicalCores.setVirtualCores(0);
-    physicalCores.setSubscriptionId("physicalCores");
-    repository.saveAll(Arrays.asList(virtualCores, physicalCores));
+    SubscriptionCapacity cores = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    hypervisorCores.setHypervisorSockets(0);
+    hypervisorCores.setSockets(0);
+    hypervisorCores.setCores(0);
+    hypervisorCores.setSubscriptionId("hypervisorCores");
+    cores.setSockets(0);
+    cores.setHypervisorSockets(0);
+    cores.setHypervisorCores(0);
+    cores.setSubscriptionId("cores");
+    repository.saveAll(Arrays.asList(hypervisorCores, cores));
     repository.flush();
 
     List<SubscriptionCapacity> found =
@@ -788,18 +786,18 @@ class SubscriptionCapacityRepositoryTest {
             FAR_FUTURE);
 
     assertEquals(1, found.size());
-    assertEquals(8, found.get(0).getPhysicalCores());
+    assertEquals(8, found.get(0).getCores());
   }
 
   @Test
   void testFindByMetricIdOnlyRetrieveSocketsCapacity() {
     SubscriptionCapacity cores = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
     SubscriptionCapacity sockets = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
-    cores.setVirtualSockets(0);
-    cores.setPhysicalSockets(0);
+    cores.setHypervisorSockets(0);
+    cores.setSockets(0);
     cores.setSubscriptionId("cores");
-    sockets.setPhysicalCores(0);
-    sockets.setVirtualCores(0);
+    sockets.setCores(0);
+    sockets.setHypervisorCores(0);
     sockets.setSubscriptionId("sockets");
     repository.saveAll(Arrays.asList(cores, sockets));
     repository.flush();
@@ -815,25 +813,24 @@ class SubscriptionCapacityRepositoryTest {
             NOWISH,
             FAR_FUTURE);
     assertEquals(1, found.size());
-    assertEquals(4, found.get(0).getPhysicalSockets());
-    assertEquals(20, found.get(0).getVirtualSockets());
+    assertEquals(4, found.get(0).getSockets());
+    assertEquals(20, found.get(0).getHypervisorSockets());
   }
 
   @Test
-  void testFindByMetricIdOnlyRetrieveVirtualSocketsCapacity() {
-    SubscriptionCapacity virtualSockets =
+  void testFindByMetricIdOnlyRetrieveHypervisorSocketsCapacity() {
+    SubscriptionCapacity hypervisorSockets =
         createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
-    SubscriptionCapacity physicalSockets =
-        createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
-    virtualSockets.setVirtualCores(0);
-    virtualSockets.setPhysicalSockets(0);
-    virtualSockets.setPhysicalCores(0);
-    virtualSockets.setSubscriptionId("virtualSockets");
-    physicalSockets.setPhysicalCores(0);
-    physicalSockets.setVirtualSockets(0);
-    physicalSockets.setVirtualCores(0);
-    physicalSockets.setSubscriptionId("physicalSockets");
-    repository.saveAll(Arrays.asList(virtualSockets, physicalSockets));
+    SubscriptionCapacity sockets = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    hypervisorSockets.setHypervisorCores(0);
+    hypervisorSockets.setSockets(0);
+    hypervisorSockets.setCores(0);
+    hypervisorSockets.setSubscriptionId("hypervisorSockets");
+    sockets.setCores(0);
+    sockets.setHypervisorSockets(0);
+    sockets.setHypervisorCores(0);
+    sockets.setSubscriptionId("sockets");
+    repository.saveAll(Arrays.asList(hypervisorSockets, sockets));
     repository.flush();
 
     List<SubscriptionCapacity> found =
@@ -848,24 +845,23 @@ class SubscriptionCapacityRepositoryTest {
             FAR_FUTURE);
 
     assertEquals(1, found.size());
-    assertEquals(20, found.get(0).getVirtualSockets());
+    assertEquals(20, found.get(0).getHypervisorSockets());
   }
 
   @Test
-  void testFindByMetricIdOnlyRetrievePhysicalSocketsCapacity() {
-    SubscriptionCapacity virtualSockets =
+  void testFindByMetricIdOnlyRetrieveStandardSocketsCapacity() {
+    SubscriptionCapacity hypervisorSockets =
         createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
-    SubscriptionCapacity physicalSockets =
-        createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
-    virtualSockets.setVirtualCores(0);
-    virtualSockets.setPhysicalSockets(0);
-    virtualSockets.setPhysicalCores(0);
-    virtualSockets.setSubscriptionId("virtualSockets");
-    physicalSockets.setPhysicalCores(0);
-    physicalSockets.setVirtualSockets(0);
-    physicalSockets.setVirtualCores(0);
-    physicalSockets.setSubscriptionId("physicalSockets");
-    repository.saveAll(Arrays.asList(virtualSockets, physicalSockets));
+    SubscriptionCapacity sockets = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    hypervisorSockets.setHypervisorCores(0);
+    hypervisorSockets.setSockets(0);
+    hypervisorSockets.setCores(0);
+    hypervisorSockets.setSubscriptionId("hypervisorSockets");
+    sockets.setCores(0);
+    sockets.setHypervisorSockets(0);
+    sockets.setHypervisorCores(0);
+    sockets.setSubscriptionId("sockets");
+    repository.saveAll(Arrays.asList(hypervisorSockets, sockets));
     repository.flush();
 
     List<SubscriptionCapacity> found =
@@ -880,7 +876,7 @@ class SubscriptionCapacityRepositoryTest {
             FAR_FUTURE);
 
     assertEquals(1, found.size());
-    assertEquals(4, found.get(0).getPhysicalSockets());
+    assertEquals(4, found.get(0).getSockets());
   }
 
   private SubscriptionCapacity createUnpersisted(OffsetDateTime begin, OffsetDateTime end) {
@@ -892,10 +888,10 @@ class SubscriptionCapacityRepositoryTest {
     capacity.setEndDate(end);
     capacity.setHasUnlimitedUsage(false);
     capacity.setOrgId("orgId");
-    capacity.setPhysicalSockets(4);
-    capacity.setVirtualSockets(20);
-    capacity.setPhysicalCores(8);
-    capacity.setVirtualCores(40);
+    capacity.setSockets(4);
+    capacity.setHypervisorSockets(20);
+    capacity.setCores(8);
+    capacity.setHypervisorCores(40);
     capacity.setServiceLevel(ServiceLevel.PREMIUM);
     capacity.setUsage(Usage.PRODUCTION);
     return capacity;

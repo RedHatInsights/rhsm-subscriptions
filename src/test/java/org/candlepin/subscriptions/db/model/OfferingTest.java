@@ -38,10 +38,10 @@ class OfferingTest {
     offering.setUsage(Usage.DEVELOPMENT_TEST);
     offering.setServiceLevel(ServiceLevel.PREMIUM);
     offering.setRole("testrole");
-    offering.setPhysicalCores(2);
-    offering.setPhysicalSockets(3);
-    offering.setVirtualCores(4);
-    offering.setVirtualSockets(5);
+    offering.setCores(2);
+    offering.setSockets(3);
+    offering.setHypervisorCores(4);
+    offering.setHypervisorSockets(5);
     offering.setProductFamily("testproductfamily");
     offering.setProductName("testproductname");
     assertEquals("testsku", offering.getSku());
@@ -50,10 +50,10 @@ class OfferingTest {
     assertEquals(Usage.DEVELOPMENT_TEST, offering.getUsage());
     assertEquals(ServiceLevel.PREMIUM, offering.getServiceLevel());
     assertEquals("testrole", offering.getRole());
-    assertEquals(2, offering.getPhysicalCores());
-    assertEquals(3, offering.getPhysicalSockets());
-    assertEquals(4, offering.getVirtualCores());
-    assertEquals(5, offering.getVirtualSockets());
+    assertEquals(2, offering.getCores());
+    assertEquals(3, offering.getSockets());
+    assertEquals(4, offering.getHypervisorCores());
+    assertEquals(5, offering.getHypervisorSockets());
     assertEquals("testproductfamily", offering.getProductFamily());
     assertEquals("testproductname", offering.getProductName());
   }

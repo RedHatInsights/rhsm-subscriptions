@@ -288,10 +288,10 @@ class UpstreamProductData {
     Integer sockets = nullOrInteger(attrs.get(Attr.SOCKET_LIMIT));
 
     /*
-    There are no SKUs today (2021-10-27) that provide both physical capacity and virtual capacity
+    There are no SKUs today (2021-10-27) that provide both standard capacity and hypervisor capacity
     at the same time. It is one or the other.
 
-    If there is no derived SKU, the set the physical capacities. Otherwise, set the virtual
+    If there is no derived SKU, the set the standard capacities. Otherwise, set the hypervisor
     capacities. Whenever there is a derived SKU, there are only engProds/content in the
     derived/derived-children SKUs.
 
@@ -299,11 +299,11 @@ class UpstreamProductData {
     */
 
     if (attrs.get(Attr.DERIVED_SKU) == null) {
-      offering.setPhysicalCores(cores);
-      offering.setPhysicalSockets(sockets);
+      offering.setCores(cores);
+      offering.setSockets(sockets);
     } else {
-      offering.setVirtualCores(cores);
-      offering.setVirtualSockets(sockets);
+      offering.setHypervisorCores(cores);
+      offering.setHypervisorSockets(sockets);
     }
     var hasUnlimitedCores =
         Optional.ofNullable(attrs.get(Attr.CORES))

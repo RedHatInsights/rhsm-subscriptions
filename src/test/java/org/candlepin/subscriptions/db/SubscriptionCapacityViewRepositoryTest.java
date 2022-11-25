@@ -354,25 +354,25 @@ class SubscriptionCapacityViewRepositoryTest {
   void shouldMatchCapacityWithCoresIfSpecified() {
     SubscriptionCapacity sockets = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
     sockets.setSubscriptionId("sockets");
-    sockets.setPhysicalSockets(10);
-    sockets.setVirtualSockets(10);
-    sockets.setPhysicalCores(null);
-    sockets.setVirtualCores(null);
+    sockets.setSockets(10);
+    sockets.setHypervisorSockets(10);
+    sockets.setCores(null);
+    sockets.setHypervisorCores(null);
 
     SubscriptionCapacity cores = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
     cores.setSubscriptionId("cores");
-    cores.setPhysicalCores(10);
-    cores.setVirtualCores(10);
-    cores.setPhysicalSockets(null);
-    cores.setVirtualSockets(null);
+    cores.setCores(10);
+    cores.setHypervisorCores(10);
+    cores.setSockets(null);
+    cores.setHypervisorSockets(null);
 
     SubscriptionCapacity socketsAndCores =
         createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
     socketsAndCores.setSubscriptionId("socketsAndCores");
-    socketsAndCores.setPhysicalCores(10);
-    socketsAndCores.setVirtualCores(null);
-    socketsAndCores.setPhysicalSockets(10);
-    socketsAndCores.setVirtualSockets(10);
+    socketsAndCores.setCores(10);
+    socketsAndCores.setHypervisorCores(null);
+    socketsAndCores.setSockets(10);
+    socketsAndCores.setHypervisorSockets(10);
 
     subscriptionRepository.saveAllAndFlush(
         List.of(
@@ -411,8 +411,8 @@ class SubscriptionCapacityViewRepositoryTest {
     assertEquals(2, found.size());
     found.forEach(
         subscriptionCapacityView -> {
-          assertNotNull(subscriptionCapacityView.getPhysicalCores());
-          assertNotNull(subscriptionCapacityView.getVirtualCores());
+          assertNotNull(subscriptionCapacityView.getCores());
+          assertNotNull(subscriptionCapacityView.getHypervisorCores());
         });
   }
 
@@ -421,26 +421,26 @@ class SubscriptionCapacityViewRepositoryTest {
   void shouldFilterCapacityByCategory() {
     SubscriptionCapacity hypervisor = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
     hypervisor.setSubscriptionId("hypervisor");
-    hypervisor.setPhysicalSockets(10);
-    hypervisor.setVirtualSockets(10);
-    hypervisor.setPhysicalCores(10);
-    hypervisor.setVirtualCores(10);
+    hypervisor.setSockets(10);
+    hypervisor.setHypervisorSockets(10);
+    hypervisor.setCores(10);
+    hypervisor.setHypervisorCores(10);
 
     SubscriptionCapacity nonHypervisor =
         createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
     nonHypervisor.setSubscriptionId("nonHypervisor");
-    nonHypervisor.setPhysicalSockets(10);
-    nonHypervisor.setVirtualSockets(0);
-    nonHypervisor.setPhysicalCores(10);
-    nonHypervisor.setVirtualCores(0);
+    nonHypervisor.setSockets(10);
+    nonHypervisor.setHypervisorSockets(0);
+    nonHypervisor.setCores(10);
+    nonHypervisor.setHypervisorCores(0);
 
     SubscriptionCapacity noCoresNonHypervisor =
         createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
     noCoresNonHypervisor.setSubscriptionId("noCoresNonHypervisor");
-    noCoresNonHypervisor.setPhysicalSockets(10);
-    noCoresNonHypervisor.setVirtualSockets(0);
-    noCoresNonHypervisor.setPhysicalCores(0);
-    noCoresNonHypervisor.setVirtualCores(0);
+    noCoresNonHypervisor.setSockets(10);
+    noCoresNonHypervisor.setHypervisorSockets(0);
+    noCoresNonHypervisor.setCores(0);
+    noCoresNonHypervisor.setHypervisorCores(0);
 
     subscriptionRepository.saveAllAndFlush(
         List.of(
@@ -475,14 +475,10 @@ class SubscriptionCapacityViewRepositoryTest {
             ORG_ID, NON_HYPERVISOR, PRODUCT_ID, null, null, NOWISH, FAR_FUTURE.plusDays(4), null);
     assertEquals(2, results.size());
     assertThat(
-        results.stream()
-            .map(SubscriptionCapacityView::getPhysicalCores)
-            .collect(Collectors.toList()),
+        results.stream().map(SubscriptionCapacityView::getCores).collect(Collectors.toList()),
         containsInAnyOrder(0, 10));
     assertThat(
-        results.stream()
-            .map(SubscriptionCapacityView::getPhysicalSockets)
-            .collect(Collectors.toList()),
+        results.stream().map(SubscriptionCapacityView::getSockets).collect(Collectors.toList()),
         everyItem(Matchers.equalTo(10)));
 
     results =
@@ -492,8 +488,8 @@ class SubscriptionCapacityViewRepositoryTest {
     var record = results.get(0);
     assertAll(
         () -> {
-          assertEquals(10, record.getVirtualCores());
-          assertEquals(10, record.getVirtualSockets());
+          assertEquals(10, record.getHypervisorCores());
+          assertEquals(10, record.getHypervisorSockets());
         });
 
     results =
@@ -511,25 +507,25 @@ class SubscriptionCapacityViewRepositoryTest {
   void shouldMatchCapacityWithSocketsIfSpecified() {
     SubscriptionCapacity sockets = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
     sockets.setSubscriptionId("sockets");
-    sockets.setPhysicalSockets(10);
-    sockets.setVirtualSockets(10);
-    sockets.setPhysicalCores(null);
-    sockets.setVirtualCores(null);
+    sockets.setSockets(10);
+    sockets.setHypervisorSockets(10);
+    sockets.setCores(null);
+    sockets.setHypervisorCores(null);
 
     SubscriptionCapacity cores = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
     cores.setSubscriptionId("cores");
-    cores.setPhysicalCores(10);
-    cores.setVirtualCores(10);
-    cores.setPhysicalSockets(null);
-    cores.setVirtualSockets(null);
+    cores.setCores(10);
+    cores.setHypervisorCores(10);
+    cores.setSockets(null);
+    cores.setHypervisorSockets(null);
 
     SubscriptionCapacity socketsAndCores =
         createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
     socketsAndCores.setSubscriptionId("socketsAndCores");
-    socketsAndCores.setPhysicalCores(10);
-    socketsAndCores.setVirtualCores(10);
-    socketsAndCores.setPhysicalSockets(10);
-    socketsAndCores.setVirtualSockets(null);
+    socketsAndCores.setCores(10);
+    socketsAndCores.setHypervisorCores(10);
+    socketsAndCores.setSockets(10);
+    socketsAndCores.setHypervisorSockets(null);
 
     subscriptionRepository.saveAllAndFlush(
         List.of(
@@ -567,8 +563,8 @@ class SubscriptionCapacityViewRepositoryTest {
     assertEquals(2, found.size());
     found.forEach(
         subscriptionCapacityView -> {
-          assertNotNull(subscriptionCapacityView.getPhysicalSockets());
-          assertNotNull(subscriptionCapacityView.getVirtualSockets());
+          assertNotNull(subscriptionCapacityView.getSockets());
+          assertNotNull(subscriptionCapacityView.getHypervisorSockets());
         });
   }
 
@@ -614,10 +610,10 @@ class SubscriptionCapacityViewRepositoryTest {
     capacity.setEndDate(end);
     capacity.setHasUnlimitedUsage(false);
     capacity.setOrgId(ORG_ID);
-    capacity.setPhysicalSockets(4);
-    capacity.setVirtualSockets(20);
-    capacity.setPhysicalCores(8);
-    capacity.setVirtualCores(40);
+    capacity.setSockets(4);
+    capacity.setHypervisorSockets(20);
+    capacity.setCores(8);
+    capacity.setHypervisorCores(40);
     capacity.setServiceLevel(ServiceLevel.PREMIUM);
     capacity.setUsage(Usage.PRODUCTION);
     capacity.setSku(TEST_SKU);

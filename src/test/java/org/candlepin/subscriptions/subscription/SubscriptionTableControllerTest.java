@@ -119,10 +119,10 @@ class SubscriptionTableControllerTest {
           ServiceLevel.STANDARD,
           Usage.PRODUCTION,
           true);
-  private static final SubCapSpec RH0180196_VIRTUAL_SOCKETS =
+  private static final SubCapSpec RH0180196_HYPERVISOR_SOCKETS =
       SubCapSpec.offering(
           "RH0180196", "RHEL Server", 0, 0, 2, 0, ServiceLevel.STANDARD, Usage.PRODUCTION, false);
-  private static final SubCapSpec RH0180197_VIRTUAL_CORES =
+  private static final SubCapSpec RH0180197_HYPERVISOR_CORES =
       SubCapSpec.offering(
           "RH0180197", "RHEL Server", 0, 0, 0, 2, ServiceLevel.STANDARD, Usage.PRODUCTION, false);
 
@@ -751,13 +751,13 @@ class SubscriptionTableControllerTest {
   }
 
   @Test
-  void testGetSkuCapacityReportVirtualSocketsOnly() {
-    // Given an org with one active sub with a quantity of 4 and has an eng product with a virtual
-    // socket capacity of 2,
+  void testGetSkuCapacityReportHypervisorSocketsOnly() {
+    // Given an org with one active sub with a quantity of 4 and has an eng product with a
+    // hypervisor socket capacity of 2,
     ProductId productId = RHEL_SERVER;
     Sub expectedSub = Sub.sub("1234", "1235", 4);
     List<SubscriptionCapacityView> givenCapacities =
-        givenCapacities(Org.STANDARD, productId, RH0180196_VIRTUAL_SOCKETS.withSub(expectedSub));
+        givenCapacities(Org.STANDARD, productId, RH0180196_HYPERVISOR_SOCKETS.withSub(expectedSub));
 
     when(subscriptionCapacityViewRepository.findAllBy(
             any(), any(), anyString(), any(), any(), any(), any(), any()))
@@ -772,18 +772,18 @@ class SubscriptionTableControllerTest {
     // quantity and capacities.
     assertEquals(1, actual.getData().size(), "Wrong number of items returned");
     SkuCapacity actualItem = actual.getData().get(0);
-    assertEquals(RH0180196_VIRTUAL_SOCKETS.sku, actualItem.getSku(), "Wrong SKU");
+    assertEquals(RH0180196_HYPERVISOR_SOCKETS.sku, actualItem.getSku(), "Wrong SKU");
     assertCapacities(0, 8, Uom.SOCKETS, actualItem);
   }
 
   @Test
-  void testGetSkuCapacityReportVirtualCoresOnly() {
-    // Given an org with one active sub with a quantity of 4 and has an eng product with a virtual
-    // socket capacity of 2,
+  void testGetSkuCapacityReportHypervisorCoresOnly() {
+    // Given an org with one active sub with a quantity of 4 and has an eng product with a
+    // hypervisor socket capacity of 2,
     ProductId productId = RHEL_SERVER;
     Sub expectedSub = Sub.sub("1234", "1235", 4);
     List<SubscriptionCapacityView> givenCapacities =
-        givenCapacities(Org.STANDARD, productId, RH0180197_VIRTUAL_CORES.withSub(expectedSub));
+        givenCapacities(Org.STANDARD, productId, RH0180197_HYPERVISOR_CORES.withSub(expectedSub));
 
     when(subscriptionCapacityViewRepository.findAllBy(
             any(), any(), anyString(), any(), any(), any(), any(), any()))
@@ -798,17 +798,16 @@ class SubscriptionTableControllerTest {
     // quantity and capacities.
     assertEquals(1, actual.getData().size(), "Wrong number of items returned");
     SkuCapacity actualItem = actual.getData().get(0);
-    assertEquals(RH0180197_VIRTUAL_CORES.sku, actualItem.getSku(), "Wrong SKU");
+    assertEquals(RH0180197_HYPERVISOR_CORES.sku, actualItem.getSku(), "Wrong SKU");
     assertCapacities(0, 8, Uom.CORES, actualItem);
   }
 
   private static void assertCapacities(
-      int expectedPhysCap, int expectedVirtCap, Uom expectedUom, SkuCapacity actual) {
+      int expectedCap, int expectedHypCap, Uom expectedUom, SkuCapacity actual) {
     assertEquals(expectedUom, actual.getUom(), "Wrong UOM");
-    assertEquals(expectedPhysCap, actual.getPhysicalCapacity(), "Wrong Physical Capacity");
-    assertEquals(expectedVirtCap, actual.getVirtualCapacity(), "Wrong Virtual Capacity");
-    assertEquals(
-        expectedPhysCap + expectedVirtCap, actual.getTotalCapacity(), "Wrong Total Capacity");
+    assertEquals(expectedCap, actual.getCapacity(), "Wrong Standard Capacity");
+    assertEquals(expectedHypCap, actual.getHypervisorCapacity(), "Wrong Hypervisor Capacity");
+    assertEquals(expectedCap + expectedHypCap, actual.getTotalCapacity(), "Wrong Total Capacity");
   }
 
   private static void assertSubscription(Sub expectedSub, SkuCapacitySubscription actual) {
@@ -854,10 +853,10 @@ class SubscriptionTableControllerTest {
     // Fields in this section specify the Offering used in the SubscriptionCapacity.
     private final String sku;
     private final String productName;
-    private final Integer physicalSockets;
-    private final Integer physicalCores;
-    private final Integer virtualSockets;
-    private final Integer virtualCores;
+    private final Integer sockets;
+    private final Integer cores;
+    private final Integer hypervisorSockets;
+    private final Integer hypervisorCores;
     private final ServiceLevel serviceLevel;
     private final Usage usage;
     private final boolean hasUnlimitedUsage;
@@ -865,20 +864,20 @@ class SubscriptionTableControllerTest {
     private SubCapSpec(
         String sku,
         String productName,
-        Integer physicalSockets,
-        Integer physicalCores,
-        Integer virtualSockets,
-        Integer virtualCores,
+        Integer sockets,
+        Integer cores,
+        Integer hypervisorSockets,
+        Integer hypervisorCores,
         ServiceLevel serviceLevel,
         Usage usage,
         boolean hasUnlimitedUsage,
         Sub sub) {
       this.sku = sku;
       this.productName = productName;
-      this.physicalSockets = physicalSockets;
-      this.physicalCores = physicalCores;
-      this.virtualSockets = virtualSockets;
-      this.virtualCores = virtualCores;
+      this.sockets = sockets;
+      this.cores = cores;
+      this.hypervisorSockets = hypervisorSockets;
+      this.hypervisorCores = hypervisorCores;
       this.serviceLevel = serviceLevel;
       this.usage = usage;
       this.hasUnlimitedUsage = hasUnlimitedUsage;
@@ -893,20 +892,20 @@ class SubscriptionTableControllerTest {
     public static SubCapSpec offering(
         String sku,
         String productName,
-        Integer physicalSockets,
-        Integer physicalCores,
-        Integer virtualSockets,
-        Integer virtualCores,
+        Integer sockets,
+        Integer cores,
+        Integer hypervisorSockets,
+        Integer hypervisorCores,
         ServiceLevel serviceLevel,
         Usage usage,
         Boolean hasUnlimitedUsage) {
       return new SubCapSpec(
           sku,
           productName,
-          physicalSockets,
-          physicalCores,
-          virtualSockets,
-          virtualCores,
+          sockets,
+          cores,
+          hypervisorSockets,
+          hypervisorCores,
           serviceLevel,
           usage,
           hasUnlimitedUsage,
@@ -920,10 +919,10 @@ class SubscriptionTableControllerTest {
       return new SubCapSpec(
           sku,
           productName,
-          physicalSockets,
-          physicalCores,
-          virtualSockets,
-          virtualCores,
+          sockets,
+          cores,
+          hypervisorSockets,
+          hypervisorCores,
           serviceLevel,
           usage,
           hasUnlimitedUsage,
@@ -943,10 +942,10 @@ class SubscriptionTableControllerTest {
           .accountNumber(org.accountNumber)
           .beginDate(sub.start)
           .endDate(sub.end)
-          .physicalCores(totalCapacity(physicalCores, sub.quantity))
-          .physicalSockets(totalCapacity(physicalSockets, sub.quantity))
-          .virtualSockets(totalCapacity(virtualSockets, sub.quantity))
-          .virtualCores(totalCapacity(virtualCores, sub.quantity))
+          .cores(totalCapacity(cores, sub.quantity))
+          .sockets(totalCapacity(sockets, sub.quantity))
+          .hypervisorSockets(totalCapacity(hypervisorSockets, sub.quantity))
+          .hypervisorCores(totalCapacity(hypervisorCores, sub.quantity))
           .hasUnlimitedUsage(hasUnlimitedUsage)
           .sku(sku)
           .serviceLevel(serviceLevel)
