@@ -102,11 +102,11 @@ public class TallySnapshotController {
 
   @Timed("rhsm-subscriptions.snapshots.single")
   public void produceSnapshotsForOrg(String orgId) {
-    String account = accountRepo.findAccountNumberByOrgId(orgId);
-    if (Objects.isNull(account) || Objects.isNull(orgId)) {
-      throw new IllegalArgumentException(
-          String.format("Incomplete opt-in configuration - account=%s orgId=%s", account, orgId));
+    if (Objects.isNull(orgId)) {
+      throw new IllegalArgumentException("A non-null orgId is required for tally operations.");
     }
+
+    String account = accountRepo.findAccountNumberByOrgId(orgId);
     log.info("Producing snapshots for Org ID {} with Account {}.", orgId, account);
     Map<String, AccountUsageCalculation> accountCalcs = new HashMap<>();
     try {
@@ -138,12 +138,11 @@ public class TallySnapshotController {
   @Transactional(propagation = Propagation.NEVER)
   @Timed("rhsm-subscriptions.snapshots.single.hourly")
   public void produceHourlySnapshotsForOrg(String orgId, DateRange snapshotRange) {
-    String accountNumber = accountRepo.findAccountNumberByOrgId(orgId);
-    if (Objects.isNull(accountNumber) || Objects.isNull(orgId)) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Incomplete opt-in configuration - account=%s orgId=%s", accountNumber, orgId));
+    if (Objects.isNull(orgId)) {
+      throw new IllegalArgumentException("A non-null orgId is required for tally operations.");
     }
+
+    String accountNumber = accountRepo.findAccountNumberByOrgId(orgId);
     log.info("Producing snapshots for Org ID {} with Account {}.", orgId, accountNumber);
     tagProfile
         .getServiceTypes()

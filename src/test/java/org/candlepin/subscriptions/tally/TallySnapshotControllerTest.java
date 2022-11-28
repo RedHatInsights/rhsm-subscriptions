@@ -94,13 +94,6 @@ class TallySnapshotControllerTest {
   }
 
   @Test
-  void testWhenCloudigradeAccountUsageCollectorEnabledAndMissingAccount_EnrichmentNotInvoked() {
-    props.setCloudigradeEnabled(true);
-    assertThrows(IllegalArgumentException.class, () -> controller.produceSnapshotsForOrg(ORG_ID));
-    verifyNoInteractions(cloudigradeCollector);
-  }
-
-  @Test
   void testCloudigradeAccountUsageCollectorExceptionIgnored() throws Exception {
     props.setCloudigradeEnabled(true);
     when(accountRepo.findAccountNumberByOrgId(ORG_ID)).thenReturn(ACCOUNT);
