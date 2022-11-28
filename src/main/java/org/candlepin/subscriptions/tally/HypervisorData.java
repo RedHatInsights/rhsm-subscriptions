@@ -27,7 +27,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostBucketKey;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
@@ -37,12 +38,14 @@ import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 @Data
-@NoArgsConstructor
+@RequiredArgsConstructor
 public class HypervisorData {
+
+  @NonNull private final String orgId;
 
   private Map<String, String> hypervisorMapping = new HashMap<>();
   private Map<String, Set<Key>> hypervisorUsageKeys = new HashMap<>();
-  private Map<String, Map<String, NormalizedFacts>> orgHypervisorFacts = new HashMap<>();
+  private Map<String, NormalizedFacts> hypervisorFacts = new HashMap<>();
   private Map<String, Host> hypervisorHosts = new HashMap<>();
   private Map<String, Integer> hypervisorGuestCounts = new HashMap<>();
 
@@ -68,9 +71,7 @@ public class HypervisorData {
     hypervisorGuestCounts.put(hypervisorUuid, ++guests);
   }
 
-  public void addHypervisorFactsForOrg(String orgId, String hypervisorUuid, NormalizedFacts facts) {
-    Map<String, NormalizedFacts> hypervisorFacts =
-        orgHypervisorFacts.computeIfAbsent(orgId, a -> new HashMap<>());
+  public void addHypervisorFacts(String hypervisorUuid, NormalizedFacts facts) {
     hypervisorFacts.put(hypervisorUuid, facts);
   }
 
@@ -81,20 +82,17 @@ public class HypervisorData {
   public void collectGuestData(
       Map<String, AccountUsageCalculation> calcsByOrgId,
       Map<String, Set<HostBucketKey>> hostBucketKeys) {
-    orgHypervisorFacts.forEach(
-        (orgId, uuidToHypervisor) -> {
-          AccountUsageCalculation accountCalc = calcsByOrgId.get(orgId);
-          uuidToHypervisor.forEach(
-              (hypervisorUuid, hypervisor) ->
-                  enhanceUsageKeys(orgId, accountCalc, hypervisorUuid, hypervisor, hostBucketKeys));
-        });
+    AccountUsageCalculation accountCalc = calcsByOrgId.get(orgId);
+    hypervisorFacts.forEach(
+        (hypervisorUuid, normalizedFacts) ->
+            enhanceUsageKeys(orgId, accountCalc, hypervisorUuid, normalizedFacts, hostBucketKeys));
   }
 
   private void enhanceUsageKeys(
       String orgId,
       AccountUsageCalculation accountCalc,
       String hypervisorUuid,
-      NormalizedFacts hypervisor,
+      NormalizedFacts normalizedFacts,
       Map<String, Set<HostBucketKey>> hostBucketKeys) {
     Host host = hypervisorHosts.get(hypervisorUuid);
     host.setNumOfGuests(hypervisorGuestCounts.getOrDefault(hypervisorUuid, 0));
@@ -109,7 +107,7 @@ public class HypervisorData {
       ProductUsageCollector productUsageCollector =
           ProductUsageCollectorFactory.get(key.getProductId());
       Optional<HostTallyBucket> appliedBucket =
-          productUsageCollector.collectForHypervisor(orgId, usageCalc, hypervisor);
+          productUsageCollector.collectForHypervisor(orgId, usageCalc, normalizedFacts);
 
       // addBucket changes bucket.key.hostId, so do that first to avoid mutating the item in the set
       appliedBucket.ifPresent(

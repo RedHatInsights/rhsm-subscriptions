@@ -25,7 +25,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -99,17 +98,16 @@ public class InventoryAccountUsageCollector {
                     (h1, h2) -> handleDuplicateHost(duplicateInstanceIds, h1, h2)));
     duplicateInstanceIds.forEach(accountServiceInventory.getServiceInstances()::remove);
 
-    HypervisorData hypervisorData = new HypervisorData();
+    HypervisorData hypervisorData = new HypervisorData(orgId);
 
     inventory.reportedHypervisors(
-        List.of(orgId),
-        reported -> hypervisorData.putMapping((String) reported[0], (String) reported[1]));
+        orgId, reported -> hypervisorData.putMapping((String) reported[0], (String) reported[1]));
     log.info("Found {} reported hypervisors.", hypervisorData.getHypervisorMapping().size());
 
     Map<String, Set<HostBucketKey>> hostSeenBucketKeysLookup = new HashMap<>();
     Map<String, AccountUsageCalculation> calcsByOrgId = new HashMap<>();
     inventory.processHostFacts(
-        List.of(orgId),
+        orgId,
         culledOffsetDays,
         hostFacts -> {
           calcsByOrgId.putIfAbsent(orgId, new AccountUsageCalculation(orgId));
@@ -142,8 +140,7 @@ public class InventoryAccountUsageCollector {
               hostSeenBucketKeysLookup.computeIfAbsent(host.getInstanceId(), h -> new HashSet<>());
 
           if (facts.isHypervisor()) {
-            hypervisorData.addHypervisorFactsForOrg(
-                orgId, hostFacts.getSubscriptionManagerId(), facts);
+            hypervisorData.addHypervisorFacts(hostFacts.getSubscriptionManagerId(), facts);
             hypervisorData.addHost(hostFacts.getSubscriptionManagerId(), host);
           } else if (facts.isVirtual() && StringUtils.hasText(facts.getHypervisorUuid())) {
             hypervisorData.incrementGuestCount(host.getHypervisorUuid());
