@@ -541,10 +541,10 @@ class SubscriptionTableControllerOnDemandTest {
     // Fields in this section specify the Offering used in the SubscriptionCapacity.
     private final String sku;
     private final String productName;
-    private final Integer physicalSockets;
-    private final Integer physicalCores;
-    private final Integer virtualSockets;
-    private final Integer virtualCores;
+    private final Integer sockets;
+    private final Integer cores;
+    private final Integer hypervisorSockets;
+    private final Integer hypervisorCores;
     private final ServiceLevel serviceLevel;
     private final Usage usage;
     private final boolean hasUnlimitedUsage;
@@ -552,20 +552,20 @@ class SubscriptionTableControllerOnDemandTest {
     private SubCapSpec(
         String sku,
         String productName,
-        Integer physicalSockets,
-        Integer physicalCores,
-        Integer virtualSockets,
-        Integer virtualCores,
+        Integer sockets,
+        Integer cores,
+        Integer hypervisorSockets,
+        Integer hypervisorCores,
         ServiceLevel serviceLevel,
         Usage usage,
         boolean hasUnlimitedUsage,
         Sub sub) {
       this.sku = sku;
       this.productName = productName;
-      this.physicalSockets = physicalSockets;
-      this.physicalCores = physicalCores;
-      this.virtualSockets = virtualSockets;
-      this.virtualCores = virtualCores;
+      this.sockets = sockets;
+      this.cores = cores;
+      this.hypervisorSockets = hypervisorSockets;
+      this.hypervisorCores = hypervisorCores;
       this.serviceLevel = serviceLevel;
       this.usage = usage;
       this.hasUnlimitedUsage = hasUnlimitedUsage;
@@ -580,20 +580,20 @@ class SubscriptionTableControllerOnDemandTest {
     public static SubCapSpec offering(
         String sku,
         String productName,
-        Integer physicalSockets,
-        Integer physicalCores,
-        Integer virtualSockets,
-        Integer virtualCores,
+        Integer sockets,
+        Integer cores,
+        Integer hypervisorSockets,
+        Integer hypervisorCores,
         ServiceLevel serviceLevel,
         Usage usage,
         Boolean hasUnlimitedUsage) {
       return new SubCapSpec(
           sku,
           productName,
-          physicalSockets,
-          physicalCores,
-          virtualSockets,
-          virtualCores,
+          sockets,
+          cores,
+          hypervisorSockets,
+          hypervisorCores,
           serviceLevel,
           usage,
           hasUnlimitedUsage,
@@ -607,10 +607,10 @@ class SubscriptionTableControllerOnDemandTest {
       return new SubCapSpec(
           sku,
           productName,
-          physicalSockets,
-          physicalCores,
-          virtualSockets,
-          virtualCores,
+          sockets,
+          cores,
+          hypervisorSockets,
+          hypervisorCores,
           serviceLevel,
           usage,
           hasUnlimitedUsage,

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202211091649-1" author="khowell">
+    <comment>Rename sockets/cores columns in the subscription_capacity table.</comment>
+    <renameColumn tableName="subscription_capacity" oldColumnName="physical_sockets" newColumnName="sockets"/>
+    <renameColumn tableName="subscription_capacity" oldColumnName="virtual_sockets" newColumnName="hypervisor_sockets"/>
+    <renameColumn tableName="subscription_capacity" oldColumnName="physical_cores" newColumnName="cores"/>
+    <renameColumn tableName="subscription_capacity" oldColumnName="virtual_cores" newColumnName="hypervisor_cores"/>
+  </changeSet>
+
+  <changeSet id="202211091649-2" author="khowell">
+    <comment>Rename sockets/cores columns in the offering table.</comment>
+    <renameColumn tableName="offering" oldColumnName="physical_sockets" newColumnName="sockets"/>
+    <renameColumn tableName="offering" oldColumnName="virtual_sockets" newColumnName="hypervisor_sockets"/>
+    <renameColumn tableName="offering" oldColumnName="physical_cores" newColumnName="cores"/>
+    <renameColumn tableName="offering" oldColumnName="virtual_cores" newColumnName="hypervisor_cores"/>
+  </changeSet>
+
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->

@@ -109,7 +109,7 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
   @Query(
       "select coalesce(sum(VALUE(m)), 0.0) from TallySnapshot s "
           + "left join s.tallyMeasurements m on key(m) = :measurementKey "
-          + "where s.accountNumber = :accountNumber and "
+          + "where s.orgId = :orgId and "
           + "s.productId = :productId and "
           + "s.granularity = :granularity and "
           + "s.serviceLevel = :serviceLevel and "
@@ -118,7 +118,7 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
           + "s.billingAccountId = :billingAcctId and "
           + "s.snapshotDate >= :beginning and s.snapshotDate <= :ending")
   Double sumMeasurementValueForPeriod(
-      @Param("accountNumber") String accountNumber,
+      @Param("orgId") String orgId,
       @Param("productId") String productId,
       @Param("granularity") Granularity granularity,
       @Param("serviceLevel") ServiceLevel serviceLevel,

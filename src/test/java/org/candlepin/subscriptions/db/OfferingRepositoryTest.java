@@ -49,8 +49,8 @@ class OfferingRepositoryTest {
     offering.setUsage(Usage.DEVELOPMENT_TEST);
     offering.setServiceLevel(ServiceLevel.PREMIUM);
     offering.setRole("test");
-    offering.setPhysicalCores(1);
-    offering.setPhysicalSockets(1);
+    offering.setCores(1);
+    offering.setSockets(1);
     offering.setProductFamily("test");
     offering.setProductName("test");
     offering.setDescription("test sku");
