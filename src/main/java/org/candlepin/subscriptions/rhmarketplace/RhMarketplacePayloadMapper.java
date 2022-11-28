@@ -173,8 +173,9 @@ public class RhMarketplacePayloadMapper {
     // We need a longer term process to get that information onto the SKU/product
     // definition
     // itself so that we are not hard coding this type of value in our code. This will do
-    // for now.
+    // for now. Wll be removed eventually in Phase 3 of SWATCH-582 subtasks
     if (OPENSHIFT_DEDICATED_4_CPU_HOUR.equalsIgnoreCase(rhmMarketplaceMetricId)
+        && (billableUsage.getBillingFactor() == 1.0 || billableUsage.getBillingFactor() == null)
         && !Objects.isNull(value)
         && Uom.CORES.equals(uom)) {
       value = value / 4;

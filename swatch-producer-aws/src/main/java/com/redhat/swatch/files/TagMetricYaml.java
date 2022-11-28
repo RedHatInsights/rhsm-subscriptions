@@ -26,6 +26,7 @@ import lombok.Data;
 @Data
 public class TagMetricYaml {
   private String tag;
+  private Double billingFactor;
   private String uom; // NOTE: we plan to rename uom to metricId in ENT-4336
   private String awsDimension;
 }
