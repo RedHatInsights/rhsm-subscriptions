@@ -47,11 +47,11 @@ class MarketplaceResendTallyControllerTest {
             "deadbeef-0000-0000-0000-defaceace111",
             "cafeface-0000-0000-0000-000000000000");
     var t1 = new TallySnapshot();
-    t1.setAccountNumber("1");
+    t1.setOrgId("1");
     var t2 = new TallySnapshot();
-    t2.setAccountNumber("1");
+    t2.setOrgId("1");
     var t3 = new TallySnapshot();
-    t3.setAccountNumber("1");
+    t3.setOrgId("1");
     var tallyList = List.of(t1, t2, t3);
 
     when(repository.findAllById(Mockito.anyIterable())).thenReturn(tallyList);

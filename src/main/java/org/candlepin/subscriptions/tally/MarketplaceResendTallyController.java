@@ -61,7 +61,7 @@ public class MarketplaceResendTallyController {
     var snapshots = snapshotRepository.findAllById(snapshotIds);
     log.info("Resending tally snapshots for {} messages", snapshots.size());
     Map<String, List<TallySnapshot>> totalSnapshots =
-        snapshots.stream().collect(Collectors.groupingBy(TallySnapshot::getAccountNumber));
+        snapshots.stream().collect(Collectors.groupingBy(TallySnapshot::getOrgId));
     summaryProducer.produceTallySummaryMessages(totalSnapshots);
     return snapshots.size();
   }
