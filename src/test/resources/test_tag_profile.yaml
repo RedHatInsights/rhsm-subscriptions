@@ -148,6 +148,7 @@ tagMetrics:
   - tag: OpenShift-dedicated-metrics
     metricId: redhat.com:openshift_dedicated:4cpu_hour
     uom: CORES
+    billingFactor: 0.25
     billingWindow: HOURLY
     queryKey: default
     queryParams:

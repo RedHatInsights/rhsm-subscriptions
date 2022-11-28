@@ -34,8 +34,11 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.BillableUsage;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.registry.BillingWindow;
+import org.candlepin.subscriptions.registry.TagMetric;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -48,16 +51,19 @@ public class BillableUsageController {
   private final BillingProducer billingProducer;
   private final BillableUsageRemittanceRepository billableUsageRemittanceRepository;
   private final TallySnapshotRepository snapshotRepository;
+  private final TagProfile tagProfile;
 
   public BillableUsageController(
       ApplicationClock clock,
       BillingProducer billingProducer,
       BillableUsageRemittanceRepository billableUsageRemittanceRepository,
-      TallySnapshotRepository snapshotRepository) {
+      TallySnapshotRepository snapshotRepository,
+      TagProfile tagProfile) {
     this.clock = clock;
     this.billingProducer = billingProducer;
     this.billableUsageRemittanceRepository = billableUsageRemittanceRepository;
     this.snapshotRepository = snapshotRepository;
+    this.tagProfile = tagProfile;
   }
 
   public void submitBillableUsage(BillingWindow billingWindow, BillableUsage usage) {
@@ -90,22 +96,52 @@ public class BillableUsageController {
   }
 
   private BillableUsageCalculation calculateBillableUsage(
-      double measuredTotal, double currentRemittedValue) {
-    double adjustedMeasuredTotal = Math.ceil(measuredTotal);
-    double billableValue = adjustedMeasuredTotal - currentRemittedValue;
-    if (billableValue < 0) {
-      // Message could have been received out of order via another process,
-      // or on re-tally we have already billed for this usage and using
-      // credit. There's nothing to bill in this case.
-      billableValue = 0.0;
+      double measuredTotal, BillableUsage usage, BillableUsageRemittanceEntity remittance) {
+    var tagMetricOptional =
+        tagProfile.getTagMetric(
+            usage.getProductId(), Measurement.Uom.fromValue(usage.getUom().value()));
+    double tagFactor =
+        tagMetricOptional
+            .map(TagMetric::getBillingFactor)
+            .orElse(1.0); // get configured billingFactor in tag_profile yaml
+    double billableValue;
+    double remittedValue;
+    var currentRemittedValue = remittance.getRemittedValue();
+
+    if (tagFactor != 1.0) {
+      var prevBilled = currentRemittedValue / remittance.getBillingFactor(); // previously billed
+      var unbilledAmount = measuredTotal - prevBilled;
+      var updatedBill = unbilledAmount * tagFactor;
+      var prevBilledAdjusted = prevBilled * tagFactor;
+
+      if (usage.getBillingFactor() != tagFactor) {
+        usage.setBillingFactor(tagFactor);
+        remittance.setBillingFactor(usage.getBillingFactor());
+      }
+
+      billableValue = Math.ceil(updatedBill);
+      remittedValue = checkIfBilled(billableValue) + prevBilledAdjusted;
+    } else {
+      double adjustedMeasuredTotal = Math.ceil(measuredTotal);
+      billableValue = adjustedMeasuredTotal - currentRemittedValue;
+      remittedValue = currentRemittedValue + checkIfBilled(billableValue);
     }
-    double remittedValue = currentRemittedValue + billableValue;
 
     return BillableUsageCalculation.builder()
         .billableValue(billableValue)
         .remittedValue(remittedValue)
         .remittanceDate(clock.now())
         .build();
+  }
+
+  private Double checkIfBilled(double billableValue) {
+    if (billableValue < 0) {
+      // Message could have been received out of order via another process,
+      // or on re-tally we have already billed for this usage and using
+      // credit. There's nothing to bill in this case.
+      billableValue = 0.0;
+    }
+    return billableValue;
   }
 
   private BillableUsage produceHourlyBillable(BillableUsage usage) {
@@ -120,7 +156,7 @@ public class BillableUsageController {
             usage, clock.startOfMonth(usage.getSnapshotDate()), usage.getSnapshotDate());
     BillableUsageRemittanceEntity remittance = getLatestRemittance(usage);
     BillableUsageCalculation usageCalc =
-        calculateBillableUsage(currentMonthlyTotal, remittance.getRemittedValue());
+        calculateBillableUsage(currentMonthlyTotal, usage, remittance);
 
     log.debug(
         "Processing monthly billable usage: Usage: {}, Current total: {}, Current remittance: {}, New billable: {}",
@@ -132,7 +168,7 @@ public class BillableUsageController {
     // Update the reported usage value to the newly calculated one.
     usage.setValue(usageCalc.getBillableValue());
 
-    if (updateRemittance(remittance, usage.getOrgId(), usageCalc)) {
+    if (updateRemittance(remittance, usage.getOrgId(), usageCalc, usage.getBillingFactor())) {
       remittance.setAccountNumber(usage.getAccountNumber());
       log.debug("Updating remittance: {}", remittance);
       billableUsageRemittanceRepository.save(remittance);
@@ -142,7 +178,10 @@ public class BillableUsageController {
   }
 
   private boolean updateRemittance(
-      BillableUsageRemittanceEntity remittance, String orgId, BillableUsageCalculation usageCalc) {
+      BillableUsageRemittanceEntity remittance,
+      String orgId,
+      BillableUsageCalculation usageCalc,
+      Double tagFactor) {
     boolean updated = false;
     if (!Objects.equals(remittance.getKey().getOrgId(), orgId) && StringUtils.hasText(orgId)) {
       remittance.getKey().setOrgId(orgId);
@@ -152,7 +191,10 @@ public class BillableUsageController {
       remittance.setRemittedValue(usageCalc.getRemittedValue());
       updated = true;
     }
-
+    if (!Objects.equals(remittance.getBillingFactor(), tagFactor)) {
+      remittance.setBillingFactor(tagFactor);
+      updated = true;
+    }
     // Only update the date if the remittance was updated.
     if (updated) {
       remittance.setRemittanceDate(usageCalc.getRemittanceDate());
