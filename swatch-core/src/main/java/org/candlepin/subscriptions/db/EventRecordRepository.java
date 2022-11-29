@@ -109,7 +109,7 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
    * Find all the events based on the account number and service type that exist during the
    * specified range.
    *
-   * @param accountNumber
+   * @param orgId
    * @param serviceType
    * @param begin
    * @param end
@@ -118,10 +118,10 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
   @Query(
       nativeQuery = true,
       value =
-          "select * from events where account_number=:accountNumber and data->>'service_type'=:serviceType and timestamp >= :begin and timestamp < :end order by timestamp")
+          "select * from events where org_id=:orgId and data->>'service_type'=:serviceType and timestamp >= :begin and timestamp < :end order by timestamp")
   Stream<EventRecord>
-      findByAccountNumberAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
-          @Param("accountNumber") String accountNumber,
+      findByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+          @Param("orgId") String orgId,
           @Param("serviceType") String serviceType,
           @Param("begin") OffsetDateTime begin,
           @Param("end") OffsetDateTime end);

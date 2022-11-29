@@ -40,6 +40,8 @@ public class NormalizedFacts {
   private Integer cores;
   private Integer sockets;
   private String orgId;
+  private String account;
+
   /** Subscription-manager ID (UUID) of the hypervisor for this system */
   private String hypervisorUuid;
 

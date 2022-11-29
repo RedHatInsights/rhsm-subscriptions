@@ -60,14 +60,12 @@ public class SnapshotSummaryProducer {
   public void produceTallySummaryMessages(Map<String, List<TallySnapshot>> newAndUpdatedSnapshots) {
     AtomicInteger totalTallies = new AtomicInteger();
     newAndUpdatedSnapshots.forEach(
-        (account, snapshots) ->
+        (orgId, snapshots) ->
             snapshots.stream()
-                // NOTE: The orgId should be passed in the same way as the account. When the APIs
-                // are changed to require an orgID, this should be updated to not take the orgId
-                // from the snapshot when they are mapped to a summary.
                 .map(
                     snapshot ->
-                        summaryMapper.mapSnapshots(account, snapshot.getOrgId(), List.of(snapshot)))
+                        summaryMapper.mapSnapshots(
+                            snapshot.getAccountNumber(), orgId, List.of(snapshot)))
                 .forEach(
                     summary -> {
                       if (validateTallySummary(summary)) {

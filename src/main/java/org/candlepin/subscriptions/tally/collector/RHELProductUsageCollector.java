@@ -85,17 +85,17 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
 
   @Override
   public Optional<HostTallyBucket> collectForHypervisor(
-      String account, UsageCalculation prodCalc, NormalizedFacts hypervisorFacts) {
+      String orgId, UsageCalculation prodCalc, NormalizedFacts hypervisorFacts) {
 
     int appliedCores = hypervisorFacts.getCores() != null ? hypervisorFacts.getCores() : 0;
     int appliedSockets = hypervisorFacts.getSockets() != null ? hypervisorFacts.getSockets() : 0;
 
     if (appliedSockets == 0) {
       log.warn(
-          "Hypervisor in account {} has no sockets and will"
+          "Hypervisor in org {} has no sockets and will"
               + " not contribute to the totals. The tally for the RHEL product will not be"
               + " accurate since all associated guests will not contribute to the tally.",
-          account);
+          orgId);
     }
 
     prodCalc.addHypervisor(appliedCores, appliedSockets, 1);

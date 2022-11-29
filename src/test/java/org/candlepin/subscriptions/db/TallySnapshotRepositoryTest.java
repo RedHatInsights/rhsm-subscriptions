@@ -168,7 +168,7 @@ class TallySnapshotRepositoryTest {
   }
 
   @Test
-  void testFindByAccountNumberInAndProductIdInAndGranularityAndSnapshotDateBetween() {
+  void testFindByOrgIdInAndProductIdInAndGranularityAndSnapshotDateBetween() {
     String product1 = "Product1";
     String product2 = "Product2";
     // Will not be found - out of date range.
@@ -197,8 +197,8 @@ class TallySnapshotRepositoryTest {
     List<String> products = Arrays.asList(product1, product2);
     List<TallySnapshot> found =
         repository
-            .findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
-                "Account1", products, Granularity.DAILY, min, max)
+            .findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+                "Org1", products, Granularity.DAILY, min, max)
             .collect(Collectors.toList());
     assertEquals(1, found.size());
 
@@ -228,12 +228,8 @@ class TallySnapshotRepositoryTest {
 
     List<TallySnapshot> found =
         repository
-            .findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
-                "Acme Inc.",
-                Arrays.asList("rocket-skates"),
-                Granularity.DAILY,
-                LONG_AGO,
-                FAR_FUTURE)
+            .findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+                "OrgAcme", Arrays.asList("rocket-skates"), Granularity.DAILY, LONG_AGO, FAR_FUTURE)
             .collect(Collectors.toList());
 
     TallySnapshot expected = found.get(0);

@@ -102,13 +102,6 @@ class HourlySnapshotRollerTest {
 
   @Test
   @SuppressWarnings("java:S2699") /* Sonar thinks no assertions */
-  void testEmptySnapshotsNotPersisted() {
-    tester.performDoesNotPersistEmptySnapshots(
-        HOURLY, clock.startOfCurrentHour(), clock.endOfCurrentHour());
-  }
-
-  @Test
-  @SuppressWarnings("java:S2699") /* Sonar thinks no assertions */
   void testHandlesDuplicates() {
     tester.performRemovesDuplicates(HOURLY, clock.startOfCurrentHour(), clock.endOfCurrentHour());
   }

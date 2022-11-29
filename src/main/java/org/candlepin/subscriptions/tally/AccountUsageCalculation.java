@@ -35,8 +35,8 @@ public class AccountUsageCalculation {
   private Map<UsageCalculation.Key, UsageCalculation> calculations;
   private Set<String> products;
 
-  public AccountUsageCalculation(String account) {
-    this.account = account;
+  public AccountUsageCalculation(String orgId) {
+    this.orgId = orgId;
     this.calculations = new HashMap<>();
     this.products = new HashSet<>();
   }
@@ -54,12 +54,12 @@ public class AccountUsageCalculation {
     return account;
   }
 
-  public String getOrgId() {
-    return orgId;
+  public void setAccount(String account) {
+    this.account = account;
   }
 
-  public void setOrgId(String orgId) {
-    this.orgId = orgId;
+  public String getOrgId() {
+    return orgId;
   }
 
   public void addCalculation(UsageCalculation calc) {

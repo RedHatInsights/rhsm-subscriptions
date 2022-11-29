@@ -156,7 +156,9 @@ public class MetricUsageCollector {
         accountCalcs.put(offset, accountUsageCalculation);
       }
     }
-    accountCalcs.values().forEach(calc -> calc.setOrgId(accountServiceInventory.getOrgId()));
+    accountCalcs
+        .values()
+        .forEach(calc -> calc.setAccount(accountServiceInventory.getAccountNumber()));
     accountServiceInventoryRepository.save(accountServiceInventory);
 
     return new CollectionResult(
@@ -173,7 +175,7 @@ public class MetricUsageCollector {
     Map<String, List<Event>> eventToHostMapping =
         eventController
             .fetchEventsInTimeRangeByServiceType(
-                accountServiceInventory.getAccountNumber(),
+                accountServiceInventory.getOrgId(),
                 accountServiceInventory.getServiceType(),
                 startDateTime,
                 endDateTime)
@@ -204,15 +206,17 @@ public class MetricUsageCollector {
                   .collect(Collectors.toSet());
           staleMeasurements.forEach(host.getMeasurements()::remove);
         });
-    return tallyCurrentAccountState(accountServiceInventory.getAccountNumber(), thisHoursInstances);
+    return tallyCurrentAccountState(accountServiceInventory, thisHoursInstances);
   }
 
   private AccountUsageCalculation tallyCurrentAccountState(
-      String accountNumber, Map<String, Host> thisHoursInstances) {
+      AccountServiceInventory accountInventory, Map<String, Host> thisHoursInstances) {
     if (thisHoursInstances.isEmpty()) {
       return null;
     }
-    AccountUsageCalculation accountUsageCalculation = new AccountUsageCalculation(accountNumber);
+    AccountUsageCalculation accountUsageCalculation =
+        new AccountUsageCalculation(accountInventory.getOrgId());
+    accountUsageCalculation.setAccount(accountInventory.getAccountNumber());
     thisHoursInstances
         .values()
         .forEach(

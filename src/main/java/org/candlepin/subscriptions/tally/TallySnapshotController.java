@@ -102,11 +102,11 @@ public class TallySnapshotController {
 
   @Timed("rhsm-subscriptions.snapshots.single")
   public void produceSnapshotsForOrg(String orgId) {
-    String account = accountRepo.findAccountNumberByOrgId(orgId);
-    if (Objects.isNull(account) || Objects.isNull(orgId)) {
-      throw new IllegalArgumentException(
-          String.format("Incomplete opt-in configuration - account=%s orgId=%s", account, orgId));
+    if (Objects.isNull(orgId)) {
+      throw new IllegalArgumentException("A non-null orgId is required for tally operations.");
     }
+
+    String account = accountRepo.findAccountNumberByOrgId(orgId);
     log.info("Producing snapshots for Org ID {} with Account {}.", orgId, account);
     Map<String, AccountUsageCalculation> accountCalcs = new HashMap<>();
     try {
@@ -116,18 +116,19 @@ public class TallySnapshotController {
 
       if (props.isCloudigradeEnabled()) {
         if (StringUtils.hasText(orgId)) {
-          attemptCloudigradeEnrichment(account, accountCalcs, orgId);
+          attemptCloudigradeEnrichment(accountCalcs, orgId);
         } else {
           log.warn(
               "Org Id {} not found for account {} during cloudigrade enrichment", orgId, account);
         }
       }
     } catch (Exception e) {
-      log.error("Could not collect existing usage snapshots for account {}", account, e);
+      log.error(
+          "Could not collect existing usage snapshots for orgId={} account={}", orgId, account, e);
       return;
     }
 
-    maxSeenSnapshotStrategy.produceSnapshotsFromCalculations(account, accountCalcs.values());
+    maxSeenSnapshotStrategy.produceSnapshotsFromCalculations(orgId, accountCalcs.values());
   }
 
   // Because we want to ensure that our DB operations have been completed before
@@ -137,12 +138,11 @@ public class TallySnapshotController {
   @Transactional(propagation = Propagation.NEVER)
   @Timed("rhsm-subscriptions.snapshots.single.hourly")
   public void produceHourlySnapshotsForOrg(String orgId, DateRange snapshotRange) {
-    String accountNumber = accountRepo.findAccountNumberByOrgId(orgId);
-    if (Objects.isNull(accountNumber) || Objects.isNull(orgId)) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Incomplete opt-in configuration - account=%s orgId=%s", accountNumber, orgId));
+    if (Objects.isNull(orgId)) {
+      throw new IllegalArgumentException("A non-null orgId is required for tally operations.");
     }
+
+    String accountNumber = accountRepo.findAccountNumberByOrgId(orgId);
     log.info("Producing snapshots for Org ID {} with Account {}.", orgId, accountNumber);
     tagProfile
         .getServiceTypes()
@@ -171,7 +171,7 @@ public class TallySnapshotController {
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
                 Map<String, List<TallySnapshot>> totalSnapshots =
                     combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
-                        accountNumber,
+                        orgId,
                         result.getRange(),
                         tagProfile.getTagsForServiceType(serviceType),
                         applicableUsageCalculations,
@@ -194,13 +194,13 @@ public class TallySnapshotController {
   }
 
   private void attemptCloudigradeEnrichment(
-      String account, Map<String, AccountUsageCalculation> accountCalcs, String orgId) {
+      Map<String, AccountUsageCalculation> accountCalcs, String orgId) {
     log.info("Adding cloudigrade reports to calculations.");
     try {
       cloudigradeRetryTemplate.execute(
           context -> {
             try {
-              cloudigradeCollector.enrichUsageWithCloudigradeData(accountCalcs, account, orgId);
+              cloudigradeCollector.enrichUsageWithCloudigradeData(accountCalcs, orgId);
             } catch (Exception e) {
               throw new ExternalServiceException(
                   ErrorCode.REQUEST_PROCESSING_ERROR,

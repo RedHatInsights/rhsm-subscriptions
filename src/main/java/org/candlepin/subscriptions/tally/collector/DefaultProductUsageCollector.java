@@ -76,7 +76,7 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
 
   @Override
   public Optional<HostTallyBucket> collectForHypervisor(
-      String account, UsageCalculation prodCalc, NormalizedFacts hypervisorFacts) {
+      String orgId, UsageCalculation prodCalc, NormalizedFacts hypervisorFacts) {
 
     /* do nothing for hypervisor-guest mappings by default */
     return Optional.empty();

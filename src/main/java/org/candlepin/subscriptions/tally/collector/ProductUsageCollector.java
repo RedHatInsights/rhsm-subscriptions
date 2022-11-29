@@ -41,11 +41,11 @@ public interface ProductUsageCollector {
   /**
    * Collect and append usage data based on hypervisor-guest mappings.
    *
-   * @param account the account number
+   * @param orgId the org ID.
    * @param prodCalc which usage key's calculation to update
    * @param hypervisorFacts facts about the hypervisor
    * @return HostTallyBucket the bucket representing the counts applied by the specified host
    */
   Optional<HostTallyBucket> collectForHypervisor(
-      String account, UsageCalculation prodCalc, NormalizedFacts hypervisorFacts);
+      String orgId, UsageCalculation prodCalc, NormalizedFacts hypervisorFacts);
 }

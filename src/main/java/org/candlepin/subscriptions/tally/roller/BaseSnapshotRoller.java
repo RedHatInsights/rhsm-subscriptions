@@ -67,12 +67,12 @@ public abstract class BaseSnapshotRoller {
   /**
    * Roll the snapshots for the given account.
    *
-   * @param account the account of the snapshots to roll.
+   * @param orgId the org ID of the snapshots to roll.
    * @param accountCalcs the current calculations from the host inventory.
    * @return collection of snapshots
    */
   public abstract Collection<TallySnapshot> rollSnapshots(
-      String account, Collection<AccountUsageCalculation> accountCalcs);
+      String orgId, Collection<AccountUsageCalculation> accountCalcs);
 
   protected TallySnapshot createSnapshotFromProductUsageCalculation(
       String account, String orgId, UsageCalculation productCalc, Granularity granularity) {
@@ -124,15 +124,15 @@ public abstract class BaseSnapshotRoller {
   }
 
   @SuppressWarnings("indentation")
-  protected List<TallySnapshot> getCurrentSnapshotsByAccount(
-      String account,
+  protected List<TallySnapshot> getCurrentSnapshotsByOrgId(
+      String orgId,
       Collection<String> products,
       Granularity granularity,
       OffsetDateTime begin,
       OffsetDateTime end) {
     try (Stream<TallySnapshot> snapStream =
-        tallyRepo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
-            account, products, granularity, begin, end)) {
+        tallyRepo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+            orgId, products, granularity, begin, end)) {
       return snapStream.collect(Collectors.toList());
     }
   }
@@ -143,12 +143,12 @@ public abstract class BaseSnapshotRoller {
       Granularity targetGranularity) {
     List<TallySnapshot> snaps = new LinkedList<>();
     for (AccountUsageCalculation accountCalc : accountCalcs) {
-      String account = accountCalc.getAccount();
+      String orgId = accountCalc.getOrgId();
 
-      Map<UsageCalculation.Key, TallySnapshot> accountSnapsByUsageKey = new HashMap<>();
-      if (existingSnaps.containsKey(account)) {
-        accountSnapsByUsageKey =
-            existingSnaps.get(account).stream()
+      Map<UsageCalculation.Key, TallySnapshot> orgSnapsByUsageKey = new HashMap<>();
+      if (existingSnaps.containsKey(orgId)) {
+        orgSnapsByUsageKey =
+            existingSnaps.get(orgId).stream()
                 .collect(
                     Collectors.toMap(
                         UsageCalculation.Key::fromTallySnapshot,
@@ -161,7 +161,7 @@ public abstract class BaseSnapshotRoller {
             tagProfile.tagSupportsGranularity(usageKey.getProductId(), targetGranularity);
 
         if (isGranularitySupported) {
-          TallySnapshot snap = accountSnapsByUsageKey.get(usageKey);
+          TallySnapshot snap = orgSnapsByUsageKey.get(usageKey);
           UsageCalculation productCalc = accountCalc.getCalculation(usageKey);
           if (snap == null && productCalc.hasMeasurements()) {
             snap =

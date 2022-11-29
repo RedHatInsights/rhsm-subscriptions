@@ -62,12 +62,15 @@ class TallySnapshotControllerTest {
   void setup() {
     AccountConfig accountConfig = new AccountConfig();
     accountConfig.setAccountNumber(ACCOUNT);
-    accountConfig.setOrgId("ORG_" + ACCOUNT);
+    accountConfig.setOrgId(ORG_ID);
     when(accountRepo.findById(ACCOUNT)).thenReturn(Optional.of(accountConfig));
 
     defaultCloudigradeIntegrationEnablement = props.isCloudigradeEnabled();
+    AccountUsageCalculation accountCalc = new AccountUsageCalculation(ORG_ID);
+    accountCalc.setAccount(ACCOUNT);
+
     when(inventoryCollector.collect(any(), any(), any()))
-        .thenReturn(ImmutableMap.of(ACCOUNT, new AccountUsageCalculation(ACCOUNT)));
+        .thenReturn(ImmutableMap.of(ORG_ID, accountCalc));
   }
 
   @AfterEach
@@ -80,7 +83,7 @@ class TallySnapshotControllerTest {
     props.setCloudigradeEnabled(true);
     when(accountRepo.findAccountNumberByOrgId(ORG_ID)).thenReturn(ACCOUNT);
     controller.produceSnapshotsForOrg(ORG_ID);
-    verify(cloudigradeCollector).enrichUsageWithCloudigradeData(any(), any(), any());
+    verify(cloudigradeCollector).enrichUsageWithCloudigradeData(any(), any());
   }
 
   @Test
@@ -91,21 +94,14 @@ class TallySnapshotControllerTest {
   }
 
   @Test
-  void testWhenCloudigradeAccountUsageCollectorEnabledAndMissingAccount_EnrichmentNotInvoked() {
-    props.setCloudigradeEnabled(true);
-    assertThrows(IllegalArgumentException.class, () -> controller.produceSnapshotsForOrg(ORG_ID));
-    verifyNoInteractions(cloudigradeCollector);
-  }
-
-  @Test
   void testCloudigradeAccountUsageCollectorExceptionIgnored() throws Exception {
     props.setCloudigradeEnabled(true);
     when(accountRepo.findAccountNumberByOrgId(ORG_ID)).thenReturn(ACCOUNT);
     doThrow(new RuntimeException())
         .when(cloudigradeCollector)
-        .enrichUsageWithCloudigradeData(any(), any(), any());
+        .enrichUsageWithCloudigradeData(any(), any());
     controller.produceSnapshotsForOrg(ORG_ID);
-    verify(cloudigradeCollector, times(2)).enrichUsageWithCloudigradeData(any(), any(), any());
+    verify(cloudigradeCollector, times(2)).enrichUsageWithCloudigradeData(any(), any());
   }
 
   @Test
@@ -122,6 +118,6 @@ class TallySnapshotControllerTest {
     when(accountRepo.findOrgByAccountNumber(ACCOUNT)).thenReturn(ORG_ID);
     when(accountRepo.findAccountNumberByOrgId(ORG_ID)).thenReturn(ACCOUNT);
     controller.produceSnapshotsForAccount(ACCOUNT);
-    verify(cloudigradeCollector).enrichUsageWithCloudigradeData(any(), any(), any());
+    verify(cloudigradeCollector).enrichUsageWithCloudigradeData(any(), any());
   }
 }

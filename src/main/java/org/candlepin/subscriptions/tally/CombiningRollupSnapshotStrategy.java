@@ -72,7 +72,7 @@ public class CombiningRollupSnapshotStrategy {
   }
 
   /**
-   * @param accountNumber The target account
+   * @param orgId The ID of the target org
    * @param affectedRange the overall date range that we looked for calculations
    * @param affectedProductTags the set of product tags that are applicable
    * @param accountCalcs Map of times and account calculations at that time
@@ -82,7 +82,7 @@ public class CombiningRollupSnapshotStrategy {
    */
   @Transactional
   public Map<String, List<TallySnapshot>> produceSnapshotsFromCalculations(
-      String accountNumber,
+      String orgId,
       DateRange affectedRange,
       Set<String> affectedProductTags,
       Map<OffsetDateTime, AccountUsageCalculation> accountCalcs,
@@ -93,7 +93,7 @@ public class CombiningRollupSnapshotStrategy {
     Map<TallySnapshotNaturalKey, List<TallySnapshot>> derivedExistingSnapshots = new HashMap<>();
 
     catalogExistingSnapshots(
-        accountNumber,
+        orgId,
         affectedRange,
         totalExistingSnapshots,
         derivedExistingSnapshots,
@@ -132,14 +132,14 @@ public class CombiningRollupSnapshotStrategy {
     Map<String, List<TallySnapshot>> totalSnapshotsToSend =
         Stream.of(finestGranularitySnapshotsInRange, rollupSnapshots)
             .flatMap(List::stream)
-            .collect(Collectors.groupingBy(TallySnapshot::getAccountNumber));
+            .collect(Collectors.groupingBy(TallySnapshot::getOrgId));
 
-    log.info("Finished producing finestGranularitySnapshots for account {}.", accountNumber);
+    log.info("Finished producing finestGranularitySnapshots for orgId={}.", orgId);
     return totalSnapshotsToSend;
   }
 
   private void catalogExistingSnapshots(
-      String accountNumber,
+      String orgId,
       DateRange reportDateRange,
       Map<TallySnapshotNaturalKey, TallySnapshot> totalExistingSnapshots,
       Map<TallySnapshotNaturalKey, List<TallySnapshot>> derivedExistingSnapshots,
@@ -167,11 +167,10 @@ public class CombiningRollupSnapshotStrategy {
       }
 
       var snapMap =
-          getCurrentSnapshotsByAccount(
-              accountNumber, swatchProductIds, granularity, effectiveStartTime, effectiveEndTime);
+          getCurrentSnapshotsByOrgId(
+              orgId, swatchProductIds, granularity, effectiveStartTime, effectiveEndTime);
 
-      List<TallySnapshot> existingSnapshots =
-          snapMap.getOrDefault(accountNumber, Collections.emptyList());
+      List<TallySnapshot> existingSnapshots = snapMap.getOrDefault(orgId, Collections.emptyList());
 
       existingSnapshots.forEach(
           snap -> {
@@ -191,16 +190,16 @@ public class CombiningRollupSnapshotStrategy {
   }
 
   @SuppressWarnings("indentation")
-  protected Map<String, List<TallySnapshot>> getCurrentSnapshotsByAccount(
-      String account,
+  protected Map<String, List<TallySnapshot>> getCurrentSnapshotsByOrgId(
+      String orgId,
       Collection<String> products,
       Granularity granularity,
       OffsetDateTime begin,
       OffsetDateTime end) {
     try (Stream<TallySnapshot> snapStream =
-        tallyRepo.findByAccountNumberAndProductIdInAndGranularityAndSnapshotDateBetween(
-            account, products, granularity, begin, end)) {
-      return snapStream.collect(Collectors.groupingBy(TallySnapshot::getAccountNumber));
+        tallyRepo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+            orgId, products, granularity, begin, end)) {
+      return snapStream.collect(Collectors.groupingBy(TallySnapshot::getOrgId));
     }
   }
 
@@ -287,7 +286,7 @@ public class CombiningRollupSnapshotStrategy {
           for (UsageCalculation.Key usageKey : accountCalc.getKeys()) {
             var snapshotKey =
                 new TallySnapshotNaturalKey(
-                    accountCalc.getAccount(),
+                    accountCalc.getOrgId(),
                     usageKey.getProductId(),
                     granularity,
                     usageKey.getSla(),
@@ -427,7 +426,7 @@ public class CombiningRollupSnapshotStrategy {
                   firstFinestGranularitySnapshot.getSnapshotDate(), granularity);
           var snapshotKey =
               new TallySnapshotNaturalKey(
-                  firstFinestGranularitySnapshot.getAccountNumber(),
+                  firstFinestGranularitySnapshot.getOrgId(),
                   firstFinestGranularitySnapshot.getProductId(),
                   granularity,
                   usageKey.getSla(),

@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -70,10 +69,9 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
       OffsetDateTime startOfGranularPeriod,
       OffsetDateTime endOfGranularPeriod) {
     AccountUsageCalculation a1Calc = createTestData();
-    String account = a1Calc.getAccount();
 
     UsageCalculation a1ProductCalc = a1Calc.getCalculation(createUsageKey(getTestProduct()));
-    roller.rollSnapshots(account, Arrays.asList(a1Calc));
+    roller.rollSnapshots(a1Calc.getOrgId(), Arrays.asList(a1Calc));
 
     List<TallySnapshot> currentSnaps =
         repository
@@ -100,9 +98,9 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
       OffsetDateTime startOfGranularPeriod,
       OffsetDateTime endOfGranularPeriod) {
     AccountUsageCalculation a1Calc = createTestData();
-    String account = a1Calc.getAccount();
+
     String orgId = a1Calc.getOrgId();
-    roller.rollSnapshots(account, Arrays.asList(a1Calc));
+    roller.rollSnapshots(orgId, Arrays.asList(a1Calc));
 
     List<TallySnapshot> currentSnaps =
         repository
@@ -127,7 +125,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     assertSnapshot(toBeUpdated, a1ProductCalc, granularity);
 
     a1ProductCalc.addPhysical(100, 200, 50);
-    roller.rollSnapshots(account, Arrays.asList(a1Calc));
+    roller.rollSnapshots(orgId, Arrays.asList(a1Calc));
 
     List<TallySnapshot> updatedSnaps =
         repository
@@ -175,7 +173,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     AccountUsageCalculation expectedCalc = expectMaxAccepted ? a1HighCalc : a1LowCalc;
 
     // Roll to the initial high values
-    roller.rollSnapshots(account, Arrays.asList(a1HighCalc));
+    roller.rollSnapshots(orgId, Arrays.asList(a1HighCalc));
 
     List<TallySnapshot> currentSnaps =
         repository
@@ -199,7 +197,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
         toUpdate, a1HighCalc.getCalculation(createUsageKey(getTestProduct())), granularity);
 
     // Roll again with the low values
-    roller.rollSnapshots(account, Arrays.asList(a1LowCalc));
+    roller.rollSnapshots(orgId, Arrays.asList(a1LowCalc));
 
     List<TallySnapshot> updatedSnaps =
         repository
@@ -224,33 +222,6 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     // Use the calculation with the expected
     assertSnapshot(
         updated, expectedCalc.getCalculation(createUsageKey(getTestProduct())), granularity);
-  }
-
-  @SuppressWarnings("indentation")
-  public void performDoesNotPersistEmptySnapshots(
-      Granularity granularity,
-      OffsetDateTime startOfGranularPeriod,
-      OffsetDateTime endOfGranularPeriod) {
-
-    AccountUsageCalculation calc = createAccountCalc("12345678", "O1", getTestProduct(), 0, 0, 0);
-    roller.rollSnapshots("12345678", Collections.singletonList(calc));
-
-    List<TallySnapshot> currentSnaps =
-        repository
-            .findSnapshot(
-                "A1",
-                getTestProduct(),
-                granularity,
-                ServiceLevel.EMPTY,
-                Usage.EMPTY,
-                BillingProvider.EMPTY,
-                "sellerAcct",
-                startOfGranularPeriod,
-                endOfGranularPeriod,
-                PageRequest.of(0, 100))
-            .stream()
-            .collect(Collectors.toList());
-    assertEquals(0, currentSnaps.size());
   }
 
   public void performRemovesDuplicates(
@@ -306,7 +277,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     UsageCalculation a1ProductCalc = a1Calc.getCalculation(createUsageKey(getTestProduct()));
     assertNotNull(a1ProductCalc);
 
-    roller.rollSnapshots(account, List.of(a1Calc));
+    roller.rollSnapshots(orgId, List.of(a1Calc));
 
     List<TallySnapshot> updatedSnaps =
         repository
@@ -355,8 +326,8 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
               productCalc.add(type, Uom.INSTANCES, (double) totalInstances);
             });
 
-    AccountUsageCalculation calc = new AccountUsageCalculation(account);
-    calc.setOrgId(orgId);
+    AccountUsageCalculation calc = new AccountUsageCalculation(orgId);
+    calc.setAccount(account);
     calc.addCalculation(productCalc);
 
     return calc;

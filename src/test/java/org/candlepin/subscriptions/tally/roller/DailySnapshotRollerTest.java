@@ -79,13 +79,6 @@ class DailySnapshotRollerTest {
   }
 
   @Test
-  @SuppressWarnings("java:S2699") /* NOTE(khowell): have no idea why sonar thinks no assertions */
-  void testEmptySnapshotsNotPersisted() {
-    tester.performDoesNotPersistEmptySnapshots(
-        Granularity.DAILY, clock.startOfToday(), clock.endOfToday());
-  }
-
-  @Test
   @SuppressWarnings("java:S2699") /* Sonar thinks no assertions */
   void testHandlesDuplicates() {
     tester.performRemovesDuplicates(Granularity.DAILY, clock.startOfToday(), clock.endOfToday());

@@ -34,7 +34,7 @@ import org.candlepin.subscriptions.db.model.Usage;
 @AllArgsConstructor
 public class TallySnapshotNaturalKey {
 
-  private String accountNumber;
+  private String orgId;
   private String swatchProductId;
   private Granularity granularity;
   private ServiceLevel serviceLevel;
@@ -44,7 +44,7 @@ public class TallySnapshotNaturalKey {
   private OffsetDateTime referenceDate;
 
   public TallySnapshotNaturalKey(TallySnapshot snapshot) {
-    this.accountNumber = snapshot.getAccountNumber();
+    this.orgId = snapshot.getOrgId();
     this.swatchProductId = snapshot.getProductId();
     this.granularity = snapshot.getGranularity();
     this.serviceLevel = snapshot.getServiceLevel();
