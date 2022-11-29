@@ -58,4 +58,7 @@ public class SubscriptionServiceProperties extends HttpClientProperties {
 
   /** Do not sync any subs starting later than this much in the future from now. */
   private Period ignoreStartingLaterThan = Period.ofMonths(2);
+
+  /** Allow force sync of PAYG subscriptions */
+  private boolean enablePaygSubscriptionForceSync;
 }

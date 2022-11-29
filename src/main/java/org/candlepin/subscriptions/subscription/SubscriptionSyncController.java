@@ -491,6 +491,10 @@ public class SubscriptionSyncController {
 
   @Transactional
   public void forceSyncSubscriptionsForOrg(String orgId, boolean paygOnly) {
+    if (paygOnly && !properties.isEnablePaygSubscriptionForceSync()) {
+      log.info("Force sync of payg subscriptions disabled");
+      return;
+    }
     log.info("Starting force sync for orgId: {}", orgId);
     var subscriptions = subscriptionService.getSubscriptionsByOrgId(orgId);
 

@@ -90,6 +90,8 @@ parameters:
     value: placeholder
   - name: UMB_PROCESSING_ENABLED
     value: 'true'
+  - name: ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC
+    value: 'false'
   - name: ENABLE_SPLUNK_HEC
     value: 'true'
   - name: SPLUNK_SOURCE
@@ -397,6 +399,8 @@ objects:
               value: ${UMB_PROCESSING_ENABLED}
             - name: UMB_SERVICE_ACCOUNT_NAME
               value: ${UMB_SERVICE_ACCOUNT_NAME}
+            - name: ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC
+              value: ${ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC}
             - name: UMB_NAMESPACE
               valueFrom:
                 fieldRef:
