@@ -90,5 +90,6 @@
     <include file="liquibase/202211011504-drop-hardware-measurements-table.xml"/>
     <include file="liquibase/202211071027-change-account_services-pkey.xml"/>
     <include file="liquibase/202211091649-rename-physical-virtual-cores-sockets-columns.xml"/>
+    <include file="liquibase/202211281427-change-account_services-account-number-drop_not_null.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
