@@ -18,7 +18,7 @@
     </changeSet>
 
     <changeSet id="202211181230-3" author="kshah">
-        <comment>Recreate primary key, with usage added.</comment>
+        <comment>Recreate primary key, with org_id instead of account_number.</comment>
         <addPrimaryKey constraintName="billable_usage_remittance_pkey"
                        tableName="billable_usage_remittance"
                        columnNames="org_id, product_id, metric_id, accumulation_period, sla, usage, billing_provider,

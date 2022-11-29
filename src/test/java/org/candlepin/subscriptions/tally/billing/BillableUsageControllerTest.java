@@ -29,7 +29,6 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 import org.candlepin.subscriptions.FixedClockConfiguration;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
@@ -61,15 +60,12 @@ class BillableUsageControllerTest {
   @Mock BillingProducer producer;
   @Mock BillableUsageRemittanceRepository remittanceRepo;
   @Mock TallySnapshotRepository snapshotRepo;
-  @Mock AccountConfigRepository accountConfigRepository;
 
   BillableUsageController controller;
 
   @BeforeEach
   void setup() {
-    controller =
-        new BillableUsageController(
-            clock, producer, remittanceRepo, snapshotRepo, accountConfigRepository);
+    controller = new BillableUsageController(clock, producer, remittanceRepo, snapshotRepo);
   }
 
   @Test

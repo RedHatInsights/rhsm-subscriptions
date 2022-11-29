@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.tally.billing;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
@@ -49,19 +48,16 @@ public class BillableUsageController {
   private final BillingProducer billingProducer;
   private final BillableUsageRemittanceRepository billableUsageRemittanceRepository;
   private final TallySnapshotRepository snapshotRepository;
-  private AccountConfigRepository accountConfigRepository;
 
   public BillableUsageController(
       ApplicationClock clock,
       BillingProducer billingProducer,
       BillableUsageRemittanceRepository billableUsageRemittanceRepository,
-      TallySnapshotRepository snapshotRepository,
-      AccountConfigRepository accountConfigRepository) {
+      TallySnapshotRepository snapshotRepository) {
     this.clock = clock;
     this.billingProducer = billingProducer;
     this.billableUsageRemittanceRepository = billableUsageRemittanceRepository;
     this.snapshotRepository = snapshotRepository;
-    this.accountConfigRepository = accountConfigRepository;
   }
 
   public void submitBillableUsage(BillingWindow billingWindow, BillableUsage usage) {
@@ -137,8 +133,7 @@ public class BillableUsageController {
     usage.setValue(usageCalc.getBillableValue());
 
     if (updateRemittance(remittance, usage.getOrgId(), usageCalc)) {
-      remittance.setAccountNumber(
-          accountConfigRepository.findAccountNumberByOrgId(usage.getOrgId()));
+      remittance.setAccountNumber(usage.getAccountNumber());
       log.debug("Updating remittance: {}", remittance);
       billableUsageRemittanceRepository.save(remittance);
       log.info("Finished producing monthly billable");
