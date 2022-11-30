@@ -153,4 +153,10 @@ class AccountConfigRepositoryTest {
     config.setUpdated(config.getCreated().plusDays(1));
     return config;
   }
+
+  @Test
+  void testFindAccountNumberByOrgId() {
+    String account = repository.findAccountNumberByOrgId("12344444");
+    assertNull(account);
+  }
 }

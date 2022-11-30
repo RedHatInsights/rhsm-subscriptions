@@ -104,12 +104,14 @@ public class OptInController {
   // updates
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public String optInByOrgId(String orgId, OptInType optInType) {
-    if (orgConfigRepository.existsById(orgId)) {
+    if (accountConfigRepository.existsById(orgId)) {
       return accountConfigRepository.findAccountNumberByOrgId(orgId);
     }
-    String accountNumber = accountService.lookupAccountNumber(orgId);
-    log.info("Opting in account/orgId: {}/{}", accountNumber, orgId);
-    return performOptIn(accountNumber, orgId, optInType).getData().getAccount().getAccountNumber();
+
+    log.info("Opting in orgId={}", orgId);
+    // NOTE Passing null here should be cleaned up once account number
+    // support is completely removed from opt-in.
+    return performOptIn(null, orgId, optInType).getData().getAccount().getAccountNumber();
   }
 
   @Transactional
