@@ -33,6 +33,7 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.registry.TagProfile;
+import org.candlepin.subscriptions.tally.HypervisorData;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +44,7 @@ import org.springframework.util.StringUtils;
  * the host's facts.
  */
 public class FactNormalizer {
+
   private static final Logger log = LoggerFactory.getLogger(FactNormalizer.class);
 
   private final ApplicationClock clock;
@@ -68,11 +70,10 @@ public class FactNormalizer {
    * @param hostFacts the collection of facts to normalize.
    * @return a normalized version of the host's facts.
    */
-  public NormalizedFacts normalize(
-      InventoryHostFacts hostFacts, Map<String, String> reportedHypervisors) {
+  public NormalizedFacts normalize(InventoryHostFacts hostFacts, HypervisorData guestData) {
 
     NormalizedFacts normalizedFacts = new NormalizedFacts();
-    normalizeClassification(normalizedFacts, hostFacts, reportedHypervisors);
+    normalizeClassification(normalizedFacts, hostFacts, guestData);
     normalizeHardwareType(normalizedFacts, hostFacts);
     normalizeSystemProfileFacts(normalizedFacts, hostFacts);
     normalizeSatelliteFacts(normalizedFacts, hostFacts);
@@ -122,7 +123,7 @@ public class FactNormalizer {
   private void normalizeClassification(
       NormalizedFacts normalizedFacts,
       InventoryHostFacts hostFacts,
-      Map<String, String> mappedHypervisors) {
+      HypervisorData hypervisorData) {
     boolean isVirtual = isVirtual(hostFacts);
 
     String hypervisorUuid = hostFacts.getSatelliteHypervisorUuid();
@@ -135,12 +136,12 @@ public class FactNormalizer {
 
     boolean isHypervisorUnknown =
         (isVirtual && !StringUtils.hasText(hypervisorUuid))
-            || mappedHypervisors.getOrDefault(hypervisorUuid, null) == null;
+            || hypervisorData.isUnmappedHypervisor(hypervisorUuid);
     normalizedFacts.setHypervisorUnknown(isHypervisorUnknown);
 
     boolean isHypervisor =
         StringUtils.hasText(hostFacts.getSubscriptionManagerId())
-            && mappedHypervisors.containsKey(hostFacts.getSubscriptionManagerId());
+            && hypervisorData.hasHypervisorUuid(hostFacts.getSubscriptionManagerId());
     normalizedFacts.setHypervisor(isHypervisor);
   }
 

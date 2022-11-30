@@ -50,8 +50,7 @@ class AccountServiceInventoryRepositoryTest {
   @Transactional
   @BeforeAll
   void setupTestData() {
-    AccountServiceInventory service =
-        AccountServiceInventory.forOrgIdAndServiceType("org123", "HBI_HOST");
+    AccountServiceInventory service = new AccountServiceInventory("org123", "HBI_HOST");
 
     Host host = new Host();
     host.setAccountNumber("account123");

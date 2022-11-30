@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.inventory.db;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
@@ -39,15 +39,16 @@ public class InventoryDatabaseOperations {
 
   @Transactional(value = "inventoryTransactionManager", readOnly = true)
   public void processHostFacts(
-      Collection<String> orgIds, int culledOffsetDays, Consumer<InventoryHostFacts> consumer) {
-    try (Stream<InventoryHostFacts> hostFactStream = repo.getFacts(orgIds, culledOffsetDays)) {
+      String orgId, int culledOffsetDays, Consumer<InventoryHostFacts> consumer) {
+    try (Stream<InventoryHostFacts> hostFactStream =
+        repo.getFacts(List.of(orgId), culledOffsetDays)) {
       hostFactStream.forEach(consumer::accept);
     }
   }
 
   @Transactional(value = "inventoryTransactionManager", readOnly = true)
-  public void reportedHypervisors(Collection<String> orgIds, Consumer<Object[]> consumer) {
-    try (Stream<Object[]> stream = repo.getReportedHypervisors(orgIds)) {
+  public void reportedHypervisors(String orgId, Consumer<Object[]> consumer) {
+    try (Stream<Object[]> stream = repo.getReportedHypervisors(List.of(orgId))) {
       stream.forEach(consumer::accept);
     }
   }

@@ -706,7 +706,7 @@ class InventoryAccountUsageCollectorTest {
     dupe.setInstanceId("i2");
 
     AccountServiceInventory accountServiceInventory =
-        AccountServiceInventory.forOrgIdAndServiceType(ORG_ID, "HBI_HOST");
+        new AccountServiceInventory(ORG_ID, "HBI_HOST");
     accountServiceInventory.getServiceInstances().put(host.getInventoryId().toString(), orig);
     accountServiceInventory.getServiceInstances().put("i2", dupe);
 

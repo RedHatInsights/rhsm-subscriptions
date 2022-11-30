@@ -44,11 +44,12 @@ public class AccountServiceInventory implements Serializable {
     id = new AccountServiceInventoryId();
   }
 
-  public static AccountServiceInventory forOrgIdAndServiceType(String orgId, String serviceType) {
-    AccountServiceInventory inventory = new AccountServiceInventory();
-    inventory.id =
-        AccountServiceInventoryId.builder().orgId(orgId).serviceType(serviceType).build();
-    return inventory;
+  public AccountServiceInventory(String orgId, String serviceType) {
+    this(AccountServiceInventoryId.builder().orgId(orgId).serviceType(serviceType).build());
+  }
+
+  public AccountServiceInventory(AccountServiceInventoryId id) {
+    this.setId(id);
   }
 
   public String getOrgId() {
