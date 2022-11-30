@@ -174,6 +174,7 @@ class BillableUsageControllerTest {
         .key(remKey)
         .remittanceDate(remittedDate)
         .remittedValue(value)
+        .accountNumber(usage.getAccountNumber())
         .build();
   }
 }
