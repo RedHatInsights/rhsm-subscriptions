@@ -69,6 +69,6 @@ public class AccountResetService {
     tallySnapshotRepository.deleteByOrgId(orgId);
     subscriptionRepository.deleteByOrgId(orgId);
     subscriptionCapacityRepository.deleteByKeyOrgId(orgId);
-    remittanceRepository.deleteByOrgId(orgId);
+    remittanceRepository.deleteByKeyOrgId(orgId);
   }
 }

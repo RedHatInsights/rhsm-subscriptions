@@ -1,0 +1,33 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202211181230-1" author="kshah" dbms="postgresql">
+        <comment>Migrate org_id to billable_usage_remittance table from account_config.</comment>
+        <sql>update billable_usage_remittance r set org_id = ac.org_id
+             from account_config ac
+             WHERE r.account_number = ac.account_number and ac.org_id IS NOT NULL and r.org_id is distinct from ac.org_id;</sql>
+    </changeSet>
+
+    <changeSet id="202211181230-2" author="kshah">
+        <comment>Drop primary key, so we can recreate it.</comment>
+        <dropPrimaryKey constraintName="billable_usage_remittance_pkey"
+                        tableName="billable_usage_remittance"/>
+    </changeSet>
+
+    <changeSet id="202211181230-3" author="kshah">
+        <comment>Recreate primary key, with org_id instead of account_number.</comment>
+        <addPrimaryKey constraintName="billable_usage_remittance_pkey"
+                       tableName="billable_usage_remittance"
+                       columnNames="org_id, product_id, metric_id, accumulation_period, sla, usage, billing_provider,
+        billing_account_id"/>
+    </changeSet>
+
+    <changeSet id="202211181230-4" author="kshah">
+        <comment>Drop not null constraint on account_number</comment>
+        <dropNotNullConstraint tableName="billable_usage_remittance" columnName="account_number"/>
+    </changeSet>
+
+</databaseChangeLog>

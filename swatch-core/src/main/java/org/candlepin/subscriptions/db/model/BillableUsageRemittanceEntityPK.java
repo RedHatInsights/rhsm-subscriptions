@@ -37,8 +37,8 @@ import org.candlepin.subscriptions.json.BillableUsage;
 @Builder
 public class BillableUsageRemittanceEntityPK implements Serializable {
 
-  @Column(name = "account_number", nullable = false, length = 32)
-  private String accountNumber;
+  @Column(name = "org_id", nullable = false, length = 32)
+  private String orgId;
 
   @Column(name = "product_id", nullable = false, length = 32)
   private String productId;
@@ -64,7 +64,7 @@ public class BillableUsageRemittanceEntityPK implements Serializable {
   public static BillableUsageRemittanceEntityPK keyFrom(BillableUsage billableUsage) {
     return BillableUsageRemittanceEntityPK.builder()
         .usage(billableUsage.getUsage().value())
-        .accountNumber(billableUsage.getAccountNumber())
+        .orgId(billableUsage.getOrgId())
         .billingProvider(billableUsage.getBillingProvider().value())
         .billingAccountId(billableUsage.getBillingAccountId())
         .productId(billableUsage.getProductId())

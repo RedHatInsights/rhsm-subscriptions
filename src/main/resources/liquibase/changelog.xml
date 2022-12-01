@@ -89,6 +89,7 @@
     <include file="liquibase/202210281140-rename-owner-id-to-org-id.xml"/>
     <include file="liquibase/202211011504-drop-hardware-measurements-table.xml"/>
     <include file="liquibase/202211071027-change-account_services-pkey.xml"/>
+    <include file="liquibase/202211181230-update-primary-key-migrate-org-id-to-billable-usage-table.xml"/>
     <include file="liquibase/202211091649-rename-physical-virtual-cores-sockets-columns.xml"/>
     <include file="liquibase/202211281427-change-account_services-account-number-drop_not_null.xml"/>
 </databaseChangeLog>

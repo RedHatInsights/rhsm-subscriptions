@@ -37,17 +37,10 @@ public interface BillableUsageRemittanceRepository
         JpaSpecificationExecutor<BillableUsageRemittanceEntity> {
 
   @Query
-  void deleteByOrgId(String orgId);
+  void deleteByKeyOrgId(String orgId);
 
   default List<BillableUsageRemittanceEntity> filterBy(BillableUsageRemittanceFilter filter) {
     return this.findAll(buildSearchSpecification(filter));
-  }
-
-  static Specification<BillableUsageRemittanceEntity> matchingAccountNumber(String account) {
-    return (root, query, builder) -> {
-      var path = root.get(BillableUsageRemittanceEntity_.key);
-      return builder.equal(path.get(BillableUsageRemittanceEntityPK_.accountNumber), account);
-    };
   }
 
   static Specification<BillableUsageRemittanceEntity> matchingBillingProvider(
@@ -83,8 +76,15 @@ public interface BillableUsageRemittanceRepository
   }
 
   static Specification<BillableUsageRemittanceEntity> matchingOrgId(String orgId) {
+    return (root, query, builder) -> {
+      var path = root.get(BillableUsageRemittanceEntity_.key);
+      return builder.equal(path.get(BillableUsageRemittanceEntityPK_.orgId), orgId);
+    };
+  }
+
+  static Specification<BillableUsageRemittanceEntity> matchingAccountNumber(String account) {
     return (root, query, builder) ->
-        builder.equal(root.get(BillableUsageRemittanceEntity_.orgId), orgId);
+        builder.equal(root.get(BillableUsageRemittanceEntity_.accountNumber), account);
   }
 
   static Specification<BillableUsageRemittanceEntity> beforeRemittanceDate(OffsetDateTime ending) {

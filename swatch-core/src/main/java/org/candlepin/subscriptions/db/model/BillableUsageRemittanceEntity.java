@@ -50,11 +50,9 @@ public class BillableUsageRemittanceEntity {
   @Column(name = "remittance_date", nullable = false)
   private OffsetDateTime remittanceDate;
 
-  // NOTE: For now we will only set the org if we happen to have it
-  //       and will avoid looking it up via the service.
   @Basic
-  @Column(name = "org_id", nullable = true)
-  private String orgId;
+  @Column(name = "account_number", nullable = true)
+  private String accountNumber;
 
   // Version to enable optimistic locking
   @Version @Column private Integer version;

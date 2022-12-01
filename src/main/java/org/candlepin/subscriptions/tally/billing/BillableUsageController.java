@@ -132,11 +132,11 @@ public class BillableUsageController {
     // Update the reported usage value to the newly calculated one.
     usage.setValue(usageCalc.getBillableValue());
 
-    // The orgId might not have been available when remittance
-    // was originally created, so we attempt to set here.
     if (updateRemittance(remittance, usage.getOrgId(), usageCalc)) {
+      remittance.setAccountNumber(usage.getAccountNumber());
       log.debug("Updating remittance: {}", remittance);
       billableUsageRemittanceRepository.save(remittance);
+      log.info("Finished producing monthly billable");
     }
     return usage;
   }
@@ -144,8 +144,8 @@ public class BillableUsageController {
   private boolean updateRemittance(
       BillableUsageRemittanceEntity remittance, String orgId, BillableUsageCalculation usageCalc) {
     boolean updated = false;
-    if (!Objects.equals(remittance.getOrgId(), orgId) && StringUtils.hasText(orgId)) {
-      remittance.setOrgId(orgId);
+    if (!Objects.equals(remittance.getKey().getOrgId(), orgId) && StringUtils.hasText(orgId)) {
+      remittance.getKey().setOrgId(orgId);
       updated = true;
     }
     if (!Objects.equals(remittance.getRemittedValue(), usageCalc.getRemittedValue())) {
