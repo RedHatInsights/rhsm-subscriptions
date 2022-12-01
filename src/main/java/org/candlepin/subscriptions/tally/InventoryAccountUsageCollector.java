@@ -45,7 +45,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-/** Collects the max values from all accounts in the inventory. */
+/**
+ * Collects the max values from all accounts in the inventory.
+ */
 @Component
 public class InventoryAccountUsageCollector {
 
@@ -75,50 +77,26 @@ public class InventoryAccountUsageCollector {
   @Transactional
   public Map<String, AccountUsageCalculation> collect(
       Collection<String> products, String account, String orgId) {
-    log.info("Finding HBI hosts for account={} org={}", account, orgId);
-
-    AccountServiceInventoryId inventoryId =
-        AccountServiceInventoryId.builder().orgId(orgId).serviceType(HBI_INSTANCE_TYPE).build();
-    AccountServiceInventory accountServiceInventory =
-        accountServiceInventoryRepository
-            .findById(inventoryId)
-            .orElse(new AccountServiceInventory(inventoryId));
-    if (account != null) {
-      accountServiceInventory.setAccountNumber(account);
-    }
-
-    Set<String> duplicateInstanceIds = new HashSet<>();
-    Map<String, Host> inventoryHostMap =
-        accountServiceInventory.getServiceInstances().values().stream()
-            .filter(host -> host.getInventoryId() != null)
-            .collect(
-                Collectors.toMap(
-                    Host::getInventoryId,
-                    Function.identity(),
-                    (h1, h2) -> handleDuplicateHost(duplicateInstanceIds, h1, h2)));
-    duplicateInstanceIds.forEach(accountServiceInventory.getServiceInstances()::remove);
+    AccountServiceInventory accountServiceInventory = fetchAccountServiceInventory(orgId, account);
 
     HypervisorData hypervisorData = new HypervisorData(orgId);
-
-    inventory.reportedHypervisors(
-        orgId, reported -> hypervisorData.putMapping((String) reported[0], (String) reported[1]));
-    log.info("Found {} reported hypervisors.", hypervisorData.getHypervisorMapping().size());
-
     Map<String, Set<HostBucketKey>> hostSeenBucketKeysLookup = new HashMap<>();
     Map<String, AccountUsageCalculation> calcsByOrgId = new HashMap<>();
-    inventory.processHostFacts(
+    Map<String, Host> inventoryHostMap = buildInventoryHostMap(accountServiceInventory);
+
+    inventory.fetchReportedHypervisors(orgId, hypervisorData);
+
+    inventory.processHost(
         orgId,
         culledOffsetDays,
         hostFacts -> {
-          calcsByOrgId.putIfAbsent(orgId, new AccountUsageCalculation(orgId));
-
-          AccountUsageCalculation accountCalc = calcsByOrgId.get(orgId);
+          AccountUsageCalculation accountCalc = calcsByOrgId.computeIfAbsent(orgId,
+              x -> new AccountUsageCalculation(orgId));
           NormalizedFacts facts = factNormalizer.normalize(hostFacts, hypervisorData);
 
           // Validate and set the account number.
           // Don't set null account as it may overwrite an existing value.
-          // Likely won't happen, but there could be stale data in inventory
-          // with no account set.
+          // Likely won't happen, but there could be stale data in inventory with no account set.
           String hostAccount = facts.getAccount();
           if (hostAccount != null) {
             String currentAccount = accountCalc.getAccount();
@@ -204,25 +182,18 @@ public class InventoryAccountUsageCollector {
         .forEach(accountServiceInventory.getServiceInstances()::remove);
 
     log.info("Removing stale buckets");
-    accountServiceInventory
-        .getServiceInstances()
-        .values()
-        .forEach(
-            host -> {
-              Set<HostBucketKey> seenBucketKeys =
-                  hostSeenBucketKeysLookup.computeIfAbsent(
-                      host.getInstanceId(), h -> new HashSet<>());
-              host.getBuckets().removeIf(b -> !seenBucketKeys.contains(b.getKey()));
-            });
+    for (Host host : accountServiceInventory.getServiceInstances().values()) {
+      Set<HostBucketKey> seenBucketKeys =
+          hostSeenBucketKeysLookup.computeIfAbsent(host.getInstanceId(), h -> new HashSet<>());
+      host.getBuckets().removeIf(b -> !seenBucketKeys.contains(b.getKey()));
+    }
 
-    var hypervisorHosts = hypervisorData.getHypervisorHosts();
-    if (hypervisorHosts.size() > 0) {
-      log.info("Persisting {} hypervisor hosts.", hypervisorHosts.size());
-      hypervisorHosts
-          .values()
-          .forEach(
-              host ->
-                  accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host));
+    var hypervisorHostMap = hypervisorData.hostMap();
+    if (hypervisorHostMap.size() > 0) {
+      log.info("Persisting {} hypervisor hosts.", hypervisorHostMap.size());
+      for (Host host : hypervisorHostMap.values()) {
+        accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host);
+      }
     }
 
     if (log.isDebugEnabled()) {
@@ -233,6 +204,35 @@ public class InventoryAccountUsageCollector {
     accountServiceInventoryRepository.save(accountServiceInventory);
 
     return calcsByOrgId;
+  }
+
+  private AccountServiceInventory fetchAccountServiceInventory(String orgId, String account) {
+    log.info("Finding HBI hosts for account={} org={}", account, orgId);
+    AccountServiceInventoryId inventoryId =
+        AccountServiceInventoryId.builder().orgId(orgId).serviceType(HBI_INSTANCE_TYPE).build();
+    AccountServiceInventory accountServiceInventory =
+        accountServiceInventoryRepository
+            .findById(inventoryId)
+            .orElse(new AccountServiceInventory(inventoryId));
+    if (account != null) {
+      accountServiceInventory.setAccountNumber(account);
+    }
+
+    return accountServiceInventory;
+  }
+
+  private Map<String, Host> buildInventoryHostMap(AccountServiceInventory accountServiceInventory) {
+    Set<String> duplicateInstanceIds = new HashSet<>();
+    Map<String, Host> inventoryHostMap =
+        accountServiceInventory.getServiceInstances().values().stream()
+            .filter(host -> host.getInventoryId() != null)
+            .collect(
+                Collectors.toMap(
+                    Host::getInventoryId,
+                    Function.identity(),
+                    (h1, h2) -> handleDuplicateHost(duplicateInstanceIds, h1, h2)));
+    duplicateInstanceIds.forEach(accountServiceInventory.getServiceInstances()::remove);
+    return inventoryHostMap;
   }
 
   private Host handleDuplicateHost(Set<String> duplicateInstanceIds, Host host1, Host host2) {

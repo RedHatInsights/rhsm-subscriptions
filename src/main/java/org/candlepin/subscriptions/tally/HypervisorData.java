@@ -26,9 +26,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostBucketKey;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
@@ -46,10 +49,15 @@ public class HypervisorData {
   private Map<String, String> hypervisorMapping = new HashMap<>();
   private Map<String, Set<Key>> hypervisorUsageKeys = new HashMap<>();
   private Map<String, NormalizedFacts> hypervisorFacts = new HashMap<>();
-  private Map<String, Host> hypervisorHosts = new HashMap<>();
   private Map<String, Integer> hypervisorGuestCounts = new HashMap<>();
 
-  public void putMapping(String hypervisorUuid, String subscriptionManagerId) {
+  @Getter(AccessLevel.NONE)
+  @Setter(AccessLevel.NONE)
+  /* This map is the important end result of all the work this class does.  I want to give it a
+  more semantically meaningful name than just getHypervisorHosts */
+  Map<String, Host> hypervisorHosts = new HashMap<>();
+
+  public void addHostMapping(String hypervisorUuid, String subscriptionManagerId) {
     hypervisorMapping.put(hypervisorUuid, subscriptionManagerId);
   }
 
@@ -77,6 +85,10 @@ public class HypervisorData {
 
   public void addHost(String hypervisorUuid, Host host) {
     hypervisorHosts.put(hypervisorUuid, host);
+  }
+
+  public Map<String, Host> hostMap() {
+    return hypervisorHosts;
   }
 
   public void collectGuestData(

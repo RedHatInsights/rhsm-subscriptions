@@ -342,7 +342,7 @@ class FactNormalizerTest {
     hypervisor.setSystemProfileSockets(3);
 
     HypervisorData guestData = hypervisorData();
-    guestData.putMapping(hypervisor.getSubscriptionManagerId(), null);
+    guestData.addHostMapping(hypervisor.getSubscriptionManagerId(), null);
 
     NormalizedFacts normalized = normalizer.normalize(hypervisor, guestData);
     assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
@@ -369,7 +369,7 @@ class FactNormalizerTest {
     assertTrue(guestFacts.isVirtual());
 
     HypervisorData guestData = hypervisorData();
-    guestData.putMapping(guestFacts.getHypervisorUuid(), guestFacts.getHypervisorUuid());
+    guestData.addHostMapping(guestFacts.getHypervisorUuid(), guestFacts.getHypervisorUuid());
 
     NormalizedFacts normalized = normalizer.normalize(guestFacts, guestData);
     assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
@@ -398,7 +398,7 @@ class FactNormalizerTest {
     assertFalse(facts.isVirtual());
 
     HypervisorData guestData = hypervisorData();
-    guestData.putMapping(facts.getSubscriptionManagerId(), facts.getSubscriptionManagerId());
+    guestData.addHostMapping(facts.getSubscriptionManagerId(), facts.getSubscriptionManagerId());
 
     NormalizedFacts normalized = normalizer.normalize(facts, guestData);
     assertTrue(normalized.isHypervisor());
@@ -416,7 +416,7 @@ class FactNormalizerTest {
     assertTrue(facts.isVirtual());
 
     HypervisorData guestData = hypervisorData();
-    guestData.putMapping(facts.getHypervisorUuid(), facts.getHypervisorUuid());
+    guestData.addHostMapping(facts.getHypervisorUuid(), facts.getHypervisorUuid());
 
     NormalizedFacts normalized = normalizer.normalize(facts, guestData);
     assertEquals(12, normalized.getCores());
@@ -488,7 +488,7 @@ class FactNormalizerTest {
     InventoryHostFacts guestWithMappedHypervisor = createGuest("mapped-hyp-id", "A1", "O1", 1);
 
     HypervisorData guestData = hypervisorData();
-    guestData.putMapping(
+    guestData.addHostMapping(
         guestWithMappedHypervisor.getHypervisorUuid(),
         guestWithMappedHypervisor.getHypervisorUuid());
 
@@ -501,7 +501,7 @@ class FactNormalizerTest {
     InventoryHostFacts guestWithMappedHypervisor = createGuest("mapped-hyp-id", "A1", "O1", 1);
 
     HypervisorData guestData = hypervisorData();
-    guestData.putMapping(guestWithMappedHypervisor.getHypervisorUuid(), null);
+    guestData.addHostMapping(guestWithMappedHypervisor.getHypervisorUuid(), null);
 
     NormalizedFacts facts = normalizer.normalize(guestWithMappedHypervisor, guestData);
     assertClassification(facts, false, true, true);
@@ -514,7 +514,7 @@ class FactNormalizerTest {
     guestWithMappedHypervisor.setSatelliteHypervisorUuid("mapped-hyp-id");
 
     HypervisorData guestData = hypervisorData();
-    guestData.putMapping(guestWithMappedHypervisor.getSatelliteHypervisorUuid(), null);
+    guestData.addHostMapping(guestWithMappedHypervisor.getSatelliteHypervisorUuid(), null);
 
     NormalizedFacts facts = normalizer.normalize(guestWithMappedHypervisor, guestData);
     assertClassification(facts, false, true, true);
@@ -534,7 +534,7 @@ class FactNormalizerTest {
     hypervisor.setSystemProfileCoresPerSocket(4);
     hypervisor.setSystemProfileSockets(3);
     HypervisorData guestData = hypervisorData();
-    guestData.putMapping(
+    guestData.addHostMapping(
         hypervisor.getSubscriptionManagerId(), hypervisor.getSubscriptionManagerId());
     NormalizedFacts facts = normalizer.normalize(hypervisor, guestData);
     assertClassification(facts, true, true, false);
@@ -544,7 +544,7 @@ class FactNormalizerTest {
   void testHypervisorClassificationWhenUnmapped() {
     InventoryHostFacts hypervisor = createHypervisor("A1", "O1", 1);
     HypervisorData guestData = hypervisorData();
-    guestData.putMapping(hypervisor.getSubscriptionManagerId(), null);
+    guestData.addHostMapping(hypervisor.getSubscriptionManagerId(), null);
 
     NormalizedFacts facts = normalizer.normalize(hypervisor, guestData);
     assertClassification(facts, true, true, false);
