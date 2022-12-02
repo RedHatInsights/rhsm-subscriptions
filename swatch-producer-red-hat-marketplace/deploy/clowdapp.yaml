@@ -108,8 +108,6 @@ parameters:
     value: '2'
   - name: BILLING_PRODUCER_MAX_ATTEMPTS
     value: '1'
-  - name: ENABLE_TALLY_SUMMARY_LISTENER
-    value: 'true'
   - name: RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_END
     value: 'false'
   - name: RH_MARKETPLACE_BILLABLE_USAGE_KAFKA_SEEK_OVERRIDE_TIMESTAMP
@@ -353,8 +351,6 @@ objects:
               value: ${BILLING_PRODUCER_BACK_OFF_MULTIPLIER}
             - name: BILLING_PRODUCER_MAX_ATTEMPTS
               value: ${BILLING_PRODUCER_MAX_ATTEMPTS}
-            - name: ENABLE_TALLY_SUMMARY_LISTENER
-              value: ${ENABLE_TALLY_SUMMARY_LISTENER}
           livenessProbe:
             failureThreshold: 3
             httpGet:
