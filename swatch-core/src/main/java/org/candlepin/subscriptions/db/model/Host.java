@@ -82,10 +82,10 @@ public class Host implements Serializable {
   @Column(name = "display_name", nullable = false)
   private String displayName;
 
-  @NotNull
   @Column(name = "account_number", nullable = false)
   private String accountNumber;
 
+  @NotNull
   @Column(name = "org_id")
   private String orgId;
 

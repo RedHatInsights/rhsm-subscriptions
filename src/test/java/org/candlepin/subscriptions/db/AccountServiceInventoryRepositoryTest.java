@@ -115,7 +115,7 @@ class AccountServiceInventoryRepositoryTest {
     String instanceId = "478edb89-b105-4dfd-9a46-0f1427514b76";
     Host host = new Host();
     host.setInstanceId(instanceId);
-    host.setAccountNumber("account123");
+    host.setOrgId("org123");
     host.setDisplayName("name");
     host.setInstanceType("HBI_HOST");
     HostTallyBucket bucket =
