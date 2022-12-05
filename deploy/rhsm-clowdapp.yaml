@@ -21,3 +21,6 @@ objects:
     spec:
       # The name of the ClowdEnvironment providing the services
       envName: ${ENV_NAME}
+      # IQE plugin your ClowdApp is associated with
+      testing:
+        iqePlugin: rhsm-subscriptions
