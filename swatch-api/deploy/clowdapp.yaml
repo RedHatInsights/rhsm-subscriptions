@@ -253,6 +253,7 @@ objects:
           webServices:
             public:
               enabled: true
+              apiPath: rhsm-subscriptions
           podSpec:
             image: quay.io/app-sre/ubi8-nginx-118
             command:
