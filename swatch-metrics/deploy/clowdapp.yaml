@@ -133,6 +133,10 @@ objects:
               enabled: true
           replicas: ${{REPLICAS}}
           podSpec:
+            metadata:
+              annotations:
+                ignore-check.kube-linter.io/no-liveness-probe: The token refresher sidecar container doesn't have a liveness probe instrumented but the service container does
+                ignore-check.kube-linter.io/no-readiness-probe: The token refresher sidecar container doesn't have a readiness probe instrumented but the service container does
             image: ${IMAGE}:${IMAGE_TAG}
             command:
               - /bin/bash
