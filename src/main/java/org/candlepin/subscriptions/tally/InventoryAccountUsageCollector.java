@@ -32,7 +32,14 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
-import org.candlepin.subscriptions.db.model.*;
+import org.candlepin.subscriptions.db.model.AccountServiceInventory;
+import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostBucketKey;
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.InventoryDatabaseOperations;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.json.Measurement;
@@ -45,9 +52,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-/**
- * Collects the max values from all accounts in the inventory.
- */
+/** Collects the max values from all accounts in the inventory. */
 @Component
 public class InventoryAccountUsageCollector {
 
@@ -75,23 +80,21 @@ public class InventoryAccountUsageCollector {
 
   @SuppressWarnings("squid:S3776")
   @Transactional
-  public Map<String, AccountUsageCalculation> collect(
+  public AccountUsageCalculation collect(
       Collection<String> products, String account, String orgId) {
     AccountServiceInventory accountServiceInventory = fetchAccountServiceInventory(orgId, account);
 
     HypervisorData hypervisorData = new HypervisorData(orgId);
     Map<String, Set<HostBucketKey>> hostSeenBucketKeysLookup = new HashMap<>();
-    Map<String, AccountUsageCalculation> calcsByOrgId = new HashMap<>();
+    AccountUsageCalculation accountCalc = new AccountUsageCalculation(orgId);
     Map<String, Host> inventoryHostMap = buildInventoryHostMap(accountServiceInventory);
 
-    inventory.fetchReportedHypervisors(orgId, hypervisorData);
+    hypervisorData.addReportedHypervisors(inventory, orgId);
 
     inventory.processHost(
         orgId,
         culledOffsetDays,
         hostFacts -> {
-          AccountUsageCalculation accountCalc = calcsByOrgId.computeIfAbsent(orgId,
-              x -> new AccountUsageCalculation(orgId));
           NormalizedFacts facts = factNormalizer.normalize(hostFacts, hypervisorData);
 
           // Validate and set the account number.
@@ -110,10 +113,15 @@ public class InventoryAccountUsageCollector {
           }
 
           Host existingHost = inventoryHostMap.remove(hostFacts.getInventoryId().toString());
-          Host host = existingHost == null ? hostFromHbiFacts(hostFacts, facts) : existingHost;
-          if (existingHost != null) {
+          Host host;
+
+          if (existingHost == null) {
+            host = hostFromHbiFacts(hostFacts, facts);
+          } else {
+            host = existingHost;
             populateHostFieldsFromHbi(host, hostFacts, facts);
           }
+
           Set<HostBucketKey> seenBucketKeys =
               hostSeenBucketKeysLookup.computeIfAbsent(host.getInstanceId(), h -> new HashSet<>());
 
@@ -173,13 +181,7 @@ public class InventoryAccountUsageCollector {
         });
 
     // apply data from guests to hypervisor records
-    hypervisorData.collectGuestData(calcsByOrgId, hostSeenBucketKeysLookup);
-
-    log.info(
-        "Removing {} stale host records (HBI records no longer present).", inventoryHostMap.size());
-    inventoryHostMap.values().stream()
-        .map(Host::getInstanceId)
-        .forEach(accountServiceInventory.getServiceInstances()::remove);
+    hypervisorData.collectGuestData(accountCalc, hostSeenBucketKeysLookup);
 
     log.info("Removing stale buckets");
     for (Host host : accountServiceInventory.getServiceInstances().values()) {
@@ -195,15 +197,12 @@ public class InventoryAccountUsageCollector {
         accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host);
       }
     }
-
-    if (log.isDebugEnabled()) {
-      calcsByOrgId.values().forEach(calc -> log.debug("Account Usage: {}", calc));
-    }
+    log.debug("Account Usage: {}", accountCalc);
 
     accountServiceInventory.setOrgId(orgId);
     accountServiceInventoryRepository.save(accountServiceInventory);
 
-    return calcsByOrgId;
+    return accountCalc;
   }
 
   private AccountServiceInventory fetchAccountServiceInventory(String orgId, String account) {

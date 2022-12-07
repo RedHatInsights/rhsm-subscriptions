@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.tally.roller;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -67,12 +66,10 @@ public abstract class BaseSnapshotRoller {
   /**
    * Roll the snapshots for the given account.
    *
-   * @param orgId the org ID of the snapshots to roll.
-   * @param accountCalcs the current calculations from the host inventory.
+   * @param accountCalc the current calculation from the host inventory.
    * @return collection of snapshots
    */
-  public abstract Collection<TallySnapshot> rollSnapshots(
-      String orgId, Collection<AccountUsageCalculation> accountCalcs);
+  public abstract Collection<TallySnapshot> rollSnapshots(AccountUsageCalculation accountCalc);
 
   protected TallySnapshot createSnapshotFromProductUsageCalculation(
       String account, String orgId, UsageCalculation productCalc, Granularity granularity) {
@@ -138,42 +135,33 @@ public abstract class BaseSnapshotRoller {
   }
 
   protected Collection<TallySnapshot> updateSnapshots(
-      Collection<AccountUsageCalculation> accountCalcs,
-      Map<String, List<TallySnapshot>> existingSnaps,
+      AccountUsageCalculation accountCalc,
+      List<TallySnapshot> existingSnaps,
       Granularity targetGranularity) {
     List<TallySnapshot> snaps = new LinkedList<>();
-    for (AccountUsageCalculation accountCalc : accountCalcs) {
-      String orgId = accountCalc.getOrgId();
+    Map<UsageCalculation.Key, TallySnapshot> orgSnapsByUsageKey;
+    orgSnapsByUsageKey =
+        existingSnaps.stream()
+            .collect(
+                Collectors.toMap(
+                    UsageCalculation.Key::fromTallySnapshot,
+                    Function.identity(),
+                    this::handleDuplicateSnapshot));
 
-      Map<UsageCalculation.Key, TallySnapshot> orgSnapsByUsageKey = new HashMap<>();
-      if (existingSnaps.containsKey(orgId)) {
-        orgSnapsByUsageKey =
-            existingSnaps.get(orgId).stream()
-                .collect(
-                    Collectors.toMap(
-                        UsageCalculation.Key::fromTallySnapshot,
-                        Function.identity(),
-                        this::handleDuplicateSnapshot));
-      }
+    for (UsageCalculation.Key usageKey : accountCalc.getKeys()) {
+      boolean isGranularitySupported =
+          tagProfile.tagSupportsGranularity(usageKey.getProductId(), targetGranularity);
 
-      for (UsageCalculation.Key usageKey : accountCalc.getKeys()) {
-        boolean isGranularitySupported =
-            tagProfile.tagSupportsGranularity(usageKey.getProductId(), targetGranularity);
-
-        if (isGranularitySupported) {
-          TallySnapshot snap = orgSnapsByUsageKey.get(usageKey);
-          UsageCalculation productCalc = accountCalc.getCalculation(usageKey);
-          if (snap == null && productCalc.hasMeasurements()) {
-            snap =
-                createSnapshotFromProductUsageCalculation(
-                    accountCalc.getAccount(),
-                    accountCalc.getOrgId(),
-                    productCalc,
-                    targetGranularity);
-            snaps.add(snap);
-          } else if (snap != null && updateMaxValues(snap, productCalc)) {
-            snaps.add(snap);
-          }
+      if (isGranularitySupported) {
+        TallySnapshot snap = orgSnapsByUsageKey.get(usageKey);
+        UsageCalculation productCalc = accountCalc.getCalculation(usageKey);
+        if (snap == null && productCalc.hasMeasurements()) {
+          snap =
+              createSnapshotFromProductUsageCalculation(
+                  accountCalc.getAccount(), accountCalc.getOrgId(), productCalc, targetGranularity);
+          snaps.add(snap);
+        } else if (snap != null && updateMaxValues(snap, productCalc)) {
+          snaps.add(snap);
         }
       }
     }
@@ -191,19 +179,11 @@ public abstract class BaseSnapshotRoller {
   }
 
   protected Set<String> getApplicableProducts(
-      Collection<AccountUsageCalculation> accountCalcs, Granularity granularity) {
-    Set<String> prods = new HashSet<>();
-
-    for (AccountUsageCalculation calc : accountCalcs) {
-      Stream<String> prodStream = calc.getProducts().stream();
-      Set<String> matchingProds =
-          prodStream
-              .filter(p -> tagProfile.tagSupportsGranularity(p, granularity))
-              .collect(Collectors.toSet());
-      prods.addAll(matchingProds);
-    }
-
-    return prods;
+      AccountUsageCalculation calc, Granularity granularity) {
+    Stream<String> prodStream = calc.getProducts().stream();
+    return prodStream
+        .filter(p -> tagProfile.tagSupportsGranularity(p, granularity))
+        .collect(Collectors.toSet());
   }
 
   private boolean isFinestGranularity(TallySnapshot snap) {

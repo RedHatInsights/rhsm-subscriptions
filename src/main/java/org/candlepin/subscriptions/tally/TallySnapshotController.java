@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.tally;
 
 import io.micrometer.core.annotation.Timed;
 import java.time.OffsetDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -44,7 +43,6 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 /** Provides the logic for updating Tally snapshots. */
 @Component
@@ -108,19 +106,14 @@ public class TallySnapshotController {
 
     String account = accountRepo.findAccountNumberByOrgId(orgId);
     log.info("Producing snapshots for Org ID {} with Account {}.", orgId, account);
-    Map<String, AccountUsageCalculation> accountCalcs = new HashMap<>();
+    AccountUsageCalculation accountCalc;
     try {
-      accountCalcs.putAll(
+      accountCalc =
           retryTemplate.execute(
-              context -> usageCollector.collect(this.applicableProducts, account, orgId)));
+              context -> usageCollector.collect(this.applicableProducts, account, orgId));
 
       if (props.isCloudigradeEnabled()) {
-        if (StringUtils.hasText(orgId)) {
-          attemptCloudigradeEnrichment(accountCalcs, orgId);
-        } else {
-          log.warn(
-              "Org Id {} not found for account {} during cloudigrade enrichment", orgId, account);
-        }
+        attemptCloudigradeEnrichment(accountCalc);
       }
     } catch (Exception e) {
       log.error(
@@ -128,7 +121,7 @@ public class TallySnapshotController {
       return;
     }
 
-    maxSeenSnapshotStrategy.produceSnapshotsFromCalculations(orgId, accountCalcs.values());
+    maxSeenSnapshotStrategy.produceSnapshotsFromCalculations(accountCalc);
   }
 
   // Because we want to ensure that our DB operations have been completed before
@@ -193,14 +186,13 @@ public class TallySnapshotController {
             });
   }
 
-  private void attemptCloudigradeEnrichment(
-      Map<String, AccountUsageCalculation> accountCalcs, String orgId) {
+  private void attemptCloudigradeEnrichment(AccountUsageCalculation accountCalc) {
     log.info("Adding cloudigrade reports to calculations.");
     try {
       cloudigradeRetryTemplate.execute(
           context -> {
             try {
-              cloudigradeCollector.enrichUsageWithCloudigradeData(accountCalcs, orgId);
+              cloudigradeCollector.enrichUsageWithCloudigradeData(accountCalc);
             } catch (Exception e) {
               throw new ExternalServiceException(
                   ErrorCode.REQUEST_PROCESSING_ERROR,

@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
@@ -69,8 +68,7 @@ class TallySnapshotControllerTest {
     AccountUsageCalculation accountCalc = new AccountUsageCalculation(ORG_ID);
     accountCalc.setAccount(ACCOUNT);
 
-    when(inventoryCollector.collect(any(), any(), any()))
-        .thenReturn(ImmutableMap.of(ORG_ID, accountCalc));
+    when(inventoryCollector.collect(any(), any(), any())).thenReturn(accountCalc);
   }
 
   @AfterEach
@@ -83,7 +81,7 @@ class TallySnapshotControllerTest {
     props.setCloudigradeEnabled(true);
     when(accountRepo.findAccountNumberByOrgId(ORG_ID)).thenReturn(ACCOUNT);
     controller.produceSnapshotsForOrg(ORG_ID);
-    verify(cloudigradeCollector).enrichUsageWithCloudigradeData(any(), any());
+    verify(cloudigradeCollector).enrichUsageWithCloudigradeData(any());
   }
 
   @Test
@@ -99,9 +97,9 @@ class TallySnapshotControllerTest {
     when(accountRepo.findAccountNumberByOrgId(ORG_ID)).thenReturn(ACCOUNT);
     doThrow(new RuntimeException())
         .when(cloudigradeCollector)
-        .enrichUsageWithCloudigradeData(any(), any());
+        .enrichUsageWithCloudigradeData(any());
     controller.produceSnapshotsForOrg(ORG_ID);
-    verify(cloudigradeCollector, times(2)).enrichUsageWithCloudigradeData(any(), any());
+    verify(cloudigradeCollector, times(2)).enrichUsageWithCloudigradeData(any());
   }
 
   @Test
@@ -118,6 +116,6 @@ class TallySnapshotControllerTest {
     when(accountRepo.findOrgByAccountNumber(ACCOUNT)).thenReturn(ORG_ID);
     when(accountRepo.findAccountNumberByOrgId(ORG_ID)).thenReturn(ACCOUNT);
     controller.produceSnapshotsForAccount(ACCOUNT);
-    verify(cloudigradeCollector).enrichUsageWithCloudigradeData(any(), any());
+    verify(cloudigradeCollector).enrichUsageWithCloudigradeData(any());
   }
 }

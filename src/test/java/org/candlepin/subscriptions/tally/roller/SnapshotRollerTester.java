@@ -71,7 +71,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     AccountUsageCalculation a1Calc = createTestData();
 
     UsageCalculation a1ProductCalc = a1Calc.getCalculation(createUsageKey(getTestProduct()));
-    roller.rollSnapshots(a1Calc.getOrgId(), Arrays.asList(a1Calc));
+    roller.rollSnapshots(a1Calc);
 
     List<TallySnapshot> currentSnaps =
         repository
@@ -100,7 +100,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     AccountUsageCalculation a1Calc = createTestData();
 
     String orgId = a1Calc.getOrgId();
-    roller.rollSnapshots(orgId, Arrays.asList(a1Calc));
+    roller.rollSnapshots(a1Calc);
 
     List<TallySnapshot> currentSnaps =
         repository
@@ -125,7 +125,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     assertSnapshot(toBeUpdated, a1ProductCalc, granularity);
 
     a1ProductCalc.addPhysical(100, 200, 50);
-    roller.rollSnapshots(orgId, Arrays.asList(a1Calc));
+    roller.rollSnapshots(a1Calc);
 
     List<TallySnapshot> updatedSnaps =
         repository
@@ -173,7 +173,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     AccountUsageCalculation expectedCalc = expectMaxAccepted ? a1HighCalc : a1LowCalc;
 
     // Roll to the initial high values
-    roller.rollSnapshots(orgId, Arrays.asList(a1HighCalc));
+    roller.rollSnapshots(a1HighCalc);
 
     List<TallySnapshot> currentSnaps =
         repository
@@ -197,7 +197,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
         toUpdate, a1HighCalc.getCalculation(createUsageKey(getTestProduct())), granularity);
 
     // Roll again with the low values
-    roller.rollSnapshots(orgId, Arrays.asList(a1LowCalc));
+    roller.rollSnapshots(a1LowCalc);
 
     List<TallySnapshot> updatedSnaps =
         repository
@@ -277,7 +277,7 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     UsageCalculation a1ProductCalc = a1Calc.getCalculation(createUsageKey(getTestProduct()));
     assertNotNull(a1ProductCalc);
 
-    roller.rollSnapshots(orgId, List.of(a1Calc));
+    roller.rollSnapshots(a1Calc);
 
     List<TallySnapshot> updatedSnaps =
         repository
