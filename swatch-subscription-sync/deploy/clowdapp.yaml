@@ -4,6 +4,10 @@ kind: Template
 metadata:
   name: swatch-subscription-sync
 parameters:
+  - name: OTEL_ENABLED
+    value: 'true'  # FIXME this should be set to false by default
+  - name: OTLP_ENDPOINT
+    value: 'http://jaeger:4317'
   - name: ENV_NAME
     value: env-swatch-subscription-sync
   - name: DEV_MODE

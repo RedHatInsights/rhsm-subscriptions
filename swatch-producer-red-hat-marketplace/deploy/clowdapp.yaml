@@ -4,6 +4,10 @@ kind: Template
 metadata:
   name: swatch-producer-red-hat-marketplace
 parameters:
+  - name: OTEL_ENABLED
+    value: 'true'  # FIXME this should be set to false by default
+  - name: OTLP_ENDPOINT
+    value: 'http://jaeger:4317'
   - name: HAWTIO_BASE_PATH
     value: /app/rhsm-rh-marketplace/hawtio
   - name: SERVER_MAX_HTTP_HEADER_SIZE
@@ -237,6 +241,10 @@ objects:
               value: ${KAFKA_SEEK_OVERRIDE_END}
             - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
               value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
+            - name: OTEL_JAVAAGENT_ENABLED
+              value: ${OTEL_ENABLED}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: ${OTLP_ENDPOINT}
             - name: DATABASE_HOST
               valueFrom:
                 secretKeyRef:
@@ -351,6 +359,10 @@ objects:
               value: ${BILLING_PRODUCER_BACK_OFF_MULTIPLIER}
             - name: BILLING_PRODUCER_MAX_ATTEMPTS
               value: ${BILLING_PRODUCER_MAX_ATTEMPTS}
+            - name: OTEL_JAVAAGENT_ENABLED
+              value: ${OTEL_ENABLED}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: ${OTLP_ENDPOINT}
           livenessProbe:
             failureThreshold: 3
             httpGet:

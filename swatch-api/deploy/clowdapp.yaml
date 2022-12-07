@@ -4,6 +4,10 @@ kind: Template
 metadata:
   name: swatch-api
 parameters:
+  - name: OTEL_ENABLED
+    value: 'true'  # FIXME this should be set to false by default
+  - name: OTLP_ENDPOINT
+    value: 'http://jaeger:4317'
   - name: DEV_MODE
     value: 'false'
   - name: ENV_NAME
@@ -210,6 +214,10 @@ objects:
                 value: ${SPLUNK_HEC_BATCH_SIZE}
               - name: SPLUNK_HEC_TERMINATION_TIMEOUT
                 value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
+              - name: OTEL_JAVAAGENT_ENABLED
+                value: ${OTEL_ENABLED}
+              - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                value: ${OTLP_ENDPOINT}
             livenessProbe:
               failureThreshold: 3
               httpGet:
@@ -319,3 +327,51 @@ objects:
             }
           }
         }
+
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: jaeger
+    spec:
+      selector:
+        matchLabels:
+          app: jaeger
+      template:
+        metadata:
+          labels:
+            app: jaeger
+        spec:
+          containers:
+          - name: jaeger
+            image: quay.io/jaegertracing/all-in-one:1.39.0
+            env:
+              - name: COLLECTOR_OTLP_ENABLED
+                value: 'true'
+            resources:
+              requests:
+                cpu: "500m"
+                memory: "128Mi"
+              limits:
+                cpu: "500m"
+                memory: "128Mi"
+            ports:
+            - containerPort: 16686
+            - containerPort: 4317
+            - containerPort: 4318
+
+  - kind: Service
+    apiVersion: v1
+    metadata:
+      name: jaeger
+    spec:
+      ports:
+        - port: 16686
+          name: 'jaeger'
+          protocol: TCP
+          targetPort: 16686
+        - port: 4317
+          name: 'otlp'
+          protocol: TCP
+          targetPort: 4317
+      selector:
+        app: jaeger

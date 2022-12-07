@@ -4,6 +4,10 @@ kind: Template
 metadata:
   name: swatch-producer-aws
 parameters:
+  - name: OTEL_ENABLED
+    value: 'true'  # FIXME this should be set to false by default
+  - name: OTLP_ENDPOINT
+    value: 'http://jaeger:4317'
   - name: IMAGE_PULL_SECRET
     value: quay-cloudservices-pull
   - name: MEMORY_REQUEST
@@ -181,6 +185,10 @@ objects:
               value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
             - name: ENABLE_AWS_DRY_RUN
               value: ${ENABLE_AWS_DRY_RUN}
+            - name: QUARKUS_OPENTELEMETRY_ENABLED
+              value: ${OTEL_ENABLED}
+            - name: QUARKUS_OPENTELEMETRY_TRACER_EXPORTER_OTLP_ENDPOINT
+              value: ${OTLP_ENDPOINT}
           volumeMounts:
             - name: logs
               mountPath: /logs
