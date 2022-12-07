@@ -103,13 +103,6 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   }
 
   @Bean
-  @Qualifier("rhMarketplaceTasks")
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.rh-marketplace-tasks")
-  TaskQueueProperties tallySummaryQueueProperties() {
-    return new TaskQueueProperties();
-  }
-
-  @Bean
   @Qualifier("syncSubscriptionTasks")
   @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription.tasks")
   TaskQueueProperties syncSubscriptionQueueProperties() {
