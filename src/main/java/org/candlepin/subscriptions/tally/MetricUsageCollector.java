@@ -47,6 +47,7 @@ import org.candlepin.subscriptions.util.DateRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 /** Collects instances and tallies based on hourly metrics. */
 public class MetricUsageCollector {
@@ -151,15 +152,21 @@ public class MetricUsageCollector {
     for (OffsetDateTime offset = effectiveStartDateTime;
         offset.isBefore(effectiveEndDateTime);
         offset = offset.plusHours(1)) {
-      AccountUsageCalculation accountUsageCalculation =
-          collectHour(accountServiceInventory, offset);
-      if (accountUsageCalculation != null && !accountUsageCalculation.getKeys().isEmpty()) {
-        accountCalcs.put(offset, accountUsageCalculation);
+      AccountUsageCalculation accountUsageCalculation = collectHour(accountServiceInventory, offset);
+
+      if (accountUsageCalculation != null) {
+        // The associated account number for a calculation has already been determined from the
+        // hosts instances (based on the event). Pass that info along if it isn't already known.
+        if (!StringUtils.hasText(accountServiceInventory.getAccountNumber()) &&
+          StringUtils.hasText(accountUsageCalculation.getAccount())) {
+          accountServiceInventory.setAccountNumber(accountUsageCalculation.getAccount());
+        }
+
+        if (!accountUsageCalculation.getKeys().isEmpty()) {
+          accountCalcs.put(offset, accountUsageCalculation);
+        }
       }
     }
-    accountCalcs
-        .values()
-        .forEach(calc -> calc.setAccount(accountServiceInventory.getAccountNumber()));
     accountServiceInventoryRepository.save(accountServiceInventory);
 
     return new CollectionResult(
@@ -196,10 +203,12 @@ public class MetricUsageCollector {
           events.forEach(
               event -> {
                 updateInstanceFromEvent(event, host, serviceTypeMeta);
+
                 if (event.getMeasurements() != null) {
                   event.getMeasurements().stream().map(Measurement::getUom).forEach(seenUoms::add);
                 }
               });
+
           // clear any measurements that we don't have events for
           Set<Uom> staleMeasurements =
               host.getMeasurements().keySet().stream()
@@ -217,13 +226,12 @@ public class MetricUsageCollector {
     }
     AccountUsageCalculation accountUsageCalculation =
         new AccountUsageCalculation(accountInventory.getOrgId());
-    accountUsageCalculation.setAccount(accountInventory.getAccountNumber());
+
     thisHoursInstances
         .values()
         .forEach(
-            instance ->
-                instance
-                    .getBuckets()
+            instance -> {
+                instance.getBuckets()
                     .forEach(
                         bucket -> {
                           UsageCalculation.Key usageKey =
@@ -242,7 +250,16 @@ public class MetricUsageCollector {
                                           getHardwareMeasurementType(instance),
                                           uom,
                                           value));
-                        }));
+                        }
+                    );
+
+                // Pull the account number from the first instance. All instances should have
+                // the same account.
+                if (Objects.isNull(accountUsageCalculation.getAccount()) && StringUtils.hasText(instance.getAccountNumber())) {
+                  accountUsageCalculation.setAccount(instance.getAccountNumber());
+                }
+            }
+         );
     return accountUsageCalculation;
   }
 
