@@ -32,7 +32,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonNaming(PropertyNamingStrategies.UpperCamelCaseStrategy.class)
-public class Sync {
-  private UmbSubscription subscription;
-  private UmbOperationalProduct operationalProduct;
+public class ChildProduct {
+  private String sku;
 }
