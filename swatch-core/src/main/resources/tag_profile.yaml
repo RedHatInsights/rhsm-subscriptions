@@ -135,7 +135,7 @@ tagMappings:
     tags:
       - rhosak
 
-  - value: Red Hat Advanced Cluster Security for Kubernetes
+  - value: Advanced Cluster Security - Kubernetes
     valueType: productName
     tags:
       - rhacs
