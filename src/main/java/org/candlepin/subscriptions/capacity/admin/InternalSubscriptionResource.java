@@ -74,20 +74,20 @@ public class InternalSubscriptionResource implements InternalApi {
 
   @Override
   public AwsUsageContext getAwsUsageContext(
-      String accountNumber,
       String orgId,
       OffsetDateTime date,
       String productId,
+      String accountNumber,
       String sla,
       String usage,
-      String billingAccountId) {
+      String awsAccountId) {
     UsageCalculation.Key usageKey =
         new Key(
             productId,
             ServiceLevel.fromString(sla),
             Usage.fromString(usage),
             BillingProvider.AWS,
-            billingAccountId);
+            awsAccountId);
 
     // Set start date one hour in past to pickup recently terminated subscriptions
     var start = date.minusHours(1);

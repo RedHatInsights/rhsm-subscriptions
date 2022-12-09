@@ -152,13 +152,14 @@ public class MetricUsageCollector {
     for (OffsetDateTime offset = effectiveStartDateTime;
         offset.isBefore(effectiveEndDateTime);
         offset = offset.plusHours(1)) {
-      AccountUsageCalculation accountUsageCalculation = collectHour(accountServiceInventory, offset);
+      AccountUsageCalculation accountUsageCalculation =
+          collectHour(accountServiceInventory, offset);
 
       if (accountUsageCalculation != null) {
         // The associated account number for a calculation has already been determined from the
         // hosts instances (based on the event). Pass that info along if it isn't already known.
-        if (!StringUtils.hasText(accountServiceInventory.getAccountNumber()) &&
-          StringUtils.hasText(accountUsageCalculation.getAccount())) {
+        if (!StringUtils.hasText(accountServiceInventory.getAccountNumber())
+            && StringUtils.hasText(accountUsageCalculation.getAccount())) {
           accountServiceInventory.setAccountNumber(accountUsageCalculation.getAccount());
         }
 
@@ -231,35 +232,35 @@ public class MetricUsageCollector {
         .values()
         .forEach(
             instance -> {
-                instance.getBuckets()
-                    .forEach(
-                        bucket -> {
-                          UsageCalculation.Key usageKey =
-                              new UsageCalculation.Key(
-                                  bucket.getKey().getProductId(),
-                                  bucket.getKey().getSla(),
-                                  bucket.getKey().getUsage(),
-                                  bucket.getKey().getBillingProvider(),
-                                  bucket.getKey().getBillingAccountId());
-                          instance
-                              .getMeasurements()
-                              .forEach(
-                                  (uom, value) ->
-                                      accountUsageCalculation.addUsage(
-                                          usageKey,
-                                          getHardwareMeasurementType(instance),
-                                          uom,
-                                          value));
-                        }
-                    );
+              instance
+                  .getBuckets()
+                  .forEach(
+                      bucket -> {
+                        UsageCalculation.Key usageKey =
+                            new UsageCalculation.Key(
+                                bucket.getKey().getProductId(),
+                                bucket.getKey().getSla(),
+                                bucket.getKey().getUsage(),
+                                bucket.getKey().getBillingProvider(),
+                                bucket.getKey().getBillingAccountId());
+                        instance
+                            .getMeasurements()
+                            .forEach(
+                                (uom, value) ->
+                                    accountUsageCalculation.addUsage(
+                                        usageKey,
+                                        getHardwareMeasurementType(instance),
+                                        uom,
+                                        value));
+                      });
 
-                // Pull the account number from the first instance. All instances should have
-                // the same account.
-                if (Objects.isNull(accountUsageCalculation.getAccount()) && StringUtils.hasText(instance.getAccountNumber())) {
-                  accountUsageCalculation.setAccount(instance.getAccountNumber());
-                }
-            }
-         );
+              // Pull the account number from the first instance. All instances should have
+              // the same account.
+              if (Objects.isNull(accountUsageCalculation.getAccount())
+                  && StringUtils.hasText(instance.getAccountNumber())) {
+                accountUsageCalculation.setAccount(instance.getAccountNumber());
+              }
+            });
     return accountUsageCalculation;
   }
 

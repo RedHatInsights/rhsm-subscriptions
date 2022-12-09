@@ -61,7 +61,7 @@ paths:
     parameters:
       - name: accountNumber
         in: query
-        required: true
+        required: false
         schema:
           type: string
         description: "Customer's Account Number"
