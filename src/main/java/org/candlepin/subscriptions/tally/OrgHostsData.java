@@ -36,21 +36,21 @@ import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostBucketKey;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.inventory.db.InventoryDatabaseOperations;
-import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollector;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 
 @Data
 @RequiredArgsConstructor
-public class HypervisorData {
+public class OrgHostsData {
 
   @NonNull private final String orgId;
 
   private Map<String, String> hypervisorMapping = new HashMap<>();
-  private Map<String, Set<Key>> hypervisorUsageKeys = new HashMap<>();
+  private Map<String, Set<UsageCalculation.Key>> hypervisorKeys = new HashMap<>();
   private Map<String, NormalizedFacts> hypervisorFacts = new HashMap<>();
   private Map<String, Integer> hypervisorGuestCounts = new HashMap<>();
+  private Map<Host, NormalizedFacts> hostNormalizedFactsMap = new HashMap<>();
 
   @Getter(AccessLevel.NONE)
   @Setter(AccessLevel.NONE)
@@ -59,12 +59,12 @@ public class HypervisorData {
   Map<String, Host> hypervisorHosts = new HashMap<>();
 
   /* Obviously the caller could just call fetchReportedHypervisors themselves since they already
-   * have to have an InventoryDatabaseOperations object, orgId, and HypervisorData object to make
+   * have to have an InventoryDatabaseOperations object and OrgHostsData object to make
    * this call.  But I'm adding this bit of indirection to make it exceedingly obvious in the
-   * calling code that fetchReportedHypervisors is an operation that modifies the HypervisorData
+   * calling code that fetchReportedHypervisors is an operation that modifies the OrgHostsData
    * object */
-  public void addReportedHypervisors(InventoryDatabaseOperations inventory, String orgId) {
-    inventory.fetchReportedHypervisors(orgId, this);
+  public void addReportedHypervisors(InventoryDatabaseOperations inventory) {
+    inventory.fetchReportedHypervisors(this);
   }
 
   public void addHostMapping(String hypervisorUuid, String subscriptionManagerId) {
@@ -80,8 +80,8 @@ public class HypervisorData {
         || hypervisorMapping.get(hypervisorUuid) == null;
   }
 
-  public void addUsageKey(String hypervisorUuid, UsageCalculation.Key key) {
-    hypervisorUsageKeys.computeIfAbsent(hypervisorUuid, uuid -> new HashSet<>()).add(key);
+  public void addHypervisorKey(String hypervisorUuid, UsageCalculation.Key key) {
+    hypervisorKeys.computeIfAbsent(hypervisorUuid, uuid -> new HashSet<>()).add(key);
   }
 
   public void incrementGuestCount(String hypervisorUuid) {
@@ -93,48 +93,54 @@ public class HypervisorData {
     hypervisorFacts.put(hypervisorUuid, facts);
   }
 
-  public void addHost(String hypervisorUuid, Host host) {
+  public void addHostToHypervisor(String hypervisorUuid, Host host) {
     hypervisorHosts.put(hypervisorUuid, host);
   }
 
-  public Map<String, Host> hostMap() {
+  public Map<String, Host> hypervisorHostMap() {
     return hypervisorHosts;
   }
 
-  public void collectGuestData(
-      AccountUsageCalculation accountCalc, Map<String, Set<HostBucketKey>> hostBucketKeys) {
+  public void collectGuestData(Map<String, Set<HostBucketKey>> hostBucketKeys) {
     hypervisorFacts.forEach(
-        (hypervisorUuid, normalizedFacts) ->
-            enhanceUsageKeys(orgId, accountCalc, hypervisorUuid, normalizedFacts, hostBucketKeys));
+        (hypervisorUuid, normalizedFacts) -> {
+          Host host = hypervisorHosts.get(hypervisorUuid);
+          host.setNumOfGuests(hypervisorGuestCounts.getOrDefault(hypervisorUuid, 0));
+
+          Set<HostBucketKey> bucketKeys =
+              hostBucketKeys.computeIfAbsent(host.getInstanceId(), h -> new HashSet<>());
+          Set<UsageCalculation.Key> keys =
+              hypervisorKeys.getOrDefault(hypervisorUuid, Collections.emptySet());
+
+          for (UsageCalculation.Key key : keys) {
+            ProductUsageCollector productUsageCollector =
+                ProductUsageCollectorFactory.get(key.getProductId());
+            Optional<HostTallyBucket> appliedBucket =
+                productUsageCollector.buildBucketForHypervisor(key, normalizedFacts);
+
+            // addBucket changes bucket.key.hostId, so do that first to avoid mutating the item in
+            // the set
+            appliedBucket.ifPresent(
+                bucket -> {
+                  host.addBucket(bucket);
+                  bucketKeys.add(bucket.getKey());
+                });
+          }
+        });
   }
 
-  private void enhanceUsageKeys(
-      String orgId,
-      AccountUsageCalculation accountCalc,
-      String hypervisorUuid,
-      NormalizedFacts normalizedFacts,
-      Map<String, Set<HostBucketKey>> hostBucketKeys) {
-    Host host = hypervisorHosts.get(hypervisorUuid);
-    host.setNumOfGuests(hypervisorGuestCounts.getOrDefault(hypervisorUuid, 0));
+  public void tallyGuestData(AccountUsageCalculation accountCalc) {
+    hypervisorFacts.forEach(
+        (hypervisorUuid, normalizedFacts) -> {
+          Set<UsageCalculation.Key> keys =
+              hypervisorKeys.getOrDefault(hypervisorUuid, Collections.emptySet());
 
-    Set<HostBucketKey> bucketKeys =
-        hostBucketKeys.computeIfAbsent(host.getInstanceId(), h -> new HashSet<>());
-    Set<UsageCalculation.Key> usageKeys =
-        hypervisorUsageKeys.getOrDefault(hypervisorUuid, Collections.emptySet());
-
-    for (Key key : usageKeys) {
-      UsageCalculation usageCalc = accountCalc.getOrCreateCalculation(key);
-      ProductUsageCollector productUsageCollector =
-          ProductUsageCollectorFactory.get(key.getProductId());
-      Optional<HostTallyBucket> appliedBucket =
-          productUsageCollector.collectForHypervisor(orgId, usageCalc, normalizedFacts);
-
-      // addBucket changes bucket.key.hostId, so do that first to avoid mutating the item in the set
-      appliedBucket.ifPresent(
-          bucket -> {
-            host.addBucket(bucket);
-            bucketKeys.add(bucket.getKey());
-          });
-    }
+          for (UsageCalculation.Key key : keys) {
+            UsageCalculation usageCalc = accountCalc.getOrCreateCalculation(key);
+            ProductUsageCollector productUsageCollector =
+                ProductUsageCollectorFactory.get(key.getProductId());
+            productUsageCollector.collectForHypervisor(usageCalc, normalizedFacts);
+          }
+        });
   }
 }

@@ -37,10 +37,9 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
   private static final Logger log = LoggerFactory.getLogger(RHELProductUsageCollector.class);
 
   @Override
-  public Optional<HostTallyBucket> collect(
-      UsageCalculation prodCalc, NormalizedFacts normalizedFacts) {
-    int appliedCores = normalizedFacts.getCores() != null ? normalizedFacts.getCores() : 0;
-    int appliedSockets = normalizedFacts.getSockets() != null ? normalizedFacts.getSockets() : 0;
+  public void collect(UsageCalculation prodCalc, NormalizedFacts normalizedFacts) {
+    int appliedCores = Optional.ofNullable(normalizedFacts.getCores()).orElse(0);
+    int appliedSockets = Optional.ofNullable(normalizedFacts.getSockets()).orElse(0);
 
     boolean guestWithUnknownHypervisor =
         normalizedFacts.isVirtual() && normalizedFacts.isHypervisorUnknown();
@@ -50,22 +49,12 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
       appliedSockets = normalizedFacts.isMarketplace() ? 0 : 1;
       prodCalc.addCloudProvider(
           normalizedFacts.getCloudProviderType(), appliedCores, appliedSockets, 1);
-      return Optional.of(
-          createBucket(
-              prodCalc,
-              true,
-              appliedCores,
-              appliedSockets,
-              normalizedFacts.getCloudProviderType()));
     } else if (guestWithUnknownHypervisor) {
       // If the hypervisor is unknown for a guest, we consider it as having a
       // unique hypervisor instance contributing to the hypervisor counts.
       // Since the guest is unmapped, we only contribute a single socket.
       appliedSockets = normalizedFacts.isMarketplace() ? 0 : 1;
       prodCalc.addUnmappedGuest(appliedCores, appliedSockets, 1);
-      return Optional.of(
-          createBucket(
-              prodCalc, true, appliedCores, appliedSockets, HardwareMeasurementType.VIRTUAL));
     }
     // Accumulate for physical systems.
     else if (!normalizedFacts.isVirtual()) {
@@ -74,9 +63,55 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
         appliedSockets = 0;
       }
       prodCalc.addPhysical(appliedCores, appliedSockets, 1);
+    }
+  }
+
+  @Override
+  public void collectForHypervisor(UsageCalculation prodCalc, NormalizedFacts hypervisorFacts) {
+    int appliedCores = Optional.ofNullable(hypervisorFacts.getCores()).orElse(0);
+    int appliedSockets = Optional.ofNullable(hypervisorFacts.getSockets()).orElse(0);
+    if (appliedSockets == 0) {
+      log.warn(
+          "Hypervisor in org {} has no sockets and will"
+              + " not contribute to the totals. The tally for the RHEL product will not be"
+              + " accurate since all associated guests will not contribute to the tally.",
+          hypervisorFacts.getOrgId());
+    }
+
+    prodCalc.addHypervisor(appliedCores, appliedSockets, 1);
+  }
+
+  @Override
+  public Optional<HostTallyBucket> buildBucket(
+      UsageCalculation.Key key, NormalizedFacts normalizedFacts) {
+    int appliedCores = Optional.ofNullable(normalizedFacts.getCores()).orElse(0);
+    int appliedSockets = Optional.ofNullable(normalizedFacts.getSockets()).orElse(0);
+
+    boolean guestWithUnknownHypervisor =
+        normalizedFacts.isVirtual() && normalizedFacts.isHypervisorUnknown();
+
+    // Cloud provider hosts only account for a single socket.
+    if (normalizedFacts.getCloudProviderType() != null) {
+      appliedSockets = normalizedFacts.isMarketplace() ? 0 : 1;
       return Optional.of(
           createBucket(
-              prodCalc, false, appliedCores, appliedSockets, HardwareMeasurementType.PHYSICAL));
+              key, true, appliedCores, appliedSockets, normalizedFacts.getCloudProviderType()));
+    } else if (guestWithUnknownHypervisor) {
+      // If the hypervisor is unknown for a guest, we consider it as having a
+      // unique hypervisor instance contributing to the hypervisor counts.
+      // Since the guest is unmapped, we only contribute a single socket.
+      appliedSockets = normalizedFacts.isMarketplace() ? 0 : 1;
+      return Optional.of(
+          createBucket(key, true, appliedCores, appliedSockets, HardwareMeasurementType.VIRTUAL));
+    }
+    // Accumulate for physical systems.
+    else if (!normalizedFacts.isVirtual()) {
+      // Physical system so increment the physical system counts.
+      if (normalizedFacts.isMarketplace()) {
+        appliedSockets = 0;
+      }
+      return Optional.of(
+          createBucket(key, false, appliedCores, appliedSockets, HardwareMeasurementType.PHYSICAL));
     }
 
     // nothing applied to calculation so no bucket to return.
@@ -84,39 +119,27 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
   }
 
   @Override
-  public Optional<HostTallyBucket> collectForHypervisor(
-      String orgId, UsageCalculation prodCalc, NormalizedFacts hypervisorFacts) {
-
-    int appliedCores = hypervisorFacts.getCores() != null ? hypervisorFacts.getCores() : 0;
-    int appliedSockets = hypervisorFacts.getSockets() != null ? hypervisorFacts.getSockets() : 0;
-
-    if (appliedSockets == 0) {
-      log.warn(
-          "Hypervisor in org {} has no sockets and will"
-              + " not contribute to the totals. The tally for the RHEL product will not be"
-              + " accurate since all associated guests will not contribute to the tally.",
-          orgId);
-    }
-
-    prodCalc.addHypervisor(appliedCores, appliedSockets, 1);
+  public Optional<HostTallyBucket> buildBucketForHypervisor(
+      UsageCalculation.Key key, NormalizedFacts hypervisorFacts) {
+    int appliedCores = Optional.ofNullable(hypervisorFacts.getCores()).orElse(0);
+    int appliedSockets = Optional.ofNullable(hypervisorFacts.getSockets()).orElse(0);
     return Optional.of(
-        createBucket(
-            prodCalc, true, appliedCores, appliedSockets, HardwareMeasurementType.HYPERVISOR));
+        createBucket(key, true, appliedCores, appliedSockets, HardwareMeasurementType.HYPERVISOR));
   }
 
   private HostTallyBucket createBucket(
-      UsageCalculation currentCalc,
+      UsageCalculation.Key key,
       boolean asHypervisor,
       int appliedCores,
       int appliedSockets,
       HardwareMeasurementType appliedType) {
     return new HostTallyBucket(
         null,
-        currentCalc.getProductId(),
-        currentCalc.getSla(),
-        currentCalc.getUsage(),
-        currentCalc.getBillingProvider(),
-        currentCalc.getBillingAccountId(),
+        key.getProductId(),
+        key.getSla(),
+        key.getUsage(),
+        key.getBillingProvider(),
+        key.getBillingAccountId(),
         asHypervisor,
         appliedCores,
         appliedSockets,

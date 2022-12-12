@@ -89,19 +89,19 @@ public class InventoryAccountUsageCollector {
       throw new SystemThresholdException(orgId, tallyMaxHbiAccountSize, inventoryCount);
     }
     AccountServiceInventory accountServiceInventory = fetchAccountServiceInventory(orgId, account);
-
-    HypervisorData hypervisorData = new HypervisorData(orgId);
-    Map<String, Set<HostBucketKey>> hostSeenBucketKeysLookup = new HashMap<>();
-    AccountUsageCalculation accountCalc = new AccountUsageCalculation(orgId);
     Map<String, Host> inventoryHostMap = buildInventoryHostMap(accountServiceInventory);
 
-    hypervisorData.addReportedHypervisors(inventory, orgId);
+    OrgHostsData orgHostsData = new OrgHostsData(orgId);
+    Map<String, Set<HostBucketKey>> hostSeenBucketKeysLookup = new HashMap<>();
+    AccountUsageCalculation accountCalc = new AccountUsageCalculation(orgId);
+
+    orgHostsData.addReportedHypervisors(inventory);
 
     inventory.processHost(
         orgId,
         culledOffsetDays,
         hostFacts -> {
-          NormalizedFacts facts = factNormalizer.normalize(hostFacts, hypervisorData);
+          NormalizedFacts facts = factNormalizer.normalize(hostFacts, orgHostsData);
 
           // Validate and set the account number.
           // Don't set null account as it may overwrite an existing value.
@@ -132,10 +132,10 @@ public class InventoryAccountUsageCollector {
               hostSeenBucketKeysLookup.computeIfAbsent(host.getInstanceId(), h -> new HashSet<>());
 
           if (facts.isHypervisor()) {
-            hypervisorData.addHypervisorFacts(hostFacts.getSubscriptionManagerId(), facts);
-            hypervisorData.addHost(hostFacts.getSubscriptionManagerId(), host);
+            orgHostsData.addHypervisorFacts(hostFacts.getSubscriptionManagerId(), facts);
+            orgHostsData.addHostToHypervisor(hostFacts.getSubscriptionManagerId(), host);
           } else if (facts.isVirtual() && StringUtils.hasText(facts.getHypervisorUuid())) {
-            hypervisorData.incrementGuestCount(host.getHypervisorUuid());
+            orgHostsData.incrementGuestCount(host.getHypervisorUuid());
           }
 
           ServiceLevel[] slas = new ServiceLevel[] {facts.getSla(), ServiceLevel._ANY};
@@ -155,10 +155,11 @@ public class InventoryAccountUsageCollector {
                       try {
                         String hypervisorUuid = facts.getHypervisorUuid();
                         if (hypervisorUuid != null) {
-                          hypervisorData.addUsageKey(hypervisorUuid, key);
+                          orgHostsData.addHypervisorKey(hypervisorUuid, key);
                         }
+                        ProductUsageCollectorFactory.get(product).collect(calc, facts);
                         Optional<HostTallyBucket> appliedBucket =
-                            ProductUsageCollectorFactory.get(product).collect(calc, facts);
+                            ProductUsageCollectorFactory.get(product).buildBucket(key, facts);
                         appliedBucket.ifPresent(
                             bucket -> {
                               // host.addBucket changes bucket.key.hostId, so we do that first; to
@@ -193,7 +194,8 @@ public class InventoryAccountUsageCollector {
         .forEach(accountServiceInventory.getServiceInstances()::remove);
 
     // apply data from guests to hypervisor records
-    hypervisorData.collectGuestData(accountCalc, hostSeenBucketKeysLookup);
+    orgHostsData.collectGuestData(hostSeenBucketKeysLookup);
+    orgHostsData.tallyGuestData(accountCalc);
 
     log.info("Removing stale buckets");
     for (Host host : accountServiceInventory.getServiceInstances().values()) {
@@ -202,7 +204,7 @@ public class InventoryAccountUsageCollector {
       host.getBuckets().removeIf(b -> !seenBucketKeys.contains(b.getKey()));
     }
 
-    var hypervisorHostMap = hypervisorData.hostMap();
+    var hypervisorHostMap = orgHostsData.hypervisorHostMap();
     if (hypervisorHostMap.size() > 0) {
       log.info("Persisting {} hypervisor hosts.", hypervisorHostMap.size());
       for (Host host : hypervisorHostMap.values()) {

@@ -62,7 +62,7 @@ class RHELProductUsageCollectorTest {
     // Expects no virtual totals in this case.
     assertNull(calc.getTotals(HardwareMeasurementType.HYPERVISOR));
 
-    collector.collectForHypervisor("foo", calc, facts);
+    collector.collectForHypervisor(calc, facts);
     assertHypervisorTotalsCalculation(calc, 4, 12, 1);
   }
 
@@ -115,9 +115,10 @@ class RHELProductUsageCollectorTest {
     facts.setHardwareType(HostHardwareType.PHYSICAL);
     facts.setHypervisor(true);
 
-    UsageCalculation calc = new UsageCalculation(createUsageKey());
+    var key = createUsageKey();
+    UsageCalculation calc = new UsageCalculation(key);
     collector.collect(calc, facts);
-    Optional<HostTallyBucket> bucket = collector.collectForHypervisor("foo", calc, facts);
+    Optional<HostTallyBucket> bucket = collector.buildBucketForHypervisor(key, facts);
     assertTrue(bucket.isPresent());
     assertEquals(0, bucket.get().getSockets());
   }
