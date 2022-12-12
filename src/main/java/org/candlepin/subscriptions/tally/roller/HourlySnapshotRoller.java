@@ -24,7 +24,6 @@ import static org.candlepin.subscriptions.db.model.Granularity.HOURLY;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -50,20 +49,18 @@ public class HourlySnapshotRoller extends BaseSnapshotRoller {
 
   @Override
   @Transactional
-  public Collection<TallySnapshot> rollSnapshots(
-      String orgId, Collection<AccountUsageCalculation> accountCalcs) {
+  public Collection<TallySnapshot> rollSnapshots(AccountUsageCalculation accountCalc) {
+    var orgId = accountCalc.getOrgId();
     log.debug("Producing hourly snapshots for orgId={}.", orgId);
 
-    Map<String, List<TallySnapshot>> existingSnapsForTheHour =
-        Map.of(
+    List<TallySnapshot> existingSnapsForTheHour =
+        getCurrentSnapshotsByOrgId(
             orgId,
-            getCurrentSnapshotsByOrgId(
-                orgId,
-                getApplicableProducts(accountCalcs, HOURLY),
-                HOURLY,
-                clock.startOfCurrentHour(),
-                clock.endOfCurrentHour()));
+            getApplicableProducts(accountCalc, HOURLY),
+            HOURLY,
+            clock.startOfCurrentHour(),
+            clock.endOfCurrentHour());
 
-    return updateSnapshots(accountCalcs, existingSnapsForTheHour, HOURLY);
+    return updateSnapshots(accountCalc, existingSnapsForTheHour, HOURLY);
   }
 }

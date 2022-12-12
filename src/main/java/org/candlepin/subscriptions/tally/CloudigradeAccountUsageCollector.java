@@ -56,22 +56,19 @@ public class CloudigradeAccountUsageCollector {
   /**
    * Add measurements from cloudigrade to usage calculations
    *
-   * @param accountCalcs map of existing account to usage calculations
-   * @param orgId org id to enrich calculations
+   * @param usageCalc existing account to usage calculations
    * @throws ApiException if the cloudigrade service errs
    */
   @Timed("rhsm-subscriptions.snapshots.cloudigrade")
-  public void enrichUsageWithCloudigradeData(
-      Map<String, AccountUsageCalculation> accountCalcs, String orgId)
+  public void enrichUsageWithCloudigradeData(AccountUsageCalculation usageCalc)
       throws ApiException, org.candlepin.subscriptions.cloudigrade.internal.ApiException {
+    var orgId = usageCalc.getOrgId();
     log.info("Cloudigrade enriching usage using orgId={}", orgId);
     ConcurrencyReport cloudigradeUsage = getDailyConcurrencyReport(orgId);
     if (cloudigradeUsage == null) {
       return;
     }
 
-    accountCalcs.putIfAbsent(orgId, new AccountUsageCalculation(orgId));
-    AccountUsageCalculation usageCalc = accountCalcs.get(orgId);
     if (cloudigradeUsage.getData().size() > 1) {
       log.warn("Got more than one day's worth of data from cloudigrade; using the first");
     }

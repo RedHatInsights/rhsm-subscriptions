@@ -26,12 +26,16 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostBucketKey;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
+import org.candlepin.subscriptions.inventory.db.InventoryDatabaseOperations;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollector;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
@@ -46,10 +50,24 @@ public class HypervisorData {
   private Map<String, String> hypervisorMapping = new HashMap<>();
   private Map<String, Set<Key>> hypervisorUsageKeys = new HashMap<>();
   private Map<String, NormalizedFacts> hypervisorFacts = new HashMap<>();
-  private Map<String, Host> hypervisorHosts = new HashMap<>();
   private Map<String, Integer> hypervisorGuestCounts = new HashMap<>();
 
-  public void putMapping(String hypervisorUuid, String subscriptionManagerId) {
+  @Getter(AccessLevel.NONE)
+  @Setter(AccessLevel.NONE)
+  /* This map is the important end result of all the work this class does.  I want to give it a
+  more semantically meaningful name than just getHypervisorHosts */
+  Map<String, Host> hypervisorHosts = new HashMap<>();
+
+  /* Obviously the caller could just call fetchReportedHypervisors themselves since they already
+   * have to have an InventoryDatabaseOperations object, orgId, and HypervisorData object to make
+   * this call.  But I'm adding this bit of indirection to make it exceedingly obvious in the
+   * calling code that fetchReportedHypervisors is an operation that modifies the HypervisorData
+   * object */
+  public void addReportedHypervisors(InventoryDatabaseOperations inventory, String orgId) {
+    inventory.fetchReportedHypervisors(orgId, this);
+  }
+
+  public void addHostMapping(String hypervisorUuid, String subscriptionManagerId) {
     hypervisorMapping.put(hypervisorUuid, subscriptionManagerId);
   }
 
@@ -79,10 +97,12 @@ public class HypervisorData {
     hypervisorHosts.put(hypervisorUuid, host);
   }
 
+  public Map<String, Host> hostMap() {
+    return hypervisorHosts;
+  }
+
   public void collectGuestData(
-      Map<String, AccountUsageCalculation> calcsByOrgId,
-      Map<String, Set<HostBucketKey>> hostBucketKeys) {
-    AccountUsageCalculation accountCalc = calcsByOrgId.get(orgId);
+      AccountUsageCalculation accountCalc, Map<String, Set<HostBucketKey>> hostBucketKeys) {
     hypervisorFacts.forEach(
         (hypervisorUuid, normalizedFacts) ->
             enhanceUsageKeys(orgId, accountCalc, hypervisorUuid, normalizedFacts, hostBucketKeys));
