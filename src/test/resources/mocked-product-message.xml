@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<CanonicalMessage>
+  <Payload>
+    <Sync>
+      <OperationalProduct>
+        <Sku>RH0180191</Sku>
+        <SkuDescription>Red Hat Enterprise Linux Server, Standard (1-2 sockets) (Up to 4 guests) with Smart Management</SkuDescription>
+        <Role>Red Hat Enterprise Linux Server</Role>
+        <ProductRelationship>
+          <ParentProduct>
+            <Sku>RH0180191</Sku>
+          </ParentProduct>
+          <ChildProduct>
+            <Sku>SVCRH01</Sku>
+          </ChildProduct>
+          <ChildProduct>
+            <Sku>SVCRH01V4</Sku>
+          </ChildProduct>
+        </ProductRelationship>
+        <Attribute>
+          <Code>ENTITLEMENT_QTY</Code>
+          <Name>Entitlement Qty</Name>
+          <Value>1</Value>
+        </Attribute>
+        <Attribute>
+          <Code>SERVICE_TYPE</Code>
+          <Name>Service Type</Name>
+          <Value>Standard</Value>
+        </Attribute>
+        <Attribute>
+          <Code>USAGE</Code>
+          <Name>Usage</Name>
+          <Value>Production</Value>
+        </Attribute>
+      </OperationalProduct>
+    </Sync>
+  </Payload>
+</CanonicalMessage>

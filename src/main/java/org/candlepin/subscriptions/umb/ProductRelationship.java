@@ -35,7 +35,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonNaming(PropertyNamingStrategies.UpperCamelCaseStrategy.class)
 public class ProductRelationship {
+
+  private ParentProduct parentProduct;
+
   @JsonProperty("ChildProduct")
   @JacksonXmlElementWrapper(useWrapping = false)
-  private ChildProduct[] products;
+  private ChildProduct[] childProducts;
 }

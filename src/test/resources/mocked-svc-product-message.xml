@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<CanonicalMessage>
+  <Payload>
+    <Sync>
+      <OperationalProduct>
+        <Identifiers>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">273</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">274</Reference>
+        </Identifiers>
+        <Sku>SVCRH01</Sku>
+        <SkuDescription>Red Hat Enterprise Linux Server</SkuDescription>
+        <ProductRelationship>
+          <ParentProduct>
+            <Sku>RH0180191</Sku>
+          </ParentProduct>
+        </ProductRelationship>
+        <Attribute>
+          <Code>CORES</Code>
+          <Name>Cores</Name>
+          <Value>0</Value>
+        </Attribute>
+        <Attribute>
+          <Code>SOCKET_LIMIT</Code>
+          <Name>Socket Limit</Name>
+          <Value>0</Value>
+        </Attribute>
+      </OperationalProduct>
+    </Sync>
+  </Payload>
+</CanonicalMessage>

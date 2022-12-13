@@ -20,10 +20,8 @@
  */
 package org.candlepin.subscriptions.umb;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -34,14 +32,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonNaming(PropertyNamingStrategies.UpperCamelCaseStrategy.class)
-public class UmbOperationalProduct {
+public class ParentProduct {
   private String sku;
-  private String skuDescription;
-  private String role;
-  private ProductRelationship productRelationship;
-  private Identifiers identifiers;
-
-  @JsonProperty("Attribute")
-  @JacksonXmlElementWrapper(useWrapping = false)
-  private ProductAttribute[] attributes;
 }
