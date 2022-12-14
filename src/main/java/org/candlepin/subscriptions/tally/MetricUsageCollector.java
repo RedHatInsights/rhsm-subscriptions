@@ -148,6 +148,19 @@ public class MetricUsageCollector {
                   instance.clearMonthlyTotals(effectiveStartDateTime, effectiveEndDateTime));
     }
 
+    Map<OffsetDateTime, AccountUsageCalculation> accountCalcs =
+        collectHourlyCalculations(
+            accountServiceInventory, effectiveStartDateTime, effectiveEndDateTime);
+    accountServiceInventoryRepository.save(accountServiceInventory);
+
+    return new CollectionResult(
+        new DateRange(effectiveStartDateTime, effectiveEndDateTime), accountCalcs, isRecalculating);
+  }
+
+  private Map<OffsetDateTime, AccountUsageCalculation> collectHourlyCalculations(
+      AccountServiceInventory accountServiceInventory,
+      OffsetDateTime effectiveStartDateTime,
+      OffsetDateTime effectiveEndDateTime) {
     Map<OffsetDateTime, AccountUsageCalculation> accountCalcs = new HashMap<>();
     for (OffsetDateTime offset = effectiveStartDateTime;
         offset.isBefore(effectiveEndDateTime);
@@ -168,10 +181,7 @@ public class MetricUsageCollector {
         }
       }
     }
-    accountServiceInventoryRepository.save(accountServiceInventory);
-
-    return new CollectionResult(
-        new DateRange(effectiveStartDateTime, effectiveEndDateTime), accountCalcs, isRecalculating);
+    return accountCalcs;
   }
 
   @Transactional
