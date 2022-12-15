@@ -103,15 +103,14 @@ public class OptInController {
   // Separate isolated transaction needed in order to prevent opt-in errors rolling back metrics
   // updates
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public String optInByOrgId(String orgId, OptInType optInType) {
-    if (accountConfigRepository.existsById(orgId)) {
-      return accountConfigRepository.findAccountNumberByOrgId(orgId);
+  public void optInByOrgId(String orgId, OptInType optInType) {
+    if (!accountConfigRepository.existsById(orgId)) {
+      log.info("Opting in orgId={}", orgId);
+      // NOTE Passing null here should be cleaned up once account number
+      // support is completely removed from opt-in.
+      // https://issues.redhat.com/browse/SWATCH-662
+      performOptIn(null, orgId, optInType).getData().getAccount().getAccountNumber();
     }
-
-    log.info("Opting in orgId={}", orgId);
-    // NOTE Passing null here should be cleaned up once account number
-    // support is completely removed from opt-in.
-    return performOptIn(null, orgId, optInType).getData().getAccount().getAccountNumber();
   }
 
   @Transactional
