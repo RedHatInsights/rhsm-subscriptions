@@ -28,6 +28,7 @@ import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.util.StringUtils;
 
 /** Defines all operations for storing account config entries. */
 public interface AccountConfigRepository extends JpaRepository<AccountConfig, String> {
@@ -62,13 +63,17 @@ public interface AccountConfigRepository extends JpaRepository<AccountConfig, St
     Optional<AccountConfig> found = findByOrgId(orgId);
     AccountConfig accountConfig = found.orElse(new AccountConfig());
     if (!found.isPresent()) {
-      accountConfig.setOrgId(orgId);
       accountConfig.setOptInType(optInType);
       accountConfig.setCreated(current);
     }
-    accountConfig.setAccountNumber(account);
     accountConfig.setOrgId(orgId);
     accountConfig.setUpdated(current);
+
+    // Only set the account number if it is known.
+    if (StringUtils.hasText(account)) {
+      accountConfig.setAccountNumber(account);
+    }
+
     return Optional.of(save(accountConfig));
   }
 }

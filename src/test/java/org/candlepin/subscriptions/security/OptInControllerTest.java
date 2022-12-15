@@ -194,11 +194,9 @@ class OptInControllerTest {
   }
 
   @Test
-  void testOptInViaOrgId() {
+  void testOptInViaOrgIdOnly() {
     controller.optInByOrgId("org123", OptInType.API);
-
     assertTrue(orgRepo.existsByOrgId("org123"));
-    assertTrue(accountRepo.existsByAccountNumber("account123"));
   }
 
   @Test

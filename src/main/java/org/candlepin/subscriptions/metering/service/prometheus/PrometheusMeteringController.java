@@ -117,9 +117,7 @@ public class PrometheusMeteringController {
      */
     OffsetDateTime startDate = clock.startOfHour(start).plusHours(1);
     log.debug("Ensuring orgId={} has been set up for syncing/reporting.", orgId);
-    // NOTE: https://issues.redhat.com/browse/SWATCH-262 should remove this workaround.
-    // with SWATCH-262, ensureOptIn can be called without using its return value.
-    String accountNumberFromOptIn = ensureOptIn(orgId);
+    ensureOptIn(orgId);
     openshiftRetry.execute(
         context -> {
           try {
@@ -175,8 +173,6 @@ public class PrometheusMeteringController {
               String billingProvider = labels.get("billing_marketplace");
               String billingAccountId = labels.get("billing_marketplace_account");
               String account = labels.get("ebs_account");
-              // NOTE: https://issues.redhat.com/browse/SWATCH-262 should remove this workaround.
-              account = ensureAccountNumber(account, accountNumberFromOptIn);
 
               // For the openshift metrics, we expect our results to be a 'matrix'
               // vector [(instant_time,value), ...] so we only look at the result's getValues()
@@ -230,28 +226,13 @@ public class PrometheusMeteringController {
         });
   }
 
-  // SWATCH-262 should remove this method
-  private String ensureAccountNumber(String account, String accountNumberFromOptIn) {
-    if (StringUtils.hasText(account)) {
-      return account;
-    }
-    if (!StringUtils.hasText(accountNumberFromOptIn)) {
-      // For now, refuse to process an event that is completely missing accountNumber.
-      // Otherwise, we'd potentially end up in a state where a customer can't view the
-      // tally data.
-      throw new IllegalStateException("Refusing to persist event without accountNumber");
-    }
-    return accountNumberFromOptIn;
-  }
-
-  private String ensureOptIn(String orgId) {
+  private void ensureOptIn(String orgId) {
     try {
-      return optInController.optInByOrgId(orgId, OptInType.PROMETHEUS);
+      optInController.optInByOrgId(orgId, OptInType.PROMETHEUS);
     } catch (Exception e) {
       log.warn("Error while attempting to automatically opt-in orgId={}", orgId);
       log.debug("Opt-in error for orgId=" + orgId, e);
     }
-    return null;
   }
 
   @SuppressWarnings("java:S107")
