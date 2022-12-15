@@ -180,6 +180,12 @@ public class InventoryAccountUsageCollector {
           totalHosts.increment();
         });
 
+    log.info(
+        "Removing {} stale host records (HBI records no longer present).", inventoryHostMap.size());
+    inventoryHostMap.values().stream()
+        .map(Host::getInstanceId)
+        .forEach(accountServiceInventory.getServiceInstances()::remove);
+
     // apply data from guests to hypervisor records
     hypervisorData.collectGuestData(accountCalc, hostSeenBucketKeysLookup);
 

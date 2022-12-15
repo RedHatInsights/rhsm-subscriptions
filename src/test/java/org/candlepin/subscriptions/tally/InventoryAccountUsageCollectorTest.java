@@ -636,6 +636,40 @@ class InventoryAccountUsageCollectorTest {
     assertEquals(1, accountServiceInventory.getServiceInstances().size());
   }
 
+  @Test
+  void ensureStaleHostsAreDeleted() {
+    List<Integer> products = List.of(TEST_PRODUCT_ID);
+    InventoryHostFacts host = createRhsmHost(ACCOUNT, ORG_ID, products, "", OffsetDateTime.now());
+    host.setSystemProfileCoresPerSocket(4);
+    host.setSystemProfileSockets(3);
+    Host orig =
+        new Host(
+            host.getInventoryId().toString(),
+            "insights1",
+            host.getAccount(),
+            host.getOrgId(),
+            null);
+    orig.setInstanceId(host.getInventoryId().toString());
+    Host noLongerReported =
+        new Host("i2-inventory-id", "insights2", host.getAccount(), host.getOrgId(), null);
+    noLongerReported.setInstanceId("i2");
+
+    AccountServiceInventory accountServiceInventory =
+        new AccountServiceInventory(ORG_ID, "HBI_HOST");
+    accountServiceInventory.getServiceInstances().put(host.getInventoryId().toString(), orig);
+    accountServiceInventory.getServiceInstances().put("i2", noLongerReported);
+
+    when(accountServiceInventoryRepository.findById(
+            AccountServiceInventoryId.builder().orgId(ORG_ID).serviceType("HBI_HOST").build()))
+        .thenReturn(Optional.of(accountServiceInventory));
+
+    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), any())).thenReturn(Stream.of(host));
+
+    collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
+
+    assertEquals(1, accountServiceInventory.getServiceInstances().size());
+  }
+
   private void checkTotalsCalculation(
       AccountUsageCalculation calc,
       String account,
