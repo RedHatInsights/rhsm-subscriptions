@@ -20,19 +20,23 @@
  */
 package org.candlepin.subscriptions.product;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductAllowlist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
+import org.candlepin.subscriptions.umb.CanonicalMessage;
 import org.candlepin.subscriptions.umb.UmbOperationalProduct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +64,7 @@ public class OfferingSyncController {
   private final KafkaTemplate<String, OfferingSyncTask> offeringSyncKafkaTemplate;
   private final ObjectMapper objectMapper;
   private final String offeringSyncTopic;
+  private final XmlMapper umbMessageMapper;
 
   @Autowired
   public OfferingSyncController(
@@ -80,6 +85,7 @@ public class OfferingSyncController {
     this.offeringSyncKafkaTemplate = offeringSyncKafkaTemplate;
     this.objectMapper = objectMapper;
     this.offeringSyncTopic = taskQueueProperties.getTopic();
+    this.umbMessageMapper = CanonicalMessage.createMapper();
   }
 
   /**
@@ -201,7 +207,86 @@ public class OfferingSyncController {
     offeringRepository.deleteById(sku);
   }
 
-  public void syncUmbProduct(UmbOperationalProduct umbOperationalProduct) {
-    // Integrate with SWATCH-395
+  /**
+   * Sync offering state based on a UMB message.
+   *
+   * <p>See syncRootSku and syncChildSku for more details.
+   *
+   * @param productXml UMB message for product
+   * @return result describing results of sync (for testing purposes)
+   */
+  @javax.transaction.Transactional
+  public SyncResult syncUmbProductFromXml(String productXml) throws JsonProcessingException {
+    return syncUmbProduct(
+        umbMessageMapper
+            .readValue(productXml, org.candlepin.subscriptions.umb.CanonicalMessage.class)
+            .getPayload()
+            .getSync()
+            .getOperationalProduct());
+  }
+
+  public SyncResult syncUmbProduct(UmbOperationalProduct umbOperationalProduct) {
+    if (umbOperationalProduct.getSku().startsWith("SVC")) {
+      syncChildSku(umbOperationalProduct.getSku());
+      return SyncResult.FETCHED_AND_SYNCED;
+    } else {
+      SyncResult result = syncRootSku(umbOperationalProduct);
+      if (result == SyncResult.FETCHED_AND_SYNCED) {
+        // we must assume that any SKU we get a message for may be a derived SKU,
+        // but we'll check our cache of product data and only actually operate on offerings having
+        // the SKU as a derived SKU
+        syncDerivedSku(umbOperationalProduct.getSku());
+      }
+      return result;
+    }
+  }
+
+  /**
+   * Sync the offering state using only the UMB message if possible, otherwise sync the offering
+   * from the RHIT product service.
+   *
+   * @param umbOperationalProduct product definition from a UMB message
+   * @see UpstreamProductData#offeringFromUmbData
+   */
+  private SyncResult syncRootSku(UmbOperationalProduct umbOperationalProduct) {
+    Optional<Offering> existing = offeringRepository.findById(umbOperationalProduct.getSku());
+    Optional<Offering> newState =
+        UpstreamProductData.offeringFromUmbData(
+            umbOperationalProduct, existing.orElse(null), productService);
+    if (newState.isPresent()) {
+      return syncOffering(newState.get(), existing);
+    } else {
+      LOGGER.warn(
+          "Unable to sync offering from UMB message for sku={}, because product service has no records for it",
+          umbOperationalProduct.getSku());
+      return SyncResult.SKIPPED_NOT_FOUND;
+    }
+  }
+
+  /**
+   * Sync all offerings affected by a change in the child SKU.
+   *
+   * <p>(Future work could reduce the need to sync affected offerings by caching child SKU eng IDs
+   * and only queueing offering syncs when there are changes).
+   *
+   * @param sku child SKU (starts with "SVC" by convention)
+   */
+  private void syncChildSku(String sku) {
+    Set<String> parentSkus =
+        offeringRepository.findSkusForChildSku(sku).collect(Collectors.toSet());
+    parentSkus.forEach(this::enqueueOfferingSyncTask);
+    offeringRepository.findSkusForDerivedSkus(parentSkus).forEach(this::enqueueOfferingSyncTask);
+  }
+
+  /**
+   * Sync all offerings affected by a derived SKU.
+   *
+   * <p>(Future work could reduce the need to sync affected offerings by only performing this if
+   * derived SKU definition has changes).
+   *
+   * @param sku SKU that may be a derived SKU
+   */
+  private void syncDerivedSku(String sku) {
+    offeringRepository.findSkusForDerivedSkus(Set.of(sku)).forEach(this::enqueueOfferingSyncTask);
   }
 }

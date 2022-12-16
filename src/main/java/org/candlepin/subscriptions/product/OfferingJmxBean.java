@@ -25,10 +25,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.security.SecurityProperties;
-import org.candlepin.subscriptions.umb.UmbProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
-import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jmx.JmxException;
 import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedOperationParameter;
@@ -47,21 +45,14 @@ public class OfferingJmxBean {
   private final CapacityReconciliationController capacityReconciliationController;
   private final SecurityProperties properties;
 
-  private final UmbProperties umbProperties;
-  private final JmsTemplate jmsTemplate;
-
   @Autowired
   public OfferingJmxBean(
       OfferingSyncController offeringSync,
       CapacityReconciliationController capacityReconciliationController,
-      SecurityProperties properties,
-      UmbProperties umbProperties,
-      JmsTemplate jmsTemplate) {
+      SecurityProperties properties) {
     this.offeringSync = offeringSync;
     this.capacityReconciliationController = capacityReconciliationController;
     this.properties = properties;
-    this.umbProperties = umbProperties;
-    this.jmsTemplate = jmsTemplate;
   }
 
   @ManagedOperation(description = "Sync an offering from the upstream source.")
@@ -164,8 +155,8 @@ public class OfferingJmxBean {
     }
     try {
       Object principal = ResourceUtils.getPrincipal();
-      jmsTemplate.convertAndSend(umbProperties.getProductTopic(), productXml);
       log.info("Sync of UMB product triggered over JMX by {}", principal);
+      offeringSync.syncUmbProductFromXml(productXml);
     } catch (Exception e) {
       log.error("Error saving UMB product", e);
       throw new JmxException("Error saving product. See log for details.");
