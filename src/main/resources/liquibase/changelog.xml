@@ -93,5 +93,6 @@
     <include file="liquibase/202211091649-rename-physical-virtual-cores-sockets-columns.xml"/>
     <include file="liquibase/202211281427-change-account_services-account-number-drop_not_null.xml"/>
     <include file="liquibase/202211301043-update-host-table-constraints.xml"/>
+    <include file="liquibase/202212121039-create-tally-instance-view.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
