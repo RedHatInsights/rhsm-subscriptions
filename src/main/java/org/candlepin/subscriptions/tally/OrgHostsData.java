@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.tally;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -50,7 +51,10 @@ public class OrgHostsData {
   private Map<String, Set<UsageCalculation.Key>> hypervisorKeys = new HashMap<>();
   private Map<String, NormalizedFacts> hypervisorFacts = new HashMap<>();
   private Map<String, Integer> hypervisorGuestCounts = new HashMap<>();
-  private Map<Host, NormalizedFacts> hostNormalizedFactsMap = new HashMap<>();
+
+  // Preserve the insertion order so that our tally runs through these hosts in the same order as
+  // the host update.
+  private Map<Host, NormalizedFacts> hostNormalizedFactsMap = new LinkedHashMap<>();
 
   @Getter(AccessLevel.NONE)
   @Setter(AccessLevel.NONE)
@@ -142,5 +146,9 @@ public class OrgHostsData {
             productUsageCollector.collectForHypervisor(usageCalc, normalizedFacts);
           }
         });
+  }
+
+  public void addHostWithNormalizedFacts(Host host, NormalizedFacts facts) {
+    this.hostNormalizedFactsMap.put(host, facts);
   }
 }

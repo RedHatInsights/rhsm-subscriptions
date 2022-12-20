@@ -98,14 +98,12 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
   @Override
   public Optional<HostTallyBucket> buildBucketForHypervisor(
       UsageCalculation.Key key, NormalizedFacts hypervisorFacts) {
-
     /* do nothing for hypervisor-guest mappings by default */
     return Optional.empty();
   }
 
   @Override
   public void collectForHypervisor(UsageCalculation prodCalc, NormalizedFacts hypervisorFacts) {
-    throw new NotImplementedException(
-        "Not implemented for " + DefaultProductUsageCollector.class.getName());
+    throw new NotImplementedException("Not implemented for " + this.getClass().getName());
   }
 }

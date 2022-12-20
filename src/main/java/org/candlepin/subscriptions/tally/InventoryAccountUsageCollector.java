@@ -82,8 +82,7 @@ public class InventoryAccountUsageCollector {
 
   @SuppressWarnings("squid:S3776")
   @Transactional
-  public AccountUsageCalculation collect(
-      Collection<String> products, String account, String orgId) {
+  public OrgHostsData collect(Collection<String> products, String account, String orgId) {
     int inventoryCount = inventory.activeSystemCountForOrgId(orgId, culledOffsetDays);
     if (inventoryCount > tallyMaxHbiAccountSize) {
       throw new SystemThresholdException(orgId, tallyMaxHbiAccountSize, inventoryCount);
@@ -93,7 +92,6 @@ public class InventoryAccountUsageCollector {
 
     OrgHostsData orgHostsData = new OrgHostsData(orgId);
     Map<String, Set<HostBucketKey>> hostSeenBucketKeysLookup = new HashMap<>();
-    AccountUsageCalculation accountCalc = new AccountUsageCalculation(orgId);
 
     orgHostsData.addReportedHypervisors(inventory);
 
@@ -102,21 +100,6 @@ public class InventoryAccountUsageCollector {
         culledOffsetDays,
         hostFacts -> {
           NormalizedFacts facts = factNormalizer.normalize(hostFacts, orgHostsData);
-
-          // Validate and set the account number.
-          // Don't set null account as it may overwrite an existing value.
-          // Likely won't happen, but there could be stale data in inventory with no account set.
-          String hostAccount = facts.getAccount();
-          if (hostAccount != null) {
-            String currentAccount = accountCalc.getAccount();
-            if (currentAccount != null && !currentAccount.equalsIgnoreCase(hostAccount)) {
-              throw new IllegalStateException(
-                  String.format(
-                      "Attempt to set a different account for an org: %s:%s",
-                      currentAccount, hostAccount));
-            }
-            accountCalc.setAccount(hostAccount);
-          }
 
           Host existingHost = inventoryHostMap.remove(hostFacts.getInventoryId().toString());
           Host host;
@@ -127,6 +110,7 @@ public class InventoryAccountUsageCollector {
             host = existingHost;
             populateHostFieldsFromHbi(host, hostFacts, facts);
           }
+          orgHostsData.addHostWithNormalizedFacts(host, facts);
 
           Set<HostBucketKey> seenBucketKeys =
               hostSeenBucketKeysLookup.computeIfAbsent(host.getInstanceId(), h -> new HashSet<>());
@@ -150,14 +134,12 @@ public class InventoryAccountUsageCollector {
                   for (Usage usage : usages) {
                     UsageCalculation.Key key =
                         new UsageCalculation.Key(product, sla, usage, BillingProvider._ANY, "_ANY");
-                    UsageCalculation calc = accountCalc.getOrCreateCalculation(key);
                     if (facts.getProducts().contains(product)) {
                       try {
                         String hypervisorUuid = facts.getHypervisorUuid();
                         if (hypervisorUuid != null) {
                           orgHostsData.addHypervisorKey(hypervisorUuid, key);
                         }
-                        ProductUsageCollectorFactory.get(product).collect(calc, facts);
                         Optional<HostTallyBucket> appliedBucket =
                             ProductUsageCollectorFactory.get(product).buildBucket(key, facts);
                         appliedBucket.ifPresent(
@@ -195,7 +177,6 @@ public class InventoryAccountUsageCollector {
 
     // apply data from guests to hypervisor records
     orgHostsData.collectGuestData(hostSeenBucketKeysLookup);
-    orgHostsData.tallyGuestData(accountCalc);
 
     log.info("Removing stale buckets");
     for (Host host : accountServiceInventory.getServiceInstances().values()) {
@@ -211,11 +192,64 @@ public class InventoryAccountUsageCollector {
         accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host);
       }
     }
-    log.debug("Account Usage: {}", accountCalc);
-
     accountServiceInventory.setOrgId(orgId);
     accountServiceInventoryRepository.save(accountServiceInventory);
+    return orgHostsData;
+  }
 
+  @SuppressWarnings("squid:S3776")
+  @Transactional
+  public AccountUsageCalculation tally(
+      Collection<String> products, OrgHostsData orgHostsData, String account, String orgId) {
+    AccountUsageCalculation accountCalc = new AccountUsageCalculation(orgId);
+    for (var entry : orgHostsData.getHostNormalizedFactsMap().entrySet()) {
+      Host host = entry.getKey();
+      NormalizedFacts facts = entry.getValue();
+
+      // Validate and set the account number.
+      // Don't set null account as it may overwrite an existing value.
+      // Likely won't happen, but there could be stale data in inventory with no account set.
+      String hostAccount = facts.getAccount();
+      if (hostAccount != null) {
+        String currentAccount = accountCalc.getAccount();
+        if (currentAccount != null && !currentAccount.equalsIgnoreCase(hostAccount)) {
+          throw new IllegalStateException(
+              String.format(
+                  "Attempt to set a different account for an org: %s:%s",
+                  currentAccount, hostAccount));
+        }
+        accountCalc.setAccount(hostAccount);
+      }
+
+      ServiceLevel[] slas = new ServiceLevel[] {facts.getSla(), ServiceLevel._ANY};
+      Usage[] usages = new Usage[] {facts.getUsage(), Usage._ANY};
+
+      // Calculate for each UsageKey
+      // review current implementation of default values, and determine if factnormalizer needs
+      // to handle billingAcctId & BillingProvider
+      for (String product : products) {
+        for (ServiceLevel sla : slas) {
+          for (Usage usage : usages) {
+            UsageCalculation.Key key =
+                new UsageCalculation.Key(product, sla, usage, BillingProvider._ANY, "_ANY");
+            UsageCalculation calc = accountCalc.getOrCreateCalculation(key);
+            if (facts.getProducts().contains(product)) {
+              try {
+                ProductUsageCollectorFactory.get(product).collect(calc, facts);
+              } catch (Exception e) {
+                log.error(
+                    "Unable to tally usage data for host: {} product: {}",
+                    host.getSubscriptionManagerId(),
+                    product,
+                    e);
+              }
+            }
+          }
+        }
+      }
+    }
+    orgHostsData.tallyGuestData(accountCalc);
+    log.debug("Account Usage: {}", accountCalc);
     return accountCalc;
   }
 
