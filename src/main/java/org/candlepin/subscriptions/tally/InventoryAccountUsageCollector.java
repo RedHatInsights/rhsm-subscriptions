@@ -20,11 +20,12 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import com.google.common.collect.Sets;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -82,7 +83,7 @@ public class InventoryAccountUsageCollector {
 
   @SuppressWarnings("squid:S3776")
   @Transactional
-  public OrgHostsData collect(Collection<String> products, String account, String orgId) {
+  public OrgHostsData collect(Set<String> products, String account, String orgId) {
     int inventoryCount = inventory.activeSystemCountForOrgId(orgId, culledOffsetDays);
     if (inventoryCount > tallyMaxHbiAccountSize) {
       throw new SystemThresholdException(orgId, tallyMaxHbiAccountSize, inventoryCount);
@@ -122,44 +123,49 @@ public class InventoryAccountUsageCollector {
             orgHostsData.incrementGuestCount(host.getHypervisorUuid());
           }
 
-          ServiceLevel[] slas = new ServiceLevel[] {facts.getSla(), ServiceLevel._ANY};
-          Usage[] usages = new Usage[] {facts.getUsage(), Usage._ANY};
+          Set<List<Object>> usageTuples =
+              Sets.cartesianProduct(
+                  products,
+                  Set.of(facts.getSla(), ServiceLevel._ANY),
+                  Set.of(facts.getUsage(), Usage._ANY));
 
           // Calculate for each UsageKey
           // review current implementation of default values, and determine if factnormalizer needs
           // to handle billingAcctId & BillingProvider
-          products.forEach(
-              product -> {
-                for (ServiceLevel sla : slas) {
-                  for (Usage usage : usages) {
-                    UsageCalculation.Key key =
-                        new UsageCalculation.Key(product, sla, usage, BillingProvider._ANY, "_ANY");
-                    if (facts.getProducts().contains(product)) {
-                      try {
-                        String hypervisorUuid = facts.getHypervisorUuid();
-                        if (hypervisorUuid != null) {
-                          orgHostsData.addHypervisorKey(hypervisorUuid, key);
-                        }
-                        Optional<HostTallyBucket> appliedBucket =
-                            ProductUsageCollectorFactory.get(product).buildBucket(key, facts);
-                        appliedBucket.ifPresent(
-                            bucket -> {
-                              // host.addBucket changes bucket.key.hostId, so we do that first; to
-                              // avoid mutating the item in the set
-                              host.addBucket(bucket);
-                              seenBucketKeys.add(bucket.getKey());
-                            });
-                      } catch (Exception e) {
-                        log.error(
-                            "Unable to collect usage data for host: {} product: {}",
-                            hostFacts.getSubscriptionManagerId(),
-                            product,
-                            e);
-                      }
-                    }
-                  }
-                }
-              });
+          for (List<Object> tuple : usageTuples) {
+            String product = (String) tuple.get(0);
+            ServiceLevel sla = (ServiceLevel) tuple.get(1);
+            Usage usage = (Usage) tuple.get(2);
+
+            UsageCalculation.Key key =
+                new UsageCalculation.Key(product, sla, usage, BillingProvider._ANY, "_ANY");
+
+            if (!facts.getProducts().contains(product)) {
+              continue;
+            }
+
+            try {
+              String hypervisorUuid = facts.getHypervisorUuid();
+              if (hypervisorUuid != null) {
+                orgHostsData.addHypervisorKey(hypervisorUuid, key);
+              }
+              Optional<HostTallyBucket> appliedBucket =
+                  ProductUsageCollectorFactory.get(product).buildBucket(key, facts);
+              appliedBucket.ifPresent(
+                  bucket -> {
+                    // host.addBucket changes bucket.key.hostId, so we do that first; to
+                    // avoid mutating the item in the set
+                    host.addBucket(bucket);
+                    seenBucketKeys.add(bucket.getKey());
+                  });
+            } catch (Exception e) {
+              log.error(
+                  "Unable to collect usage data for host: {} product: {}",
+                  hostFacts.getSubscriptionManagerId(),
+                  product,
+                  e);
+            }
+          }
           // Save the host now that the buckets have been determined. Hypervisor hosts will
           // be persisted once all potential guests have been processed.
           if (!facts.isHypervisor()) {
@@ -200,7 +206,7 @@ public class InventoryAccountUsageCollector {
   @SuppressWarnings("squid:S3776")
   @Transactional
   public AccountUsageCalculation tally(
-      Collection<String> products, OrgHostsData orgHostsData, String account, String orgId) {
+      Set<String> products, OrgHostsData orgHostsData, String account, String orgId) {
     AccountUsageCalculation accountCalc = new AccountUsageCalculation(orgId);
     for (var entry : orgHostsData.getHostNormalizedFactsMap().entrySet()) {
       Host host = entry.getKey();
@@ -221,30 +227,33 @@ public class InventoryAccountUsageCollector {
         accountCalc.setAccount(hostAccount);
       }
 
-      ServiceLevel[] slas = new ServiceLevel[] {facts.getSla(), ServiceLevel._ANY};
-      Usage[] usages = new Usage[] {facts.getUsage(), Usage._ANY};
+      Set<List<Object>> usageTuples =
+          Sets.cartesianProduct(
+              products,
+              Set.of(facts.getSla(), ServiceLevel._ANY),
+              Set.of(facts.getUsage(), Usage._ANY));
 
       // Calculate for each UsageKey
       // review current implementation of default values, and determine if factnormalizer needs
       // to handle billingAcctId & BillingProvider
-      for (String product : products) {
-        for (ServiceLevel sla : slas) {
-          for (Usage usage : usages) {
-            UsageCalculation.Key key =
-                new UsageCalculation.Key(product, sla, usage, BillingProvider._ANY, "_ANY");
-            UsageCalculation calc = accountCalc.getOrCreateCalculation(key);
-            if (facts.getProducts().contains(product)) {
-              try {
-                ProductUsageCollectorFactory.get(product).collect(calc, facts);
-              } catch (Exception e) {
-                log.error(
-                    "Unable to tally usage data for host: {} product: {}",
-                    host.getSubscriptionManagerId(),
-                    product,
-                    e);
-              }
-            }
-          }
+      for (List<Object> tuple : usageTuples) {
+        String product = (String) tuple.get(0);
+        ServiceLevel sla = (ServiceLevel) tuple.get(1);
+        Usage usage = (Usage) tuple.get(2);
+        UsageCalculation.Key key =
+            new UsageCalculation.Key(product, sla, usage, BillingProvider._ANY, "_ANY");
+        UsageCalculation calc = accountCalc.getOrCreateCalculation(key);
+        if (!facts.getProducts().contains(product)) {
+          continue;
+        }
+        try {
+          ProductUsageCollectorFactory.get(product).collect(calc, facts);
+        } catch (Exception e) {
+          log.error(
+              "Unable to tally usage data for host: {} product: {}",
+              host.getSubscriptionManagerId(),
+              product,
+              e);
         }
       }
     }
