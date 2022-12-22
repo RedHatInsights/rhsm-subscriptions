@@ -205,9 +205,8 @@ public class InventoryAccountUsageCollector {
 
   @SuppressWarnings("squid:S3776")
   @Transactional
-  public AccountUsageCalculation tally(
-      Set<String> products, OrgHostsData orgHostsData, String account, String orgId) {
-    AccountUsageCalculation accountCalc = new AccountUsageCalculation(orgId);
+  public AccountUsageCalculation tally(Set<String> products, OrgHostsData orgHostsData) {
+    AccountUsageCalculation accountCalc = new AccountUsageCalculation(orgHostsData.getOrgId());
     for (var entry : orgHostsData.getHostNormalizedFactsMap().entrySet()) {
       Host host = entry.getKey();
       NormalizedFacts facts = entry.getValue();

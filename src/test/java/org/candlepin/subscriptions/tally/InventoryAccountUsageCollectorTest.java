@@ -93,8 +93,7 @@ class InventoryAccountUsageCollectorTest {
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(hypervisor));
 
     OrgHostsData orgHostsData = collector.collect(NON_RHEL_PRODUCTS, ACCOUNT, ORG_ID);
-    AccountUsageCalculation calc =
-        collector.tally(NON_RHEL_PRODUCTS, orgHostsData, ACCOUNT, ORG_ID);
+    AccountUsageCalculation calc = collector.tally(NON_RHEL_PRODUCTS, orgHostsData);
     // odd sockets are rounded up.
     checkTotalsCalculation(calc, ACCOUNT, ORG_ID, NON_RHEL, 12, 4, 1);
     checkPhysicalTotalsCalculation(calc, ACCOUNT, ORG_ID, NON_RHEL, 12, 4, 1);
@@ -116,7 +115,7 @@ class InventoryAccountUsageCollectorTest {
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(hypervisor));
 
     OrgHostsData orgHostsData = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
-    AccountUsageCalculation calc = collector.tally(RHEL_PRODUCTS, orgHostsData, ACCOUNT, ORG_ID);
+    AccountUsageCalculation calc = collector.tally(RHEL_PRODUCTS, orgHostsData);
     // odd sockets are rounded up.
     checkTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
     // no guests running RHEL means no hypervisor total...
@@ -137,7 +136,7 @@ class InventoryAccountUsageCollectorTest {
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(guest));
 
     OrgHostsData orgHostsData = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
-    AccountUsageCalculation calc = collector.tally(RHEL_PRODUCTS, orgHostsData, ACCOUNT, ORG_ID);
+    AccountUsageCalculation calc = collector.tally(RHEL_PRODUCTS, orgHostsData);
     UsageCalculation productCalc = calc.getCalculation(createUsageKey(TEST_PRODUCT));
     assertNull(productCalc.getTotals(HardwareMeasurementType.TOTAL));
     assertNull(productCalc.getTotals(HardwareMeasurementType.PHYSICAL));
@@ -157,7 +156,7 @@ class InventoryAccountUsageCollectorTest {
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(guest));
 
     OrgHostsData orgHostsData = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
-    AccountUsageCalculation calc = collector.tally(RHEL_PRODUCTS, orgHostsData, ACCOUNT, ORG_ID);
+    AccountUsageCalculation calc = collector.tally(RHEL_PRODUCTS, orgHostsData);
     checkTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 1, 1);
     checkVirtualTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 1, 1);
     assertNull(
@@ -180,7 +179,7 @@ class InventoryAccountUsageCollectorTest {
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(host));
 
     OrgHostsData orgHostsData = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
-    AccountUsageCalculation calc = collector.tally(RHEL_PRODUCTS, orgHostsData, ACCOUNT, ORG_ID);
+    AccountUsageCalculation calc = collector.tally(RHEL_PRODUCTS, orgHostsData);
     // odd sockets are rounded up.
     checkTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
     checkPhysicalTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
@@ -216,14 +215,12 @@ class InventoryAccountUsageCollectorTest {
     when(inventoryRepo.getFacts(eq(List.of(orgId2)), anyInt())).thenReturn(Stream.of(host3));
 
     OrgHostsData orgHostsData1 = collector.collect(RHEL_PRODUCTS, ACCOUNT, orgId1);
-    AccountUsageCalculation a1Calc =
-        collector.tally(RHEL_PRODUCTS, orgHostsData1, account1, orgId1);
+    AccountUsageCalculation a1Calc = collector.tally(RHEL_PRODUCTS, orgHostsData1);
     assertEquals(1, a1Calc.getProducts().size());
     checkTotalsCalculation(a1Calc, account1, orgId1, "RHEL", 12, 8, 2);
 
     OrgHostsData orgHostsData2 = collector.collect(RHEL_PRODUCTS, ACCOUNT, orgId2);
-    AccountUsageCalculation a2Calc =
-        collector.tally(RHEL_PRODUCTS, orgHostsData2, account2, orgId2);
+    AccountUsageCalculation a2Calc = collector.tally(RHEL_PRODUCTS, orgHostsData2);
     assertEquals(1, a2Calc.getProducts().size());
     checkTotalsCalculation(a2Calc, account2, orgId2, TEST_PRODUCT, 6, 2, 1);
   }
@@ -256,7 +253,7 @@ class InventoryAccountUsageCollectorTest {
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(host1, host2));
 
     OrgHostsData orgHostsData = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
-    AccountUsageCalculation a1Calc = collector.tally(RHEL_PRODUCTS, orgHostsData, ACCOUNT, ORG_ID);
+    AccountUsageCalculation a1Calc = collector.tally(RHEL_PRODUCTS, orgHostsData);
     assertEquals(1, a1Calc.getProducts().size());
     checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, "RHEL", 16, 16, 2);
     checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, "RHEL", ServiceLevel._ANY, 16, 16, 2);
@@ -294,7 +291,7 @@ class InventoryAccountUsageCollectorTest {
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(host1, host2));
 
     OrgHostsData orgHostsData = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
-    AccountUsageCalculation a1Calc = collector.tally(RHEL_PRODUCTS, orgHostsData, ACCOUNT, ORG_ID);
+    AccountUsageCalculation a1Calc = collector.tally(RHEL_PRODUCTS, orgHostsData);
     assertEquals(1, a1Calc.getProducts().size());
     checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, "RHEL", 16, 16, 2);
     checkTotalsCalculation(
@@ -358,14 +355,12 @@ class InventoryAccountUsageCollectorTest {
     when(inventoryRepo.getFacts(eq(List.of(orgId2)), anyInt())).thenReturn(Stream.of(host3));
 
     OrgHostsData orgHostsData1 = collector.collect(RHEL_PRODUCTS, ACCOUNT, orgId1);
-    AccountUsageCalculation a1Calc =
-        collector.tally(RHEL_PRODUCTS, orgHostsData1, account1, orgId1);
+    AccountUsageCalculation a1Calc = collector.tally(RHEL_PRODUCTS, orgHostsData1);
     assertEquals(1, a1Calc.getProducts().size());
     checkTotalsCalculation(a1Calc, account1, orgId1, TEST_PRODUCT, 12, 8, 2);
 
     OrgHostsData orgHostsData2 = collector.collect(RHEL_PRODUCTS, ACCOUNT, orgId2);
-    AccountUsageCalculation a2Calc =
-        collector.tally(RHEL_PRODUCTS, orgHostsData2, account2, orgId2);
+    AccountUsageCalculation a2Calc = collector.tally(RHEL_PRODUCTS, orgHostsData2);
     assertEquals(1, a2Calc.getProducts().size());
     checkTotalsCalculation(a2Calc, account2, orgId2, TEST_PRODUCT, 12, 6, 1);
   }
@@ -386,8 +381,7 @@ class InventoryAccountUsageCollectorTest {
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(h1, h2));
 
     OrgHostsData orgHostsData = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
-    AccountUsageCalculation accountCalc =
-        collector.tally(RHEL_PRODUCTS, orgHostsData, ACCOUNT, ORG_ID);
+    AccountUsageCalculation accountCalc = collector.tally(RHEL_PRODUCTS, orgHostsData);
     assertEquals(1, accountCalc.getProducts().size());
     checkTotalsCalculation(accountCalc, ACCOUNT, ORG_ID, TEST_PRODUCT, 8, 2, 1);
   }
@@ -408,8 +402,7 @@ class InventoryAccountUsageCollectorTest {
     var orgHostData = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
     Throwable e =
         assertThrows(
-            IllegalStateException.class,
-            () -> collector.tally(RHEL_PRODUCTS, orgHostData, ACCOUNT, ORG_ID));
+            IllegalStateException.class, () -> collector.tally(RHEL_PRODUCTS, orgHostData));
 
     String expectedMessage =
         String.format(
@@ -454,15 +447,13 @@ class InventoryAccountUsageCollectorTest {
     when(inventoryRepo.getFacts(eq(List.of(orgId2)), anyInt())).thenReturn(Stream.of(host3, host4));
 
     OrgHostsData orgHostsData1 = collector.collect(RHEL_PRODUCTS, ACCOUNT, orgId1);
-    AccountUsageCalculation a1Calc =
-        collector.tally(RHEL_PRODUCTS, orgHostsData1, account1, orgId1);
+    AccountUsageCalculation a1Calc = collector.tally(RHEL_PRODUCTS, orgHostsData1);
     assertEquals(1, a1Calc.getProducts().size());
     checkTotalsCalculation(a1Calc, account1, orgId1, TEST_PRODUCT, 12, 8, 2);
     checkPhysicalTotalsCalculation(a1Calc, account1, orgId1, TEST_PRODUCT, 12, 8, 2);
 
     OrgHostsData orgHostsData2 = collector.collect(RHEL_PRODUCTS, ACCOUNT, orgId2);
-    AccountUsageCalculation a2Calc =
-        collector.tally(RHEL_PRODUCTS, orgHostsData2, account2, orgId2);
+    AccountUsageCalculation a2Calc = collector.tally(RHEL_PRODUCTS, orgHostsData2);
     assertEquals(1, a2Calc.getProducts().size());
     checkTotalsCalculation(a2Calc, account2, orgId2, TEST_PRODUCT, 10, 4, 2);
     checkPhysicalTotalsCalculation(a2Calc, account2, orgId2, TEST_PRODUCT, 10, 4, 2);
@@ -494,7 +485,7 @@ class InventoryAccountUsageCollectorTest {
         .thenReturn(Stream.of(hypervisor, guest1, guest2));
 
     OrgHostsData orgHostsData = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
-    AccountUsageCalculation calc = collector.tally(RHEL_PRODUCTS, orgHostsData, ACCOUNT, ORG_ID);
+    AccountUsageCalculation calc = collector.tally(RHEL_PRODUCTS, orgHostsData);
     // odd sockets are rounded up for hypervisor.
     // hypervisor gets counted twice - once for itself, once for the guests
     checkTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 24, 8, 2);
@@ -528,7 +519,7 @@ class InventoryAccountUsageCollectorTest {
         .thenReturn(Stream.of(hypervisor, guest1, guest2));
 
     OrgHostsData orgHostsData = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
-    AccountUsageCalculation calc = collector.tally(RHEL_PRODUCTS, orgHostsData, ACCOUNT, ORG_ID);
+    AccountUsageCalculation calc = collector.tally(RHEL_PRODUCTS, orgHostsData);
     // odd sockets are rounded up for hypervisor.
     checkTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
     checkHypervisorTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
@@ -614,7 +605,7 @@ class InventoryAccountUsageCollectorTest {
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(host));
 
     OrgHostsData orgHostsData = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
-    AccountUsageCalculation calc = collector.tally(RHEL_PRODUCTS, orgHostsData, ACCOUNT, ORG_ID);
+    AccountUsageCalculation calc = collector.tally(RHEL_PRODUCTS, orgHostsData);
     // odd sockets are rounded up.
     checkTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
     checkPhysicalTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);

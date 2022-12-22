@@ -122,8 +122,8 @@ public class TallySnapshotController {
       if (Objects.isNull(orgHostsData)) { // orgHostsData is null when the threshold is breached
         return;
       }
+      accountCalc = usageCollector.tally(this.applicableProducts, orgHostsData);
 
-      accountCalc = usageCollector.tally(this.applicableProducts, orgHostsData, account, orgId);
       if (props.isCloudigradeEnabled()) {
         attemptCloudigradeEnrichment(accountCalc);
       }

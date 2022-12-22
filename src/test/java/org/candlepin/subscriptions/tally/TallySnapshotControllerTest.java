@@ -69,7 +69,7 @@ class TallySnapshotControllerTest {
     accountCalc.setAccount(ACCOUNT);
 
     when(inventoryCollector.collect(any(), any(), any())).thenReturn(new OrgHostsData(ORG_ID));
-    when(inventoryCollector.tally(any(), any(), any(), any())).thenReturn(accountCalc);
+    when(inventoryCollector.tally(any(), any())).thenReturn(accountCalc);
   }
 
   @AfterEach
