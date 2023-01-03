@@ -20,13 +20,19 @@
  */
 package org.candlepin.subscriptions.product;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
+import org.candlepin.subscriptions.umb.CanonicalMessage;
+import org.candlepin.subscriptions.umb.UmbOperationalProduct;
+import org.candlepin.subscriptions.umb.UmbProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
+import org.springframework.jms.annotation.JmsListener;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
@@ -36,15 +42,20 @@ import org.springframework.stereotype.Service;
 public class OfferingWorker extends SeekableKafkaConsumer {
 
   private final OfferingSyncController controller;
+  private final UmbProperties umbProperties;
+  private final XmlMapper xmlMapper;
 
   @Autowired
   protected OfferingWorker(
       @Qualifier("offeringSyncTasks") TaskQueueProperties taskQueueProperties,
       KafkaConsumerRegistry kafkaConsumerRegistry,
-      OfferingSyncController controller) {
+      OfferingSyncController controller,
+      UmbProperties umbProperties) {
     super(taskQueueProperties, kafkaConsumerRegistry);
 
     this.controller = controller;
+    this.umbProperties = umbProperties;
+    this.xmlMapper = CanonicalMessage.createMapper();
   }
 
   @KafkaListener(
@@ -56,5 +67,19 @@ public class OfferingWorker extends SeekableKafkaConsumer {
     log.info("Sync for offeringSku={} triggered by OfferingSyncTask", sku);
 
     controller.syncOffering(sku);
+  }
+
+  @JmsListener(destination = "#{@umbProperties.productTopic}")
+  public void receive(String productMessageXml) throws JsonProcessingException {
+    log.debug("Received message from UMB offering product{}", productMessageXml);
+    if (!umbProperties.isProcessingEnabled()) {
+      return;
+    }
+    CanonicalMessage productMessage =
+        xmlMapper.readValue(productMessageXml, CanonicalMessage.class);
+    UmbOperationalProduct operationalProduct =
+        productMessage.getPayload().getSync().getOperationalProduct();
+    log.info("Received UMB message for productSku={}", operationalProduct.getSku());
+    controller.syncUmbProduct(operationalProduct);
   }
 }

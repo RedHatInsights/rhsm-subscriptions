@@ -26,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.candlepin.subscriptions.task.TaskQueueProperties;
+import org.candlepin.subscriptions.umb.UmbProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.junit.jupiter.api.Test;
 
@@ -37,10 +38,11 @@ class OfferingWorkerTest {
     TaskQueueProperties props = mock(TaskQueueProperties.class);
     KafkaConsumerRegistry consumerReg = mock(KafkaConsumerRegistry.class);
     OfferingSyncController controller = mock(OfferingSyncController.class);
+    UmbProperties umbProperties = mock(UmbProperties.class);
 
     when(controller.syncOffering(anyString())).thenReturn(SyncResult.FETCHED_AND_SYNCED);
 
-    OfferingWorker subject = new OfferingWorker(props, consumerReg, controller);
+    OfferingWorker subject = new OfferingWorker(props, consumerReg, controller, umbProperties);
 
     // When an allowlisted SKU is received,
     String sku = "RH00604F5";

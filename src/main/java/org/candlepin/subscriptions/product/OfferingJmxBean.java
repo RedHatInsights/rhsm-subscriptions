@@ -25,8 +25,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.security.SecurityProperties;
+import org.candlepin.subscriptions.umb.UmbProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
+import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jmx.JmxException;
 import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedOperationParameter;
@@ -39,18 +41,27 @@ import org.springframework.stereotype.Component;
 @ManagedResource
 @Slf4j
 public class OfferingJmxBean {
+
+  public static final String NOT_ENABLED_MESSAGE = "This feature is not currently enabled.";
   private final OfferingSyncController offeringSync;
   private final CapacityReconciliationController capacityReconciliationController;
   private final SecurityProperties properties;
+
+  private final UmbProperties umbProperties;
+  private final JmsTemplate jmsTemplate;
 
   @Autowired
   public OfferingJmxBean(
       OfferingSyncController offeringSync,
       CapacityReconciliationController capacityReconciliationController,
-      SecurityProperties properties) {
+      SecurityProperties properties,
+      UmbProperties umbProperties,
+      JmsTemplate jmsTemplate) {
     this.offeringSync = offeringSync;
     this.capacityReconciliationController = capacityReconciliationController;
     this.properties = properties;
+    this.umbProperties = umbProperties;
+    this.jmsTemplate = jmsTemplate;
   }
 
   @ManagedOperation(description = "Sync an offering from the upstream source.")
@@ -119,7 +130,7 @@ public class OfferingJmxBean {
       String engProdJsonArray,
       boolean reconcileCapacity) {
     if (!properties.isDevMode() && !properties.isManualSubscriptionEditingEnabled()) {
-      throw new JmxException("This feature is not currently enabled.");
+      throw new JmxException(NOT_ENABLED_MESSAGE);
     }
     try {
       Object principal = ResourceUtils.getPrincipal();
@@ -138,10 +149,26 @@ public class OfferingJmxBean {
   @ManagedOperation(description = "Delete an offering manually. Supported only in dev-mode.")
   public void deleteOffering(String sku) {
     if (!properties.isDevMode() && !properties.isManualSubscriptionEditingEnabled()) {
-      throw new JmxException("This feature is not currently enabled.");
+      throw new JmxException(NOT_ENABLED_MESSAGE);
     }
     Object principal = ResourceUtils.getPrincipal();
     log.info("Delete of subscription triggered over JMX by {}", principal);
     offeringSync.deleteOffering(sku);
+  }
+
+  @ManagedOperation(description = "Sync UMB product manually. Supported only in dev-mode.")
+  @ManagedOperationParameter(name = "productXml", description = "XML containing a UMB message")
+  public void syncProductFromXml(String productXml) {
+    if (!properties.isDevMode() && !properties.isManualSubscriptionEditingEnabled()) {
+      throw new JmxException(NOT_ENABLED_MESSAGE);
+    }
+    try {
+      Object principal = ResourceUtils.getPrincipal();
+      jmsTemplate.convertAndSend(umbProperties.getProductTopic(), productXml);
+      log.info("Sync of UMB product triggered over JMX by {}", principal);
+    } catch (Exception e) {
+      log.error("Error saving UMB product", e);
+      throw new JmxException("Error saving product. See log for details.");
+    }
   }
 }
