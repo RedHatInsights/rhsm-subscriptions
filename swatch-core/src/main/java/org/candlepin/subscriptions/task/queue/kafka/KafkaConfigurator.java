@@ -22,9 +22,7 @@ package org.candlepin.subscriptions.task.queue.kafka;
 
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.candlepin.subscriptions.task.JsonTaskMessage;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,13 +31,11 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.config.KafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.kafka.listener.ContainerProperties.AckMode;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
-import org.springframework.kafka.support.serializer.JsonSerializer;
 
 /**
  * Encapsulates the creation of all components required for producing and consuming Kafka messages
@@ -52,14 +48,6 @@ public class KafkaConfigurator {
   @Autowired
   public KafkaConfigurator(KafkaConsumerRegistry consumerRegistry) {
     this.consumerRegistry = consumerRegistry;
-  }
-
-  public DefaultKafkaProducerFactory<String, JsonTaskMessage> defaultProducerFactory(
-      KafkaProperties kafkaProperties) {
-    Map<String, Object> properties = kafkaProperties.buildProducerProperties();
-    properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-    properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-    return new DefaultKafkaProducerFactory<>(properties);
   }
 
   public ConsumerFactory<String, JsonTaskMessage> defaultConsumerFactory(
