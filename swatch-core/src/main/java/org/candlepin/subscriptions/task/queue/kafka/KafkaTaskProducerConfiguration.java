@@ -48,9 +48,6 @@ import org.springframework.kafka.support.serializer.JsonSerializer;
 @Profile("kafka-queue")
 @Import(KafkaConfiguration.class)
 public class KafkaTaskProducerConfiguration {
-
-  @Autowired private KafkaConfigurator kafkaConfigurator;
-
   @Bean
   public ProducerFactory<String, JsonTaskMessage> jsonProducerFactory(
       KafkaProperties kafkaProperties) {
@@ -59,7 +56,7 @@ public class KafkaTaskProducerConfiguration {
 
   @Bean
   public KafkaTemplate<String, JsonTaskMessage> jsonKafkaProducerTemplate(
-      ProducerFactory<String, JsonTaskMessage> jsonProducerFactory) {
+      ProducerFactory<String, JsonTaskMessage> jsonProducerFactory, KafkaConfigurator kafkaConfigurator) {
     return kafkaConfigurator.jsonTaskMessageKafkaTemplate(jsonProducerFactory);
   }
 
