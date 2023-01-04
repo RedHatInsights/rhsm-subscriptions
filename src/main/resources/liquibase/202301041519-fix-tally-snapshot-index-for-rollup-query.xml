@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202301041519-1" author="khowell">
+    <comment>Create org-id based index for use in rollup queries.</comment>
+    <!--
+    NOTE: this index is equivalent to tally_snapshot_unique_constraint except for column ordering
+    and the intentional absence of account_number.
+    -->
+    <createIndex tableName="tally_snapshots" indexName="tally_snapshot_unique_org_id" unique="true">
+      <column name="org_id"/>
+      <column name="product_id"/>
+      <column name="granularity"/>
+      <column name="snapshot_date"/>
+      <column name="sla"/>
+      <column name="usage"/>
+      <column name="unit_of_measure"/>
+    </createIndex>
+  </changeSet>
+  <changeSet id="202301041519-2" author="khowell">
+    <comment>Drop now-redundant unique constraint.</comment>
+    <dropUniqueConstraint tableName="tally_snapshots" constraintName="tally_snapshot_unique_constraint"/>
+  </changeSet>
+  <changeSet id="202301041519-3" author="khowell">
+    <comment>Rename unique constraint.</comment>
+    <sql>alter index tally_snapshot_unique_org_id rename to tally_snapshot_unique_constraint</sql>
+  </changeSet>
+
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->
