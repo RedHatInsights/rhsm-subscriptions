@@ -30,8 +30,8 @@ import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 /**
- * Wrapper for the interim step of producing exclusively JSON kafka messages,
- * but supporting any kafka messages that may not have been processed yet that were serialized with Avro.
+ * Wrapper for the interim step of producing exclusively JSON kafka messages, but supporting any
+ * kafka messages that may not have been processed yet that were serialized with Avro.
  */
 @Slf4j
 public class TaskMessageDeserializer<T> implements Deserializer<T> {
@@ -47,19 +47,18 @@ public class TaskMessageDeserializer<T> implements Deserializer<T> {
     avroDeserializer.configure(configs, isKey);
   }
 
-
   /*
-  * This doesn't actually get called for some reason.  The Deserialize interface is kind of complicated
-  * and we're forced to override this because of the interface definition
-  */
+   * This doesn't actually get called for some reason.  The Deserialize interface is kind of complicated
+   * and we're forced to override this because of the interface definition
+   */
   @Override
   public T deserialize(String topic, byte[] data) {
     return jsonDeserializer.deserialize(topic, data);
   }
 
   /*
-  * The interface defines a default definition for this, but if we don't override it here then the above
-  * deserialize method gets called instead.  Just trust me.
+   * The interface defines a default definition for this, but if we don't override it here then the above
+   * deserialize method gets called instead.  Just trust me.
    */
   @Override
   public T deserialize(String topic, Headers headers, byte[] data) {

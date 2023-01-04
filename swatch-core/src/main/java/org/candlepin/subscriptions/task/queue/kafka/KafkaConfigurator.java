@@ -75,8 +75,7 @@ public class KafkaConfigurator {
     consumerConfig.put(
         ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
 
-
-    //Delegate deserialization to TaskMessageDeserializer.class
+    // Delegate deserialization to TaskMessageDeserializer.class
     consumerConfig.put(
         ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, TaskMessageDeserializer.class);
 
