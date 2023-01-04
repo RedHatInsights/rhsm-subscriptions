@@ -26,7 +26,6 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.candlepin.subscriptions.task.JsonTaskMessage;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -56,7 +55,8 @@ public class KafkaTaskProducerConfiguration {
 
   @Bean
   public KafkaTemplate<String, JsonTaskMessage> jsonKafkaProducerTemplate(
-      ProducerFactory<String, JsonTaskMessage> jsonProducerFactory, KafkaConfigurator kafkaConfigurator) {
+      ProducerFactory<String, JsonTaskMessage> jsonProducerFactory,
+      KafkaConfigurator kafkaConfigurator) {
     return kafkaConfigurator.jsonTaskMessageKafkaTemplate(jsonProducerFactory);
   }
 
