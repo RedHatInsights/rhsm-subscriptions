@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
-import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
+import org.candlepin.subscriptions.task.JsonTaskMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
@@ -54,14 +54,15 @@ public class KafkaTaskConsumerConfiguration {
   }
 
   @Bean
-  public ConsumerFactory<String, TaskMessage> consumerFactory(KafkaProperties kafkaProperties) {
+  public ConsumerFactory<String, JsonTaskMessage> consumerFactory(KafkaProperties kafkaProperties) {
     return kafkaConfigurator.defaultConsumerFactory(kafkaProperties);
   }
 
   @Bean
-  KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, TaskMessage>>
+  KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, JsonTaskMessage>>
       kafkaListenerContainerFactory(
-          ConsumerFactory<String, TaskMessage> consumerFactory, KafkaProperties kafkaProperties) {
+          ConsumerFactory<String, JsonTaskMessage> consumerFactory,
+          KafkaProperties kafkaProperties) {
 
     return kafkaConfigurator.defaultListenerContainerFactory(consumerFactory, kafkaProperties);
   }

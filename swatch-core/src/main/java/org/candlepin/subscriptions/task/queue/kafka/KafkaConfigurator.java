@@ -20,15 +20,12 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
-import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
-import io.confluent.kafka.serializers.KafkaAvroDeserializer;
-import io.confluent.kafka.serializers.KafkaAvroDeserializerConfig;
-import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.candlepin.subscriptions.task.JsonTaskMessage;
 import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +40,7 @@ import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 import org.springframework.kafka.listener.ContainerProperties.AckMode;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
+import org.springframework.kafka.support.serializer.JsonSerializer;
 
 /**
  * Encapsulates the creation of all components required for producing and consuming Kafka messages
@@ -59,52 +57,42 @@ public class KafkaConfigurator {
 
   public DefaultKafkaProducerFactory<String, TaskMessage> defaultProducerFactory(
       KafkaProperties kafkaProperties) {
-    Map<String, Object> producerConfig = kafkaProperties.buildProducerProperties();
-    boolean bypassRegistry = bypassSchemaRegistry(producerConfig);
-
-    producerConfig.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-    producerConfig.put(
-        ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-        bypassRegistry ? AvroSerializer.class : KafkaAvroSerializer.class);
-    return new DefaultKafkaProducerFactory<>(producerConfig);
+    Map<String, Object> properties = kafkaProperties.buildProducerProperties();
+    properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+    properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+    return new DefaultKafkaProducerFactory<>(properties);
   }
 
-  public ConsumerFactory<String, TaskMessage> defaultConsumerFactory(
+  public ConsumerFactory<String, JsonTaskMessage> defaultConsumerFactory(
       KafkaProperties kafkaProperties) {
     Map<String, Object> consumerConfig = kafkaProperties.buildConsumerProperties();
+
     // Task messages should be manually committed once they have been processed.
     consumerConfig.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
 
-    boolean bypassRegistry = bypassSchemaRegistry(consumerConfig);
-
     consumerConfig.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-    // Prevent the client from continuously replaying a message that fails to deserialize.
+
     consumerConfig.put(
         ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
 
-    // Configure the error handling delegate deserializer classes based on whether the
-    // schema registry is being bypassed.
-    if (bypassRegistry) {
-      consumerConfig.put(
-          ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, AvroDeserializer.class);
-      consumerConfig.put(AvroDeserializer.TARGET_TYPE_CLASS, TaskMessage.class);
-    } else {
-      consumerConfig.put(
-          ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, KafkaAvroDeserializer.class);
-      consumerConfig.put(KafkaAvroDeserializerConfig.SPECIFIC_AVRO_READER_CONFIG, true);
-    }
+
+    //Delegate deserialization to TaskMessageDeserializer.class
+    consumerConfig.put(
+        ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, TaskMessageDeserializer.class);
+
     return new DefaultKafkaConsumerFactory<>(consumerConfig);
   }
 
-  public KafkaTemplate<String, TaskMessage> taskMessageKafkaTemplate(
-      ProducerFactory<String, TaskMessage> factory) {
+  public KafkaTemplate<String, JsonTaskMessage> jsonTaskMessageKafkaTemplate(
+      ProducerFactory<String, JsonTaskMessage> factory) {
     return new KafkaTemplate<>(factory);
   }
 
-  public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, TaskMessage>>
+  public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, JsonTaskMessage>>
       defaultListenerContainerFactory(
-          ConsumerFactory<String, TaskMessage> consumerFactory, KafkaProperties kafkaProperties) {
-    ConcurrentKafkaListenerContainerFactory<String, TaskMessage> factory =
+          ConsumerFactory<String, JsonTaskMessage> consumerFactory,
+          KafkaProperties kafkaProperties) {
+    ConcurrentKafkaListenerContainerFactory<String, JsonTaskMessage> factory =
         new ConcurrentKafkaListenerContainerFactory<>();
     factory.setConsumerFactory(consumerFactory);
     // Concurrency should be set to the number of partitions for the target topic.
@@ -120,9 +108,5 @@ public class KafkaConfigurator {
     // hack to track the Kafka consumers, so SeekableKafkaConsumer can commit when needed
     factory.getContainerProperties().setConsumerRebalanceListener(consumerRegistry);
     return factory;
-  }
-
-  private boolean bypassSchemaRegistry(Map<String, Object> config) {
-    return !config.containsKey(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG);
   }
 }

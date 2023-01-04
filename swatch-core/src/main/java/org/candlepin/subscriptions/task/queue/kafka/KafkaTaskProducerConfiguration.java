@@ -24,14 +24,15 @@ import java.util.Map;
 import javax.validation.constraints.NotNull;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.candlepin.subscriptions.task.JsonTaskMessage;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
-import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonSerializer;
@@ -51,14 +52,15 @@ public class KafkaTaskProducerConfiguration {
   @Autowired private KafkaConfigurator kafkaConfigurator;
 
   @Bean
-  public ProducerFactory<String, TaskMessage> producerFactory(KafkaProperties kafkaProperties) {
-    return kafkaConfigurator.defaultProducerFactory(kafkaProperties);
+  public ProducerFactory<String, JsonTaskMessage> jsonProducerFactory(
+      KafkaProperties kafkaProperties) {
+    return new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
   }
 
   @Bean
-  public KafkaTemplate<String, TaskMessage> kafkaProducerTemplate(
-      ProducerFactory<String, TaskMessage> factory) {
-    return kafkaConfigurator.taskMessageKafkaTemplate(factory);
+  public KafkaTemplate<String, JsonTaskMessage> jsonKafkaProducerTemplate(
+      ProducerFactory<String, JsonTaskMessage> jsonProducerFactory) {
+    return kafkaConfigurator.jsonTaskMessageKafkaTemplate(jsonProducerFactory);
   }
 
   @NotNull
@@ -70,7 +72,7 @@ public class KafkaTaskProducerConfiguration {
   }
 
   @Bean
-  public TaskQueue kafkaTaskQueue(KafkaTemplate<String, TaskMessage> producer) {
+  public TaskQueue kafkaTaskQueue(KafkaTemplate<String, JsonTaskMessage> producer) {
     return new KafkaTaskQueue(producer);
   }
 }

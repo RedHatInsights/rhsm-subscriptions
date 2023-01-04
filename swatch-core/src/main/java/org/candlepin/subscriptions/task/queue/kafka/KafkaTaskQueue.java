@@ -20,9 +20,9 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
+import org.candlepin.subscriptions.task.JsonTaskMessage;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
-import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -35,9 +35,9 @@ public class KafkaTaskQueue implements TaskQueue {
 
   private static final Logger log = LoggerFactory.getLogger(KafkaTaskQueue.class);
 
-  private final KafkaTemplate<String, TaskMessage> producer;
+  private final KafkaTemplate<String, JsonTaskMessage> producer;
 
-  public KafkaTaskQueue(KafkaTemplate<String, TaskMessage> producer) {
+  public KafkaTaskQueue(KafkaTemplate<String, JsonTaskMessage> producer) {
     this.producer = producer;
     log.info("Creating Kafka task queue...");
   }
@@ -47,14 +47,14 @@ public class KafkaTaskQueue implements TaskQueue {
   public void enqueue(TaskDescriptor taskDescriptor) {
     log.info("Queuing task: {}", taskDescriptor);
 
-    TaskMessage message =
-        TaskMessage.newBuilder()
-            .setType(taskDescriptor.getTaskType().name())
-            .setGroupId(taskDescriptor.getGroupId())
-            .setArgs(taskDescriptor.getTaskArgs())
+    JsonTaskMessage msg =
+        JsonTaskMessage.builder()
+            .type(taskDescriptor.getTaskType().name())
+            .groupId(taskDescriptor.getGroupId())
+            .args(taskDescriptor.getTaskArgs())
             .build();
 
     // Message key is auto-generated.
-    producer.send(taskDescriptor.getGroupId(), null, message);
+    producer.send(taskDescriptor.getGroupId(), null, msg);
   }
 }
