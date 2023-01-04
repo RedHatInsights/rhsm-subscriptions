@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.tally.collector;
 
 import java.util.Optional;
-import org.apache.commons.lang3.NotImplementedException;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.tally.UsageCalculation;
@@ -104,6 +103,6 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
 
   @Override
   public void collectForHypervisor(UsageCalculation prodCalc, NormalizedFacts hypervisorFacts) {
-    throw new NotImplementedException("Not implemented for " + this.getClass().getName());
+    // Intentionally left blank
   }
 }

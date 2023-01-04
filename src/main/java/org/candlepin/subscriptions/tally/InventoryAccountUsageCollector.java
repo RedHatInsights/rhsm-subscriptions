@@ -44,6 +44,7 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.InventoryDatabaseOperations;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
@@ -123,23 +124,19 @@ public class InventoryAccountUsageCollector {
             orgHostsData.incrementGuestCount(host.getHypervisorUuid());
           }
 
-          Set<List<Object>> usageTuples =
-              Sets.cartesianProduct(
+          Set<Key> usageKeys =
+              createKeyCombinations(
                   products,
                   Set.of(facts.getSla(), ServiceLevel._ANY),
-                  Set.of(facts.getUsage(), Usage._ANY));
+                  Set.of(facts.getUsage(), Usage._ANY),
+                  Set.of(BillingProvider._ANY),
+                  Set.of("_ANY"));
 
           // Calculate for each UsageKey
           // review current implementation of default values, and determine if factnormalizer needs
           // to handle billingAcctId & BillingProvider
-          for (List<Object> tuple : usageTuples) {
-            String product = (String) tuple.get(0);
-            ServiceLevel sla = (ServiceLevel) tuple.get(1);
-            Usage usage = (Usage) tuple.get(2);
-
-            UsageCalculation.Key key =
-                new UsageCalculation.Key(product, sla, usage, BillingProvider._ANY, "_ANY");
-
+          for (Key key : usageKeys) {
+            var product = key.getProductId();
             if (!facts.getProducts().contains(product)) {
               continue;
             }
@@ -226,21 +223,19 @@ public class InventoryAccountUsageCollector {
         accountCalc.setAccount(hostAccount);
       }
 
-      Set<List<Object>> usageTuples =
-          Sets.cartesianProduct(
+      Set<Key> usageKeys =
+          createKeyCombinations(
               products,
               Set.of(facts.getSla(), ServiceLevel._ANY),
-              Set.of(facts.getUsage(), Usage._ANY));
+              Set.of(facts.getUsage(), Usage._ANY),
+              Set.of(BillingProvider._ANY),
+              Set.of("_ANY"));
 
       // Calculate for each UsageKey
       // review current implementation of default values, and determine if factnormalizer needs
       // to handle billingAcctId & BillingProvider
-      for (List<Object> tuple : usageTuples) {
-        String product = (String) tuple.get(0);
-        ServiceLevel sla = (ServiceLevel) tuple.get(1);
-        Usage usage = (Usage) tuple.get(2);
-        UsageCalculation.Key key =
-            new UsageCalculation.Key(product, sla, usage, BillingProvider._ANY, "_ANY");
+      for (Key key : usageKeys) {
+        var product = key.getProductId();
         UsageCalculation calc = accountCalc.getOrCreateCalculation(key);
         if (!facts.getProducts().contains(product)) {
           continue;
@@ -259,6 +254,40 @@ public class InventoryAccountUsageCollector {
     orgHostsData.tallyGuestData(accountCalc);
     log.debug("Account Usage: {}", accountCalc);
     return accountCalc;
+  }
+
+  /**
+   * Create all possible combinations of product, SLA, usage, billing provider, and account ID.
+   *
+   * @param products productIds
+   * @param slas a set of SLAs
+   * @param usages a set of usages
+   * @param billingProviders a set of BillingProviders
+   * @param billingAccountIds a set of billing account IDs
+   * @return a set of UsageCalculation.Key representing all possible combinations of the input
+   *     parameters
+   */
+  public static Set<Key> createKeyCombinations(
+      Set<String> products,
+      Set<ServiceLevel> slas,
+      Set<Usage> usages,
+      Set<BillingProvider> billingProviders,
+      Set<String> billingAccountIds) {
+    Set<List<Object>> usageTuples =
+        Sets.cartesianProduct(products, slas, usages, billingProviders, billingAccountIds);
+    return usageTuples.stream()
+        .map(
+            tuple -> {
+              String product = (String) tuple.get(0);
+              ServiceLevel sla = (ServiceLevel) tuple.get(1);
+              Usage usage = (Usage) tuple.get(2);
+              BillingProvider billingProvider = (BillingProvider) tuple.get(3);
+              String billingAccountId = (String) tuple.get(4);
+
+              return new UsageCalculation.Key(
+                  product, sla, usage, billingProvider, billingAccountId);
+            })
+        .collect(Collectors.toSet());
   }
 
   private AccountServiceInventory fetchAccountServiceInventory(String orgId, String account) {
