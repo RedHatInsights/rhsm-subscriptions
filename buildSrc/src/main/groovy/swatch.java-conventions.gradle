@@ -19,14 +19,6 @@ dependencies {
     annotationProcessor libraries["lombok"]
     testCompileOnly libraries["lombok"]
     testAnnotationProcessor libraries["lombok"]
-
-    // common testing deps, junit + mockito + hamcrest
-    testImplementation "org.junit.jupiter:junit-jupiter-api"
-    testImplementation "org.junit.jupiter:junit-jupiter-params"
-    testImplementation "org.mockito:mockito-core"
-    testImplementation "org.mockito:mockito-junit-jupiter"
-    testImplementation "org.hamcrest:hamcrest"
-    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
 }
 
 spotless {
