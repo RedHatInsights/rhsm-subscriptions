@@ -26,7 +26,6 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.candlepin.subscriptions.task.JsonTaskMessage;
-import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -55,7 +54,7 @@ public class KafkaConfigurator {
     this.consumerRegistry = consumerRegistry;
   }
 
-  public DefaultKafkaProducerFactory<String, TaskMessage> defaultProducerFactory(
+  public DefaultKafkaProducerFactory<String, JsonTaskMessage> defaultProducerFactory(
       KafkaProperties kafkaProperties) {
     Map<String, Object> properties = kafkaProperties.buildProducerProperties();
     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
