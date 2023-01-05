@@ -32,8 +32,6 @@ dependencyManagement {
         dependency libraries["resteasy-multipart-provider"]
         dependency libraries["resteasy-validator-provider"]
         dependency libraries["resteasy-jackson2-provider"]
-        dependency libraries["kafka-avro-serializer"]
-        dependency libraries["avro"]
         dependency libraries["hawtio-springboot"]
         dependency libraries["guava"]
         dependency libraries["splunk-library-javalogging"]
