@@ -270,10 +270,6 @@ RHSM_RBAC_USE_STUB=true ./gradlew bootRun
 * `KAFKA_CONSUMER_RECONNECT_BACKOFF_MS`: kafka consumer reconnect backoff in milliseconds
 * `KAFKA_CONSUMER_RECONNECT_BACKOFF_MAX_MS`: kafka consumer reconnect max backoff in milliseconds
 * `KAFKA_API_RECONNECT_TIMEOUT_MS`: kafka connection timeout in milliseconds
-* `KAFKA_SCHEMA_REGISTRY_SCHEME`: avro schema server scheme (http or https)
-* `KAFKA_SCHEMA_REGISTRY_HOST`: kafka schema server host
-* `KAFKA_SCHEMA_REGISTRY_PORT`: kafka schema server port
-* `KAFKA_AUTO_REGISTER_SCHEMAS`: enable auto registration of schemas
 * `RHSM_RBAC_USE_STUB`: stub out the rbac service
 * `RHSM_RBAC_APPLICATION_NAME`: name of the RBAC permission application name (`<APP_NAME>:*:*`),
   by default this property is set to 'subscriptions'.

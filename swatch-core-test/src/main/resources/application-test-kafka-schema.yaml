@@ -1,6 +1,0 @@
-spring:
-  kafka:
-    properties:
-      # Enable the schema registry (registry mock ignores the URL but it must be set
-      # to enable registry checking).
-      schema.registry.url: unused

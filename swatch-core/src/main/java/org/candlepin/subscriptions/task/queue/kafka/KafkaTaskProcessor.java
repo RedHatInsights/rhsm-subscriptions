@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
+import org.candlepin.subscriptions.task.JsonTaskMessage;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskExecutionException;
 import org.candlepin.subscriptions.task.TaskFactory;
@@ -27,7 +28,6 @@ import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.TaskWorker;
 import org.candlepin.subscriptions.task.queue.TaskConsumer;
-import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
 import org.slf4j.Logger;
@@ -49,7 +49,7 @@ public class KafkaTaskProcessor extends SeekableKafkaConsumer implements TaskCon
   }
 
   @KafkaListener(id = "#{__listener.groupId}", topics = "#{__listener.topic}")
-  public void receive(TaskMessage taskMessage) {
+  public void receive(JsonTaskMessage taskMessage) {
     try {
       log.info("Message received from kafka: {}", taskMessage);
       worker.executeTask(describe(taskMessage));
@@ -60,7 +60,7 @@ public class KafkaTaskProcessor extends SeekableKafkaConsumer implements TaskCon
     }
   }
 
-  private TaskDescriptor describe(TaskMessage message) throws TaskExecutionException {
+  private TaskDescriptor describe(JsonTaskMessage message) throws TaskExecutionException {
     try {
       return TaskDescriptor.builder(TaskType.valueOf(message.getType()), message.getGroupId())
           .setArgs(message.getArgs())
