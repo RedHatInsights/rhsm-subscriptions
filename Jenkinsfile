@@ -8,8 +8,8 @@ pipeline {
             label 'swatch' // this value + unique identifier becomes the pod name
             idleMinutes 5  // how long the pod will live after no jobs have run on it
             containerTemplate {
-                name 'openjdk11'
-                image 'registry.access.redhat.com/ubi8/openjdk-11'
+                name 'openjdk17'
+                image 'registry.access.redhat.com/ubi9/openjdk-17'
                 command 'sleep'
                 args '99d'
                 resourceRequestCpu '2'
@@ -18,7 +18,7 @@ pipeline {
                 resourceLimitMemory '6Gi'
             }
 
-            defaultContainer 'openjdk11'
+            defaultContainer 'openjdk17'
         }
     }
     stages {

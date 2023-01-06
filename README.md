@@ -77,7 +77,7 @@ preferred development workflow.
 First, ensure you have podman-compose, podman and java 11 installed:
 
 ```
-sudo dnf install -y podman-compose podman java-11-openjdk-devel
+sudo dnf install -y podman-compose podman java-17-openjdk-devel
 ```
 
 *NOTE*: You can also use docker if don't want to or are unable to use podman. Make sure docker and docker-compose are installed.

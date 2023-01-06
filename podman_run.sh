@@ -30,7 +30,7 @@ $podman_cmd run \
   -w /workspace \
   -v $SOCKET:$SOCKET:Z \
   -v $(pwd):/workspace:Z \
-  registry.access.redhat.com/ubi8/openjdk-11 \
+  registry.access.redhat.com/ubi9/openjdk-17 \
   "$@"
   RETURN_CODE=$?
 if [[ -n "$PODMAN_PID" ]]; then
