@@ -45,6 +45,7 @@ public class TagMetric {
   private String rhmMetricId;
   private String awsDimension;
   private Uom uom;
+  @Default private Double billingFactor = 1.0;
   @Default private BillingWindow billingWindow = BillingWindow.MONTHLY;
   @Default private String queryKey = "default";
   @Default private String accountQueryKey = "default";

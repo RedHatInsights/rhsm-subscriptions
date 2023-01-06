@@ -120,6 +120,7 @@ class BillableUsageRemittanceRepositoryTest {
             .build();
     return BillableUsageRemittanceEntity.builder()
         .key(key)
+        .billingFactor(1.0)
         .remittanceDate(remittanceDate)
         .remittedValue(value)
         .build();

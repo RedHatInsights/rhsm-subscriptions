@@ -54,6 +54,10 @@ public class BillableUsageRemittanceEntity {
   @Column(name = "account_number", nullable = true)
   private String accountNumber;
 
+  @Basic
+  @Column(name = "billing_factor")
+  private Double billingFactor;
+
   // Version to enable optimistic locking
   @Version @Column private Integer version;
 }
