@@ -42,7 +42,7 @@ public class UmbProperties extends TlsProperties {
 
   private String subscriptionTopic = "VirtualTopic.canonical.subscription";
 
-  private String productTopic = "VirtualTopic.canonical.product";
+  private String productTopic = "VirtualTopic.canonical.operationalProduct";
 
   /**
    * Factory method that produces queue names that match UMB convention for VirtualTopics when
@@ -54,12 +54,12 @@ public class UmbProperties extends TlsProperties {
    * subscriptions. Given subscription watch needs a single notification per *environment*, we use
    * swatch-$namespace-$topic.
    */
-  public String getConsumerTopic(String topic) {
+  private String getConsumerTopic(String topic) {
     if (!topic.startsWith("VirtualTopic")) {
       return topic;
     }
-    String id = String.format("swatch-%s-%s", namespace, topic.replace(".", "_"));
-    return String.format("Consumer.%s.%s.%s", serviceAccountName, id, topic);
+    String subscriptionId = String.format("swatch-%s-%s", namespace, topic.replace(".", "_"));
+    return String.format("Consumer.%s.%s.%s", serviceAccountName, subscriptionId, topic);
   }
 
   public String getSubscriptionTopic() {

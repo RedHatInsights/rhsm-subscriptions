@@ -20,35 +20,45 @@
  */
 package org.candlepin.subscriptions.product;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.candlepin.subscriptions.task.TaskQueueProperties;
-import org.candlepin.subscriptions.umb.UmbProperties;
-import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import org.candlepin.subscriptions.umb.UmbOperationalProduct;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.ActiveProfiles;
 
+@SpringBootTest
+@ActiveProfiles({"capacity-ingress"})
 class OfferingWorkerTest {
+
+  @Autowired OfferingWorker offeringWorker;
+  @MockBean OfferingSyncController controller;
 
   @Test
   void testReceive() {
     // Given a SKU is allowlisted and retrievable from upstream,
-    TaskQueueProperties props = mock(TaskQueueProperties.class);
-    KafkaConsumerRegistry consumerReg = mock(KafkaConsumerRegistry.class);
-    OfferingSyncController controller = mock(OfferingSyncController.class);
-    UmbProperties umbProperties = mock(UmbProperties.class);
 
     when(controller.syncOffering(anyString())).thenReturn(SyncResult.FETCHED_AND_SYNCED);
 
-    OfferingWorker subject = new OfferingWorker(props, consumerReg, controller, umbProperties);
-
     // When an allowlisted SKU is received,
     String sku = "RH00604F5";
-    subject.receive(new OfferingSyncTask(sku));
+    offeringWorker.receive(new OfferingSyncTask(sku));
 
     // Then the offering should be synced.
     verify(controller).syncOffering(sku);
+  }
+
+  @Test
+  void testReceive_WhenValidProductTopic() throws JsonProcessingException {
+    String productMessageXml =
+        "<?xml version=\"1.0\"?> <CanonicalMessage><Payload><Sync><OperationalProduct><Sku>RH0180191</Sku><SkuDescription>Test</SkuDescription><Role>test</Role><ProductRelationship><ParentProduct><Sku>RH0180191</Sku></ParentProduct><ChildProduct><Sku>SVCRH01</Sku></ChildProduct><ChildProduct><Sku>SVCRH01V4</Sku></ChildProduct></ProductRelationship><Attribute><Code>USAGE</Code><Name>Usage</Name><Value>Production</Value></Attribute></OperationalProduct></Sync></Payload></CanonicalMessage>";
+    offeringWorker.receive(productMessageXml);
+    verify(controller).syncUmbProduct(any(UmbOperationalProduct.class));
   }
 }

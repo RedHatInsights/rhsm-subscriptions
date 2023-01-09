@@ -33,10 +33,10 @@ import org.springframework.util.StringUtils;
 @Service
 @Slf4j
 @Profile("capacity-ingress")
-public class ActiveMQUtils {
+public class ActiveMQServiceConfiguration {
   private final UmbProperties umbProperties;
 
-  public ActiveMQUtils(UmbProperties umbProperties) {
+  public ActiveMQServiceConfiguration(UmbProperties umbProperties) {
     this.umbProperties = umbProperties;
   }
 
@@ -58,6 +58,7 @@ public class ActiveMQUtils {
       }
     } else {
       // default to an embedded broker
+      log.debug("Defaulting to an embedded broker");
       factory.setBrokerURL("vm://localhost?broker.persistent=false");
     }
     if (umbProperties.providesTruststore()) {
