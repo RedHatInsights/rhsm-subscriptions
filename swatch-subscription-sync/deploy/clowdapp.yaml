@@ -91,7 +91,7 @@ parameters:
   - name: UMB_PROCESSING_ENABLED
     value: 'true'
   - name: ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC
-    value: 'false'
+    value: 'true'
   - name: ENABLE_SPLUNK_HEC
     value: 'true'
   - name: SPLUNK_SOURCE
