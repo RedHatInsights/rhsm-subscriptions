@@ -34,7 +34,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@ActiveProfiles({"capacity-ingress"})
+@ActiveProfiles({"capacity-ingress", "test", "api"})
 class OfferingWorkerTest {
 
   @Autowired OfferingWorker offeringWorker;
