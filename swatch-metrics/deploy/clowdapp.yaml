@@ -99,6 +99,8 @@ parameters:
     value: '3'
   - name: KAFKA_METERING_TASKS_PARTITIONS
     value: '3'
+  - name: ENABLE_SYNCHRONOUS_OPERATIONS
+    value: 'false'
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -306,6 +308,8 @@ objects:
                   secretKeyRef:
                     name: swatch-psks
                     key: self
+              - name: ENABLE_SYNCHRONOUS_OPERATIONS
+                value: ${ENABLE_SYNCHRONOUS_OPERATIONS}
             livenessProbe:
               failureThreshold: 3
               httpGet:
