@@ -23,7 +23,7 @@ ext.plugins = [
         "com.diffplug.spotless:spotless-plugin-gradle:6.12.1",
         "com.github.davidmc24.gradle.plugin:gradle-avro-plugin:1.5.0",
         "com.netflix.nebula:nebula-release-plugin:17.1.0",
-        "io.quarkus:gradle-application-plugin:2.15.2.Final",
+        "io.quarkus:gradle-application-plugin:2.15.3.Final",
         "io.spring.gradle:dependency-management-plugin:1.1.0",
         "org.jsonschema2pojo:jsonschema2pojo-gradle-plugin:1.1.2",
         "org.kordamp.gradle:jandex-gradle-plugin:1.1.0",
