@@ -64,6 +64,7 @@ rhsm-subscriptions:
   hourly-tally-offset: ${HOURLY_TALLY_OFFSET:60m}
   metric-lookup-range-duration: ${METRIC_LOOKUP_RANGE:1h}
   subscription-sync-enabled: ${SUBSCRIPTION_SYNC_ENABLED:false}
+  enable-synchronous-operations: ${ENABLE_SYNCHRONOUS_OPERATIONS:false}
   subscription:
     use-stub: ${SUBSCRIPTION_USE_STUB:false}
     url: ${SUBSCRIPTION_URL:https://subscription.stage.api.redhat.com/svcrest/subscription/v5}
