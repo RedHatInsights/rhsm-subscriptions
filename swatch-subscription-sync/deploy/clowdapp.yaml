@@ -91,7 +91,7 @@ parameters:
   - name: UMB_PROCESSING_ENABLED
     value: 'true'
   - name: ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC
-    value: 'false'
+    value: 'true'
   - name: ENABLE_SPLUNK_HEC
     value: 'true'
   - name: SPLUNK_SOURCE
@@ -2208,6 +2208,7 @@ objects:
         MW0157356F3RN
         MW0157356RN
         MW0157356S
+        MW01605
         MW0161108
         MW0161108F3
         MW0161108F3RN

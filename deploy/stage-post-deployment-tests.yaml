@@ -16,7 +16,10 @@ objects:
         dynaconfEnvName: stage_post_deploy
         filter: ''
         marker: 'post_stage_deploy'
-        plugins: "rhsm_subscriptions"
+        plugins: "rhsm_subscriptions,curiosity"
+        ui:
+          selenium:
+            deploy: true
 parameters:
 - name: IMAGE_TAG
   value: ''

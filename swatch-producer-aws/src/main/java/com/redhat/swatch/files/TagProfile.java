@@ -35,7 +35,8 @@ import org.yaml.snakeyaml.representer.Representer;
 @ApplicationScoped
 public class TagProfile {
 
-  private final Map<AwsDimensionLookupKey, String> awsDimensionLookup;
+  private final Map<TagMetricLookupKey, String> awsDimensionLookup;
+  private final Map<TagMetricLookupKey, Double> billingFactorLookup;
 
   public TagProfile() {
     Representer representer = new Representer();
@@ -50,12 +51,16 @@ public class TagProfile {
     awsDimensionLookup =
         tagMetricDefinitions.stream()
             .filter(m -> m.getAwsDimension() != null)
-            .collect(Collectors.toMap(AwsDimensionLookupKey::new, TagMetricYaml::getAwsDimension));
+            .collect(Collectors.toMap(TagMetricLookupKey::new, TagMetricYaml::getAwsDimension));
+    billingFactorLookup =
+        tagMetricDefinitions.stream()
+            .filter(m -> m.getBillingFactor() != null)
+            .collect(Collectors.toMap(TagMetricLookupKey::new, TagMetricYaml::getBillingFactor));
   }
 
   public String getAwsDimension(String productId, String uom)
       throws AwsDimensionNotConfiguredException {
-    String awsDimension = awsDimensionLookup.get(new AwsDimensionLookupKey(productId, uom));
+    String awsDimension = awsDimensionLookup.get(new TagMetricLookupKey(productId, uom));
     if (awsDimension == null) {
       throw new AwsDimensionNotConfiguredException(productId, uom);
     }
@@ -63,16 +68,20 @@ public class TagProfile {
   }
 
   public boolean isAwsConfigured(String product, String metric) {
-    return awsDimensionLookup.containsKey(new AwsDimensionLookupKey(product, metric));
+    return awsDimensionLookup.containsKey(new TagMetricLookupKey(product, metric));
+  }
+
+  public Double getBillingFactor(String productTag, String metric) {
+    return billingFactorLookup.getOrDefault(new TagMetricLookupKey(productTag, metric), 1.0);
   }
 
   @Data
   @AllArgsConstructor
-  private static class AwsDimensionLookupKey {
+  private static class TagMetricLookupKey {
     private String tag;
     private String metricId;
 
-    AwsDimensionLookupKey(TagMetricYaml tagMetricDefinition) {
+    TagMetricLookupKey(TagMetricYaml tagMetricDefinition) {
       this.tag = tagMetricDefinition.getTag();
       // NOTE: we plan to rename uom to metricId in ENT-4336
       this.metricId = tagMetricDefinition.getUom();

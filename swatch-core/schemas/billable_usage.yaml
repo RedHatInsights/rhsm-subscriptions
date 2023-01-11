@@ -58,3 +58,6 @@ properties:
   value:
     description: Measurement value.
     type: number
+  billing_factor:
+    description: Field is used to multiple or divide the remittance values by a configured amount
+    type: number

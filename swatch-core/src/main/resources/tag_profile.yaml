@@ -203,6 +203,7 @@ tagMetrics:
     metricId: redhat.com:openshift_dedicated:4cpu_hour
     rhmMetricId: redhat.com:openshift_dedicated:4cpu_hour
     uom: CORES
+    #billingFactor: 0.25
     billingWindow: MONTHLY
     queryKey: default
     queryParams:
