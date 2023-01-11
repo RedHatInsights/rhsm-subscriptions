@@ -73,6 +73,7 @@ public class OfferingWorker extends SeekableKafkaConsumer {
   public void receive(String productMessageXml) throws JsonProcessingException {
     log.debug("Received message from UMB offering product{}", productMessageXml);
     if (!umbProperties.isProcessingEnabled()) {
+      log.debug("UMB processing is not enabled");
       return;
     }
     CanonicalMessage productMessage =
