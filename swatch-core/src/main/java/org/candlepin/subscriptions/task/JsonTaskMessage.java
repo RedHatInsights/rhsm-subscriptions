@@ -25,7 +25,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.candlepin.subscriptions.task.queue.kafka.message.TaskMessage;
 
 @Data
 @AllArgsConstructor
@@ -36,10 +35,4 @@ public class JsonTaskMessage {
   private String groupId;
   private String type;
   private java.util.Map<String, List<String>> args;
-
-  public JsonTaskMessage(TaskMessage avroTaskMessage) {
-    this.groupId = avroTaskMessage.getGroupId();
-    this.type = avroTaskMessage.getType();
-    this.args = avroTaskMessage.getArgs();
-  }
 }

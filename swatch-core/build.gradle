@@ -8,7 +8,6 @@ plugins {
 
 dependencies {
     annotationProcessor "org.hibernate:hibernate-jpamodelgen"
-    implementation project(":kafka-schema")
     implementation project(":api") // for util methods in ResourceUtils
     implementation project(":clients:rbac-client") // for security integration w/ rbac
     implementation "org.hibernate.validator:hibernate-validator"
@@ -26,14 +25,6 @@ dependencies {
     implementation "com.jayway.jsonpath:json-path"
     implementation "com.splunk.logging:splunk-library-javalogging"
     implementation "org.codehaus.janino:janino"
-    implementation("io.confluent:kafka-avro-serializer") {
-        exclude group: "org.apache.kafka"
-        // A transitive dependency, org.apache.zookeeper:zookeeper, includes log4j as well as slf4j.  We use
-        // logback and SLF4J issues a warning if more than one logging implementation is on the classpath.
-        // Frowny face to Zookeeper for adding a logging implementation to a library jar.
-        exclude group: "org.slf4j", module: "slf4j-log4j12"
-    }
-    implementation project(":kafka-schema")
 
     testImplementation project(":swatch-core-test")
     testImplementation "org.springframework:spring-test"
