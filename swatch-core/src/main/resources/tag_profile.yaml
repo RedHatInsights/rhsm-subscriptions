@@ -266,7 +266,7 @@ tagMetrics:
   - tag: rhacs
     metricId: redhat.com:rhacs:cpu_hour
     rhmMetricId: redhat.com:rhacs:cpu_hour
-    awsDimension: cpu_hour
+    awsDimension: vCPU_Hour
     uom: CORES
     billingWindow: MONTHLY
     queryParams:
