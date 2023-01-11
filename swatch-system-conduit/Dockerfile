@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/openjdk-11
+FROM registry.access.redhat.com/ubi9/openjdk-17
 USER root
 
 COPY build/libs/ /deployments/
