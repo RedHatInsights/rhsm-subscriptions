@@ -43,4 +43,22 @@ class UmbPropertiesTest {
         "Consumer.sa.swatch-ns-VirtualTopic_foo_bar.VirtualTopic.foo.bar",
         properties.getSubscriptionTopic());
   }
+
+  @Test
+  void testShouldLeaveProductNonVirtualTopicAlone() {
+    UmbProperties properties = new UmbProperties();
+    properties.setProductTopic("foobar");
+    assertEquals("foobar", properties.getProductTopic());
+  }
+
+  @Test
+  void shouldApplyProductUmbVirtualTopicPatternToConsumerTopic() {
+    UmbProperties properties = new UmbProperties();
+    properties.setNamespace("ns");
+    properties.setServiceAccountName("sa");
+    properties.setProductTopic("VirtualTopic.foo.bar");
+    assertEquals(
+        "Consumer.sa.swatch-ns-VirtualTopic_foo_bar.VirtualTopic.foo.bar",
+        properties.getProductTopic());
+  }
 }

@@ -33,11 +33,13 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.security.SecurityProperties;
+import org.candlepin.subscriptions.umb.UmbProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jmx.JmxException;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,13 +49,21 @@ class OfferingJmxBeanTest {
 
   @Mock CapacityReconciliationController capacityReconciliationController;
 
+  @Mock private JmsTemplate mockJmsTemplate;
+
   OfferingJmxBean subject;
   SecurityProperties properties;
 
   @BeforeEach
   void setup() {
     properties = new SecurityProperties();
-    subject = new OfferingJmxBean(offeringSync, capacityReconciliationController, properties);
+    subject =
+        new OfferingJmxBean(
+            offeringSync,
+            capacityReconciliationController,
+            properties,
+            new UmbProperties(),
+            mockJmsTemplate);
   }
 
   @Test

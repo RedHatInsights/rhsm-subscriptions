@@ -42,6 +42,8 @@ public class UmbProperties extends TlsProperties {
 
   private String subscriptionTopic = "VirtualTopic.canonical.subscription";
 
+  private String productTopic = "VirtualTopic.canonical.operationalProduct";
+
   /**
    * Factory method that produces queue names that match UMB convention for VirtualTopics when
    * needed.
@@ -52,7 +54,7 @@ public class UmbProperties extends TlsProperties {
    * subscriptions. Given subscription watch needs a single notification per *environment*, we use
    * swatch-$namespace-$topic.
    */
-  public String getConsumerTopic(String topic) {
+  private String getConsumerTopic(String topic) {
     if (!topic.startsWith("VirtualTopic")) {
       return topic;
     }
@@ -62,5 +64,9 @@ public class UmbProperties extends TlsProperties {
 
   public String getSubscriptionTopic() {
     return getConsumerTopic(subscriptionTopic);
+  }
+
+  public String getProductTopic() {
+    return getConsumerTopic(productTopic);
   }
 }

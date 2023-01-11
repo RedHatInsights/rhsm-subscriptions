@@ -33,6 +33,7 @@ import org.candlepin.subscriptions.capacity.files.ProductAllowlist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
+import org.candlepin.subscriptions.umb.UmbOperationalProduct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -131,9 +132,12 @@ public class OfferingSyncController {
    *     was skipped.
    */
   private SyncResult syncOffering(Offering newState) {
-    LOGGER.debug("New state of offering to save: {}", newState);
     Optional<Offering> persistedOffering = offeringRepository.findById(newState.getSku());
+    return syncOffering(newState, persistedOffering);
+  }
 
+  private SyncResult syncOffering(Offering newState, Optional<Offering> persistedOffering) {
+    LOGGER.debug("New state of offering to save: {}", newState);
     if (alreadySynced(persistedOffering, newState)) {
       return SyncResult.SKIPPED_MATCHING;
     }
@@ -195,5 +199,9 @@ public class OfferingSyncController {
 
   public void deleteOffering(String sku) {
     offeringRepository.deleteById(sku);
+  }
+
+  public void syncUmbProduct(UmbOperationalProduct umbOperationalProduct) {
+    // Integrate with SWATCH-395
   }
 }
