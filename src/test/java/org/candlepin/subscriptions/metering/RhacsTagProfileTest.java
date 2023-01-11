@@ -68,7 +68,7 @@ class RhacsTagProfileTest {
                 .metricId("redhat.com:rhacs:cpu_hour")
                 .rhmMetricId("redhat.com:rhacs:cpu_hour")
                 .billingWindow(BillingWindow.MONTHLY)
-                .awsDimension("cpu_hour")
+                .awsDimension("vCPU_Hour")
                 .uom(Uom.CORES)
                 .queryKey("default")
                 .accountQueryKey("default")
