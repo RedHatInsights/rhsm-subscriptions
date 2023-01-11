@@ -47,8 +47,8 @@ public class RhsmClientConfiguration {
    */
   @Bean
   @ConfigurationProperties(prefix = "rhsm-conduit.rhsm")
-  public RhsmApiProperties rhsmApiProperties() {
-    return new RhsmApiProperties();
+  public RhsmProperties rhsmApiProperties() {
+    return new RhsmProperties();
   }
 
   /**
@@ -64,12 +64,14 @@ public class RhsmClientConfiguration {
   }
 
   @Bean(name = "rhsmRetryTemplate")
-  public RetryTemplate rhsmRetryTemplate() {
+  public RetryTemplate rhsmRetryTemplate(RhsmProperties properties) {
     SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
-    retryPolicy.setMaxAttempts(4);
+    retryPolicy.setMaxAttempts(properties.getMaxAttempts());
 
     ExponentialRandomBackOffPolicy backOffPolicy = new ExponentialRandomBackOffPolicy();
-    backOffPolicy.setInitialInterval(1000);
+    backOffPolicy.setInitialInterval(properties.getBackOffInitialInterval().toMillis());
+    backOffPolicy.setMaxInterval(properties.getBackOffMaxInterval().toMillis());
+    backOffPolicy.setMultiplier(properties.getBackOffMultiplier());
 
     RetryTemplate retryTemplate = new RetryTemplate();
     retryTemplate.setRetryPolicy(retryPolicy);

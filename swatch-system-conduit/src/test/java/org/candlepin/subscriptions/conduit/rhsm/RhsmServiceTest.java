@@ -82,7 +82,7 @@ class RhsmServiceTest {
         ApiException.class,
         () -> mockBackedService.getPageOfConsumers("123", null, mockBackedService.formattedTime()));
 
-    verify(rhsmApi, times(4))
+    verify(rhsmApi, times(10))
         .getConsumersForOrg(anyString(), any(Integer.class), nullable(String.class), anyString());
   }
 

@@ -16,6 +16,10 @@ rhsm-conduit:
     max-connections: ${RHSM_MAX_CONNECTIONS:100}
     truststore: file:${RHSM_TRUSTSTORE:}
     truststore-password: ${RHSM_TRUSTSTORE_PASSWORD:changeit}
+    max-attempts: ${RHSM_MAX_ATTEMPTS:10}
+    back-off-max-interval: ${RHSM_BACK_OFF_MAX_INTERVAL:64s}
+    back-off-initial-interval: ${RHSM_BACK_OFF_INITIAL_INTERVAL:1s}
+    back-off-multiplier: ${RHSM_BACK_OFF_MULTIPLIER:2}
   inventory-service:
     use-stub: ${INVENTORY_USE_STUB:true}
     api-key: ${INVENTORY_API_KEY:changeit}
