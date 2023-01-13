@@ -110,17 +110,24 @@ public class TallySnapshotController {
     try {
       accountCalc =
           retryTemplate.execute(
-              context -> usageCollector.collect(this.applicableProducts, account, orgId));
-
+              context -> {
+                try {
+                  return usageCollector.collect(this.applicableProducts, account, orgId);
+                } catch (SystemThresholdException e) {
+                  log.warn(e.getMessage());
+                  return null;
+                }
+              });
       if (props.isCloudigradeEnabled()) {
         attemptCloudigradeEnrichment(accountCalc);
       }
-    } catch (SystemThresholdException e) {
-      log.warn(e.getMessage());
-      return;
     } catch (Exception e) {
       log.error(
           "Could not collect existing usage snapshots for orgId={} account={}", orgId, account, e);
+      return;
+    }
+
+    if (accountCalc == null) { // accountCalc is null when the threshold is breached
       return;
     }
 
