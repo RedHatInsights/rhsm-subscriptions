@@ -63,6 +63,7 @@ public class InventoryAccountUsageCollector {
   private final InventoryDatabaseOperations inventory;
   private final AccountServiceInventoryRepository accountServiceInventoryRepository;
   private final int culledOffsetDays;
+  private final int tallyMaxHbiAccountSize;
   private final Counter totalHosts;
 
   public InventoryAccountUsageCollector(
@@ -75,6 +76,7 @@ public class InventoryAccountUsageCollector {
     this.inventory = inventory;
     this.accountServiceInventoryRepository = accountServiceInventoryRepository;
     this.culledOffsetDays = props.getCullingOffsetDays();
+    this.tallyMaxHbiAccountSize = props.getTallyMaxHbiAccountSize();
     this.totalHosts = meterRegistry.counter("rhsm-subscriptions.tally.hbi_hosts");
   }
 
@@ -82,6 +84,10 @@ public class InventoryAccountUsageCollector {
   @Transactional
   public AccountUsageCalculation collect(
       Collection<String> products, String account, String orgId) {
+    int inventoryCount = inventory.activeSystemCountForOrgId(orgId, culledOffsetDays);
+    if (inventoryCount > tallyMaxHbiAccountSize) {
+      throw new SystemThresholdException(orgId, tallyMaxHbiAccountSize, inventoryCount);
+    }
     AccountServiceInventory accountServiceInventory = fetchAccountServiceInventory(orgId, account);
 
     HypervisorData hypervisorData = new HypervisorData(orgId);

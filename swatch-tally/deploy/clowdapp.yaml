@@ -147,6 +147,8 @@ parameters:
     value: '3'
   - name: ENABLE_SYNCHRONOUS_OPERATIONS
     value: 'false'
+  - name: TALLY_MAX_HBI_ACCOUNT_SIZE
+    value: '2147483647'  # Integer.MAX_VALUE by default
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -375,6 +377,8 @@ objects:
               value: ${DEVTEST_EVENT_EDITING_ENABLED}
             - name: ENABLE_SYNCHRONOUS_OPERATIONS
               value: ${ENABLE_SYNCHRONOUS_OPERATIONS}
+            - name: TALLY_MAX_HBI_ACCOUNT_SIZE
+              value: ${TALLY_MAX_HBI_ACCOUNT_SIZE}
           livenessProbe:
             failureThreshold: 3
             httpGet:
