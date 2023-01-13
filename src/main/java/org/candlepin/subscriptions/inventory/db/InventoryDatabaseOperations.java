@@ -59,4 +59,8 @@ public class InventoryDatabaseOperations {
     }
     log.info("Found {} reported hypervisors.", hypervisorData.getHypervisorMapping().size());
   }
+
+  public int activeSystemCountForOrgId(String orgId, int culledOffsetDays) {
+    return repo.activeSystemCountForOrgId(orgId, culledOffsetDays);
+  }
 }

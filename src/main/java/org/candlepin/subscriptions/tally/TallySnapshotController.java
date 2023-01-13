@@ -115,6 +115,9 @@ public class TallySnapshotController {
       if (props.isCloudigradeEnabled()) {
         attemptCloudigradeEnrichment(accountCalc);
       }
+    } catch (SystemThresholdException e) {
+      log.warn(e.getMessage());
+      return;
     } catch (Exception e) {
       log.error(
           "Could not collect existing usage snapshots for orgId={} account={}", orgId, account, e);

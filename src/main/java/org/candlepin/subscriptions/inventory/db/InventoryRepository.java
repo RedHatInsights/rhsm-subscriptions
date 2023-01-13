@@ -38,6 +38,19 @@ public interface InventoryRepository extends Repository<InventoryHost, UUID> {
       @Param("orgIds") Collection<String> orgIds,
       @Param("culledOffsetDays") Integer culledOffsetDays);
 
+  @Query(
+      nativeQuery = true,
+      value =
+          """
+          select count(*) from hosts h
+          where org_id=:orgId
+            and (h.facts->'rhsm'->>'BILLING_MODEL' IS NULL OR h.facts->'rhsm'->>'BILLING_MODEL' <> 'marketplace')
+            and (h.system_profile_facts->>'host_type' IS NULL OR h.system_profile_facts->>'host_type' <> 'edge')
+            and NOW() < stale_timestamp + make_interval(days => :culledOffsetDays)
+          """)
+  int activeSystemCountForOrgId(
+      @Param("orgId") String orgId, @Param("culledOffsetDays") Integer culledOffsetDays);
+
   /**
    * Get a mapping of hypervisor ID to associated hypervisor host's subscription-manager ID. If the
    * hypervisor hasn't been reported, then the hyp_subman_id value will be null.
