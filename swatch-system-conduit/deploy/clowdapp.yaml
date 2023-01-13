@@ -40,6 +40,14 @@ parameters:
     value: 1500m
   - name: RHSM_URL
     value: https://api.rhsm.qa.redhat.com/v1
+  - name: RHSM_MAX_ATTEMPTS
+    value: '10'
+  - name: RHSM_BACK_OFF_MAX_INTERVAL
+    value: 64s
+  - name: RHSM_BACK_OFF_INITIAL_INTERVAL
+    value: 1s
+  - name: RHSM_BACK_OFF_MULTIPLIER
+    value: '2'
   - name: DATABASE_CONNECTION_TIMEOUT_MS
     value: '30000'
   # TODO This has been lowered from what it was in the previous environment (from 25 to 10)
@@ -197,6 +205,14 @@ objects:
               value: kafka
             - name: RHSM_URL
               value: ${RHSM_URL}
+            - name: RHSM_MAX_ATTEMPTS
+              value: ${RHSM_MAX_ATTEMPTS}
+            - name: RHSM_BACK_OFF_MAX_INTERVAL
+              value: ${RHSM_BACK_OFF_MAX_INTERVAL}
+            - name: RHSM_BACK_OFF_INITIAL_INTERVAL
+              value: ${RHSM_BACK_OFF_INITIAL_INTERVAL}
+            - name: RHSM_BACK_OFF_MULTIPLIER
+              value: ${RHSM_BACK_OFF_MULTIPLIER}
             - name: LOGGING_LEVEL_ROOT
               value: ${LOGGING_LEVEL_ROOT}
             - name: LOGGING_LEVEL_ORG_CANDLEPIN
