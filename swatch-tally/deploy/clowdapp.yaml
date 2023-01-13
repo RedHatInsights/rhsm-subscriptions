@@ -145,6 +145,8 @@ parameters:
     value: '3'
   - name: KAFKA_SUBSCRIPTIONS_TASKS_PARTITIONS
     value: '3'
+  - name: TALLY_MAX_HBI_ACCOUNT_SIZE
+    value: '2147483647'  # Integer.MAX_VALUE by default
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -371,6 +373,8 @@ objects:
               value: ${ENABLE_ACCOUNT_RESET}
             - name: DEVTEST_EVENT_EDITING_ENABLED
               value: ${DEVTEST_EVENT_EDITING_ENABLED}
+            - name: TALLY_MAX_HBI_ACCOUNT_SIZE
+              value: ${TALLY_MAX_HBI_ACCOUNT_SIZE}
           livenessProbe:
             failureThreshold: 3
             httpGet:
