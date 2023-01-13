@@ -155,9 +155,17 @@ public interface SubscriptionCapacityViewRepository
       switch (hypervisorReportCategory) {
         case NON_HYPERVISOR:
           // Has no virt capacity
-          return builder.and(
-              builder.equal(root.get(SubscriptionCapacityView_.hypervisorSockets), 0),
-              builder.equal(root.get(SubscriptionCapacityView_.hypervisorCores), 0));
+          var zeroCoresAndSockets =
+              builder.and(
+                  builder.equal(root.get(SubscriptionCapacityView_.hypervisorSockets), 0),
+                  builder.equal(root.get(SubscriptionCapacityView_.hypervisorCores), 0));
+          var nullCoresAndSockets =
+              builder.and(
+                  builder.isNull(root.get(SubscriptionCapacityView_.hypervisorSockets)),
+                  builder.isNull(root.get(SubscriptionCapacityView_.hypervisorCores)));
+          // In practices, subscriptions with non-hypervisor SKUs have null for hypervisor_cores
+          // and hypervisor_sockets, but I am checking for zero here also just to cover the bases.
+          return builder.or(zeroCoresAndSockets, nullCoresAndSockets);
         case HYPERVISOR:
           // Has some virt capacity
           return builder.or(

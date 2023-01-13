@@ -156,8 +156,13 @@ public interface SubscriptionCapacityRepository
 
       var standardPredicate = builder.greaterThan(root.get(standardAttribute), 0);
       var hypervisorPredicate = builder.greaterThan(root.get(hypervisorAttribute), 0);
-      // Has no hypervisor capacity at all
-      var nonHypervisorPredicate = builder.equal(root.get(hypervisorAttribute), 0);
+      // Has no hypervisor capacity at all.  In practices, subscriptions with non-hypervisor SKUs
+      // have null for hypervisor_cores and hypervisor_sockets, but I am checking for zero here also
+      // just to cover the bases.
+      var nonHypervisorPredicate =
+          builder.or(
+              builder.isNull(root.get(hypervisorAttribute)),
+              builder.equal(root.get(hypervisorAttribute), 0));
 
       if (Objects.nonNull(hypervisorReportCategory)) {
         switch (hypervisorReportCategory) {

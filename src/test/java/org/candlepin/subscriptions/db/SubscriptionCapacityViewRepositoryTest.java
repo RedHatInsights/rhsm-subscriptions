@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.db;
 import static org.candlepin.subscriptions.db.HypervisorReportCategory.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.everyItem;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -47,7 +46,6 @@ import org.candlepin.subscriptions.db.model.SubscriptionCapacityView;
 import org.candlepin.subscriptions.db.model.SubscriptionCapacityView_;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.utilization.api.model.Uom;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -419,28 +417,35 @@ class SubscriptionCapacityViewRepositoryTest {
   @Transactional
   @Test
   void shouldFilterCapacityByCategory() {
+    // In prod, RH00006 (VDC SKU) subscriptions have non-null hypervisor sockets and null
+    // everything else.
     SubscriptionCapacity hypervisor = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
     hypervisor.setSubscriptionId("hypervisor");
-    hypervisor.setSockets(10);
+    hypervisor.setSockets(null);
     hypervisor.setHypervisorSockets(10);
-    hypervisor.setCores(10);
-    hypervisor.setHypervisorCores(10);
+    hypervisor.setCores(null);
+    hypervisor.setHypervisorCores(null);
 
-    SubscriptionCapacity nonHypervisor =
-        createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
-    nonHypervisor.setSubscriptionId("nonHypervisor");
-    nonHypervisor.setSockets(10);
-    nonHypervisor.setHypervisorSockets(0);
-    nonHypervisor.setCores(10);
-    nonHypervisor.setHypervisorCores(0);
-
+    // In prod, RH0004 (a non-VDC SKU) subscriptions have non-null sockets and null everything else.
     SubscriptionCapacity noCoresNonHypervisor =
         createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
     noCoresNonHypervisor.setSubscriptionId("noCoresNonHypervisor");
     noCoresNonHypervisor.setSockets(10);
-    noCoresNonHypervisor.setHypervisorSockets(0);
-    noCoresNonHypervisor.setCores(0);
-    noCoresNonHypervisor.setHypervisorCores(0);
+    noCoresNonHypervisor.setHypervisorSockets(null);
+    noCoresNonHypervisor.setCores(null);
+    noCoresNonHypervisor.setHypervisorCores(null);
+
+    // Other non-hypervisor SKUs in prod (SER0419) have cores but no sockets
+    SubscriptionCapacity noSocketsNonHypervisor =
+        createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    noSocketsNonHypervisor.setSubscriptionId("noSocketsNonHypervisor");
+    noSocketsNonHypervisor.setSockets(null);
+    noSocketsNonHypervisor.setHypervisorSockets(null);
+    noSocketsNonHypervisor.setCores(99);
+    noSocketsNonHypervisor.setHypervisorCores(null);
+
+    // As of 13 Jan 2023, there are no SKUS in the subscription_capacity table with non-null
+    // hypervisor_cores.
 
     subscriptionRepository.saveAllAndFlush(
         List.of(
@@ -454,32 +459,35 @@ class SubscriptionCapacityViewRepositoryTest {
             createSubscription(
                 ORG_ID,
                 ACCOUNT_NUMBER,
-                nonHypervisor.getSku(),
-                nonHypervisor.getSubscriptionId(),
-                nonHypervisor.getBeginDate(),
-                nonHypervisor.getEndDate()),
-            createSubscription(
-                ORG_ID,
-                ACCOUNT_NUMBER,
                 noCoresNonHypervisor.getSku(),
                 noCoresNonHypervisor.getSubscriptionId(),
                 noCoresNonHypervisor.getBeginDate(),
-                noCoresNonHypervisor.getEndDate())));
+                noCoresNonHypervisor.getEndDate()),
+            createSubscription(
+                ORG_ID,
+                ACCOUNT_NUMBER,
+                noSocketsNonHypervisor.getSku(),
+                noSocketsNonHypervisor.getSubscriptionId(),
+                noSocketsNonHypervisor.getBeginDate(),
+                noSocketsNonHypervisor.getEndDate())));
 
     subscriptionCapacityRepository.saveAll(
-        List.of(hypervisor, nonHypervisor, noCoresNonHypervisor));
+        List.of(hypervisor, noCoresNonHypervisor, noSocketsNonHypervisor));
     offeringRepository.saveAndFlush(
         createOffering(TEST_SKU, Integer.parseInt(PRODUCT_ID), null, Usage.PRODUCTION, "role1"));
+
     List<SubscriptionCapacityView> results =
         repository.findAllBy(
             ORG_ID, NON_HYPERVISOR, PRODUCT_ID, null, null, NOWISH, FAR_FUTURE.plusDays(4), null);
     assertEquals(2, results.size());
     assertThat(
         results.stream().map(SubscriptionCapacityView::getCores).collect(Collectors.toList()),
-        containsInAnyOrder(0, 10));
+        // getCores() turns a null into a zero
+        containsInAnyOrder(0, 99));
     assertThat(
         results.stream().map(SubscriptionCapacityView::getSockets).collect(Collectors.toList()),
-        everyItem(Matchers.equalTo(10)));
+        // getSockets() turns a null into a zero
+        containsInAnyOrder(0, 10));
 
     results =
         repository.findAllBy(
@@ -488,7 +496,7 @@ class SubscriptionCapacityViewRepositoryTest {
     var record = results.get(0);
     assertAll(
         () -> {
-          assertEquals(10, record.getHypervisorCores());
+          assertEquals(0, record.getHypervisorCores());
           assertEquals(10, record.getHypervisorSockets());
         });
 
