@@ -147,6 +147,8 @@ parameters:
     value: '3'
   - name: TALLY_MAX_HBI_ACCOUNT_SIZE
     value: '2147483647'  # Integer.MAX_VALUE by default
+  - name: MACHINE_POOL
+    value: '' # don't restrict to a specific machine pool by default
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -413,6 +415,7 @@ objects:
             - name: pinhead
               secret:
                 secretName: pinhead
+          machinePool: ${MACHINE_POOL}
 
     jobs:
       - name: tally
@@ -542,6 +545,7 @@ objects:
           volumes:
             - name: logs
               emptyDir:
+          machinePool: ${MACHINE_POOL}
 
       - name: hourly
         schedule: ${CAPTURE_HOURLY_SNAPSHOT_SCHEDULE}
