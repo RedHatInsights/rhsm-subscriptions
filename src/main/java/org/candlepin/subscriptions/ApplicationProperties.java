@@ -131,4 +131,7 @@ public class ApplicationProperties {
 
   /** Sets a hard limit on the size of accounts that HBI-based tally will attempt to process. */
   private int tallyMaxHbiAccountSize;
+
+  /** If enabled, nightly tally will calculated via host objects */
+  private boolean legacyNightlyTallyEnabled = false;
 }
