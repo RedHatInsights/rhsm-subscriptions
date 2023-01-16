@@ -34,6 +34,10 @@ parameters:
     value: 1000Mi
   - name: MEMORY_LIMIT
     value: 1400Mi
+  - name: JOB_MEMORY_REQUEST
+    value: 1000Mi
+  - name: JOB_MEMORY_LIMIT
+    value: 1400Mi
   - name: CPU_REQUEST
     value: 350m
   - name: CPU_LIMIT
@@ -151,6 +155,8 @@ parameters:
     value: '2147483647'  # Integer.MAX_VALUE by default
   - name: MACHINE_POOL
     value: '' # don't restrict to a specific machine pool by default
+  - name: JOB_MACHINE_POOL
+    value: ''
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -443,10 +449,10 @@ objects:
               resources:
                 requests:
                   cpu: ${CPU_REQUEST}
-                  memory: ${MEMORY_REQUEST}
+                  memory: ${JOB_MEMORY_REQUEST}
                 limits:
                   cpu: ${CPU_LIMIT}
-                  memory: ${MEMORY_LIMIT}
+                  memory: ${JOB_MEMORY_LIMIT}
           env:
             - name: ENABLE_SPLUNK_HEC
               value: ${ENABLE_SPLUNK_HEC}
@@ -539,17 +545,17 @@ objects:
           resources:
             requests:
               cpu: ${CPU_REQUEST}
-              memory: ${MEMORY_REQUEST}
+              memory: ${JOB_MEMORY_REQUEST}
             limits:
               cpu: ${CPU_LIMIT}
-              memory: ${MEMORY_LIMIT}
+              memory: ${JOB_MEMORY_LIMIT}
           volumeMounts:
             - name: logs
               mountPath: /logs
           volumes:
             - name: logs
               emptyDir:
-          machinePool: ${MACHINE_POOL}
+          machinePool: ${JOB_MACHINE_POOL}
 
       - name: hourly
         schedule: ${CAPTURE_HOURLY_SNAPSHOT_SCHEDULE}
@@ -572,10 +578,10 @@ objects:
               resources:
                 requests:
                   cpu: ${CPU_REQUEST}
-                  memory: ${MEMORY_REQUEST}
+                  memory: ${JOB_MEMORY_REQUEST}
                 limits:
                   cpu: ${CPU_LIMIT}
-                  memory: ${MEMORY_LIMIT}
+                  memory: ${JOB_MEMORY_LIMIT}
           env:
             - name: ENABLE_SPLUNK_HEC
               value: ${ENABLE_SPLUNK_HEC}
@@ -668,16 +674,17 @@ objects:
           resources:
             requests:
               cpu: ${CPU_REQUEST}
-              memory: ${MEMORY_REQUEST}
+              memory: ${JOB_MEMORY_REQUEST}
             limits:
               cpu: ${CPU_LIMIT}
-              memory: ${MEMORY_LIMIT}
+              memory: ${JOB_MEMORY_LIMIT}
           volumeMounts:
             - name: logs
               mountPath: /logs
           volumes:
             - name: logs
               emptyDir:
+          machinePool: ${JOB_MACHINE_POOL}
 
       - name: purge
         schedule: ${PURGE_SNAPSHOT_SCHEDULE}
@@ -700,10 +707,10 @@ objects:
               resources:
                 requests:
                   cpu: ${CPU_REQUEST}
-                  memory: ${MEMORY_REQUEST}
+                  memory: ${JOB_MEMORY_REQUEST}
                 limits:
                   cpu: ${CPU_LIMIT}
-                  memory: ${MEMORY_LIMIT}
+                  memory: ${JOB_MEMORY_LIMIT}
           env:
             - name: ENABLE_SPLUNK_HEC
               value: ${ENABLE_SPLUNK_HEC}
@@ -798,16 +805,17 @@ objects:
           resources:
             requests:
               cpu: ${CPU_REQUEST}
-              memory: ${MEMORY_REQUEST}
+              memory: ${JOB_MEMORY_REQUEST}
             limits:
               cpu: ${CPU_LIMIT}
-              memory: ${MEMORY_LIMIT}
+              memory: ${JOB_MEMORY_LIMIT}
           volumeMounts:
             - name: logs
               mountPath: /logs
           volumes:
             - name: logs
               emptyDir:
+          machinePool: ${JOB_MACHINE_POOL}
 
       - name: db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
         restartPolicy: Never
