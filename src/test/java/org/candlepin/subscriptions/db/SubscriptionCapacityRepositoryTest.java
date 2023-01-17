@@ -22,9 +22,11 @@ package org.candlepin.subscriptions.db;
 
 import static org.candlepin.subscriptions.utilization.api.model.MetricId.CORES;
 import static org.candlepin.subscriptions.utilization.api.model.MetricId.SOCKETS;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -756,6 +758,73 @@ class SubscriptionCapacityRepositoryTest {
 
     assertEquals(1, found.size());
     assertEquals(40, found.get(0).getHypervisorCores());
+  }
+
+  @Test
+  void testFindByMetricIdFiltersByCategoryCorrectly() {
+    // In prod, RH00006 (VDC SKU) subscriptions have non-null hypervisor sockets and null
+    // everything else.
+    SubscriptionCapacity hypervisor = createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    hypervisor.setSku("RH00006");
+    hypervisor.setSockets(null);
+    hypervisor.setHypervisorSockets(99);
+    hypervisor.setCores(null);
+    hypervisor.setHypervisorCores(null);
+    hypervisor.setSubscriptionId("hypervisor");
+
+    // In prod, RH0004 (a non-VDC SKU) subscriptions have non-null sockets and null everything else.
+    SubscriptionCapacity nonHypervisor =
+        createUnpersisted(NOWISH.plusDays(1), FAR_FUTURE.plusDays(1));
+    nonHypervisor.setSku("RH00004");
+    nonHypervisor.setSockets(10);
+    nonHypervisor.setHypervisorSockets(null);
+    nonHypervisor.setCores(null);
+    nonHypervisor.setHypervisorCores(null);
+    nonHypervisor.setSubscriptionId("nonHypervisor");
+    repository.saveAll(Arrays.asList(hypervisor, nonHypervisor));
+    repository.flush();
+
+    List<SubscriptionCapacity> results =
+        repository.findAllBy(
+            "orgId",
+            "product",
+            SOCKETS,
+            HypervisorReportCategory.NON_HYPERVISOR,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            NOWISH,
+            FAR_FUTURE);
+
+    assertEquals(1, results.size());
+    var record = results.get(0);
+    assertAll(
+        () -> {
+          assertNull(record.getHypervisorCores());
+          assertNull(record.getHypervisorSockets());
+          assertNull(record.getCores());
+          assertEquals(10, record.getSockets());
+        });
+
+    results =
+        repository.findAllBy(
+            "orgId",
+            "product",
+            SOCKETS,
+            HypervisorReportCategory.HYPERVISOR,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            NOWISH,
+            FAR_FUTURE);
+
+    assertEquals(1, results.size());
+    var hypervisorRecord = results.get(0);
+    assertAll(
+        () -> {
+          assertNull(hypervisorRecord.getHypervisorCores());
+          assertEquals(99, hypervisorRecord.getHypervisorSockets());
+          assertNull(hypervisorRecord.getCores());
+          assertNull(hypervisorRecord.getSockets());
+        });
   }
 
   @Test
