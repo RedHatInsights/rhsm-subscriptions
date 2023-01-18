@@ -33,7 +33,8 @@ public enum HardwareMeasurementType {
   AWS_CLOUDIGRADE, // AWS, measured by cloudigrade
   GOOGLE,
   ALIBABA,
-  AZURE;
+  AZURE,
+  EMPTY;
 
   public static boolean isSupportedCloudProvider(String name) {
     if (name == null || name.isEmpty()) {

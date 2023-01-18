@@ -30,13 +30,12 @@ import static org.mockito.Mockito.when;
 import java.time.OffsetDateTime;
 import java.util.*;
 import org.candlepin.subscriptions.db.AccountListSource;
-import org.candlepin.subscriptions.db.HostRepository;
+import org.candlepin.subscriptions.db.TallyInstanceViewRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.Host;
-import org.candlepin.subscriptions.db.model.HostBucketKey;
-import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
+import org.candlepin.subscriptions.db.model.TallyInstanceView;
+import org.candlepin.subscriptions.db.model.TallyInstanceViewKey;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
@@ -56,7 +55,7 @@ import org.springframework.test.context.ActiveProfiles;
 @WithMockRedHatPrincipal("123456")
 class InstancesResourceTest {
 
-  @MockBean HostRepository repository;
+  @MockBean TallyInstanceViewRepository repository;
   @MockBean PageLinkCreator pageLinkCreator;
   @MockBean AccountListSource accountListSource;
   @Autowired InstancesResource resource;
@@ -70,17 +69,17 @@ class InstancesResourceTest {
   void testShouldPopulateInstanceResponse() {
     BillingProvider expectedBillingProvider = BillingProvider.AWS;
 
-    var host = new Host();
-    host.setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
-    host.setDisplayName("rhv.example.com");
-    host.setBillingProvider(expectedBillingProvider);
-    host.setNumOfGuests(3);
-    host.setLastSeen(OffsetDateTime.now());
-
-    var bucket = new HostTallyBucket();
-    bucket.setMeasurementType(HardwareMeasurementType.VIRTUAL);
-    bucket.setKey(new HostBucketKey());
-    host.addBucket(bucket);
+    var tallyInstanceView = new TallyInstanceView();
+    tallyInstanceView.setKey(new TallyInstanceViewKey());
+    tallyInstanceView.setDisplayName("rhv.example.com");
+    tallyInstanceView.setNumOfGuests(3);
+    tallyInstanceView.setLastSeen(OffsetDateTime.now());
+    tallyInstanceView
+        .getKey()
+        .setInstanceId(UUID.fromString("d6214a0b-b344-4778-831c-d53dcacb2da3"));
+    tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
+    tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
+    tallyInstanceView.setUom(Measurement.Uom.SOCKETS);
 
     Mockito.when(
             repository.findAllBy(
@@ -97,25 +96,24 @@ class InstancesResourceTest {
                 any(),
                 any(),
                 any()))
-        .thenReturn(new PageImpl<>(List.of(host)));
+        .thenReturn(new PageImpl<>(List.of(tallyInstanceView)));
 
     var expectUom =
         List.of(
             "Instance-hours", "Storage-gibibyte-months", "Storage-gibibytes", "Transfer-gibibytes");
     List<Double> expectedMeasurement = new ArrayList<>();
-    String month = InstanceMonthlyTotalKey.formatMonthId(host.getLastSeen());
+    String month = InstanceMonthlyTotalKey.formatMonthId(tallyInstanceView.getLastSeen());
     for (String uom : expectUom) {
       expectedMeasurement.add(
-          Optional.ofNullable(host.getMonthlyTotal(month, Measurement.Uom.fromValue(uom)))
-              .orElse(0.0));
+          Optional.ofNullable(tallyInstanceView.getMonthlyTotals().get(0)).orElse(0.0));
     }
     var data = new InstanceData();
-    data.setId(host.getInstanceId());
-    data.setDisplayName(host.getDisplayName());
+    data.setId(tallyInstanceView.getKey().getInstanceId().toString());
+    data.setDisplayName(tallyInstanceView.getDisplayName());
     data.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
-    data.setLastSeen(host.getLastSeen());
+    data.setLastSeen(tallyInstanceView.getLastSeen());
     data.setMeasurements(expectedMeasurement);
-    data.setNumberOfGuests(host.getNumOfGuests());
+    data.setNumberOfGuests(tallyInstanceView.getNumOfGuests());
     data.setCategory(HardwareMeasurementType.VIRTUAL.toString());
 
     var meta = new InstanceMeta();
@@ -133,6 +131,102 @@ class InstancesResourceTest {
     InstanceResponse report =
         resource.getInstancesByProduct(
             RHOSAK,
+            null,
+            null,
+            ServiceLevelType.PREMIUM,
+            UsageType.PRODUCTION,
+            expectedBillingProvider.asOpenApiEnum(),
+            null,
+            null,
+            null,
+            null,
+            null,
+            InstanceReportSort.DISPLAY_NAME,
+            null);
+
+    assertEquals(expected, report);
+  }
+
+  @Test
+  void testShouldPopulateInstanceResponseWithHypervisorAndPhysical() {
+    BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
+
+    var tallyInstanceViewPhysical = new TallyInstanceView();
+    tallyInstanceViewPhysical.setKey(new TallyInstanceViewKey());
+    tallyInstanceViewPhysical.setDisplayName("rhv.example.com");
+    tallyInstanceViewPhysical.setNumOfGuests(3);
+    tallyInstanceViewPhysical.setLastSeen(OffsetDateTime.now());
+    tallyInstanceViewPhysical
+        .getKey()
+        .setInstanceId(UUID.fromString("d6214a0b-b344-4778-831c-d53dcacb2da3"));
+    tallyInstanceViewPhysical.setHostBillingProvider(expectedBillingProvider);
+    tallyInstanceViewPhysical.getKey().setMeasurementType(HardwareMeasurementType.PHYSICAL);
+    tallyInstanceViewPhysical.setUom(Measurement.Uom.CORES);
+
+    var tallyInstanceViewHypervisor = new TallyInstanceView();
+    tallyInstanceViewHypervisor.setKey(new TallyInstanceViewKey());
+    tallyInstanceViewHypervisor.setDisplayName("rhv.example.com");
+    tallyInstanceViewHypervisor.setNumOfGuests(3);
+    tallyInstanceViewHypervisor.setLastSeen(OffsetDateTime.now());
+    tallyInstanceViewHypervisor
+        .getKey()
+        .setInstanceId(UUID.fromString("d6214a0b-b344-4778-831c-d53dcacb2da3"));
+    tallyInstanceViewHypervisor.setHostBillingProvider(expectedBillingProvider);
+    tallyInstanceViewHypervisor.getKey().setMeasurementType(HardwareMeasurementType.HYPERVISOR);
+    tallyInstanceViewHypervisor.setUom(Measurement.Uom.CORES);
+
+    Mockito.when(
+            repository.findAllBy(
+                eq("owner123456"),
+                any(),
+                any(),
+                any(),
+                any(),
+                anyInt(),
+                anyInt(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any()))
+        .thenReturn(
+            new PageImpl<>(List.of(tallyInstanceViewPhysical, tallyInstanceViewHypervisor)));
+
+    List<Double> expectedMeasurement = new ArrayList<>();
+    var dataPhysical = new InstanceData();
+    dataPhysical.setId(tallyInstanceViewPhysical.getKey().getInstanceId().toString());
+    dataPhysical.setDisplayName(tallyInstanceViewPhysical.getDisplayName());
+    dataPhysical.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
+    dataPhysical.setLastSeen(tallyInstanceViewPhysical.getLastSeen());
+    dataPhysical.setMeasurements(expectedMeasurement);
+    dataPhysical.setNumberOfGuests(tallyInstanceViewPhysical.getNumOfGuests());
+    dataPhysical.setCategory(HardwareMeasurementType.PHYSICAL.toString());
+
+    var dataHypervisor = new InstanceData();
+    dataHypervisor.setId(tallyInstanceViewHypervisor.getKey().getInstanceId().toString());
+    dataHypervisor.setDisplayName(tallyInstanceViewHypervisor.getDisplayName());
+    dataHypervisor.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
+    dataHypervisor.setLastSeen(tallyInstanceViewHypervisor.getLastSeen());
+    dataHypervisor.setMeasurements(expectedMeasurement);
+    dataHypervisor.setNumberOfGuests(tallyInstanceViewHypervisor.getNumOfGuests());
+    dataHypervisor.setCategory(HardwareMeasurementType.HYPERVISOR.toString());
+
+    var meta = new InstanceMeta();
+    meta.setCount(2);
+    meta.setProduct(RHEL);
+    meta.setServiceLevel(ServiceLevelType.PREMIUM);
+    meta.setUsage(UsageType.PRODUCTION);
+    meta.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
+    meta.setMeasurements(new ArrayList<>());
+
+    var expected = new InstanceResponse();
+    expected.setData(List.of(dataPhysical, dataHypervisor));
+    expected.setMeta(meta);
+
+    InstanceResponse report =
+        resource.getInstancesByProduct(
+            RHEL,
             null,
             null,
             ServiceLevelType.PREMIUM,

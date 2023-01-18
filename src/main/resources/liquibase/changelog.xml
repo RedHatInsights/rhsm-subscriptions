@@ -96,5 +96,6 @@
     <include file="liquibase/202212121039-create-tally-instance-view.xml"/>
     <include file="liquibase/202301041519-fix-tally-snapshot-index-for-rollup-query.xml"/>
     <include file="liquibase/202212011334-add-billing-factor-column-to-remittance-table.xml"/>
+    <include file="liquibase/202301031409-update-tally-instance-view.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
