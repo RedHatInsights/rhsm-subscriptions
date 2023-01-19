@@ -79,7 +79,7 @@ class InstancesResourceTest {
         .setInstanceId(UUID.fromString("d6214a0b-b344-4778-831c-d53dcacb2da3"));
     tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
-    tallyInstanceView.setUom(Measurement.Uom.SOCKETS);
+    tallyInstanceView.getKey().setUom(Measurement.Uom.SOCKETS);
 
     Mockito.when(
             repository.findAllBy(
@@ -161,7 +161,7 @@ class InstancesResourceTest {
         .setInstanceId(UUID.fromString("d6214a0b-b344-4778-831c-d53dcacb2da3"));
     tallyInstanceViewPhysical.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceViewPhysical.getKey().setMeasurementType(HardwareMeasurementType.PHYSICAL);
-    tallyInstanceViewPhysical.setUom(Measurement.Uom.CORES);
+    tallyInstanceViewPhysical.getKey().setUom(Measurement.Uom.CORES);
 
     var tallyInstanceViewHypervisor = new TallyInstanceView();
     tallyInstanceViewHypervisor.setKey(new TallyInstanceViewKey());
@@ -173,7 +173,7 @@ class InstancesResourceTest {
         .setInstanceId(UUID.fromString("d6214a0b-b344-4778-831c-d53dcacb2da3"));
     tallyInstanceViewHypervisor.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceViewHypervisor.getKey().setMeasurementType(HardwareMeasurementType.HYPERVISOR);
-    tallyInstanceViewHypervisor.setUom(Measurement.Uom.CORES);
+    tallyInstanceViewHypervisor.getKey().setUom(Measurement.Uom.CORES);
 
     Mockito.when(
             repository.findAllBy(

@@ -213,7 +213,7 @@ public class InstancesResource implements InstancesApi {
       instance.setBillingProvider(tallyInstanceView.getHostBillingProvider().asOpenApiEnum());
     }
     for (String uom : measurements) {
-      if (tallyInstanceView.getUom().equals(Measurement.Uom.fromValue(uom))) {
+      if (tallyInstanceView.getKey().getUom().equals(Measurement.Uom.fromValue(uom))) {
         measurementList.add(
             tallyInstanceView.getMonthlyTotals().values().stream().findFirst().orElse(0.0));
       } else {

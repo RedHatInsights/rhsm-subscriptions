@@ -72,6 +72,7 @@ public class TallyInstanceViewSpecification implements Specification<TallyInstan
             TallyInstanceViewKey_.BUCKET_BILLING_PROVIDER, root.get(TallyInstanceView_.KEY),
             TallyInstanceViewKey_.INSTANCE_ID, root.get(TallyInstanceView_.KEY),
             TallyInstanceViewKey_.MEASUREMENT_TYPE, root.get(TallyInstanceView_.KEY),
+            TallyInstanceViewKey_.UOM, root.get(TallyInstanceView_.KEY),
             InstanceMonthlyTotalKey_.MONTH, instanceMonthlyTotalRoot);
 
     for (SearchCriteria criteria : list) {

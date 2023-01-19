@@ -112,7 +112,7 @@ public interface TallyInstanceViewRepository
             TallyInstanceView_.DISPLAY_NAME, displayNameSubstring, SearchOperation.CONTAINS));
     if (effectiveUom != null) {
       searchCriteria.add(
-          new SearchCriteria(TallyInstanceView_.UOM, effectiveUom, SearchOperation.EQUAL));
+          new SearchCriteria(TallyInstanceViewKey_.UOM, effectiveUom, SearchOperation.EQUAL));
     }
     searchCriteria.add(
         new SearchCriteria(TallyInstanceView_.CORES, minCores, SearchOperation.GREATER_THAN_EQUAL));

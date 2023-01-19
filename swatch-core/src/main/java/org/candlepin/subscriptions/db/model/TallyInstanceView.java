@@ -29,15 +29,12 @@ import javax.persistence.Column;
 import javax.persistence.ElementCollection;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
-import org.candlepin.subscriptions.json.Measurement;
 import org.springframework.data.annotation.Immutable;
 
 @Setter
@@ -77,10 +74,6 @@ public class TallyInstanceView implements Serializable {
   private int sockets;
 
   private Double value;
-
-  @Enumerated(EnumType.STRING)
-  @Column(name = "uom")
-  private Measurement.Uom uom;
 
   @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(
