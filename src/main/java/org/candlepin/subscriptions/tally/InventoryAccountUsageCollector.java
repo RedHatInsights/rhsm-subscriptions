@@ -20,11 +20,12 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import com.google.common.collect.Sets;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -43,6 +44,7 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.InventoryDatabaseOperations;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
@@ -82,41 +84,24 @@ public class InventoryAccountUsageCollector {
 
   @SuppressWarnings("squid:S3776")
   @Transactional
-  public AccountUsageCalculation collect(
-      Collection<String> products, String account, String orgId) {
+  public OrgHostsData collect(Set<String> products, String account, String orgId) {
     int inventoryCount = inventory.activeSystemCountForOrgId(orgId, culledOffsetDays);
     if (inventoryCount > tallyMaxHbiAccountSize) {
       throw new SystemThresholdException(orgId, tallyMaxHbiAccountSize, inventoryCount);
     }
     AccountServiceInventory accountServiceInventory = fetchAccountServiceInventory(orgId, account);
-
-    HypervisorData hypervisorData = new HypervisorData(orgId);
-    Map<String, Set<HostBucketKey>> hostSeenBucketKeysLookup = new HashMap<>();
-    AccountUsageCalculation accountCalc = new AccountUsageCalculation(orgId);
     Map<String, Host> inventoryHostMap = buildInventoryHostMap(accountServiceInventory);
 
-    hypervisorData.addReportedHypervisors(inventory, orgId);
+    OrgHostsData orgHostsData = new OrgHostsData(orgId);
+    Map<String, Set<HostBucketKey>> hostSeenBucketKeysLookup = new HashMap<>();
+
+    orgHostsData.addReportedHypervisors(inventory);
 
     inventory.processHost(
         orgId,
         culledOffsetDays,
         hostFacts -> {
-          NormalizedFacts facts = factNormalizer.normalize(hostFacts, hypervisorData);
-
-          // Validate and set the account number.
-          // Don't set null account as it may overwrite an existing value.
-          // Likely won't happen, but there could be stale data in inventory with no account set.
-          String hostAccount = facts.getAccount();
-          if (hostAccount != null) {
-            String currentAccount = accountCalc.getAccount();
-            if (currentAccount != null && !currentAccount.equalsIgnoreCase(hostAccount)) {
-              throw new IllegalStateException(
-                  String.format(
-                      "Attempt to set a different account for an org: %s:%s",
-                      currentAccount, hostAccount));
-            }
-            accountCalc.setAccount(hostAccount);
-          }
+          NormalizedFacts facts = factNormalizer.normalize(hostFacts, orgHostsData);
 
           Host existingHost = inventoryHostMap.remove(hostFacts.getInventoryId().toString());
           Host host;
@@ -127,56 +112,57 @@ public class InventoryAccountUsageCollector {
             host = existingHost;
             populateHostFieldsFromHbi(host, hostFacts, facts);
           }
+          orgHostsData.addHostWithNormalizedFacts(host, facts);
 
           Set<HostBucketKey> seenBucketKeys =
               hostSeenBucketKeysLookup.computeIfAbsent(host.getInstanceId(), h -> new HashSet<>());
 
           if (facts.isHypervisor()) {
-            hypervisorData.addHypervisorFacts(hostFacts.getSubscriptionManagerId(), facts);
-            hypervisorData.addHost(hostFacts.getSubscriptionManagerId(), host);
+            orgHostsData.addHypervisorFacts(hostFacts.getSubscriptionManagerId(), facts);
+            orgHostsData.addHostToHypervisor(hostFacts.getSubscriptionManagerId(), host);
           } else if (facts.isVirtual() && StringUtils.hasText(facts.getHypervisorUuid())) {
-            hypervisorData.incrementGuestCount(host.getHypervisorUuid());
+            orgHostsData.incrementGuestCount(host.getHypervisorUuid());
           }
 
-          ServiceLevel[] slas = new ServiceLevel[] {facts.getSla(), ServiceLevel._ANY};
-          Usage[] usages = new Usage[] {facts.getUsage(), Usage._ANY};
+          Set<Key> usageKeys =
+              createKeyCombinations(
+                  products,
+                  Set.of(facts.getSla(), ServiceLevel._ANY),
+                  Set.of(facts.getUsage(), Usage._ANY),
+                  Set.of(BillingProvider._ANY),
+                  Set.of("_ANY"));
 
           // Calculate for each UsageKey
           // review current implementation of default values, and determine if factnormalizer needs
           // to handle billingAcctId & BillingProvider
-          products.forEach(
-              product -> {
-                for (ServiceLevel sla : slas) {
-                  for (Usage usage : usages) {
-                    UsageCalculation.Key key =
-                        new UsageCalculation.Key(product, sla, usage, BillingProvider._ANY, "_ANY");
-                    UsageCalculation calc = accountCalc.getOrCreateCalculation(key);
-                    if (facts.getProducts().contains(product)) {
-                      try {
-                        String hypervisorUuid = facts.getHypervisorUuid();
-                        if (hypervisorUuid != null) {
-                          hypervisorData.addUsageKey(hypervisorUuid, key);
-                        }
-                        Optional<HostTallyBucket> appliedBucket =
-                            ProductUsageCollectorFactory.get(product).collect(calc, facts);
-                        appliedBucket.ifPresent(
-                            bucket -> {
-                              // host.addBucket changes bucket.key.hostId, so we do that first; to
-                              // avoid mutating the item in the set
-                              host.addBucket(bucket);
-                              seenBucketKeys.add(bucket.getKey());
-                            });
-                      } catch (Exception e) {
-                        log.error(
-                            "Unable to collect usage data for host: {} product: {}",
-                            hostFacts.getSubscriptionManagerId(),
-                            product,
-                            e);
-                      }
-                    }
-                  }
-                }
-              });
+          for (Key key : usageKeys) {
+            var product = key.getProductId();
+            if (!facts.getProducts().contains(product)) {
+              continue;
+            }
+
+            try {
+              String hypervisorUuid = facts.getHypervisorUuid();
+              if (hypervisorUuid != null) {
+                orgHostsData.addHypervisorKey(hypervisorUuid, key);
+              }
+              Optional<HostTallyBucket> appliedBucket =
+                  ProductUsageCollectorFactory.get(product).buildBucket(key, facts);
+              appliedBucket.ifPresent(
+                  bucket -> {
+                    // host.addBucket changes bucket.key.hostId, so we do that first; to
+                    // avoid mutating the item in the set
+                    host.addBucket(bucket);
+                    seenBucketKeys.add(bucket.getKey());
+                  });
+            } catch (Exception e) {
+              log.error(
+                  "Unable to collect usage data for host: {} product: {}",
+                  hostFacts.getSubscriptionManagerId(),
+                  product,
+                  e);
+            }
+          }
           // Save the host now that the buckets have been determined. Hypervisor hosts will
           // be persisted once all potential guests have been processed.
           if (!facts.isHypervisor()) {
@@ -193,7 +179,7 @@ public class InventoryAccountUsageCollector {
         .forEach(accountServiceInventory.getServiceInstances()::remove);
 
     // apply data from guests to hypervisor records
-    hypervisorData.collectGuestData(accountCalc, hostSeenBucketKeysLookup);
+    orgHostsData.collectGuestData(hostSeenBucketKeysLookup);
 
     log.info("Removing stale buckets");
     for (Host host : accountServiceInventory.getServiceInstances().values()) {
@@ -202,19 +188,106 @@ public class InventoryAccountUsageCollector {
       host.getBuckets().removeIf(b -> !seenBucketKeys.contains(b.getKey()));
     }
 
-    var hypervisorHostMap = hypervisorData.hostMap();
+    var hypervisorHostMap = orgHostsData.hypervisorHostMap();
     if (hypervisorHostMap.size() > 0) {
       log.info("Persisting {} hypervisor hosts.", hypervisorHostMap.size());
       for (Host host : hypervisorHostMap.values()) {
         accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host);
       }
     }
-    log.debug("Account Usage: {}", accountCalc);
-
     accountServiceInventory.setOrgId(orgId);
     accountServiceInventoryRepository.save(accountServiceInventory);
+    return orgHostsData;
+  }
 
+  @SuppressWarnings("squid:S3776")
+  @Transactional
+  public AccountUsageCalculation tally(Set<String> products, OrgHostsData orgHostsData) {
+    AccountUsageCalculation accountCalc = new AccountUsageCalculation(orgHostsData.getOrgId());
+    for (var entry : orgHostsData.getHostNormalizedFactsMap().entrySet()) {
+      Host host = entry.getKey();
+      NormalizedFacts facts = entry.getValue();
+
+      // Validate and set the account number.
+      // Don't set null account as it may overwrite an existing value.
+      // Likely won't happen, but there could be stale data in inventory with no account set.
+      String hostAccount = facts.getAccount();
+      if (hostAccount != null) {
+        String currentAccount = accountCalc.getAccount();
+        if (currentAccount != null && !currentAccount.equalsIgnoreCase(hostAccount)) {
+          throw new IllegalStateException(
+              String.format(
+                  "Attempt to set a different account for an org: %s:%s",
+                  currentAccount, hostAccount));
+        }
+        accountCalc.setAccount(hostAccount);
+      }
+
+      Set<Key> usageKeys =
+          createKeyCombinations(
+              products,
+              Set.of(facts.getSla(), ServiceLevel._ANY),
+              Set.of(facts.getUsage(), Usage._ANY),
+              Set.of(BillingProvider._ANY),
+              Set.of("_ANY"));
+
+      // Calculate for each UsageKey
+      // review current implementation of default values, and determine if factnormalizer needs
+      // to handle billingAcctId & BillingProvider
+      for (Key key : usageKeys) {
+        var product = key.getProductId();
+        UsageCalculation calc = accountCalc.getOrCreateCalculation(key);
+        if (!facts.getProducts().contains(product)) {
+          continue;
+        }
+        try {
+          ProductUsageCollectorFactory.get(product).collect(calc, facts);
+        } catch (Exception e) {
+          log.error(
+              "Unable to tally usage data for host: {} product: {}",
+              host.getSubscriptionManagerId(),
+              product,
+              e);
+        }
+      }
+    }
+    orgHostsData.tallyGuestData(accountCalc);
+    log.debug("Account Usage: {}", accountCalc);
     return accountCalc;
+  }
+
+  /**
+   * Create all possible combinations of product, SLA, usage, billing provider, and account ID.
+   *
+   * @param products productIds
+   * @param slas a set of SLAs
+   * @param usages a set of usages
+   * @param billingProviders a set of BillingProviders
+   * @param billingAccountIds a set of billing account IDs
+   * @return a set of UsageCalculation.Key representing all possible combinations of the input
+   *     parameters
+   */
+  public static Set<Key> createKeyCombinations(
+      Set<String> products,
+      Set<ServiceLevel> slas,
+      Set<Usage> usages,
+      Set<BillingProvider> billingProviders,
+      Set<String> billingAccountIds) {
+    Set<List<Object>> usageTuples =
+        Sets.cartesianProduct(products, slas, usages, billingProviders, billingAccountIds);
+    return usageTuples.stream()
+        .map(
+            tuple -> {
+              String product = (String) tuple.get(0);
+              ServiceLevel sla = (ServiceLevel) tuple.get(1);
+              Usage usage = (Usage) tuple.get(2);
+              BillingProvider billingProvider = (BillingProvider) tuple.get(3);
+              String billingAccountId = (String) tuple.get(4);
+
+              return new UsageCalculation.Key(
+                  product, sla, usage, billingProvider, billingAccountId);
+            })
+        .collect(Collectors.toSet());
   }
 
   private AccountServiceInventory fetchAccountServiceInventory(String orgId, String account) {

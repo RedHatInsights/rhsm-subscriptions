@@ -107,8 +107,9 @@ public class TallySnapshotController {
     String account = accountRepo.findAccountNumberByOrgId(orgId);
     log.info("Producing snapshots for Org ID {} with Account {}.", orgId, account);
     AccountUsageCalculation accountCalc;
+    OrgHostsData orgHostsData;
     try {
-      accountCalc =
+      orgHostsData =
           retryTemplate.execute(
               context -> {
                 try {
@@ -118,16 +119,17 @@ public class TallySnapshotController {
                   return null;
                 }
               });
+      if (Objects.isNull(orgHostsData)) { // orgHostsData is null when the threshold is breached
+        return;
+      }
+      accountCalc = usageCollector.tally(this.applicableProducts, orgHostsData);
+
       if (props.isCloudigradeEnabled()) {
         attemptCloudigradeEnrichment(accountCalc);
       }
     } catch (Exception e) {
       log.error(
           "Could not collect existing usage snapshots for orgId={} account={}", orgId, account, e);
-      return;
-    }
-
-    if (accountCalc == null) { // accountCalc is null when the threshold is breached
       return;
     }
 

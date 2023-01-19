@@ -25,7 +25,7 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
-import org.candlepin.subscriptions.tally.HypervisorData;
+import org.candlepin.subscriptions.tally.OrgHostsData;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,12 +52,12 @@ public class InventoryDatabaseOperations {
   /* This method is transactional since we are using a Stream and keeping the cursor open requires
   a transaction. */
   @Transactional(value = "inventoryTransactionManager", readOnly = true)
-  public void fetchReportedHypervisors(String orgId, HypervisorData hypervisorData) {
-    try (Stream<Object[]> stream = repo.getReportedHypervisors(List.of(orgId))) {
+  public void fetchReportedHypervisors(OrgHostsData orgHostsData) {
+    try (Stream<Object[]> stream = repo.getReportedHypervisors(List.of(orgHostsData.getOrgId()))) {
       stream.forEach(
-          reported -> hypervisorData.addHostMapping((String) reported[0], (String) reported[1]));
+          reported -> orgHostsData.addHostMapping((String) reported[0], (String) reported[1]));
     }
-    log.info("Found {} reported hypervisors.", hypervisorData.getHypervisorMapping().size());
+    log.info("Found {} reported hypervisors.", orgHostsData.getHypervisorMapping().size());
   }
 
   public int activeSystemCountForOrgId(String orgId, int culledOffsetDays) {
