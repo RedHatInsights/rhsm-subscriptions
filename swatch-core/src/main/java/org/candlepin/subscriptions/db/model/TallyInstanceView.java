@@ -88,7 +88,7 @@ public class TallyInstanceView implements Serializable {
   }
 
   public Double getMonthlyTotal(String monthId, Measurement.Uom uom) {
-    var key = new InstanceMonthlyTotalKey(monthId, uom);
+    var totalKey = new InstanceMonthlyTotalKey(monthId, uom);
     return monthlyTotals.get(key);
   }
 }
