@@ -170,7 +170,9 @@ public class InstancesResource implements InstancesApi {
             page);
     payload =
         instances.getContent().stream()
-            .map(tallyInstanceView -> asTallyHostViewApiInstance(tallyInstanceView, measurements))
+            .map(
+                tallyInstanceView ->
+                    asTallyHostViewApiInstance(tallyInstanceView, month, measurements))
             .collect(Collectors.toList());
 
     PageLinks links;
@@ -204,7 +206,7 @@ public class InstancesResource implements InstancesApi {
   }
 
   private InstanceData asTallyHostViewApiInstance(
-      TallyInstanceView tallyInstanceView, List<String> measurements) {
+      TallyInstanceView tallyInstanceView, String monthId, List<String> measurements) {
     var instance = new InstanceData();
     List<Double> measurementList = new ArrayList<>();
     instance.setId(tallyInstanceView.getKey().getInstanceId().toString());
@@ -213,12 +215,10 @@ public class InstancesResource implements InstancesApi {
       instance.setBillingProvider(tallyInstanceView.getHostBillingProvider().asOpenApiEnum());
     }
     for (String uom : measurements) {
-      if (tallyInstanceView.getKey().getUom().equals(Measurement.Uom.fromValue(uom))) {
-        measurementList.add(
-            tallyInstanceView.getMonthlyTotals().values().stream().findFirst().orElse(0.0));
-      } else {
-        measurementList.add(0.0);
-      }
+      measurementList.add(
+          Optional.ofNullable(
+                  tallyInstanceView.getMonthlyTotal(monthId, Measurement.Uom.fromValue(uom)))
+              .orElse(0.0));
     }
     instance.setCategory(tallyInstanceView.getKey().getMeasurementType().name());
     instance.setBillingAccountId(tallyInstanceView.getHostBillingAccountId());

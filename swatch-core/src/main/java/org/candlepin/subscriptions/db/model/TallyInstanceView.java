@@ -35,6 +35,7 @@ import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
+import org.candlepin.subscriptions.json.Measurement;
 import org.springframework.data.annotation.Immutable;
 
 @Setter
@@ -84,5 +85,10 @@ public class TallyInstanceView implements Serializable {
 
   public TallyInstanceView() {
     key = new TallyInstanceViewKey();
+  }
+
+  public Double getMonthlyTotal(String monthId, Measurement.Uom uom) {
+    var key = new InstanceMonthlyTotalKey(monthId, uom);
+    return monthlyTotals.get(key);
   }
 }
