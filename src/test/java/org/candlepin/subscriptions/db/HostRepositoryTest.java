@@ -56,8 +56,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.domain.Sort.Direction;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
@@ -131,6 +131,7 @@ class HostRepositoryTest {
     accountServiceInventoryRepository.deleteAll();
   }
 
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   private List<Host> persistHosts(Host... hosts) {
     List<Host> toSave = Arrays.asList(hosts);
     toSave.stream()
@@ -720,41 +721,10 @@ class HostRepositoryTest {
     assertEquals(5, hypervisor.getCores());
   }
 
-  static HostReportSort[] instanceSortParams() {
-    return HostsResource.INSTANCE_SORT_PARAM_MAPPING.keySet().toArray(new HostReportSort[0]);
-  }
-
-  @Transactional
-  @ParameterizedTest
-  @MethodSource("org.candlepin.subscriptions.db.HostRepositoryTest#instanceSortParams")
-  void canSortByInstanceBasedSortMethods(HostReportSort sort) {
-
-    String sortValue = HostsResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
-    Pageable page = PageRequest.of(0, 2, Sort.by(sortValue));
-    Uom referenceUom = HostsResource.SORT_TO_UOM_MAP.getOrDefault(sort, Uom.CORES);
-    Page<Host> results =
-        repo.findAllBy(
-            "ORG_account123",
-            "RHEL",
-            ServiceLevel._ANY,
-            Usage._ANY,
-            "",
-            0,
-            0,
-            "2021-01",
-            referenceUom,
-            BillingProvider._ANY,
-            "_ANY",
-            null,
-            page);
-
-    assertEquals(2, results.getTotalElements());
-
-    if (sortValue.equals("monthlyTotals")) {
-      List<Host> payload = results.toList();
-      assertEquals(0.0, payload.get(0).getMonthlyTotal("2021-01", referenceUom));
-      assertEquals(100.0, payload.get(1).getMonthlyTotal("2021-01", referenceUom));
-    }
+  static InstanceReportSort[] instanceSortParams() {
+    return InstancesResource.INSTANCE_SORT_PARAM_MAPPING
+        .keySet()
+        .toArray(new InstanceReportSort[0]);
   }
 
   static String[] tallyViewSortParams() {
@@ -1054,106 +1024,6 @@ class HostRepositoryTest {
     assertEquals(BillingProvider.RED_HAT, hostToBill.get("i1").getBillingProvider());
     assertEquals(BillingProvider.AWS, hostToBill.get("i2").getBillingProvider());
     assertNull(hostToBill.get("i3").getBillingProvider());
-  }
-
-  @Transactional
-  @Test
-  void testSortByBillingProvider() {
-    Host host1 = createHost("i1", "a1");
-    host1.setBillingProvider(BillingProvider.RED_HAT);
-    addBucketToHost(
-        host1,
-        COOL_PROD,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        HardwareMeasurementType.PHYSICAL,
-        BillingProvider.RED_HAT);
-    addBucketToHost(
-        host1,
-        COOL_PROD,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        HardwareMeasurementType.PHYSICAL,
-        BillingProvider._ANY);
-
-    Host host2 = createHost("i2", "a1");
-    host2.setBillingProvider(BillingProvider.AWS);
-    addBucketToHost(
-        host2,
-        COOL_PROD,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        HardwareMeasurementType.PHYSICAL,
-        BillingProvider.AWS);
-    addBucketToHost(
-        host2,
-        COOL_PROD,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        HardwareMeasurementType.PHYSICAL,
-        BillingProvider._ANY);
-
-    Host host3 = createHost("i3", "a1");
-    addBucketToHost(
-        host3,
-        COOL_PROD,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        HardwareMeasurementType.PHYSICAL,
-        BillingProvider.EMPTY);
-    addBucketToHost(
-        host3,
-        COOL_PROD,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        HardwareMeasurementType.PHYSICAL,
-        BillingProvider._ANY);
-
-    Host host4 = createHost("i4", "a1");
-    host4.setBillingProvider(BillingProvider.ORACLE);
-    addBucketToHost(
-        host4,
-        COOL_PROD,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        HardwareMeasurementType.PHYSICAL,
-        BillingProvider.ORACLE);
-    addBucketToHost(
-        host4,
-        COOL_PROD,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        HardwareMeasurementType.PHYSICAL,
-        BillingProvider._ANY);
-
-    persistHosts(host1, host2, host3, host4);
-
-    Sort asc =
-        Sort.by(
-            Direction.DESC,
-            InstancesResource.INSTANCE_SORT_PARAM_MAPPING.get(InstanceReportSort.BILLING_PROVIDER));
-    Pageable page = PageRequest.of(0, 10, asc);
-
-    Page<Host> results =
-        repo.findAllBy(
-            "ORG_a1",
-            COOL_PROD,
-            ServiceLevel.PREMIUM,
-            Usage.PRODUCTION,
-            "",
-            0,
-            0,
-            null,
-            null,
-            BillingProvider._ANY,
-            "_ANY",
-            null,
-            page);
-    assertEquals(4L, results.getTotalElements());
-    assertNull(results.getContent().get(0).getBillingProvider());
-    assertEquals(BillingProvider.RED_HAT, results.getContent().get(1).getBillingProvider());
-    assertEquals(BillingProvider.ORACLE, results.getContent().get(2).getBillingProvider());
-    assertEquals(BillingProvider.AWS, results.getContent().get(3).getBillingProvider());
   }
 
   @Transactional

@@ -32,13 +32,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
-import org.candlepin.subscriptions.db.HostRepository;
+import org.candlepin.subscriptions.db.TallyInstanceViewRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.Host;
-import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -65,7 +64,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class InstancesResource implements InstancesApi {
 
-  private final HostRepository repository;
+  private final TallyInstanceViewRepository repository;
   private final PageLinkCreator pageLinkCreator;
   private final TagProfile tagProfile;
 
@@ -73,7 +72,7 @@ public class InstancesResource implements InstancesApi {
       ImmutableMap.<InstanceReportSort, String>builder()
           .put(InstanceReportSort.DISPLAY_NAME, "displayName")
           .put(InstanceReportSort.LAST_SEEN, "lastSeen")
-          .put(InstanceReportSort.BILLING_PROVIDER, "billingProvider")
+          .put(InstanceReportSort.BILLING_PROVIDER, "hostBillingProvider")
           .put(InstanceReportSort.NUMBER_OF_GUESTS, "numOfGuests")
           .putAll(getUomSorts())
           .build();
@@ -84,8 +83,10 @@ public class InstancesResource implements InstancesApi {
   @Context UriInfo uriInfo;
 
   public InstancesResource(
-      HostRepository instancesRepository, PageLinkCreator pageLinkCreator, TagProfile tagProfile) {
-    this.repository = instancesRepository;
+      TallyInstanceViewRepository tallyInstanceViewRepository,
+      PageLinkCreator pageLinkCreator,
+      TagProfile tagProfile) {
+    this.repository = tallyInstanceViewRepository;
     this.pageLinkCreator = pageLinkCreator;
     this.tagProfile = tagProfile;
   }
@@ -130,7 +131,7 @@ public class InstancesResource implements InstancesApi {
         getHardwareMeasurementTypesFromCategory(reportCategory);
 
     List<InstanceData> payload;
-    Page<Host> hosts;
+    Page<TallyInstanceView> instances;
     if (sort != null) {
       Sort.Order userDefinedOrder = new Sort.Order(dirValue, INSTANCE_SORT_PARAM_MAPPING.get(sort));
       sortValue = Sort.by(userDefinedOrder, implicitOrder);
@@ -149,10 +150,10 @@ public class InstancesResource implements InstancesApi {
     String month = InstanceMonthlyTotalKey.formatMonthId(start);
     // We depend on a "reference UOM" in order to filter out instances that were not active in
     // the selected month. This is also used for sorting purposes (same join). See
-    // org.candlepin.subscriptions.db.HostSpecification#toPredicate and
-    // org.candlepin.subscriptions.db.HostRepository#findAllBy.
+    // org.candlepin.subscriptions.db.TallyInstanceViewSpecification#toPredicate and
+    // org.candlepin.subscriptions.db.TallyInstanceViewRepository#findAllBy.
     Measurement.Uom referenceUom = SORT_TO_UOM_MAP.get(sort);
-    hosts =
+    instances =
         repository.findAllBy(
             orgId,
             productId.toString(),
@@ -168,13 +169,15 @@ public class InstancesResource implements InstancesApi {
             hardwareMeasurementTypes,
             page);
     payload =
-        hosts.getContent().stream()
-            .map(h -> asTallyHostViewApiInstance(h, month, measurements))
+        instances.getContent().stream()
+            .map(
+                tallyInstanceView ->
+                    asTallyHostViewApiInstance(tallyInstanceView, month, measurements))
             .collect(Collectors.toList());
 
     PageLinks links;
     if (offset != null || limit != null) {
-      links = pageLinkCreator.getPaginationLinks(uriInfo, hosts);
+      links = pageLinkCreator.getPaginationLinks(uriInfo, instances);
     } else {
       links = null;
     }
@@ -183,7 +186,7 @@ public class InstancesResource implements InstancesApi {
         .links(links)
         .meta(
             new InstanceMeta()
-                .count((int) hosts.getTotalElements())
+                .count((int) instances.getTotalElements())
                 .product(productId)
                 .serviceLevel(sla)
                 .usage(usage)
@@ -203,32 +206,25 @@ public class InstancesResource implements InstancesApi {
   }
 
   private InstanceData asTallyHostViewApiInstance(
-      Host host, String monthId, List<String> measurements) {
+      TallyInstanceView tallyInstanceView, String monthId, List<String> measurements) {
     var instance = new InstanceData();
     List<Double> measurementList = new ArrayList<>();
-    instance.setId(host.getInstanceId());
-    instance.setDisplayName(host.getDisplayName());
-    if (Objects.nonNull(host.getBillingProvider())) {
-      instance.setBillingProvider(host.getBillingProvider().asOpenApiEnum());
+    instance.setId(tallyInstanceView.getKey().getInstanceId().toString());
+    instance.setDisplayName(tallyInstanceView.getDisplayName());
+    if (Objects.nonNull(tallyInstanceView.getHostBillingProvider())) {
+      instance.setBillingProvider(tallyInstanceView.getHostBillingProvider().asOpenApiEnum());
     }
-
     for (String uom : measurements) {
       measurementList.add(
-          Optional.ofNullable(host.getMonthlyTotal(monthId, Measurement.Uom.fromValue(uom)))
+          Optional.ofNullable(
+                  tallyInstanceView.getMonthlyTotal(monthId, Measurement.Uom.fromValue(uom)))
               .orElse(0.0));
     }
-    if (!host.getBuckets().isEmpty()) {
-      host.getBuckets().stream()
-          .findFirst()
-          .map(HostTallyBucket::getMeasurementType)
-          .map(Objects::toString)
-          .ifPresent(instance::setCategory);
-    }
-    instance.setBillingAccountId(host.getBillingAccountId());
+    instance.setCategory(tallyInstanceView.getKey().getMeasurementType().name());
+    instance.setBillingAccountId(tallyInstanceView.getHostBillingAccountId());
     instance.setMeasurements(measurementList);
-    instance.setLastSeen(host.getLastSeen());
-    instance.setNumberOfGuests(host.getNumOfGuests());
-
+    instance.setLastSeen(tallyInstanceView.getLastSeen());
+    instance.setNumberOfGuests(tallyInstanceView.getNumOfGuests());
     return instance;
   }
 
@@ -266,6 +262,6 @@ public class InstancesResource implements InstancesApi {
 
   private static Map<InstanceReportSort, String> getUomSorts() {
     return getSortToUomMap().keySet().stream()
-        .collect(Collectors.toMap(Function.identity(), key -> "monthlyTotals"));
+        .collect(Collectors.toMap(Function.identity(), key -> "value"));
   }
 }
