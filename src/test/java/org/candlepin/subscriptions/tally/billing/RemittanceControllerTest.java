@@ -83,7 +83,8 @@ class RemittanceControllerTest {
     BillingProducer billingProducer =
         new BillingProducer(new TaskQueueProperties(), billableTemplate);
     BillableUsageController usageController =
-        new BillableUsageController(clock, billingProducer, remittanceRepo, snapshotRepo);
+        new BillableUsageController(
+            clock, billingProducer, remittanceRepo, snapshotRepo, tagProfile);
     controller =
         new RemittanceController(
             clock,
@@ -133,7 +134,6 @@ class RemittanceControllerTest {
 
     ArgumentCaptor<BillableUsageRemittanceEntity> savedRemittance =
         ArgumentCaptor.forClass(BillableUsageRemittanceEntity.class);
-
     controller.syncRemittance();
     verify(remittanceRepo, times(2)).save(savedRemittance.capture());
     assertThat(
@@ -183,12 +183,36 @@ class RemittanceControllerTest {
     when(snapshotRepo.findLatestBillablesForMonth(clock.now().getMonthValue()))
         .thenReturn(snaps.stream());
 
-    BillableUsageRemittanceEntity remittance = createRemittance(snapshot, 46.0);
+    BillableUsageRemittanceEntity remittance = createRemittance(snapshot, 46.0, 1.0);
     when(remittanceRepo.existsById(remittance.getKey())).thenReturn(true);
 
     controller.syncRemittance();
     // Should not save remittance.
     verifyNoMoreInteractions(remittanceRepo);
+  }
+
+  private BillableUsageRemittanceEntity createRemittance(
+      TallySnapshot snapshot, double remittedValue, double tagFactor) {
+    return BillableUsageRemittanceEntity.builder()
+        .key(
+            BillableUsageRemittanceEntityPK.builder()
+                .orgId(snapshot.getOrgId())
+                .accumulationPeriod(
+                    BillableUsageRemittanceEntityPK.getAccumulationPeriod(
+                        snapshot.getSnapshotDate()))
+                .billingAccountId(snapshot.getBillingAccountId())
+                .billingProvider(snapshot.getBillingProvider().getValue())
+                .metricId(Uom.STORAGE_GIBIBYTE_MONTHS.value())
+                .productId(snapshot.getProductId())
+                .sla(snapshot.getServiceLevel().getValue())
+                .usage(snapshot.getUsage().getValue())
+                .build())
+        // NOTE: We are mocking the repository's sum call, so this value doesn't have to match the
+        // snapshot.
+        .remittedValue(remittedValue)
+        .billingFactor(tagFactor)
+        .remittanceDate(clock.now())
+        .build();
   }
 
   private BillableUsageRemittanceEntity createRemittance(
