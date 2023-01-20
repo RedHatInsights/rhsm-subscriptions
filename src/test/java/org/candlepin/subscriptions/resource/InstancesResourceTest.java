@@ -22,13 +22,16 @@ package org.candlepin.subscriptions.resource;
 
 import static org.candlepin.subscriptions.utilization.api.model.ProductId.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
+import javax.ws.rs.BadRequestException;
 import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.TallyInstanceViewRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -241,5 +244,18 @@ class InstancesResourceTest {
             null);
 
     assertEquals(expected, report);
+  }
+
+  @Test
+  void testShouldRequirePAYGProductsHaveDateRangeWithinOneMonth() {
+    var dayInJanuary = OffsetDateTime.of(2023, 1, 23, 10, 0, 0, 0, ZoneOffset.UTC);
+    var laterDayInJanuary = OffsetDateTime.of(2023, 1, 29, 10, 0, 0, 0, ZoneOffset.UTC);
+    var dayInFebruary = OffsetDateTime.of(2023, 2, 23, 10, 0, 0, 0, ZoneOffset.UTC);
+
+    // RHOSAK is a PAYG product
+    resource.validateBeginningAndEndingDates(RHOSAK, dayInJanuary, laterDayInJanuary);
+    assertThrows(
+        BadRequestException.class,
+        () -> resource.validateBeginningAndEndingDates(RHOSAK, dayInJanuary, dayInFebruary));
   }
 }
