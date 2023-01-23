@@ -3531,7 +3531,7 @@ data:
       "timezone": "utc",
       "title": "Subscription Watch",
       "uid": "lkPhH-1Zk",
-      "version": 3,
+      "version": 4,
       "weekStart": ""
     }
 kind: ConfigMap
