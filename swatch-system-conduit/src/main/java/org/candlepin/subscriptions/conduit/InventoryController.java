@@ -60,6 +60,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 /** Controller used to interact with the Inventory service. */
@@ -94,6 +95,8 @@ public class InventoryController {
   public static final String IP_ADDRESS_FACT_REGEX =
       "^net\\.interface\\.[^.]*\\.ipv[46]_address(\\.global|\\.link)?(_list)?$";
   public static final String NETWORK_FQDN = "network.fqdn";
+  public static final String NET_INTERFACE_LO_IPV4_ADDRESS = "net.interface.lo.ipv4_address";
+  public static final String NET_INTERFACE_LO_IPV6_ADDRESS = "net.interface.lo.ipv6_address";
   public static final String CPU_SOCKETS = "cpu.cpu_socket(s)";
   public static final String CPU_CORES_PER_SOCKET = "cpu.core(s)_per_socket";
   public static final String MEMORY_MEMTOTAL = "memory.memtotal";
@@ -447,15 +450,25 @@ public class InventoryController {
     boolean loExist = networkInterfaces.stream().anyMatch(nic -> "lo".equals(nic.getName()));
     var lo = new HbiNetworkInterface();
 
-    if (!loExist && facts.containsKey("net.interface.lo.ipv4_address")) {
+    if (!loExist && facts.containsKey(NET_INTERFACE_LO_IPV4_ADDRESS)) {
       lo.setName("lo");
       lo.setMacAddress("00:00:00:00:00:00");
-      lo.setIpv4Addresses(Arrays.asList(facts.get("net.interface.lo.ipv4_address")));
+      var splitAddrs =
+          filterIps(facts.get(NET_INTERFACE_LO_IPV4_ADDRESS), NET_INTERFACE_LO_IPV4_ADDRESS);
+      lo.setIpv4Addresses(
+          CollectionUtils.isEmpty(splitAddrs)
+              ? List.of("127.0.0.1")
+              : splitAddrs.stream().distinct().toList());
       networkInterfaces.add(lo);
-    } else if (!loExist && facts.containsKey("net.interface.lo.ipv6_address")) {
+    } else if (!loExist && facts.containsKey(NET_INTERFACE_LO_IPV6_ADDRESS)) {
       lo.setName("lo");
       lo.setMacAddress("00:00:00:00:00:00");
-      lo.setIpv6Addresses(Arrays.asList(facts.get("net.interface.lo.ipv6_address")));
+      var splitAddrs =
+          filterIps(facts.get(NET_INTERFACE_LO_IPV6_ADDRESS), NET_INTERFACE_LO_IPV6_ADDRESS);
+      lo.setIpv6Addresses(
+          CollectionUtils.isEmpty(splitAddrs)
+              ? List.of("::1")
+              : splitAddrs.stream().distinct().toList());
       networkInterfaces.add(lo);
     }
   }
