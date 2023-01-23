@@ -30,6 +30,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import org.candlepin.subscriptions.db.TallyInstanceViewRepository;
@@ -145,7 +146,7 @@ public class InstancesResource implements InstancesApi {
     List<String> measurements =
         uomSet.stream().map(Measurement.Uom::toString).sorted().collect(Collectors.toList());
 
-    validateBeginningAndEndingDates(start, end);
+    validateBeginningAndEndingDates(productId, start, end);
 
     String month = InstanceMonthlyTotalKey.formatMonthId(start);
     // We depend on a "reference UOM" in order to filter out instances that were not active in
@@ -196,12 +197,16 @@ public class InstancesResource implements InstancesApi {
         .data(payload);
   }
 
-  protected void validateBeginningAndEndingDates(OffsetDateTime beginning, OffsetDateTime ending) {
+  protected void validateBeginningAndEndingDates(
+      ProductId productId, OffsetDateTime beginning, OffsetDateTime ending) {
     boolean isDateRangePossible = beginning.isBefore(ending) || beginning.isEqual(ending);
     boolean isBothDatesFromSameMonth = Objects.equals(beginning.getMonth(), ending.getMonth());
+    boolean isPAYG = tagProfile.isProductPAYGEligible(productId.toString());
 
-    if (!isDateRangePossible || !isBothDatesFromSameMonth) {
-      throw new IllegalArgumentException("Invalid date range.");
+    // See SWATCH-745 for the reasoning on the same month restriction
+    if (!isDateRangePossible || (isPAYG && !isBothDatesFromSameMonth)) {
+      throw new BadRequestException(
+          "Invalid date range (PAYG products must be within the same month");
     }
   }
 
