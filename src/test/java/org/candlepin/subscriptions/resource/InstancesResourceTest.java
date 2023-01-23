@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
@@ -108,7 +109,9 @@ class InstancesResourceTest {
     String month = InstanceMonthlyTotalKey.formatMonthId(tallyInstanceView.getLastSeen());
     for (String uom : expectUom) {
       expectedMeasurement.add(
-          Optional.ofNullable(tallyInstanceView.getMonthlyTotals().get(0)).orElse(0.0));
+          Optional.ofNullable(
+                  tallyInstanceView.getMonthlyTotal(month, Measurement.Uom.fromValue(uom)))
+              .orElse(0.0));
     }
     var data = new InstanceData();
     data.setId(tallyInstanceView.getKey().getInstanceId().toString());
@@ -138,6 +141,7 @@ class InstancesResourceTest {
             null,
             ServiceLevelType.PREMIUM,
             UsageType.PRODUCTION,
+            null,
             expectedBillingProvider.asOpenApiEnum(),
             null,
             null,
@@ -234,6 +238,7 @@ class InstancesResourceTest {
             null,
             ServiceLevelType.PREMIUM,
             UsageType.PRODUCTION,
+            null,
             expectedBillingProvider.asOpenApiEnum(),
             null,
             null,
@@ -257,5 +262,89 @@ class InstancesResourceTest {
     assertThrows(
         BadRequestException.class,
         () -> resource.validateBeginningAndEndingDates(RHOSAK, dayInJanuary, dayInFebruary));
+  }
+
+  @Test
+  void testCallRepoWithNullMonthForNonPAYGProduct() {
+    BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
+
+    var tallyInstanceView = new TallyInstanceView();
+    tallyInstanceView.setKey(new TallyInstanceViewKey());
+    tallyInstanceView.setDisplayName("rhv.example.com");
+    tallyInstanceView.setNumOfGuests(3);
+    tallyInstanceView.setLastSeen(OffsetDateTime.now());
+    tallyInstanceView
+        .getKey()
+        .setInstanceId(UUID.fromString("d6214a0b-b344-4778-831c-d53dcacb2da3"));
+    tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
+    tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
+    tallyInstanceView.getKey().setProductId("RHEL");
+    tallyInstanceView.getKey().setUom(Measurement.Uom.SOCKETS);
+
+    Mockito.when(
+            repository.findAllBy(
+                eq("owner123456"),
+                any(),
+                any(),
+                any(),
+                any(),
+                anyInt(),
+                anyInt(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any()))
+        .thenReturn(new PageImpl<>(List.of(tallyInstanceView)));
+
+    resource.getInstancesByProduct(
+        RHEL,
+        null,
+        null,
+        ServiceLevelType.PREMIUM,
+        UsageType.PRODUCTION,
+        null,
+        BillingProviderType.RED_HAT,
+        null,
+        null,
+        null,
+        OffsetDateTime.now(),
+        OffsetDateTime.now(),
+        InstanceReportSort.DISPLAY_NAME,
+        null);
+
+    Mockito.when(
+            repository.findAllBy(
+                eq("owner123456"),
+                any(),
+                any(),
+                any(),
+                any(),
+                anyInt(),
+                anyInt(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any()))
+        .thenReturn(new PageImpl<>(new ArrayList<>()));
+
+    verify(repository)
+        .findAllBy(
+            eq("owner123456"),
+            any(),
+            any(),
+            any(),
+            any(),
+            anyInt(),
+            anyInt(),
+            eq(null),
+            any(),
+            any(),
+            any(),
+            any(),
+            any());
   }
 }

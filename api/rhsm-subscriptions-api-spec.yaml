@@ -784,6 +784,11 @@ paths:
           schema:
             $ref: '#/components/schemas/UsageType'
           description: "Include only hosts for the specified usage level."
+        - name: uom
+          in: query
+          schema:
+            $ref: '#/components/schemas/MetricId'
+          description: "Include only hosts with a specific unit of measure"
         - name: billing_provider
           in: query
           schema:

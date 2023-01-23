@@ -48,6 +48,7 @@ import org.candlepin.subscriptions.utilization.api.model.InstanceData;
 import org.candlepin.subscriptions.utilization.api.model.InstanceMeta;
 import org.candlepin.subscriptions.utilization.api.model.InstanceReportSort;
 import org.candlepin.subscriptions.utilization.api.model.InstanceResponse;
+import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.candlepin.subscriptions.utilization.api.model.PageLinks;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
@@ -100,6 +101,7 @@ public class InstancesResource implements InstancesApi {
       Integer limit,
       ServiceLevelType sla,
       UsageType usage,
+      MetricId uom,
       BillingProviderType billingProviderType,
       String billingAccountId,
       String displayNameContains,
@@ -143,17 +145,18 @@ public class InstancesResource implements InstancesApi {
     OffsetDateTime start = Optional.ofNullable(beginning).orElse(now);
     OffsetDateTime end = Optional.ofNullable(ending).orElse(now);
     var uomSet = tagProfile.measurementsByTag(productId.toString());
-    List<String> measurements =
-        uomSet.stream().map(Measurement.Uom::toString).sorted().collect(Collectors.toList());
+    List<String> measurements = uomSet.stream().map(Measurement.Uom::toString).sorted().toList();
 
     validateBeginningAndEndingDates(productId, start, end);
 
-    String month = InstanceMonthlyTotalKey.formatMonthId(start);
+    boolean isPAYG = tagProfile.isProductPAYGEligible(productId.toString());
+    String month = isPAYG ? InstanceMonthlyTotalKey.formatMonthId(start) : null;
     // We depend on a "reference UOM" in order to filter out instances that were not active in
     // the selected month. This is also used for sorting purposes (same join). See
     // org.candlepin.subscriptions.db.TallyInstanceViewSpecification#toPredicate and
     // org.candlepin.subscriptions.db.TallyInstanceViewRepository#findAllBy.
-    Measurement.Uom referenceUom = SORT_TO_UOM_MAP.get(sort);
+    Measurement.Uom referenceUom = getMeasurementUom(uom, sort);
+
     instances =
         repository.findAllBy(
             orgId,
@@ -173,8 +176,8 @@ public class InstancesResource implements InstancesApi {
         instances.getContent().stream()
             .map(
                 tallyInstanceView ->
-                    asTallyHostViewApiInstance(tallyInstanceView, month, measurements))
-            .collect(Collectors.toList());
+                    asTallyHostViewApiInstance(tallyInstanceView, month, measurements, isPAYG))
+            .toList();
 
     PageLinks links;
     if (offset != null || limit != null) {
@@ -211,7 +214,10 @@ public class InstancesResource implements InstancesApi {
   }
 
   private InstanceData asTallyHostViewApiInstance(
-      TallyInstanceView tallyInstanceView, String monthId, List<String> measurements) {
+      TallyInstanceView tallyInstanceView,
+      String monthId,
+      List<String> measurements,
+      boolean isPAYG) {
     var instance = new InstanceData();
     List<Double> measurementList = new ArrayList<>();
     instance.setId(tallyInstanceView.getKey().getInstanceId().toString());
@@ -220,10 +226,14 @@ public class InstancesResource implements InstancesApi {
       instance.setBillingProvider(tallyInstanceView.getHostBillingProvider().asOpenApiEnum());
     }
     for (String uom : measurements) {
-      measurementList.add(
-          Optional.ofNullable(
-                  tallyInstanceView.getMonthlyTotal(monthId, Measurement.Uom.fromValue(uom)))
-              .orElse(0.0));
+      if (!isPAYG && tallyInstanceView.getKey().getUom().equals(Measurement.Uom.fromValue(uom))) {
+        measurementList.add(Optional.ofNullable(tallyInstanceView.getValue()).orElse(0.0));
+      } else {
+        measurementList.add(
+            Optional.ofNullable(
+                    tallyInstanceView.getMonthlyTotal(monthId, Measurement.Uom.fromValue(uom)))
+                .orElse(0.0));
+      }
     }
     instance.setCategory(tallyInstanceView.getKey().getMeasurementType().name());
     instance.setBillingAccountId(tallyInstanceView.getHostBillingAccountId());
@@ -238,18 +248,12 @@ public class InstancesResource implements InstancesApi {
     if (Objects.isNull(reportCategory)) {
       return new ArrayList<>();
     }
-    switch (reportCategory) {
-      case VIRTUAL:
-        return List.of(HardwareMeasurementType.VIRTUAL);
-      case PHYSICAL:
-        return List.of(HardwareMeasurementType.PHYSICAL);
-      case HYPERVISOR:
-        return List.of(HardwareMeasurementType.HYPERVISOR);
-      case CLOUD:
-        return HardwareMeasurementType.getCloudProviderTypes();
-      default:
-        throw new IllegalArgumentException("Invalid category.");
-    }
+    return switch (reportCategory) {
+      case VIRTUAL -> List.of(HardwareMeasurementType.VIRTUAL);
+      case PHYSICAL -> List.of(HardwareMeasurementType.PHYSICAL);
+      case HYPERVISOR -> List.of(HardwareMeasurementType.HYPERVISOR);
+      case CLOUD -> HardwareMeasurementType.getCloudProviderTypes();
+    };
   }
 
   private static Map<InstanceReportSort, Measurement.Uom> getSortToUomMap() {
@@ -268,5 +272,12 @@ public class InstancesResource implements InstancesApi {
   private static Map<InstanceReportSort, String> getUomSorts() {
     return getSortToUomMap().keySet().stream()
         .collect(Collectors.toMap(Function.identity(), key -> "value"));
+  }
+
+  private static Measurement.Uom getMeasurementUom(MetricId uom, InstanceReportSort sort) {
+    if (uom != null) {
+      return Measurement.Uom.fromValue(uom.toString());
+    }
+    return SORT_TO_UOM_MAP.get(sort);
   }
 }
