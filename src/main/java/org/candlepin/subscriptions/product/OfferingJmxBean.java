@@ -25,8 +25,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.security.SecurityProperties;
+import org.candlepin.subscriptions.umb.UmbProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
+import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jmx.JmxException;
 import org.springframework.jmx.export.annotation.ManagedOperation;
 import org.springframework.jmx.export.annotation.ManagedOperationParameter;
@@ -45,14 +47,21 @@ public class OfferingJmxBean {
   private final CapacityReconciliationController capacityReconciliationController;
   private final SecurityProperties properties;
 
+  private final UmbProperties umbProperties;
+  private final JmsTemplate jmsTemplate;
+
   @Autowired
   public OfferingJmxBean(
       OfferingSyncController offeringSync,
       CapacityReconciliationController capacityReconciliationController,
-      SecurityProperties properties) {
+      SecurityProperties properties,
+      UmbProperties umbProperties,
+      JmsTemplate jmsTemplate) {
     this.offeringSync = offeringSync;
     this.capacityReconciliationController = capacityReconciliationController;
     this.properties = properties;
+    this.umbProperties = umbProperties;
+    this.jmsTemplate = jmsTemplate;
   }
 
   @ManagedOperation(description = "Sync an offering from the upstream source.")
@@ -145,6 +154,19 @@ public class OfferingJmxBean {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Delete of subscription triggered over JMX by {}", principal);
     offeringSync.deleteOffering(sku);
+  }
+
+  @ManagedOperation(
+      description =
+          "Enqueue UMB product XML. Supported only in dev-mode. Won't work against actual UMB brokers.")
+  @ManagedOperationParameter(name = "productXml", description = "XML containing a UMB message")
+  public void enqueueProductXml(String productXml) {
+    if (!properties.isDevMode() && !properties.isManualSubscriptionEditingEnabled()) {
+      throw new JmxException(NOT_ENABLED_MESSAGE);
+    }
+    Object principal = ResourceUtils.getPrincipal();
+    jmsTemplate.convertAndSend(umbProperties.getProductTopic(), productXml);
+    log.info("{} enqueued message to topic {}", principal, umbProperties.getProductTopic());
   }
 
   @ManagedOperation(description = "Sync UMB product manually. Supported only in dev-mode.")
