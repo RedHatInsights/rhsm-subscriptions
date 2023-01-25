@@ -275,6 +275,10 @@ public class OfferingSyncController {
     Set<String> parentSkus =
         offeringRepository.findSkusForChildSku(sku).collect(Collectors.toSet());
     parentSkus.forEach(this::enqueueOfferingSyncTask);
+    // NOTE: below, don't simply call parentSkus.forEach(this::syncDerivedSku), as this will cause
+    // more DB queries than needed, as implemented below, there is one query, no matter the number
+    // of parent SKUs. Calling syncDerivedSku in a loop would cause a separate query for each
+    // matching parent SKU
     offeringRepository.findSkusForDerivedSkus(parentSkus).forEach(this::enqueueOfferingSyncTask);
   }
 

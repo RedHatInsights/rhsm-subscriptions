@@ -243,12 +243,14 @@ class UpstreamProductData {
     if (StringUtils.hasText(offering.getDerivedSku())) {
       data.attrs.put(Attr.DERIVED_SKU, offering.getDerivedSku());
     }
+    // NOTE: an offering will only have either sockets OR hypervisor sockets, never both
     if (offering.getSockets() != null) {
       data.attrs.put(Attr.SOCKET_LIMIT, offering.getSockets().toString());
     }
     if (offering.getHypervisorSockets() != null) {
       data.attrs.put(Attr.SOCKET_LIMIT, offering.getHypervisorSockets().toString());
     }
+    // NOTE: an offering will only have either cores OR hypervisor cores, never both
     if (offering.getCores() != null) {
       data.attrs.put(Attr.CORES, offering.getCores().toString());
     }
