@@ -168,7 +168,8 @@ class InstancesResourceTest {
         .setInstanceId(UUID.fromString("d6214a0b-b344-4778-831c-d53dcacb2da3"));
     tallyInstanceViewPhysical.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceViewPhysical.getKey().setMeasurementType(HardwareMeasurementType.PHYSICAL);
-    tallyInstanceViewPhysical.getKey().setUom(Measurement.Uom.CORES);
+    tallyInstanceViewPhysical.getKey().setUom(Measurement.Uom.SOCKETS);
+    tallyInstanceViewPhysical.setValue(4.0);
 
     var tallyInstanceViewHypervisor = new TallyInstanceView();
     tallyInstanceViewHypervisor.setKey(new TallyInstanceViewKey());
@@ -180,7 +181,8 @@ class InstancesResourceTest {
         .setInstanceId(UUID.fromString("d6214a0b-b344-4778-831c-d53dcacb2da3"));
     tallyInstanceViewHypervisor.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceViewHypervisor.getKey().setMeasurementType(HardwareMeasurementType.HYPERVISOR);
-    tallyInstanceViewHypervisor.getKey().setUom(Measurement.Uom.CORES);
+    tallyInstanceViewHypervisor.getKey().setUom(Measurement.Uom.SOCKETS);
+    tallyInstanceViewHypervisor.setValue(8.0);
 
     Mockito.when(
             repository.findAllBy(
@@ -200,13 +202,12 @@ class InstancesResourceTest {
         .thenReturn(
             new PageImpl<>(List.of(tallyInstanceViewPhysical, tallyInstanceViewHypervisor)));
 
-    List<Double> expectedMeasurement = new ArrayList<>();
     var dataPhysical = new InstanceData();
     dataPhysical.setId(tallyInstanceViewPhysical.getKey().getInstanceId().toString());
     dataPhysical.setDisplayName(tallyInstanceViewPhysical.getDisplayName());
     dataPhysical.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
     dataPhysical.setLastSeen(tallyInstanceViewPhysical.getLastSeen());
-    dataPhysical.setMeasurements(expectedMeasurement);
+    dataPhysical.setMeasurements(List.of(4.0));
     dataPhysical.setNumberOfGuests(tallyInstanceViewPhysical.getNumOfGuests());
     dataPhysical.setCategory(HardwareMeasurementType.PHYSICAL.toString());
 
@@ -215,7 +216,7 @@ class InstancesResourceTest {
     dataHypervisor.setDisplayName(tallyInstanceViewHypervisor.getDisplayName());
     dataHypervisor.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
     dataHypervisor.setLastSeen(tallyInstanceViewHypervisor.getLastSeen());
-    dataHypervisor.setMeasurements(expectedMeasurement);
+    dataHypervisor.setMeasurements(List.of(8.0));
     dataHypervisor.setNumberOfGuests(tallyInstanceViewHypervisor.getNumOfGuests());
     dataHypervisor.setCategory(HardwareMeasurementType.HYPERVISOR.toString());
 
@@ -225,7 +226,7 @@ class InstancesResourceTest {
     meta.setServiceLevel(ServiceLevelType.PREMIUM);
     meta.setUsage(UsageType.PRODUCTION);
     meta.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
-    meta.setMeasurements(new ArrayList<>());
+    meta.setMeasurements(List.of("Sockets"));
 
     var expected = new InstanceResponse();
     expected.setData(List.of(dataPhysical, dataHypervisor));

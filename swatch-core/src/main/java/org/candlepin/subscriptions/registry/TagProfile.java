@@ -45,6 +45,7 @@ import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 /** A base class for tag profiles. This class and its composites are loaded from a YAML profile. */
@@ -122,7 +123,13 @@ public class TagProfile {
   }
 
   private void handleTagMetric(TagMetric tagMetric) {
-    tagsWithPrometheusEnabledLookup.add(tagMetric.getTag());
+    var prometheusEnabled =
+        !ObjectUtils.isEmpty(tagMetric.getQueryParams())
+            && tagMetric.getQueryParams().containsKey("prometheusMetric");
+    if (prometheusEnabled) {
+      tagsWithPrometheusEnabledLookup.add(tagMetric.getTag());
+    }
+
     productUomToRhmMetricIdLookup.put(
         new ProductUom(tagMetric.getTag(), tagMetric.getUom().value()), tagMetric.getRhmMetricId());
     measurementsByTagLookup
