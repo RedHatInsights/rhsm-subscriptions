@@ -169,6 +169,10 @@ public class UsageCalculation {
   }
 
   public void addUnmappedGuest(int cores, int sockets, int instances) {
+    addVirtual(cores, sockets, instances);
+  }
+
+  public void addVirtual(int cores, int sockets, int instances) {
     add(HardwareMeasurementType.VIRTUAL, cores, sockets, instances);
   }
 
