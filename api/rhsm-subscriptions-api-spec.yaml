@@ -1692,6 +1692,7 @@ components:
         - Transfer-gibibytes
         - billing_provider
         - number_of_guests
+        - category
     InstanceData:
       title: Root Type for Instance
       description: The representation of a product cluster data
