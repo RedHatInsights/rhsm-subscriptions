@@ -76,6 +76,7 @@ public class InstancesResource implements InstancesApi {
           .put(InstanceReportSort.LAST_SEEN, "lastSeen")
           .put(InstanceReportSort.BILLING_PROVIDER, "hostBillingProvider")
           .put(InstanceReportSort.NUMBER_OF_GUESTS, "numOfGuests")
+          .put(InstanceReportSort.CATEGORY, "key.measurementType")
           .putAll(getUomSorts())
           .build();
 
