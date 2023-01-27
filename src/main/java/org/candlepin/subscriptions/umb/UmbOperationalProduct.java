@@ -24,6 +24,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -44,4 +47,35 @@ public class UmbOperationalProduct {
   @JsonProperty("Attribute")
   @JacksonXmlElementWrapper(useWrapping = false)
   private ProductAttribute[] attributes;
+
+  public Set<String> getChildSkus() {
+    if (productRelationship == null || productRelationship.getChildProducts() == null) {
+      return Set.of();
+    }
+    return Arrays.stream(productRelationship.getChildProducts())
+        .map(ChildProduct::getSku)
+        .map(String::strip)
+        .collect(Collectors.toSet());
+  }
+
+  public String getSku() {
+    if (sku == null) {
+      return null;
+    }
+    return sku.strip();
+  }
+
+  public String getSkuDescription() {
+    if (skuDescription == null) {
+      return null;
+    }
+    return skuDescription.strip();
+  }
+
+  public String getRole() {
+    if (role == null) {
+      return null;
+    }
+    return role.strip();
+  }
 }

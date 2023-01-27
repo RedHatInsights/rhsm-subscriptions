@@ -156,6 +156,19 @@ public class OfferingJmxBean {
     offeringSync.deleteOffering(sku);
   }
 
+  @ManagedOperation(
+      description =
+          "Enqueue UMB product XML. Supported only in dev-mode. Won't work against actual UMB brokers.")
+  @ManagedOperationParameter(name = "productXml", description = "XML containing a UMB message")
+  public void enqueueProductXml(String productXml) {
+    if (!properties.isDevMode() && !properties.isManualSubscriptionEditingEnabled()) {
+      throw new JmxException(NOT_ENABLED_MESSAGE);
+    }
+    Object principal = ResourceUtils.getPrincipal();
+    jmsTemplate.convertAndSend(umbProperties.getProductTopic(), productXml);
+    log.info("{} enqueued message to topic {}", principal, umbProperties.getProductTopic());
+  }
+
   @ManagedOperation(description = "Sync UMB product manually. Supported only in dev-mode.")
   @ManagedOperationParameter(name = "productXml", description = "XML containing a UMB message")
   public void syncProductFromXml(String productXml) {
@@ -164,8 +177,8 @@ public class OfferingJmxBean {
     }
     try {
       Object principal = ResourceUtils.getPrincipal();
-      jmsTemplate.convertAndSend(umbProperties.getProductTopic(), productXml);
       log.info("Sync of UMB product triggered over JMX by {}", principal);
+      offeringSync.syncUmbProductFromXml(productXml);
     } catch (Exception e) {
       log.error("Error saving UMB product", e);
       throw new JmxException("Error saving product. See log for details.");

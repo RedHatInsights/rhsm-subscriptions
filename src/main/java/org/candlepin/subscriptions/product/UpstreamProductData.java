@@ -32,8 +32,10 @@ import org.candlepin.subscriptions.product.api.model.AttributeValue;
 import org.candlepin.subscriptions.product.api.model.EngineeringProduct;
 import org.candlepin.subscriptions.product.api.model.OperationalProduct;
 import org.candlepin.subscriptions.product.api.model.RESTProductTree;
+import org.candlepin.subscriptions.umb.UmbOperationalProduct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
 /**
  * Provides an easier way to translate an operational product, its children, and their derived
@@ -82,6 +84,7 @@ class UpstreamProductData {
 
   private String sku;
   private SortedSet<String> children = new TreeSet<>();
+  private SortedSet<String> derivedChildren = new TreeSet<>();
   private SortedSet<Integer> engOids = new TreeSet<>();
   private EnumMap<Attr, String> attrs = new EnumMap<>(Attr.class);
   private List<String> conflicts = new ArrayList<>();
@@ -145,6 +148,128 @@ class UpstreamProductData {
     return offer;
   }
 
+  /**
+   * Compose offering data using a UMB message, using external data source if needed.
+   *
+   * <p>There are 4 use cases where we must an external data source:
+   *
+   * <ul>
+   *   <li>Offering not seen before - we need to fetch eng IDs and attributes for any child/derived
+   *       SKUs
+   *   <li>Offering has child SKU changes - we need to fetch eng IDs and attributes for child SKUs
+   *   <li>Offering has derived SKU changes - we need to fetch eng IDs and attributes for derived
+   *       SKU and its children
+   *   <li>Offering has attributes not present in the UMB message - we must assume these may have
+   *       been "inherited" from a child/derived SKU.
+   * </ul>
+   *
+   * (Future work could cache more information to reduce data source usage).
+   *
+   * @param product umb data for the offering
+   * @param existingData existing offering from swatch DB if present, or null
+   * @param productDataSource external data source used to lookup SKU info when needed
+   * @return the resulting offering, or Optional.empty() if the SKU doesn't exist in data source
+   */
+  public static Optional<Offering> offeringFromUmbData(
+      UmbOperationalProduct product, Offering existingData, ProductDataSource productDataSource) {
+    if (existingData == null) {
+      LOGGER.debug("Must sync SKU={} from data source because no existing data", product.getSku());
+      return offeringFromUpstream(product.getSku(), productDataSource);
+    }
+    UpstreamProductData umbData = createFromUmbMessage(product);
+    UpstreamProductData existingProductData = UpstreamProductData.createFromOffering(existingData);
+    for (Attr attr : existingProductData.attrs.keySet()) {
+      if (!umbData.attrs.containsKey(attr)) {
+        // when there are attributes that exist in the DB but not in UMB message, we assume they may
+        // come from child SKUs or derived SKUs
+        LOGGER.debug(
+            "Must sync SKU={} from data source because attribute={} is not defined in UMB message, but may be defined in child/derived SKU",
+            product.getSku(),
+            attr);
+        return offeringFromUpstream(product.getSku(), productDataSource);
+      }
+    }
+    if (!Objects.equals(umbData.children, existingProductData.children)) {
+      LOGGER.debug(
+          "Must sync SKU={} from data source because child SKUs changed from {} to {}",
+          product.getSku(),
+          existingProductData.children,
+          umbData.children);
+      return offeringFromUpstream(product.getSku(), productDataSource);
+    }
+    if (!Objects.equals(
+        umbData.attrs.get(Attr.DERIVED_SKU), existingProductData.attrs.get(Attr.DERIVED_SKU))) {
+      LOGGER.debug(
+          "Must sync SKU={} from data source because derived SKU changed from {} to {}",
+          product.getSku(),
+          existingProductData.attrs.get(Attr.DERIVED_SKU),
+          umbData.attrs.get(Attr.DERIVED_SKU));
+      return offeringFromUpstream(product.getSku(), productDataSource);
+    }
+    existingProductData.attrs.forEach(umbData::putIfNoConflict);
+    umbData.engOids.addAll(existingProductData.engOids);
+    return Optional.of(umbData.toOffering());
+  }
+
+  private static UpstreamProductData createFromUmbMessage(UmbOperationalProduct product) {
+    UpstreamProductData data = new UpstreamProductData(product.getSku());
+    if (product.getChildSkus() != null) {
+      data.children.addAll(product.getChildSkus());
+    }
+    Arrays.stream(product.getAttributes())
+        .filter(attr -> CODE_TO_ENUM.containsKey(attr.getCode()))
+        .forEach(attr -> data.attrs.put(CODE_TO_ENUM.get(attr.getCode()), attr.getValue()));
+    data.attrs.put(Attr.X_DESCRIPTION, product.getSkuDescription());
+    data.attrs.put(Attr.X_ROLE, product.getRole());
+    return data;
+  }
+
+  private static UpstreamProductData createFromOffering(Offering offering) {
+    UpstreamProductData data = new UpstreamProductData(offering.getSku());
+    data.children.addAll(offering.getChildSkus());
+    data.engOids.addAll(offering.getProductIds());
+    if (StringUtils.hasText(offering.getRole())) {
+      data.attrs.put(Attr.X_ROLE, offering.getRole());
+    }
+    if (StringUtils.hasText(offering.getProductFamily())) {
+      data.attrs.put(Attr.PRODUCT_FAMILY, offering.getProductFamily());
+    }
+    if (StringUtils.hasText(offering.getProductName())) {
+      data.attrs.put(Attr.PRODUCT_NAME, offering.getProductName());
+    }
+    if (StringUtils.hasText(offering.getDescription())) {
+      data.attrs.put(Attr.X_DESCRIPTION, offering.getDescription());
+    }
+    if (StringUtils.hasText(offering.getDerivedSku())) {
+      data.attrs.put(Attr.DERIVED_SKU, offering.getDerivedSku());
+    }
+    // NOTE: an offering will only have either sockets OR hypervisor sockets, never both
+    if (offering.getSockets() != null) {
+      data.attrs.put(Attr.SOCKET_LIMIT, offering.getSockets().toString());
+    }
+    if (offering.getHypervisorSockets() != null) {
+      data.attrs.put(Attr.SOCKET_LIMIT, offering.getHypervisorSockets().toString());
+    }
+    // NOTE: an offering will only have either cores OR hypervisor cores, never both
+    if (offering.getCores() != null) {
+      data.attrs.put(Attr.CORES, offering.getCores().toString());
+    }
+    if (offering.getHypervisorCores() != null) {
+      data.attrs.put(Attr.CORES, offering.getHypervisorCores().toString());
+    }
+    if (Objects.equals(Boolean.TRUE, offering.getHasUnlimitedUsage())) {
+      data.attrs.put(Attr.CORES, UNLIMITED_CORES_OR_SOCKETS);
+      data.attrs.put(Attr.SOCKET_LIMIT, UNLIMITED_CORES_OR_SOCKETS);
+    }
+    if (offering.getServiceLevel() != null && offering.getServiceLevel() != ServiceLevel.EMPTY) {
+      data.attrs.put(Attr.SERVICE_TYPE, offering.getServiceLevel().getValue());
+    }
+    if (offering.getUsage() != null && offering.getUsage() != Usage.EMPTY) {
+      data.attrs.put(Attr.USAGE, offering.getUsage().getValue());
+    }
+    return data;
+  }
+
   private Offering toOffering() {
     if (!conflicts.isEmpty()) {
       String conflictItems = String.join(System.lineSeparator(), conflicts);
@@ -162,6 +287,7 @@ class UpstreamProductData {
     offering.setProductFamily(attrs.get(Attr.PRODUCT_FAMILY));
     offering.setProductName(attrs.get(Attr.PRODUCT_NAME));
     offering.setDescription(attrs.get(Attr.X_DESCRIPTION));
+    offering.setDerivedSku(attrs.get(Attr.DERIVED_SKU));
 
     calcCapacityForOffering(offering);
 
@@ -202,8 +328,8 @@ class UpstreamProductData {
   /**
    * If the DERIVED_SKU attribute exists, will fetch the product tree of the derived SKU and merge
    * it with the offering. Merging means its attributes and its children's attributes will be used
-   * in the offering if not yet yet, and the derived sku and its child skus will be added as child
-   * skus of the offering.
+   * in the offering if not yet, and the derived sku and its child skus will be added as child skus
+   * of the offering.
    *
    * <p>It is unclear if derived SKUs <b>should</b> have the attributes merged and the derived SKUs
    * listed as children in the longer term. For now though, this simplification fits with how we
@@ -224,7 +350,8 @@ class UpstreamProductData {
         if (derived.isEmpty()) {
           LOGGER.warn("No tree found for derivedSku=\"{}\" of offeringSku=\"{}\"", derivedSku, sku);
         } else {
-          merge(derived.get());
+          derivedChildren.addAll(derived.get().children);
+          derived.get().attrs.forEach(this::putIfNoConflict);
         }
       } catch (ApiException e) {
         throw new ExternalServiceException(
@@ -274,6 +401,8 @@ class UpstreamProductData {
   private Set<String> allSkus() {
     var skus = new HashSet<>(children);
     skus.add(sku);
+    Optional.ofNullable(attrs.get(Attr.DERIVED_SKU)).ifPresent(skus::add);
+    skus.addAll(derivedChildren);
     return skus;
   }
 

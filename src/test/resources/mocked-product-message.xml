@@ -16,7 +16,20 @@
           <ChildProduct>
             <Sku>SVCRH01V4</Sku>
           </ChildProduct>
+          <ChildProduct>
+            <Sku>SVCMPV4</Sku>
+          </ChildProduct>
         </ProductRelationship>
+        <Attribute>
+          <Code>PRODUCT_NAME</Code>
+          <Name>Product Name</Name>
+          <Value>RHEL Server</Value>
+        </Attribute>
+        <Attribute>
+          <Code>PRODUCT_FAMILY</Code>
+          <Name>Product Family</Name>
+          <Value>Red Hat Enterprise Linux</Value>
+        </Attribute>
         <Attribute>
           <Code>ENTITLEMENT_QTY</Code>
           <Name>Entitlement Qty</Name>
@@ -26,6 +39,11 @@
           <Code>SERVICE_TYPE</Code>
           <Name>Service Type</Name>
           <Value>Standard</Value>
+        </Attribute>
+        <Attribute>
+          <Code>SOCKET_LIMIT</Code>
+          <Name>Socket Limit</Name>
+          <Value>2</Value>
         </Attribute>
         <Attribute>
           <Code>USAGE</Code>

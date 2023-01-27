@@ -38,4 +38,25 @@ public class Reference {
   private String entityName;
   private String qualifier;
   @JacksonXmlText private String value;
+
+  public String getSystem() {
+    if (system == null) {
+      return null;
+    }
+    return system.strip();
+  }
+
+  public String getEntityName() {
+    if (entityName == null) {
+      return null;
+    }
+    return entityName.strip();
+  }
+
+  public String getQualifier() {
+    if (qualifier == null) {
+      return null;
+    }
+    return qualifier.strip();
+  }
 }

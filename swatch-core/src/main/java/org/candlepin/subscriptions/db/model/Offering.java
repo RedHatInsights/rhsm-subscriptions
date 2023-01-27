@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.db.model;
 
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.Set;
 import javax.persistence.CollectionTable;
 import javax.persistence.Column;
@@ -86,11 +87,12 @@ public class Offering implements Serializable {
   private String productFamily;
 
   /** Internal identifiers for products that compose an Offering. */
+  @Builder.Default
   @ElementCollection
   @LazyCollection(LazyCollectionOption.FALSE)
   @CollectionTable(name = "sku_child_sku", joinColumns = @JoinColumn(name = "sku"))
   @Column(name = "child_sku")
-  private Set<String> childSkus;
+  private Set<String> childSkus = new HashSet<>();
 
   /**
    * Numeric identifiers for Engineering Products provided by the offering.
@@ -102,11 +104,12 @@ public class Offering implements Serializable {
    *
    * <p>Sometimes referred to as "provided products".
    */
+  @Builder.Default
   @ElementCollection
   @LazyCollection(LazyCollectionOption.FALSE)
   @CollectionTable(name = "sku_oid", joinColumns = @JoinColumn(name = "sku"))
   @Column(name = "oid")
-  private Set<Integer> productIds;
+  private Set<Integer> productIds = new HashSet<>();
 
   /** Effective standard CPU cores capacity per quantity of subscription to this offering. */
   @Column(name = "cores")
@@ -139,6 +142,10 @@ public class Offering implements Serializable {
   @Getter(AccessLevel.NONE)
   @Column(name = "has_unlimited_usage")
   private Boolean hasUnlimitedUsage;
+
+  // Derived SKU, needed to track necessary updates when a derived SKU is changed
+  @Column(name = "derived_sku")
+  private String derivedSku;
 
   public Boolean getHasUnlimitedUsage() {
     return hasUnlimitedUsage;

@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.db;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.transaction.Transactional;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -60,5 +61,27 @@ class OfferingRepositoryTest {
     assertEquals(offering.hashCode(), actual.hashCode());
     repository.delete(actual);
     assertEquals(initialOfferingCount, repository.count());
+  }
+
+  @Test
+  @Transactional
+  void testFindSkusForDerivedSkus() {
+    var expectedOffering = Offering.builder().sku("foo").derivedSku("derived").build();
+    var extra = Offering.builder().sku("foo2").build();
+    repository.save(expectedOffering);
+    repository.save(extra);
+    var actual = repository.findSkusForDerivedSkus(Set.of("derived")).collect(Collectors.toSet());
+    assertEquals(Set.of("foo"), actual);
+  }
+
+  @Test
+  @Transactional
+  void testFindSkusForChildSkus() {
+    var expectedOffering = Offering.builder().sku("foo").childSkus(Set.of("child")).build();
+    var extra = Offering.builder().sku("foo2").build();
+    repository.save(expectedOffering);
+    repository.save(extra);
+    var actual = repository.findSkusForChildSku("child").collect(Collectors.toSet());
+    assertEquals(Set.of("foo"), actual);
   }
 }
