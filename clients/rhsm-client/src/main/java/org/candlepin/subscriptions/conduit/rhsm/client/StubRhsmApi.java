@@ -70,6 +70,7 @@ public class StubRhsmApi extends RhsmApi {
     consumer1.getFacts().put("ocm.billing_model", "standard");
     consumer1.getFacts().put("distribution.name", "Red Hat Enterprise Linux Workstation");
     consumer1.getFacts().put("distribution.version", "6.3");
+    consumer1.getFacts().put("azure_offer", "RHEL");
     InstalledProducts product = new InstalledProducts();
     product.setProductId("72");
     consumer1.getInstalledProducts().add(product);
