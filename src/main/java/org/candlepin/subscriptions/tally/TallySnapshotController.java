@@ -119,7 +119,7 @@ public class TallySnapshotController {
         }
         accountCalc = optAccountCalc.get();
       } else {
-        accountCalc = performTally(orgId, account);
+        accountCalc = performTally(orgId);
       }
 
       if (props.isCloudigradeEnabled()) {
@@ -241,9 +241,12 @@ public class TallySnapshotController {
     return Optional.of(usageCollector.tally(this.applicableProducts, orgHostsData));
   }
 
-  private AccountUsageCalculation performTally(String orgId, String account) {
+  private AccountUsageCalculation performTally(String orgId) {
     retryTemplate.execute(
-        context -> usageCollector.collect(this.applicableProducts, account, orgId));
+        context -> {
+          usageCollector.reconcileSystemDataWithHbi(orgId, this.applicableProducts);
+          return null;
+        });
     return usageCollector.tally(orgId);
   }
 }

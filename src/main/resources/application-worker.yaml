@@ -20,6 +20,7 @@ rhsm-subscriptions:
       hikari:
         connection-timeout: ${INVENTORY_DATABASE_CONNECTION_TIMEOUT_MS:30000}
         maximum-pool-size: ${INVENTORY_DATABASE_MAX_POOL_SIZE:10}
+        auto-commit: false  # required to enable cursor-based streaming in native queries
   account-list-resource-location: ${ACCOUNT_LIST_RESOURCE_LOCATION:}
 
   cloudigrade-enabled: ${CLOUDIGRADE_ENABLED:false}
@@ -56,3 +57,4 @@ rhsm-subscriptions:
     seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
   tally-max-hbi-account-size: ${TALLY_MAX_HBI_ACCOUNT_SIZE:2147483647}  # Integer.MAX_VALUE by default
   legacy-nightly-tally-enabled: ${LEGACY_NIGHTLY_TALLY_ENABLED:false}
+  hbi-reconciliation-flush-interval: ${HBI_RECONCILIATION_FLUSH_INTERVAL:1024}

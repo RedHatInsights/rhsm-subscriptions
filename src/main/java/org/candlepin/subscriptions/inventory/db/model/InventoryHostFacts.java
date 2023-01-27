@@ -63,6 +63,7 @@ public class InventoryHostFacts {
   private String billingModel;
   private String cloudProvider;
   private OffsetDateTime staleTimestamp;
+  private String hardwareSubmanId;
 
   public InventoryHostFacts() {
     // Used for testing
@@ -104,7 +105,8 @@ public class InventoryHostFacts {
       String subscriptionManagerId,
       String insightsId,
       String cloudProvider,
-      OffsetDateTime staleTimestamp) {
+      OffsetDateTime staleTimestamp,
+      String hardwareSubmanId) {
     this.inventoryId = inventoryId;
     this.modifiedOn = modifiedOn;
     this.account = account;
@@ -136,6 +138,7 @@ public class InventoryHostFacts {
     this.billingModel = billingModel;
     this.cloudProvider = cloudProvider;
     this.staleTimestamp = staleTimestamp;
+    this.hardwareSubmanId = hardwareSubmanId;
   }
 
   public void setProducts(String products) {

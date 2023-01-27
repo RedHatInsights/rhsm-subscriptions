@@ -20,10 +20,15 @@
  */
 package org.candlepin.subscriptions.db;
 
+import static org.hibernate.jpa.QueryHints.HINT_FETCH_SIZE;
+import static org.hibernate.jpa.QueryHints.HINT_READONLY;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
+import javax.persistence.QueryHint;
 import javax.validation.constraints.NotNull;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -44,6 +49,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 import org.springframework.util.StringUtils;
 
@@ -51,6 +57,25 @@ import org.springframework.util.StringUtils;
 @SuppressWarnings({"linelength", "indentation"})
 public interface HostRepository
     extends JpaRepository<Host, UUID>, JpaSpecificationExecutor<Host>, TagProfileLookup {
+
+  @Query(
+      value =
+          """
+      select
+      h from Host h
+      left join fetch h.measurements
+      left join fetch h.buckets
+      left join fetch h.monthlyTotals
+      where h.orgId=:orgId
+        and h.instanceType='HBI_HOST'
+      order by coalesce(h.hypervisorUuid, h.subscriptionManagerId), h.hypervisorUuid, h.inventoryId
+          """)
+  @QueryHints(
+      value = {
+        @QueryHint(name = HINT_FETCH_SIZE, value = "1024"),
+        @QueryHint(name = HINT_READONLY, value = "true")
+      })
+  Stream<Host> streamHbiHostsByOrgId(@Param("orgId") String orgId);
 
   /**
    * Find all Hosts by bucket criteria and return a page of TallyHostView objects. A TallyHostView
