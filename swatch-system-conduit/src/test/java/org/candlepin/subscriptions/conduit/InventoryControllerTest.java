@@ -492,6 +492,65 @@ class InventoryControllerTest {
   }
 
   @Test
+  void testIsMarketplaceFacts_WhenAzureOfferPresent() {
+    String azureOfferFact = "azure_offer";
+    String azzureOffer = "RHEL";
+    String uuid = UUID.randomUUID().toString();
+    Consumer consumer = new Consumer();
+    consumer.setUuid(uuid);
+
+    consumer.getFacts().put(azureOfferFact, azzureOffer);
+
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertEquals(true, conduitFacts.getIsMarketplace());
+
+    azureOfferFact = "azure_offer";
+    azzureOffer = " ";
+    consumer.getFacts().put(azureOfferFact, azzureOffer);
+
+    conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertNull(conduitFacts.getIsMarketplace());
+
+    azureOfferFact = "azure_offer";
+    azzureOffer = "rhel-byos";
+    consumer.getFacts().put(azureOfferFact, azzureOffer);
+
+    conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertNull(conduitFacts.getIsMarketplace());
+  }
+
+  @Test
+  void testIsMarketplaceFacts_WhenAwsBillingProductsPresent() {
+    String awsBillingProductsFact = "aws_billing_products";
+    String awsBillingProducts = "bi-6fa54";
+    String uuid = UUID.randomUUID().toString();
+    Consumer consumer = new Consumer();
+    consumer.setUuid(uuid);
+
+    consumer.getFacts().put(awsBillingProductsFact, awsBillingProducts);
+
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertEquals(true, conduitFacts.getIsMarketplace());
+
+    awsBillingProductsFact = "aws_billing_products";
+    awsBillingProducts = " ";
+    consumer.getFacts().put(awsBillingProductsFact, awsBillingProducts);
+
+    conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertNull(conduitFacts.getIsMarketplace());
+  }
+
+  @Test
+  void testIsMarketplaceFacts_WhenAzureOfferOrAWSBillingProductsNotPresent() {
+    String uuid = UUID.randomUUID().toString();
+    Consumer consumer = new Consumer();
+    consumer.setUuid(uuid);
+
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertNull(conduitFacts.getIsMarketplace());
+  }
+
+  @Test
   void testTruncatedIpV6AddressIsIgnoredForNics() {
     String factPrefix = "net.interface.virbr0.";
 

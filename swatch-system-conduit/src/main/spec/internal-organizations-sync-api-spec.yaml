@@ -261,6 +261,8 @@ components:
           type: string
         billing_model:
           type: string
+        is_marketplace:
+          type: boolean
     DefaultResponse:
       properties:
         status:

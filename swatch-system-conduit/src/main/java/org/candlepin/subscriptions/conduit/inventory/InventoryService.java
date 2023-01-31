@@ -137,6 +137,7 @@ public abstract class InventoryService {
     systemProfile.setNumberOfSockets(facts.getCpuSockets());
     systemProfile.setOwnerId(facts.getSubscriptionManagerId());
     systemProfile.setNetworkInterfaces(facts.getNetworkInterfaces());
+    systemProfile.setIsMarketplace(facts.getIsMarketplace());
     return systemProfile;
   }
 
