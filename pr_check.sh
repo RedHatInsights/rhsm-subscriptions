@@ -15,6 +15,7 @@ export IQE_CJI_TIMEOUT="30m"  # This is the time to wait for smoke test to compl
 # IQE plugin image
 export IQE_IMAGE_TAG="rhsm-subscriptions"
 # NOTE: workaround for frontend deployment not being ready yet below
+export IQE_LOG_LEVEL="debug"
 
 
 # Install bonfire repo/initialize
