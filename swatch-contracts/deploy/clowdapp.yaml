@@ -1,0 +1,30 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: swatch-contracts
+parameters:
+  - name: NAME
+    value: swatch-contracts
+  - name: IMAGE
+    value: registry.access.redhat.com/ubi8/ubi-minimal
+  - name: IMAGE_TAG
+    value: latest
+
+objects:
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdApp
+    metadata:
+      name: ${NAME}
+    pullSecrets:
+      name: ${IMAGE_PULL_SECRET}
+    spec:
+      envName: env-${NAME}
+      deployments:
+        - name: service
+          podSpec:
+            image: ${IMAGE}:${IMAGE_TAG}
+            command:
+              - sleep
+            args:
+              - 99d
