@@ -17,6 +17,7 @@ objects:
         filter: ''
         marker: 'post_stage_deploy'
         plugins: "rhsm_subscriptions,curiosity"
+        logLevel: "debug"
         ui:
           selenium:
             deploy: true
