@@ -98,5 +98,6 @@
     <include file="liquibase/202212011334-add-billing-factor-column-to-remittance-table.xml"/>
     <include file="liquibase/202301031409-update-tally-instance-view.xml"/>
     <include file="liquibase/202212161446-add-derived-sku-to-offering.xml"/>
+    <include file="liquibase/202301311609-update-tally-instance-view-default-num-of-guest-add-subscription_manager_id.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

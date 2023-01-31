@@ -1722,6 +1722,8 @@ components:
           type: integer
         category:
           type: string
+        subscription_manager_id:
+          type: string
       example:
         id: d6214a0b-b344-4778-831c-d53dcacb2da3
         display_name: rhv.example.com

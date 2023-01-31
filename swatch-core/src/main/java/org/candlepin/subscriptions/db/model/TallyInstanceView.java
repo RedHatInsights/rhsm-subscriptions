@@ -76,6 +76,9 @@ public class TallyInstanceView implements Serializable {
 
   private Double value;
 
+  @Column(name = "subscription_manager_id")
+  private String subscriptionManagerId;
+
   @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(
       name = "instance_monthly_totals",
