@@ -10,7 +10,7 @@ function usage() {
   echo "Usage: $0 [-k] [-t tag] [BUILD_ARTIFACT...]"
   echo "-k       keep built images"
   echo "-t [tag] image tag"
-  echo "Valid build artifacts are 'rhsm', 'conduit', 'swatch-producer-aws'"
+  echo "Valid build artifacts are 'rhsm', 'conduit', 'swatch-producer-aws', 'swatch-contracts'"
   echo "Providing no artifact ids will result in a build for all artifacts"
   exit 0
 }
@@ -41,6 +41,7 @@ if [ ${#projects[@]} -eq 0 ]; then
   projects[0]="rhsm"
   projects[1]="conduit"
   projects[2]="swatch-producer-aws"
+  projects[3]="swatch-contracts"
 fi
 
 quay_user=$(podman login --get-login quay.io)
@@ -71,7 +72,13 @@ for p in "${projects[@]}"; do
       podman build . -f src/main/docker/Dockerfile.jvm -t quay.io/$quay_user/swatch-producer-aws:$tag --label "git-commit=${commit}"
       popd
       ;;
-    *) echo "Please use values from the set \"rhsm\", \"conduit\", \"swatch-producer-aws\"";;
+    "swatch-contracts")
+      ./gradlew :swatch-contracts:assemble
+      pushd swatch-contracts
+      podman build . -f src/main/docker/Dockerfile.jvm -t quay.io/$quay_user/swatch-contracts:$tag --label "git-commit=${commit}"
+      popd
+      ;;
+    *) echo "Please use values from the set \"rhsm\", \"conduit\", \"swatch-producer-aws\", \"swatch-contracts\"";;
   esac
 done
 
@@ -93,6 +100,9 @@ for p in "${projects[@]}"; do
       ;;
     "swatch-producer-aws")
       push_and_clean "quay.io/$quay_user/swatch-producer-aws:$tag"
+      ;;
+    "swatch-contracts")
+      push_and_clean "quay.io/$quay_user/swatch-contracts:$tag"
       ;;
   esac
 done

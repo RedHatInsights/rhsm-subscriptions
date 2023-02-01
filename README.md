@@ -467,6 +467,14 @@ cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
       parameters:
         REPLICAS: 1
         swatch-producer-aws/IMAGE: quay.io/cloudservices/swatch-producer-aws
+    
+    - name: swatch-contracts
+      host: local
+      repo: $(pwd)/rhsm-subscriptions/swatch-contracts
+      path: /deploy/clowdapp.yaml
+      parameters:
+        REPLICAS: 1
+        swatch-contracts/IMAGE: quay.io/cloudservices/swatch-contracts
 BONFIRE
 ```
 
