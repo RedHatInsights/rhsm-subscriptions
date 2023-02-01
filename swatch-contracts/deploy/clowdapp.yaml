@@ -42,120 +42,114 @@ parameters:
     value: 'INFO'
   - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
     value: 'INFO'
-  - name: KAFKA_SEEK_OVERRIDE_END
-    value: 'false'
-  - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
-    value: ''
-  - name: ENABLE_AWS_DRY_RUN
-    value: 'false'
 
 objects:
-- apiVersion: cloud.redhat.com/v1alpha1
-  kind: ClowdApp
-  metadata:
-    name: swatch-contracts
-    labels:
-      prometheus: quarkus
-  spec:
-    envName: ${ENV_NAME}
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdApp
+    metadata:
+      name: swatch-contracts
+      labels:
+        prometheus: quarkus
+    spec:
+      envName: ${ENV_NAME}
 
-    pullSecrets:
-      name: ${IMAGE_PULL_SECRET}
+      pullSecrets:
+        name: ${IMAGE_PULL_SECRET}
 
-    deployments:
-      - name: service
-        replicas: ${{REPLICAS}}
-        webServices:
-          public:
-            enabled: true
-        podSpec:
-          image: ${IMAGE}:${IMAGE_TAG}
-          command:
-            - /bin/bash
-            - /usr/local/s2i/run
-          livenessProbe:
-            failureThreshold: 3
-            httpGet:
-              path: /q/health/live
-              port: 8000
-              scheme: HTTP
-            initialDelaySeconds: 20
-            periodSeconds: 20
-            successThreshold: 1
-            timeoutSeconds: 5
-          readinessProbe:
-            failureThreshold: 3
-            httpGet:
-              path: /q/health/ready
-              port: 8000
-              scheme: HTTP
-            initialDelaySeconds: 20
-            periodSeconds: 20
-            successThreshold: 1
-            timeoutSeconds: 5
-          resources:
-            requests:
-              cpu: ${CPU_REQUEST}
-              memory: ${MEMORY_REQUEST}
-            limits:
-              cpu: ${CPU_LIMIT}
-              memory: ${MEMORY_LIMIT}
-          env:
-            - name: LOGGING_LEVEL_ROOT
-              value: ${LOGGING_LEVEL_ROOT}
-            - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
-              value: ${LOGGING_LEVEL_COM_REDHAT_SWATCH}
-            - name: ENABLE_SPLUNK_HEC
-              value: ${ENABLE_SPLUNK_HEC}
-            - name: SPLUNKMETA_namespace
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.namespace
-            - name: SPLUNKMETA_host
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.name
-            - name: SPLUNK_HEC_URL
-              value: ${SPLUNK_HEC_URL}
-            - name: SPLUNK_HEC_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: splunk-hec-external
-                  key: token
-            - name: SPLUNK_SOURCE
-              value: ${SPLUNK_SOURCE}
-            - name: SPLUNK_SOURCE_TYPE
-              value: ${SPLUNK_SOURCE_TYPE}
-            - name: SPLUNK_HEC_BATCH_SIZE
-              value: ${SPLUNK_HEC_BATCH_SIZE}
-            - name: SPLUNK_HEC_BATCH_INTERVAL
-              value: ${SPLUNK_HEC_BATCH_INTERVAL}
-            - name: SPLUNK_HEC_RETRY_COUNT
-              value: ${SPLUNK_HEC_RETRY_COUNT}
-            - name: SPLUNK_HEC_INCLUDE_EX
-              value: ${SPLUNK_HEC_INCLUDE_EX}
-            - name: SWATCH_SELF_PSK
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-psks
-                  key: self
-          volumeMounts:
-            - name: logs
-              mountPath: /logs
-            - name: pinhead
-              mountPath: /pinhead
-          volumes:
-            - name: logs
-              emptyDir:
-            - name: pinhead
-              secret:
-                secretName: pinhead
+      deployments:
+        - name: service
+          replicas: ${{REPLICAS}}
+          webServices:
+            public:
+              enabled: true
+          podSpec:
+            image: ${IMAGE}:${IMAGE_TAG}
+            command:
+              - /bin/bash
+              - /usr/local/s2i/run
+            livenessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: /q/health/live
+                port: 8000
+                scheme: HTTP
+              initialDelaySeconds: 20
+              periodSeconds: 20
+              successThreshold: 1
+              timeoutSeconds: 5
+            readinessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: /q/health/ready
+                port: 8000
+                scheme: HTTP
+              initialDelaySeconds: 20
+              periodSeconds: 20
+              successThreshold: 1
+              timeoutSeconds: 5
+            resources:
+              requests:
+                cpu: ${CPU_REQUEST}
+                memory: ${MEMORY_REQUEST}
+              limits:
+                cpu: ${CPU_LIMIT}
+                memory: ${MEMORY_LIMIT}
+            env:
+              - name: LOGGING_LEVEL_ROOT
+                value: ${LOGGING_LEVEL_ROOT}
+              - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
+                value: ${LOGGING_LEVEL_COM_REDHAT_SWATCH}
+              - name: ENABLE_SPLUNK_HEC
+                value: ${ENABLE_SPLUNK_HEC}
+              - name: SPLUNKMETA_namespace
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.namespace
+              - name: SPLUNKMETA_host
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.name
+              - name: SPLUNK_HEC_URL
+                value: ${SPLUNK_HEC_URL}
+              - name: SPLUNK_HEC_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: splunk-hec-external
+                    key: token
+              - name: SPLUNK_SOURCE
+                value: ${SPLUNK_SOURCE}
+              - name: SPLUNK_SOURCE_TYPE
+                value: ${SPLUNK_SOURCE_TYPE}
+              - name: SPLUNK_HEC_BATCH_SIZE
+                value: ${SPLUNK_HEC_BATCH_SIZE}
+              - name: SPLUNK_HEC_BATCH_INTERVAL
+                value: ${SPLUNK_HEC_BATCH_INTERVAL}
+              - name: SPLUNK_HEC_RETRY_COUNT
+                value: ${SPLUNK_HEC_RETRY_COUNT}
+              - name: SPLUNK_HEC_INCLUDE_EX
+                value: ${SPLUNK_HEC_INCLUDE_EX}
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+            volumeMounts:
+              - name: logs
+                mountPath: /logs
+              - name: pinhead
+                mountPath: /pinhead
+            volumes:
+              - name: logs
+                emptyDir:
+              - name: pinhead
+                secret:
+                  secretName: pinhead
 
-- apiVersion: v1
-  kind: Secret
-  metadata:
-    name: swatch-psks
-  data:
-    self: ZHVtbXk=
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: swatch-psks
+    data:
+      self: ZHVtbXk=
