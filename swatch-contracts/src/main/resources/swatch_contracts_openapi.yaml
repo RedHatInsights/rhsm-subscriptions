@@ -20,7 +20,7 @@ servers:
             port:
                 default: '8000'
 paths:
-    '/contracts/{uuid}':
+    '/api/swatch-contracts/internal/contracts/{uuid}':
         put:
             requestBody:
                 content:
@@ -89,20 +89,15 @@ paths:
                             value: 8ece4096-bef6-4ad6-b0db-20c8e6b2a78c
                     name: uuid
                     description: UUID generated from a previously saved contract
+                    schema:
+                        type: string
                     in: path
                     required: true
             responses:
                 '200':
                     description: Success
             operationId: deleteContractByUUID
-        parameters:
-            -
-                name: uuid
-                schema:
-                    type: string
-                in: path
-                required: true
-    /contracts:
+    /api/swatch-contracts/internal/contracts:
         get:
             parameters:
                 -
