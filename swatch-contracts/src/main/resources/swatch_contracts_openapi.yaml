@@ -95,6 +95,13 @@ paths:
                 '200':
                     description: Success
             operationId: deleteContractByUUID
+        parameters:
+            -
+                name: uuid
+                schema:
+                    type: string
+                in: path
+                required: true
     /contracts:
         get:
             parameters:
