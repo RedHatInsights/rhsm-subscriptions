@@ -20,12 +20,14 @@
  */
 package com.redhat.swatch;
 
-import io.smallrye.config.ConfigMapping;
-import io.smallrye.config.WithName;
+import java.io.Serializable;
+import java.util.UUID;
+import lombok.Data;
 
-@ConfigMapping(prefix = "greeting")
-public interface GreetingConfig {
+@Data
+public class ContractMetricId implements Serializable {
 
-  @WithName("message")
-  String message();
+  private UUID contractUuid;
+  private String metricId;
+  private int value;
 }

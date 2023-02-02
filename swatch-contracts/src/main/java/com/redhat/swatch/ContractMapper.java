@@ -20,9 +20,23 @@
  */
 package com.redhat.swatch;
 
-import io.quarkus.test.junit.QuarkusIntegrationTest;
+import com.redhat.swatch.openapi.model.Contract;
+import org.mapstruct.AfterMapping;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
-@QuarkusIntegrationTest
-public class ExampleResourceIT extends ExampleResourceTest {
-  // Execute the same tests but in packaged mode.
+@Mapper(componentModel = "cdi")
+abstract class ContractMapper {
+
+  abstract Contract contractToDto(com.redhat.swatch.Contract contract);
+
+  @Mapping(target = "lastUpdated", ignore = true)
+  abstract com.redhat.swatch.Contract dtoToContract(Contract contract);
+
+  @AfterMapping
+  protected void populateEntityUuid(@MappingTarget com.redhat.swatch.Contract entity) {
+
+    entity.getMetrics().stream().forEach(metric -> metric.setContractUuid(entity.getUuid()));
+  }
 }

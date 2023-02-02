@@ -19,6 +19,7 @@
 **/target/
 **/.gradle/
 **/out
+**/lib
 
 **/prometheumultiprocess
 
