@@ -20,9 +20,17 @@
  */
 package com.redhat.swatch;
 
-import io.quarkus.test.junit.QuarkusIntegrationTest;
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.is;
 
-@QuarkusIntegrationTest
-public class ExampleResourceIT extends ExampleResourceTest {
-  // Execute the same tests but in packaged mode.
+import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Test;
+
+@QuarkusTest
+class TestResourceTest {
+
+  @Test
+  void testGetContractsEndpoint() {
+    given().when().get("/api/swatch-contracts/internal/contracts").then().statusCode(200);
+  }
 }
