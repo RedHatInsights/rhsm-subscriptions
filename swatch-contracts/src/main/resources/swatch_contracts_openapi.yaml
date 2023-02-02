@@ -134,6 +134,24 @@ paths:
                     schema:
                         type: string
                     in: query
+                -
+                    examples:
+                        billing_provider:
+                            value: aws
+                    name: billing_provider
+                    description: ''
+                    schema:
+                        $ref: '#/components/schemas/BillingProvider'
+                    in: query
+                -
+                    examples:
+                        billing_account_id:
+                            value: '123456789101'
+                    name: billing_account_id
+                    description: ''
+                    schema:
+                        type: string
+                    in: query
             responses:
                 '200':
                     content:
@@ -167,36 +185,6 @@ paths:
                 -
                     test: []
             operationId: createContract
-        delete:
-            parameters:
-                -
-                    examples:
-                        subscription_number:
-                            value: '12345678'
-                    name: subscription_number
-                    description: Subscription number associated with the contract starting on the start date
-                    schema:
-                        type: string
-                    in: query
-                    required: true
-                -
-                    examples:
-                        start_date:
-                            value: '2023-03-01T00:00:00Z'
-                    name: start_date
-                    description: Start date of a contract
-                    schema:
-                        format: date-time
-                        type: string
-                    in: query
-                    required: true
-            responses:
-                '200':
-                    description: success
-            operationId: deleteContract
-            description: >-
-                Delete a contract by providing the unique identifier in the database (subscription_number and
-                start_date).
 components:
     schemas:
         Error:
