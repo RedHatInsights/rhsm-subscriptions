@@ -91,8 +91,6 @@ public class ContractService {
 
     }
 
-    Function<ContractsEntity, List<Object>> compositeKey = contractRecord ->
-        Arrays.<Object>asList(contractRecord.getUU, personRecord.getAge());
 
     return null;
   }
