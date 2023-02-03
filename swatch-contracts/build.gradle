@@ -39,6 +39,8 @@ dependencies {
     testImplementation libraries["wiremock-jre8"]
     implementation("io.quarkus:quarkus-liquibase")
     implementation("io.quarkus:quarkus-jdbc-postgresql")
+    implementation("io.quarkus:quarkus-hibernate-orm")
+    implementation("org.hibernate:hibernate-annotations:3.5.6-Final")
 }
 
 group 'com.redhat.swatch'

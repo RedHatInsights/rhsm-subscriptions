@@ -37,13 +37,16 @@ public class TestResource implements DefaultApi {
   }
 
   @Override
-  public void deleteContractByUUID(String uuid) throws ApiException, ProcessingException {
-
-  }
+  public void deleteContractByUUID(String uuid) throws ApiException, ProcessingException {}
 
   @Override
-  public List<Contract> getContract(String uuid, String orgId, String productId, String metricId,
-      BillingProvider billingProvider, String billingAccountId)
+  public List<Contract> getContract(
+      String uuid,
+      String orgId,
+      String productId,
+      String metricId,
+      BillingProvider billingProvider,
+      String billingAccountId)
       throws ApiException, ProcessingException {
     return null;
   }
