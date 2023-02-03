@@ -44,6 +44,7 @@ import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.model.CloudProvider;
 import org.candlepin.subscriptions.utilization.api.model.InstanceData;
 import org.candlepin.subscriptions.utilization.api.model.InstanceMeta;
 import org.candlepin.subscriptions.utilization.api.model.InstanceReportSort;
@@ -82,6 +83,13 @@ public class InstancesResource implements InstancesApi {
 
   public static final Map<InstanceReportSort, Measurement.Uom> SORT_TO_UOM_MAP =
       ImmutableMap.copyOf(getSortToUomMap());
+
+  private static final Map<ReportCategory, List<HardwareMeasurementType>> CATEGORY_MAP =
+      Map.of(
+          ReportCategory.PHYSICAL, List.of(HardwareMeasurementType.PHYSICAL),
+          ReportCategory.VIRTUAL, List.of(HardwareMeasurementType.VIRTUAL),
+          ReportCategory.HYPERVISOR, List.of(HardwareMeasurementType.HYPERVISOR),
+          ReportCategory.CLOUD, new ArrayList<>(HardwareMeasurementType.getCloudProviderTypes()));
 
   @Context UriInfo uriInfo;
 
@@ -236,7 +244,10 @@ public class InstancesResource implements InstancesApi {
                 .orElse(0.0));
       }
     }
-    instance.setCategory(tallyInstanceView.getKey().getMeasurementType().name());
+    instance.setCategory(
+        getCategoryByMeasurementType(tallyInstanceView.getKey().getMeasurementType()));
+    instance.setCloudProvider(
+        getCloudProviderByMeasurementType(tallyInstanceView.getKey().getMeasurementType()));
     instance.setBillingAccountId(tallyInstanceView.getHostBillingAccountId());
     instance.setMeasurements(measurementList);
     instance.setLastSeen(tallyInstanceView.getLastSeen());
@@ -249,12 +260,32 @@ public class InstancesResource implements InstancesApi {
       ReportCategory reportCategory) {
     if (Objects.isNull(reportCategory)) {
       return new ArrayList<>();
+    } else {
+      return CATEGORY_MAP.get(reportCategory);
     }
-    return switch (reportCategory) {
-      case VIRTUAL -> List.of(HardwareMeasurementType.VIRTUAL);
-      case PHYSICAL -> List.of(HardwareMeasurementType.PHYSICAL);
-      case HYPERVISOR -> List.of(HardwareMeasurementType.HYPERVISOR);
-      case CLOUD -> HardwareMeasurementType.getCloudProviderTypes();
+  }
+
+  private static ReportCategory getCategoryByMeasurementType(
+      HardwareMeasurementType measurementType) {
+    if (HardwareMeasurementType.isSupportedCloudProvider(measurementType.name())) {
+      return ReportCategory.CLOUD;
+    }
+    return switch (measurementType) {
+      case VIRTUAL -> ReportCategory.VIRTUAL;
+      case PHYSICAL -> ReportCategory.PHYSICAL;
+      case HYPERVISOR -> ReportCategory.HYPERVISOR;
+      default -> null;
+    };
+  }
+
+  private static CloudProvider getCloudProviderByMeasurementType(
+      HardwareMeasurementType measurementType) {
+    return switch (measurementType) {
+      case AWS, AWS_CLOUDIGRADE -> CloudProvider.AWS;
+      case GOOGLE -> CloudProvider.GCP;
+      case ALIBABA -> CloudProvider.ALIBABA;
+      case AZURE -> CloudProvider.AZURE;
+      default -> null;
     };
   }
 
