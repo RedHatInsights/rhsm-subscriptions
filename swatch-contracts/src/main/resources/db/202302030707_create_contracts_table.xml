@@ -1,0 +1,21 @@
+<!--
+create table if not exists public.contracts
+  (
+  uuid                uuid             not null
+  constraint contracts_pk
+  primary key,
+  subscription_number varchar          not null,
+  last_updated        timestamp        not null,
+  start_date          timestamp        not null,
+  end_date            timestamp,
+  org_id              varchar          not null,
+  sku                 varchar          not null,
+  billing_provider    varchar          not null,
+  billing_account_id  varchar          not null,
+  product_id          varchar          not null,
+  metric_id           varchar          not null,
+  value               double precision not null,
+  constraint contracts_logicalk
+  unique (subscription_number, start_date, product_id, metric_id)
+  );
+-->
