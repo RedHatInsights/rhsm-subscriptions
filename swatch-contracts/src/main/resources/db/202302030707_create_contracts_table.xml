@@ -1,21 +1,50 @@
-<!--
-create table if not exists public.contracts
-  (
-  uuid                uuid             not null
-  constraint contracts_pk
-  primary key,
-  subscription_number varchar          not null,
-  last_updated        timestamp        not null,
-  start_date          timestamp        not null,
-  end_date            timestamp,
-  org_id              varchar          not null,
-  sku                 varchar          not null,
-  billing_provider    varchar          not null,
-  billing_account_id  varchar          not null,
-  product_id          varchar          not null,
-  metric_id           varchar          not null,
-  value               double precision not null,
-  constraint contracts_logicalk
-  unique (subscription_number, start_date, product_id, metric_id)
-  );
--->
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+    https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+  <changeSet author="lburnett" id="202302030707">
+    <createTable tableName="contracts">
+      <column name="uuid" type="UUID">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="contracts_pk"/>
+      </column>
+      <column name="subscription_number" type="VARCHAR">
+        <constraints nullable="false"/>
+      </column>
+      <column name="last_updated" type="TIMESTAMP WITH TIME ZONE">
+        <constraints nullable="false"/>
+      </column>
+      <column name="start_date" type="TIMESTAMP WITH TIME ZONE">
+        <constraints nullable="false"/>
+      </column>
+      <column name="end_date" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="org_id" type="VARCHAR">
+        <constraints nullable="false"/>
+      </column>
+      <column name="sku" type="VARCHAR">
+        <constraints nullable="false"/>
+      </column>
+      <column name="billing_provider" type="VARCHAR">
+        <constraints nullable="false"/>
+      </column>
+      <column name="billing_account_id" type="VARCHAR">
+        <constraints nullable="false"/>
+      </column>
+      <column name="product_id" type="VARCHAR">
+        <constraints nullable="false"/>
+      </column>
+      <column name="metric_id" type="VARCHAR">
+        <constraints nullable="false"/>
+      </column>
+      <column name="value" type="double precision">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+
+    <addUniqueConstraint columnNames="subscription_number, start_date, product_id, metric_id"
+      constraintName="contracts_logicalk" tableName="contracts"/>
+
+  </changeSet>
+
+</databaseChangeLog>

@@ -6,6 +6,6 @@
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
-  <include file="db/202302030851_create_quarkus_table.xml"/>
+  <include file="db/202302030707_create_contracts_table.xml"/>
 
 </databaseChangeLog>
