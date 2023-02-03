@@ -25,28 +25,33 @@ import com.redhat.swatch.openapi.model.Contract;
 import com.redhat.swatch.openapi.resource.ApiException;
 import com.redhat.swatch.openapi.resource.DefaultApi;
 import java.util.List;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.transaction.Transactional;
 import javax.ws.rs.ProcessingException;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@ApplicationScoped
 public class TestResource implements DefaultApi {
 
+  @Inject
+  ContractService service;
+
   @Override
+  @Transactional
   public Contract createContract(Contract contract) throws ApiException, ProcessingException {
-    return null;
+
+    return service.saveContract(contract).stream().findFirst().get();
   }
 
   @Override
-  public void deleteContractByUUID(String uuid) throws ApiException, ProcessingException {}
+  public void deleteContractByUUID(String uuid) throws ApiException, ProcessingException {
+  }
 
   @Override
-  public List<Contract> getContract(
-      String uuid,
-      String orgId,
-      String productId,
-      String metricId,
-      BillingProvider billingProvider,
-      String billingAccountId)
+  public List<Contract> getContract(String uuid, String orgId, String productId, String metricId,
+      BillingProvider billingProvider, String billingAccountId)
       throws ApiException, ProcessingException {
     return null;
   }
