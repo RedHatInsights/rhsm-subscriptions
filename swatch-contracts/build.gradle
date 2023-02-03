@@ -1,0 +1,53 @@
+plugins {
+    id 'swatch.java-conventions'
+    id 'io.quarkus'
+    id 'org.openapi.generator'
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+    compileOnly libraries["lombok"]
+    implementation enforcedPlatform(libraries["quarkus-bom"])
+    implementation 'io.quarkus:quarkus-arc'
+    implementation 'io.quarkus:quarkus-config-yaml'
+    implementation 'io.quarkus:quarkus-hibernate-validator'
+    implementation 'io.quarkus:quarkus-jacoco'
+    implementation 'io.quarkus:quarkus-logging-json'
+    implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
+    implementation 'io.quarkus:quarkus-openshift'
+    implementation 'io.quarkus:quarkus-resteasy'
+    implementation 'io.quarkus:quarkus-smallrye-fault-tolerance'
+    implementation 'io.quarkus:quarkus-smallrye-health'
+    implementation 'io.quarkus:quarkus-smallrye-openapi'
+    implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
+    implementation 'io.quarkus:quarkus-smallrye-reactive-messaging'
+    implementation libraries["clowder-quarkus-config-source"]
+    implementation libraries["quarkus-logging-splunk"]
+    implementation libraries["splunk-library-javalogging"]
+    testImplementation 'io.quarkus:quarkus-junit5'
+    testImplementation 'io.quarkus:quarkus-junit5-mockito'
+    testImplementation 'io.rest-assured:rest-assured'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:kafka'
+    testImplementation 'org.testcontainers:postgresql'
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation libraries["junit-jupiter"]
+    testImplementation libraries["wiremock-jre8"]
+}
+
+group 'com.redhat.swatch'
+version 'swatch-contracts'
+
+tasks.register('configureQuarkusBuild') {
+    doLast {
+        System.setProperty("quarkus.container-image.tag", project.getVersion().toString().replace("+", "_"))
+    }
+}
+
+quarkusDev.dependsOn(configureQuarkusBuild)
+quarkusBuild.dependsOn(configureQuarkusBuild)

@@ -1692,6 +1692,7 @@ components:
         - Transfer-gibibytes
         - billing_provider
         - number_of_guests
+        - category
     InstanceData:
       title: Root Type for Instance
       description: The representation of a product cluster data
@@ -1720,6 +1721,8 @@ components:
         number_of_guests:
           type: integer
         category:
+          type: string
+        subscription_manager_id:
           type: string
       example:
         id: d6214a0b-b344-4778-831c-d53dcacb2da3

@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -104,6 +105,8 @@ public class InventoryController {
   public static final String VIRT_IS_GUEST = "virt.is_guest";
   public static final String INSIGHTS_ID = "insights_id";
   public static final String OPENSHIFT_CLUSTER_UUID = "openshift.cluster_uuid";
+  public static final String AZURE_OFFER = "azure_offer";
+  public static final String AWS_BILLING_PRODUCTS = "aws_billing_products";
   public static final String OCM_UNITS = "ocm.units";
   public static final String OCM_BILLING_MODEL = "ocm.billing_model";
   public static final String UNKNOWN = "unknown";
@@ -180,7 +183,17 @@ public class InventoryController {
             .collect(Collectors.toList());
     facts.setRhProd(productIds);
 
+    extractMarketPlaceFacts(rhsmFacts, facts);
     return facts;
+  }
+
+  private void extractMarketPlaceFacts(Map<String, String> rhsmFacts, ConduitFacts facts) {
+    var azureOffer = rhsmFacts.get(AZURE_OFFER);
+    var awsBillingProducts = rhsmFacts.get(AWS_BILLING_PRODUCTS);
+    if (StringUtils.hasText(azureOffer) && !Objects.equals(azureOffer, "rhel-byos")
+        || StringUtils.hasText(awsBillingProducts)) {
+      facts.setIsMarketplace(true);
+    }
   }
 
   private String extractCloudProvider(Map<String, String> rhsmFacts) {
