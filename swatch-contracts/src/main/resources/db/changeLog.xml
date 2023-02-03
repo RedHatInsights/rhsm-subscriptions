@@ -1,18 +1,11 @@
-<?xml version="1.1" encoding="UTF-8" standalone="no"?>
-<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
-  xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext
-    https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd
-    http://www.liquibase.org/xml/ns/dbchangelog
-    https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
 
-  <changeSet author="quarkus" id="1">
-    <createTable tableName="quarkus">
-      <column name="ID" type="VARCHAR(255)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="NAME" type="VARCHAR(255)"/>
-    </createTable>
-  </changeSet>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <include file="db/202302030851_create_quarkus_table.xml"/>
+
 </databaseChangeLog>
