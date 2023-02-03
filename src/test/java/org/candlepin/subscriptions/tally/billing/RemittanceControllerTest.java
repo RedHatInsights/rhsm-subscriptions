@@ -234,6 +234,7 @@ class RemittanceControllerTest {
         // NOTE: We are mocking the repository's sum call, so this value doesn't have to match the
         // snapshot.
         .remittedValue(remittedValue)
+        .billingFactor(1.0)
         .remittanceDate(clock.now())
         .build();
   }
