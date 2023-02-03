@@ -120,7 +120,7 @@ class InstancesResourceTest {
     data.setLastSeen(tallyInstanceView.getLastSeen());
     data.setMeasurements(expectedMeasurement);
     data.setNumberOfGuests(tallyInstanceView.getNumOfGuests());
-    data.setCategory(HardwareMeasurementType.VIRTUAL.toString());
+    data.setCategory(ReportCategory.VIRTUAL);
 
     var meta = new InstanceMeta();
     meta.setCount(1);
@@ -209,7 +209,7 @@ class InstancesResourceTest {
     dataPhysical.setLastSeen(tallyInstanceViewPhysical.getLastSeen());
     dataPhysical.setMeasurements(List.of(4.0));
     dataPhysical.setNumberOfGuests(tallyInstanceViewPhysical.getNumOfGuests());
-    dataPhysical.setCategory(HardwareMeasurementType.PHYSICAL.toString());
+    dataPhysical.setCategory(ReportCategory.PHYSICAL);
 
     var dataHypervisor = new InstanceData();
     dataHypervisor.setId(tallyInstanceViewHypervisor.getKey().getInstanceId().toString());
@@ -218,7 +218,7 @@ class InstancesResourceTest {
     dataHypervisor.setLastSeen(tallyInstanceViewHypervisor.getLastSeen());
     dataHypervisor.setMeasurements(List.of(8.0));
     dataHypervisor.setNumberOfGuests(tallyInstanceViewHypervisor.getNumOfGuests());
-    dataHypervisor.setCategory(HardwareMeasurementType.HYPERVISOR.toString());
+    dataHypervisor.setCategory(ReportCategory.HYPERVISOR);
 
     var meta = new InstanceMeta();
     meta.setCount(2);
@@ -235,6 +235,92 @@ class InstancesResourceTest {
     InstanceResponse report =
         resource.getInstancesByProduct(
             RHEL,
+            null,
+            null,
+            ServiceLevelType.PREMIUM,
+            UsageType.PRODUCTION,
+            null,
+            expectedBillingProvider.asOpenApiEnum(),
+            null,
+            null,
+            null,
+            null,
+            null,
+            InstanceReportSort.DISPLAY_NAME,
+            null);
+
+    assertEquals(expected, report);
+  }
+
+  @Test
+  void testShouldPopulateCategoryWithCloud() {
+    BillingProvider expectedBillingProvider = BillingProvider.AWS;
+
+    var tallyInstanceView = new TallyInstanceView();
+    tallyInstanceView.setKey(new TallyInstanceViewKey());
+    tallyInstanceView.setDisplayName("rhv.example.com");
+    tallyInstanceView.setNumOfGuests(3);
+    tallyInstanceView.setLastSeen(OffsetDateTime.now());
+    tallyInstanceView
+        .getKey()
+        .setInstanceId(UUID.fromString("d6214a0b-b344-4778-831c-d53dcacb2da3"));
+    tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
+    tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.AWS);
+    tallyInstanceView.getKey().setUom(Measurement.Uom.CORE_SECONDS);
+
+    Mockito.when(
+            repository.findAllBy(
+                eq("owner123456"),
+                any(),
+                any(),
+                any(),
+                any(),
+                anyInt(),
+                anyInt(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any()))
+        .thenReturn(new PageImpl<>(List.of(tallyInstanceView)));
+
+    var expectUom =
+        List.of(
+            "Instance-hours", "Storage-gibibyte-months", "Storage-gibibytes", "Transfer-gibibytes");
+    List<Double> expectedMeasurement = new ArrayList<>();
+    String month = InstanceMonthlyTotalKey.formatMonthId(tallyInstanceView.getLastSeen());
+    for (String uom : expectUom) {
+      expectedMeasurement.add(
+          Optional.ofNullable(
+                  tallyInstanceView.getMonthlyTotal(month, Measurement.Uom.fromValue(uom)))
+              .orElse(0.0));
+    }
+    var data = new InstanceData();
+    data.setId(tallyInstanceView.getKey().getInstanceId().toString());
+    data.setDisplayName(tallyInstanceView.getDisplayName());
+    data.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
+    data.setLastSeen(tallyInstanceView.getLastSeen());
+    data.setMeasurements(expectedMeasurement);
+    data.setNumberOfGuests(tallyInstanceView.getNumOfGuests());
+    data.setCloudProvider(CloudProvider.AWS);
+    data.setCategory(ReportCategory.CLOUD);
+
+    var meta = new InstanceMeta();
+    meta.setCount(1);
+    meta.setProduct(ProductId.RHOSAK);
+    meta.setServiceLevel(ServiceLevelType.PREMIUM);
+    meta.setUsage(UsageType.PRODUCTION);
+    meta.setMeasurements(expectUom);
+    meta.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
+
+    var expected = new InstanceResponse();
+    expected.setData(List.of(data));
+    expected.setMeta(meta);
+
+    InstanceResponse report =
+        resource.getInstancesByProduct(
+            RHOSAK,
             null,
             null,
             ServiceLevelType.PREMIUM,

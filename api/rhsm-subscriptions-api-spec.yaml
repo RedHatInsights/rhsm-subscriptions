@@ -1093,6 +1093,13 @@ components:
         - virtual
         - cloud
         - hypervisor
+    CloudProvider:
+      type: string
+      enum:
+        - aws
+        - gcp
+        - azure
+        - alibaba
     BillingAccountId:
       type: string
     Uom:
@@ -1721,6 +1728,9 @@ components:
         number_of_guests:
           type: integer
         category:
+          $ref: '#/components/schemas/ReportCategory'
+        cloud_provider:
+          $ref: '#/components/schemas/CloudProvider'
           type: string
         subscription_manager_id:
           type: string
@@ -1732,6 +1742,8 @@ components:
           - null
           - 1
         last_seen: '2020-01-01T00:00:00Z'
+        cloud_provider: aws
+        category: cloud
         number_of_guests: 4
     CandlepinPool:
       description: Subset of Candlepin pool data that rhsm-subscriptions understands.
