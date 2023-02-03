@@ -29,5 +29,6 @@ import lombok.Data;
 class BillableUsageCalculation {
   private double remittedValue;
   private double billableValue;
+  private double billingFactor;
   private OffsetDateTime remittanceDate;
 }

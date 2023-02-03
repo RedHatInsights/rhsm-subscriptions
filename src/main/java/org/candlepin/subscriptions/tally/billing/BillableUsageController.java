@@ -95,6 +95,21 @@ public class BillableUsageController {
         .orElse(BillableUsageRemittanceEntity.builder().key(key).remittedValue(0.0).build());
   }
 
+  /**
+   * Find the latest remitted value and billing factor used for that remittance in the database.
+   * Convert it to use the billing factor that's currently listed in the tag profile. This might be
+   * a no-op if the factor hasn't changed. BillableUsage should be the difference between the
+   * current usage and the previous usage at the newest tag profile billing factor. Integer-only
+   * billing is then applied before remitting. calculations that are need to bill any unbilled
+   * amount and to record any unbilled amount
+   *
+   * @param measuredTotal The total amount of a given usage for the month that is the latest record
+   *     tally total
+   * @param usage The specific event within a given month to determine what need to be billed
+   * @param remittance The previous record amount for remitted amount
+   * @return calculations that are need to bill any un-billed amount and to record any un-billed
+   *     amount
+   */
   private BillableUsageCalculation calculateBillableUsage(
       double measuredTotal, BillableUsage usage, BillableUsageRemittanceEntity remittance) {
     var tagMetricOptional =
@@ -107,17 +122,16 @@ public class BillableUsageController {
     double billableValue;
     double remittedValue;
     var currentRemittedValue = remittance.getRemittedValue();
+    var prevBillingFactor = Objects.requireNonNullElse(remittance.getBillingFactor(), 1.0);
 
+    // if the tag factor is different from latest billing factor,
+    // we will calculate the difference based on the current tag metric,
+    // if not we will just calculate as usual
     if (tagFactor != 1.0) {
-      var prevBilled = currentRemittedValue / remittance.getBillingFactor(); // previously billed
+      var prevBilled = currentRemittedValue / prevBillingFactor; // previously billed
       var unbilledAmount = measuredTotal - prevBilled;
       var updatedBill = unbilledAmount * tagFactor;
       var prevBilledAdjusted = prevBilled * tagFactor;
-
-      if (usage.getBillingFactor() != tagFactor) {
-        usage.setBillingFactor(tagFactor);
-        remittance.setBillingFactor(usage.getBillingFactor());
-      }
 
       billableValue = Math.ceil(updatedBill);
       remittedValue = checkIfBilled(billableValue) + prevBilledAdjusted;
@@ -131,6 +145,7 @@ public class BillableUsageController {
         .billableValue(billableValue)
         .remittedValue(remittedValue)
         .remittanceDate(clock.now())
+        .billingFactor(tagFactor)
         .build();
   }
 
@@ -167,8 +182,9 @@ public class BillableUsageController {
 
     // Update the reported usage value to the newly calculated one.
     usage.setValue(usageCalc.getBillableValue());
+    usage.setBillingFactor(usageCalc.getBillingFactor());
 
-    if (updateRemittance(remittance, usage.getOrgId(), usageCalc, usage.getBillingFactor())) {
+    if (updateRemittance(remittance, usage.getOrgId(), usageCalc)) {
       remittance.setAccountNumber(usage.getAccountNumber());
       log.debug("Updating remittance: {}", remittance);
       billableUsageRemittanceRepository.save(remittance);
@@ -178,10 +194,7 @@ public class BillableUsageController {
   }
 
   private boolean updateRemittance(
-      BillableUsageRemittanceEntity remittance,
-      String orgId,
-      BillableUsageCalculation usageCalc,
-      Double tagFactor) {
+      BillableUsageRemittanceEntity remittance, String orgId, BillableUsageCalculation usageCalc) {
     boolean updated = false;
     if (!Objects.equals(remittance.getKey().getOrgId(), orgId) && StringUtils.hasText(orgId)) {
       remittance.getKey().setOrgId(orgId);
@@ -191,8 +204,8 @@ public class BillableUsageController {
       remittance.setRemittedValue(usageCalc.getRemittedValue());
       updated = true;
     }
-    if (!Objects.equals(remittance.getBillingFactor(), tagFactor)) {
-      remittance.setBillingFactor(tagFactor);
+    if (!Objects.equals(remittance.getBillingFactor(), usageCalc.getBillingFactor())) {
+      remittance.setBillingFactor(usageCalc.getBillingFactor());
       updated = true;
     }
     // Only update the date if the remittance was updated.
