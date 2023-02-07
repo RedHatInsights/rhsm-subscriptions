@@ -25,15 +25,14 @@ import com.redhat.swatch.openapi.model.Contract;
 import com.redhat.swatch.openapi.model.Metric;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.beanutils.BeanUtils;
 
 @Slf4j
 @ApplicationScoped
@@ -41,37 +40,29 @@ public class ContractService {
 
   @Inject ContractRepository repository;
 
-  @SneakyThrows
-  List<Contract> saveContract(Contract contract) {
+  Contract saveContract(Contract contract) {
 
-    // strip uuid for now because mismatch
-    contract.setUuid(null);
+    var entity = new ContractsEntity();
+    var now = OffsetDateTime.now();
 
-    var records = new ArrayList<ContractsEntity>();
+    var uuid = Objects.requireNonNull(contract.getUuid(), UUID.randomUUID().toString());
+    entity.setUuid(UUID.fromString(uuid));
 
-    // stupid things because lists
-    for (Metric x : contract.getMetrics()) {
-      var entity = new ContractsEntity();
+    entity.setStartDate(now);
+    entity.setLastUpdated(now);
 
-      BeanUtils.copyProperties(entity, contract);
+    // TODO not aren't part of the api schema
+    entity.setSku("BANANAS");
 
-      entity.setUuid(UUID.randomUUID());
-      var now = OffsetDateTime.now();
-      entity.setStartDate(now);
-      entity.setLastUpdated(now);
+    // TODO
+    var metricDto = contract.getMetrics().get(0);
 
-      // TODO these aren't part of the api schema
-      entity.setSku("BANANAS");
+    entity.setMetricId(metricDto.getMetricId());
+    entity.setValue(metricDto.getValue().doubleValue());
 
-      entity.setMetricId(x.getMetricId());
-      entity.setValue(x.getValue().doubleValue());
+    repository.persist(entity);
 
-      records.add(entity);
-    }
-
-    repository.persist(records);
-
-    return null;
+    return contract;
   }
 
   @SneakyThrows

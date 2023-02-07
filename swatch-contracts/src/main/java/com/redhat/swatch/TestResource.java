@@ -41,7 +41,7 @@ public class TestResource implements DefaultApi {
   @Transactional
   public Contract createContract(Contract contract) throws ApiException, ProcessingException {
 
-    return service.saveContract(contract).stream().findFirst().get();
+    return service.saveContract(contract);
   }
 
   @Override
