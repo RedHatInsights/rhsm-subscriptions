@@ -22,12 +22,18 @@ package org.candlepin.subscriptions.product;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.util.Collections;
 import java.util.Set;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.umb.ChildProduct;
+import org.candlepin.subscriptions.umb.ProductAttribute;
+import org.candlepin.subscriptions.umb.ProductRelationship;
+import org.candlepin.subscriptions.umb.UmbOperationalProduct;
 import org.junit.jupiter.api.Test;
 
 class UpstreamProductDataTest {
@@ -100,8 +106,9 @@ class UpstreamProductDataTest {
     var sku = "RH00604F5";
     var expected = new Offering();
     expected.setSku(sku);
+    expected.setDerivedSku("RH00618F5");
     // (For now, Derived SKU and Derived SKU children are included as child SKUs.)
-    expected.setChildSkus(Set.of("RH00618F5", "SVCRH00604", "SVCRH00618"));
+    expected.setChildSkus(Set.of("SVCRH00604"));
     // (Neither the parent (as typical) nor the child SKU have eng products. These end up
     //  coming from the derived SKU RH00048.)
     expected.setProductIds(
@@ -224,5 +231,56 @@ class UpstreamProductDataTest {
 
     // Then hasUnlimitedUsage should be true
     assertEquals(true, actual.getHasUnlimitedUsage());
+  }
+
+  @Test
+  void testOfferingFromUmbMessage() {
+    var mockDataSource = mock(ProductDataSource.class);
+    // we set only the fields which must match to avoid RHIT product service lookup
+    Offering existingData =
+        Offering.builder().sku("foo").childSkus(Set.of("child")).derivedSku("derived").build();
+    var actual =
+        UpstreamProductData.offeringFromUmbData(
+                UmbOperationalProduct.builder()
+                    .role("role")
+                    .sku("foo")
+                    .skuDescription("desc")
+                    .productRelationship(
+                        ProductRelationship.builder()
+                            .childProducts(
+                                new ChildProduct[] {ChildProduct.builder().sku("child").build()})
+                            .build())
+                    .attributes(
+                        new ProductAttribute[] {
+                          ProductAttribute.builder().code("PRODUCT_FAMILY").value("family").build(),
+                          ProductAttribute.builder().code("PRODUCT_NAME").value("name").build(),
+                          ProductAttribute.builder().code("DERIVED_SKU").value("derived").build(),
+                          ProductAttribute.builder().code("SOCKET_LIMIT").value("1").build(),
+                          ProductAttribute.builder().code("CORES").value("2").build(),
+                          ProductAttribute.builder()
+                              .code("SERVICE_TYPE")
+                              .value(ServiceLevel.PREMIUM.getValue())
+                              .build(),
+                          ProductAttribute.builder()
+                              .code("USAGE")
+                              .value(Usage.PRODUCTION.getValue())
+                              .build(),
+                        })
+                    .build(),
+                existingData,
+                mockDataSource)
+            .orElseThrow();
+    // these are the only fields that can be updated by UMB messages without consulting the RHIT
+    // product service. (Changes to child SKUs or derived SKU need to consult RHIT product
+    // service).
+    assertEquals("role", actual.getRole());
+    assertEquals("desc", actual.getDescription());
+    assertEquals("family", actual.getProductFamily());
+    assertEquals("name", actual.getProductName());
+    assertEquals(1, actual.getHypervisorSockets());
+    assertEquals(2, actual.getHypervisorCores());
+    assertEquals(ServiceLevel.PREMIUM, actual.getServiceLevel());
+    assertEquals(Usage.PRODUCTION, actual.getUsage());
+    verifyNoInteractions(mockDataSource);
   }
 }

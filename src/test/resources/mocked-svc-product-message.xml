@@ -6,6 +6,34 @@
         <Identifiers>
           <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">273</Reference>
           <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">274</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">272</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">182</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">127</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">240</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">246</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">91</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">133</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">180</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">84</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">70</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">86</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">94</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">93</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">176</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">92</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">317</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">318</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">271</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">69</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">201</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">205</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">394</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">395</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">408</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">491</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">479</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">588</Reference>
+          <Reference system="PRODUCT" entity-name="Engineering Product" qualifier="number">605</Reference>
         </Identifiers>
         <Sku>SVCRH01</Sku>
         <SkuDescription>Red Hat Enterprise Linux Server</SkuDescription>

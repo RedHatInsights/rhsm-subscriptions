@@ -51,6 +51,15 @@ public class StubRhsmApi extends RhsmApi {
     consumer1.getFacts().put("network.fqdn", "host1.test.com");
     consumer1.getFacts().put("dmi.system.uuid", UUID.randomUUID().toString());
     consumer1.getFacts().put("Ip-addresses", "192.168.1.1, 10.0.0.1");
+    consumer1.getFacts().put("net.interface.eth0.ipv4_address", "192.168.1.1, 10.0.0.1");
+    consumer1
+        .getFacts()
+        .put("net.interface.virbr0.ipv4_address_list", "192.168.122.1, ipv4ListTest");
+    consumer1.getFacts().put("net.interface.lo.ipv4_address_list", "192.167.11.2");
+    consumer1.getFacts().put("net.interface.lo.ipv4_address", "redacted, 192.167.11.2");
+    consumer1.getFacts().put("net.interface.lo.ipv4_address", "redacted");
+    consumer1.getFacts().put("net.interface.lo.ipv6_address", "fe80::250:56ff:febe:f55a,redacted");
+    consumer1.getFacts().put("net.interface.lo.ipv6_address", "redacted");
     consumer1.getFacts().put("Mac-addresses", "00:00:00:00:00:00, ff:ff:ff:ff:ff:ff");
     consumer1.getFacts().put("cpu.cpu_socket(s)", "2");
     consumer1.getFacts().put("cpu.core(s)_per_socket", "2");
@@ -61,6 +70,7 @@ public class StubRhsmApi extends RhsmApi {
     consumer1.getFacts().put("ocm.billing_model", "standard");
     consumer1.getFacts().put("distribution.name", "Red Hat Enterprise Linux Workstation");
     consumer1.getFacts().put("distribution.version", "6.3");
+    consumer1.getFacts().put("azure_offer", "RHEL");
     InstalledProducts product = new InstalledProducts();
     product.setProductId("72");
     consumer1.getInstalledProducts().add(product);

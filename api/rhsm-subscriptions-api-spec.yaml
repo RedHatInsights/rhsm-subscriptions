@@ -784,6 +784,11 @@ paths:
           schema:
             $ref: '#/components/schemas/UsageType'
           description: "Include only hosts for the specified usage level."
+        - name: uom
+          in: query
+          schema:
+            $ref: '#/components/schemas/MetricId'
+          description: "Include only hosts with a specific unit of measure"
         - name: billing_provider
           in: query
           schema:
@@ -1088,6 +1093,13 @@ components:
         - virtual
         - cloud
         - hypervisor
+    CloudProvider:
+      type: string
+      enum:
+        - aws
+        - gcp
+        - azure
+        - alibaba
     BillingAccountId:
       type: string
     Uom:
@@ -1687,6 +1699,7 @@ components:
         - Transfer-gibibytes
         - billing_provider
         - number_of_guests
+        - category
     InstanceData:
       title: Root Type for Instance
       description: The representation of a product cluster data
@@ -1715,6 +1728,11 @@ components:
         number_of_guests:
           type: integer
         category:
+          $ref: '#/components/schemas/ReportCategory'
+        cloud_provider:
+          $ref: '#/components/schemas/CloudProvider'
+          type: string
+        subscription_manager_id:
           type: string
       example:
         id: d6214a0b-b344-4778-831c-d53dcacb2da3
@@ -1724,6 +1742,8 @@ components:
           - null
           - 1
         last_seen: '2020-01-01T00:00:00Z'
+        cloud_provider: aws
+        category: cloud
         number_of_guests: 4
     CandlepinPool:
       description: Subset of Candlepin pool data that rhsm-subscriptions understands.

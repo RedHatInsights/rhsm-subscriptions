@@ -21,11 +21,21 @@
 package org.candlepin.subscriptions.db;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /** Repository interface for the Offering entity */
 public interface OfferingRepository extends JpaRepository<Offering, String> {
 
   List<Offering> findByProductName(String productName);
+
+  @Query(value = "select sku from Offering where :sku member of childSkus")
+  Stream<String> findSkusForChildSku(@Param("sku") String sku);
+
+  @Query(value = "select sku from Offering where derivedSku in :derivedSkus")
+  Stream<String> findSkusForDerivedSkus(@Param("derivedSkus") Set<String> derivedSkus);
 }

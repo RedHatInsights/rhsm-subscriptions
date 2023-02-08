@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -60,6 +61,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 /** Controller used to interact with the Inventory service. */
@@ -94,6 +96,8 @@ public class InventoryController {
   public static final String IP_ADDRESS_FACT_REGEX =
       "^net\\.interface\\.[^.]*\\.ipv[46]_address(\\.global|\\.link)?(_list)?$";
   public static final String NETWORK_FQDN = "network.fqdn";
+  public static final String NET_INTERFACE_LO_IPV4_ADDRESS = "net.interface.lo.ipv4_address";
+  public static final String NET_INTERFACE_LO_IPV6_ADDRESS = "net.interface.lo.ipv6_address";
   public static final String CPU_SOCKETS = "cpu.cpu_socket(s)";
   public static final String CPU_CORES_PER_SOCKET = "cpu.core(s)_per_socket";
   public static final String MEMORY_MEMTOTAL = "memory.memtotal";
@@ -101,6 +105,8 @@ public class InventoryController {
   public static final String VIRT_IS_GUEST = "virt.is_guest";
   public static final String INSIGHTS_ID = "insights_id";
   public static final String OPENSHIFT_CLUSTER_UUID = "openshift.cluster_uuid";
+  public static final String AZURE_OFFER = "azure_offer";
+  public static final String AWS_BILLING_PRODUCTS = "aws_billing_products";
   public static final String OCM_UNITS = "ocm.units";
   public static final String OCM_BILLING_MODEL = "ocm.billing_model";
   public static final String UNKNOWN = "unknown";
@@ -177,7 +183,17 @@ public class InventoryController {
             .collect(Collectors.toList());
     facts.setRhProd(productIds);
 
+    extractMarketPlaceFacts(rhsmFacts, facts);
     return facts;
+  }
+
+  private void extractMarketPlaceFacts(Map<String, String> rhsmFacts, ConduitFacts facts) {
+    var azureOffer = rhsmFacts.get(AZURE_OFFER);
+    var awsBillingProducts = rhsmFacts.get(AWS_BILLING_PRODUCTS);
+    if (StringUtils.hasText(azureOffer) && !Objects.equals(azureOffer, "rhel-byos")
+        || StringUtils.hasText(awsBillingProducts)) {
+      facts.setIsMarketplace(true);
+    }
   }
 
   private String extractCloudProvider(Map<String, String> rhsmFacts) {
@@ -447,15 +463,25 @@ public class InventoryController {
     boolean loExist = networkInterfaces.stream().anyMatch(nic -> "lo".equals(nic.getName()));
     var lo = new HbiNetworkInterface();
 
-    if (!loExist && facts.containsKey("net.interface.lo.ipv4_address")) {
+    if (!loExist && facts.containsKey(NET_INTERFACE_LO_IPV4_ADDRESS)) {
       lo.setName("lo");
       lo.setMacAddress("00:00:00:00:00:00");
-      lo.setIpv4Addresses(Arrays.asList(facts.get("net.interface.lo.ipv4_address")));
+      var splitAddrs =
+          filterIps(facts.get(NET_INTERFACE_LO_IPV4_ADDRESS), NET_INTERFACE_LO_IPV4_ADDRESS);
+      lo.setIpv4Addresses(
+          CollectionUtils.isEmpty(splitAddrs)
+              ? List.of("127.0.0.1")
+              : splitAddrs.stream().distinct().toList());
       networkInterfaces.add(lo);
-    } else if (!loExist && facts.containsKey("net.interface.lo.ipv6_address")) {
+    } else if (!loExist && facts.containsKey(NET_INTERFACE_LO_IPV6_ADDRESS)) {
       lo.setName("lo");
       lo.setMacAddress("00:00:00:00:00:00");
-      lo.setIpv6Addresses(Arrays.asList(facts.get("net.interface.lo.ipv6_address")));
+      var splitAddrs =
+          filterIps(facts.get(NET_INTERFACE_LO_IPV6_ADDRESS), NET_INTERFACE_LO_IPV6_ADDRESS);
+      lo.setIpv6Addresses(
+          CollectionUtils.isEmpty(splitAddrs)
+              ? List.of("::1")
+              : splitAddrs.stream().distinct().toList());
       networkInterfaces.add(lo);
     }
   }

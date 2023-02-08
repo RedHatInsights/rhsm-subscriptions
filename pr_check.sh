@@ -15,6 +15,7 @@ export IQE_CJI_TIMEOUT="30m"  # This is the time to wait for smoke test to compl
 # IQE plugin image
 export IQE_IMAGE_TAG="rhsm-subscriptions"
 # NOTE: workaround for frontend deployment not being ready yet below
+export IQE_LOG_LEVEL="debug"
 
 
 # Install bonfire repo/initialize
@@ -46,7 +47,7 @@ EXTRA_DEPLOY_ARGS="--timeout 1800 ${IMAGES}"
 OPTIONAL_DEPS_METHOD=none
 
 #each gets appended with --component
-export COMPONENTS_W_RESOURCES="rhsm swatch-api swatch-producer-aws swatch-producer-red-hat-marketplace swatch-metrics swatch-subscription-sync swatch-system-conduit swatch-tally"
+export COMPONENTS_W_RESOURCES="rhsm swatch-api swatch-contracts swatch-producer-aws swatch-producer-red-hat-marketplace swatch-metrics swatch-subscription-sync swatch-system-conduit swatch-tally"
 # NOTE: this ensures that all of the other services end up deployed with the latest template
 for EXTRA_COMPONENT_NAME in $COMPONENTS_W_RESOURCES; do
   export EXTRA_DEPLOY_ARGS="${EXTRA_DEPLOY_ARGS} --set-template-ref ${EXTRA_COMPONENT_NAME}=${GIT_COMMIT}"

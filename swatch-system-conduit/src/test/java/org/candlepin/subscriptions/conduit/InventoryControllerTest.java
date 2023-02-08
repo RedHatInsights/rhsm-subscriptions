@@ -442,6 +442,115 @@ class InventoryControllerTest {
   }
 
   @Test
+  void testFilterLoopbackIpV4Address() {
+    String factPrefix = "net.interface.lo.";
+
+    String loIpFact = "192.168.0.1,redacted, removed";
+    String uuid = UUID.randomUUID().toString();
+    Consumer consumer = new Consumer();
+    consumer.setUuid(uuid);
+
+    consumer.getFacts().put(factPrefix + "ipv4_address", loIpFact);
+
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertEquals(1, conduitFacts.getNetworkInterfaces().get(0).getIpv4Addresses().size());
+    assertEquals(
+        List.of("192.168.0.1"), conduitFacts.getNetworkInterfaces().get(0).getIpv4Addresses());
+
+    String invalidLoIpFact = "redacted, removed";
+    consumer.getFacts().put(factPrefix + "ipv4_address", invalidLoIpFact);
+
+    conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertEquals(1, conduitFacts.getNetworkInterfaces().get(0).getIpv4Addresses().size());
+    assertEquals(
+        List.of("127.0.0.1"), conduitFacts.getNetworkInterfaces().get(0).getIpv4Addresses());
+  }
+
+  @Test
+  void testFilterLoopbackIpV6Address() {
+    String factPrefix = "net.interface.lo.";
+
+    String loIpFact = "fe80::250:56ff:febe:f55a,redacted, removed";
+    String uuid = UUID.randomUUID().toString();
+    Consumer consumer = new Consumer();
+    consumer.setUuid(uuid);
+
+    consumer.getFacts().put(factPrefix + "ipv6_address", loIpFact);
+
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertEquals(1, conduitFacts.getNetworkInterfaces().get(0).getIpv6Addresses().size());
+    assertEquals(
+        List.of("fe80::250:56ff:febe:f55a"),
+        conduitFacts.getNetworkInterfaces().get(0).getIpv6Addresses());
+
+    String invalidLoIpFact = "redacted, removed";
+    consumer.getFacts().put(factPrefix + "ipv6_address", invalidLoIpFact);
+
+    conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertEquals(1, conduitFacts.getNetworkInterfaces().get(0).getIpv6Addresses().size());
+    assertEquals(List.of("::1"), conduitFacts.getNetworkInterfaces().get(0).getIpv6Addresses());
+  }
+
+  @Test
+  void testIsMarketplaceFacts_WhenAzureOfferPresent() {
+    String azureOfferFact = "azure_offer";
+    String azzureOffer = "RHEL";
+    String uuid = UUID.randomUUID().toString();
+    Consumer consumer = new Consumer();
+    consumer.setUuid(uuid);
+
+    consumer.getFacts().put(azureOfferFact, azzureOffer);
+
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertEquals(true, conduitFacts.getIsMarketplace());
+
+    azureOfferFact = "azure_offer";
+    azzureOffer = " ";
+    consumer.getFacts().put(azureOfferFact, azzureOffer);
+
+    conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertNull(conduitFacts.getIsMarketplace());
+
+    azureOfferFact = "azure_offer";
+    azzureOffer = "rhel-byos";
+    consumer.getFacts().put(azureOfferFact, azzureOffer);
+
+    conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertNull(conduitFacts.getIsMarketplace());
+  }
+
+  @Test
+  void testIsMarketplaceFacts_WhenAwsBillingProductsPresent() {
+    String awsBillingProductsFact = "aws_billing_products";
+    String awsBillingProducts = "bi-6fa54";
+    String uuid = UUID.randomUUID().toString();
+    Consumer consumer = new Consumer();
+    consumer.setUuid(uuid);
+
+    consumer.getFacts().put(awsBillingProductsFact, awsBillingProducts);
+
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertEquals(true, conduitFacts.getIsMarketplace());
+
+    awsBillingProductsFact = "aws_billing_products";
+    awsBillingProducts = " ";
+    consumer.getFacts().put(awsBillingProductsFact, awsBillingProducts);
+
+    conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertNull(conduitFacts.getIsMarketplace());
+  }
+
+  @Test
+  void testIsMarketplaceFacts_WhenAzureOfferOrAWSBillingProductsNotPresent() {
+    String uuid = UUID.randomUUID().toString();
+    Consumer consumer = new Consumer();
+    consumer.setUuid(uuid);
+
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertNull(conduitFacts.getIsMarketplace());
+  }
+
+  @Test
   void testTruncatedIpV6AddressIsIgnoredForNics() {
     String factPrefix = "net.interface.virbr0.";
 
@@ -563,7 +672,8 @@ class InventoryControllerTest {
   void testTruncatedIPsAreIgnored() {
     Map<String, String> rhsmFacts = new HashMap<>();
     rhsmFacts.put("net.interface.eth0.ipv4_address", "192.168.1.1");
-    rhsmFacts.put("net.interface.lo.ipv4_address", "127.0.0.1, 192.168.2.1,192.168.2.2,192...");
+    rhsmFacts.put(
+        "net.interface.lo.ipv4_address", "127.0.0.1, 192.168.2.1,192.168.2.2,192...,redacted");
 
     var results = controller.extractIpAddresses(rhsmFacts);
     assertEquals(4, results.size());

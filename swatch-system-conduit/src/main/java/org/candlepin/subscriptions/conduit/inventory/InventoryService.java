@@ -137,6 +137,7 @@ public abstract class InventoryService {
     systemProfile.setNumberOfSockets(facts.getCpuSockets());
     systemProfile.setOwnerId(facts.getSubscriptionManagerId());
     systemProfile.setNetworkInterfaces(facts.getNetworkInterfaces());
+    systemProfile.setIsMarketplace(facts.getIsMarketplace());
     return systemProfile;
   }
 
@@ -191,6 +192,10 @@ public abstract class InventoryService {
     if (versions.length == 2) {
       operatingSystem.setMajor(Integer.parseInt(versions[0]));
       operatingSystem.setMinor(Integer.parseInt(versions[1]));
+    } else if (versions.length == 1 && !versions[0].isBlank()) {
+      // This is for cases if a single digit is given as these are required fields
+      operatingSystem.setMajor(Integer.parseInt(versions[0]));
+      operatingSystem.setMinor(0);
     } else {
       log.warn(
           "Invalid OperatingSystemVersion: found \"{}\" but should be in format \"major.minor\"",

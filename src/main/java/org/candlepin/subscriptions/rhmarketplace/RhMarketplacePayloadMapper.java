@@ -167,24 +167,6 @@ public class RhMarketplacePayloadMapper {
         tagProfile.rhmMetricIdForTagAndUom(billableUsage.getProductId(), uom);
     Double value = billableUsage.getValue();
 
-    // RHM is expecting counts of 4 vCPU-hour blocks, but currently does not have a way
-    // to do this automatically. If we detect this case, divide the cores value by 4.
-    //
-    // We need a longer term process to get that information onto the SKU/product
-    // definition
-    // itself so that we are not hard coding this type of value in our code. This will do
-    // for now. Wll be removed eventually in Phase 3 of SWATCH-582 subtasks
-    if (OPENSHIFT_DEDICATED_4_CPU_HOUR.equalsIgnoreCase(rhmMarketplaceMetricId)
-        && (billableUsage.getBillingFactor() == 1.0 || billableUsage.getBillingFactor() == null)
-        && !Objects.isNull(value)
-        && Uom.CORES.equals(uom)) {
-      value = value / 4;
-      log.debug(
-          "Found cores measurement for metric ID {}. Dividing cores by 4: {}",
-          OPENSHIFT_DEDICATED_4_CPU_HOUR,
-          value);
-    }
-
     UsageMeasurement usageMeasurement = new UsageMeasurement();
     usageMeasurement.setValue(value);
     usageMeasurement.setMetricId(rhmMarketplaceMetricId);

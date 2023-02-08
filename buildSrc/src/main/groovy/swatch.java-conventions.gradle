@@ -55,5 +55,9 @@ test {
     environment "TESTCONTAINERS_CHECKS_DISABLE", "true"
 
     maxHeapSize = "1024m"
+}
 
+tasks.withType(Jar).configureEach {
+    // Here to address https://youtrack.jetbrains.com/issue/IDEA-305759
+    duplicatesStrategy = DuplicatesStrategy.WARN
 }

@@ -24,6 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import java.io.IOException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 class OperationalProductMessageTest {
@@ -50,20 +52,21 @@ class OperationalProductMessageTest {
                                     .identifiers(
                                         Identifiers.builder()
                                             .references(
-                                                new Reference[] {
-                                                  Reference.builder()
-                                                      .system("PRODUCT")
-                                                      .entityName("Engineering Product")
-                                                      .qualifier("number")
-                                                      .value("273")
-                                                      .build(),
-                                                  Reference.builder()
-                                                      .system("PRODUCT")
-                                                      .entityName("Engineering Product")
-                                                      .qualifier("number")
-                                                      .value("274")
-                                                      .build(),
-                                                })
+                                                Stream.of(
+                                                        273, 274, 272, 182, 127, 240, 246, 91, 133,
+                                                        180, 84, 70, 86, 94, 93, 176, 92, 317, 318,
+                                                        271, 69, 201, 205, 394, 395, 408, 491, 479,
+                                                        588, 605)
+                                                    .map(
+                                                        id ->
+                                                            Reference.builder()
+                                                                .system("PRODUCT")
+                                                                .entityName("Engineering Product")
+                                                                .qualifier("number")
+                                                                .value(id.toString())
+                                                                .build())
+                                                    .collect(Collectors.toList())
+                                                    .toArray(new Reference[] {}))
                                             .build())
                                     .attributes(
                                         new ProductAttribute[] {
@@ -108,12 +111,23 @@ class OperationalProductMessageTest {
                                                 new ChildProduct[] {
                                                   ChildProduct.builder().sku("SVCRH01").build(),
                                                   ChildProduct.builder().sku("SVCRH01V4").build(),
+                                                  ChildProduct.builder().sku("SVCMPV4").build()
                                                 })
                                             .parentProduct(
                                                 ParentProduct.builder().sku("RH0180191").build())
                                             .build())
                                     .attributes(
                                         new ProductAttribute[] {
+                                          ProductAttribute.builder()
+                                              .code("PRODUCT_NAME")
+                                              .name("Product Name")
+                                              .value("RHEL Server")
+                                              .build(),
+                                          ProductAttribute.builder()
+                                              .code("PRODUCT_FAMILY")
+                                              .name("Product Family")
+                                              .value("Red Hat Enterprise Linux")
+                                              .build(),
                                           ProductAttribute.builder()
                                               .code("ENTITLEMENT_QTY")
                                               .name("Entitlement Qty")
@@ -123,6 +137,11 @@ class OperationalProductMessageTest {
                                               .code("SERVICE_TYPE")
                                               .name("Service Type")
                                               .value("Standard")
+                                              .build(),
+                                          ProductAttribute.builder()
+                                              .code("SOCKET_LIMIT")
+                                              .name("Socket Limit")
+                                              .value("2")
                                               .build(),
                                           ProductAttribute.builder()
                                               .code("USAGE")

@@ -203,7 +203,7 @@ tagMetrics:
     metricId: redhat.com:openshift_dedicated:4cpu_hour
     rhmMetricId: redhat.com:openshift_dedicated:4cpu_hour
     uom: CORES
-    #billingFactor: 0.25
+    billingFactor: 0.25
     billingWindow: MONTHLY
     queryKey: default
     queryParams:
@@ -286,6 +286,26 @@ tagMetrics:
       resourceName: addon-open-data-hub
       prometheusMetric: cluster:usage:workload:capacity_virtual_cpu_hours
       prometheusMetadataMetric: ocm_subscription_resource
+
+  # RHEL metrics. This is ugly and we should find a way to consolidate this.
+  - tag: RHEL
+    uom: SOCKETS
+  - tag: RHEL for x86
+    uom: SOCKETS
+  - tag: RHEL for ARM
+    uom: SOCKETS
+  - tag: RHEL for IBM Power
+    uom: SOCKETS
+  - tag: RHEL for IBM z
+    uom: SOCKETS
+  - tag: RHEL Compute Node
+    uom: SOCKETS
+  - tag: RHEL Server
+    uom: SOCKETS
+  - tag: RHEL Desktop
+    uom: SOCKETS
+  - tag: RHEL Workstation
+    uom: SOCKETS
 
 # The tagMetaData section defines additional information around how a tag is tallied.  Most notably,
 # tags need to have their finest granularity defined so that we can create accurate snapshots.  A

@@ -34,8 +34,11 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.BillableUsage;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.registry.BillingWindow;
+import org.candlepin.subscriptions.registry.TagMetric;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -48,16 +51,19 @@ public class BillableUsageController {
   private final BillingProducer billingProducer;
   private final BillableUsageRemittanceRepository billableUsageRemittanceRepository;
   private final TallySnapshotRepository snapshotRepository;
+  private final TagProfile tagProfile;
 
   public BillableUsageController(
       ApplicationClock clock,
       BillingProducer billingProducer,
       BillableUsageRemittanceRepository billableUsageRemittanceRepository,
-      TallySnapshotRepository snapshotRepository) {
+      TallySnapshotRepository snapshotRepository,
+      TagProfile tagProfile) {
     this.clock = clock;
     this.billingProducer = billingProducer;
     this.billableUsageRemittanceRepository = billableUsageRemittanceRepository;
     this.snapshotRepository = snapshotRepository;
+    this.tagProfile = tagProfile;
   }
 
   public void submitBillableUsage(BillingWindow billingWindow, BillableUsage usage) {
@@ -89,23 +95,68 @@ public class BillableUsageController {
         .orElse(BillableUsageRemittanceEntity.builder().key(key).remittedValue(0.0).build());
   }
 
+  /**
+   * Find the latest remitted value and billing factor used for that remittance in the database.
+   * Convert it to use the billing factor that's currently listed in the tag profile. This might be
+   * a no-op if the factor hasn't changed. BillableUsage should be the difference between the
+   * current usage and the previous usage at the newest tag profile billing factor. Integer-only
+   * billing is then applied before remitting. calculations that are need to bill any unbilled
+   * amount and to record any unbilled amount
+   *
+   * @param measuredTotal The total amount of a given usage for the month that is the latest record
+   *     tally total
+   * @param usage The specific event within a given month to determine what need to be billed
+   * @param remittance The previous record amount for remitted amount
+   * @return calculations that are need to bill any un-billed amount and to record any un-billed
+   *     amount
+   */
   private BillableUsageCalculation calculateBillableUsage(
-      double measuredTotal, double currentRemittedValue) {
-    double adjustedMeasuredTotal = Math.ceil(measuredTotal);
-    double billableValue = adjustedMeasuredTotal - currentRemittedValue;
+      double measuredTotal, BillableUsage usage, BillableUsageRemittanceEntity remittance) {
+    var tagMetricOptional =
+        tagProfile.getTagMetric(
+            usage.getProductId(), Measurement.Uom.fromValue(usage.getUom().value()));
+    double tagFactor =
+        tagMetricOptional
+            .map(TagMetric::getBillingFactor)
+            .orElse(1.0); // get configured billingFactor in tag_profile yaml
+    double billableValue;
+    double remittedValue;
+    var currentRemittedValue = remittance.getRemittedValue();
+    var prevBillingFactor = Objects.requireNonNullElse(remittance.getBillingFactor(), 1.0);
+
+    // if the tag factor is different from latest billing factor,
+    // we will calculate the difference based on the current tag metric,
+    // if not we will just calculate as usual
+    if (tagFactor != 1.0) {
+      var prevBilled = currentRemittedValue / prevBillingFactor; // previously billed
+      var unbilledAmount = measuredTotal - prevBilled;
+      var updatedBill = unbilledAmount * tagFactor;
+      var prevBilledAdjusted = prevBilled * tagFactor;
+
+      billableValue = Math.ceil(updatedBill);
+      remittedValue = checkIfBilled(billableValue) + prevBilledAdjusted;
+    } else {
+      double adjustedMeasuredTotal = Math.ceil(measuredTotal);
+      billableValue = adjustedMeasuredTotal - currentRemittedValue;
+      remittedValue = currentRemittedValue + checkIfBilled(billableValue);
+    }
+
+    return BillableUsageCalculation.builder()
+        .billableValue(billableValue)
+        .remittedValue(remittedValue)
+        .remittanceDate(clock.now())
+        .billingFactor(tagFactor)
+        .build();
+  }
+
+  private Double checkIfBilled(double billableValue) {
     if (billableValue < 0) {
       // Message could have been received out of order via another process,
       // or on re-tally we have already billed for this usage and using
       // credit. There's nothing to bill in this case.
       billableValue = 0.0;
     }
-    double remittedValue = currentRemittedValue + billableValue;
-
-    return BillableUsageCalculation.builder()
-        .billableValue(billableValue)
-        .remittedValue(remittedValue)
-        .remittanceDate(clock.now())
-        .build();
+    return billableValue;
   }
 
   private BillableUsage produceHourlyBillable(BillableUsage usage) {
@@ -120,7 +171,7 @@ public class BillableUsageController {
             usage, clock.startOfMonth(usage.getSnapshotDate()), usage.getSnapshotDate());
     BillableUsageRemittanceEntity remittance = getLatestRemittance(usage);
     BillableUsageCalculation usageCalc =
-        calculateBillableUsage(currentMonthlyTotal, remittance.getRemittedValue());
+        calculateBillableUsage(currentMonthlyTotal, usage, remittance);
 
     log.debug(
         "Processing monthly billable usage: Usage: {}, Current total: {}, Current remittance: {}, New billable: {}",
@@ -131,6 +182,7 @@ public class BillableUsageController {
 
     // Update the reported usage value to the newly calculated one.
     usage.setValue(usageCalc.getBillableValue());
+    usage.setBillingFactor(usageCalc.getBillingFactor());
 
     if (updateRemittance(remittance, usage.getOrgId(), usageCalc)) {
       remittance.setAccountNumber(usage.getAccountNumber());
@@ -152,7 +204,10 @@ public class BillableUsageController {
       remittance.setRemittedValue(usageCalc.getRemittedValue());
       updated = true;
     }
-
+    if (!Objects.equals(remittance.getBillingFactor(), usageCalc.getBillingFactor())) {
+      remittance.setBillingFactor(usageCalc.getBillingFactor());
+      updated = true;
+    }
     // Only update the date if the remittance was updated.
     if (updated) {
       remittance.setRemittanceDate(usageCalc.getRemittanceDate());

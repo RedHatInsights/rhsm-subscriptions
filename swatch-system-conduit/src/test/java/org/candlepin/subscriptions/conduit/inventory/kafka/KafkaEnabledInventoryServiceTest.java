@@ -196,4 +196,54 @@ class KafkaEnabledInventoryServiceTest {
     assertNotNull(syncDate);
     assertEquals(syncDate.plusHours(24), message.getData().getStaleTimestamp());
   }
+
+  @Test
+  void requiredKafkaProducerSendsHostMessageHasMajorVersion() {
+    ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<CreateUpdateHostMessage> messageCaptor =
+        ArgumentCaptor.forClass(CreateUpdateHostMessage.class);
+
+    when(producer.send(topicCaptor.capture(), messageCaptor.capture())).thenReturn(null);
+
+    ConduitFacts expectedFacts = new ConduitFacts();
+    expectedFacts.setFqdn("my_fqdn");
+    expectedFacts.setAccountNumber("my_account");
+    expectedFacts.setOrgId("my_org");
+    expectedFacts.setCpuCores(25);
+    expectedFacts.setCpuSockets(45);
+    expectedFacts.setOsName("Red Hat Enterprise Linux Workstation");
+    expectedFacts.setOsVersion("6");
+
+    InventoryServiceProperties props = new InventoryServiceProperties();
+    props.setKafkaHostIngressTopic("placeholder");
+    KafkaEnabledInventoryService service =
+        new KafkaEnabledInventoryService(props, producer, meterRegistry, retryTemplate);
+    service.sendHostUpdate(Arrays.asList(expectedFacts));
+
+    assertEquals(props.getKafkaHostIngressTopic(), topicCaptor.getValue());
+
+    CreateUpdateHostMessage message = messageCaptor.getValue();
+    assertNotNull(message);
+    assertEquals("add_host", message.getOperation());
+    assertEquals(expectedFacts.getAccountNumber(), message.getData().getAccount());
+    assertEquals(expectedFacts.getFqdn(), message.getData().getFqdn());
+
+    assertNotNull(message.getData().getFacts());
+    assertEquals(1, message.getData().getFacts().size());
+    HbiFactSet rhsm = message.getData().getFacts().get(0);
+    assertEquals("rhsm", rhsm.getNamespace());
+
+    Map<String, Object> rhsmFacts = (Map<String, Object>) rhsm.getFacts();
+    assertEquals(expectedFacts.getOrgId(), (String) rhsmFacts.get("orgId"));
+
+    OffsetDateTime syncDate = (OffsetDateTime) rhsmFacts.get("SYNC_TIMESTAMP");
+    assertNotNull(syncDate);
+    assertEquals(syncDate, message.getData().getStaleTimestamp());
+    assertEquals("rhsm-conduit", message.getData().getReporter());
+    assertEquals("6", message.getData().getSystemProfile().getOsRelease());
+    assertEquals(
+        "RHEL", message.getData().getSystemProfile().getOperatingSystem().getName().value());
+    assertEquals(6, message.getData().getSystemProfile().getOperatingSystem().getMajor());
+    assertEquals(0, message.getData().getSystemProfile().getOperatingSystem().getMinor());
+  }
 }

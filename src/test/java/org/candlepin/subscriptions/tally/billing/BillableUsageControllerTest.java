@@ -45,6 +45,8 @@ import org.candlepin.subscriptions.json.BillableUsage.Uom;
 import org.candlepin.subscriptions.json.BillableUsage.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.registry.BillingWindow;
+import org.candlepin.subscriptions.registry.TagMetric;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -60,12 +62,14 @@ class BillableUsageControllerTest {
   @Mock BillingProducer producer;
   @Mock BillableUsageRemittanceRepository remittanceRepo;
   @Mock TallySnapshotRepository snapshotRepo;
+  @Mock TagProfile tagProfile;
 
   BillableUsageController controller;
 
   @BeforeEach
   void setup() {
-    controller = new BillableUsageController(clock, producer, remittanceRepo, snapshotRepo);
+    controller =
+        new BillableUsageController(clock, producer, remittanceRepo, snapshotRepo, tagProfile);
   }
 
   @Test
@@ -120,12 +124,79 @@ class BillableUsageControllerTest {
     verifyNoMoreInteractions(remittanceRepo);
   }
 
+  @Test
+  void billingFactorAppliedInRecalculationEvenNumber() {
+    BillableUsage usage = billable(clock.startOfCurrentMonth(), 8.0);
+    usage.setProductId("osd");
+    usage.setUom(Uom.CORES);
+    BillableUsageRemittanceEntity currentRemittance =
+        remittance(usage, clock.now().minusHours(1), 1.5);
+    currentRemittance.setBillingFactor(0.5);
+
+    when(remittanceRepo.findById(keyFrom(usage))).thenReturn(Optional.of(currentRemittance));
+    TagMetric tag =
+        TagMetric.builder()
+            .tag("OpenShift-dedicated-metrics")
+            .uom(Measurement.Uom.CORES)
+            .billingFactor(0.25)
+            .accountQueryKey("osd")
+            .build();
+
+    when(tagProfile.getTagMetric("osd", Measurement.Uom.CORES)).thenReturn(Optional.of(tag));
+    mockCurrentSnapshotMeasurementTotal(usage, 16.0);
+    controller.submitBillableUsage(BillingWindow.MONTHLY, usage);
+
+    BillableUsageRemittanceEntity expectedRemittance = remittance(usage, clock.now(), 4.75);
+    expectedRemittance.setBillingFactor(0.25);
+    BillableUsage expectedUsage = billable(usage.getSnapshotDate(), usage.getValue());
+    expectedUsage.setId(usage.getId()); // Id will be regenerated above.
+    expectedUsage.setProductId("osd");
+    expectedUsage.setUom(usage.getUom());
+    expectedUsage.setBillingFactor(0.25);
+    verify(remittanceRepo).save(expectedRemittance);
+    verify(producer).produce(expectedUsage);
+  }
+
+  @Test
+  void billingFactorAppliedInRecalculation() {
+    BillableUsage usage = billable(clock.startOfCurrentMonth(), 8.0);
+    usage.setProductId("osd");
+    usage.setUom(Uom.CORES);
+    BillableUsageRemittanceEntity currentRemittance =
+        remittance(usage, clock.now().minusHours(1), 1.5);
+    currentRemittance.setBillingFactor(0.5);
+
+    when(remittanceRepo.findById(keyFrom(usage))).thenReturn(Optional.of(currentRemittance));
+    TagMetric tag =
+        TagMetric.builder()
+            .tag("OpenShift-dedicated-metrics")
+            .uom(Measurement.Uom.CORES)
+            .billingFactor(0.25)
+            .accountQueryKey("osd")
+            .build();
+
+    when(tagProfile.getTagMetric("osd", Measurement.Uom.CORES)).thenReturn(Optional.of(tag));
+    mockCurrentSnapshotMeasurementTotal(usage, 32.3);
+    controller.submitBillableUsage(BillingWindow.MONTHLY, usage);
+
+    BillableUsageRemittanceEntity expectedRemittance = remittance(usage, clock.now(), 8.75);
+    expectedRemittance.setBillingFactor(0.25);
+    BillableUsage expectedUsage = billable(usage.getSnapshotDate(), usage.getValue());
+    expectedUsage.setId(usage.getId()); // Id will be regenerated above.
+    expectedUsage.setProductId("osd");
+    expectedUsage.setUom(usage.getUom());
+    expectedUsage.setBillingFactor(0.25);
+    verify(remittanceRepo).save(expectedRemittance);
+    verify(producer).produce(expectedUsage);
+  }
+
   private BillableUsage billable(OffsetDateTime date, Double value) {
     return new BillableUsage()
         .withAccountNumber("account123")
         .withUsage(Usage.PRODUCTION)
         .withId(UUID.randomUUID())
         .withBillingAccountId("aws-account1")
+        .withBillingFactor(1.0)
         .withBillingProvider(BillingProvider.AWS)
         .withOrgId("org123")
         .withProductId("rhosak")
@@ -172,6 +243,7 @@ class BillableUsageControllerTest {
     BillableUsageRemittanceEntityPK remKey = keyFrom(usage);
     return BillableUsageRemittanceEntity.builder()
         .key(remKey)
+        .billingFactor(1.0)
         .remittanceDate(remittedDate)
         .remittedValue(value)
         .accountNumber(usage.getAccountNumber())
