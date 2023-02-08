@@ -57,6 +57,7 @@ import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTags;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -473,6 +474,31 @@ class SubscriptionSyncControllerTest {
             "account123", Optional.empty(), key, rangeStart, rangeEnd, false);
     assertEquals(1, actual.size());
     assertEquals("xyz", actual.get(0).getBillingProviderId());
+  }
+
+  @Test
+  void findProductTagsBySku_WhenSkuPresent() {
+    when(offeringRepository.findProductNameBySku("sku")).thenReturn(Optional.of("productname"));
+    when(mockProfile.tagForOfferingProductName("productname")).thenReturn("producttag");
+
+    OfferingProductTags productTags = subscriptionSyncController.findProductTags("sku");
+    assertEquals(1, productTags.getData().size());
+    assertEquals("producttag", productTags.getData().get(0));
+  }
+
+  @Test
+  void findProductTagsBySku_WhenSkuNotPresent() {
+    when(offeringRepository.findProductNameBySku("sku")).thenReturn(Optional.empty());
+    when(mockProfile.tagForOfferingProductName("productname1")).thenReturn("producttag");
+
+    OfferingProductTags productTags = subscriptionSyncController.findProductTags("sku");
+    assertNull(productTags.getData());
+
+    when(offeringRepository.findProductNameBySku("sku")).thenReturn(Optional.of("productname"));
+    when(mockProfile.tagForOfferingProductName("productname")).thenReturn(null);
+
+    OfferingProductTags productTags2 = subscriptionSyncController.findProductTags("sku");
+    assertNull(productTags2.getData());
   }
 
   @Test

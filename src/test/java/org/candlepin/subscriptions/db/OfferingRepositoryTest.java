@@ -84,4 +84,15 @@ class OfferingRepositoryTest {
     var actual = repository.findSkusForChildSku("child").collect(Collectors.toSet());
     assertEquals(Set.of("foo"), actual);
   }
+
+  @Test
+  @Transactional
+  void testFindProductNameForSkus() {
+    var expectedOffering = Offering.builder().sku("foo").productName("test").build();
+    var extra = Offering.builder().sku("foo2").build();
+    repository.save(expectedOffering);
+    repository.save(extra);
+    var actual = repository.findProductNameBySku("foo");
+    assertEquals("test", actual.get());
+  }
 }

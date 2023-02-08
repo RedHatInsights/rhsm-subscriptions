@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.db;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.Offering;
@@ -38,4 +39,7 @@ public interface OfferingRepository extends JpaRepository<Offering, String> {
 
   @Query(value = "select sku from Offering where derivedSku in :derivedSkus")
   Stream<String> findSkusForDerivedSkus(@Param("derivedSkus") Set<String> derivedSkus);
+
+  @Query("select distinct o.productName from Offering o where o.sku = :sku")
+  Optional<String> findProductNameBySku(@Param("sku") String sku);
 }
