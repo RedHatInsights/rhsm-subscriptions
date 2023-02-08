@@ -559,7 +559,7 @@ class CapacityResourceTest {
             null);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
-    assertEquals(5, capacitySnapshot.getValue());
+    assertEquals(2, capacitySnapshot.getValue());
   }
 
   @Test
@@ -657,7 +657,7 @@ class CapacityResourceTest {
             null);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
-    assertEquals(20, capacitySnapshot.getValue());
+    assertEquals(8, capacitySnapshot.getValue());
   }
 
   @Test
@@ -785,7 +785,7 @@ class CapacityResourceTest {
             "owner123456",
             RHEL,
             MetricId.CORES,
-            ReportCategory.VIRTUAL,
+            HypervisorReportCategory.HYPERVISOR,
             ServiceLevel.STANDARD,
             Usage.PRODUCTION,
             Granularity.WEEKLY,

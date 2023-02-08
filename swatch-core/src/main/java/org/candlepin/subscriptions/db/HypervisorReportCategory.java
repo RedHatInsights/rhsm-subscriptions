@@ -30,16 +30,9 @@ public enum HypervisorReportCategory {
     if (reportCategory == null) {
       return null;
     }
-    switch (reportCategory) {
-      case PHYSICAL:
-      case VIRTUAL:
-      case CLOUD:
-        return NON_HYPERVISOR;
-      case HYPERVISOR:
-        return HYPERVISOR;
-      default:
-        throw new IllegalStateException(
-            "Unable to map " + reportCategory + " to a " + "HypervisorReportCategory");
-    }
+    return switch (reportCategory) {
+      case PHYSICAL, VIRTUAL, CLOUD -> NON_HYPERVISOR;
+      case HYPERVISOR -> HYPERVISOR;
+    };
   }
 }
