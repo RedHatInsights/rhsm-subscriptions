@@ -24,6 +24,7 @@ import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AwsUsage
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
 import com.redhat.swatch.exception.AwsDimensionNotConfiguredException;
+import com.redhat.swatch.exception.AwsMissingCredentialsException;
 import com.redhat.swatch.exception.AwsUnprocessedRecordsException;
 import com.redhat.swatch.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.exception.DefaultApiException;
@@ -236,6 +237,13 @@ public class BillableUsageProcessor {
     } catch (MarketplaceMeteringException e) {
       rejectedCounter.increment(request.usageRecords().size());
       throw new AwsUnprocessedRecordsException(request.usageRecords().size(), e);
+    } catch (AwsMissingCredentialsException e) {
+      log.warn(
+          "{} for organization={}, account={}, awsCustomerId={}",
+          e.getMessage(),
+          billableUsage.getOrgId(),
+          billableUsage.getAccountNumber(),
+          context.getCustomerId());
     }
   }
 
