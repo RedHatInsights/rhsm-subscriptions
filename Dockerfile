@@ -1,3 +1,3 @@
-FROM registry.access.redhat.com/ubi9/openjdk-17:1.13-10.1669632202
+FROM registry.access.redhat.com/ubi9/openjdk-17:1.13-12.1675790156
 
 COPY build/libs/* /deployments/
