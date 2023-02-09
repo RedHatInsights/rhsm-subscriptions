@@ -26,26 +26,50 @@ import com.redhat.swatch.openapi.model.Metric;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @ApplicationScoped
 public class ContractService {
 
-  @Inject ContractRepository repository;
+  @Inject
+  ContractRepository repository;
+
+  private static Contract convertToDtos(ContractsEntity x) {
+
+    //TODO use fancy projection? https://quarkus.io/guides/hibernate-orm-panache#query-projection
+
+    var dto = new Contract();
+
+    dto.setUuid(x.getUuid().toString());
+    dto.setBillingProvider(BillingProvider.fromValue(x.getBillingProvider()));
+    dto.setEndDate(x.getEndDate());
+    dto.setOrgId(x.getOrgId());
+    dto.setBillingAccountId(x.getBillingAccountId());
+    dto.setStartDate(x.getStartDate());
+    dto.setSubscriptionNumber(x.getSubscriptionNumber());
+    dto.setProductId(x.getProductId());
+
+    var metric = new Metric();
+    metric.setMetricId(x.getMetricId());
+    metric.setValue(BigDecimal.valueOf(x.getValue()));
+
+    dto.setMetrics(List.of(metric));
+
+    return dto;
+  }
 
   Contract saveContract(Contract contract) {
 
     var entity = new ContractsEntity();
     var now = OffsetDateTime.now();
 
-    var uuid = Objects.requireNonNull(contract.getUuid(), UUID.randomUUID().toString());
+    var uuid = Objects.requireNonNullElse(contract.getUuid(), UUID.randomUUID().toString());
     entity.setUuid(UUID.fromString(uuid));
 
     entity.setStartDate(now);
@@ -60,48 +84,21 @@ public class ContractService {
     entity.setMetricId(metricDto.getMetricId());
     entity.setValue(metricDto.getValue().doubleValue());
 
+    entity.setProductId(contract.getProductId());
+    entity.setSubscriptionNumber(contract.getSubscriptionNumber());
+    entity.setOrgId(contract.getOrgId());
+    entity.setBillingAccountId(contract.getBillingAccountId());
+    entity.setBillingProvider(contract.getBillingProvider().name());
+
     repository.persist(entity);
 
     return contract;
   }
 
-  @SneakyThrows
-  public List<Contract> getAllContracts() {
+  public List<Contract> getContracts(Map<String, Object> parameters) {
 
-    // need to add filtering here
+    return repository.getContracts(parameters).stream().map(x -> convertToDtos(x)).toList();
 
-    List<ContractsEntity> contracts = repository.listAll();
-
-    var dto = new Contract();
-
-    if (!contracts.isEmpty()) {
-
-      // Since everything will be the same except for the metric id & value
-      var x = contracts.get(0);
-
-      dto.setUuid(x.getUuid().toString());
-      dto.setBillingProvider(BillingProvider.fromValue(x.getBillingProvider()));
-      dto.setEndDate(x.getEndDate());
-      dto.setOrgId(x.getOrgId());
-      dto.setBillingAccountId(x.getBillingAccountId());
-      dto.setStartDate(x.getStartDate());
-      dto.setSubscriptionNumber(x.getSubscriptionNumber());
-      dto.setProductId(x.getProductId());
-
-      List<Metric> metrics =
-          contracts.stream()
-              .map(
-                  y -> {
-                    var metric = new Metric();
-                    metric.setMetricId(y.getMetricId());
-                    metric.setValue(BigDecimal.valueOf(y.getValue()));
-                    return metric;
-                  })
-              .collect(Collectors.toList());
-
-      dto.setMetrics(metrics);
-    }
-
-    return null;
   }
+
 }

@@ -24,7 +24,10 @@ import com.redhat.swatch.openapi.model.BillingProvider;
 import com.redhat.swatch.openapi.model.Contract;
 import com.redhat.swatch.openapi.resource.ApiException;
 import com.redhat.swatch.openapi.resource.DefaultApi;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
@@ -35,7 +38,8 @@ import lombok.extern.slf4j.Slf4j;
 @ApplicationScoped
 public class TestResource implements DefaultApi {
 
-  @Inject ContractService service;
+  @Inject
+  ContractService service;
 
   @Override
   @Transactional
@@ -45,18 +49,27 @@ public class TestResource implements DefaultApi {
   }
 
   @Override
-  public void deleteContractByUUID(String uuid) throws ApiException, ProcessingException {}
+  public void deleteContractByUUID(String uuid) throws ApiException, ProcessingException {
+  }
 
   @Override
-  public List<Contract> getContract(
-      String uuid,
-      String orgId,
-      String productId,
-      String metricId,
-      BillingProvider billingProvider,
-      String billingAccountId)
+  public List<Contract> getContract(String uuid, String orgId, String productId, String metricId,
+      BillingProvider billingProvider, String billingAccountId)
       throws ApiException, ProcessingException {
-    return null;
+
+    Map<String, Object> parameters = new HashMap<>();
+
+    parameters.put("uuid", uuid);
+    parameters.put("orgId", orgId);
+    parameters.put("productId", productId);
+    //TODO this is nested
+//    parameters.put("metricId", metricId);
+
+    var billingProviderStr = Objects.nonNull(billingProvider) ? billingProvider.toString() : null;
+    parameters.put("billingProvider", billingProviderStr);
+    parameters.put("billingAccountId", billingAccountId);
+
+    return service.getContracts(parameters);
   }
 
   @Override

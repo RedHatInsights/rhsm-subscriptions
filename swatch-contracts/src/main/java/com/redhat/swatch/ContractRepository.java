@@ -21,7 +21,31 @@
 package com.redhat.swatch;
 
 import io.quarkus.hibernate.orm.panache.PanacheRepository;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
-public class ContractRepository implements PanacheRepository<ContractsEntity> {}
+public class ContractRepository implements PanacheRepository<ContractsEntity> {
+
+  public List<ContractsEntity> getContracts(Map<String, Object> parameters) {
+    if (parameters == null) {
+      return listAll();
+    }
+
+    Map<String, Object> nonNullParams = parameters.entrySet().stream()
+        .filter(entry -> entry.getValue() != null)
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    if (nonNullParams.isEmpty()) {
+      return listAll();
+    }
+
+    String query = nonNullParams.entrySet().stream()
+        .map(entry -> entry.getKey() + "=:" + entry.getKey()).collect(Collectors.joining(" and "));
+
+    return list(query, nonNullParams);
+  }
+
+}
