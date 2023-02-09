@@ -24,6 +24,7 @@ import java.time.OffsetDateTime;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
@@ -83,7 +84,8 @@ public class CapacityResource implements CapacityApi {
   }
 
   /**
-   * @deprecated: for removal once https://issues.redhat.com/browse/ENT-4209 is completed
+   * @deprecated for removal once <a
+   *     href="https://issues.redhat.com/browse/SWATCH-218">SWATCH-218</a> is completed
    */
   @Override
   @Deprecated(since = "https://issues.redhat.com/browse/ENT-4384")
@@ -167,6 +169,9 @@ public class CapacityResource implements CapacityApi {
       ServiceLevelType sla,
       UsageType usage) {
 
+    HypervisorReportCategory hypervisorReportCategory =
+        HypervisorReportCategory.mapCategory(reportCategory);
+
     // capacity records do not include _ANY rows
     ServiceLevel sanitizedServiceLevel = ResourceUtils.sanitizeServiceLevel(sla);
     if (sanitizedServiceLevel == ServiceLevel._ANY) {
@@ -185,7 +190,7 @@ public class CapacityResource implements CapacityApi {
             orgId,
             productId,
             metricId,
-            reportCategory,
+            hypervisorReportCategory,
             sanitizedServiceLevel,
             sanitizedUsage,
             granularityValue,
@@ -272,7 +277,7 @@ public class CapacityResource implements CapacityApi {
       String orgId,
       ProductId productId,
       MetricId metricId,
-      ReportCategory reportCategory,
+      HypervisorReportCategory hypervisorReportCategory,
       ServiceLevel sla,
       Usage usage,
       Granularity granularity,
@@ -289,8 +294,6 @@ public class CapacityResource implements CapacityApi {
       throw new BadRequestException(e.getMessage());
     }
 
-    HypervisorReportCategory hypervisorReportCategory =
-        HypervisorReportCategory.mapCategory(reportCategory);
     List<SubscriptionCapacity> matches =
         repository.findAllBy(
             orgId,
@@ -314,7 +317,7 @@ public class CapacityResource implements CapacityApi {
     while (next.isBefore(end) || next.isEqual(end)) {
       result.add(
           createCapacitySnapshotWithMetricId(
-              next, matches, metricId, Optional.ofNullable(reportCategory)));
+              next, matches, metricId, Optional.ofNullable(hypervisorReportCategory)));
       next = timeAdjuster.adjustToPeriodStart(next.plus(offset));
     }
 
@@ -379,7 +382,7 @@ public class CapacityResource implements CapacityApi {
       OffsetDateTime date,
       List<SubscriptionCapacity> matches,
       MetricId metricId,
-      Optional<ReportCategory> reportCategory) {
+      Optional<HypervisorReportCategory> hypervisorReportCategory) {
     int value = 0;
     boolean hasData = false;
     boolean hasInfiniteQuantity = false;
@@ -388,9 +391,15 @@ public class CapacityResource implements CapacityApi {
       if (capacity.getBeginDate().isBefore(date) && capacity.getEndDate().isAfter(date)) {
         hasData = true;
         if (metricId.equals(MetricId.SOCKETS)) {
-          value += calculateSocketsCapacity(reportCategory, capacity);
+          var standardSockets = sanitize(capacity.getSockets());
+          var hypervisorSockets = sanitize(capacity.getHypervisorSockets());
+          value +=
+              calculateMetricCapacity(hypervisorReportCategory, standardSockets, hypervisorSockets);
         } else if (metricId.equals(MetricId.CORES)) {
-          value += calculateCoresCapacity(reportCategory, capacity);
+          var standardCores = sanitize(capacity.getCores());
+          var hypervisorCores = sanitize(capacity.getHypervisorCores());
+          value +=
+              calculateMetricCapacity(hypervisorReportCategory, standardCores, hypervisorCores);
         }
         hasInfiniteQuantity |= Optional.ofNullable(capacity.getHasUnlimitedUsage()).orElse(false);
       }
@@ -403,37 +412,21 @@ public class CapacityResource implements CapacityApi {
         .hasInfiniteQuantity(hasInfiniteQuantity);
   }
 
-  private int calculateSocketsCapacity(
-      Optional<ReportCategory> reportCategory, SubscriptionCapacity capacity) {
-    int value = 0;
-    if (reportCategory.isPresent()) {
-      if (reportCategory.get().equals(ReportCategory.PHYSICAL)) {
-        value += sanitize(capacity.getSockets());
-      } else if (reportCategory.get().equals(ReportCategory.VIRTUAL)) {
-        value += sanitize(capacity.getHypervisorSockets());
-      }
-    } else {
-      value += sanitize(capacity.getHypervisorSockets()) + sanitize(capacity.getSockets());
-    }
-    return value;
-  }
-
-  private int calculateCoresCapacity(
-      Optional<ReportCategory> reportCategory, SubscriptionCapacity capacity) {
-    int value = 0;
-    if (reportCategory.isPresent()) {
-      if (reportCategory.get().equals(ReportCategory.PHYSICAL)) {
-        value += sanitize(capacity.getCores());
-      } else if (reportCategory.get().equals(ReportCategory.VIRTUAL)) {
-        value += sanitize(capacity.getHypervisorCores());
-      }
-    } else {
-      value += sanitize(capacity.getHypervisorCores()) + sanitize(capacity.getCores());
-    }
-    return value;
+  private int calculateMetricCapacity(
+      Optional<HypervisorReportCategory> hypervisorReportCategory,
+      int standardMetricValue,
+      int hypervisorMetricValue) {
+    return hypervisorReportCategory
+        .map(
+            category ->
+                switch (category) {
+                  case HYPERVISOR -> hypervisorMetricValue;
+                  case NON_HYPERVISOR -> standardMetricValue;
+                })
+        .orElse(standardMetricValue + hypervisorMetricValue);
   }
 
   private int sanitize(Integer value) {
-    return value != null ? value : 0;
+    return Objects.requireNonNullElse(value, 0);
   }
 }
