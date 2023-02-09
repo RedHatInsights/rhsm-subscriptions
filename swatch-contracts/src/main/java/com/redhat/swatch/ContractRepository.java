@@ -34,18 +34,20 @@ public class ContractRepository implements PanacheRepository<ContractsEntity> {
       return listAll();
     }
 
-    Map<String, Object> nonNullParams = parameters.entrySet().stream()
-        .filter(entry -> entry.getValue() != null)
-        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    Map<String, Object> nonNullParams =
+        parameters.entrySet().stream()
+            .filter(entry -> entry.getValue() != null)
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
     if (nonNullParams.isEmpty()) {
       return listAll();
     }
 
-    String query = nonNullParams.entrySet().stream()
-        .map(entry -> entry.getKey() + "=:" + entry.getKey()).collect(Collectors.joining(" and "));
+    String query =
+        nonNullParams.entrySet().stream()
+            .map(entry -> entry.getKey() + "=:" + entry.getKey())
+            .collect(Collectors.joining(" and "));
 
     return list(query, nonNullParams);
   }
-
 }

@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch;
 
-import com.redhat.swatch.openapi.model.BillingProvider;
 import com.redhat.swatch.openapi.model.Contract;
 import com.redhat.swatch.openapi.model.Metric;
 import java.math.BigDecimal;
@@ -37,17 +36,16 @@ import lombok.extern.slf4j.Slf4j;
 @ApplicationScoped
 public class ContractService {
 
-  @Inject
-  ContractRepository repository;
+  @Inject ContractRepository repository;
 
   private static Contract convertToDtos(ContractsEntity x) {
 
-    //TODO use fancy projection? https://quarkus.io/guides/hibernate-orm-panache#query-projection
+    // TODO use fancy projection? https://quarkus.io/guides/hibernate-orm-panache#query-projection
 
     var dto = new Contract();
 
     dto.setUuid(x.getUuid().toString());
-    dto.setBillingProvider(BillingProvider.fromValue(x.getBillingProvider()));
+    dto.setBillingProvider(x.getBillingProvider());
     dto.setEndDate(x.getEndDate());
     dto.setOrgId(x.getOrgId());
     dto.setBillingAccountId(x.getBillingAccountId());
@@ -88,7 +86,7 @@ public class ContractService {
     entity.setSubscriptionNumber(contract.getSubscriptionNumber());
     entity.setOrgId(contract.getOrgId());
     entity.setBillingAccountId(contract.getBillingAccountId());
-    entity.setBillingProvider(contract.getBillingProvider().name());
+    entity.setBillingProvider(contract.getBillingProvider());
 
     repository.persist(entity);
 
@@ -98,7 +96,5 @@ public class ContractService {
   public List<Contract> getContracts(Map<String, Object> parameters) {
 
     return repository.getContracts(parameters).stream().map(x -> convertToDtos(x)).toList();
-
   }
-
 }
