@@ -27,12 +27,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
+import org.candlepin.subscriptions.db.HostTallyBucketRepository;
+import org.candlepin.subscriptions.db.model.AccountBucketTally;
 import org.candlepin.subscriptions.db.model.AccountServiceInventory;
 import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -64,6 +68,7 @@ public class InventoryAccountUsageCollector {
   private final FactNormalizer factNormalizer;
   private final InventoryDatabaseOperations inventory;
   private final AccountServiceInventoryRepository accountServiceInventoryRepository;
+  private final HostTallyBucketRepository tallyBucketRepository;
   private final int culledOffsetDays;
   private final int tallyMaxHbiAccountSize;
   private final Counter totalHosts;
@@ -72,11 +77,13 @@ public class InventoryAccountUsageCollector {
       FactNormalizer factNormalizer,
       InventoryDatabaseOperations inventory,
       AccountServiceInventoryRepository accountServiceInventoryRepository,
+      HostTallyBucketRepository tallyBucketRepository,
       ApplicationProperties props,
       MeterRegistry meterRegistry) {
     this.factNormalizer = factNormalizer;
     this.inventory = inventory;
     this.accountServiceInventoryRepository = accountServiceInventoryRepository;
+    this.tallyBucketRepository = tallyBucketRepository;
     this.culledOffsetDays = props.getCullingOffsetDays();
     this.tallyMaxHbiAccountSize = props.getTallyMaxHbiAccountSize();
     this.totalHosts = meterRegistry.counter("rhsm-subscriptions.tally.hbi_hosts");
@@ -200,9 +207,15 @@ public class InventoryAccountUsageCollector {
     return orgHostsData;
   }
 
-  @SuppressWarnings("squid:S3776")
+  /**
+   * @deprecated Please use tally(String orgId) as it is the preferred method of running the tally
+   *     operation.
+   */
+  @Deprecated
+  @SuppressWarnings({"squid:S3776", "java:S1133"})
   @Transactional
   public AccountUsageCalculation tally(Set<String> products, OrgHostsData orgHostsData) {
+    log.info("Running legacy nightly tally for orgId={}", orgHostsData.getOrgId());
     AccountUsageCalculation accountCalc = new AccountUsageCalculation(orgHostsData.getOrgId());
     for (var entry : orgHostsData.getHostNormalizedFactsMap().entrySet()) {
       Host host = entry.getKey();
@@ -254,6 +267,40 @@ public class InventoryAccountUsageCollector {
     orgHostsData.tallyGuestData(accountCalc);
     log.debug("Account Usage: {}", accountCalc);
     return accountCalc;
+  }
+
+  @Transactional
+  public AccountUsageCalculation tally(String orgId) {
+    log.info("Running tally via DB for orgId={}", orgId);
+    AccountUsageCalculation calculation = new AccountUsageCalculation(orgId);
+    try (Stream<AccountBucketTally> tallyStream =
+        tallyBucketRepository.tallyHostBuckets(orgId, HBI_INSTANCE_TYPE)) {
+      tallyStream.forEach(
+          bucketTally -> {
+            String currentAccount = calculation.getAccount();
+            String hostAccount = bucketTally.getAccountNumber();
+
+            // Set the account number if it is available
+            if (Objects.isNull(currentAccount) && Objects.nonNull(hostAccount)) {
+              calculation.setAccount(bucketTally.getAccountNumber());
+            }
+
+            UsageCalculation usageCalc =
+                calculation.getOrCreateCalculation(
+                    new Key(
+                        bucketTally.getProductId(),
+                        bucketTally.getSla(),
+                        bucketTally.getUsage(),
+                        bucketTally.getBillingProvider(),
+                        bucketTally.getBillingAccountId()));
+            usageCalc.add(
+                bucketTally.getMeasurementType(),
+                bucketTally.getCores(),
+                bucketTally.getSockets(),
+                bucketTally.getInstances());
+          });
+      return calculation;
+    }
   }
 
   /**

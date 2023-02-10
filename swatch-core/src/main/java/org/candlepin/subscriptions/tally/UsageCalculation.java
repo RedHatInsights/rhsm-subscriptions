@@ -155,9 +155,13 @@ public class UsageCalculation {
   }
 
   public void add(HardwareMeasurementType type, int cores, int sockets, int instances) {
-    add(type, Uom.CORES, (double) cores);
-    add(type, Uom.SOCKETS, (double) sockets);
-    add(type, Uom.INSTANCES, (double) instances);
+    add(type, (double) cores, (double) sockets, (double) instances);
+  }
+
+  public void add(HardwareMeasurementType type, Double cores, Double sockets, Double instances) {
+    add(type, Uom.CORES, cores);
+    add(type, Uom.SOCKETS, sockets);
+    add(type, Uom.INSTANCES, instances);
   }
 
   public void addPhysical(int cores, int sockets, int instances) {
@@ -169,6 +173,10 @@ public class UsageCalculation {
   }
 
   public void addUnmappedGuest(int cores, int sockets, int instances) {
+    addVirtual(cores, sockets, instances);
+  }
+
+  public void addVirtual(int cores, int sockets, int instances) {
     add(HardwareMeasurementType.VIRTUAL, cores, sockets, instances);
   }
 

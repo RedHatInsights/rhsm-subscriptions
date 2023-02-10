@@ -157,6 +157,8 @@ parameters:
     value: '' # don't restrict to a specific machine pool by default
   - name: JOB_MACHINE_POOL
     value: ''
+  - name: LEGACY_NIGHTLY_TALLY_ENABLED
+    value: 'false'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -387,6 +389,8 @@ objects:
               value: ${ENABLE_SYNCHRONOUS_OPERATIONS}
             - name: TALLY_MAX_HBI_ACCOUNT_SIZE
               value: ${TALLY_MAX_HBI_ACCOUNT_SIZE}
+            - name: LEGACY_NIGHTLY_TALLY_ENABLED
+              value: ${LEGACY_NIGHTLY_TALLY_ENABLED}
           livenessProbe:
             failureThreshold: 3
             httpGet:

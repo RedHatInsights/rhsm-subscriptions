@@ -49,7 +49,7 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
       if (normalizedFacts.isMarketplace()) {
         appliedSockets = 0;
       }
-      prodCalc.addToTotal(appliedCores, appliedSockets, 1);
+      prodCalc.addVirtual(appliedCores, appliedSockets, 1);
     }
   }
 

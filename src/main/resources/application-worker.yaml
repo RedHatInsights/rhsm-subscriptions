@@ -55,3 +55,4 @@ rhsm-subscriptions:
     seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
     seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
   tally-max-hbi-account-size: ${TALLY_MAX_HBI_ACCOUNT_SIZE:2147483647}  # Integer.MAX_VALUE by default
+  legacy-nightly-tally-enabled: ${LEGACY_NIGHTLY_TALLY_ENABLED:false}
