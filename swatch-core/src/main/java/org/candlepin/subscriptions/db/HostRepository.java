@@ -58,6 +58,7 @@ import org.springframework.util.StringUtils;
 public interface HostRepository
     extends JpaRepository<Host, UUID>, JpaSpecificationExecutor<Host>, TagProfileLookup {
 
+  /* NOTE: in below query, ordering is crucial for correct streaming reconciliation of HBI data */
   @Query(
       value =
           """

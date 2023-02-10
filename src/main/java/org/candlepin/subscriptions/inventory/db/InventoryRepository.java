@@ -91,6 +91,7 @@ public interface InventoryRepository extends Repository<InventoryHost, UUID> {
               + "and h.org_id IN (:orgIds)")
   Stream<Object[]> getReportedHypervisors(@Param("orgIds") Collection<String> orgIds);
 
+  /* NOTE: in below query, ordering is crucial for correct streaming reconciliation of HBI data */
   @Query(
       nativeQuery = true,
       value =
@@ -102,6 +103,7 @@ public interface InventoryRepository extends Repository<InventoryHost, UUID> {
            and (h.facts->'rhsm'->>'BILLING_MODEL' IS NULL OR h.facts->'rhsm'->>'BILLING_MODEL' <> 'marketplace')
            and (h.system_profile_facts->>'host_type' IS NULL OR h.system_profile_facts->>'host_type' <> 'edge')
            and NOW() < stale_timestamp + make_interval(days => :culledOffsetDays)
+        -- NOTE: ordering is crucial for correct streaming reconciliation of HBI data
         order by subscription_manager_id
       """)
   @QueryHints(

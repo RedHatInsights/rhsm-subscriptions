@@ -87,6 +87,8 @@ import lombok.Setter;
  * check insights-host-inventory/blob/master/swagger/system_profile.spec.yaml for queries on HBI Database.
  * Second step: Add new field as a ColumnResult
  * Third step : update inventory host facts constructor with new column
+ *
+ * NOTE: in below query, ordering is crucial for correct streaming reconciliation of HBI data
  */
 @NamedNativeQuery(
     name = "InventoryHost.streamFacts",
@@ -146,6 +148,7 @@ import lombok.Setter;
            and (h.facts->'rhsm'->>'BILLING_MODEL' IS NULL OR h.facts->'rhsm'->>'BILLING_MODEL' <> 'marketplace')
            and (h.system_profile_facts->>'host_type' IS NULL OR h.system_profile_facts->>'host_type' <> 'edge')
            and NOW() < stale_timestamp + make_interval(days => :culledOffsetDays)
+        -- NOTE: ordering is crucial for correct streaming reconciliation of HBI data
         order by hardware_subman_id, any_hypervisor_uuid, inventory_id
     """,
     resultSetMapping = "inventoryHostFactsMapping")
