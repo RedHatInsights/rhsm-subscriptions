@@ -42,6 +42,8 @@ public class ContractService {
 
     // TODO use fancy projection? https://quarkus.io/guides/hibernate-orm-panache#query-projection
 
+    // try MapStruct https://www.youtube.com/watch?v=r_lrpv9msc8&list=PL6oD2syjfW7ADAkICQr-SQcEqsenVPfqg&index=32
+
     var dto = new Contract();
 
     dto.setUuid(x.getUuid().toString());

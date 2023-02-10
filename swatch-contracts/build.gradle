@@ -36,12 +36,11 @@ dependencies {
     testImplementation 'org.testcontainers:postgresql'
     testImplementation 'org.testcontainers:testcontainers'
     testImplementation libraries["junit-jupiter"]
-    testImplementation libraries["wiremock-jre8"]
     implementation("io.quarkus:quarkus-liquibase")
     implementation("io.quarkus:quarkus-jdbc-postgresql")
     implementation("io.quarkus:quarkus-hibernate-orm-panache")
-    implementation 'commons-beanutils:commons-beanutils:1.9.4'
-    annotationProcessor("io.quarkus:quarkus-panache-common")
+    implementation 'org.mapstruct:mapstruct:1.5.3.Final'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.3.Final'
 }
 
 group 'com.redhat.swatch'
@@ -76,6 +75,10 @@ tasks.register('configureQuarkusBuild') {
     doLast {
         System.setProperty("quarkus.container-image.tag", project.getVersion().toString().replace("+", "_"))
     }
+}
+
+test {
+    useJUnitPlatform()
 }
 
 
