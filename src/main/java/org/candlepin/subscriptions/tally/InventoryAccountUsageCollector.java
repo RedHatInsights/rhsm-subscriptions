@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally;
 
 import com.google.common.collect.Sets;
+import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.HashMap;
@@ -33,8 +34,10 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.persistence.EntityManager;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
+import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.HostTallyBucketRepository;
 import org.candlepin.subscriptions.db.model.AccountBucketTally;
 import org.candlepin.subscriptions.db.model.AccountServiceInventory;
@@ -54,6 +57,7 @@ import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -69,23 +73,35 @@ public class InventoryAccountUsageCollector {
   private final InventoryDatabaseOperations inventory;
   private final AccountServiceInventoryRepository accountServiceInventoryRepository;
   private final HostTallyBucketRepository tallyBucketRepository;
+  private final HostRepository hostRepository;
+  private final EntityManager entityManager;
   private final int culledOffsetDays;
   private final int tallyMaxHbiAccountSize;
   private final Counter totalHosts;
+  private final Long hbiReconciliationFlushInterval;
+  private final InventorySwatchDataCollator collator;
 
+  @Autowired
   public InventoryAccountUsageCollector(
       FactNormalizer factNormalizer,
       InventoryDatabaseOperations inventory,
       AccountServiceInventoryRepository accountServiceInventoryRepository,
+      HostRepository hostRepository,
+      EntityManager entityManager,
       HostTallyBucketRepository tallyBucketRepository,
       ApplicationProperties props,
-      MeterRegistry meterRegistry) {
+      MeterRegistry meterRegistry,
+      InventorySwatchDataCollator collator) {
     this.factNormalizer = factNormalizer;
     this.inventory = inventory;
     this.accountServiceInventoryRepository = accountServiceInventoryRepository;
+    this.collator = collator;
+    this.hostRepository = hostRepository;
+    this.entityManager = entityManager;
     this.tallyBucketRepository = tallyBucketRepository;
     this.culledOffsetDays = props.getCullingOffsetDays();
     this.tallyMaxHbiAccountSize = props.getTallyMaxHbiAccountSize();
+    this.hbiReconciliationFlushInterval = props.getHbiReconciliationFlushInterval();
     this.totalHosts = meterRegistry.counter("rhsm-subscriptions.tally.hbi_hosts");
   }
 
@@ -419,5 +435,175 @@ public class InventoryAccountUsageCollector {
     host.setInstanceType(HBI_INSTANCE_TYPE);
     populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
     return host;
+  }
+
+  /**
+   * Reconcile HBI data with swatch data.
+   *
+   * <p>This method also performs flushing of the created or updated records using a configured
+   * batch size. This enables configurable control over the memory characteristics of system data
+   * reconciliation.
+   *
+   * @param orgId orgId to reconcile
+   * @param applicableProducts products to update tally buckets for
+   */
+  @Transactional
+  @Timed("swatch_hbi_system_reconcile")
+  public void reconcileSystemDataWithHbi(String orgId, Set<String> applicableProducts) {
+    if (!accountServiceInventoryRepository.existsById(
+        AccountServiceInventoryId.builder().orgId(orgId).serviceType(HBI_INSTANCE_TYPE).build())) {
+      accountServiceInventoryRepository.save(new AccountServiceInventory(orgId, HBI_INSTANCE_TYPE));
+    }
+    int systemsUpdatedForOrg =
+        collator.collateData(
+            orgId,
+            culledOffsetDays,
+            (hbiSystem, swatchSystem, hypervisorData, iterationCount) -> {
+              reconcileHbiSystemWithSwatchSystem(
+                  hbiSystem, swatchSystem, hypervisorData, applicableProducts);
+              if (iterationCount % hbiReconciliationFlushInterval == 0) {
+                log.debug("Flushing system changes w/ count={}", iterationCount);
+                hostRepository.flush();
+                entityManager.clear();
+              }
+            });
+    log.info("Reconciled {} records for orgId={}", systemsUpdatedForOrg, orgId);
+  }
+
+  /**
+   * Reconciles an HBI system record with a swatch system record.
+   *
+   * <p>Performs the proper create, update or delete operation based on the state of the HBI record
+   * and the state of the swatch record.
+   *
+   * @param hbiSystem HBI system record, or null
+   * @param swatchSystem swatch system record, or null
+   * @param orgHostsData container for data gathered from guests, expected to contain an entry for
+   *     the hbi system being processed if it is a hypervisor
+   * @param applicableProducts set of product tags to process
+   */
+  public void reconcileHbiSystemWithSwatchSystem(
+      InventoryHostFacts hbiSystem,
+      Host swatchSystem,
+      OrgHostsData orgHostsData,
+      Set<String> applicableProducts) {
+    log.debug(
+        "Reconciling HBI inventoryId={} & swatch inventoryId={}",
+        Optional.ofNullable(hbiSystem).map(InventoryHostFacts::getInventoryId),
+        Optional.ofNullable(swatchSystem).map(Host::getInventoryId));
+    if (hbiSystem == null && swatchSystem == null) {
+      log.debug("Unexpected, both HBI & Swatch system records are empty");
+    } else if (hbiSystem == null) {
+      log.debug("Deleting system w/ inventoryId={}", swatchSystem.getInventoryId());
+      hostRepository.delete(swatchSystem);
+    } else {
+      NormalizedFacts normalizedFacts = factNormalizer.normalize(hbiSystem, orgHostsData);
+      Set<Key> usageKeys = createHostUsageKeys(applicableProducts, normalizedFacts);
+
+      if (swatchSystem != null) {
+        log.debug("Updating system w/ inventoryId={}", hbiSystem.getInventoryId());
+        updateSwatchSystem(hbiSystem, normalizedFacts, swatchSystem, usageKeys);
+      } else {
+        log.debug("Creating system w/ inventoryId={}", hbiSystem.getInventoryId());
+        swatchSystem = createSwatchSystem(hbiSystem, normalizedFacts, usageKeys);
+      }
+      reconcileHypervisorData(normalizedFacts, swatchSystem, orgHostsData, usageKeys);
+    }
+  }
+
+  private void reconcileHypervisorData(
+      NormalizedFacts normalizedFacts, Host system, OrgHostsData orgHostsData, Set<Key> usageKeys) {
+    if (system.getHypervisorUuid() != null
+        && orgHostsData.hasHypervisorUuid(system.getHypervisorUuid())) {
+      // system is a guest w/ known hypervisor, we should add its buckets to hypervisor-guest data
+      usageKeys.forEach(
+          usageKey -> orgHostsData.addHypervisorKey(system.getHypervisorUuid(), usageKey));
+      orgHostsData.incrementGuestCount(system.getHypervisorUuid());
+      orgHostsData.collectGuestData(new HashMap<>());
+    } else if (system.getSubscriptionManagerId() != null) {
+      // this is a potential hypervisor record
+      Host placeholder = orgHostsData.hypervisorHostMap().get(system.getSubscriptionManagerId());
+      if (placeholder != null) {
+        // this system is a hypervisor, transfer buckets & counts to it
+        log.debug("Applying buckets and guest-count from orgHostsData.");
+        system.setHypervisor(true);
+        system.setNumOfGuests(placeholder.getNumOfGuests());
+        Set<HostBucketKey> seenBucketKeys = new HashSet<>();
+        placeholder
+            .getBuckets()
+            .forEach(
+                bucket -> {
+                  if (normalizedFacts.getCores() != null) {
+                    bucket.setCores(normalizedFacts.getCores());
+                  }
+                  if (normalizedFacts.getSockets() != null) {
+                    bucket.setSockets(normalizedFacts.getSockets());
+                  }
+                  system.addBucket(bucket);
+                  seenBucketKeys.add(bucket.getKey());
+                });
+        // remove any buckets for guests no longer present
+        system
+            .getBuckets()
+            .removeIf(b -> b.getKey().getAsHypervisor() && !seenBucketKeys.contains(b.getKey()));
+      }
+    }
+  }
+
+  private Host createSwatchSystem(
+      InventoryHostFacts inventoryHostFacts, NormalizedFacts normalizedFacts, Set<Key> usageKeys) {
+    Host host = new Host();
+    host.setInstanceType(HBI_INSTANCE_TYPE);
+    populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
+    applyNonHypervisorBuckets(host, normalizedFacts, usageKeys);
+    hostRepository.save(host);
+    return host;
+  }
+
+  private Set<Key> createHostUsageKeys(Set<String> products, NormalizedFacts facts) {
+    return createKeyCombinations(
+        products.stream().filter(facts.getProducts()::contains).collect(Collectors.toSet()),
+        Set.of(facts.getSla(), ServiceLevel._ANY),
+        Set.of(facts.getUsage(), Usage._ANY),
+        Set.of(BillingProvider._ANY),
+        Set.of("_ANY"));
+  }
+
+  private void applyNonHypervisorBuckets(Host host, NormalizedFacts facts, Set<Key> usageKeys) {
+    Set<HostBucketKey> seenBucketKeys = new HashSet<>();
+
+    // Calculate for each UsageKey
+    // review current implementation of default values, and determine if factnormalizer needs
+    // to handle billingAcctId & BillingProvider
+    for (Key key : usageKeys) {
+      var product = key.getProductId();
+      if (!facts.getProducts().contains(product)) {
+        continue;
+      }
+      Optional<HostTallyBucket> appliedBucket =
+          ProductUsageCollectorFactory.get(product).buildBucket(key, facts);
+      appliedBucket.ifPresent(
+          bucket -> {
+            // host.addBucket changes bucket.key.hostId, so we do that first; to
+            // avoid mutating the item in the set
+            host.addBucket(bucket);
+            seenBucketKeys.add(bucket.getKey());
+          });
+    }
+    // Remove any *non-hypervisor* keys that weren't seen this time.
+    // Hypervisor keys need to be evaluated against hypervisor-guest data and are handled by
+    // reconcileHypervisorData
+    host.getBuckets()
+        .removeIf(b -> !b.getKey().getAsHypervisor() && !seenBucketKeys.contains(b.getKey()));
+  }
+
+  private void updateSwatchSystem(
+      InventoryHostFacts inventoryHostFacts,
+      NormalizedFacts normalizedFacts,
+      Host host,
+      Set<Key> usageKeys) {
+    populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
+    applyNonHypervisorBuckets(host, normalizedFacts, usageKeys);
+    hostRepository.save(host);
   }
 }

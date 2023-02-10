@@ -82,7 +82,8 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
         }
 
     _generate_insert('hosts', **host_fields)
-    _generate_measurements(host_id, uom, 1.0)
+    if not is_hbi:
+        _generate_measurements(host_id, uom, 1.0)
     if not is_hbi and not skip_buckets:
         _generate_buckets(host_id, product, sla, usage, as_hypervisor=is_hypervisor, cores=cores, sockets=sockets, measurement_type=measurement_type,
         billing_provider=billing_provider, billing_account_id=billing_account_id)
@@ -296,13 +297,14 @@ for i in range(args.num_accounts):
                                    billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,
                                    uom=args.uom)
         # create a physical entry for the host as well.
-        generate_host(account_number=account, org_id=args.org, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
-                      product=args.product,
-                      sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hypervisor=True,
-                      is_hbi=args.is_hbi,
-                      is_marketplace=args.is_marketplace,
-                      host_type=args.host_type,
-                     billing_provider=args.billing_provider, billing_account_id=args.billing_account_id, uom=args.uom)
+        if not args.is_hbi:
+            generate_host(account_number=account, org_id=args.org, hardware_type='PHYSICAL', measurement_type='PHYSICAL',
+                          product=args.product,
+                          sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets, is_hypervisor=True,
+                          is_hbi=args.is_hbi,
+                          is_marketplace=args.is_marketplace,
+                          host_type=args.host_type,
+                          billing_provider=args.billing_provider, billing_account_id=args.billing_account_id, uom=args.uom)
 
     create_unmapped = args.unmapped_guests
     for i in range(args.num_guests):

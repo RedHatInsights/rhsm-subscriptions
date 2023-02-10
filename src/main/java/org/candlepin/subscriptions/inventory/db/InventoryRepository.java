@@ -20,12 +20,17 @@
  */
 package org.candlepin.subscriptions.inventory.db;
 
+import static org.hibernate.jpa.QueryHints.HINT_FETCH_SIZE;
+import static org.hibernate.jpa.QueryHints.HINT_READONLY;
+
 import java.util.Collection;
 import java.util.UUID;
 import java.util.stream.Stream;
+import javax.persistence.QueryHint;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHost;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
 
@@ -34,9 +39,17 @@ import org.springframework.data.repository.query.Param;
 public interface InventoryRepository extends Repository<InventoryHost, UUID> {
 
   @Query(nativeQuery = true)
-  Stream<InventoryHostFacts> getFacts(
-      @Param("orgIds") Collection<String> orgIds,
-      @Param("culledOffsetDays") Integer culledOffsetDays);
+  @QueryHints(
+      value = {
+        @QueryHint(name = HINT_FETCH_SIZE, value = "1024"),
+        @QueryHint(name = HINT_READONLY, value = "true")
+      })
+  Stream<InventoryHostFacts> streamFacts(
+      @Param("orgId") String orgId, @Param("culledOffsetDays") Integer culledOffsetDays);
+
+  default Stream<InventoryHostFacts> getFacts(Collection<String> orgIds, Integer culledOffsetDays) {
+    return orgIds.stream().flatMap(orgId -> streamFacts(orgId, culledOffsetDays));
+  }
 
   @Query(
       nativeQuery = true,
@@ -77,4 +90,27 @@ public interface InventoryRepository extends Repository<InventoryHost, UUID> {
               + "where h.facts->'satellite'->'virtual_host_uuid' is not null "
               + "and h.org_id IN (:orgIds)")
   Stream<Object[]> getReportedHypervisors(@Param("orgIds") Collection<String> orgIds);
+
+  /* NOTE: in below query, ordering is crucial for correct streaming reconciliation of HBI data */
+  @Query(
+      nativeQuery = true,
+      value =
+          """
+        select
+        h.canonical_facts->>'subscription_manager_id' as subscription_manager_id
+        from hosts h
+        where h.org_id=:orgId
+           and (h.facts->'rhsm'->>'BILLING_MODEL' IS NULL OR h.facts->'rhsm'->>'BILLING_MODEL' <> 'marketplace')
+           and (h.system_profile_facts->>'host_type' IS NULL OR h.system_profile_facts->>'host_type' <> 'edge')
+           and NOW() < stale_timestamp + make_interval(days => :culledOffsetDays)
+        -- NOTE: ordering is crucial for correct streaming reconciliation of HBI data
+        order by subscription_manager_id
+      """)
+  @QueryHints(
+      value = {
+        @QueryHint(name = HINT_FETCH_SIZE, value = "1024"),
+        @QueryHint(name = HINT_READONLY, value = "true")
+      })
+  Stream<String> streamActiveSubscriptionManagerIds(
+      @Param("orgId") String orgId, @Param("culledOffsetDays") Integer culledOffsetDays);
 }

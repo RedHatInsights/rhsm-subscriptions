@@ -134,4 +134,12 @@ public class ApplicationProperties {
 
   /** If enabled, nightly tally will calculated via host objects */
   private boolean legacyNightlyTallyEnabled = false;
+
+  /**
+   * Interval for system update flush when for reconciliation of HBI data w/ swatch system data.
+   *
+   * <p>Lower values will cause more frequent flushing, and keep memory usage low, while higher
+   * values flush less often, but consume more memory.
+   */
+  private Long hbiReconciliationFlushInterval;
 }
