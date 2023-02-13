@@ -20,9 +20,7 @@
  */
 package com.redhat.swatch;
 
-import com.redhat.swatch.openapi.model.Contract;
 import com.redhat.swatch.openapi.model.Metric;
-import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -38,14 +36,14 @@ public class ContractService {
 
   @Inject ContractRepository repository;
 
-  private static Contract convertToDtos(ContractsEntity x) {
+  private static com.redhat.swatch.openapi.model.Contract convertToDtos(Contract x) {
 
     // TODO use fancy projection? https://quarkus.io/guides/hibernate-orm-panache#query-projection
 
     // try MapStruct
     // https://www.youtube.com/watch?v=r_lrpv9msc8&list=PL6oD2syjfW7ADAkICQr-SQcEqsenVPfqg&index=32
 
-    var dto = new Contract();
+    var dto = new com.redhat.swatch.openapi.model.Contract();
 
     dto.setUuid(x.getUuid().toString());
     dto.setBillingProvider(x.getBillingProvider());
@@ -57,18 +55,20 @@ public class ContractService {
     dto.setProductId(x.getProductId());
     dto.setSku(x.getSku());
 
+    // TODO
     var metric = new Metric();
-    metric.setMetricId(x.getMetricId());
-    metric.setValue(BigDecimal.valueOf(x.getValue()));
+    //    metric.setMetricId(x.getMetricId());
+    //    metric.setValue(BigDecimal.valueOf(x.getValue()));
 
     dto.setMetrics(List.of(metric));
 
     return dto;
   }
 
-  Contract saveContract(Contract contract) {
+  com.redhat.swatch.openapi.model.Contract saveContract(
+      com.redhat.swatch.openapi.model.Contract contract) {
 
-    var entity = new ContractsEntity();
+    var entity = new Contract();
     var now = OffsetDateTime.now();
 
     var uuid = Objects.requireNonNullElse(contract.getUuid(), UUID.randomUUID().toString());
@@ -79,10 +79,10 @@ public class ContractService {
     entity.setSku(contract.getSku());
 
     // TODO
-    var metricDto = contract.getMetrics().get(0);
-
-    entity.setMetricId(metricDto.getMetricId());
-    entity.setValue(metricDto.getValue().doubleValue());
+    //    var metricDto = contract.getMetrics().get(0);
+    //
+    //    entity.setMetricId(metricDto.getMetricId());
+    //    entity.setValue(metricDto.getValue().doubleValue());
 
     entity.setProductId(contract.getProductId());
     entity.setSubscriptionNumber(contract.getSubscriptionNumber());
@@ -95,7 +95,8 @@ public class ContractService {
     return contract;
   }
 
-  public List<Contract> getContracts(Map<String, Object> parameters) {
+  public List<com.redhat.swatch.openapi.model.Contract> getContracts(
+      Map<String, Object> parameters) {
 
     return repository.getContracts(parameters).stream().map(x -> convertToDtos(x)).toList();
   }

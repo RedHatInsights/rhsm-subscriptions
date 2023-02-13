@@ -27,9 +27,9 @@ import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
-public class ContractRepository implements PanacheRepository<ContractsEntity> {
+public class ContractRepository implements PanacheRepository<Contract> {
 
-  public List<ContractsEntity> getContracts(Map<String, Object> parameters) {
+  public List<Contract> getContracts(Map<String, Object> parameters) {
     if (parameters == null) {
       return listAll();
     }

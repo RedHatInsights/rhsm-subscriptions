@@ -34,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @ApplicationScoped
-public class TestResource implements DefaultApi {
+public class ContractsTestingResource implements DefaultApi {
 
   @Inject ContractService service;
 

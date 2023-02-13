@@ -20,66 +20,37 @@
  */
 package com.redhat.swatch;
 
-import java.time.OffsetDateTime;
 import java.util.UUID;
-import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.Id;
+import javax.persistence.IdClass;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import lombok.Data;
 
 @Data
 @Entity
-@Table(name = "contracts")
-public class ContractsEntity {
+@IdClass(MetricId.class)
+@Table(name = "contract_metrics")
+public class ContractMetric {
 
   @Id
-  @Column(name = "uuid", nullable = false)
+  @Column(name = "contract_uuid", nullable = false)
   @org.hibernate.annotations.Type(type = "pg-uuid")
-  private UUID uuid;
+  private UUID contractUuid;
 
-  @Basic
-  @Column(name = "subscription_number", nullable = false)
-  private String subscriptionNumber;
-
-  @Basic
-  @Column(name = "last_updated", nullable = false)
-  private OffsetDateTime lastUpdated;
-
-  @Basic
-  @Column(name = "start_date", nullable = false)
-  private OffsetDateTime startDate;
-
-  @Basic
-  @Column(name = "end_date")
-  private OffsetDateTime endDate;
-
-  @Basic
-  @Column(name = "org_id", nullable = false)
-  private String orgId;
-
-  @Basic
-  @Column(name = "sku", nullable = false)
-  private String sku;
-
-  @Basic
-  @Column(name = "billing_provider", nullable = false)
-  private String billingProvider;
-
-  @Basic
-  @Column(name = "billing_account_id", nullable = false)
-  private String billingAccountId;
-
-  @Basic
-  @Column(name = "product_id", nullable = false)
-  private String productId;
-
-  @Basic
+  @Id
   @Column(name = "metric_id", nullable = false)
   private String metricId;
 
-  @Basic
+  @Id
   @Column(name = "value", nullable = false)
   private Double value;
+
+  @ManyToOne(targetEntity = Contract.class, fetch = FetchType.LAZY)
+  @JoinColumn(name = "contract_uuid", insertable = false, updatable = false)
+  private Contract contract;
 }

@@ -34,6 +34,15 @@
       <column name="product_id" type="VARCHAR">
         <constraints nullable="false"/>
       </column>
+    </createTable>
+
+    <addUniqueConstraint columnNames="subscription_number, start_date, product_id"
+      constraintName="contracts_logicalk" tableName="contracts"/>
+
+    <createTable tableName="contract_metrics">
+      <column name="contract_uuid" type="UUID">
+        <constraints nullable="false"/>
+      </column>
       <column name="metric_id" type="VARCHAR">
         <constraints nullable="false"/>
       </column>
@@ -42,8 +51,12 @@
       </column>
     </createTable>
 
-    <addUniqueConstraint columnNames="subscription_number, start_date, product_id, metric_id"
-      constraintName="contracts_logicalk" tableName="contracts"/>
+    <addForeignKeyConstraint constraintName="fk_contracts"
+      baseTableName="contract_metrics" baseColumnNames="contract_uuid"
+      referencedTableName="contracts" referencedColumnNames="uuid"/>
+
+    <addUniqueConstraint columnNames="contract_uuid, metric_id"
+      constraintName="metrics_logicalk" tableName="contract_metrics"/>
 
   </changeSet>
 
