@@ -50,6 +50,7 @@ import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.exception.MissingOfferingException;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.subscription.api.model.ExternalReference;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
@@ -490,13 +491,14 @@ class SubscriptionSyncControllerTest {
   void findProductTagsBySku_WhenSkuNotPresent() {
     when(offeringRepository.findProductNameBySku("sku")).thenReturn(Optional.empty());
     when(mockProfile.tagForOfferingProductName("productname1")).thenReturn("producttag");
-
-    OfferingProductTags productTags = subscriptionSyncController.findProductTags("sku");
-    assertNull(productTags.getData());
+    RuntimeException e =
+        assertThrows(
+            MissingOfferingException.class,
+            () -> subscriptionSyncController.findProductTags("sku"));
+    assertEquals("Sku sku not found in Offering", e.getMessage());
 
     when(offeringRepository.findProductNameBySku("sku")).thenReturn(Optional.of("productname"));
     when(mockProfile.tagForOfferingProductName("productname")).thenReturn(null);
-
     OfferingProductTags productTags2 = subscriptionSyncController.findProductTags("sku");
     assertNull(productTags2.getData());
   }
