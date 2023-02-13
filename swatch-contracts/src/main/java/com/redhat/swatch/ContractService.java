@@ -69,9 +69,16 @@ public class ContractService {
   }
 
   void updateContract(Contract dto) {
-    var entity = repository.find("uuid", dto.getUuid()).firstResultOptional();
+
+    /*
+    - should update all fields with the vlaues from the payload
+    - if an update to dates, metric id, or product id we should be creating new Contract/ContractMetric records,
+    and updating the existing one with end_date = Date.now()
+     */
+
   }
 
+  @Transactional
   void deleteContract(String uuid) {
     repository.deleteById(UUID.fromString(uuid));
   }

@@ -46,7 +46,10 @@ public class ContractsTestingResource implements DefaultApi {
   }
 
   @Override
-  public void deleteContractByUUID(String uuid) throws ApiException, ProcessingException {}
+  public void deleteContractByUUID(String uuid) throws ApiException, ProcessingException {
+
+    service.deleteContract(uuid);
+  }
 
   @Override
   public List<Contract> getContract(
@@ -58,11 +61,9 @@ public class ContractsTestingResource implements DefaultApi {
       throws ApiException, ProcessingException {
 
     Map<String, Object> parameters = new HashMap<>();
-
     parameters.put("orgId", orgId);
     parameters.put("productId", productId);
-    // TODO this is nested
-    //    parameters.put("metricId", metricId);
+    parameters.put("metricId", metricId);
     parameters.put("billingProvider", billingProvider);
     parameters.put("billingAccountId", billingAccountId);
 

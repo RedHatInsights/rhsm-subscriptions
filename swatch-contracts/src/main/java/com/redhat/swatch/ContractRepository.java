@@ -26,7 +26,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @ApplicationScoped
 public class ContractRepository implements PanacheRepositoryBase<Contract, UUID> {
 
@@ -49,7 +51,18 @@ public class ContractRepository implements PanacheRepositoryBase<Contract, UUID>
             .map(entry -> entry.getKey() + "=:" + entry.getKey())
             .collect(Collectors.joining(" and "));
 
-    return list(query, nonNullParams);
+    // TODO make this less ridiculous
+
+    if (nonNullParams.containsKey("metricId")) {
+      query =
+          "select c from Contract c inner join ContractMetric m on c.uuid = m.contractUuid where "
+              + query;
+      query = query.replace("metricId=:", "m.metricId=:");
+    }
+
+    log.info("Dynamically generated query: {}", query);
+
+    return find(query, nonNullParams).list();
   }
 
   Contract findContract(UUID uuid) {
