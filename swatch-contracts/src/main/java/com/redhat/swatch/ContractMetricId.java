@@ -27,7 +27,7 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class MetricId implements Serializable {
+public class ContractMetricId implements Serializable {
 
   private UUID contractUuid;
   private String metricId;

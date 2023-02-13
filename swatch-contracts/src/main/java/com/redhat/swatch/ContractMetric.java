@@ -33,7 +33,7 @@ import lombok.Data;
 
 @Data
 @Entity
-@IdClass(MetricId.class)
+@IdClass(ContractMetricId.class)
 @Table(name = "contract_metrics")
 public class ContractMetric {
 
