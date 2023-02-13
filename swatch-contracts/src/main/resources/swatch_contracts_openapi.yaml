@@ -278,8 +278,9 @@ components:
           type: string
           example: Instance-hours
         value:
-          type: number
-          example: '1.0'
+          format: int32
+          type: integer
+          example: 1
       example:
         metric_id: Instance-hours
         value: 68.6

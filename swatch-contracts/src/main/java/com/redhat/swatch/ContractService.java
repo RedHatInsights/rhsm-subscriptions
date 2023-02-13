@@ -21,7 +21,6 @@
 package com.redhat.swatch;
 
 import com.redhat.swatch.openapi.model.Metric;
-import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +59,7 @@ public class ContractService {
 
       var metric = new Metric();
       metric.setMetricId(y.getMetricId());
-      metric.setValue(BigDecimal.valueOf(y.getValue().doubleValue()));
+      metric.setValue(y.getValue());
 
       dto.addMetricsItem(metric);
     }
@@ -81,13 +80,13 @@ public class ContractService {
     entity.setLastUpdated(now);
     entity.setSku(contract.getSku());
 
-    //TODO fix unique constraint....right now you can spam a POST request successfully
+    // TODO fix unique constraint....right now you can spam a POST request successfully
 
     var metricDto = contract.getMetrics().get(0);
     var metric = new ContractMetric();
     metric.setContractUuid(UUID.fromString(uuid));
     metric.setMetricId(metricDto.getMetricId());
-    metric.setValue(metricDto.getValue().doubleValue());
+    metric.setValue(metricDto.getValue());
 
     entity.addMetric(metric);
 

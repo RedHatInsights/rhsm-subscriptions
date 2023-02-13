@@ -20,37 +20,23 @@
  */
 package com.redhat.swatch;
 
-import java.util.UUID;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.Id;
-import javax.persistence.IdClass;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.Table;
-import lombok.Data;
+import com.redhat.swatch.openapi.model.Contract;
+import org.mapstruct.AfterMapping;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
-@Data
-@Entity
-@IdClass(ContractMetricId.class)
-@Table(name = "contract_metrics")
-public class ContractMetric {
+@Mapper(componentModel = "cdi")
+abstract class ContractMapper {
 
-  @Id
-  @Column(name = "contract_uuid", nullable = false)
-  @org.hibernate.annotations.Type(type = "pg-uuid")
-  private UUID contractUuid;
+  abstract Contract contractToDto(com.redhat.swatch.Contract contract);
 
-  @Id
-  @Column(name = "metric_id", nullable = false)
-  private String metricId;
+  @Mapping(target = "lastUpdated", ignore = true)
+  abstract com.redhat.swatch.Contract dtoToContract(Contract contract);
 
-  @Id
-  @Column(name = "value", nullable = false)
-  private int value;
+  @AfterMapping
+  protected void populateEntityUuid(@MappingTarget com.redhat.swatch.Contract entity) {
 
-  @ManyToOne(targetEntity = Contract.class, fetch = FetchType.LAZY)
-  @JoinColumn(name = "contract_uuid", insertable = false, updatable = false)
-  private Contract contract;
+    entity.getMetrics().stream().forEach(metric -> metric.setContractUuid(entity.getUuid()));
+  }
 }

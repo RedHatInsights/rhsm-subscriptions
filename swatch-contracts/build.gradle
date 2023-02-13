@@ -41,6 +41,9 @@ dependencies {
     implementation("io.quarkus:quarkus-hibernate-orm-panache")
     implementation 'org.mapstruct:mapstruct:1.5.3.Final'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.3.Final'
+    testAnnotationProcessor 'org.mapstruct:mapstruct-processor:1.5.3.Final'
+    // if you are using mapstruct in test code
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
 }
 
 group 'com.redhat.swatch'
@@ -56,15 +59,12 @@ openApiGenerate {
     modelPackage = "com.redhat.swatch.openapi.model"
     invokerPackage = "com.redhat.swatch.openapi"
     groupId = "com.redhat.swatch"
-    configOptions = [
-            sourceFolder         : "src/gen/java",
-            interfaceOnly        : "true",
-            library: "microprofile",
-            java8: "true",
-            dateLibrary: "java8",
-    ]
-    additionalProperties = [
-            disableMultipart: "true", // see https://github.com/OpenAPITools/openapi-generator/pull/4713#issuecomment-633906581
+    configOptions = [sourceFolder : "src/gen/java",
+                     interfaceOnly: "true",
+                     library      : "microprofile",
+                     java8        : "true",
+                     dateLibrary  : "java8",]
+    additionalProperties = [disableMultipart: "true", // see https://github.com/OpenAPITools/openapi-generator/pull/4713#issuecomment-633906581
     ]
 }
 
@@ -80,7 +80,6 @@ tasks.register('configureQuarkusBuild') {
 test {
     useJUnitPlatform()
 }
-
 
 
 quarkusDev.dependsOn(configureQuarkusBuild)
