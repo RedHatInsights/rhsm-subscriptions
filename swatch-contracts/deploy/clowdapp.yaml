@@ -42,6 +42,9 @@ parameters:
     value: 'INFO'
   - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
     value: 'INFO'
+  # allow overriding to support independent deploy with bonfire
+  - name: DB_POD
+    value: swatch-tally
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -55,6 +58,11 @@ objects:
 
       pullSecrets:
         name: ${IMAGE_PULL_SECRET}
+
+      database:
+        sharedDbAppName: swatch-tally
+      dependencies:
+        - swatch-tally
 
       deployments:
         - name: service
