@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch;
 
+import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import java.util.UUID;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -35,7 +36,7 @@ import lombok.Data;
 @Entity
 @IdClass(ContractMetricId.class)
 @Table(name = "contract_metrics")
-public class ContractMetric {
+public class ContractMetric extends PanacheEntityBase {
 
   @Id
   @Column(name = "contract_uuid", nullable = false)

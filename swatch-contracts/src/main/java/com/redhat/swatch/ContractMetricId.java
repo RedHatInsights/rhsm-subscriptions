@@ -29,5 +29,5 @@ public class ContractMetricId implements Serializable {
 
   private UUID contractUuid;
   private String metricId;
-  private Double value;
+  private int value;
 }

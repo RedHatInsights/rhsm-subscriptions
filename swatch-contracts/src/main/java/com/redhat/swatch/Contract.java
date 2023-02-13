@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch;
 
+import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +38,7 @@ import lombok.Data;
 @Data
 @Entity
 @Table(name = "contracts")
-public class Contract {
+public class Contract extends PanacheEntityBase {
 
   @Id
   @Column(name = "uuid", nullable = false)

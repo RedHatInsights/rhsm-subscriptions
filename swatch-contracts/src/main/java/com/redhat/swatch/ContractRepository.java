@@ -20,14 +20,15 @@
  */
 package com.redhat.swatch;
 
-import io.quarkus.hibernate.orm.panache.PanacheRepository;
+import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
-public class ContractRepository implements PanacheRepository<Contract> {
+public class ContractRepository implements PanacheRepositoryBase<Contract, UUID> {
 
   public List<Contract> getContracts(Map<String, Object> parameters) {
     if (parameters == null) {
@@ -49,5 +50,9 @@ public class ContractRepository implements PanacheRepository<Contract> {
             .collect(Collectors.joining(" and "));
 
     return list(query, nonNullParams);
+  }
+
+  Contract findContract(UUID uuid) {
+    return find("uuid", uuid).firstResult();
   }
 }

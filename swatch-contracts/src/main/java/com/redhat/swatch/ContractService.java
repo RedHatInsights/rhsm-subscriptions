@@ -20,7 +20,7 @@
  */
 package com.redhat.swatch;
 
-import com.redhat.swatch.openapi.model.Metric;
+import com.redhat.swatch.openapi.model.Contract;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.UUID;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -35,66 +36,26 @@ import lombok.extern.slf4j.Slf4j;
 public class ContractService {
 
   @Inject ContractRepository repository;
+  @Inject ContractMapper mapper;
 
-  private static com.redhat.swatch.openapi.model.Contract convertToDtos(Contract x) {
-
-    // TODO use fancy projection? https://quarkus.io/guides/hibernate-orm-panache#query-projection
-
-    // try MapStruct
-    // https://www.youtube.com/watch?v=r_lrpv9msc8&list=PL6oD2syjfW7ADAkICQr-SQcEqsenVPfqg&index=32
-
-    var dto = new com.redhat.swatch.openapi.model.Contract();
-
-    dto.setUuid(x.getUuid().toString());
-    dto.setBillingProvider(x.getBillingProvider());
-    dto.setEndDate(x.getEndDate());
-    dto.setOrgId(x.getOrgId());
-    dto.setBillingAccountId(x.getBillingAccountId());
-    dto.setStartDate(x.getStartDate());
-    dto.setSubscriptionNumber(x.getSubscriptionNumber());
-    dto.setProductId(x.getProductId());
-    dto.setSku(x.getSku());
-
-    for (ContractMetric y : x.getMetrics()) {
-
-      var metric = new Metric();
-      metric.setMetricId(y.getMetricId());
-      metric.setValue(y.getValue());
-
-      dto.addMetricsItem(metric);
-    }
-
-    return dto;
-  }
-
+  @Transactional
   com.redhat.swatch.openapi.model.Contract saveContract(
       com.redhat.swatch.openapi.model.Contract contract) {
 
-    var entity = new Contract();
-    var now = OffsetDateTime.now();
-
+    // temporary...forcing new UUID to work on the create case
+    contract.setUuid(null);
+    //    entity.setUuid(null);
     var uuid = Objects.requireNonNullElse(contract.getUuid(), UUID.randomUUID().toString());
-    entity.setUuid(UUID.fromString(uuid));
+    contract.setUuid(uuid);
+
+    var entity = mapper.dtoToContract(contract);
+
+    log.info("{}", entity);
+
+    var now = OffsetDateTime.now();
 
     entity.setStartDate(now);
     entity.setLastUpdated(now);
-    entity.setSku(contract.getSku());
-
-    // TODO fix unique constraint....right now you can spam a POST request successfully
-
-    var metricDto = contract.getMetrics().get(0);
-    var metric = new ContractMetric();
-    metric.setContractUuid(UUID.fromString(uuid));
-    metric.setMetricId(metricDto.getMetricId());
-    metric.setValue(metricDto.getValue());
-
-    entity.addMetric(metric);
-
-    entity.setProductId(contract.getProductId());
-    entity.setSubscriptionNumber(contract.getSubscriptionNumber());
-    entity.setOrgId(contract.getOrgId());
-    entity.setBillingAccountId(contract.getBillingAccountId());
-    entity.setBillingProvider(contract.getBillingProvider());
 
     repository.persist(entity);
 
@@ -104,6 +65,14 @@ public class ContractService {
   public List<com.redhat.swatch.openapi.model.Contract> getContracts(
       Map<String, Object> parameters) {
 
-    return repository.getContracts(parameters).stream().map(x -> convertToDtos(x)).toList();
+    return repository.getContracts(parameters).stream().map(x -> mapper.contractToDto(x)).toList();
+  }
+
+  void updateContract(Contract dto) {
+    var entity = repository.find("uuid", dto.getUuid()).firstResultOptional();
+  }
+
+  void deleteContract(String uuid) {
+    repository.deleteById(UUID.fromString(uuid));
   }
 }
