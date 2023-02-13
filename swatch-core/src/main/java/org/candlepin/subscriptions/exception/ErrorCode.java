@@ -74,7 +74,9 @@ public enum ErrorCode {
   SUBSCRIPTION_SERVICE_MARKETPLACE_ID_LOOKUP_ERROR(
       3001, "Could not find marketplace subscription id"),
 
-  ACCOUNT_MISSING_ERROR(3002, "Account not present according to RH IT services");
+  ACCOUNT_MISSING_ERROR(3002, "Account not present according to RH IT services"),
+
+  OFFERING_MISSING_ERROR(3003, "Sku not present in Offering");
 
   private static final String CODE_PREFIX = "SUBSCRIPTIONS";
 

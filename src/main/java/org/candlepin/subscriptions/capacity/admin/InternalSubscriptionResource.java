@@ -42,6 +42,7 @@ import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.utilization.admin.api.InternalApi;
 import org.candlepin.subscriptions.utilization.admin.api.model.AwsUsageContext;
+import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTags;
 import org.candlepin.subscriptions.utilization.admin.api.model.TerminationRequest;
 import org.candlepin.subscriptions.utilization.admin.api.model.TerminationRequestData;
 import org.springframework.stereotype.Component;
@@ -144,6 +145,15 @@ public class InternalSubscriptionResource implements InternalApi {
         .productCode(productCode)
         .customerId(customerId)
         .awsSellerAccountId(sellerAccount);
+  }
+
+  /**
+   * @param sku
+   * @return OfferingProductTags
+   */
+  @Override
+  public OfferingProductTags getSkuProductTags(String sku) {
+    return subscriptionSyncController.findProductTags(sku);
   }
 
   @Override
