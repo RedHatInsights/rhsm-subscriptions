@@ -22,11 +22,9 @@ package com.redhat.swatch;
 
 import java.io.Serializable;
 import java.util.UUID;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
-@AllArgsConstructor
 public class ContractMetricId implements Serializable {
 
   private UUID contractUuid;
