@@ -49,8 +49,13 @@ public class TestResource implements DefaultApi {
   public void deleteContractByUUID(String uuid) throws ApiException, ProcessingException {}
 
   @Override
-  public List<Contract> getContract(String orgId, String productId, String metricId,
-      String billingProvider, String billingAccountId) throws ApiException, ProcessingException {
+  public List<Contract> getContract(
+      String orgId,
+      String productId,
+      String metricId,
+      String billingProvider,
+      String billingAccountId)
+      throws ApiException, ProcessingException {
 
     Map<String, Object> parameters = new HashMap<>();
 
@@ -58,10 +63,8 @@ public class TestResource implements DefaultApi {
     parameters.put("productId", productId);
     // TODO this is nested
     //    parameters.put("metricId", metricId);
-
     parameters.put("billingProvider", billingProvider);
     parameters.put("billingAccountId", billingAccountId);
-
 
     return service.getContracts(parameters);
   }

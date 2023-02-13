@@ -42,7 +42,8 @@ public class ContractService {
 
     // TODO use fancy projection? https://quarkus.io/guides/hibernate-orm-panache#query-projection
 
-    // try MapStruct https://www.youtube.com/watch?v=r_lrpv9msc8&list=PL6oD2syjfW7ADAkICQr-SQcEqsenVPfqg&index=32
+    // try MapStruct
+    // https://www.youtube.com/watch?v=r_lrpv9msc8&list=PL6oD2syjfW7ADAkICQr-SQcEqsenVPfqg&index=32
 
     var dto = new Contract();
 
@@ -54,6 +55,7 @@ public class ContractService {
     dto.setStartDate(x.getStartDate());
     dto.setSubscriptionNumber(x.getSubscriptionNumber());
     dto.setProductId(x.getProductId());
+    dto.setSku(x.getSku());
 
     var metric = new Metric();
     metric.setMetricId(x.getMetricId());
@@ -74,9 +76,7 @@ public class ContractService {
 
     entity.setStartDate(now);
     entity.setLastUpdated(now);
-
-    // TODO not aren't part of the api schema
-    entity.setSku("BANANAS");
+    entity.setSku(contract.getSku());
 
     // TODO
     var metricDto = contract.getMetrics().get(0);

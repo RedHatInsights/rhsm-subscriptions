@@ -81,6 +81,7 @@ paths:
                     product_id: BASILISK
                     start_date: '2022-01-01T00:00:00Z'
                     subscription_number: '12345678'
+                    sku: 'BAS123'
                     uuid: 8ece4096-bef6-4ad6-b0db-20c8e6b2a78c
           description: Success
       operationId: updateContract
@@ -213,6 +214,10 @@ components:
           description: ''
           type: string
           example: '12345678'
+        sku:
+          description: ''
+          type: string
+          example: 'BAS123'
         start_date:
           format: date-time
           description: ''
