@@ -20,11 +20,12 @@
  */
 package com.redhat.swatch;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.redhat.swatch.openapi.model.Metric;
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
@@ -56,13 +57,26 @@ public class ContractMapperTest {
     contractMetric.setValue(1);
     entity.addMetric(contractMetric);
 
-    // TODO metric mapping
+    var dto = mapper.contractToDto(entity);
 
-    var dto = new com.redhat.swatch.openapi.model.Contract();
+    assertEquals(entity.getUuid(), UUID.fromString(dto.getUuid()));
+    assertEquals(entity.getOrgId(), dto.getOrgId());
+    assertEquals(entity.getStartDate(), dto.getStartDate());
+    assertEquals(entity.getEndDate(), dto.getEndDate());
+    assertEquals(entity.getSku(), dto.getSku());
+    assertEquals(entity.getProductId(), dto.getProductId());
+    assertEquals(entity.getSubscriptionNumber(), dto.getSubscriptionNumber());
+    assertEquals(entity.getBillingProvider(), dto.getBillingProvider());
+    assertEquals(entity.getBillingAccountId(), dto.getBillingAccountId());
 
-    System.err.println(mapper.contractToDto(entity));
-
-    assertTrue(true);
+    // verify size, metric ids, and values
+    assertEquals(entity.getMetrics().size(), dto.getMetrics().size());
+    assertEquals(
+        entity.getMetrics().stream().map(x -> x.getMetricId()).collect(Collectors.toList()),
+        dto.getMetrics().stream().map(x -> x.getMetricId()).collect(Collectors.toList()));
+    assertEquals(
+        entity.getMetrics().stream().map(x -> x.getValue()).collect(Collectors.toList()),
+        dto.getMetrics().stream().map(x -> x.getValue()).collect(Collectors.toList()));
   }
 
   @Test
@@ -89,8 +103,28 @@ public class ContractMapperTest {
 
     dto.addMetricsItem(metric);
 
-    System.err.println(mapper.dtoToContract(dto));
+    var entity = mapper.dtoToContract(dto);
 
-    assertTrue(true);
+    assertEquals(dto.getUuid(), entity.getUuid().toString());
+    assertEquals(dto.getOrgId(), entity.getOrgId());
+    assertEquals(dto.getStartDate(), entity.getStartDate());
+    assertEquals(dto.getEndDate(), entity.getEndDate());
+    assertEquals(dto.getSku(), entity.getSku());
+    assertEquals(dto.getProductId(), entity.getProductId());
+    assertEquals(dto.getSubscriptionNumber(), entity.getSubscriptionNumber());
+    assertEquals(dto.getBillingProvider(), entity.getBillingProvider());
+    assertEquals(dto.getBillingAccountId(), entity.getBillingAccountId());
+
+    // verify size, metric ids, and values
+    assertEquals(dto.getMetrics().size(), entity.getMetrics().size());
+    assertEquals(
+        dto.getMetrics().stream().map(x -> x.getMetricId()).collect(Collectors.toList()),
+        dto.getMetrics().stream().map(x -> x.getMetricId()).collect(Collectors.toList()));
+    assertEquals(
+        dto.getMetrics().stream().map(x -> x.getValue()).collect(Collectors.toList()),
+        dto.getMetrics().stream().map(x -> x.getValue()).collect(Collectors.toList()));
+
+    // verify UUID populates in metrics collection
+    assertEquals(entity.getUuid(), entity.getMetrics().get(0).getContractUuid());
   }
 }
