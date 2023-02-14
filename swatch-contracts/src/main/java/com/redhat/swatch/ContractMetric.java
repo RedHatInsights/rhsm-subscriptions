@@ -31,6 +31,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import lombok.Data;
+import lombok.ToString.Exclude;
 
 @Data
 @Entity
@@ -51,6 +52,8 @@ public class ContractMetric extends PanacheEntityBase {
   @Column(name = "value", nullable = false)
   private int value;
 
+
+  @Exclude
   @ManyToOne(targetEntity = Contract.class, fetch = FetchType.LAZY)
   @JoinColumn(name = "contract_uuid", insertable = false, updatable = false)
   private Contract contract;

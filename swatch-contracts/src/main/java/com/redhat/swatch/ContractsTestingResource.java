@@ -73,6 +73,9 @@ public class ContractsTestingResource implements DefaultApi {
   @Override
   public Contract updateContract(String uuid, Contract contract)
       throws ApiException, ProcessingException {
+
+    service.updateContract(contract);
+
     return null;
   }
 }

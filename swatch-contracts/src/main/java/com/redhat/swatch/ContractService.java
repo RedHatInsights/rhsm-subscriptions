@@ -68,13 +68,21 @@ public class ContractService {
     return repository.getContracts(parameters).stream().map(x -> mapper.contractToDto(x)).toList();
   }
 
+  @Transactional
   void updateContract(Contract dto) {
+
+    log.info("{}", dto);
 
     /*
     - should update all fields with the vlaues from the payload
     - if an update to dates, metric id, or product id we should be creating new Contract/ContractMetric records,
     and updating the existing one with end_date = Date.now()
      */
+
+    com.redhat.swatch.Contract contract = repository.findContract(UUID.fromString(dto.getUuid()));
+
+
+    mapper.dtoToContract(dto);
 
   }
 

@@ -66,6 +66,7 @@ public class ContractRepository implements PanacheRepositoryBase<Contract, UUID>
   }
 
   Contract findContract(UUID uuid) {
+    log.info("bananas");
     return find("uuid", uuid).firstResult();
   }
 }
