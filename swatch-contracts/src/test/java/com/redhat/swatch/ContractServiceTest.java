@@ -20,13 +20,21 @@
  */
 package com.redhat.swatch;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.mockito.InjectMock;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 class ContractServiceTest {
+  @InjectMock ContractService contractService;
 
   @Test
   void sanityCheck() {
@@ -35,6 +43,19 @@ class ContractServiceTest {
 
   @Test
   void saveContract() {
+    assertTrue(true);
+  }
+
+  @Test
+  void testGetContracts() {
+    com.redhat.swatch.openapi.model.Contract c1 = new com.redhat.swatch.openapi.model.Contract();
+    c1.setBillingAccountId("1");
+
+    when(contractService.getContracts(any())).thenReturn((List.of(c1)));
+    Map<String, Object> parameters = new HashMap<>();
+    List<com.redhat.swatch.openapi.model.Contract> contractList =
+        contractService.getContracts(parameters);
+    assertEquals(1, contractList.size());
     assertTrue(true);
   }
 }

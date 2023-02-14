@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 
@@ -35,8 +34,13 @@ import lombok.extern.slf4j.Slf4j;
 @ApplicationScoped
 public class ContractService {
 
-  @Inject ContractRepository repository;
-  @Inject ContractMapper mapper;
+  private ContractRepository contractRepository;
+  private ContractMapper mapper;
+
+  ContractService(ContractRepository contractRepository, ContractMapper mapper) {
+    this.contractRepository = contractRepository;
+    this.mapper = mapper;
+  }
 
   @Transactional
   com.redhat.swatch.openapi.model.Contract saveContract(
@@ -57,15 +61,16 @@ public class ContractService {
     entity.setStartDate(now);
     entity.setLastUpdated(now);
 
-    repository.persist(entity);
+    contractRepository.persist(entity);
 
     return contract;
   }
 
   public List<com.redhat.swatch.openapi.model.Contract> getContracts(
       Map<String, Object> parameters) {
-
-    return repository.getContracts(parameters).stream().map(x -> mapper.contractToDto(x)).toList();
+    return contractRepository.getContracts(parameters).stream()
+        .map(x -> mapper.contractToDto(x))
+        .toList();
   }
 
   @Transactional
@@ -79,15 +84,14 @@ public class ContractService {
     and updating the existing one with end_date = Date.now()
      */
 
-    com.redhat.swatch.Contract contract = repository.findContract(UUID.fromString(dto.getUuid()));
-
+    com.redhat.swatch.Contract contract =
+        contractRepository.findContract(UUID.fromString(dto.getUuid()));
 
     mapper.dtoToContract(dto);
-
   }
 
   @Transactional
   void deleteContract(String uuid) {
-    repository.deleteById(UUID.fromString(uuid));
+    contractRepository.deleteById(UUID.fromString(uuid));
   }
 }

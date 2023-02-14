@@ -52,7 +52,6 @@ public class ContractMetric extends PanacheEntityBase {
   @Column(name = "value", nullable = false)
   private int value;
 
-
   @Exclude
   @ManyToOne(targetEntity = Contract.class, fetch = FetchType.LAZY)
   @JoinColumn(name = "contract_uuid", insertable = false, updatable = false)
