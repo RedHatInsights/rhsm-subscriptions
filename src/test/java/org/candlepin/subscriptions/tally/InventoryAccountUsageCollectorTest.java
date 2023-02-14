@@ -80,6 +80,27 @@ class InventoryAccountUsageCollectorTest {
   @Autowired private MeterRegistry meterRegistry;
 
   @Test
+  void shiftingNonBlankAccountNumberInNormalizedFactsNotAllowed() {
+    List<Integer> products = List.of(TEST_PRODUCT_ID);
+    InventoryHostFacts host1 = createRhsmHost(ACCOUNT, ORG_ID, products, "", OffsetDateTime.now());
+    InventoryHostFacts host2 = createRhsmHost("foobar", ORG_ID, products, "", OffsetDateTime.now());
+
+    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(host1, host2));
+    assertThrows(
+        IllegalStateException.class, () -> collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID));
+  }
+
+  @Test
+  void overwritesBlankAccountNumberInNormalizedFacts() {
+    List<Integer> products = List.of(TEST_PRODUCT_ID);
+    InventoryHostFacts host1 = createRhsmHost("", ORG_ID, products, "", OffsetDateTime.now());
+    InventoryHostFacts host2 = createRhsmHost(ACCOUNT, ORG_ID, products, "", OffsetDateTime.now());
+
+    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(host1, host2));
+    assertDoesNotThrow(() -> collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID));
+  }
+
+  @Test
   void hypervisorCountsIgnoredForNonRhelProduct() {
 
     InventoryHostFacts hypervisor = createHypervisor(ACCOUNT, ORG_ID, NON_RHEL_PRODUCT_ID);

@@ -109,7 +109,8 @@ public class InventoryAccountUsageCollector {
           String hostAccount = facts.getAccount();
           if (hostAccount != null) {
             String currentAccount = accountCalc.getAccount();
-            if (currentAccount != null && !currentAccount.equalsIgnoreCase(hostAccount)) {
+            if (StringUtils.hasText(currentAccount)
+                && !currentAccount.equalsIgnoreCase(hostAccount)) {
               throw new IllegalStateException(
                   String.format(
                       "Attempt to set a different account for an org: %s:%s",
