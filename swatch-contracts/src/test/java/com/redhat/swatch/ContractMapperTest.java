@@ -23,12 +23,14 @@ package com.redhat.swatch;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.redhat.swatch.openapi.model.Metric;
+import io.quarkus.test.junit.QuarkusTest;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
+@QuarkusTest
 public class ContractMapperTest {
 
   private final ContractMapper mapper = Mappers.getMapper(ContractMapper.class);
