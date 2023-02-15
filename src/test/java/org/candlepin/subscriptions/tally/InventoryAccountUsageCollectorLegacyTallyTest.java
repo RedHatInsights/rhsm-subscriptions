@@ -80,6 +80,29 @@ class InventoryAccountUsageCollectorLegacyTallyTest {
   @Autowired private MeterRegistry meterRegistry;
 
   @Test
+  void shiftingNonBlankAccountNumberInNormalizedFactsNotAllowed() {
+    List<Integer> products = List.of(TEST_PRODUCT_ID);
+    InventoryHostFacts host1 = createRhsmHost(ACCOUNT, ORG_ID, products, "", OffsetDateTime.now());
+    InventoryHostFacts host2 = createRhsmHost("foobar", ORG_ID, products, "", OffsetDateTime.now());
+
+    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(host1, host2));
+    OrgHostsData orgHostsData = collector.collect(NON_RHEL_PRODUCTS, ACCOUNT, ORG_ID);
+    assertThrows(
+        IllegalStateException.class, () -> collector.tally(NON_RHEL_PRODUCTS, orgHostsData));
+  }
+
+  @Test
+  void overwritesBlankAccountNumberInNormalizedFacts() {
+    List<Integer> products = List.of(TEST_PRODUCT_ID);
+    InventoryHostFacts host1 = createRhsmHost("", ORG_ID, products, "", OffsetDateTime.now());
+    InventoryHostFacts host2 = createRhsmHost(ACCOUNT, ORG_ID, products, "", OffsetDateTime.now());
+
+    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(host1, host2));
+    OrgHostsData orgHostsData = collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
+    assertDoesNotThrow(() -> collector.tally(RHEL_PRODUCTS, orgHostsData));
+  }
+
+  @Test
   void hypervisorCountsIgnoredForNonRhelProduct() {
     InventoryHostFacts hypervisor = createHypervisor(ACCOUNT, ORG_ID, NON_RHEL_PRODUCT_ID);
     hypervisor.setSystemProfileCoresPerSocket(4);

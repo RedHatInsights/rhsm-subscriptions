@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.persistence.EntityNotFoundException;
 import javax.transaction.Transactional;
+import javax.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductAllowlist;
@@ -48,6 +49,8 @@ import org.candlepin.subscriptions.db.model.ReportCriteria;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription_;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.exception.ErrorCode;
+import org.candlepin.subscriptions.exception.MissingOfferingException;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
@@ -56,6 +59,7 @@ import org.candlepin.subscriptions.umb.CanonicalMessage;
 import org.candlepin.subscriptions.umb.UmbSubscription;
 import org.candlepin.subscriptions.user.AccountService;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTags;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Sort;
@@ -63,6 +67,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
 /** Update subscriptions from subscription service responses. */
 @Component
@@ -591,5 +596,32 @@ public class SubscriptionSyncController {
     }
 
     return result;
+  }
+
+  /**
+   * This will allow any service to lookup the swatch product(s) associated with a given SKU. (This
+   * lookup will use the offering information already stored in the database) and map the
+   * `product_name` to a swatch `product_tag` via info in `tag_profile.yaml` If the offering does
+   * not exist then return 404. If it does exist, then return an empty list if there are no tags
+   * found for that particular offering.
+   *
+   * @param sku
+   * @return OfferingProductTags
+   */
+  public OfferingProductTags findProductTags(String sku) {
+    OfferingProductTags productTags = new OfferingProductTags();
+    var productTag = offeringRepository.findProductNameBySku(sku);
+    if (productTag.isPresent()) {
+      if (StringUtils.hasText(tagProfile.tagForOfferingProductName(productTag.get()))) {
+        return productTags.data(List.of(tagProfile.tagForOfferingProductName(productTag.get())));
+      }
+    } else {
+      throw new MissingOfferingException(
+          ErrorCode.OFFERING_MISSING_ERROR,
+          Response.Status.NOT_FOUND,
+          String.format("Sku %s not found in Offering", sku),
+          null);
+    }
+    return productTags;
   }
 }
