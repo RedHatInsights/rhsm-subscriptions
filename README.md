@@ -652,6 +652,11 @@ Service that syncs system data from Hosted Candlepin into HBI.
 | capacity-ingress          | platform.rhsm-subscriptions.subscription-prune | swatch-subscriptions-sync           |
 </details>
 
+## BASILISK (placeholder/testing PAYG product)
+
+In order to generate mock data for BASILISK, use `PRODUCT=BASILISK bin/prometheus-mock-data.sh` (this generates mock data into a prometheus process),
+or use `bin/import-events.py --file bin/BASILISK.csv` to import BASILISK data directly in, bypassing prometheus.
+
 ## License
 
 Subscription watch components are licensed GPLv3 (see LICENSE for more details).

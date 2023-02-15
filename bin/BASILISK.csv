@@ -1,0 +1,13 @@
+event_type,account,org_id,instance,timestamp,expiration,role,sla,uom,value,service_type,billing_provider,billing_account_id
+redhat.com:BASILISK:storage_gb,account123,org123,c5mu16smf1c22rn8e730,2021-10-18T19:00:00Z,2021-10-19T19:00:00Z,BASILISK,Premium,Storage-gibibytes,0.2,BASILISK Instance,red hat,dummyId
+redhat.com:BASILISK:storage_gb,account123,org123,c5mu16smf1c22rn8e730,2021-10-18T20:00:00Z,2021-10-19T20:00:00Z,BASILISK,Premium,Storage-gibibytes,0.5,BASILISK Instance,red hat,dummyId
+redhat.com:BASILISK:storage_gb,account123,org123,c5mu16smf1c22rn8e730,2021-10-18T21:00:00Z,2021-10-19T21:00:00Z,BASILISK,Premium,Storage-gibibytes,0.75,BASILISK Instance,red hat,dummyId
+redhat.com:BASILISK:storage_gb,account123,org123,c5mu16smf1c22rn8e730,2021-10-18T22:00:00Z,2021-10-19T22:00:00Z,BASILISK,Premium,Storage-gibibytes,1.5,BASILISK Instance,red hat,dummyId
+redhat.com:BASILISK:cluster_hour,account123,org123,c5mu16smf1c22rn8e730,2021-10-18T19:00:00Z,2021-10-19T19:00:00Z,BASILISK,Premium,Instance-hours,1,BASILISK Instance,red hat,dummyId
+redhat.com:BASILISK:cluster_hour,account123,org123,c5mu16smf1c22rn8e730,2021-10-18T20:00:00Z,2021-10-19T20:00:00Z,BASILISK,Premium,Instance-hours,0,BASILISK Instance,red hat,dummyId
+redhat.com:BASILISK:cluster_hour,account123,org123,c5mu16smf1c22rn8e730,2021-10-18T21:00:00Z,2021-10-19T21:00:00Z,BASILISK,Premium,Instance-hours,1,BASILISK Instance,red hat,dummyId
+redhat.com:BASILISK:cluster_hour,account123,org123,c5mu16smf1c22rn8e730,2021-10-18T22:00:00Z,2021-10-19T22:00:00Z,BASILISK,Premium,Instance-hours,1,BASILISK Instance,red hat,dummyId
+redhat.com:BASILISK:transfer_gb,account123,org123,c5mu16smf1c22rn8e730,2021-10-18T19:00:00Z,2021-10-19T19:00:00Z,BASILISK,Premium,Transfer-gibibytes,1.5,BASILISK Instance,red hat,dummyId
+redhat.com:BASILISK:transfer_gb,account123,org123,c5mu16smf1c22rn8e730,2021-10-18T20:00:00Z,2021-10-19T20:00:00Z,BASILISK,Premium,Transfer-gibibytes,2.5,BASILISK Instance,red hat,dummyId
+redhat.com:BASILISK:transfer_gb,account123,org123,c5mu16smf1c22rn8e730,2021-10-18T21:00:00Z,2021-10-19T21:00:00Z,BASILISK,Premium,Transfer-gibibytes,3.5,BASILISK Instance,red hat,dummyId
+redhat.com:BASILISK:transfer_gb,account123,org123,c5mu16smf1c22rn8e730,2021-10-18T22:00:00Z,2021-10-19T22:00:00Z,BASILISK,Premium,Transfer-gibibytes,2,BASILISK Instance,red hat,dummyId

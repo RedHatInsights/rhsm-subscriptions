@@ -100,5 +100,6 @@
     <include file="liquibase/202301251546-remove-sockets-and-cores-from-hosts-table.xml"/>
     <include file="liquibase/202212161446-add-derived-sku-to-offering.xml"/>
     <include file="liquibase/202301311609-update-tally-instance-view-default-num-of-guest-add-subscription_manager_id.xml"/>
+    <include file="liquibase/202302141154-add-basilisk-product.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
