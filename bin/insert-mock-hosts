@@ -67,8 +67,6 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
             'org_id': org,
             'display_name': display_name or insights_id,
             'subscription_manager_id': subscription_manager_id or uuid.uuid4(),
-            'cores': cores,
-            'sockets': sockets,
             'is_guest': is_guest or False,
             'hypervisor_uuid': hypervisor_uuid or None,
             'hardware_type': hardware_type or 'PHYSICAL',
