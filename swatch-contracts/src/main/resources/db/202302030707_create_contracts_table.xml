@@ -53,7 +53,7 @@
 
     <addForeignKeyConstraint constraintName="fk_contracts"
       baseTableName="contract_metrics" baseColumnNames="contract_uuid"
-      referencedTableName="contracts" referencedColumnNames="uuid"/>
+      referencedTableName="contracts" referencedColumnNames="uuid" deleteCascade="true"/>
 
     <addUniqueConstraint columnNames="contract_uuid, metric_id"
       constraintName="metrics_logicalk" tableName="contract_metrics"/>
