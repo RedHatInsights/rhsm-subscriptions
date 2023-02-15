@@ -728,6 +728,7 @@ objects:
       name: capacity-allowlist
     data:
       product-allowlist.txt: |-
+        BASILISK
         CL110
         CL110A
         CL110IGE
