@@ -14,6 +14,13 @@ objects:
   spec:
     template:
       spec:
+        imagePullSecrets:
+        - name: quay-cloudservices-pull
+        restartPolicy: OnFailure
+        volumes:
+        - name: sel-shm
+          emptyDir:
+            medium: Memory
         containers:
         - name: rhsm-stage-post-deploy-tests-${IMAGE_TAG}-${UID}
           args:
@@ -65,9 +72,6 @@ objects:
                 name: iqe-vault
                 optional: true
           image: ${IQE_IMAGE}
-          imagePullPolicy: Always
-          imagePullSecrets:
-          - quay-cloudservices-pull
           resources:
             limits:
               cpu: "1"
@@ -87,7 +91,7 @@ objects:
               cpu: 150m
               memory: 512Mi
           volumeMounts:
-            - name: shm
+            - name: sel-shm
               mountPath: /dev/shm
 
 
