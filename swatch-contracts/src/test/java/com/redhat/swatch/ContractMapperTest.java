@@ -26,17 +26,16 @@ import com.redhat.swatch.openapi.model.Metric;
 import io.quarkus.test.junit.QuarkusTest;
 import java.time.OffsetDateTime;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
 @QuarkusTest
-public class ContractMapperTest {
+class ContractMapperTest {
 
   private final ContractMapper mapper = Mappers.getMapper(ContractMapper.class);
 
   @Test
-  public void testEntityToDto() {
+  void testEntityToDto() {
 
     var uuid = UUID.randomUUID();
     var startDate = OffsetDateTime.now();
@@ -74,11 +73,11 @@ public class ContractMapperTest {
     // verify size, metric ids, and values
     assertEquals(entity.getMetrics().size(), dto.getMetrics().size());
     assertEquals(
-        entity.getMetrics().stream().map(x -> x.getMetricId()).collect(Collectors.toList()),
-        dto.getMetrics().stream().map(x -> x.getMetricId()).collect(Collectors.toList()));
+        entity.getMetrics().stream().map(ContractMetric::getMetricId).toList(),
+        dto.getMetrics().stream().map(Metric::getMetricId).toList());
     assertEquals(
-        entity.getMetrics().stream().map(x -> x.getValue()).collect(Collectors.toList()),
-        dto.getMetrics().stream().map(x -> x.getValue()).collect(Collectors.toList()));
+        entity.getMetrics().stream().map(ContractMetric::getValue).toList(),
+        dto.getMetrics().stream().map(Metric::getValue).toList());
   }
 
   @Test
@@ -120,11 +119,11 @@ public class ContractMapperTest {
     // verify size, metric ids, and values
     assertEquals(dto.getMetrics().size(), entity.getMetrics().size());
     assertEquals(
-        dto.getMetrics().stream().map(x -> x.getMetricId()).collect(Collectors.toList()),
-        dto.getMetrics().stream().map(x -> x.getMetricId()).collect(Collectors.toList()));
+        dto.getMetrics().stream().map(Metric::getMetricId).toList(),
+        dto.getMetrics().stream().map(Metric::getMetricId).toList());
     assertEquals(
-        dto.getMetrics().stream().map(x -> x.getValue()).collect(Collectors.toList()),
-        dto.getMetrics().stream().map(x -> x.getValue()).collect(Collectors.toList()));
+        dto.getMetrics().stream().map(Metric::getValue).toList(),
+        dto.getMetrics().stream().map(Metric::getValue).toList());
 
     // verify UUID populates in metrics collection
     assertEquals(entity.getUuid(), entity.getMetrics().get(0).getContractUuid());

@@ -21,6 +21,7 @@
 package com.redhat.swatch;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.time.OffsetDateTime;
@@ -45,7 +46,7 @@ class ContractRepositoryTest {
 
   @BeforeAll
   public void setupTestData() {
-    // Contract1
+    // Contract1 with same UUID but different metrics
     actualContract1 = new Contract();
     var uuid = UUID.randomUUID();
     actualContract1.setUuid(uuid);
@@ -71,7 +72,7 @@ class ContractRepositoryTest {
 
     actualContract1.setMetrics(List.of(contractMetric1, contractMetric2));
 
-    // Contract2
+    // Contract2 with same UUID but different metrics
     actualContract2 = new Contract();
     var uuid2 = UUID.randomUUID();
     actualContract2.setUuid(uuid2);
@@ -96,19 +97,18 @@ class ContractRepositoryTest {
     contractMetric4.setValue(10);
 
     actualContract2.setMetrics(List.of(contractMetric3, contractMetric4));
-  }
-
-  @Test
-  void
-      whenValidContractsWithSameUUIDButDifferentMetricsPresent_thenCanPersistAndRetrieveAllContracts() {
 
     contractRepository.persist(actualContract1);
 
     contractRepository.persist(actualContract2);
+  }
+
+  @Test
+  void
+      whenValidContractsWithUUIDButDifferentMetricsPresent_thenCanPersistAndRetrieveAllContracts() {
 
     var queryResults = contractRepository.findAll();
     assertEquals(2, queryResults.stream().count());
-    // System.out.println(queryResults.stream().collect(Collectors.toList()));
     assertEquals(
         1,
         queryResults.stream()
@@ -123,24 +123,41 @@ class ContractRepositoryTest {
             .getUuid());
     assertEquals(2, queryResults.stream().findFirst().get().getMetrics().size());
     assertEquals(
-        actualContract1.getMetrics().get(1),
-        queryResults.stream().findFirst().get().getMetrics().get(1));
+        actualContract1.getMetrics().get(1).getMetricId(),
+        queryResults.stream().findFirst().get().getMetrics().get(1).getMetricId());
+    assertEquals(
+        actualContract1.getMetrics().get(1).getValue(),
+        queryResults.stream().findFirst().get().getMetrics().get(1).getValue());
   }
 
   @Test
-  void whenValidContractPresent_thenCanPersistContractAndRetrieveAndDelete() {
-    contractRepository.persist(actualContract1);
+  void whenValidUUID_thenRetrieveContract() {
+    Contract contract1 = contractRepository.findContract(actualContract1.getUuid());
+    assertEquals(
+        actualContract1.getMetrics().get(1).getValue(), contract1.getMetrics().get(1).getValue());
+    assertEquals(actualContract1.getSubscriptionNumber(), contract1.getSubscriptionNumber());
+  }
 
-    Contract expectedContract = contractRepository.findById(actualContract1.getUuid());
-    assertEquals(actualContract1, expectedContract);
-    contractRepository.deleteById(actualContract1.getUuid());
-    assertNull(contractRepository.findById(actualContract1.getUuid()));
+  @Test
+  void whenValidContractPresent_thenCanRetrieveAndDelete() {
+    Contract expectedContract = contractRepository.findById(actualContract2.getUuid());
+    assertEquals(
+        actualContract2.getMetrics().get(1).getValue(),
+        expectedContract.getMetrics().get(1).getValue());
+    assertEquals(actualContract2.getSubscriptionNumber(), expectedContract.getSubscriptionNumber());
+    contractRepository.deleteById(actualContract2.getUuid());
+    assertNull(contractRepository.findById(actualContract2.getUuid()));
+  }
+
+  @Test
+  void whenInValidContractPresent_thenCannotRetrieveAndDelete() {
+    var uuid = UUID.randomUUID();
+    assertNull(contractRepository.findById(uuid));
+    assertFalse(contractRepository.deleteById(uuid));
   }
 
   @AfterAll
   public void cleanupTestData() {
-    // contractRepository.findAll().stream().forEach(c ->
-    // contractRepository.deleteById(c.getUuid()));
     contractRepository.deleteAll();
   }
 }
