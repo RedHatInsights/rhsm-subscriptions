@@ -34,8 +34,8 @@ import lombok.extern.slf4j.Slf4j;
 @ApplicationScoped
 public class ContractService {
 
-  private ContractRepository contractRepository;
-  private ContractMapper mapper;
+  private final ContractRepository contractRepository;
+  private final ContractMapper mapper;
 
   ContractService(ContractRepository contractRepository, ContractMapper mapper) {
     this.contractRepository = contractRepository;
@@ -69,7 +69,7 @@ public class ContractService {
   public List<com.redhat.swatch.openapi.model.Contract> getContracts(
       Map<String, Object> parameters) {
     return contractRepository.getContracts(parameters).stream()
-        .map(x -> mapper.contractToDto(x))
+        .map(contract -> mapper.contractToDto(contract))
         .toList();
   }
 

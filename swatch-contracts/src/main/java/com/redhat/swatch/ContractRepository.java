@@ -47,8 +47,8 @@ public class ContractRepository implements PanacheRepositoryBase<Contract, UUID>
     }
 
     String query =
-        nonNullParams.entrySet().stream()
-            .map(entry -> entry.getKey() + "=:" + entry.getKey())
+        nonNullParams.keySet().stream()
+            .map(key -> key + "=:" + key)
             .collect(Collectors.joining(" and "));
 
     // TODO make this less ridiculous
@@ -66,7 +66,7 @@ public class ContractRepository implements PanacheRepositoryBase<Contract, UUID>
   }
 
   Contract findContract(UUID uuid) {
-    log.info("bananas");
+    log.info("Find contract by uuid {}", uuid);
     return find("uuid", uuid).firstResult();
   }
 }
