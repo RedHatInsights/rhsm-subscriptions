@@ -1075,6 +1075,7 @@ components:
         - rhosak
         - rhacs
         - rhods
+        - BASILISK
     MetricId:
       type: string
       enum:
