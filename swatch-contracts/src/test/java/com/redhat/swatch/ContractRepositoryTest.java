@@ -25,7 +25,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import javax.inject.Inject;
@@ -44,6 +46,8 @@ class ContractRepositoryTest {
 
   Contract actualContract2;
 
+  List<Contract> contractList;
+
   @BeforeAll
   public void setupTestData() {
     // Contract1 with same UUID but different metrics
@@ -55,7 +59,7 @@ class ContractRepositoryTest {
     actualContract1.setEndDate(OffsetDateTime.now());
     actualContract1.setBillingProvider("test");
     actualContract1.setSku("test");
-    actualContract1.setProductId("test");
+    actualContract1.setProductId("p1");
     actualContract1.setOrgId("org123");
     actualContract1.setLastUpdated(OffsetDateTime.now());
     actualContract1.setSubscriptionNumber("test");
@@ -101,6 +105,8 @@ class ContractRepositoryTest {
     contractRepository.persist(actualContract1);
 
     contractRepository.persist(actualContract2);
+
+    contractList = List.of(actualContract1, actualContract2);
   }
 
   @Test
@@ -136,6 +142,26 @@ class ContractRepositoryTest {
     assertEquals(
         actualContract1.getMetrics().get(1).getValue(), contract1.getMetrics().get(1).getValue());
     assertEquals(actualContract1.getSubscriptionNumber(), contract1.getSubscriptionNumber());
+  }
+
+  @Test
+  void whenGetContractWithEmptyParam_thenReturnAllContracts() {
+    List<Contract> allContracts = contractRepository.getContracts(null);
+    assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
+
+    Map<String, Object> parameters = new HashMap<>();
+    parameters.put("productId", null);
+    allContracts = contractRepository.getContracts(parameters);
+    assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
+  }
+
+  @Test
+  void whenGetContractWithCorrectParam_thenReturnAllContracts() {
+    Map<String, Object> parameters = new HashMap<>();
+    parameters.put("metricId", "instance-hours");
+    // parameters.put("productId", "p1");
+    List<Contract> allContracts = contractRepository.getContracts(parameters);
+    assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
   }
 
   @Test
