@@ -75,6 +75,7 @@ class InstancesResourceTest {
 
     var tallyInstanceView = new TallyInstanceView();
     tallyInstanceView.setKey(new TallyInstanceViewKey());
+    tallyInstanceView.setId("testHostId");
     tallyInstanceView.setDisplayName("rhv.example.com");
     tallyInstanceView.setNumOfGuests(3);
     tallyInstanceView.setLastSeen(OffsetDateTime.now());
@@ -114,7 +115,8 @@ class InstancesResourceTest {
               .orElse(0.0));
     }
     var data = new InstanceData();
-    data.setId(tallyInstanceView.getKey().getInstanceId().toString());
+    data.setId("testHostId");
+    data.setInstanceId(tallyInstanceView.getKey().getInstanceId().toString());
     data.setDisplayName(tallyInstanceView.getDisplayName());
     data.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
     data.setLastSeen(tallyInstanceView.getLastSeen());
@@ -203,7 +205,7 @@ class InstancesResourceTest {
             new PageImpl<>(List.of(tallyInstanceViewPhysical, tallyInstanceViewHypervisor)));
 
     var dataPhysical = new InstanceData();
-    dataPhysical.setId(tallyInstanceViewPhysical.getKey().getInstanceId().toString());
+    dataPhysical.setInstanceId(tallyInstanceViewPhysical.getKey().getInstanceId().toString());
     dataPhysical.setDisplayName(tallyInstanceViewPhysical.getDisplayName());
     dataPhysical.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
     dataPhysical.setLastSeen(tallyInstanceViewPhysical.getLastSeen());
@@ -212,7 +214,7 @@ class InstancesResourceTest {
     dataPhysical.setCategory(ReportCategory.PHYSICAL);
 
     var dataHypervisor = new InstanceData();
-    dataHypervisor.setId(tallyInstanceViewHypervisor.getKey().getInstanceId().toString());
+    dataHypervisor.setInstanceId(tallyInstanceViewHypervisor.getKey().getInstanceId().toString());
     dataHypervisor.setDisplayName(tallyInstanceViewHypervisor.getDisplayName());
     dataHypervisor.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
     dataHypervisor.setLastSeen(tallyInstanceViewHypervisor.getLastSeen());
@@ -297,7 +299,8 @@ class InstancesResourceTest {
               .orElse(0.0));
     }
     var data = new InstanceData();
-    data.setId(tallyInstanceView.getKey().getInstanceId().toString());
+    data.setId(tallyInstanceView.getId());
+    data.setInstanceId(tallyInstanceView.getKey().getInstanceId().toString());
     data.setDisplayName(tallyInstanceView.getDisplayName());
     data.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
     data.setLastSeen(tallyInstanceView.getLastSeen());
