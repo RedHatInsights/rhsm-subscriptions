@@ -21,8 +21,8 @@
 package com.redhat.swatch;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -35,19 +35,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import javax.inject.Inject;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 
 @QuarkusTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class ContractServiceTest {
+class ContractServiceTest extends BaseUnitTest {
   @Inject ContractService contractService;
   @InjectMock ContractRepository contractRepository;
 
   Contract actualContract1;
 
   com.redhat.swatch.openapi.model.Contract contractDto;
+
+  @Captor ArgumentCaptor<Contract> contractArgumentCaptor;
 
   @BeforeAll
   public void setupTestData() {
@@ -99,6 +104,16 @@ class ContractServiceTest {
   }
 
   @Test
+  void testSaveContracts() {
+    com.redhat.swatch.openapi.model.Contract contractResponse =
+        contractService.saveContract(contractDto);
+    verify(contractRepository, times(1)).persist(contractArgumentCaptor.capture());
+    Contract contract = contractArgumentCaptor.getValue();
+    assertEquals(contractDto.getSku(), contract.getSku());
+    assertEquals(contractResponse.getUuid(), contract.getUuid().toString());
+  }
+
+  @Test
   void testGetContracts() {
     when(contractRepository.getContracts(any())).thenReturn((List.of(actualContract1)));
     Map<String, Object> parameters = new HashMap<>();
@@ -113,7 +128,7 @@ class ContractServiceTest {
   @Test
   void testUpdateContract() {
     contractService.updateContract(contractDto);
-    assertTrue(true);
+    verify(contractRepository, times(1)).findContract(actualContract1.getUuid());
   }
 
   @Test
@@ -122,5 +137,10 @@ class ContractServiceTest {
     when(contractRepository.deleteById(uuid)).thenReturn(true);
     contractService.deleteContract(uuid.toString());
     verify(contractRepository).deleteById(uuid);
+  }
+
+  @AfterAll
+  public void cleanupTestData() {
+    contractRepository.deleteAll();
   }
 }
