@@ -16,6 +16,7 @@ pipeline {
                 resourceLimitCpu '6'
                 resourceRequestMemory '2Gi'
                 resourceLimitMemory '6Gi'
+                privileged true
             }
 
             defaultContainer 'openjdk17'
