@@ -408,3 +408,4 @@ tagMetaData:
     defaultSla: PREMIUM
     defaultUsage: PRODUCTION
     billingModel: PAYG
+    contractEnabled: true
