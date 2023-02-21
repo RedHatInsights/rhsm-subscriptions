@@ -79,9 +79,7 @@ class InstancesResourceTest {
     tallyInstanceView.setDisplayName("rhv.example.com");
     tallyInstanceView.setNumOfGuests(3);
     tallyInstanceView.setLastSeen(OffsetDateTime.now());
-    tallyInstanceView
-        .getKey()
-        .setInstanceId(UUID.fromString("d6214a0b-b344-4778-831c-d53dcacb2da3"));
+    tallyInstanceView.getKey().setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
     tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
     tallyInstanceView.getKey().setUom(Measurement.Uom.SOCKETS);
@@ -165,9 +163,7 @@ class InstancesResourceTest {
     tallyInstanceViewPhysical.setDisplayName("rhv.example.com");
     tallyInstanceViewPhysical.setNumOfGuests(3);
     tallyInstanceViewPhysical.setLastSeen(OffsetDateTime.now());
-    tallyInstanceViewPhysical
-        .getKey()
-        .setInstanceId(UUID.fromString("d6214a0b-b344-4778-831c-d53dcacb2da3"));
+    tallyInstanceViewPhysical.getKey().setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
     tallyInstanceViewPhysical.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceViewPhysical.getKey().setMeasurementType(HardwareMeasurementType.PHYSICAL);
     tallyInstanceViewPhysical.getKey().setUom(Measurement.Uom.SOCKETS);
@@ -178,9 +174,7 @@ class InstancesResourceTest {
     tallyInstanceViewHypervisor.setDisplayName("rhv.example.com");
     tallyInstanceViewHypervisor.setNumOfGuests(3);
     tallyInstanceViewHypervisor.setLastSeen(OffsetDateTime.now());
-    tallyInstanceViewHypervisor
-        .getKey()
-        .setInstanceId(UUID.fromString("d6214a0b-b344-4778-831c-d53dcacb2da3"));
+    tallyInstanceViewHypervisor.getKey().setInstanceId("d6214a0bb3444778831cd53dcacb2da3");
     tallyInstanceViewHypervisor.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceViewHypervisor.getKey().setMeasurementType(HardwareMeasurementType.HYPERVISOR);
     tallyInstanceViewHypervisor.getKey().setUom(Measurement.Uom.SOCKETS);
@@ -263,9 +257,7 @@ class InstancesResourceTest {
     tallyInstanceView.setDisplayName("rhv.example.com");
     tallyInstanceView.setNumOfGuests(3);
     tallyInstanceView.setLastSeen(OffsetDateTime.now());
-    tallyInstanceView
-        .getKey()
-        .setInstanceId(UUID.fromString("d6214a0b-b344-4778-831c-d53dcacb2da3"));
+    tallyInstanceView.getKey().setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
     tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.AWS);
     tallyInstanceView.getKey().setUom(Measurement.Uom.CORE_SECONDS);
@@ -363,9 +355,7 @@ class InstancesResourceTest {
     tallyInstanceView.setDisplayName("rhv.example.com");
     tallyInstanceView.setNumOfGuests(3);
     tallyInstanceView.setLastSeen(OffsetDateTime.now());
-    tallyInstanceView
-        .getKey()
-        .setInstanceId(UUID.fromString("d6214a0b-b344-4778-831c-d53dcacb2da3"));
+    tallyInstanceView.getKey().setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
     tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
     tallyInstanceView.getKey().setProductId("RHEL");

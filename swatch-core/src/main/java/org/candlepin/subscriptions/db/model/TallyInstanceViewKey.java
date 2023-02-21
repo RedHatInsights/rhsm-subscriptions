@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.db.model;
 
 import java.io.Serializable;
-import java.util.UUID;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
 import javax.persistence.EnumType;
@@ -43,7 +42,7 @@ import org.candlepin.subscriptions.json.Measurement;
 public class TallyInstanceViewKey implements Serializable {
 
   @Column(name = "instance_id")
-  private UUID instanceId;
+  private String instanceId;
 
   @Column(name = "product_id")
   private String productId;
