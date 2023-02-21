@@ -20,22 +20,13 @@
  */
 package com.redhat.swatch;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;
 
-@QuarkusTest
+@SuppressWarnings("java:S2187") /* Sonar thinks assertion is required */
 class BaseUnitTest {
   @BeforeEach
   void init_mocks() {
     MockitoAnnotations.openMocks(this);
-  }
-
-  @Test
-  void initTest() {
-    assertTrue(true);
   }
 }
