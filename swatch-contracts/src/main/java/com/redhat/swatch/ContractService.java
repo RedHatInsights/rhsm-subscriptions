@@ -68,9 +68,7 @@ public class ContractService {
 
   public List<com.redhat.swatch.openapi.model.Contract> getContracts(
       Map<String, Object> parameters) {
-    return contractRepository.getContracts(parameters).stream()
-        .map(contract -> mapper.contractToDto(contract))
-        .toList();
+    return contractRepository.getContracts(parameters).stream().map(mapper::contractToDto).toList();
   }
 
   @Transactional
@@ -84,10 +82,11 @@ public class ContractService {
     and updating the existing one with end_date = Date.now()
      */
 
-    com.redhat.swatch.Contract contract =
+    com.redhat.swatch.Contract existingContract =
         contractRepository.findContract(UUID.fromString(dto.getUuid()));
 
-    mapper.dtoToContract(dto);
+    var mapped = mapper.dtoToContract(dto);
+    
   }
 
   @Transactional

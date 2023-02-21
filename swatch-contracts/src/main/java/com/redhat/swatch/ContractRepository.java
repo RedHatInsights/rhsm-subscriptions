@@ -46,18 +46,29 @@ public class ContractRepository implements PanacheRepositoryBase<Contract, UUID>
       return listAll();
     }
 
+    var propertiesRequiringJoin = List.of("metricId");
+    var isJoinTableNeeded = nonNullParams.containsKey("metricId");
+
     String query =
         nonNullParams.keySet().stream()
-            .map(key -> key + "=:" + key)
+            .map(
+                key -> {
+                  if (isJoinTableNeeded) {
+                    if (propertiesRequiringJoin.contains(key)) {
+                      return "m." + key + "=:" + key;
+                    } else {
+                      return "c." + key + "=:" + key;
+                    }
+                  }
+
+                  return key + "=:" + key;
+                })
             .collect(Collectors.joining(" and "));
 
-    // TODO make this less ridiculous
-
-    if (nonNullParams.containsKey("metricId")) {
-      query =
-          "select c from Contract c inner join ContractMetric m on c.uuid = m.contractUuid where "
-              + query;
-      query = query.replace("metricId=:", "m.metricId=:");
+    if (isJoinTableNeeded) {
+      var metricTableJoin =
+          "select c from Contract c inner join ContractMetric m on c.uuid = m.contractUuid where ";
+      query = metricTableJoin + query;
     }
 
     log.info("Dynamically generated query: {}", query);

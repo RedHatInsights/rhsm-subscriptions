@@ -21,6 +21,7 @@
 package com.redhat.swatch;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -127,8 +128,11 @@ class ContractServiceTest extends BaseUnitTest {
 
   @Test
   void testUpdateContract() {
+
     contractService.updateContract(contractDto);
     verify(contractRepository, times(1)).findContract(actualContract1.getUuid());
+
+    assertNotEquals(contractDto.getUuid(), null);
   }
 
   @Test

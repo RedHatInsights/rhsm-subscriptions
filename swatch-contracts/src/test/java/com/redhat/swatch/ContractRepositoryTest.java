@@ -161,7 +161,7 @@ class ContractRepositoryTest {
   void whenGetContractWithCorrectParam_thenReturnAllContracts() {
     Map<String, Object> parameters = new HashMap<>();
     parameters.put("metricId", "instance-hours");
-    // parameters.put("productId", "p1");
+    parameters.put("productId", "p1");
     List<Contract> allContracts = contractRepository.getContracts(parameters);
     assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
   }
