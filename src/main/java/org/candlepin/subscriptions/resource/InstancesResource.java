@@ -229,7 +229,8 @@ public class InstancesResource implements InstancesApi {
       boolean isPAYG) {
     var instance = new InstanceData();
     List<Double> measurementList = new ArrayList<>();
-    instance.setId(tallyInstanceView.getKey().getInstanceId().toString());
+    instance.setId(tallyInstanceView.getId());
+    instance.setInstanceId(tallyInstanceView.getKey().getInstanceId().toString());
     instance.setDisplayName(tallyInstanceView.getDisplayName());
     if (Objects.nonNull(tallyInstanceView.getHostBillingProvider())) {
       instance.setBillingProvider(tallyInstanceView.getHostBillingProvider().asOpenApiEnum());
