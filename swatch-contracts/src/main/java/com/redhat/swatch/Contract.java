@@ -23,7 +23,9 @@ package com.redhat.swatch;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import javax.persistence.Basic;
 import javax.persistence.CascadeType;
@@ -34,11 +36,37 @@ import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Entity
+@NoArgsConstructor
 @Table(name = "contracts")
 public class Contract extends PanacheEntityBase {
+
+  public Contract(Contract contract){
+    this.uuid = UUID.randomUUID();
+    this.subscriptionNumber = contract.getSubscriptionNumber();
+    this.lastUpdated = OffsetDateTime.now();
+    this.startDate = contract.getStartDate();
+    this.endDate = contract.getEndDate();
+    this.orgId = contract.getOrgId();
+    this.sku = contract.getSku();
+    this.billingProvider = contract.getBillingProvider();
+    this.billingAccountId = contract.getBillingAccountId();
+    this.productId = contract.getProductId();
+
+    contract.getMetrics().forEach(metric -> {
+
+      ContractMetric newMetric = new ContractMetric();
+      newMetric.setContractUuid(this.uuid);
+      newMetric.setMetricId(metric.getMetricId());
+      newMetric.setValue(metric.getValue());
+      addMetric(newMetric);
+
+    });
+
+  }
 
   @Id
   @Column(name = "uuid", nullable = false)
