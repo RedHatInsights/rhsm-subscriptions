@@ -49,7 +49,53 @@ class ContractsHttpEndpointIntegrationTest {
         .get("/api/swatch-contracts/internal/contracts")
         .then()
         .statusCode(200)
-        .body("size()", is(1));
-    // .body("contracts[0].orgId", is("org123"));
+        .body("size()", is(1))
+        .body("[0].org_id", is("org123"));
+  }
+
+  @Test
+  void whenUpdateContract_thenUpdatedContractShouldBeReturned() {
+    String contract =
+        "{ \"uuid\": \"string\", \"subscription_number\": \"string\", \"sku\": \"string\", "
+            + "\"start_date\": \"2022-03-10T12:15:50-04:00\", \"end_date\": \"2022-03-10T12:15:50-04:00\", "
+            + "\"org_id\": \"string\", \"billing_provider\": \"string\", \"billing_account_id\": \"string\", "
+            + "\"product_id\": \"string\", \"metrics\": [ { \"metric_id\": \"string\", \"value\": 0 } ] }";
+    given()
+        .contentType(ContentType.JSON)
+        .body(contract)
+        .when()
+        .put("/api/swatch-contracts/internal/contracts/1322")
+        .then()
+        .statusCode(204);
+  }
+
+  @Test
+  void whenCreateContract_thenCreatedContractShouldBeReturned() {
+    com.redhat.swatch.openapi.model.Contract newContract =
+        new com.redhat.swatch.openapi.model.Contract();
+    newContract.setOrgId("org123");
+    when(contractService.saveContract(any())).thenReturn(newContract);
+    String contract =
+        "{ \"uuid\": \"string\", \"subscription_number\": \"string\", \"sku\": \"string\", "
+            + "\"start_date\": \"2022-03-10T12:15:50-04:00\", \"end_date\": \"2022-03-10T12:15:50-04:00\", "
+            + "\"org_id\": \"string\", \"billing_provider\": \"string\", \"billing_account_id\": \"string\", "
+            + "\"product_id\": \"string\", \"metrics\": [ { \"metric_id\": \"string\", \"value\": 0 } ] }";
+    given()
+        .contentType(ContentType.JSON)
+        .body(contract)
+        .when()
+        .post("/api/swatch-contracts/internal/contracts")
+        .then()
+        .statusCode(200);
+  }
+
+  @Test
+  void whenDeleteContract_thenSuccess() {
+    given()
+        .contentType(ContentType.JSON)
+        .when()
+        .delete("/api/swatch-contracts/internal/contracts/123")
+        .then()
+        .statusCode(204);
   }
 }
