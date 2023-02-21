@@ -132,14 +132,7 @@ class ContractServiceTest extends BaseUnitTest {
     contractService.updateContract(contractDto);
     verify(contractRepository, times(1)).findContract(actualContract1.getUuid());
 
-
-
-
-
     assertNotEquals(contractDto.getUuid(), null);
-
-
-
   }
 
   @Test

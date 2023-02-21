@@ -23,9 +23,7 @@ package com.redhat.swatch;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import javax.persistence.Basic;
 import javax.persistence.CascadeType;
@@ -44,7 +42,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "contracts")
 public class Contract extends PanacheEntityBase {
 
-  public Contract(Contract contract){
+  public Contract(Contract contract) {
     this.uuid = UUID.randomUUID();
     this.subscriptionNumber = contract.getSubscriptionNumber();
     this.lastUpdated = OffsetDateTime.now();
@@ -56,16 +54,16 @@ public class Contract extends PanacheEntityBase {
     this.billingAccountId = contract.getBillingAccountId();
     this.productId = contract.getProductId();
 
-    contract.getMetrics().forEach(metric -> {
-
-      ContractMetric newMetric = new ContractMetric();
-      newMetric.setContractUuid(this.uuid);
-      newMetric.setMetricId(metric.getMetricId());
-      newMetric.setValue(metric.getValue());
-      addMetric(newMetric);
-
-    });
-
+    contract
+        .getMetrics()
+        .forEach(
+            metric -> {
+              ContractMetric newMetric = new ContractMetric();
+              newMetric.setContractUuid(this.uuid);
+              newMetric.setMetricId(metric.getMetricId());
+              newMetric.setValue(metric.getValue());
+              addMetric(newMetric);
+            });
   }
 
   @Id

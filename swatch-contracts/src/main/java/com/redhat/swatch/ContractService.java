@@ -68,9 +68,7 @@ public class ContractService {
 
   public List<com.redhat.swatch.openapi.model.Contract> getContracts(
       Map<String, Object> parameters) {
-    return contractRepository.getContracts(parameters).stream()
-        .map(mapper::contractToDto)
-        .toList();
+    return contractRepository.getContracts(parameters).stream().map(mapper::contractToDto).toList();
   }
 
   @Transactional
@@ -93,9 +91,6 @@ public class ContractService {
 
     var now = OffsetDateTime.now();
     existingContract.setEndDate(now);
-
-
-
   }
 
   @Transactional
