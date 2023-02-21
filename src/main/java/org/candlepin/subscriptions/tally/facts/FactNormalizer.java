@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.facts;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.Collections;
@@ -48,14 +49,15 @@ public class FactNormalizer {
   private static final Logger log = LoggerFactory.getLogger(FactNormalizer.class);
 
   private final ApplicationClock clock;
-  private final int hostSyncThresholdHours;
+  private final Duration hostSyncThreshold;
   private final Map<Integer, Set<String>> engProductIdToSwatchProductIdsMap;
   private final Map<String, Set<String>> roleToProductsMap;
 
   public FactNormalizer(
       ApplicationProperties props, TagProfile tagProfile, ApplicationClock clock) {
     this.clock = clock;
-    this.hostSyncThresholdHours = props.getHostLastSyncThresholdHours();
+    this.hostSyncThreshold = props.getHostLastSyncThreshold();
+    log.info("rhsm-conduit stale threshold: {}", this.hostSyncThreshold);
     this.engProductIdToSwatchProductIdsMap = tagProfile.getEngProductIdToSwatchProductIdsMap();
     this.roleToProductsMap = tagProfile.getRoleToTagLookup();
   }
@@ -355,6 +357,6 @@ public class FactNormalizer {
     if (lastSync == null) {
       return false;
     }
-    return lastSync.isBefore(clock.now().minusHours(hostSyncThresholdHours));
+    return lastSync.isBefore(clock.now().minus(hostSyncThreshold));
   }
 }
