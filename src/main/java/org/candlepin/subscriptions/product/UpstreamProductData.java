@@ -111,7 +111,9 @@ class UpstreamProductData {
     } catch (ApiException e) {
       throw new ExternalServiceException(
           ErrorCode.REQUEST_PROCESSING_ERROR,
-          "Unable to retrieve upstream offeringSku=\"" + sku + "\"",
+          String.format(
+              "Unable to retrieve upstream offeringSku=\"%s\". API returned status: %s, message: %s, and responseBody: %s",
+              sku, e.getCode(), e.getMessage(), e.getResponseBody()),
           e);
     }
   }
