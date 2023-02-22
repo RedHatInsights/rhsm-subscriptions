@@ -41,7 +41,7 @@ public class ContractMetric extends PanacheEntityBase {
 
   @Id
   @Column(name = "contract_uuid", nullable = false)
-  @org.hibernate.annotations.Type(type = "pg-uuid")
+  // @org.hibernate.annotations.Type(type = "pg-uuid")
   private UUID contractUuid;
 
   @Id

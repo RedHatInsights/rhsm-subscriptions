@@ -68,7 +68,7 @@ public class Contract extends PanacheEntityBase {
 
   @Id
   @Column(name = "uuid", nullable = false)
-  @org.hibernate.annotations.Type(type = "pg-uuid")
+  // @org.hibernate.annotations.Type(type = "pg-uuid")
   private UUID uuid;
 
   @Basic
