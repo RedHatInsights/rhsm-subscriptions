@@ -30,23 +30,18 @@ import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 public class DefaultProductUsageCollector implements ProductUsageCollector {
 
   @Override
-  public Optional<HostTallyBucket> collect(
-      UsageCalculation prodCalc, NormalizedFacts normalizedFacts) {
-    int appliedCores = normalizedFacts.getCores() != null ? normalizedFacts.getCores() : 0;
-    int appliedSockets = normalizedFacts.getSockets() != null ? normalizedFacts.getSockets() : 0;
+  public void collect(UsageCalculation prodCalc, NormalizedFacts normalizedFacts) {
+    int appliedCores = Optional.ofNullable(normalizedFacts.getCores()).orElse(0);
+    int appliedSockets = Optional.ofNullable(normalizedFacts.getSockets()).orElse(0);
 
-    HardwareMeasurementType appliedType = null;
-    // Cloud provider hosts only account for a single socket.
     if (normalizedFacts.getCloudProviderType() != null) {
       appliedSockets = normalizedFacts.isMarketplace() ? 0 : 1;
-      appliedType = normalizedFacts.getCloudProviderType();
       prodCalc.addCloudProvider(
           normalizedFacts.getCloudProviderType(), appliedCores, appliedSockets, 1);
     }
     // Accumulate for physical systems.
     else if (!normalizedFacts.isVirtual()) {
       appliedSockets = normalizedFacts.isMarketplace() ? 0 : appliedSockets;
-      appliedType = HardwareMeasurementType.PHYSICAL;
       prodCalc.addPhysical(appliedCores, appliedSockets, 1);
     }
     // Any other system is considered virtual
@@ -54,18 +49,43 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
       if (normalizedFacts.isMarketplace()) {
         appliedSockets = 0;
       }
+      prodCalc.addVirtual(appliedCores, appliedSockets, 1);
+    }
+  }
+
+  @Override
+  public Optional<HostTallyBucket> buildBucket(
+      UsageCalculation.Key key, NormalizedFacts normalizedFacts) {
+    int appliedCores = Optional.ofNullable(normalizedFacts.getCores()).orElse(0);
+    int appliedSockets = Optional.ofNullable(normalizedFacts.getSockets()).orElse(0);
+
+    HardwareMeasurementType appliedType = null;
+    // Cloud provider hosts only account for a single socket.
+    if (normalizedFacts.getCloudProviderType() != null) {
+      appliedSockets = normalizedFacts.isMarketplace() ? 0 : 1;
+      appliedType = normalizedFacts.getCloudProviderType();
+    }
+    // Accumulate for physical systems.
+    else if (!normalizedFacts.isVirtual()) {
+      appliedSockets = normalizedFacts.isMarketplace() ? 0 : appliedSockets;
+      appliedType = HardwareMeasurementType.PHYSICAL;
+    }
+    // Any other system is considered virtual
+    else {
+      if (normalizedFacts.isMarketplace()) {
+        appliedSockets = 0;
+      }
       appliedType = HardwareMeasurementType.VIRTUAL;
-      prodCalc.addToTotal(appliedCores, appliedSockets, 1);
     }
 
     HostTallyBucket appliedBucket =
         new HostTallyBucket(
             null,
-            prodCalc.getProductId(),
-            prodCalc.getSla(),
-            prodCalc.getUsage(),
-            prodCalc.getBillingProvider(),
-            prodCalc.getBillingAccountId(),
+            key.getProductId(),
+            key.getSla(),
+            key.getUsage(),
+            key.getBillingProvider(),
+            key.getBillingAccountId(),
             true,
             appliedCores,
             appliedSockets,
@@ -75,10 +95,14 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
   }
 
   @Override
-  public Optional<HostTallyBucket> collectForHypervisor(
-      String orgId, UsageCalculation prodCalc, NormalizedFacts hypervisorFacts) {
-
+  public Optional<HostTallyBucket> buildBucketForHypervisor(
+      UsageCalculation.Key key, NormalizedFacts hypervisorFacts) {
     /* do nothing for hypervisor-guest mappings by default */
     return Optional.empty();
+  }
+
+  @Override
+  public void collectForHypervisor(UsageCalculation prodCalc, NormalizedFacts hypervisorFacts) {
+    // Intentionally left blank
   }
 }

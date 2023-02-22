@@ -44,7 +44,7 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.registry.TagProfile;
-import org.candlepin.subscriptions.tally.HypervisorData;
+import org.candlepin.subscriptions.tally.OrgHostsData;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeAll;
@@ -88,8 +88,8 @@ class FactNormalizerTest {
     normalizer = new FactNormalizer(new ApplicationProperties(), tagProfile, clock);
   }
 
-  private HypervisorData hypervisorData() {
-    return new HypervisorData("Dummy Org");
+  private OrgHostsData hypervisorData() {
+    return new OrgHostsData("Dummy Org");
   }
 
   @Test
@@ -341,7 +341,7 @@ class FactNormalizerTest {
     hypervisor.setSystemProfileCoresPerSocket(4);
     hypervisor.setSystemProfileSockets(3);
 
-    HypervisorData guestData = hypervisorData();
+    OrgHostsData guestData = hypervisorData();
     guestData.addHostMapping(hypervisor.getSubscriptionManagerId(), null);
 
     NormalizedFacts normalized = normalizer.normalize(hypervisor, guestData);
@@ -368,7 +368,7 @@ class FactNormalizerTest {
     guestFacts.setSystemProfileSockets(3);
     assertTrue(guestFacts.isVirtual());
 
-    HypervisorData guestData = hypervisorData();
+    OrgHostsData guestData = hypervisorData();
     guestData.addHostMapping(guestFacts.getHypervisorUuid(), guestFacts.getHypervisorUuid());
 
     NormalizedFacts normalized = normalizer.normalize(guestFacts, guestData);
@@ -397,7 +397,7 @@ class FactNormalizerTest {
     facts.setSystemProfileSockets(3);
     assertFalse(facts.isVirtual());
 
-    HypervisorData guestData = hypervisorData();
+    OrgHostsData guestData = hypervisorData();
     guestData.addHostMapping(facts.getSubscriptionManagerId(), facts.getSubscriptionManagerId());
 
     NormalizedFacts normalized = normalizer.normalize(facts, guestData);
@@ -415,7 +415,7 @@ class FactNormalizerTest {
     facts.setSystemProfileSockets(3);
     assertTrue(facts.isVirtual());
 
-    HypervisorData guestData = hypervisorData();
+    OrgHostsData guestData = hypervisorData();
     guestData.addHostMapping(facts.getHypervisorUuid(), facts.getHypervisorUuid());
 
     NormalizedFacts normalized = normalizer.normalize(facts, guestData);
@@ -487,7 +487,7 @@ class FactNormalizerTest {
   void testGuestWithMappedHypervisorClassification() {
     InventoryHostFacts guestWithMappedHypervisor = createGuest("mapped-hyp-id", "A1", "O1", 1);
 
-    HypervisorData guestData = hypervisorData();
+    OrgHostsData guestData = hypervisorData();
     guestData.addHostMapping(
         guestWithMappedHypervisor.getHypervisorUuid(),
         guestWithMappedHypervisor.getHypervisorUuid());
@@ -500,7 +500,7 @@ class FactNormalizerTest {
   void testGuestWithUnmappedHypervisorClassification() {
     InventoryHostFacts guestWithMappedHypervisor = createGuest("mapped-hyp-id", "A1", "O1", 1);
 
-    HypervisorData guestData = hypervisorData();
+    OrgHostsData guestData = hypervisorData();
     guestData.addHostMapping(guestWithMappedHypervisor.getHypervisorUuid(), null);
 
     NormalizedFacts facts = normalizer.normalize(guestWithMappedHypervisor, guestData);
@@ -513,7 +513,7 @@ class FactNormalizerTest {
     guestWithMappedHypervisor.setHypervisorUuid(null);
     guestWithMappedHypervisor.setSatelliteHypervisorUuid("mapped-hyp-id");
 
-    HypervisorData guestData = hypervisorData();
+    OrgHostsData guestData = hypervisorData();
     guestData.addHostMapping(guestWithMappedHypervisor.getSatelliteHypervisorUuid(), null);
 
     NormalizedFacts facts = normalizer.normalize(guestWithMappedHypervisor, guestData);
@@ -533,7 +533,7 @@ class FactNormalizerTest {
     InventoryHostFacts hypervisor = createHypervisor("A1", "O1", 1);
     hypervisor.setSystemProfileCoresPerSocket(4);
     hypervisor.setSystemProfileSockets(3);
-    HypervisorData guestData = hypervisorData();
+    OrgHostsData guestData = hypervisorData();
     guestData.addHostMapping(
         hypervisor.getSubscriptionManagerId(), hypervisor.getSubscriptionManagerId());
     NormalizedFacts facts = normalizer.normalize(hypervisor, guestData);
@@ -543,7 +543,7 @@ class FactNormalizerTest {
   @Test
   void testHypervisorClassificationWhenUnmapped() {
     InventoryHostFacts hypervisor = createHypervisor("A1", "O1", 1);
-    HypervisorData guestData = hypervisorData();
+    OrgHostsData guestData = hypervisorData();
     guestData.addHostMapping(hypervisor.getSubscriptionManagerId(), null);
 
     NormalizedFacts facts = normalizer.normalize(hypervisor, guestData);
