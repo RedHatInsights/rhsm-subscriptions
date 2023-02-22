@@ -189,7 +189,7 @@ public abstract class InventoryService {
   private void setOperatingSystemVersion(
       HbiSystemProfileOperatingSystem operatingSystem, String operatingSystemVersion) {
     var versions = operatingSystemVersion.split("\\.");
-    if (versions.length == 2) {
+    if (versions.length >= 2) {
       operatingSystem.setMajor(Integer.parseInt(versions[0]));
       operatingSystem.setMinor(Integer.parseInt(versions[1]));
     } else if (versions.length == 1 && !versions[0].isBlank()) {
