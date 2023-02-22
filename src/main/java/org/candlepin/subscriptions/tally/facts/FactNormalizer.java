@@ -357,6 +357,8 @@ public class FactNormalizer {
     if (lastSync == null) {
       return false;
     }
-    return lastSync.isBefore(clock.now().minus(hostSyncThreshold));
+    // NOTE: sync threshold is relative to conduit schedule - i.e. midnight UTC
+    // otherwise the sync threshold would be offset by the tally schedule, which would be confusing
+    return lastSync.isBefore(clock.startOfToday().minus(hostSyncThreshold));
   }
 }
