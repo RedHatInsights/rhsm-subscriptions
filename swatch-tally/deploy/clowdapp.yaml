@@ -153,10 +153,14 @@ parameters:
     value: 'false'
   - name: TALLY_MAX_HBI_ACCOUNT_SIZE
     value: '2147483647'  # Integer.MAX_VALUE by default
+  - name: HBI_RECONCILIATION_FLUSH_INTERVAL
+    value: '1024'
   - name: MACHINE_POOL
     value: '' # don't restrict to a specific machine pool by default
   - name: JOB_MACHINE_POOL
     value: ''
+  - name: LEGACY_NIGHTLY_TALLY_ENABLED
+    value: 'false'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -387,6 +391,10 @@ objects:
               value: ${ENABLE_SYNCHRONOUS_OPERATIONS}
             - name: TALLY_MAX_HBI_ACCOUNT_SIZE
               value: ${TALLY_MAX_HBI_ACCOUNT_SIZE}
+            - name: LEGACY_NIGHTLY_TALLY_ENABLED
+              value: ${LEGACY_NIGHTLY_TALLY_ENABLED}
+            - name: HBI_RECONCILIATION_FLUSH_INTERVAL
+              value: ${HBI_RECONCILIATION_FLUSH_INTERVAL}
           livenessProbe:
             failureThreshold: 3
             httpGet:

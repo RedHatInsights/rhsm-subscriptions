@@ -25,6 +25,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.ApplicationProperties;
@@ -106,28 +107,27 @@ public class TallySnapshotController {
 
     String account = accountRepo.findAccountNumberByOrgId(orgId);
     log.info("Producing snapshots for Org ID {} with Account {}.", orgId, account);
+
     AccountUsageCalculation accountCalc;
     try {
-      accountCalc =
-          retryTemplate.execute(
-              context -> {
-                try {
-                  return usageCollector.collect(this.applicableProducts, account, orgId);
-                } catch (SystemThresholdException e) {
-                  log.warn(e.getMessage());
-                  return null;
-                }
-              });
+      if (props.isLegacyNightlyTallyEnabled()) {
+        Optional<AccountUsageCalculation> optAccountCalc = performLegacyTally(orgId, account);
+
+        // If no calculation is returned (system threshold reached), abort the tally.
+        if (optAccountCalc.isEmpty()) {
+          return;
+        }
+        accountCalc = optAccountCalc.get();
+      } else {
+        accountCalc = performTally(orgId);
+      }
+
       if (props.isCloudigradeEnabled()) {
         attemptCloudigradeEnrichment(accountCalc);
       }
     } catch (Exception e) {
       log.error(
           "Could not collect existing usage snapshots for orgId={} account={}", orgId, account, e);
-      return;
-    }
-
-    if (accountCalc == null) { // accountCalc is null when the threshold is breached
       return;
     }
 
@@ -221,5 +221,32 @@ public class TallySnapshotController {
 
     var calculatedProducts = usageCalculations.getValue().getProducts();
     return calculatedProducts.stream().anyMatch(tagProfile::isProductPAYGEligible);
+  }
+
+  @SuppressWarnings("java:S1874")
+  private Optional<AccountUsageCalculation> performLegacyTally(String orgId, String account) {
+    OrgHostsData orgHostsData =
+        retryTemplate.execute(
+            context -> {
+              try {
+                return usageCollector.collect(this.applicableProducts, account, orgId);
+              } catch (SystemThresholdException e) {
+                log.warn(e.getMessage());
+                return null;
+              }
+            });
+    if (Objects.isNull(orgHostsData)) { // orgHostsData is null when the threshold is breached
+      return Optional.empty();
+    }
+    return Optional.of(usageCollector.tally(this.applicableProducts, orgHostsData));
+  }
+
+  private AccountUsageCalculation performTally(String orgId) {
+    retryTemplate.execute(
+        context -> {
+          usageCollector.reconcileSystemDataWithHbi(orgId, this.applicableProducts);
+          return null;
+        });
+    return usageCollector.tally(orgId);
   }
 }

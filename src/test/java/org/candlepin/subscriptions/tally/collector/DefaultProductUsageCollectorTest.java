@@ -24,6 +24,7 @@ import static org.candlepin.subscriptions.tally.collector.Assertions.assertHardw
 import static org.candlepin.subscriptions.tally.collector.Assertions.assertNullExcept;
 import static org.candlepin.subscriptions.tally.collector.Assertions.assertPhysicalTotalsCalculation;
 import static org.candlepin.subscriptions.tally.collector.Assertions.assertTotalsCalculation;
+import static org.candlepin.subscriptions.tally.collector.Assertions.assertVirtualTotalsCalculation;
 import static org.candlepin.subscriptions.tally.collector.TestHelper.cloudMachineFacts;
 import static org.candlepin.subscriptions.tally.collector.TestHelper.guestFacts;
 import static org.candlepin.subscriptions.tally.collector.TestHelper.hypervisorFacts;
@@ -67,10 +68,9 @@ class DefaultProductUsageCollectorTest {
     UsageCalculation calc = new UsageCalculation(createUsageKey());
     collector.collect(calc, facts);
 
-    // A guest with a known hypervisor contributes to the overall totals,
-    // but does not contribute to the hypervisor or physical totals.
+    assertVirtualTotalsCalculation(calc, 3, 12, 1);
     assertTotalsCalculation(calc, 3, 12, 1);
-    assertNullExcept(calc, HardwareMeasurementType.TOTAL);
+    assertNullExcept(calc, HardwareMeasurementType.VIRTUAL, HardwareMeasurementType.TOTAL);
   }
 
   @Test
@@ -80,10 +80,9 @@ class DefaultProductUsageCollectorTest {
     UsageCalculation calc = new UsageCalculation(createUsageKey());
     collector.collect(calc, facts);
 
-    // A guest with an unknown hypervisor contributes to the overall totals
-    // but does not contribute to the hypervisor or physical totals.
+    assertVirtualTotalsCalculation(calc, 3, 12, 1);
     assertTotalsCalculation(calc, 3, 12, 1);
-    assertNullExcept(calc, HardwareMeasurementType.TOTAL);
+    assertNullExcept(calc, HardwareMeasurementType.VIRTUAL, HardwareMeasurementType.TOTAL);
   }
 
   @Test

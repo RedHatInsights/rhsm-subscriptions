@@ -29,6 +29,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.candlepin.subscriptions.tally.UsageCalculation;
 
 /** An embeddable composite key for a host bucket. */
 @Embeddable
@@ -64,12 +65,22 @@ public class HostBucketKey implements Serializable {
       BillingProvider billingProvider,
       String billingAccountId,
       Boolean asHypervisor) {
-    this.hostId = host == null ? null : host.getId();
+    this.hostId = (host == null) ? null : host.getId();
     this.productId = productId;
     this.sla = sla;
     this.usage = usage;
     this.billingProvider = billingProvider;
     this.billingAccountId = billingAccountId;
+    this.asHypervisor = asHypervisor;
+  }
+
+  public HostBucketKey(Host host, UsageCalculation.Key key, Boolean asHypervisor) {
+    this.hostId = (host == null) ? null : host.getId();
+    this.productId = key.getProductId();
+    this.sla = key.getSla();
+    this.usage = key.getUsage();
+    this.billingProvider = key.getBillingProvider();
+    this.billingAccountId = key.getBillingAccountId();
     this.asHypervisor = asHypervisor;
   }
 
