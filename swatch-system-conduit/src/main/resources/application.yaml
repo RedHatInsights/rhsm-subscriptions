@@ -23,7 +23,7 @@ rhsm-conduit:
   inventory-service:
     use-stub: ${INVENTORY_USE_STUB:true}
     api-key: ${INVENTORY_API_KEY:changeit}
-    host-last-sync-threshold: ${INVENTORY_HOST_LAST_SYNC_THRESHOLD:24h}
+    host-last-sync-threshold: ${HOST_LAST_SYNC_THRESHOLD:24h}
     add-uuid-hyphens: ${INVENTORY_ADD_UUID_HYPHENS:false}
     # FIXME: misnamed, it's actually in hours
     stale-host-offset-in-days: ${INVENTORY_STALE_HOST_OFFSET_HOURS:48}
