@@ -241,7 +241,7 @@ RHSM_RBAC_USE_STUB=true ./gradlew bootRun
 * `PATH_PREFIX`: path prefix in the URLs (default: api)
 * `INVENTORY_USE_STUB`: Use stubbed inventory REST API
 * `INVENTORY_API_KEY`: API key for inventory service
-* `INVENTORY_HOST_LAST_SYNC_THRESHOLD`: reject hosts that haven't checked in since this duration (e.g. 24h)
+* `HOST_LAST_SYNC_THRESHOLD`: reject hosts that haven't checked in since this duration (e.g. 24h)
 * `INVENTORY_DATABASE_HOST`: inventory DB host
 * `INVENTORY_DATABASE_DATABASE`: inventory DB database
 * `INVENTORY_DATABASE_USERNAME`: inventory DB user
