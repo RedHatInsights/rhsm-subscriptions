@@ -136,7 +136,10 @@ class ContractRepositoryTest {
     assertEquals(2, queryResults.stream().findFirst().get().getMetrics().size());
     assertEquals(
         actualContract1.getMetrics().stream().toList().get(1).getMetricId(),
-        queryResults.stream().findFirst().get().getMetrics().stream().toList().get(1).getMetricId());
+        queryResults.stream().findFirst().get().getMetrics().stream()
+            .toList()
+            .get(1)
+            .getMetricId());
     assertEquals(
         actualContract1.getMetrics().stream().toList().get(1).getValue(),
         queryResults.stream().findFirst().get().getMetrics().stream().toList().get(1).getValue());
@@ -146,7 +149,8 @@ class ContractRepositoryTest {
   void whenValidUUID_thenRetrieveContract() {
     Contract contract1 = contractRepository.findContract(actualContract1.getUuid());
     assertEquals(
-        actualContract1.getMetrics().stream().toList().get(1).getValue(), contract1.getMetrics().stream().toList().get(1).getValue());
+        actualContract1.getMetrics().stream().toList().get(1).getValue(),
+        contract1.getMetrics().stream().toList().get(1).getValue());
     assertEquals(actualContract1.getSubscriptionNumber(), contract1.getSubscriptionNumber());
   }
 

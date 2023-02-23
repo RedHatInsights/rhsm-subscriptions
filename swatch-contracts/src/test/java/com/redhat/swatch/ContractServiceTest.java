@@ -150,10 +150,10 @@ class ContractServiceTest extends BaseUnitTest {
     var expected = com.redhat.swatch.Contract.builder().build();
     var actual = contractService.createContractForLogicalUpdate(dto);
 
-    //new.uuid != old.uuid
-    //new.uuid == new.metrics[].uuid
-    //new.endDate == null
-    //new.startDate == old.endDate
+    // new.uuid != old.uuid
+    // new.uuid == new.metrics[].uuid
+    // new.endDate == null
+    // new.startDate == old.endDate
     assertEquals(expected, actual);
   }
 

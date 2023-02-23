@@ -99,7 +99,7 @@ public class ContractService {
     newRecord.persist();
   }
 
-   com.redhat.swatch.Contract createContractForLogicalUpdate(Contract dto) {
+  com.redhat.swatch.Contract createContractForLogicalUpdate(Contract dto) {
     var newUuid = UUID.randomUUID();
     var newRecord = mapper.dtoToContract(dto);
     newRecord.setUuid(newUuid);
