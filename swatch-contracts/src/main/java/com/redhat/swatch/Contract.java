@@ -22,8 +22,8 @@ package com.redhat.swatch;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import javax.persistence.Basic;
 import javax.persistence.CascadeType;
@@ -33,16 +33,21 @@ import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Entity
 @Table(name = "contracts")
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class Contract extends PanacheEntityBase {
 
   @Id
   @Column(name = "uuid", nullable = false)
-  // @org.hibernate.annotations.Type(type = "pg-uuid")
   private UUID uuid;
 
   @Basic
@@ -86,7 +91,7 @@ public class Contract extends PanacheEntityBase {
       cascade = CascadeType.ALL,
       fetch = FetchType.LAZY,
       mappedBy = "contract")
-  private List<ContractMetric> metrics = new ArrayList<>();
+  private Set<ContractMetric> metrics = new HashSet<>();
 
   public void addMetric(ContractMetric metric) {
     metrics.add(metric);

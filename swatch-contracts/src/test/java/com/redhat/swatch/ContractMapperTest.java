@@ -126,6 +126,7 @@ class ContractMapperTest {
         dto.getMetrics().stream().map(Metric::getValue).toList());
 
     // verify UUID populates in metrics collection
-    assertEquals(entity.getUuid(), entity.getMetrics().get(0).getContractUuid());
+    assertEquals(
+        entity.getUuid(), entity.getMetrics().stream().findFirst().get().getContractUuid());
   }
 }
