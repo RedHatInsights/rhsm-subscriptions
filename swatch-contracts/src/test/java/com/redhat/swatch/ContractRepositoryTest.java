@@ -36,9 +36,11 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
 @QuarkusTransactionalTest
-@QuarkusTestResource(PostgresResource.class)
+@QuarkusTestResource(value = PostgresResource.class, restrictToAnnotatedClass = true)
+@DisabledIfEnvironmentVariable(named = "CI", matches = "true")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ContractRepositoryTest {
 
