@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.junit.QuarkusTest;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -38,8 +38,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
+@QuarkusTest
 @QuarkusTransactionalTest
-@QuarkusTestResource(value = PostgresResource.class, restrictToAnnotatedClass = true)
+// @QuarkusTestResource(value = PostgresResource.class, restrictToAnnotatedClass = true)
 @DisabledIfEnvironmentVariable(named = "CI", matches = "true")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ContractRepositoryTest {

@@ -86,7 +86,6 @@ public class ContractService {
         contractRepository.findContract(UUID.fromString(dto.getUuid()));
 
     var mapped = mapper.dtoToContract(dto);
-    
   }
 
   @Transactional
