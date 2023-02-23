@@ -58,6 +58,7 @@ public class RhsmService {
       RhsmApi api,
       @Qualifier("rhsmRetryTemplate") RetryTemplate retryTemplate) {
     this.hostCheckinThreshold = inventoryServiceProperties.getHostLastSyncThreshold();
+    log.info("rhsm-conduit stale threshold: {}", hostCheckinThreshold);
     this.batchSize = apiProperties.getRequestBatchSize();
     this.api = api;
     this.retryTemplate = retryTemplate;

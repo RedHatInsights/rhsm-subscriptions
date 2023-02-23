@@ -63,7 +63,7 @@ public class ApplicationProperties {
    * outdated. The host's rhsm.SYNC_TIMESTAMP fact is checked against this threshold. The default is
    * 24 hours.
    */
-  private int hostLastSyncThresholdHours = 24;
+  private Duration hostLastSyncThreshold = Duration.ofHours(24);
 
   /**
    * The batch size of account numbers that will be processed at a time while producing snapshots.

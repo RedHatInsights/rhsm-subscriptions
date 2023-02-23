@@ -95,6 +95,8 @@ parameters:
     value: '3'
   - name: KAFKA_HOST_INGRESS_PARTITIONS
     value: '3'
+  - name: HOST_LAST_SYNC_THRESHOLD
+    value: '30h'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -227,6 +229,8 @@ objects:
               value: ${KAFKA_SEEK_OVERRIDE_END}
             - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
               value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
+            - name: HOST_LAST_SYNC_THRESHOLD
+              value: ${HOST_LAST_SYNC_THRESHOLD}
             - name: DATABASE_HOST
               valueFrom:
                 secretKeyRef:
