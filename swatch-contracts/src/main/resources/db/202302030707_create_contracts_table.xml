@@ -46,7 +46,7 @@
       <column name="metric_id" type="VARCHAR">
         <constraints nullable="false"/>
       </column>
-      <column name="value" type="double precision">
+      <column name="metric_value" type="double precision">
         <constraints nullable="false"/>
       </column>
     </createTable>

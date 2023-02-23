@@ -49,7 +49,7 @@ public class ContractMetric extends PanacheEntityBase {
   private String metricId;
 
   @Id
-  @Column(name = "value", nullable = false)
+  @Column(name = "metric_value", nullable = false)
   private int value;
 
   @Exclude
