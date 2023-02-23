@@ -5,20 +5,41 @@ pipeline {
     }
     agent {
         kubernetes {
-            label 'swatch-17' // this value + unique identifier becomes the pod name
-            idleMinutes 5  // how long the pod will live after no jobs have run on it
-            containerTemplate {
-                name 'openjdk17'
-                image 'registry.access.redhat.com/ubi9/openjdk-17'
-                command 'sleep'
-                args '99d'
-                resourceRequestCpu '2'
-                resourceLimitCpu '6'
-                resourceRequestMemory '2Gi'
-                resourceLimitMemory '6Gi'
-            }
-
+            podRetention never()
             defaultContainer 'openjdk17'
+            yaml '''
+              apiVersion: v1
+              kind: Pod
+              spec:
+                containers:
+                - name: openjdk17
+                  image: registry.access.redhat.com/ubi9/openjdk-17
+                  command: [sleep]
+                  args: [99d]
+                  resources:
+                          limits:
+                                  cpu: 6
+                                  memory: 6Gi
+                          requests:
+                                  cpu: 6
+                                  memory: 6Gi
+                - name: database
+                  image: quay.io/cloudservices/postgresql-rds:12-1
+                  env:
+                    - name: POSTGRESQL_USER
+                      value: rhsm-subscriptions
+                    - name: POSTGRESQL_PASSWORD
+                      value: rhsm-subscriptions
+                    - name: POSTGRESQL_DATABASE
+                      value: rhsm-subscriptions
+                  resources:
+                          limits:
+                                  cpu: 2
+                                  memory: 2Gi
+                          requests:
+                                  cpu: 1
+                                  memory: 1Gi
+              '''
         }
     }
     stages {
