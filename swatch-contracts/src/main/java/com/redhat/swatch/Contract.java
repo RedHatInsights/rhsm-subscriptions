@@ -34,37 +34,11 @@ import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
 @Entity
-@NoArgsConstructor
 @Table(name = "contracts")
 public class Contract extends PanacheEntityBase {
-
-  public Contract(Contract contract) {
-    this.uuid = UUID.randomUUID();
-    this.subscriptionNumber = contract.getSubscriptionNumber();
-    this.lastUpdated = OffsetDateTime.now();
-    this.startDate = contract.getStartDate();
-    this.endDate = contract.getEndDate();
-    this.orgId = contract.getOrgId();
-    this.sku = contract.getSku();
-    this.billingProvider = contract.getBillingProvider();
-    this.billingAccountId = contract.getBillingAccountId();
-    this.productId = contract.getProductId();
-
-    contract
-        .getMetrics()
-        .forEach(
-            metric -> {
-              ContractMetric newMetric = new ContractMetric();
-              newMetric.setContractUuid(this.uuid);
-              newMetric.setMetricId(metric.getMetricId());
-              newMetric.setValue(metric.getValue());
-              addMetric(newMetric);
-            });
-  }
 
   @Id
   @Column(name = "uuid", nullable = false)

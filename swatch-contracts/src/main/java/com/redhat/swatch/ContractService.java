@@ -85,12 +85,8 @@ public class ContractService {
     com.redhat.swatch.Contract existingContract =
         contractRepository.findContract(UUID.fromString(dto.getUuid()));
 
-    var newContractRecord = new com.redhat.swatch.Contract(existingContract);
-
     var mapped = mapper.dtoToContract(dto);
-
-    var now = OffsetDateTime.now();
-    existingContract.setEndDate(now);
+    
   }
 
   @Transactional
