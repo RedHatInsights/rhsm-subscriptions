@@ -30,13 +30,19 @@ import javax.persistence.IdClass;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.ToString.Exclude;
 
 @Data
 @Entity
 @IdClass(ContractMetricId.class)
 @Table(name = "contract_metrics")
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class ContractMetric extends PanacheEntityBase {
 
   @Id

@@ -85,7 +85,32 @@ public class ContractService {
     com.redhat.swatch.Contract existingContract =
         contractRepository.findContract(UUID.fromString(dto.getUuid()));
 
-    var mapped = mapper.dtoToContract(dto);
+    var now = OffsetDateTime.now();
+
+    if (Objects.nonNull(existingContract)) {
+
+      existingContract.setEndDate(now);
+      existingContract.setLastUpdated(now);
+    }
+
+    com.redhat.swatch.Contract newRecord = createContractForLogicalUpdate(dto);
+
+    existingContract.persist();
+    newRecord.persist();
+  }
+
+   com.redhat.swatch.Contract createContractForLogicalUpdate(Contract dto) {
+    var newUuid = UUID.randomUUID();
+    var newRecord = mapper.dtoToContract(dto);
+    newRecord.setUuid(newUuid);
+    newRecord.setEndDate(null);
+    newRecord.getMetrics().stream()
+        .forEach(
+            metric -> {
+              metric.setContractUuid(newUuid);
+              metric.setContract(newRecord);
+            });
+    return newRecord;
   }
 
   @Transactional

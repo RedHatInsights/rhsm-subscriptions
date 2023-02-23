@@ -33,6 +33,7 @@ import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import javax.inject.Inject;
 import org.junit.jupiter.api.AfterAll;
@@ -79,7 +80,7 @@ class ContractServiceTest extends BaseUnitTest {
     contractMetric2.setMetricId("cpu-hours");
     contractMetric2.setValue(4);
 
-    actualContract1.setMetrics(List.of(contractMetric1, contractMetric2));
+    actualContract1.setMetrics(Set.of(contractMetric1, contractMetric2));
 
     contractDto = new com.redhat.swatch.openapi.model.Contract();
     contractDto.setUuid(uuid.toString());
@@ -140,6 +141,20 @@ class ContractServiceTest extends BaseUnitTest {
     when(contractRepository.deleteById(uuid)).thenReturn(true);
     contractService.deleteContract(uuid.toString());
     verify(contractRepository).deleteById(uuid);
+  }
+
+  @Test
+  void testCreateContractForLogicalUpdate() {
+    var dto = new com.redhat.swatch.openapi.model.Contract();
+
+    var expected = com.redhat.swatch.Contract.builder().build();
+    var actual = contractService.createContractForLogicalUpdate(dto);
+
+    //new.uuid != old.uuid
+    //new.uuid == new.metrics[].uuid
+    //new.endDate == null
+    //new.startDate == old.endDate
+    assertEquals(expected, actual);
   }
 
   @AfterAll
