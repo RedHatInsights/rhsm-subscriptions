@@ -48,7 +48,7 @@ public class ContractService {
 
     // temporary...forcing new UUID to work on the create case
     contract.setUuid(null);
-    //    entity.setUuid(null);
+
     var uuid = Objects.requireNonNullElse(contract.getUuid(), UUID.randomUUID().toString());
     contract.setUuid(uuid);
 
@@ -82,10 +82,9 @@ public class ContractService {
     and updating the existing one with end_date = Date.now()
      */
 
-    com.redhat.swatch.Contract existingContract =
-        contractRepository.findContract(UUID.fromString(dto.getUuid()));
+    contractRepository.findContract(UUID.fromString(dto.getUuid()));
 
-    var mapped = mapper.dtoToContract(dto);
+    mapper.dtoToContract(dto);
   }
 
   @Transactional
