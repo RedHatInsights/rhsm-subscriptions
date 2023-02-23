@@ -143,6 +143,7 @@ public class TagProfile {
     if (StringUtils.hasText(tagMetaData.getServiceType())) {
       serviceTypes.add(tagMetaData.getServiceType());
     }
+    validateTagMetaData(tagMetaData);
     tagMetaData
         .getTags()
         .forEach(
@@ -150,6 +151,15 @@ public class TagProfile {
               tagMetaDataToTagLookup.put(tag, tagMetaData);
               finestGranularityLookup.put(tag, tagMetaData.getFinestGranularity());
             });
+  }
+
+  private void validateTagMetaData(TagMetaData tagMetaData) {
+    if (tagMetaData.isContractEnabled() && !"PAYG".equals(tagMetaData.getBillingModel())) {
+      throw new IllegalStateException(
+          String.format(
+              "A tag can only be configured as contractEnabled if billingModel=PAYG. %s",
+              tagMetaData));
+    }
   }
 
   public boolean tagSupportsEngProduct(String tag, String engId) {
@@ -314,6 +324,15 @@ public class TagProfile {
       return StringUtils.hasText(billingModel) && "PAYG".equalsIgnoreCase(billingModel);
     }
 
+    return false;
+  }
+
+  public boolean isTagContractEnabled(String productTag) {
+    var tagMeta = this.getTagMetaDataByTag(productTag);
+    if (tagMeta.isPresent()) {
+      String billingModel = tagMeta.get().getBillingModel();
+      return tagMeta.get().isContractEnabled() && "PAYG".equalsIgnoreCase(billingModel);
+    }
     return false;
   }
 }

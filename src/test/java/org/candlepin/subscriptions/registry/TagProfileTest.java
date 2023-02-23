@@ -52,9 +52,11 @@ class TagProfileTest {
   private static final String OPENSHIFT_DEDICATED_TAG = "OpenShift-dedicated-metrics";
   public static final String OPENSHIFT_TAG = "OpenShift-metrics";
   public static final String RHOSAK_TAG = "rhosak";
+  public static final String BASILISK_TAG = "BASILISK";
 
   private static final String OPENSHIFT_CLUSTER_ST = "OpenShift Cluster";
   private static final String KAFKA_CLUSTER_ST = "Kafka Cluster";
+  public static final String BASILISK_ST = "BASILISK Instance";
   public static final String BILLING_MODEL_PAYG = "PAYG";
 
   private TagProfile tagProfile;
@@ -103,6 +105,13 @@ class TagProfileTest {
             .metricId("m_ihours")
             .queryParams(params)
             .build());
+    tagMetrics.add(
+        TagMetric.builder()
+            .tag(BASILISK_TAG)
+            .uom(Uom.INSTANCE_HOURS)
+            .metricId("b_instance_hours")
+            .queryParams(params)
+            .build());
 
     TagMetaData openshiftClusterMetaData =
         TagMetaData.builder()
@@ -124,11 +133,22 @@ class TagProfileTest {
             .billingModel(BILLING_MODEL_PAYG)
             .build();
 
+    TagMetaData basiliskMetaData =
+        TagMetaData.builder()
+            .tags(Set.of(BASILISK_TAG))
+            .serviceType(BASILISK_ST)
+            .finestGranularity(Granularity.HOURLY)
+            .defaultSla(ServiceLevel.PREMIUM)
+            .defaultUsage(Usage.PRODUCTION)
+            .billingModel(BILLING_MODEL_PAYG)
+            .contractEnabled(true)
+            .build();
+
     tagProfile =
         TagProfile.builder()
             .tagMappings(List.of(tagMapping1, tagMapping2, tagMapping3, openshiftRoleMapping))
             .tagMetrics(tagMetrics)
-            .tagMetaData(List.of(openshiftClusterMetaData, kafkaClusterMetaData))
+            .tagMetaData(List.of(openshiftClusterMetaData, kafkaClusterMetaData, basiliskMetaData))
             .build();
 
     // Manually invoke @PostConstruct so that the class is properly initialized.
@@ -205,7 +225,8 @@ class TagProfileTest {
 
   @Test
   void serviceTypesGetInitialized() {
-    assertEquals(Set.of(OPENSHIFT_CLUSTER_ST, KAFKA_CLUSTER_ST), tagProfile.getServiceTypes());
+    assertEquals(
+        Set.of(OPENSHIFT_CLUSTER_ST, KAFKA_CLUSTER_ST, BASILISK_ST), tagProfile.getServiceTypes());
   }
 
   @Test
@@ -256,5 +277,31 @@ class TagProfileTest {
   @Test
   void testIsProductPAYGEligibleFalse() {
     assertFalse(tagProfile.isProductPAYGEligible(ProductId.RHEL.toString()));
+  }
+
+  @Test
+  void testIsContractEnabledForTag() {
+    assertFalse(tagProfile.isTagContractEnabled(OPENSHIFT_TAG));
+    assertTrue(tagProfile.isTagContractEnabled(BASILISK_TAG));
+  }
+
+  @Test
+  void testInvalidContractEnabledConfigurationWhenBillingModelNotPayGo() {
+    TagMetaData expectedMetaData =
+        TagMetaData.builder().tags(Set.of()).billingModel("not-payg").contractEnabled(true).build();
+
+    TagProfile profile =
+        TagProfile.builder()
+            .tagMappings(List.of())
+            .tagMetrics(List.of())
+            .tagMetaData(List.of(expectedMetaData))
+            .build();
+
+    Throwable e = assertThrows(IllegalStateException.class, () -> profile.initLookups());
+    String expectedMessage =
+        String.format(
+            "A tag can only be configured as contractEnabled if billingModel=PAYG. %s",
+            expectedMetaData);
+    assertEquals(expectedMessage, e.getMessage());
   }
 }
