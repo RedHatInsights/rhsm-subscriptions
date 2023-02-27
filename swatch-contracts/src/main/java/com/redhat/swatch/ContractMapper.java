@@ -31,5 +31,4 @@ abstract class ContractMapper {
 
   @Mapping(target = "lastUpdated", ignore = true)
   abstract com.redhat.swatch.Contract dtoToContract(Contract contract);
-
 }

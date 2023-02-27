@@ -51,6 +51,13 @@ public class ContractService {
 
     var entity = mapper.dtoToContract(contract);
 
+    entity.getMetrics().stream()
+        .forEach(
+            metric -> {
+              metric.setContractUuid(entity.getUuid());
+              metric.setContract(entity);
+            });
+
     log.info("{}", entity);
 
     var now = OffsetDateTime.now();
@@ -90,7 +97,6 @@ public class ContractService {
       existingContract.setLastUpdated(now);
 
       existingContract.persist();
-
     }
 
     com.redhat.swatch.Contract newRecord = createContractForLogicalUpdate(dto);

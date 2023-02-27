@@ -128,8 +128,14 @@ class ContractMapperTest {
         dto.getMetrics().stream().map(Metric::getValue).toList());
 
     // verify UUID populates in metrics collection
-    /* assertEquals(
-    entity.getUuid(), entity.getMetrics().stream().findFirst().get().getContractUuid());*/
+
+    /*
+    TODO implement @AfterMapping https://stackoverflow.com/questions/59028797/aftermapping-is-not-called-from-mapper-interface
+
+    assertEquals(
+        entity.getUuid(), entity.getMetrics().stream().findFirst().get().getContractUuid());
+
+     */
   }
 
   @Test
