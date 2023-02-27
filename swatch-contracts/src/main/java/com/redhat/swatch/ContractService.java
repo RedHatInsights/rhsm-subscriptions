@@ -46,9 +46,6 @@ public class ContractService {
   com.redhat.swatch.openapi.model.Contract saveContract(
       com.redhat.swatch.openapi.model.Contract contract) {
 
-    // temporary...forcing new UUID to work on the create case
-    contract.setUuid(null);
-    //    entity.setUuid(null);
     var uuid = Objects.requireNonNullElse(contract.getUuid(), UUID.randomUUID().toString());
     contract.setUuid(uuid);
 
@@ -91,11 +88,13 @@ public class ContractService {
 
       existingContract.setEndDate(now);
       existingContract.setLastUpdated(now);
+
+      existingContract.persist();
+
     }
 
     com.redhat.swatch.Contract newRecord = createContractForLogicalUpdate(dto);
 
-    existingContract.persist();
     newRecord.persist();
   }
 
