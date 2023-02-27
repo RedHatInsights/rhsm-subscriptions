@@ -21,10 +21,8 @@
 package com.redhat.swatch;
 
 import com.redhat.swatch.openapi.model.Contract;
-import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "cdi")
 abstract class ContractMapper {
@@ -33,10 +31,4 @@ abstract class ContractMapper {
 
   @Mapping(target = "lastUpdated", ignore = true)
   abstract com.redhat.swatch.Contract dtoToContract(Contract contract);
-
-  @AfterMapping
-  protected void populateEntityUuid(@MappingTarget com.redhat.swatch.Contract entity) {
-
-    entity.getMetrics().stream().forEach(metric -> metric.setContractUuid(entity.getUuid()));
-  }
 }

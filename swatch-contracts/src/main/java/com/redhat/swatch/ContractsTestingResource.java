@@ -42,7 +42,7 @@ public class ContractsTestingResource implements DefaultApi {
   @Transactional
   public Contract createContract(Contract contract) throws ApiException, ProcessingException {
 
-    return service.saveContract(contract);
+    return service.createContract(contract);
   }
 
   @Override
@@ -74,8 +74,6 @@ public class ContractsTestingResource implements DefaultApi {
   public Contract updateContract(String uuid, Contract contract)
       throws ApiException, ProcessingException {
 
-    service.updateContract(contract);
-
-    return null;
+    return service.updateContract(contract);
   }
 }

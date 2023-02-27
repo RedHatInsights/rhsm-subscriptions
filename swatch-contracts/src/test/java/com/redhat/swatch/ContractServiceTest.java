@@ -108,7 +108,7 @@ class ContractServiceTest extends BaseUnitTest {
   void testSaveContracts() {
     doNothing().when(contractRepository).persist(any(Contract.class));
     com.redhat.swatch.openapi.model.Contract contractResponse =
-        contractService.saveContract(contractDto);
+        contractService.createContract(contractDto);
     verify(contractRepository, times(1)).persist(contractArgumentCaptor.capture());
     Contract contract = contractArgumentCaptor.getValue();
     assertEquals(contractDto.getSku(), contract.getSku());

@@ -43,16 +43,20 @@ public class ContractService {
   }
 
   @Transactional
-  com.redhat.swatch.openapi.model.Contract saveContract(
+  com.redhat.swatch.openapi.model.Contract createContract(
       com.redhat.swatch.openapi.model.Contract contract) {
 
-    // temporary...forcing new UUID to work on the create case
-    contract.setUuid(null);
-    //    entity.setUuid(null);
     var uuid = Objects.requireNonNullElse(contract.getUuid(), UUID.randomUUID().toString());
     contract.setUuid(uuid);
 
     var entity = mapper.dtoToContract(contract);
+
+    entity.getMetrics().stream()
+        .forEach(
+            metric -> {
+              metric.setContractUuid(entity.getUuid());
+              metric.setContract(entity);
+            });
 
     log.info("{}", entity);
 
@@ -60,6 +64,9 @@ public class ContractService {
 
     entity.setStartDate(now);
     entity.setLastUpdated(now);
+
+    //Force end date to be null to indicate this it the current/applicable record
+    entity.setEndDate(null);
 
     contractRepository.persist(entity);
 
@@ -72,37 +79,50 @@ public class ContractService {
   }
 
   @Transactional
-  void updateContract(Contract dto) {
-
-    log.info("{}", dto);
-
-    /*
-    - should update all fields with the vlaues from the payload
-    - if an update to dates, metric id, or product id we should be creating new Contract/ContractMetric records,
-    and updating the existing one with end_date = Date.now()
-     */
+  Contract updateContract(Contract dto) {
 
     com.redhat.swatch.Contract existingContract =
         contractRepository.findContract(UUID.fromString(dto.getUuid()));
 
     var now = OffsetDateTime.now();
 
-    if (Objects.nonNull(existingContract)) {
+    if (Objects.isNull(existingContract)) {
+      log.warn(
+          "Update called for contract uuid {}, but contract doesn't not exist.  Executing create contract instead",
+          dto.getUuid());
+      return createContract(dto);
+    }
+
+    var newData = mapper.dtoToContract(dto);
+    newData
+        .getMetrics()
+        .forEach(
+            metric -> {
+              metric.setContractUuid(newData.getUuid());
+              metric.setContract(newData);
+            });
+
+    /*
+    If metric id, value, or product id changes, we want to keep record of the old value and logically update
+     */
+    var isNewRecordRequired = true;
+
+    if (isNewRecordRequired) {
 
       existingContract.setEndDate(now);
       existingContract.setLastUpdated(now);
+      existingContract.persist();
+      com.redhat.swatch.Contract newRecord = createContractForLogicalUpdate(dto);
+      newRecord.persist();
     }
-
-    com.redhat.swatch.Contract newRecord = createContractForLogicalUpdate(dto);
-
-    existingContract.persist();
-    newRecord.persist();
+    return dto;
   }
 
   com.redhat.swatch.Contract createContractForLogicalUpdate(Contract dto) {
     var newUuid = UUID.randomUUID();
     var newRecord = mapper.dtoToContract(dto);
     newRecord.setUuid(newUuid);
+    newRecord.setLastUpdated(OffsetDateTime.now());
     newRecord.setEndDate(null);
     newRecord.getMetrics().stream()
         .forEach(
@@ -115,6 +135,9 @@ public class ContractService {
 
   @Transactional
   void deleteContract(String uuid) {
-    contractRepository.deleteById(UUID.fromString(uuid));
+
+    var isSuccessful = contractRepository.deleteById(UUID.fromString(uuid));
+
+    log.debug("Deletion status of {} is: {}", uuid, isSuccessful);
   }
 }

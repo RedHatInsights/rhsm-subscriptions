@@ -76,7 +76,7 @@ class ContractsHttpEndpointIntegrationTest {
     com.redhat.swatch.openapi.model.Contract newContract =
         new com.redhat.swatch.openapi.model.Contract();
     newContract.setOrgId("org123");
-    when(contractService.saveContract(any())).thenReturn(newContract);
+    when(contractService.createContract(any())).thenReturn(newContract);
     String contract =
         "{ \"uuid\": \"string\", \"subscription_number\": \"string\", \"sku\": \"string\", "
             + "\"start_date\": \"2022-03-10T12:15:50-04:00\", \"end_date\": \"2022-03-10T12:15:50-04:00\", "
