@@ -108,6 +108,7 @@ public class ContractService {
     var newUuid = UUID.randomUUID();
     var newRecord = mapper.dtoToContract(dto);
     newRecord.setUuid(newUuid);
+    newRecord.setLastUpdated(OffsetDateTime.now());
     newRecord.setEndDate(null);
     newRecord.getMetrics().stream()
         .forEach(
