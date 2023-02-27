@@ -25,10 +25,10 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "cdi")
-abstract class ContractMapper {
+interface ContractMapper {
 
-  abstract Contract contractToDto(com.redhat.swatch.Contract contract);
+  Contract contractToDto(com.redhat.swatch.Contract contract);
 
   @Mapping(target = "lastUpdated", ignore = true)
-  abstract com.redhat.swatch.Contract dtoToContract(Contract contract);
+  com.redhat.swatch.Contract dtoToContract(Contract contract);
 }

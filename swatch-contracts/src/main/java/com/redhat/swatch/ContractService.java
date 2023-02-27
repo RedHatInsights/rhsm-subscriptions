@@ -105,7 +105,7 @@ public class ContractService {
     /*
     If metric id, value, or product id changes, we want to keep record of the old value and logically update
      */
-    var isNewRecordRequired = true;
+    var isNewRecordRequired = true; //NOSONAR
 
     if (isNewRecordRequired) {
 
