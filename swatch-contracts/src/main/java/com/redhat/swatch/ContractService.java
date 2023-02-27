@@ -105,9 +105,9 @@ public class ContractService {
     /*
     If metric id, value, or product id changes, we want to keep record of the old value and logically update
      */
-    var isNewRecordRequired = true; // NOSONAR
+    var isNewRecordRequired = true;
 
-    if (isNewRecordRequired) {
+    if (isNewRecordRequired) { // NOSONAR
 
       existingContract.setEndDate(now);
       existingContract.setLastUpdated(now);
