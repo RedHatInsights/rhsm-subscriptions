@@ -65,7 +65,7 @@ public class ContractService {
     entity.setStartDate(now);
     entity.setLastUpdated(now);
 
-    //Force end date to be null to indicate this it the current/applicable record
+    // Force end date to be null to indicate this it the current/applicable record
     entity.setEndDate(null);
 
     contractRepository.persist(entity);
