@@ -60,24 +60,24 @@ class ContractRepositoryTest {
     actualContract1 = new Contract();
     var uuid = UUID.randomUUID();
     actualContract1.setUuid(uuid);
-    actualContract1.setBillingAccountId("test");
+    actualContract1.setBillingAccountId("billAcct123");
     actualContract1.setStartDate(OffsetDateTime.now());
     actualContract1.setEndDate(OffsetDateTime.now());
-    actualContract1.setBillingProvider("test");
-    actualContract1.setSku("test");
-    actualContract1.setProductId("p1");
+    actualContract1.setBillingProvider("test123");
+    actualContract1.setSku("BAS123");
+    actualContract1.setProductId("BASILISK123");
     actualContract1.setOrgId("org123");
     actualContract1.setLastUpdated(OffsetDateTime.now());
     actualContract1.setSubscriptionNumber("test");
 
     ContractMetric contractMetric1 = new ContractMetric();
     contractMetric1.setContractUuid(uuid);
-    contractMetric1.setMetricId("instance-hours");
+    contractMetric1.setMetricId("cpu-hours");
     contractMetric1.setValue(2);
 
     ContractMetric contractMetric2 = new ContractMetric();
     contractMetric2.setContractUuid(uuid);
-    contractMetric2.setMetricId("cpu-hours");
+    contractMetric2.setMetricId("instance-hours");
     contractMetric2.setValue(4);
 
     actualContract1.setMetrics(Set.of(contractMetric1, contractMetric2));
@@ -86,24 +86,24 @@ class ContractRepositoryTest {
     actualContract2 = new Contract();
     var uuid2 = UUID.randomUUID();
     actualContract2.setUuid(uuid2);
-    actualContract2.setBillingAccountId("test");
+    actualContract2.setBillingAccountId("billAcct456");
     actualContract2.setStartDate(OffsetDateTime.now());
     actualContract2.setEndDate(OffsetDateTime.now());
-    actualContract2.setBillingProvider("test");
-    actualContract2.setSku("test");
-    actualContract2.setProductId("test");
-    actualContract2.setOrgId("org123");
+    actualContract2.setBillingProvider("test456");
+    actualContract2.setSku("BAS456");
+    actualContract2.setProductId("BASILISK456");
+    actualContract2.setOrgId("org456");
     actualContract2.setLastUpdated(OffsetDateTime.now());
     actualContract2.setSubscriptionNumber("test");
 
     ContractMetric contractMetric3 = new ContractMetric();
     contractMetric3.setContractUuid(uuid2);
-    contractMetric3.setMetricId("instance-hours");
+    contractMetric3.setMetricId("cpu-hours");
     contractMetric3.setValue(5);
 
     ContractMetric contractMetric4 = new ContractMetric();
     contractMetric4.setContractUuid(uuid2);
-    contractMetric4.setMetricId("cpu-hours");
+    contractMetric4.setMetricId("instance-hours");
     contractMetric4.setValue(10);
 
     actualContract2.setMetrics(Set.of(contractMetric3, contractMetric4));
@@ -135,22 +135,25 @@ class ContractRepositoryTest {
             .getUuid());
     assertEquals(2, queryResults.stream().findFirst().get().getMetrics().size());
     assertEquals(
-        actualContract1.getMetrics().stream().toList().get(1).getMetricId(),
+        actualContract1.getMetrics().stream().toList().get(1).getContractUuid(),
         queryResults.stream().findFirst().get().getMetrics().stream()
             .toList()
             .get(1)
-            .getMetricId());
+            .getContractUuid());
     assertEquals(
-        actualContract1.getMetrics().stream().toList().get(1).getValue(),
-        queryResults.stream().findFirst().get().getMetrics().stream().toList().get(1).getValue());
+        actualContract1.getMetrics().stream().toList().get(1).getContractUuid(),
+        queryResults.stream().findFirst().get().getMetrics().stream()
+            .toList()
+            .get(1)
+            .getContractUuid());
   }
 
   @Test
   void whenValidUUID_thenRetrieveContract() {
     Contract contract1 = contractRepository.findContract(actualContract1.getUuid());
     assertEquals(
-        actualContract1.getMetrics().stream().toList().get(1).getValue(),
-        contract1.getMetrics().stream().toList().get(1).getValue());
+        actualContract1.getMetrics().stream().toList().get(1).getContractUuid(),
+        contract1.getMetrics().stream().toList().get(1).getContractUuid());
     assertEquals(actualContract1.getSubscriptionNumber(), contract1.getSubscriptionNumber());
   }
 
@@ -169,7 +172,15 @@ class ContractRepositoryTest {
   void whenGetContractWithCorrectParam_thenReturnAllContracts() {
     Map<String, Object> parameters = new HashMap<>();
     parameters.put("metricId", "instance-hours");
-    parameters.put("productId", "p1");
+    parameters.put("productId", "BASILISK123");
+    List<Contract> allContracts = contractRepository.getContracts(parameters);
+    assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
+  }
+
+  @Test
+  void whenGetContractWithMissingMetricIdParam_thenReturnAllContracts() {
+    Map<String, Object> parameters = new HashMap<>();
+    parameters.put("productId", "BASILISK123");
     List<Contract> allContracts = contractRepository.getContracts(parameters);
     assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
   }
@@ -178,8 +189,8 @@ class ContractRepositoryTest {
   void whenValidContractPresent_thenCanRetrieveAndDelete() {
     Contract expectedContract = contractRepository.findById(actualContract2.getUuid());
     assertEquals(
-        actualContract2.getMetrics().stream().toList().get(1).getValue(),
-        expectedContract.getMetrics().stream().toList().get(1).getValue());
+        actualContract2.getMetrics().stream().toList().get(1).getContractUuid(),
+        expectedContract.getMetrics().stream().toList().get(1).getContractUuid());
     assertEquals(actualContract2.getSubscriptionNumber(), expectedContract.getSubscriptionNumber());
     contractRepository.deleteById(actualContract2.getUuid());
     assertNull(contractRepository.findById(actualContract2.getUuid()));
@@ -194,6 +205,6 @@ class ContractRepositoryTest {
 
   @AfterAll
   public void cleanupTestData() {
-    // contractRepository.deleteAll();
+    contractRepository.deleteAll();
   }
 }

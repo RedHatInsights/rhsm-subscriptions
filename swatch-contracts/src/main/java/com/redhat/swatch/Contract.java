@@ -23,6 +23,7 @@ package com.redhat.swatch;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import javax.persistence.Basic;
@@ -35,14 +36,16 @@ import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Data
 @Entity
 @Table(name = "contracts")
 @AllArgsConstructor
 @NoArgsConstructor
+@Getter
+@Setter
 @Builder
 public class Contract extends PanacheEntityBase {
 
@@ -101,5 +104,37 @@ public class Contract extends PanacheEntityBase {
   public void remoteMetric(ContractMetric metric) {
     metrics.remove(metric);
     metric.setContract(null);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    Contract that = (Contract) o;
+    return Objects.equals(uuid, that.uuid)
+        && Objects.equals(subscriptionNumber, that.subscriptionNumber)
+        && Objects.equals(lastUpdated, that.lastUpdated)
+        && Objects.equals(startDate, that.startDate)
+        && Objects.equals(endDate, that.endDate)
+        && Objects.equals(orgId, that.orgId)
+        && Objects.equals(sku, that.sku)
+        && Objects.equals(billingProvider, that.billingProvider)
+        && Objects.equals(billingAccountId, that.billingAccountId)
+        && Objects.equals(productId, that.productId);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        uuid,
+        subscriptionNumber,
+        lastUpdated,
+        startDate,
+        endDate,
+        orgId,
+        sku,
+        billingProvider,
+        billingAccountId,
+        productId);
   }
 }

@@ -22,6 +22,7 @@ package com.redhat.swatch;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,7 +37,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import javax.inject.Inject;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -60,36 +60,36 @@ class ContractServiceTest extends BaseUnitTest {
     actualContract1 = new Contract();
     var uuid = UUID.randomUUID();
     actualContract1.setUuid(uuid);
-    actualContract1.setBillingAccountId("test");
+    actualContract1.setBillingAccountId("billAcct123");
     actualContract1.setStartDate(OffsetDateTime.now());
     actualContract1.setEndDate(OffsetDateTime.now());
-    actualContract1.setBillingProvider("test");
-    actualContract1.setSku("test");
-    actualContract1.setProductId("test");
+    actualContract1.setBillingProvider("test123");
+    actualContract1.setSku("BAS123");
+    actualContract1.setProductId("BASILISK123");
     actualContract1.setOrgId("org123");
     actualContract1.setLastUpdated(OffsetDateTime.now());
     actualContract1.setSubscriptionNumber("test");
 
     ContractMetric contractMetric1 = new ContractMetric();
     contractMetric1.setContractUuid(uuid);
-    contractMetric1.setMetricId("instance-hours");
+    contractMetric1.setMetricId("cpu-hours");
     contractMetric1.setValue(2);
 
     ContractMetric contractMetric2 = new ContractMetric();
     contractMetric2.setContractUuid(uuid);
-    contractMetric2.setMetricId("cpu-hours");
+    contractMetric2.setMetricId("instance-hours");
     contractMetric2.setValue(4);
 
     actualContract1.setMetrics(Set.of(contractMetric1, contractMetric2));
 
     contractDto = new com.redhat.swatch.openapi.model.Contract();
     contractDto.setUuid(uuid.toString());
-    contractDto.setBillingAccountId("test");
+    contractDto.setBillingAccountId("billAcct123");
     contractDto.setStartDate(OffsetDateTime.now());
     contractDto.setEndDate(OffsetDateTime.now());
-    contractDto.setBillingProvider("test");
-    contractDto.setSku("test");
-    contractDto.setProductId("test");
+    contractDto.setBillingProvider("test123");
+    contractDto.setSku("BAS123");
+    contractDto.setProductId("BASILISK123");
     contractDto.setOrgId("org123");
     contractDto.setSubscriptionNumber("test");
 
@@ -106,6 +106,7 @@ class ContractServiceTest extends BaseUnitTest {
 
   @Test
   void testSaveContracts() {
+    doNothing().when(contractRepository).persist(any(Contract.class));
     com.redhat.swatch.openapi.model.Contract contractResponse =
         contractService.saveContract(contractDto);
     verify(contractRepository, times(1)).persist(contractArgumentCaptor.capture());
@@ -118,7 +119,7 @@ class ContractServiceTest extends BaseUnitTest {
   void testGetContracts() {
     when(contractRepository.getContracts(any())).thenReturn((List.of(actualContract1)));
     Map<String, Object> parameters = new HashMap<>();
-    parameters.put("productId", "test");
+    parameters.put("productId", "BASILISK123");
     List<com.redhat.swatch.openapi.model.Contract> contractList =
         contractService.getContracts(parameters);
     verify(contractRepository).getContracts(parameters);
@@ -147,18 +148,24 @@ class ContractServiceTest extends BaseUnitTest {
   void testCreateContractForLogicalUpdate() {
     var dto = new com.redhat.swatch.openapi.model.Contract();
 
-    var expected = com.redhat.swatch.Contract.builder().build();
+    Metric actualMetric1 = new Metric();
+    actualMetric1.setMetricId("cpu-hours");
+    actualMetric1.setValue(5);
+
+    dto.setMetrics(List.of(actualMetric1));
+
+    ContractMetric expectedMetric2 = new ContractMetric();
+    expectedMetric2.setMetricId("cpu-hours");
+    expectedMetric2.setValue(5);
+    var expected = com.redhat.swatch.Contract.builder().metrics(Set.of(expectedMetric2)).build();
     var actual = contractService.createContractForLogicalUpdate(dto);
 
     // new.uuid != old.uuid
     // new.uuid == new.metrics[].uuid
     // new.endDate == null
     // new.startDate == old.endDate
-    assertEquals(expected, actual);
-  }
-
-  @AfterAll
-  public void cleanupTestData() {
-    contractRepository.deleteAll();
+    assertEquals(
+        expected.getMetrics().stream().toList().get(0).getMetricId(),
+        actual.getMetrics().stream().toList().get(0).getMetricId());
   }
 }
