@@ -99,7 +99,8 @@ public class TallyResource implements TallyApi {
       BillingProviderType billingProviderType,
       String billingAcctId,
       Integer offset,
-      Integer limit) {
+      Integer limit,
+      Boolean useRunningTotalsFormat) {
     ReportCriteria reportCriteria =
         extractReportCriteria(
             productId,
@@ -153,6 +154,10 @@ public class TallyResource implements TallyApi {
                 ? null
                 : reportCriteria.getBillingProvider().asOpenApiEnum());
     report.getMeta().setBillingAcountId(billingAcctId);
+
+    if (Boolean.TRUE.equals(useRunningTotalsFormat)) {
+      transformToRunningTotalFormat(report, uom);
+    }
 
     // NOTE: rather than keep a separate monthly rollup, in order to avoid unnecessary storage and
     // DB round-trips, deserialization, etc., simply aggregate in-memory the monthly totals here.
@@ -426,6 +431,19 @@ public class TallyResource implements TallyApi {
                   runningTotals.getOrDefault(Measurement.Uom.CORES, 0.0) + snapshotHours;
               snapshot.setCoreHours(newValue);
               runningTotals.put(Measurement.Uom.CORES, newValue);
+            });
+  }
+
+  private void transformToRunningTotalFormat(TallyReportData report, Uom uom) {
+    Map<Uom, Double> runningTotals = new EnumMap<>(Measurement.Uom.class);
+    report
+        .getData()
+        .forEach(
+            snapshot -> {
+              double snapshotTotal = Optional.ofNullable(snapshot.getValue()).orElse(0.0);
+              Double newValue = runningTotals.getOrDefault(uom, 0.0) + snapshotTotal;
+              snapshot.setValue(newValue);
+              runningTotals.put(uom, newValue);
             });
   }
 }

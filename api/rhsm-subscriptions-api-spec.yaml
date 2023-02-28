@@ -201,6 +201,14 @@ paths:
           type: integer
           minimum: 1
         description: "The numbers of items to return"
+      - name: use_running_totals_format
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default:
+            false
+        description: "Defines the end of the report period. Defaults to the current time. Dates should be provided in UTC."
     get:
       summary: "Fetch tally report data for an account and product. "
       description: "If page header parameters are omitted, any dates missing data will have an entry with null as the value."
