@@ -58,15 +58,17 @@ class ContractsHttpEndpointIntegrationTest {
   @Test
   void whenUpdateContract_thenUpdatedContractShouldBeReturned() {
     String contract =
-        "{ \"uuid\": \"string\", \"subscription_number\": \"string\", \"sku\": \"string\", "
-            + "\"start_date\": \"2022-03-10T12:15:50-04:00\", \"end_date\": \"2022-03-10T12:15:50-04:00\", "
-            + "\"org_id\": \"string\", \"billing_provider\": \"string\", \"billing_account_id\": \"string\", "
-            + "\"product_id\": \"string\", \"metrics\": [ { \"metric_id\": \"string\", \"value\": 0 } ] }";
+        """
+    {"uuid":"string","subscription_number":"string","sku":"string",
+    "start_date":"2022-03-10T12:15:50-04:00","end_date":"2022-03-10T12:15:50-04:00",
+    "org_id":"string","billing_provider":"string","billing_account_id":"string",
+    "product_id":"string","metrics": [ {"metric_id":"string","value": 0 } ] }
+    """;
     given()
         .contentType(ContentType.JSON)
         .body(contract)
         .when()
-        .put("/api/swatch-contracts/internal/contracts/1322")
+        .put("/api/swatch-contracts/v1/internal/contracts/1322")
         .then()
         .statusCode(204);
   }
@@ -78,15 +80,17 @@ class ContractsHttpEndpointIntegrationTest {
     newContract.setOrgId("org123");
     when(contractService.createContract(any())).thenReturn(newContract);
     String contract =
-        "{ \"uuid\": \"string\", \"subscription_number\": \"string\", \"sku\": \"string\", "
-            + "\"start_date\": \"2022-03-10T12:15:50-04:00\", \"end_date\": \"2022-03-10T12:15:50-04:00\", "
-            + "\"org_id\": \"string\", \"billing_provider\": \"string\", \"billing_account_id\": \"string\", "
-            + "\"product_id\": \"string\", \"metrics\": [ { \"metric_id\": \"string\", \"value\": 0 } ] }";
+        """
+        {"uuid":"string","subscription_number":"string","sku":"string",
+        "start_date":"2022-03-10T12:15:50-04:00","end_date":"2022-03-10T12:15:50-04:00",
+        "org_id":"string","billing_provider":"string","billing_account_id":"string",
+        "product_id":"string","metrics": [ {"metric_id":"string","value": 0 } ] }
+        """;
     given()
         .contentType(ContentType.JSON)
         .body(contract)
         .when()
-        .post("/api/swatch-contracts/internal/contracts")
+        .post("/api/swatch-contracts/v1/internal/contracts")
         .then()
         .statusCode(200);
   }

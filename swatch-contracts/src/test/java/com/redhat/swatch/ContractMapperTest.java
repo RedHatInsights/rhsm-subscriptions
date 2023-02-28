@@ -31,6 +31,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+/**
+ * The fact that we are using @ExtendWith(MockitoExtension.class) prevents this test from launching
+ * the entire application. Use @QuarkusTest to launch the entire application with the test if
+ * required.
+ */
 @ExtendWith(MockitoExtension.class)
 class ContractMapperTest {
 
