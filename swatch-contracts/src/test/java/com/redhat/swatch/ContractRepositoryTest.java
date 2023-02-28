@@ -39,9 +39,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
+/**
+ * Only local setups should be utilizing this test; Jenkins should skip repository test. This is
+ * done using DisabledIfEnvironmentVariable CI=true.
+ */
 @QuarkusTest
 @QuarkusTransactionalTest
-// @QuarkusTestResource(value = PostgresResource.class, restrictToAnnotatedClass = true)
 @DisabledIfEnvironmentVariable(named = "CI", matches = "true")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ContractRepositoryTest {
