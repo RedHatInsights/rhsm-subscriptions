@@ -20,13 +20,21 @@
  */
 package com.redhat.swatch;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.MockitoAnnotations;
 
 @SuppressWarnings("java:S2187") /* Sonar thinks assertion is required */
 class BaseUnitTest {
+  private AutoCloseable closeable;
+
   @BeforeEach
   void init_mocks() {
-    MockitoAnnotations.openMocks(this);
+    closeable = MockitoAnnotations.openMocks(this);
+  }
+
+  @AfterEach
+  void close_mocks() throws Exception {
+    closeable.close();
   }
 }

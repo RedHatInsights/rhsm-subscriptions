@@ -28,6 +28,10 @@ import java.lang.annotation.Target;
 import javax.enterprise.inject.Stereotype;
 import javax.transaction.Transactional;
 
+/**
+ * Where we require both @QuarkusTest and @Transactional, we can use this interface as a custom
+ * annotation @QuarkusTransactionalTest. Primarily in the service level or repository.
+ */
 @QuarkusTest
 @Stereotype
 @Transactional
