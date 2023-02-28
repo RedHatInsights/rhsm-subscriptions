@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 import javax.persistence.QueryHint;
+import javax.persistence.criteria.JoinType;
 import javax.validation.constraints.NotNull;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -37,7 +38,6 @@ import org.candlepin.subscriptions.db.model.HostBucketKey_;
 import org.candlepin.subscriptions.db.model.HostTallyBucket_;
 import org.candlepin.subscriptions.db.model.Host_;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
-import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey_;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyHostView;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -51,6 +51,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 /** Provides access to Host database entities. */
@@ -110,7 +111,7 @@ public interface HostRepository
               "((lower(h.displayName) LIKE lower(concat('%', :displayNameSubstring,'%')))) and "
               + "b.cores >= :minCores and b.sockets >= :minSockets",
       // Because we are using a 'fetch join' to avoid having to lazy load each bucket host,
-      // we need to specify how the Page should gets its count when the 'limit' parameter
+      // we need to specify how the Page should get its count when the 'limit' parameter
       // is used.
       countQuery =
           "select count(b) from HostTallyBucket b join b.host h where "
@@ -150,68 +151,173 @@ public interface HostRepository
    *     or empty string to ignore)
    * @param minCores Filter to Hosts with at least this number of cores.
    * @param minSockets Filter to Hosts with at least this number of sockets.
-   * @param month Filter to Hosts with with monthly instance totals in provided month
+   * @param month Filter to Hosts with monthly instance totals in provided month
    * @param referenceUom Uom used when filtering to a specific month.
    * @param pageable the current paging info for this query.
    * @return a page of Host entities matching the criteria.
    */
   @SuppressWarnings("java:S107")
   default Page<Host> findAllBy(
-      @Param("orgId") String orgId,
-      @Param("product") String productId,
-      @Param("sla") ServiceLevel sla,
-      @Param("usage") Usage usage,
-      @NotNull @Param("displayNameSubstring") String displayNameSubstring,
-      @Param("minCores") int minCores,
-      @Param("minSockets") int minSockets,
+      String orgId,
+      String productId,
+      ServiceLevel sla,
+      Usage usage,
+      @NotNull String displayNameSubstring,
+      int minCores,
+      int minSockets,
       String month,
       Uom referenceUom,
       BillingProvider billingProvider,
       String billingAccountId,
       List<HardwareMeasurementType> hardwareMeasurementTypes,
       Pageable pageable) {
+    return findAll(
+        buildSearchSpecification(
+            orgId,
+            productId,
+            sla,
+            usage,
+            displayNameSubstring,
+            minCores,
+            minSockets,
+            month,
+            referenceUom,
+            billingProvider,
+            billingAccountId,
+            hardwareMeasurementTypes),
+        pageable);
+  }
 
-    HostSpecification searchCriteria = new HostSpecification();
+  static Specification<Host> productIdEquals(String productId) {
+    return (root, query, builder) -> {
+      var bucketJoin = root.join(Host_.buckets, JoinType.INNER);
+      var key = bucketJoin.get(HostTallyBucket_.key);
+      return builder.equal(key.get(HostBucketKey_.productId), productId);
+    };
+  }
 
-    searchCriteria.add(new SearchCriteria(Host_.ORG_ID, orgId, SearchOperation.EQUAL));
-    searchCriteria.add(
-        new SearchCriteria(HostBucketKey_.PRODUCT_ID, productId, SearchOperation.EQUAL));
-    searchCriteria.add(new SearchCriteria(HostBucketKey_.SLA, sla, SearchOperation.EQUAL));
-    searchCriteria.add(new SearchCriteria(HostBucketKey_.USAGE, usage, SearchOperation.EQUAL));
+  static Specification<Host> slaEquals(ServiceLevel sla) {
+    return (root, query, builder) -> {
+      var bucketJoin = root.join(Host_.buckets, JoinType.INNER);
+      var key = bucketJoin.get(HostTallyBucket_.key);
+      return builder.equal(key.get(HostBucketKey_.sla), sla);
+    };
+  }
 
-    searchCriteria.add(
-        new SearchCriteria(
-            HostBucketKey_.BILLING_PROVIDER, billingProvider, SearchOperation.EQUAL));
-    searchCriteria.add(
-        new SearchCriteria(
-            HostBucketKey_.BILLING_ACCOUNT_ID, billingAccountId, SearchOperation.EQUAL));
+  static Specification<Host> usageEquals(Usage usage) {
+    return (root, query, builder) -> {
+      var bucketJoin = root.join(Host_.buckets, JoinType.INNER);
+      var key = bucketJoin.get(HostTallyBucket_.key);
+      return builder.equal(key.get(HostBucketKey_.usage), usage);
+    };
+  }
 
-    searchCriteria.add(
-        new SearchCriteria(Host_.DISPLAY_NAME, displayNameSubstring, SearchOperation.CONTAINS));
-    searchCriteria.add(
-        new SearchCriteria(HostTallyBucket_.CORES, minCores, SearchOperation.GREATER_THAN_EQUAL));
-    searchCriteria.add(
-        new SearchCriteria(
-            HostTallyBucket_.SOCKETS, minSockets, SearchOperation.GREATER_THAN_EQUAL));
+  static Specification<Host> billingProviderEquals(BillingProvider billingProvider) {
+    return (root, query, builder) -> {
+      var bucketJoin = root.join(Host_.buckets, JoinType.INNER);
+      var key = bucketJoin.get(HostTallyBucket_.key);
+      return builder.equal(key.get(HostBucketKey_.billingProvider), billingProvider);
+    };
+  }
+
+  static Specification<Host> billingAccountIdEquals(String billingAccountId) {
+    return (root, query, builder) -> {
+      var bucketJoin = root.join(Host_.buckets, JoinType.INNER);
+      var key = bucketJoin.get(HostTallyBucket_.key);
+      return builder.equal(key.get(HostBucketKey_.billingAccountId), billingAccountId);
+    };
+  }
+
+  static Specification<Host> orgEquals(String orgId) {
+    return (root, query, builder) -> builder.equal(root.get(Host_.orgId), orgId);
+  }
+
+  static Specification<Host> socketsAndCoresGreaterThanOrEqualTo(int minCores, int minSockets) {
+    return (root, query, builder) -> {
+      var bucketJoin = root.join(Host_.buckets, JoinType.INNER);
+      return builder.and(
+          builder.greaterThanOrEqualTo(bucketJoin.get(HostTallyBucket_.cores), minCores),
+          builder.greaterThanOrEqualTo(bucketJoin.get(HostTallyBucket_.sockets), minSockets));
+    };
+  }
+
+  static Specification<Host> hardwareMeasurementTypeIn(List<HardwareMeasurementType> types) {
+    return (root, query, builder) -> {
+      var bucketJoin = root.join(Host_.buckets, JoinType.INNER);
+      return bucketJoin.get(HostTallyBucket_.measurementType).in(types);
+    };
+  }
+
+  static Specification<Host> monthlyKeyEquals(InstanceMonthlyTotalKey totalKey) {
+    return (root, query, builder) -> {
+      var instanceMonthlyTotalRoot = root.join(Host_.monthlyTotals, JoinType.LEFT);
+      return builder.equal(instanceMonthlyTotalRoot.key(), totalKey);
+    };
+  }
+
+  static Specification<Host> displayNameContains(String displayNameSubstring) {
+    return (root, query, builder) ->
+        builder.like(
+            builder.lower(root.get(Host_.displayName)),
+            "%" + displayNameSubstring.toLowerCase() + "%");
+  }
+
+  @SuppressWarnings("java:S107")
+  default Specification<Host> buildSearchSpecification(
+      String orgId,
+      String productId,
+      ServiceLevel sla,
+      Usage usage,
+      String displayNameSubstring,
+      int minCores,
+      int minSockets,
+      String month,
+      Uom referenceUom,
+      BillingProvider billingProvider,
+      String billingAccountId,
+      List<HardwareMeasurementType> hardwareMeasurementTypes) {
+
+    /* The where call allows us to build a Specification object to operate on even if the
+     * first specification method we call returns null (it won't be null in this case, but it's
+     * good practice to handle it) */
+    var searchCriteria =
+        Specification.where(socketsAndCoresGreaterThanOrEqualTo(minCores, minSockets));
+
+    if (Objects.nonNull(orgId)) {
+      searchCriteria = searchCriteria.and(orgEquals(orgId));
+    }
+    if (Objects.nonNull(productId)) {
+      searchCriteria = searchCriteria.and(productIdEquals(productId));
+    }
+    if (Objects.nonNull(sla)) {
+      searchCriteria = searchCriteria.and(slaEquals(sla));
+    }
+    if (Objects.nonNull(usage)) {
+      searchCriteria = searchCriteria.and(usageEquals(usage));
+    }
+    if (Objects.nonNull(billingProvider)) {
+      searchCriteria = searchCriteria.and(billingProviderEquals(billingProvider));
+    }
+    if (Objects.nonNull(billingAccountId)) {
+      searchCriteria = searchCriteria.and(billingAccountIdEquals(billingAccountId));
+    }
+    if (Objects.nonNull(displayNameSubstring)) {
+      searchCriteria = searchCriteria.and(displayNameContains(displayNameSubstring));
+    }
     if (StringUtils.hasText(month)) {
       // Defaulting if null, since we need a UOM in order to properly filter against a given month
       Uom effectiveUom =
           Optional.ofNullable(referenceUom).orElse(getDefaultUomForProduct(productId));
-      if (effectiveUom != null) {
-        searchCriteria.add(
-            new SearchCriteria(
-                InstanceMonthlyTotalKey_.MONTH,
-                new InstanceMonthlyTotalKey(month, effectiveUom),
-                SearchOperation.EQUAL));
+      if (Objects.nonNull(effectiveUom)) {
+        searchCriteria =
+            searchCriteria.and(monthlyKeyEquals(new InstanceMonthlyTotalKey(month, effectiveUom)));
       }
     }
-    if (Objects.nonNull(hardwareMeasurementTypes) && !hardwareMeasurementTypes.isEmpty()) {
-      searchCriteria.add(
-          new SearchCriteria(
-              HostTallyBucket_.MEASUREMENT_TYPE, hardwareMeasurementTypes, SearchOperation.IN));
+    if (!ObjectUtils.isEmpty(hardwareMeasurementTypes)) {
+      searchCriteria = searchCriteria.and(hardwareMeasurementTypeIn(hardwareMeasurementTypes));
     }
 
-    return findAll(searchCriteria, pageable);
+    return searchCriteria;
   }
 
   default Uom getDefaultUomForProduct(String productId) {
