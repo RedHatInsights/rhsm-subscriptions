@@ -21,10 +21,6 @@ servers:
         default: '8000'
 paths:
   '/api/swatch-contracts/internal/contracts/{uuid}':
-    description: >-
-      This will execute a hard delete of a contract and its associated metrics from the database.  This
-      is NOT the same as setting a contract to expired.  To expire a certificate, the updateContract
-      endpoint should be used with an end_date.
     put:
       requestBody:
         content:
@@ -87,6 +83,10 @@ paths:
       operationId: updateContract
       description: Update a contract record by its uuid.  Only update values passed.
     delete:
+      description: >-
+        This will execute a hard delete of a contract and its associated metrics from the database.  This
+        is NOT the same as setting a contract to expired.  To expire a certificate, the updateContract
+        endpoint should be used with an end_date.
       parameters:
         -
           examples:
