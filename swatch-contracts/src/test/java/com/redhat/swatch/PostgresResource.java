@@ -20,17 +20,27 @@
  */
 package com.redhat.swatch;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
+import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import java.util.Collections;
+import java.util.Map;
+import org.testcontainers.containers.PostgreSQLContainer;
 
-@Path("/hello")
-public class ExampleResource {
+public class PostgresResource implements QuarkusTestResourceLifecycleManager {
 
-  @GET
-  @Produces(MediaType.TEXT_PLAIN)
-  public String hello() {
-    return "Hello from RESTEasy Reactive";
+  static PostgreSQLContainer<?> db =
+      new CentosPostgreSQLContainer()
+          .withDatabaseName("rhsm-subscriptions")
+          .withUsername("rhsm-subscriptions")
+          .withPassword("rhsm-subscriptions");
+
+  @Override
+  public Map<String, String> start() {
+    db.start();
+    return Collections.singletonMap("quarkus.datasource.jdbc.url", db.getJdbcUrl());
+  }
+
+  @Override
+  public void stop() {
+    db.stop();
   }
 }

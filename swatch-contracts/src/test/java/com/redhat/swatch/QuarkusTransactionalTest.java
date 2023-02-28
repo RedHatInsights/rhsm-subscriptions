@@ -20,12 +20,17 @@
  */
 package com.redhat.swatch;
 
-import io.smallrye.config.ConfigMapping;
-import io.smallrye.config.WithName;
+import io.quarkus.test.junit.QuarkusTest;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import javax.enterprise.inject.Stereotype;
+import javax.transaction.Transactional;
 
-@ConfigMapping(prefix = "greeting")
-public interface GreetingConfig {
-
-  @WithName("message")
-  String message();
-}
+@QuarkusTest
+@Stereotype
+@Transactional
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface QuarkusTransactionalTest {}

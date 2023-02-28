@@ -20,9 +20,13 @@
  */
 package com.redhat.swatch;
 
-import io.quarkus.test.junit.QuarkusIntegrationTest;
+import org.junit.jupiter.api.BeforeEach;
+import org.mockito.MockitoAnnotations;
 
-@QuarkusIntegrationTest
-public class ExampleResourceIT extends ExampleResourceTest {
-  // Execute the same tests but in packaged mode.
+@SuppressWarnings("java:S2187") /* Sonar thinks assertion is required */
+class BaseUnitTest {
+  @BeforeEach
+  void init_mocks() {
+    MockitoAnnotations.openMocks(this);
+  }
 }

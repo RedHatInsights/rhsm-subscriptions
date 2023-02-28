@@ -20,17 +20,15 @@
  */
 package com.redhat.swatch;
 
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.is;
+import com.redhat.swatch.openapi.model.Contract;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-import io.quarkus.test.junit.QuarkusTest;
-import org.junit.jupiter.api.Test;
+@Mapper(componentModel = "cdi")
+interface ContractMapper {
 
-@QuarkusTest
-class ExampleResourceTest {
+  Contract contractEntityToDto(ContractEntity contract);
 
-  @Test
-  void testHelloEndpoint() {
-    given().when().get("/hello").then().statusCode(200).body(is("Hello from RESTEasy Reactive"));
-  }
+  @Mapping(target = "lastUpdated", ignore = true)
+  ContractEntity dtoToContractEntity(Contract contract);
 }
