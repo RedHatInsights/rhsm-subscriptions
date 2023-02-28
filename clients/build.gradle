@@ -40,3 +40,7 @@ project(":clients:swatch-internal-subscription-client") {
         inputSpec = "${rootDir}/src/main/spec/internal-subscriptions-sync-api-spec.yaml"
     }
 }
+
+project(":clients:rh-partner-gateway-client") {
+    apply plugin: "swatch.quarkus-rest-client-conventions"
+}
