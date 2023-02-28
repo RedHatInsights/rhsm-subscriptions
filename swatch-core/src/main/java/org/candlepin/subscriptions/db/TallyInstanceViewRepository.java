@@ -24,11 +24,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import javax.persistence.criteria.JoinType;
 import javax.validation.constraints.NotNull;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
-import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey_;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.TallyInstanceViewKey_;
@@ -40,7 +40,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.repository.query.Param;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 /** Provides access to TallyInstanceView database entities. */
@@ -49,10 +49,6 @@ public interface TallyInstanceViewRepository
     extends JpaRepository<TallyInstanceView, UUID>,
         JpaSpecificationExecutor<TallyInstanceView>,
         TagProfileLookup {
-
-  @Override
-  Page<TallyInstanceView> findAll(
-      Specification<TallyInstanceView> specification, Pageable pageable);
 
   /**
    * Find all Hosts by bucket criteria and return a page of TallyInstanceView objects. A
@@ -74,68 +70,174 @@ public interface TallyInstanceViewRepository
    */
   @SuppressWarnings("java:S107")
   default Page<TallyInstanceView> findAllBy(
-      @Param("orgId") String orgId,
-      @Param("product") String productId,
-      @Param("sla") ServiceLevel sla,
-      @Param("usage") Usage usage,
-      @NotNull @Param("displayNameSubstring") String displayNameSubstring,
-      @Param("minCores") int minCores,
-      @Param("minSockets") int minSockets,
+      String orgId,
+      String productId,
+      ServiceLevel sla,
+      Usage usage,
+      @NotNull String displayNameSubstring,
+      int minCores,
+      int minSockets,
       String month,
       Uom referenceUom,
       BillingProvider billingProvider,
       String billingAccountId,
       List<HardwareMeasurementType> hardwareMeasurementTypes,
       Pageable pageable) {
+    return findAll(
+        buildSearchSpecification(
+            orgId,
+            productId,
+            sla,
+            usage,
+            displayNameSubstring,
+            minCores,
+            minSockets,
+            month,
+            referenceUom,
+            billingProvider,
+            billingAccountId,
+            hardwareMeasurementTypes),
+        pageable);
+  }
 
-    TallyInstanceViewSpecification searchCriteria = new TallyInstanceViewSpecification();
+  static Specification<TallyInstanceView> socketsAndCoresGreaterThanOrEqualTo(
+      int minCores, int minSockets) {
+    return (root, query, builder) ->
+        builder.and(
+            builder.greaterThanOrEqualTo(root.get(TallyInstanceView_.cores), minCores),
+            builder.greaterThanOrEqualTo(root.get(TallyInstanceView_.sockets), minSockets));
+  }
 
+  static Specification<TallyInstanceView> productIdEquals(String productId) {
+    return (root, query, builder) -> {
+      var key = root.get(TallyInstanceView_.key);
+      return builder.equal(key.get(TallyInstanceViewKey_.productId), productId);
+    };
+  }
+
+  static Specification<TallyInstanceView> slaEquals(ServiceLevel sla) {
+    return (root, query, builder) -> {
+      var key = root.get(TallyInstanceView_.key);
+      return builder.equal(key.get(TallyInstanceViewKey_.sla), sla);
+    };
+  }
+
+  static Specification<TallyInstanceView> usageEquals(Usage usage) {
+    return (root, query, builder) -> {
+      var key = root.get(TallyInstanceView_.key);
+      return builder.equal(key.get(TallyInstanceViewKey_.usage), usage);
+    };
+  }
+
+  static Specification<TallyInstanceView> billingProviderEquals(BillingProvider billingProvider) {
+    return (root, query, builder) -> {
+      var key = root.get(TallyInstanceView_.key);
+      return builder.equal(key.get(TallyInstanceViewKey_.bucketBillingProvider), billingProvider);
+    };
+  }
+
+  static Specification<TallyInstanceView> billingAccountIdEquals(String billingAccountId) {
+    return (root, query, builder) -> {
+      var key = root.get(TallyInstanceView_.key);
+      return builder.equal(key.get(TallyInstanceViewKey_.bucketBillingAccountId), billingAccountId);
+    };
+  }
+
+  static Specification<TallyInstanceView> orgEquals(String orgId) {
+    return (root, query, builder) -> builder.equal(root.get(TallyInstanceView_.orgId), orgId);
+  }
+
+  static Specification<TallyInstanceView> hardwareMeasurementTypeIn(
+      List<HardwareMeasurementType> types) {
+    return (root, query, builder) -> {
+      var key = root.get(TallyInstanceView_.key);
+      return key.get(TallyInstanceViewKey_.measurementType).in(types);
+    };
+  }
+
+  static Specification<TallyInstanceView> uomEquals(Uom effectiveUom) {
+    return (root, query, builder) -> {
+      var key = root.get(TallyInstanceView_.key);
+      return builder.equal(key.get(TallyInstanceViewKey_.uom), effectiveUom);
+    };
+  }
+
+  static Specification<TallyInstanceView> displayNameContains(String displayNameSubstring) {
+    return (root, query, builder) ->
+        builder.like(
+            builder.lower(root.get(TallyInstanceView_.displayName)),
+            "%" + displayNameSubstring.toLowerCase() + "%");
+  }
+
+  static Specification<TallyInstanceView> monthlyKeyEquals(InstanceMonthlyTotalKey totalKey) {
+    return (root, query, builder) -> {
+      var instanceMonthlyTotalRoot = root.join(TallyInstanceView_.monthlyTotals, JoinType.LEFT);
+      return builder.equal(instanceMonthlyTotalRoot.key(), totalKey);
+    };
+  }
+
+  static Specification<TallyInstanceView> distinct() {
+    return (root, query, builder) -> {
+      query.distinct(true);
+      return null;
+    };
+  }
+
+  @SuppressWarnings("java:S107")
+  default Specification<TallyInstanceView> buildSearchSpecification(
+      String orgId,
+      String productId,
+      ServiceLevel sla,
+      Usage usage,
+      String displayNameSubstring,
+      int minCores,
+      int minSockets,
+      String month,
+      Uom referenceUom,
+      BillingProvider billingProvider,
+      String billingAccountId,
+      List<HardwareMeasurementType> hardwareMeasurementTypes) {
     Uom effectiveUom = Optional.ofNullable(referenceUom).orElse(getDefaultUomForProduct(productId));
 
-    searchCriteria.add(new SearchCriteria(TallyInstanceView_.ORG_ID, orgId, SearchOperation.EQUAL));
-    searchCriteria.add(
-        new SearchCriteria(TallyInstanceViewKey_.PRODUCT_ID, productId, SearchOperation.EQUAL));
-    searchCriteria.add(new SearchCriteria(TallyInstanceViewKey_.SLA, sla, SearchOperation.EQUAL));
-    searchCriteria.add(
-        new SearchCriteria(TallyInstanceViewKey_.USAGE, usage, SearchOperation.EQUAL));
+    /* The where call allows us to build a Specification object to operate on even if the
+     * first specification method we call returns null which is does because we're using the
+     * Specification call to set the query to return distinct results */
+    var searchCriteria = Specification.where(distinct());
+    searchCriteria = searchCriteria.and(socketsAndCoresGreaterThanOrEqualTo(minCores, minSockets));
 
-    searchCriteria.add(
-        new SearchCriteria(
-            TallyInstanceViewKey_.BUCKET_BILLING_PROVIDER, billingProvider, SearchOperation.EQUAL));
-    searchCriteria.add(
-        new SearchCriteria(
-            TallyInstanceViewKey_.BUCKET_BILLING_ACCOUNT_ID,
-            billingAccountId,
-            SearchOperation.EQUAL));
-    searchCriteria.add(
-        new SearchCriteria(
-            TallyInstanceView_.DISPLAY_NAME, displayNameSubstring, SearchOperation.CONTAINS));
-    if (effectiveUom != null) {
-      searchCriteria.add(
-          new SearchCriteria(TallyInstanceViewKey_.UOM, effectiveUom, SearchOperation.EQUAL));
+    if (Objects.nonNull(orgId)) {
+      searchCriteria = searchCriteria.and(orgEquals(orgId));
     }
-    searchCriteria.add(
-        new SearchCriteria(TallyInstanceView_.CORES, minCores, SearchOperation.GREATER_THAN_EQUAL));
-    searchCriteria.add(
-        new SearchCriteria(
-            TallyInstanceView_.SOCKETS, minSockets, SearchOperation.GREATER_THAN_EQUAL));
-
-    if (StringUtils.hasText(month) && effectiveUom != null) {
-      searchCriteria.add(
-          new SearchCriteria(
-              InstanceMonthlyTotalKey_.MONTH,
-              new InstanceMonthlyTotalKey(month, effectiveUom),
-              SearchOperation.EQUAL));
+    if (Objects.nonNull(productId)) {
+      searchCriteria = searchCriteria.and(productIdEquals(productId));
     }
-    if (Objects.nonNull(hardwareMeasurementTypes) && !hardwareMeasurementTypes.isEmpty()) {
-      searchCriteria.add(
-          new SearchCriteria(
-              TallyInstanceViewKey_.MEASUREMENT_TYPE,
-              hardwareMeasurementTypes,
-              SearchOperation.IN));
+    if (Objects.nonNull(sla)) {
+      searchCriteria = searchCriteria.and(slaEquals(sla));
+    }
+    if (Objects.nonNull(usage)) {
+      searchCriteria = searchCriteria.and(usageEquals(usage));
+    }
+    if (Objects.nonNull(billingProvider)) {
+      searchCriteria = searchCriteria.and(billingProviderEquals(billingProvider));
+    }
+    if (Objects.nonNull(billingAccountId)) {
+      searchCriteria = searchCriteria.and(billingAccountIdEquals(billingAccountId));
+    }
+    if (Objects.nonNull(displayNameSubstring)) {
+      searchCriteria = searchCriteria.and(displayNameContains(displayNameSubstring));
+    }
+    if (Objects.nonNull(effectiveUom)) {
+      searchCriteria = searchCriteria.and(uomEquals(effectiveUom));
+      if (StringUtils.hasText(month)) {
+        searchCriteria =
+            searchCriteria.and(monthlyKeyEquals(new InstanceMonthlyTotalKey(month, effectiveUom)));
+      }
+    }
+    if (!ObjectUtils.isEmpty(hardwareMeasurementTypes)) {
+      searchCriteria = searchCriteria.and(hardwareMeasurementTypeIn(hardwareMeasurementTypes));
     }
 
-    return findAll(searchCriteria, pageable);
+    return searchCriteria;
   }
 
   default Uom getDefaultUomForProduct(String productId) {
