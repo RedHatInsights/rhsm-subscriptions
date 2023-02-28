@@ -47,7 +47,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
-public class Contract extends PanacheEntityBase {
+public class ContractEntity extends PanacheEntityBase {
 
   @Id
   @Column(name = "uuid", nullable = false)
@@ -110,7 +110,7 @@ public class Contract extends PanacheEntityBase {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-    Contract that = (Contract) o;
+    ContractEntity that = (ContractEntity) o;
     return Objects.equals(uuid, that.uuid)
         && Objects.equals(subscriptionNumber, that.subscriptionNumber)
         && Objects.equals(lastUpdated, that.lastUpdated)

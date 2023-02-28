@@ -47,7 +47,6 @@ public class ContractMetric extends PanacheEntityBase {
 
   @Id
   @Column(name = "contract_uuid", nullable = false)
-  // @org.hibernate.annotations.Type(type = "pg-uuid")
   private UUID contractUuid;
 
   @Id
@@ -59,7 +58,7 @@ public class ContractMetric extends PanacheEntityBase {
   private int value;
 
   @Exclude
-  @ManyToOne(targetEntity = Contract.class, fetch = FetchType.LAZY)
+  @ManyToOne(targetEntity = ContractEntity.class, fetch = FetchType.LAZY)
   @JoinColumn(name = "contract_uuid", insertable = false, updatable = false)
-  private Contract contract;
+  private ContractEntity contract;
 }

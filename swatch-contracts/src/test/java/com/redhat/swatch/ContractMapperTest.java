@@ -42,7 +42,7 @@ class ContractMapperTest {
     var uuid = UUID.randomUUID();
     var startDate = OffsetDateTime.now();
 
-    var entity = new Contract();
+    var entity = new ContractEntity();
 
     entity.setUuid(uuid);
     entity.setSku("BAS123");
@@ -60,7 +60,7 @@ class ContractMapperTest {
     contractMetric.setValue(1);
     entity.addMetric(contractMetric);
 
-    var dto = mapper.contractToDto(entity);
+    var dto = mapper.contractEntityToDto(entity);
 
     assertEquals(entity.getUuid(), UUID.fromString(dto.getUuid()));
     assertEquals(entity.getOrgId(), dto.getOrgId());
@@ -106,7 +106,7 @@ class ContractMapperTest {
 
     dto.addMetricsItem(metric);
 
-    var entity = mapper.dtoToContract(dto);
+    var entity = mapper.dtoToContractEntity(dto);
 
     assertEquals(dto.getUuid(), entity.getUuid().toString());
     assertEquals(dto.getOrgId(), entity.getOrgId());
@@ -146,7 +146,7 @@ class ContractMapperTest {
     var dto = new com.redhat.swatch.openapi.model.Contract();
     dto.setUuid(uuid.toString());
     dto.setMetrics(null);
-    var entity = mapper.dtoToContract(dto);
+    var entity = mapper.dtoToContractEntity(dto);
 
     assertEquals(dto.getUuid(), entity.getUuid().toString());
     assertNull(dto.getMetrics());
@@ -154,6 +154,6 @@ class ContractMapperTest {
 
   @Test
   void testDtoToEntity_WhenContractNull() {
-    assertNull(mapper.dtoToContract(null));
+    assertNull(mapper.dtoToContractEntity(null));
   }
 }

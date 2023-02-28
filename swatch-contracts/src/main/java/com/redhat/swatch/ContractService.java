@@ -43,13 +43,12 @@ public class ContractService {
   }
 
   @Transactional
-  com.redhat.swatch.openapi.model.Contract createContract(
-      com.redhat.swatch.openapi.model.Contract contract) {
+  Contract createContract(Contract contract) {
 
     var uuid = Objects.requireNonNullElse(contract.getUuid(), UUID.randomUUID().toString());
     contract.setUuid(uuid);
 
-    var entity = mapper.dtoToContract(contract);
+    var entity = mapper.dtoToContractEntity(contract);
 
     entity.getMetrics().stream()
         .forEach(
@@ -75,13 +74,15 @@ public class ContractService {
 
   public List<com.redhat.swatch.openapi.model.Contract> getContracts(
       Map<String, Object> parameters) {
-    return contractRepository.getContracts(parameters).stream().map(mapper::contractToDto).toList();
+    return contractRepository.getContracts(parameters).stream()
+        .map(mapper::contractEntityToDto)
+        .toList();
   }
 
   @Transactional
   Contract updateContract(Contract dto) {
 
-    com.redhat.swatch.Contract existingContract =
+    ContractEntity existingContract =
         contractRepository.findContract(UUID.fromString(dto.getUuid()));
 
     var now = OffsetDateTime.now();
@@ -93,7 +94,7 @@ public class ContractService {
       return createContract(dto);
     }
 
-    var newData = mapper.dtoToContract(dto);
+    var newData = mapper.dtoToContractEntity(dto);
     newData
         .getMetrics()
         .forEach(
@@ -112,15 +113,15 @@ public class ContractService {
       existingContract.setEndDate(now);
       existingContract.setLastUpdated(now);
       existingContract.persist();
-      com.redhat.swatch.Contract newRecord = createContractForLogicalUpdate(dto);
+      ContractEntity newRecord = createContractForLogicalUpdate(dto);
       newRecord.persist();
     }
     return dto;
   }
 
-  com.redhat.swatch.Contract createContractForLogicalUpdate(Contract dto) {
+  ContractEntity createContractForLogicalUpdate(Contract dto) {
     var newUuid = UUID.randomUUID();
-    var newRecord = mapper.dtoToContract(dto);
+    var newRecord = mapper.dtoToContractEntity(dto);
     newRecord.setUuid(newUuid);
     newRecord.setLastUpdated(OffsetDateTime.now());
     newRecord.setEndDate(null);

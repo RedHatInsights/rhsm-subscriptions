@@ -49,15 +49,15 @@ class ContractServiceTest extends BaseUnitTest {
   @Inject ContractService contractService;
   @InjectMock ContractRepository contractRepository;
 
-  Contract actualContract1;
+  ContractEntity actualContract1;
 
   com.redhat.swatch.openapi.model.Contract contractDto;
 
-  @Captor ArgumentCaptor<Contract> contractArgumentCaptor;
+  @Captor ArgumentCaptor<ContractEntity> contractArgumentCaptor;
 
   @BeforeAll
   public void setupTestData() {
-    actualContract1 = new Contract();
+    actualContract1 = new ContractEntity();
     var uuid = UUID.randomUUID();
     actualContract1.setUuid(uuid);
     actualContract1.setBillingAccountId("billAcct123");
@@ -106,11 +106,11 @@ class ContractServiceTest extends BaseUnitTest {
 
   @Test
   void testSaveContracts() {
-    doNothing().when(contractRepository).persist(any(Contract.class));
+    doNothing().when(contractRepository).persist(any(ContractEntity.class));
     com.redhat.swatch.openapi.model.Contract contractResponse =
         contractService.createContract(contractDto);
     verify(contractRepository, times(1)).persist(contractArgumentCaptor.capture());
-    Contract contract = contractArgumentCaptor.getValue();
+    ContractEntity contract = contractArgumentCaptor.getValue();
     assertEquals(contractDto.getSku(), contract.getSku());
     assertEquals(contractResponse.getUuid(), contract.getUuid().toString());
   }
@@ -157,7 +157,7 @@ class ContractServiceTest extends BaseUnitTest {
     ContractMetric expectedMetric2 = new ContractMetric();
     expectedMetric2.setMetricId("cpu-hours");
     expectedMetric2.setValue(5);
-    var expected = com.redhat.swatch.Contract.builder().metrics(Set.of(expectedMetric2)).build();
+    var expected = ContractEntity.builder().metrics(Set.of(expectedMetric2)).build();
     var actual = contractService.createContractForLogicalUpdate(dto);
 
     // new.uuid != old.uuid

@@ -30,9 +30,9 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @ApplicationScoped
-public class ContractRepository implements PanacheRepositoryBase<Contract, UUID> {
+public class ContractRepository implements PanacheRepositoryBase<ContractEntity, UUID> {
 
-  public List<Contract> getContracts(Map<String, Object> parameters) {
+  public List<ContractEntity> getContracts(Map<String, Object> parameters) {
     if (parameters == null) {
       return listAll();
     }
@@ -67,7 +67,11 @@ public class ContractRepository implements PanacheRepositoryBase<Contract, UUID>
 
     if (isJoinTableNeeded) {
       var metricTableJoin =
-          "select c from Contract c inner join ContractMetric m on c.uuid = m.contractUuid where ";
+          "select c from "
+              + ContractEntity.class.getName()
+              + " c inner join "
+              + ContractMetric.class.getName()
+              + " m on c.uuid = m.contractUuid where ";
       query = metricTableJoin + query;
     }
 
@@ -76,7 +80,7 @@ public class ContractRepository implements PanacheRepositoryBase<Contract, UUID>
     return find(query, nonNullParams).list();
   }
 
-  Contract findContract(UUID uuid) {
+  ContractEntity findContract(UUID uuid) {
     log.info("Find contract by uuid {}", uuid);
     return find("uuid", uuid).firstResult();
   }

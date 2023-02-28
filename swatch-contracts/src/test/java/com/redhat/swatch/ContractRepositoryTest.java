@@ -48,16 +48,16 @@ class ContractRepositoryTest {
 
   @Inject ContractRepository contractRepository;
 
-  Contract actualContract1;
+  ContractEntity actualContract1;
 
-  Contract actualContract2;
+  ContractEntity actualContract2;
 
-  List<Contract> contractList;
+  List<ContractEntity> contractList;
 
   @BeforeAll
   public void setupTestData() {
     // Contract1 with same UUID but different metrics
-    actualContract1 = new Contract();
+    actualContract1 = new ContractEntity();
     var uuid = UUID.randomUUID();
     actualContract1.setUuid(uuid);
     actualContract1.setBillingAccountId("billAcct123");
@@ -83,7 +83,7 @@ class ContractRepositoryTest {
     actualContract1.setMetrics(Set.of(contractMetric1, contractMetric2));
 
     // Contract2 with same UUID but different metrics
-    actualContract2 = new Contract();
+    actualContract2 = new ContractEntity();
     var uuid2 = UUID.randomUUID();
     actualContract2.setUuid(uuid2);
     actualContract2.setBillingAccountId("billAcct456");
@@ -150,7 +150,7 @@ class ContractRepositoryTest {
 
   @Test
   void whenValidUUID_thenRetrieveContract() {
-    Contract contract1 = contractRepository.findContract(actualContract1.getUuid());
+    ContractEntity contract1 = contractRepository.findContract(actualContract1.getUuid());
     assertEquals(
         actualContract1.getMetrics().stream().toList().get(1).getContractUuid(),
         contract1.getMetrics().stream().toList().get(1).getContractUuid());
@@ -159,7 +159,7 @@ class ContractRepositoryTest {
 
   @Test
   void whenGetContractWithEmptyParam_thenReturnAllContracts() {
-    List<Contract> allContracts = contractRepository.getContracts(null);
+    List<ContractEntity> allContracts = contractRepository.getContracts(null);
     assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
 
     Map<String, Object> parameters = new HashMap<>();
@@ -173,7 +173,7 @@ class ContractRepositoryTest {
     Map<String, Object> parameters = new HashMap<>();
     parameters.put("metricId", "instance-hours");
     parameters.put("productId", "BASILISK123");
-    List<Contract> allContracts = contractRepository.getContracts(parameters);
+    List<ContractEntity> allContracts = contractRepository.getContracts(parameters);
     assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
   }
 
@@ -181,13 +181,13 @@ class ContractRepositoryTest {
   void whenGetContractWithMissingMetricIdParam_thenReturnAllContracts() {
     Map<String, Object> parameters = new HashMap<>();
     parameters.put("productId", "BASILISK123");
-    List<Contract> allContracts = contractRepository.getContracts(parameters);
+    List<ContractEntity> allContracts = contractRepository.getContracts(parameters);
     assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
   }
 
   @Test
   void whenValidContractPresent_thenCanRetrieveAndDelete() {
-    Contract expectedContract = contractRepository.findById(actualContract2.getUuid());
+    ContractEntity expectedContract = contractRepository.findById(actualContract2.getUuid());
     assertEquals(
         actualContract2.getMetrics().stream().toList().get(1).getContractUuid(),
         expectedContract.getMetrics().stream().toList().get(1).getContractUuid());
