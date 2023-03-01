@@ -20,7 +20,7 @@ servers:
       port:
         default: '8000'
 paths:
-  '/api/rhsm-subscriptions/v1/internal/contracts/{uuid}':
+  '/api/swatch-contracts/v1/internal/contracts/{uuid}':
     put:
       requestBody:
         content:
@@ -102,7 +102,7 @@ paths:
         '200':
           description: Success
       operationId: deleteContractByUUID
-  /api/rhsm-subscriptions/v1/internal/contracts:
+  /api/swatch-contracts/v1/internal/contracts:
     get:
       parameters:
         -
