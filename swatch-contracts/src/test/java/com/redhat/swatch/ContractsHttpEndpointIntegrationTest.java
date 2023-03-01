@@ -22,12 +22,16 @@ package com.redhat.swatch;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.restassured.http.ContentType;
+
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -37,6 +41,13 @@ import org.junit.jupiter.api.Test;
 class ContractsHttpEndpointIntegrationTest {
 
   @InjectMock ContractService contractService;
+
+  @Test
+  void which_java() {
+    String version = System.getProperty("java.version");
+    System.out.println(version);
+    assertEquals("17.0.5",version);
+  }
 
   @Test
   void whenGetContract_thenContractShouldBeFound() {
