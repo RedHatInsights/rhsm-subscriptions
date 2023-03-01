@@ -30,12 +30,16 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.conduit.inventory.ConduitFacts;
 import org.candlepin.subscriptions.conduit.inventory.InventoryServiceProperties;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiFactSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -197,8 +201,10 @@ class KafkaEnabledInventoryServiceTest {
     assertEquals(syncDate.plusHours(24), message.getData().getStaleTimestamp());
   }
 
-  @Test
-  void requiredKafkaProducerSendsHostMessageHasMajorVersion() {
+  @ParameterizedTest
+  @MethodSource("osReleases")
+  void requiredKafkaProducerSendsHostMessageHasMajorVersion(
+      String release, Integer expectedMajorVersion, Integer expectedMinorVersion) {
     ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
     ArgumentCaptor<CreateUpdateHostMessage> messageCaptor =
         ArgumentCaptor.forClass(CreateUpdateHostMessage.class);
@@ -212,7 +218,7 @@ class KafkaEnabledInventoryServiceTest {
     expectedFacts.setCpuCores(25);
     expectedFacts.setCpuSockets(45);
     expectedFacts.setOsName("Red Hat Enterprise Linux Workstation");
-    expectedFacts.setOsVersion("6");
+    expectedFacts.setOsVersion(release);
 
     InventoryServiceProperties props = new InventoryServiceProperties();
     props.setKafkaHostIngressTopic("placeholder");
@@ -240,10 +246,24 @@ class KafkaEnabledInventoryServiceTest {
     assertNotNull(syncDate);
     assertEquals(syncDate, message.getData().getStaleTimestamp());
     assertEquals("rhsm-conduit", message.getData().getReporter());
-    assertEquals("6", message.getData().getSystemProfile().getOsRelease());
+    assertEquals(release, message.getData().getSystemProfile().getOsRelease());
     assertEquals(
         "RHEL", message.getData().getSystemProfile().getOperatingSystem().getName().value());
-    assertEquals(6, message.getData().getSystemProfile().getOperatingSystem().getMajor());
-    assertEquals(0, message.getData().getSystemProfile().getOperatingSystem().getMinor());
+    assertEquals(
+        expectedMajorVersion,
+        message.getData().getSystemProfile().getOperatingSystem().getMajor(),
+        "Unexpected major version");
+    assertEquals(
+        expectedMinorVersion,
+        message.getData().getSystemProfile().getOperatingSystem().getMinor(),
+        "Unexpected minor version");
+  }
+
+  static Stream<Arguments> osReleases() {
+    return Stream.of(
+        Arguments.of("11.54.3.4", 11, 54),
+        Arguments.of("11.54.3", 11, 54),
+        Arguments.of("5.14", 5, 14),
+        Arguments.of("6", 6, 0));
   }
 }

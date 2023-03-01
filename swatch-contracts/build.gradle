@@ -2,6 +2,7 @@ plugins {
     id 'swatch.java-conventions'
     id 'io.quarkus'
     id 'org.openapi.generator'
+    id 'swatch.quarkus-rest-client-conventions'
 }
 
 repositories {
@@ -16,15 +17,13 @@ dependencies {
     implementation 'io.quarkus:quarkus-config-yaml'
     implementation 'io.quarkus:quarkus-hibernate-validator'
     implementation 'io.quarkus:quarkus-jacoco'
-    implementation 'io.quarkus:quarkus-logging-json'
+    implementation 'io.quarkus:quarkus-jsonb'
     implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
     implementation 'io.quarkus:quarkus-openshift'
     implementation 'io.quarkus:quarkus-resteasy'
     implementation 'io.quarkus:quarkus-smallrye-fault-tolerance'
     implementation 'io.quarkus:quarkus-smallrye-health'
     implementation 'io.quarkus:quarkus-smallrye-openapi'
-    implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
-    implementation 'io.quarkus:quarkus-smallrye-reactive-messaging'
     implementation libraries["clowder-quarkus-config-source"]
     implementation libraries["quarkus-logging-splunk"]
     implementation libraries["splunk-library-javalogging"]
@@ -37,17 +36,48 @@ dependencies {
     testImplementation 'org.testcontainers:postgresql'
     testImplementation 'org.testcontainers:testcontainers'
     testImplementation libraries["junit-jupiter"]
-    testImplementation libraries["wiremock-jre8"]
+    implementation("io.quarkus:quarkus-liquibase")
+    implementation("io.quarkus:quarkus-jdbc-postgresql")
+    testImplementation("io.quarkus:quarkus-jdbc-h2")
+    implementation("io.quarkus:quarkus-hibernate-orm-panache")
+    implementation 'org.mapstruct:mapstruct:1.5.3.Final'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.3.Final'
+    testAnnotationProcessor 'org.mapstruct:mapstruct-processor:1.5.3.Final'
+    // if you are using mapstruct in test code
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
 }
 
 group 'com.redhat.swatch'
 version 'swatch-contracts'
+
+compileJava.dependsOn tasks.openApiGenerate
+
+openApiGenerate {
+    generatorName = "java"
+    inputSpec = "${projectDir}/src/main/resources/swatch_contracts_openapi.yaml"
+    outputDir = "${buildDir}/generated"
+    apiPackage = "com.redhat.swatch.openapi.resource"
+    modelPackage = "com.redhat.swatch.openapi.model"
+    invokerPackage = "com.redhat.swatch.openapi"
+    groupId = "com.redhat.swatch"
+    configOptions = [sourceFolder : "src/gen/java",
+                     interfaceOnly: "true",
+                     library      : "microprofile",
+                     java8        : "true",
+                     dateLibrary  : "java8",]
+    additionalProperties = [disableMultipart: "true", // see https://github.com/OpenAPITools/openapi-generator/pull/4713#issuecomment-633906581
+    ]
+}
+
+sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
+
 
 tasks.register('configureQuarkusBuild') {
     doLast {
         System.setProperty("quarkus.container-image.tag", project.getVersion().toString().replace("+", "_"))
     }
 }
+
 
 quarkusDev.dependsOn(configureQuarkusBuild)
 quarkusBuild.dependsOn(configureQuarkusBuild)

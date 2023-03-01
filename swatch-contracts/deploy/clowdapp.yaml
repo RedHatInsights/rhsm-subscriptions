@@ -42,6 +42,9 @@ parameters:
     value: 'INFO'
   - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
     value: 'INFO'
+  # allow overriding to support independent deploy with bonfire
+  - name: DB_POD
+    value: swatch-tally
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -55,6 +58,16 @@ objects:
 
       pullSecrets:
         name: ${IMAGE_PULL_SECRET}
+
+      database:
+        sharedDbAppName: swatch-tally
+      dependencies:
+        - swatch-tally
+
+      # Creates a database if local mode, or uses RDS in production
+      # database:
+      #   name: ${DB_POD}
+      #   version: 12
 
       deployments:
         - name: service
@@ -99,6 +112,31 @@ objects:
                 value: ${LOGGING_LEVEL_ROOT}
               - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
                 value: ${LOGGING_LEVEL_COM_REDHAT_SWATCH}
+              - name: DATABASE_HOST
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.host
+              - name: DATABASE_PORT
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.port
+              - name: DATABASE_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.user
+              - name: DATABASE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.password
+              - name: DATABASE_DATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_POD}-db
+                    key: db.name
               - name: ENABLE_SPLUNK_HEC
                 value: ${ENABLE_SPLUNK_HEC}
               - name: SPLUNKMETA_namespace

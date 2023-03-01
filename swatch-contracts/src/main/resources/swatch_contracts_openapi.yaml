@@ -1,0 +1,302 @@
+openapi: 3.0.2
+info:
+  title: SWATCH Contract Service
+  version: 1.0.0
+  description: CRUD Operations for contract information
+  termsOfService: 'http://swagger.io/terms/'
+  contact:
+    name: SWATCH Dev
+    url: 'https://github.com/RedHatInsights/rhsm-subscriptions'
+  license:
+    name: Apache 2.0
+    url: 'https://www.apache.org/licenses/LICENSE-2.0.html'
+servers:
+  -
+    url: 'http://{domain}:{port}/app/rhsm-subscriptions/internal'
+    description: ''
+    variables:
+      domain:
+        default: localhost
+      port:
+        default: '8000'
+paths:
+  '/api/rhsm-subscriptions/v1/internal/contracts/{uuid}':
+    put:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Contract'
+            examples:
+              persisted contract info:
+                value:
+                  uuid: some text
+                  subscription_number: some text
+                  start_date: '2018-02-10T09:30Z'
+                  end_date: '2018-02-10T09:30Z'
+                  org_id: some text
+                  billing_provider: aws
+                  billing_account_id: some text
+                  product_id: some text
+                  metrics:
+                    -
+                      metric_id: some text
+                      value: 18.15
+                    -
+                      metric_id: some text
+                      value: 28.69
+        required: false
+      parameters:
+        -
+          examples:
+            uuid:
+              value: 8ece4096-bef6-4ad6-b0db-20c8e6b2a78c
+          name: uuid
+          description: UUID generated from a previously saved contract
+          schema:
+            type: string
+          in: path
+          required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contract'
+              examples:
+                persisted contract info:
+                  value:
+                    billing_account_id: '123456789101'
+                    billing_provider: aws
+                    end_date: '2023-03-01T00:00:00Z'
+                    metrics:
+                      -
+                        metric_id: Instance-hours
+                        value: 68.6
+                    org_id: org123
+                    product_id: BASILISK
+                    start_date: '2022-01-01T00:00:00Z'
+                    subscription_number: '12345678'
+                    sku: 'BAS123'
+                    uuid: 8ece4096-bef6-4ad6-b0db-20c8e6b2a78c
+          description: Success
+      operationId: updateContract
+      description: Update a contract record by its uuid.  Only update values passed.
+    delete:
+      description: >-
+        This will execute a hard delete of a contract and its associated metrics from the database.  This
+        is NOT the same as setting a contract to expired.  To expire a certificate, the updateContract
+        endpoint should be used with an end_date.
+      parameters:
+        -
+          examples:
+            uuid:
+              value: 8ece4096-bef6-4ad6-b0db-20c8e6b2a78c
+          name: uuid
+          description: UUID generated from a previously saved contract
+          schema:
+            type: string
+          in: path
+          required: true
+      responses:
+        '200':
+          description: Success
+      operationId: deleteContractByUUID
+  /api/rhsm-subscriptions/v1/internal/contracts:
+    get:
+      parameters:
+        -
+          examples:
+            org_id:
+              value: org123
+          name: org_id
+          description: ''
+          schema:
+            type: string
+          in: query
+        -
+          examples:
+            product_id:
+              value: BASILISK
+          name: product_id
+          description: ''
+          schema:
+            type: string
+          in: query
+        -
+          examples:
+            metric_id:
+              value: Instance-hours
+          name: metric_id
+          description: ''
+          schema:
+            type: string
+          in: query
+        -
+          examples:
+            billing_provider:
+              value: aws
+          name: billing_provider
+          description: ''
+          schema:
+            type: string
+          in: query
+        -
+          examples:
+            billing_account_id:
+              value: '123456789101'
+          name: billing_account_id
+          description: ''
+          schema:
+            type: string
+          in: query
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Contract'
+          description: success
+      security:
+        -
+          support: []
+        -
+          test: []
+      operationId: getContract
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Contract'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contract'
+          description: success
+      security:
+        -
+          test: []
+      operationId: createContract
+components:
+  schemas:
+    Error:
+      required:
+        - code
+        - message
+      properties:
+        code:
+          format: int32
+          type: integer
+        message:
+          type: string
+    Contract:
+      description: ''
+      required:
+        - start_date
+        - org_id
+        - billing_provider
+        - billing_account_id
+        - product_id
+        - metrics
+      type: object
+      properties:
+        uuid:
+          description: Randomly generated if not set
+          type: string
+          example: 8ece4096-bef6-4ad6-b0db-20c8e6b2a78c
+        subscription_number:
+          description: ''
+          type: string
+          example: '12345678'
+        sku:
+          description: ''
+          type: string
+          example: 'BAS123'
+        start_date:
+          format: date-time
+          description: ''
+          type: string
+          example: '2022-01-01T00:00:00Z'
+        end_date:
+          format: date-time
+          description: ''
+          type: string
+          example: '2023-03-01T00:00:00Z'
+        org_id:
+          description: ''
+          type: string
+          example: org123
+        billing_provider:
+          description: ''
+          type: string
+          example: aws
+        billing_account_id:
+          description: AWS billing account ids are 12 digits
+          type: string
+          example: '123456789101'
+        product_id:
+          description: ''
+          type: string
+          example: BASILISK
+        metrics:
+          description: ''
+          type: array
+          items:
+            $ref: '#/components/schemas/Metric'
+          example: '[{"metric_id": "Instance-hours", "value": 68.6}]'
+      example:
+        uuid: some text
+        subscription_number: some text
+        start_date: '2018-02-10T09:30Z'
+        end_date: '2018-02-10T09:30Z'
+        org_id: some text
+        billing_provider: aws
+        billing_account_id: some text
+        product_id: some text
+        metrics:
+          -
+            metric_id: some text
+            value: 3.57
+          -
+            metric_id: some text
+            value: 52.67
+    Metric:
+      title: Root Type for Metric
+      description: ''
+      required:
+        - value
+        - metric_id
+      type: object
+      properties:
+        metric_id:
+          type: string
+          example: Instance-hours
+        value:
+          format: int32
+          type: integer
+          example: 1
+      example:
+        metric_id: Instance-hours
+        value: 68.6
+  securitySchemes:
+    support:
+      type: apiKey
+      description: API is available for support operations
+      name: x-rh-identity
+      in: header
+    service:
+      type: apiKey
+      description: API is available for services
+      name: x-rh-swatch-psk
+      in: header
+    test:
+      type: apiKey
+      description: API is available for testing purposes (pre-production environments only)
+      name: x-rh-swatch-psk
+      in: header

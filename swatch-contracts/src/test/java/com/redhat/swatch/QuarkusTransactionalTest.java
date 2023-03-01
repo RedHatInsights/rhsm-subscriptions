@@ -18,23 +18,19 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db;
+package com.redhat.swatch;
 
-import javax.validation.constraints.NotNull;
-import lombok.*;
+import io.quarkus.test.junit.QuarkusTest;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import javax.enterprise.inject.Stereotype;
+import javax.transaction.Transactional;
 
-/** Representation of a single constraint */
-@Getter
-@Setter
-@ToString
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class SearchCriteria {
-
-  @NotNull private String key;
-
-  @NotNull private Object value;
-
-  @NotNull private SearchOperation operation;
-}
+@QuarkusTest
+@Stereotype
+@Transactional
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface QuarkusTransactionalTest {}

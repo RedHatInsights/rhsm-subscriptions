@@ -20,17 +20,14 @@
  */
 package com.redhat.swatch;
 
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.is;
+import java.io.Serializable;
+import java.util.UUID;
+import lombok.Data;
 
-import io.quarkus.test.junit.QuarkusTest;
-import org.junit.jupiter.api.Test;
+@Data
+public class ContractMetricId implements Serializable {
 
-@QuarkusTest
-class ExampleResourceTest {
-
-  @Test
-  void testHelloEndpoint() {
-    given().when().get("/hello").then().statusCode(200).body(is("Hello from RESTEasy Reactive"));
-  }
+  private UUID contractUuid;
+  private String metricId;
+  private int value;
 }

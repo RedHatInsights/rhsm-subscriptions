@@ -18,22 +18,17 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db;
+package com.redhat.swatch;
 
-/** Operations for programatically building queries via specifications */
-public enum SearchOperation {
-  GREATER_THAN,
-  LESS_THAN,
-  GREATER_THAN_EQUAL,
-  LESS_THAN_EQUAL,
-  NOT_EQUAL,
-  EQUAL,
-  CONTAINS,
-  MATCH_START,
-  MATCH_END,
-  IN,
-  NOT_IN,
-  AFTER_OR_ON,
-  BEFORE_OR_ON,
-  IS_NOT_NULL
+import com.redhat.swatch.openapi.model.Contract;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+@Mapper(componentModel = "cdi")
+interface ContractMapper {
+
+  Contract contractEntityToDto(ContractEntity contract);
+
+  @Mapping(target = "lastUpdated", ignore = true)
+  ContractEntity dtoToContractEntity(Contract contract);
 }
