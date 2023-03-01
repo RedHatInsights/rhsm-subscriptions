@@ -86,7 +86,7 @@ class ContractsHttpEndpointIntegrationTest {
         .contentType(ContentType.JSON)
         .body(contract)
         .when()
-        .post("/api/swatch-contracts/internal/contracts")
+        .post("/api/swatch-contracts/v1/internal/contracts")
         .then()
         .statusCode(200);
   }
@@ -96,7 +96,7 @@ class ContractsHttpEndpointIntegrationTest {
     given()
         .contentType(ContentType.JSON)
         .when()
-        .delete("/api/swatch-contracts/internal/contracts/123")
+        .delete("/api/swatch-contracts/v1/internal/contracts/123")
         .then()
         .statusCode(204);
   }
