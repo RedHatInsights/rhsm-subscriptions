@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.MockitoAnnotations;
 
@@ -33,8 +32,8 @@ class BaseUnitTest {
     closeable = MockitoAnnotations.openMocks(this);
   }
 
-  @AfterEach
+  /*@AfterEach
   void close_mocks() throws Exception {
     closeable.close();
-  }
+  }*/
 }
