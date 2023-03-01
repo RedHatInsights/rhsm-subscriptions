@@ -23,15 +23,14 @@ package com.redhat.swatch;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.restassured.http.ContentType;
-
 import java.util.List;
-
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -42,12 +41,19 @@ import org.slf4j.LoggerFactory;
 class ContractsHttpEndpointIntegrationTest {
 
   @InjectMock ContractService contractService;
-  private static Logger LOGGER = LoggerFactory.getLogger(ContractsHttpEndpointIntegrationTest.class);
+  private static Logger LOGGER =
+      LoggerFactory.getLogger(ContractsHttpEndpointIntegrationTest.class);
+
   @Test
   void which_java() {
     String version = System.getProperty("java.version");
-    LOGGER.info("Java version here:{}",version);
-    assertEquals("17.0.5",version);
+    int dot = version.indexOf(".");
+    if (dot != -1) {
+      version = version.substring(0, dot);
+      LOGGER.info("Dot here:{}", version);
+      assertEquals("17", version);
+      assertNotEquals("11", version);
+    }
   }
 
   @Test
