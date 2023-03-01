@@ -48,7 +48,7 @@ class ContractsHttpEndpointIntegrationTest {
         .contentType(ContentType.JSON)
         .param("org_id", "org123")
         .when()
-        .get("/api/swatch-contracts/internal/contracts")
+        .get("/api/swatch-contracts/v1/internal/contracts")
         .then()
         .statusCode(200)
         .body("size()", is(1))
@@ -66,7 +66,7 @@ class ContractsHttpEndpointIntegrationTest {
         .contentType(ContentType.JSON)
         .body(contract)
         .when()
-        .put("/api/swatch-contracts/internal/contracts/1322")
+        .put("/api/swatch-contracts/v1/internal/contracts/1322")
         .then()
         .statusCode(204);
   }
