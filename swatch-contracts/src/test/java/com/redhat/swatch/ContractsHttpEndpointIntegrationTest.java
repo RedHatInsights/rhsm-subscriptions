@@ -30,22 +30,23 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.restassured.http.ContentType;
 
-import java.io.FileNotFoundException;
-import java.io.PrintStream;
 import java.util.List;
+
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @QuarkusTest
 @Tag("integration")
 class ContractsHttpEndpointIntegrationTest {
 
   @InjectMock ContractService contractService;
-
+  private static Logger LOGGER = LoggerFactory.getLogger(ContractsHttpEndpointIntegrationTest.class);
   @Test
   void which_java() {
     String version = System.getProperty("java.version");
-    System.out.println(version);
+    LOGGER.info("Java version here:{}",version);
     assertEquals("17.0.5",version);
   }
 
