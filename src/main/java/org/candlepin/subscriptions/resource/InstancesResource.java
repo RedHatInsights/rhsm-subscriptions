@@ -228,15 +228,36 @@ public class InstancesResource implements InstancesApi {
       List<String> measurements,
       boolean isPAYG) {
     var instance = new InstanceData();
-    List<Double> measurementList = new ArrayList<>();
     instance.setId(tallyInstanceView.getId());
-    instance.setInstanceId(tallyInstanceView.getKey().getInstanceId().toString());
+    instance.setInstanceId(tallyInstanceView.getKey().getInstanceId());
     instance.setDisplayName(tallyInstanceView.getDisplayName());
     if (Objects.nonNull(tallyInstanceView.getHostBillingProvider())) {
       instance.setBillingProvider(tallyInstanceView.getHostBillingProvider().asOpenApiEnum());
     }
+    instance.setCategory(
+        getCategoryByMeasurementType(tallyInstanceView.getKey().getMeasurementType()));
+    instance.setCloudProvider(
+        getCloudProviderByMeasurementType(tallyInstanceView.getKey().getMeasurementType()));
+    instance.setBillingAccountId(tallyInstanceView.getHostBillingAccountId());
+    instance.setMeasurements(
+        getInstanceMeasurements(tallyInstanceView, monthId, measurements, isPAYG));
+    instance.setLastSeen(tallyInstanceView.getLastSeen());
+    instance.setNumberOfGuests(tallyInstanceView.getNumOfGuests());
+    instance.setSubscriptionManagerId(tallyInstanceView.getSubscriptionManagerId());
+    return instance;
+  }
+
+  private static List<Double> getInstanceMeasurements(
+      TallyInstanceView tallyInstanceView,
+      String monthId,
+      List<String> measurements,
+      boolean isPAYG) {
+    List<Double> measurementList = new ArrayList<>();
     for (String uom : measurements) {
-      if (!isPAYG && tallyInstanceView.getKey().getUom().equals(Measurement.Uom.fromValue(uom))) {
+      if (Measurement.Uom.SOCKETS.equals(Measurement.Uom.fromValue(uom))) {
+        measurementList.add(Double.valueOf(tallyInstanceView.getSockets()));
+      } else if (!isPAYG
+          && tallyInstanceView.getKey().getUom().equals(Measurement.Uom.fromValue(uom))) {
         measurementList.add(Optional.ofNullable(tallyInstanceView.getValue()).orElse(0.0));
       } else {
         measurementList.add(
@@ -245,16 +266,7 @@ public class InstancesResource implements InstancesApi {
                 .orElse(0.0));
       }
     }
-    instance.setCategory(
-        getCategoryByMeasurementType(tallyInstanceView.getKey().getMeasurementType()));
-    instance.setCloudProvider(
-        getCloudProviderByMeasurementType(tallyInstanceView.getKey().getMeasurementType()));
-    instance.setBillingAccountId(tallyInstanceView.getHostBillingAccountId());
-    instance.setMeasurements(measurementList);
-    instance.setLastSeen(tallyInstanceView.getLastSeen());
-    instance.setNumberOfGuests(tallyInstanceView.getNumOfGuests());
-    instance.setSubscriptionManagerId(tallyInstanceView.getSubscriptionManagerId());
-    return instance;
+    return measurementList;
   }
 
   private static List<HardwareMeasurementType> getHardwareMeasurementTypesFromCategory(
