@@ -18,12 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch;
+package com.redhat.swatch.contract.repository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import com.redhat.swatch.contract.QuarkusTransactionalTest;
 import io.quarkus.test.junit.QuarkusTest;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
@@ -73,12 +74,12 @@ class ContractRepositoryTest {
     actualContract1.setLastUpdated(OffsetDateTime.now());
     actualContract1.setSubscriptionNumber("test");
 
-    ContractMetric contractMetric1 = new ContractMetric();
+    ContractMetricEntity contractMetric1 = new ContractMetricEntity();
     contractMetric1.setContractUuid(uuid);
     contractMetric1.setMetricId("cpu-hours");
     contractMetric1.setValue(2);
 
-    ContractMetric contractMetric2 = new ContractMetric();
+    ContractMetricEntity contractMetric2 = new ContractMetricEntity();
     contractMetric2.setContractUuid(uuid);
     contractMetric2.setMetricId("instance-hours");
     contractMetric2.setValue(4);
@@ -99,12 +100,12 @@ class ContractRepositoryTest {
     actualContract2.setLastUpdated(OffsetDateTime.now());
     actualContract2.setSubscriptionNumber("test");
 
-    ContractMetric contractMetric3 = new ContractMetric();
+    ContractMetricEntity contractMetric3 = new ContractMetricEntity();
     contractMetric3.setContractUuid(uuid2);
     contractMetric3.setMetricId("cpu-hours");
     contractMetric3.setValue(5);
 
-    ContractMetric contractMetric4 = new ContractMetric();
+    ContractMetricEntity contractMetric4 = new ContractMetricEntity();
     contractMetric4.setContractUuid(uuid2);
     contractMetric4.setMetricId("instance-hours");
     contractMetric4.setValue(10);

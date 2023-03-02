@@ -18,17 +18,29 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch;
+package com.redhat.swatch.contract.resource;
 
-import com.redhat.swatch.openapi.model.Contract;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
+import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import java.util.Collections;
+import java.util.Map;
+import org.testcontainers.containers.PostgreSQLContainer;
 
-@Mapper(componentModel = "cdi")
-interface ContractMapper {
+public class PostgresResource implements QuarkusTestResourceLifecycleManager {
 
-  Contract contractEntityToDto(ContractEntity contract);
+  static PostgreSQLContainer<?> db =
+      new CentosPostgreSQLContainer()
+          .withDatabaseName("rhsm-subscriptions")
+          .withUsername("rhsm-subscriptions")
+          .withPassword("rhsm-subscriptions");
 
-  @Mapping(target = "lastUpdated", ignore = true)
-  ContractEntity dtoToContractEntity(Contract contract);
+  @Override
+  public Map<String, String> start() {
+    db.start();
+    return Collections.singletonMap("quarkus.datasource.jdbc.url", db.getJdbcUrl());
+  }
+
+  @Override
+  public void stop() {
+    db.stop();
+  }
 }

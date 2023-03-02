@@ -18,9 +18,12 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch;
+package com.redhat.swatch.contract.service;
 
-import com.redhat.swatch.openapi.model.Contract;
+import com.redhat.swatch.contract.model.ContractMapper;
+import com.redhat.swatch.contract.openapi.model.Contract;
+import com.redhat.swatch.contract.repository.ContractEntity;
+import com.redhat.swatch.contract.repository.ContractRepository;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -72,8 +75,7 @@ public class ContractService {
     return contract;
   }
 
-  public List<com.redhat.swatch.openapi.model.Contract> getContracts(
-      Map<String, Object> parameters) {
+  public List<Contract> getContracts(Map<String, Object> parameters) {
     return contractRepository.getContracts(parameters).stream()
         .map(mapper::contractEntityToDto)
         .toList();

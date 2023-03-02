@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch;
+package com.redhat.swatch.contract.repository;
 
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import java.util.List;
@@ -70,7 +70,7 @@ public class ContractRepository implements PanacheRepositoryBase<ContractEntity,
           "select c from "
               + ContractEntity.class.getName()
               + " c inner join "
-              + ContractMetric.class.getName()
+              + ContractMetricEntity.class.getName()
               + " m on c.uuid = m.contractUuid where ";
       query = metricTableJoin + query;
     }

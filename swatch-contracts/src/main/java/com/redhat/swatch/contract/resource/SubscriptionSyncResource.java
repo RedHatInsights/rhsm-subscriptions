@@ -18,13 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.subscriptions;
+package com.redhat.swatch.contract.resource;
 
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
+import com.redhat.swatch.contract.model.ProductTagsMapper;
 import com.redhat.swatch.openapi.model.OfferingProductTags;
 import com.redhat.swatch.openapi.resource.OfferingsApi;
-import com.redhat.swatch.subscriptions.mapper.ProductTagsMapper;
 import javax.inject.Inject;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.ProcessingException;

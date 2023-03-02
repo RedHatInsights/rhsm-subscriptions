@@ -18,16 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch;
+package com.redhat.swatch.contract;
 
-import java.io.Serializable;
-import java.util.UUID;
-import lombok.Data;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.mockito.MockitoAnnotations;
 
-@Data
-public class ContractMetricId implements Serializable {
+@SuppressWarnings("java:S2187") /* Sonar thinks assertion is required */
+class BaseUnitTest {
+  private AutoCloseable closeable;
 
-  private UUID contractUuid;
-  private String metricId;
-  private int value;
+  @BeforeEach
+  void init_mocks() {
+    closeable = MockitoAnnotations.openMocks(this);
+  }
+
+  @AfterEach
+  void close_mocks() throws Exception {
+    closeable.close();
+  }
 }

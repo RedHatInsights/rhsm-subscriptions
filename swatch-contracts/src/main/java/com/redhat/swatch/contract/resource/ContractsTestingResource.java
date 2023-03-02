@@ -18,11 +18,12 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch;
+package com.redhat.swatch.contract.resource;
 
-import com.redhat.swatch.openapi.model.Contract;
-import com.redhat.swatch.openapi.resource.ApiException;
-import com.redhat.swatch.openapi.resource.DefaultApi;
+import com.redhat.swatch.contract.openapi.model.Contract;
+import com.redhat.swatch.contract.openapi.resource.ApiException;
+import com.redhat.swatch.contract.openapi.resource.DefaultApi;
+import com.redhat.swatch.contract.service.ContractService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

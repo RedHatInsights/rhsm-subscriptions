@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch;
+package com.redhat.swatch.contract.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -27,7 +27,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.redhat.swatch.openapi.model.Metric;
+import com.redhat.swatch.contract.BaseUnitTest;
+import com.redhat.swatch.contract.openapi.model.Contract;
+import com.redhat.swatch.contract.openapi.model.Metric;
+import com.redhat.swatch.contract.repository.ContractEntity;
+import com.redhat.swatch.contract.repository.ContractMetricEntity;
+import com.redhat.swatch.contract.repository.ContractRepository;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import java.time.OffsetDateTime;
@@ -51,7 +56,7 @@ class ContractServiceTest extends BaseUnitTest {
 
   ContractEntity actualContract1;
 
-  com.redhat.swatch.openapi.model.Contract contractDto;
+  Contract contractDto;
 
   @Captor ArgumentCaptor<ContractEntity> contractArgumentCaptor;
 
@@ -70,19 +75,19 @@ class ContractServiceTest extends BaseUnitTest {
     actualContract1.setLastUpdated(OffsetDateTime.now());
     actualContract1.setSubscriptionNumber("test");
 
-    ContractMetric contractMetric1 = new ContractMetric();
+    ContractMetricEntity contractMetric1 = new ContractMetricEntity();
     contractMetric1.setContractUuid(uuid);
     contractMetric1.setMetricId("cpu-hours");
     contractMetric1.setValue(2);
 
-    ContractMetric contractMetric2 = new ContractMetric();
+    ContractMetricEntity contractMetric2 = new ContractMetricEntity();
     contractMetric2.setContractUuid(uuid);
     contractMetric2.setMetricId("instance-hours");
     contractMetric2.setValue(4);
 
     actualContract1.setMetrics(Set.of(contractMetric1, contractMetric2));
 
-    contractDto = new com.redhat.swatch.openapi.model.Contract();
+    contractDto = new Contract();
     contractDto.setUuid(uuid.toString());
     contractDto.setBillingAccountId("billAcct123");
     contractDto.setStartDate(OffsetDateTime.now());
@@ -107,8 +112,7 @@ class ContractServiceTest extends BaseUnitTest {
   @Test
   void testSaveContracts() {
     doNothing().when(contractRepository).persist(any(ContractEntity.class));
-    com.redhat.swatch.openapi.model.Contract contractResponse =
-        contractService.createContract(contractDto);
+    Contract contractResponse = contractService.createContract(contractDto);
     verify(contractRepository, times(1)).persist(contractArgumentCaptor.capture());
     ContractEntity contract = contractArgumentCaptor.getValue();
     assertEquals(contractDto.getSku(), contract.getSku());
@@ -120,8 +124,7 @@ class ContractServiceTest extends BaseUnitTest {
     when(contractRepository.getContracts(any())).thenReturn((List.of(actualContract1)));
     Map<String, Object> parameters = new HashMap<>();
     parameters.put("productId", "BASILISK123");
-    List<com.redhat.swatch.openapi.model.Contract> contractList =
-        contractService.getContracts(parameters);
+    List<Contract> contractList = contractService.getContracts(parameters);
     verify(contractRepository).getContracts(parameters);
     assertEquals(1, contractList.size());
     assertEquals(2, contractList.get(0).getMetrics().size());
@@ -146,7 +149,7 @@ class ContractServiceTest extends BaseUnitTest {
 
   @Test
   void testCreateContractForLogicalUpdate() {
-    var dto = new com.redhat.swatch.openapi.model.Contract();
+    var dto = new Contract();
 
     Metric actualMetric1 = new Metric();
     actualMetric1.setMetricId("cpu-hours");
@@ -154,7 +157,7 @@ class ContractServiceTest extends BaseUnitTest {
 
     dto.setMetrics(List.of(actualMetric1));
 
-    ContractMetric expectedMetric2 = new ContractMetric();
+    ContractMetricEntity expectedMetric2 = new ContractMetricEntity();
     expectedMetric2.setMetricId("cpu-hours");
     expectedMetric2.setValue(5);
     var expected = ContractEntity.builder().metrics(Set.of(expectedMetric2)).build();

@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.subscriptions.mapper;
+package com.redhat.swatch.contract.model;
 
 import com.redhat.swatch.clients.swatch.internal.subscription.api.model.OfferingProductTags;
 import org.mapstruct.Mapper;
