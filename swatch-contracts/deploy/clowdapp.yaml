@@ -45,6 +45,8 @@ parameters:
   # allow overriding to support independent deploy with bonfire
   - name: DB_POD
     value: swatch-tally
+  - name: QUARKUS_PROFILE
+    value: prod
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -173,6 +175,15 @@ objects:
                   secretKeyRef:
                     name: swatch-psks
                     key: self
+              - name: QUARKUS_PROFILE
+                value: ${QUARKUS_PROFILE}
+              - name: KEYSTORE_RESOURCE
+                value: file:/pinhead/keystore.jks
+              - name: KEYSTORE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: tls
+                    key: keystore_password
             volumeMounts:
               - name: logs
                 mountPath: /logs
