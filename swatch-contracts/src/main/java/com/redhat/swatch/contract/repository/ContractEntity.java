@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch;
+package com.redhat.swatch.contract.repository;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import java.time.OffsetDateTime;
@@ -90,18 +90,18 @@ public class ContractEntity extends PanacheEntityBase {
   private String productId;
 
   @OneToMany(
-      targetEntity = ContractMetric.class,
+      targetEntity = ContractMetricEntity.class,
       cascade = CascadeType.ALL,
       fetch = FetchType.LAZY,
       mappedBy = "contract")
-  private Set<ContractMetric> metrics = new HashSet<>();
+  private Set<ContractMetricEntity> metrics = new HashSet<>();
 
-  public void addMetric(ContractMetric metric) {
+  public void addMetric(ContractMetricEntity metric) {
     metrics.add(metric);
     metric.setContract(this);
   }
 
-  public void remoteMetric(ContractMetric metric) {
+  public void remoteMetric(ContractMetricEntity metric) {
     metrics.remove(metric);
     metric.setContract(null);
   }

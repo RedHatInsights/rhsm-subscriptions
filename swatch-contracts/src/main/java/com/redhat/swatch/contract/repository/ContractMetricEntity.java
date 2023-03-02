@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch;
+package com.redhat.swatch.contract.repository;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import java.util.UUID;
@@ -38,12 +38,12 @@ import lombok.ToString.Exclude;
 
 @Data
 @Entity
-@IdClass(ContractMetricId.class)
+@IdClass(ContractMetricEmbeddableId.class)
 @Table(name = "contract_metrics")
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class ContractMetric extends PanacheEntityBase {
+public class ContractMetricEntity extends PanacheEntityBase {
 
   @Id
   @Column(name = "contract_uuid", nullable = false)

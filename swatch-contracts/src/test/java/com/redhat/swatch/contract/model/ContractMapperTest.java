@@ -18,12 +18,16 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch;
+package com.redhat.swatch.contract.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import com.redhat.swatch.openapi.model.Metric;
+import com.redhat.contract.ContractMapper;
+import com.redhat.swatch.contract.openapi.model.Contract;
+import com.redhat.swatch.contract.openapi.model.Metric;
+import com.redhat.swatch.contract.repository.ContractEntity;
+import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -59,7 +63,7 @@ class ContractMapperTest {
     entity.setProductId("BASILISK");
     entity.setSubscriptionNumber("subs123");
 
-    var contractMetric = new ContractMetric();
+    var contractMetric = new ContractMetricEntity();
     contractMetric.setContractUuid(uuid);
     contractMetric.setMetricId("Instance-hours");
     contractMetric.setValue(1);
@@ -80,10 +84,10 @@ class ContractMapperTest {
     // verify size, metric ids, and values
     assertEquals(entity.getMetrics().size(), dto.getMetrics().size());
     assertEquals(
-        entity.getMetrics().stream().map(ContractMetric::getMetricId).toList(),
+        entity.getMetrics().stream().map(ContractMetricEntity::getMetricId).toList(),
         dto.getMetrics().stream().map(Metric::getMetricId).toList());
     assertEquals(
-        entity.getMetrics().stream().map(ContractMetric::getValue).toList(),
+        entity.getMetrics().stream().map(ContractMetricEntity::getValue).toList(),
         dto.getMetrics().stream().map(Metric::getValue).toList());
   }
 
@@ -93,7 +97,7 @@ class ContractMapperTest {
     var uuid = UUID.randomUUID();
     var startDate = OffsetDateTime.now();
 
-    var dto = new com.redhat.swatch.openapi.model.Contract();
+    var dto = new Contract();
 
     dto.setUuid(uuid.toString());
     dto.setSku("BAS123");
@@ -148,7 +152,7 @@ class ContractMapperTest {
 
     var uuid = UUID.randomUUID();
 
-    var dto = new com.redhat.swatch.openapi.model.Contract();
+    var dto = new Contract();
     dto.setUuid(uuid.toString());
     dto.setMetrics(null);
     var entity = mapper.dtoToContractEntity(dto);
