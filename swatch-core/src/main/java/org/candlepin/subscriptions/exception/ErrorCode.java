@@ -68,6 +68,12 @@ public enum ErrorCode {
    */
   INVENTORY_SERVICE_REQUEST_ERROR(2002, "Inventory API Error"),
 
+  /** An unexpected exception was thrown by the RHSM service * */
+  RHSM_SERVICE_REQUEST_ERROR(2100, "RHSM Service Error"),
+
+  /** An unknown Org was used to make a request. * */
+  RHSM_SERVICE_UNKNOWN_ORG_ERROR(2101, "Org not present according to RH IT services"),
+
   // Metering Errors
   SUBSCRIPTION_SERVICE_REQUEST_ERROR(3000, "Subscription Service Error"),
 
