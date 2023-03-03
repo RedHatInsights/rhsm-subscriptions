@@ -837,10 +837,6 @@ objects:
     # The name of the ClowdEnvironment providing the services
     envName: ${ENV_NAME}
     kafkaTopics: []
-    database:
-      # Must specify both a name and a major postgres version
-      name: swatch-tally-db
-      version: 12
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
