@@ -9,7 +9,7 @@ Preferred Package Structure
   * Dtos and other pojos 
 * MapStruct mappers 
 * exception 
-  * extending Extension 
+  * extending Exception
 * service 
   * Business logic, orchestration, things that aren't appropriate in the other packages 
   * entities should be converted to DTO in this layer prior to being returned to resource classes 
