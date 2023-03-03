@@ -46,7 +46,7 @@ public class ContractService {
   }
 
   @Transactional
-  Contract createContract(Contract contract) {
+  public Contract createContract(Contract contract) {
 
     var uuid = Objects.requireNonNullElse(contract.getUuid(), UUID.randomUUID().toString());
     contract.setUuid(uuid);
@@ -82,7 +82,7 @@ public class ContractService {
   }
 
   @Transactional
-  Contract updateContract(Contract dto) {
+  public Contract updateContract(Contract dto) {
 
     ContractEntity existingContract =
         contractRepository.findContract(UUID.fromString(dto.getUuid()));
@@ -121,7 +121,7 @@ public class ContractService {
     return dto;
   }
 
-  ContractEntity createContractForLogicalUpdate(Contract dto) {
+  public ContractEntity createContractForLogicalUpdate(Contract dto) {
     var newUuid = UUID.randomUUID();
     var newRecord = mapper.dtoToContractEntity(dto);
     newRecord.setUuid(newUuid);
@@ -137,7 +137,7 @@ public class ContractService {
   }
 
   @Transactional
-  void deleteContract(String uuid) {
+  public void deleteContract(String uuid) {
 
     var isSuccessful = contractRepository.deleteById(UUID.fromString(uuid));
 

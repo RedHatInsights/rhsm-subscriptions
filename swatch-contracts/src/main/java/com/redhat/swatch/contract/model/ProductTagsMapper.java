@@ -26,5 +26,6 @@ import org.mapstruct.Mapper;
 @Mapper(componentModel = "cdi")
 public interface ProductTagsMapper {
 
-  com.redhat.swatch.openapi.model.OfferingProductTags clientToApi(OfferingProductTags contract);
+  com.redhat.swatch.contract.openapi.model.OfferingProductTags clientToApi(
+      OfferingProductTags contract);
 }

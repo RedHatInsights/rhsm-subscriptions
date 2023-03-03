@@ -59,10 +59,10 @@ openApiGenerate {
     generatorName = "java"
     inputSpec = "${projectDir}/src/main/resources/openapi.yaml"
     outputDir = "${buildDir}/generated"
-    apiPackage = "com.redhat.swatch.openapi.resource"
-    modelPackage = "com.redhat.swatch.openapi.model"
-    invokerPackage = "com.redhat.swatch.openapi"
-    groupId = "com.redhat.swatch"
+    apiPackage = "com.redhat.swatch.contract.openapi.resource"
+    modelPackage = "com.redhat.swatch.contract.openapi.model"
+    invokerPackage = "com.redhat.swatch.contract.openapi"
+    groupId = "com.redhat.swatch.contract"
     configOptions = [sourceFolder : "src/gen/java",
                      interfaceOnly: "true",
                      library      : "microprofile",

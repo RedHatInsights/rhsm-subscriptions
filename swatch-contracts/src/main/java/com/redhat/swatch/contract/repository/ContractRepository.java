@@ -80,7 +80,7 @@ public class ContractRepository implements PanacheRepositoryBase<ContractEntity,
     return find(query, nonNullParams).list();
   }
 
-  ContractEntity findContract(UUID uuid) {
+  public ContractEntity findContract(UUID uuid) {
     log.info("Find contract by uuid {}", uuid);
     return find("uuid", uuid).firstResult();
   }

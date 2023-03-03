@@ -23,7 +23,6 @@ package com.redhat.swatch.contract.model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import com.redhat.contract.ContractMapper;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.Metric;
 import com.redhat.swatch.contract.repository.ContractEntity;
