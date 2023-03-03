@@ -1,3 +1,4 @@
+// Plugin: swatch.java-conventions
 // gradle config common to all swatch java projects
 plugins {
     id "java"
