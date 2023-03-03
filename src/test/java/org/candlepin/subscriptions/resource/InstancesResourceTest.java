@@ -168,6 +168,8 @@ class InstancesResourceTest {
     tallyInstanceViewPhysical.getKey().setMeasurementType(HardwareMeasurementType.PHYSICAL);
     tallyInstanceViewPhysical.getKey().setUom(Measurement.Uom.SOCKETS);
     tallyInstanceViewPhysical.setValue(4.0);
+    // Measurement should come from sockets value
+    tallyInstanceViewPhysical.setSockets(2);
 
     var tallyInstanceViewHypervisor = new TallyInstanceView();
     tallyInstanceViewHypervisor.setKey(new TallyInstanceViewKey());
@@ -179,6 +181,8 @@ class InstancesResourceTest {
     tallyInstanceViewHypervisor.getKey().setMeasurementType(HardwareMeasurementType.HYPERVISOR);
     tallyInstanceViewHypervisor.getKey().setUom(Measurement.Uom.SOCKETS);
     tallyInstanceViewHypervisor.setValue(8.0);
+    // Measurement should come from sockets value
+    tallyInstanceViewHypervisor.setSockets(4);
 
     Mockito.when(
             repository.findAllBy(
@@ -199,20 +203,20 @@ class InstancesResourceTest {
             new PageImpl<>(List.of(tallyInstanceViewPhysical, tallyInstanceViewHypervisor)));
 
     var dataPhysical = new InstanceData();
-    dataPhysical.setInstanceId(tallyInstanceViewPhysical.getKey().getInstanceId().toString());
+    dataPhysical.setInstanceId(tallyInstanceViewPhysical.getKey().getInstanceId());
     dataPhysical.setDisplayName(tallyInstanceViewPhysical.getDisplayName());
     dataPhysical.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
     dataPhysical.setLastSeen(tallyInstanceViewPhysical.getLastSeen());
-    dataPhysical.setMeasurements(List.of(4.0));
+    dataPhysical.setMeasurements(List.of(2.0));
     dataPhysical.setNumberOfGuests(tallyInstanceViewPhysical.getNumOfGuests());
     dataPhysical.setCategory(ReportCategory.PHYSICAL);
 
     var dataHypervisor = new InstanceData();
-    dataHypervisor.setInstanceId(tallyInstanceViewHypervisor.getKey().getInstanceId().toString());
+    dataHypervisor.setInstanceId(tallyInstanceViewHypervisor.getKey().getInstanceId());
     dataHypervisor.setDisplayName(tallyInstanceViewHypervisor.getDisplayName());
     dataHypervisor.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
     dataHypervisor.setLastSeen(tallyInstanceViewHypervisor.getLastSeen());
-    dataHypervisor.setMeasurements(List.of(8.0));
+    dataHypervisor.setMeasurements(List.of(4.0));
     dataHypervisor.setNumberOfGuests(tallyInstanceViewHypervisor.getNumOfGuests());
     dataHypervisor.setCategory(ReportCategory.HYPERVISOR);
 
@@ -262,6 +266,13 @@ class InstancesResourceTest {
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.AWS);
     tallyInstanceView.getKey().setUom(Measurement.Uom.CORE_SECONDS);
 
+    String month = InstanceMonthlyTotalKey.formatMonthId(tallyInstanceView.getLastSeen());
+
+    // Measurement should come from instance_monthly_totals
+    var monthlyTotalMap = new HashMap<InstanceMonthlyTotalKey, Double>();
+    monthlyTotalMap.put(new InstanceMonthlyTotalKey(month, Measurement.Uom.INSTANCE_HOURS), 5.0);
+    tallyInstanceView.setMonthlyTotals(monthlyTotalMap);
+
     Mockito.when(
             repository.findAllBy(
                 eq("owner123456"),
@@ -283,13 +294,10 @@ class InstancesResourceTest {
         List.of(
             "Instance-hours", "Storage-gibibyte-months", "Storage-gibibytes", "Transfer-gibibytes");
     List<Double> expectedMeasurement = new ArrayList<>();
-    String month = InstanceMonthlyTotalKey.formatMonthId(tallyInstanceView.getLastSeen());
-    for (String uom : expectUom) {
-      expectedMeasurement.add(
-          Optional.ofNullable(
-                  tallyInstanceView.getMonthlyTotal(month, Measurement.Uom.fromValue(uom)))
-              .orElse(0.0));
-    }
+    expectedMeasurement.add(5.0);
+    expectedMeasurement.add(0.0);
+    expectedMeasurement.add(0.0);
+    expectedMeasurement.add(0.0);
     var data = new InstanceData();
     data.setId(tallyInstanceView.getId());
     data.setInstanceId(tallyInstanceView.getKey().getInstanceId().toString());
