@@ -25,7 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.mockito.MockitoAnnotations;
 
 @SuppressWarnings("java:S2187") /* Sonar thinks assertion is required */
-class BaseUnitTest {
+public class BaseUnitTest {
   private AutoCloseable closeable;
 
   @BeforeEach

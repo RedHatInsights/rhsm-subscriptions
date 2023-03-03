@@ -26,7 +26,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "cdi")
-interface ContractMapper {
+public interface ContractMapper {
 
   Contract contractEntityToDto(ContractEntity contract);
 
