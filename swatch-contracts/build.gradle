@@ -59,7 +59,7 @@ compileJava.dependsOn tasks.openApiGenerate
 
 tasks.register("buildApiContracts", GenerateTask) {
     generatorName = "java"
-    inputSpec = "${projectDir}/src/main/resources/swatch_contracts_openapi.yaml"
+    inputSpec = "${projectDir}/src/main/resources/openapi.yaml"
     outputDir = "${buildDir}/generated"
     apiPackage = "com.redhat.swatch.openapi.resource"
     modelPackage = "com.redhat.swatch.openapi.model"
