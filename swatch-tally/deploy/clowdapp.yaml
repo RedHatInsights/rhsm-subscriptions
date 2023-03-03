@@ -829,6 +829,24 @@ objects:
               emptyDir:
           machinePool: ${JOB_MACHINE_POOL}
 
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdApp
+  metadata:
+    name: swatch-db-changelog-cleanup
+  spec:
+    # The name of the ClowdEnvironment providing the services
+    envName: ${ENV_NAME}
+    kafkaTopics: []
+    database:
+      # Must specify both a name and a major postgres version
+      name: swatch-tally-db
+      version: 12
+
+    pullSecrets:
+      name: ${IMAGE_PULL_SECRET}
+
+    deployments: []
+    jobs:
       - name: db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
         restartPolicy: Never
         podSpec:
@@ -873,7 +891,7 @@ objects:
   metadata:
     name: db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
   spec:
-    appName: swatch-tally
+    appName: swatch-db-changelog-cleanup
     jobs:
       - db-changelog-cleanup-${DB_CHANGELOG_CLEANUP_RUN_NUMBER}
 
