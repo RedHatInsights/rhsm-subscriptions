@@ -183,6 +183,32 @@ paths:
         -
           test: []
       operationId: createContract
+  /internal/offerings/{sku}/product_tags:
+      description: "Mapping sku to product tags."
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+      get:
+        summary: "Lookup product tags by sku"
+        operationId: getSkuProductTags
+        responses:
+          '200':
+            description: "The request to get product tags by sku ."
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/OfferingProductTags'
+                example:
+                  data:
+                    - Rho one
+                    - Rho two
+        tags:
+          - Offerings
+        security:
+          - test: []
 components:
   schemas:
     Error:
@@ -284,6 +310,12 @@ components:
       example:
         metric_id: Instance-hours
         value: 68.6
+    OfferingProductTags:
+      properties:
+        data:
+          type: array
+          items:
+            type: string
   securitySchemes:
     support:
       type: apiKey
