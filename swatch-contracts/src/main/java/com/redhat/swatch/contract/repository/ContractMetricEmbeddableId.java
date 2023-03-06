@@ -18,17 +18,16 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch;
+package com.redhat.swatch.contract.repository;
 
-import com.redhat.swatch.openapi.model.Contract;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
+import java.io.Serializable;
+import java.util.UUID;
+import lombok.Data;
 
-@Mapper(componentModel = "cdi")
-interface ContractMapper {
+@Data
+public class ContractMetricEmbeddableId implements Serializable {
 
-  Contract contractEntityToDto(ContractEntity contract);
-
-  @Mapping(target = "lastUpdated", ignore = true)
-  ContractEntity dtoToContractEntity(Contract contract);
+  private UUID contractUuid;
+  private String metricId;
+  private int value;
 }

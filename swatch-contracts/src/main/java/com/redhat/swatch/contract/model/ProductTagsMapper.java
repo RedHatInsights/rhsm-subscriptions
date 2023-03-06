@@ -18,27 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.rest;
+package com.redhat.swatch.contract.model;
 
-import io.quarkus.arc.Unremovable;
-import javax.enterprise.context.ApplicationScoped;
-import javax.ws.rs.client.ClientRequestContext;
-import javax.ws.rs.client.ClientRequestFilter;
-import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import com.redhat.swatch.clients.swatch.internal.subscription.api.model.OfferingProductTags;
+import org.mapstruct.Mapper;
 
-@Slf4j
-// NOTE: without @Unremovable quarkus attempts to optimize this bean out because it's only
-// referenced in application.properties
-@Unremovable
-@ApplicationScoped
-public class SwatchPskHeaderFilter implements ClientRequestFilter {
+@Mapper(componentModel = "cdi")
+public interface ProductTagsMapper {
 
-  @ConfigProperty(name = "SWATCH_SELF_PSK")
-  String psk;
-
-  @Override
-  public void filter(ClientRequestContext requestContext) {
-    requestContext.getHeaders().add("x-rh-swatch-psk", psk);
-  }
+  com.redhat.swatch.contract.openapi.model.OfferingProductTags clientToApi(
+      OfferingProductTags contract);
 }

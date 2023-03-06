@@ -18,13 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.subscriptions.mapper;
+package com.redhat.swatch.contract;
 
-import com.redhat.swatch.clients.swatch.internal.subscription.api.model.OfferingProductTags;
-import org.mapstruct.Mapper;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.mockito.MockitoAnnotations;
 
-@Mapper(componentModel = "cdi")
-public interface ProductTagsMapper {
+@SuppressWarnings("java:S2187") /* Sonar thinks assertion is required */
+public class BaseUnitTest {
+  private AutoCloseable closeable;
 
-  com.redhat.swatch.openapi.model.OfferingProductTags clientToApi(OfferingProductTags contract);
+  @BeforeEach
+  void init_mocks() {
+    closeable = MockitoAnnotations.openMocks(this);
+  }
+
+  @AfterEach
+  void close_mocks() throws Exception {
+    closeable.close();
+  }
 }

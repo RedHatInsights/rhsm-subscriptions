@@ -18,13 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch;
+package com.redhat.swatch.contract;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.contract.openapi.model.Contract;
+import com.redhat.swatch.contract.service.ContractService;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.restassured.http.ContentType;
@@ -40,8 +42,7 @@ class ContractsHttpEndpointIntegrationTest {
 
   @Test
   void whenGetContract_thenContractShouldBeFound() {
-    com.redhat.swatch.openapi.model.Contract contract =
-        new com.redhat.swatch.openapi.model.Contract();
+    Contract contract = new Contract();
     contract.setOrgId("org123");
     when(contractService.getContracts(any())).thenReturn(List.of(contract));
     given()
@@ -75,8 +76,7 @@ class ContractsHttpEndpointIntegrationTest {
 
   @Test
   void whenCreateContract_thenCreatedContractShouldBeReturned() {
-    com.redhat.swatch.openapi.model.Contract newContract =
-        new com.redhat.swatch.openapi.model.Contract();
+    Contract newContract = new Contract();
     newContract.setOrgId("org123");
     when(contractService.createContract(any())).thenReturn(newContract);
     String contract =
