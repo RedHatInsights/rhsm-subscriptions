@@ -1,0 +1,141 @@
+openapi: 3.0.3
+info:
+  title: rh-partner-gateway
+  description: Swatch server specification for the RH partner gateway API.
+  version: 1.0.0
+  termsOfService: 'http://swagger.io/terms/'
+  contact:
+    name: SWATCH Dev
+    url: 'https://github.com/RedHatInsights/rhsm-subscriptions'
+  license:
+    name: Apache 2.0
+    url: 'https://www.apache.org/licenses/LICENSE-2.0.html'
+servers:
+  -
+    url: 'http://{domain}:{port}/app/rhsm-subscriptions/internal/entitlements'
+    description: ''
+    variables:
+      domain:
+        default: localhost
+      port:
+        default: '8000'
+paths:
+  '/api/rhsm-subscriptions/v1/internal/entitlements':
+    post:
+      operationId: createPartnerEntitlements
+      tags:
+        - partner
+      requestBody:
+        description: Create a contract record from partner entitlement.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContractPartnerEntitlement'
+            examples:
+              contract info:
+                value:
+                  action: contract-updated
+                  redHatSubscriptionNumber: some text
+                  currentDimensions:
+                    -
+                      dimensionName: some text
+                      dimensionValue: 5
+                      expirationDate: '2018-02-10T09:30Z'
+                    -
+                      dimensionName: some text
+                      dimensionValue: 10
+                      expirationDate: '2018-02-10T09:30Z'
+                  cloudIdentifiers:
+                    awsCustomerId: some text
+                    productCode: some text
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              examples:
+                status response:
+                  value:
+                    status: 'Success'
+                    message: "Contract created"
+                    update_date: '2023-03-01T00:00:00Z'
+                    uuid: 8ece4096-bef6-4ad6-b0db-20c8e6b2a78c
+          description: Success
+components:
+  schemas:
+    ContractPartnerEntitlement:
+      properties:
+        action:
+          description: Create or update contract
+          type: string
+          enum:
+            - contract-updated
+        redHatSubscriptionNumber:
+          description: Map it to subscription_number
+          type: string
+        currentDimensions:
+          description: ''
+          type: array
+          items:
+            $ref: '#/components/schemas/Dimensions'
+          example: '[{"dimensionName": "test_dim_1", "dimensionValue": 5, "expirationDate": "2023-02-15T00:00:00Z"}]'
+        cloudIdentifiers:
+          type: object
+          properties:
+            awsCustomerId:
+              type: string
+            productCode:
+              type: string
+    Dimensions:
+      properties:
+        dimensionName:
+          type: string
+        dimensionValue:
+          type: string
+        expirationDate:
+          format: date-time
+          description: ''
+          type: string
+          example: '2023-03-01T00:00:00Z'
+    StatusResponse:
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        uuid:
+          description: Randomly generated if not set
+          type: string
+          example: 8ece4096-bef6-4ad6-b0db-20c8e6b2a78c
+        updateDate:
+          format: date-time
+          description: ''
+          type: string
+          example: '2023-03-01T00:00:00Z'
+    Error:
+      required:
+        - code
+        - message
+      properties:
+        code:
+          format: int32
+          type: integer
+        message:
+          type: string
+  securitySchemes:
+    support:
+      type: apiKey
+      description: API is available for support operations
+      name: x-rh-identity
+      in: header
+    service:
+      type: apiKey
+      description: API is available for services
+      name: x-rh-swatch-psk
+      in: header
+    test:
+      type: apiKey
+      description: API is available for testing purposes (pre-production environments only)
+      name: x-rh-swatch-psk
+      in: header
