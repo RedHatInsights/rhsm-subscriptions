@@ -50,6 +50,9 @@ rhsm-subscriptions:
       seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
     outgoing:
       topic: ${BILLABLE_USAGE_TOPIC}
+    contracts:
+      url: ${CONTRACTS_URL:http://localhost:8000}
+      psk: ${SWATCH_SELF_PSK:placeholder}
   tasks:
     topic: ${TASKS_TOPIC}
     kafka-group-id: ${KAFKA_GROUP_ID:rhsm-subscriptions-task-processor}

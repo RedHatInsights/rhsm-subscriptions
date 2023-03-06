@@ -44,3 +44,10 @@ project(":clients:swatch-internal-subscription-client") {
 project(":clients:rh-partner-gateway-client") {
     apply plugin: "swatch.quarkus-rest-client-conventions"
 }
+
+project(":clients:contracts-client") {
+    apply plugin: "swatch.spring-boot-rest-client-conventions"
+    openApiGenerate {
+        inputSpec = "${rootDir}/swatch-contracts/src/main/resources/openapi.yaml"
+    }
+}
