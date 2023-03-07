@@ -87,8 +87,6 @@ public class ContractService {
       return createContract(dto);
     }
 
-    var newData = mapper.dtoToContractEntity(dto);
-
     /*
     If metric id, value, or product id changes, we want to keep record of the old value and logically update
      */
