@@ -28,6 +28,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.contracts.api.resources.DefaultApi;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -71,6 +72,7 @@ class RemittanceControllerTest {
   @Mock private BillableUsageRemittanceRepository remittanceRepo;
   @Mock private TallySnapshotRepository snapshotRepo;
   @Mock private KafkaTemplate<String, BillableUsage> billableTemplate;
+  @Mock private DefaultApi contractApi;
   private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
 
   private TagProfile tagProfile;
@@ -82,9 +84,10 @@ class RemittanceControllerTest {
     tagProfile = initTagProfile();
     BillingProducer billingProducer =
         new BillingProducer(new TaskQueueProperties(), billableTemplate);
+    ContractsController contractsController = new ContractsController(tagProfile, contractApi);
     BillableUsageController usageController =
         new BillableUsageController(
-            clock, billingProducer, remittanceRepo, snapshotRepo, tagProfile);
+            clock, billingProducer, remittanceRepo, snapshotRepo, tagProfile, contractsController);
     controller =
         new RemittanceController(
             clock,

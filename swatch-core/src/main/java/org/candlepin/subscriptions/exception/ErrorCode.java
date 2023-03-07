@@ -74,6 +74,9 @@ public enum ErrorCode {
   /** An unknown Org was used to make a request. * */
   RHSM_SERVICE_UNKNOWN_ORG_ERROR(2101, "Org not present according to RH IT services"),
 
+  /** An unexpected exception was thrown by the Swatch Contracts Service */
+  CONTRACTS_SERVICE_ERROR(2200, "Swatch Contracts Service Error"),
+
   // Metering Errors
   SUBSCRIPTION_SERVICE_REQUEST_ERROR(3000, "Subscription Service Error"),
 
