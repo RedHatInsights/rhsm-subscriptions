@@ -33,7 +33,8 @@ import lombok.extern.slf4j.Slf4j;
 @ApplicationScoped
 public class ContractRepository implements PanacheRepositoryBase<ContractEntity, UUID> {
 
-  public List<ContractEntity> getContracts(Map<String, Object> parameters) {
+
+  public List<ContractEntity> getContracts(Map<String, Object> parameters, boolean isCurrentlyActive) {
     if (parameters == null) {
       return listAll();
     }
@@ -65,6 +66,13 @@ public class ContractRepository implements PanacheRepositoryBase<ContractEntity,
                   return key + "=:" + key;
                 })
             .collect(Collectors.joining(" and "));
+
+    if(isCurrentlyActive){
+      //TODO take into consideration m. or c.
+      query += " and endDate IS NULL ";
+    }
+
+
 
     if (isJoinTableNeeded) {
       var metricTableJoin =
