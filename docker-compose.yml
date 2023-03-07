@@ -2,7 +2,7 @@
 version: '3.1'
 services:
   db:
-    image: docker.io/postgres
+    image: docker.io/library/postgres:13
     command: '-c max_connections=5000'
     environment:
       - POSTGRES_HOST_AUTH_METHOD=trust
