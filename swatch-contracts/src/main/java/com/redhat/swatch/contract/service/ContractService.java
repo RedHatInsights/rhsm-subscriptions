@@ -68,6 +68,24 @@ public class ContractService {
   @Transactional
   public Contract createContract(Contract contract) {
 
+    Map<String, Object> stringObjectMap =
+        Map.of(
+            "productId",
+            contract.getProductId(),
+            "subscriptionNumber",
+            contract.getSubscriptionNumber());
+
+    List<ContractEntity> contracts = contractRepository.getContracts(stringObjectMap, true);
+    log.info("{}", contracts);
+
+    if (!contracts.isEmpty()) {
+      log.error(
+          "There's already an active contract for that productId & subscriptionNumber: {}",
+          contracts);
+      throw new RuntimeException(
+          "There's already an active contract for that productId & subscriptionNumber");
+    }
+
     var uuid = Objects.requireNonNullElse(contract.getUuid(), UUID.randomUUID().toString());
     contract.setUuid(uuid);
 
@@ -87,7 +105,7 @@ public class ContractService {
   }
 
   public List<Contract> getContracts(Map<String, Object> parameters) {
-    return contractRepository.getContracts(parameters).stream()
+    return contractRepository.getContracts(parameters, false).stream()
         .map(mapper::contractEntityToDto)
         .toList();
   }
