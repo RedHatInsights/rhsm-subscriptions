@@ -129,11 +129,11 @@ class ContractServiceTest extends BaseUnitTest {
 
   @Test
   void testGetContracts() {
-    when(contractRepository.getContracts(any())).thenReturn((List.of(actualContract1)));
+    when(contractRepository.getContracts(any(), any())).thenReturn((List.of(actualContract1)));
     Map<String, Object> parameters = new HashMap<>();
     parameters.put("productId", "BASILISK123");
     List<Contract> contractList = contractService.getContracts(parameters);
-    verify(contractRepository).getContracts(parameters);
+    verify(contractRepository).getContracts(parameters, false);
     assertEquals(1, contractList.size());
     assertEquals(2, contractList.get(0).getMetrics().size());
   }

@@ -163,12 +163,12 @@ class ContractRepositoryTest {
 
   @Test
   void whenGetContractWithEmptyParam_thenReturnAllContracts() {
-    List<ContractEntity> allContracts = contractRepository.getContracts(null);
+    List<ContractEntity> allContracts = contractRepository.getContracts(null, false);
     assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
 
     Map<String, Object> parameters = new HashMap<>();
     parameters.put("productId", null);
-    allContracts = contractRepository.getContracts(parameters);
+    allContracts = contractRepository.getContracts(parameters, false);
     assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
   }
 
@@ -177,7 +177,7 @@ class ContractRepositoryTest {
     Map<String, Object> parameters = new HashMap<>();
     parameters.put("metricId", "instance-hours");
     parameters.put("productId", "BASILISK123");
-    List<ContractEntity> allContracts = contractRepository.getContracts(parameters);
+    List<ContractEntity> allContracts = contractRepository.getContracts(parameters, false);
     assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
   }
 
@@ -185,7 +185,7 @@ class ContractRepositoryTest {
   void whenGetContractWithMissingMetricIdParam_thenReturnAllContracts() {
     Map<String, Object> parameters = new HashMap<>();
     parameters.put("productId", "BASILISK123");
-    List<ContractEntity> allContracts = contractRepository.getContracts(parameters);
+    List<ContractEntity> allContracts = contractRepository.getContracts(parameters, false);
     assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
   }
 
