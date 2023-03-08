@@ -66,14 +66,8 @@ public class ContractService {
   @Transactional
   public Contract createContract(Contract contract) {
 
-    Map<String, Object> stringObjectMap =
-        Map.of(
-            "productId",
-            contract.getProductId(),
-            "subscriptionNumber",
-            contract.getSubscriptionNumber());
-
-    List<ContractEntity> contracts = contractRepository.getContracts(stringObjectMap, true);
+    List<ContractEntity> contracts = listCurrentlyActiveContracts(
+        contract);
     log.info("{}", contracts);
 
     if (!contracts.isEmpty()) {
@@ -102,6 +96,18 @@ public class ContractService {
     return contract;
   }
 
+  private List<ContractEntity> listCurrentlyActiveContracts(Contract contract) {
+    Map<String, Object> stringObjectMap =
+        Map.of(
+            "productId",
+            contract.getProductId(),
+            "subscriptionNumber",
+            contract.getSubscriptionNumber());
+
+    List<ContractEntity> contracts = contractRepository.getContracts(stringObjectMap, true);
+    return contracts;
+  }
+
   public List<Contract> getContracts(Map<String, Object> parameters) {
     return contractRepository.getContracts(parameters, false).stream()
         .map(mapper::contractEntityToDto)
@@ -121,28 +127,26 @@ public class ContractService {
           "Update called for contract uuid {}, but contract doesn't not exist.  Executing create contract instead",
           dto.getUuid());
       return createContract(dto);
+      //TODO just throw an error here instead
     }
 
-    /*
-    If metric id, value, or product id changes, we want to keep record of the old value and logically update
-     */
-    var isNewRecordRequired = true;
-
-    if (isNewRecordRequired) { // NOSONAR
-
+    //"sunset" the previous record
       existingContract.setEndDate(now);
       existingContract.setLastUpdated(now);
       existingContract.persist();
+
+      //create new contract record representing an "update"
       ContractEntity newRecord = createContractForLogicalUpdate(dto);
       newRecord.persist();
-    }
+
     return dto;
   }
 
   public ContractEntity createContractForLogicalUpdate(Contract dto) {
     var newUuid = UUID.randomUUID();
+    dto.setUuid(newUuid.toString());
+
     var newRecord = mapper.dtoToContractEntity(dto);
-    newRecord.setUuid(newUuid);
     newRecord.setLastUpdated(OffsetDateTime.now());
     newRecord.setEndDate(null);
 
