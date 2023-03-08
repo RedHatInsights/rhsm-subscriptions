@@ -1026,7 +1026,6 @@ class HostRepositoryTest {
     assertNull(hostToBill.get("i3").getBillingProvider());
   }
 
-  // TODO More tests
   @Transactional
   @ParameterizedTest
   @CsvSource({"'',3", "banana,1", "rang,1", "an,2", "celery,0"})
