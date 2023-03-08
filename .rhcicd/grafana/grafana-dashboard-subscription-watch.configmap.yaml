@@ -27,7 +27,7 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 1,
-      "iteration": 1678135445466,
+      "iteration": 1678280848047,
       "links": [],
       "liveNow": false,
       "panels": [
@@ -190,7 +190,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -323,7 +324,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -454,7 +456,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -631,7 +634,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -761,7 +765,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -871,7 +876,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       }
                     ]
                   }
@@ -962,7 +968,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -1088,7 +1095,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -1177,7 +1185,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -1266,7 +1275,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -1390,7 +1400,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -1478,7 +1489,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -1521,6 +1533,103 @@ data:
                 }
               ],
               "title": "JVM Memory Used",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "bytes"
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 10,
+                "w": 6,
+                "x": 18,
+                "y": 13
+              },
+              "id": 96,
+              "links": [],
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "9.0.3",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "PDD8BE47D10408F45"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum(container_memory_working_set_bytes{pod=~\"swatch-system-conduit-service.*\", container=''}) by (pod)",
+                  "format": "time_series",
+                  "interval": "",
+                  "intervalFactor": 1,
+                  "legendFormat": "{{ pod }}",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "swatch-system-conduit Memory Used",
               "type": "timeseries"
             }
           ],
@@ -1585,7 +1694,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -1601,7 +1711,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 4
+                "y": 24
               },
               "id": 63,
               "links": [],
@@ -1710,7 +1820,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -1726,7 +1837,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 4
+                "y": 24
               },
               "id": 64,
               "links": [],
@@ -1834,7 +1945,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -1850,7 +1962,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 4
+                "y": 24
               },
               "id": 66,
               "links": [],
@@ -1928,7 +2040,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -1944,7 +2057,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 4
+                "y": 24
               },
               "id": 68,
               "links": [],
@@ -2017,7 +2130,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -2033,7 +2147,7 @@ data:
                 "h": 7,
                 "w": 6,
                 "x": 0,
-                "y": 12
+                "y": 32
               },
               "id": 94,
               "options": {
@@ -2168,7 +2282,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 5
+                "y": 40
               },
               "id": 32,
               "links": [],
@@ -2257,7 +2371,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 5
+                "y": 40
               },
               "id": 33,
               "links": [],
@@ -2345,7 +2459,7 @@ data:
                 "h": 9,
                 "w": 12,
                 "x": 12,
-                "y": 5
+                "y": 40
               },
               "id": 34,
               "links": [],
@@ -2434,7 +2548,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 0,
-                "y": 14
+                "y": 49
               },
               "id": 35,
               "links": [],
@@ -2523,7 +2637,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 6,
-                "y": 14
+                "y": 49
               },
               "id": 36,
               "links": [],
@@ -2592,6 +2706,7 @@ data:
                   },
                   "links": [],
                   "mappings": [],
+                  "min": 0,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -2613,7 +2728,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 12,
-                "y": 14
+                "y": 49
               },
               "id": 95,
               "links": [],
@@ -2709,7 +2824,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -2801,7 +2917,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -2893,7 +3010,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -2937,6 +3055,103 @@ data:
                 }
               ],
               "title": "Capacity Reconcile Task Lag",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "bytes"
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 10,
+                "w": 6,
+                "x": 18,
+                "y": 6
+              },
+              "id": 97,
+              "links": [],
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "9.0.3",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "PDD8BE47D10408F45"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum(container_memory_working_set_bytes{pod=~\"swatch-subscription-sync-service.*\", container=''}) by (pod)",
+                  "format": "time_series",
+                  "interval": "",
+                  "intervalFactor": 1,
+                  "legendFormat": "{{ pod }}",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "swatch-subscription-sync Memory Used",
               "type": "timeseries"
             }
           ],
@@ -3001,7 +3216,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -3092,7 +3308,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -3184,7 +3401,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -3240,6 +3458,103 @@ data:
                 "type": "prometheus",
                 "uid": "${datasource}"
               },
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "drawStyle": "line",
+                    "fillOpacity": 10,
+                    "gradientMode": "none",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "lineInterpolation": "linear",
+                    "lineWidth": 1,
+                    "pointSize": 5,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "never",
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "links": [],
+                  "mappings": [],
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": null
+                      },
+                      {
+                        "color": "red",
+                        "value": 80
+                      }
+                    ]
+                  },
+                  "unit": "bytes"
+                },
+                "overrides": []
+              },
+              "gridPos": {
+                "h": 10,
+                "w": 6,
+                "x": 18,
+                "y": 7
+              },
+              "id": 98,
+              "links": [],
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom"
+                },
+                "tooltip": {
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              },
+              "pluginVersion": "9.0.3",
+              "targets": [
+                {
+                  "datasource": {
+                    "type": "prometheus",
+                    "uid": "PDD8BE47D10408F45"
+                  },
+                  "editorMode": "code",
+                  "expr": "sum(container_memory_working_set_bytes{pod=~\"swatch-producer.*\", container=''}) by (pod)",
+                  "format": "time_series",
+                  "interval": "",
+                  "intervalFactor": 1,
+                  "legendFormat": "{{ pod }}",
+                  "range": true,
+                  "refId": "A"
+                }
+              ],
+              "title": "swatch-producer Memory Used",
+              "type": "timeseries"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
               "description": "Billable Usage service emits messages with usage data for swatch billing provider services to consume.  This widget monitors the consumer group connected to the swatch-producer-aws service)",
               "fieldConfig": {
                 "defaults": {
@@ -3280,7 +3595,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -3376,7 +3692,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       },
                       {
                         "color": "red",
@@ -3448,7 +3765,8 @@ data:
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green"
+                        "color": "green",
+                        "value": null
                       }
                     ]
                   },
@@ -3467,7 +3785,8 @@ data:
                           "mode": "absolute",
                           "steps": [
                             {
-                              "color": "green"
+                              "color": "green",
+                              "value": null
                             },
                             {
                               "color": "red",
@@ -3483,8 +3802,8 @@ data:
               "gridPos": {
                 "h": 9,
                 "w": 6,
-                "x": 0,
-                "y": 25
+                "x": 12,
+                "y": 16
               },
               "id": 82,
               "links": [],
@@ -3562,7 +3881,7 @@ data:
           },
           {
             "current": {
-              "selected": false,
+              "selected": true,
               "text": "AWS insights-prod",
               "value": "AWS insights-prod"
             },
@@ -3612,7 +3931,7 @@ data:
       "timezone": "utc",
       "title": "Subscription Watch",
       "uid": "lkPhH-1Zk",
-      "version": 1,
+      "version": 2,
       "weekStart": ""
     }
 kind: ConfigMap
