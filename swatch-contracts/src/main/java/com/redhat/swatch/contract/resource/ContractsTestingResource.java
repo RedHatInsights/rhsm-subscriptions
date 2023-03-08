@@ -21,7 +21,7 @@
 package com.redhat.swatch.contract.resource;
 
 import com.redhat.swatch.contract.openapi.model.Contract;
-import com.redhat.swatch.contract.openapi.model.ContractPartnerEntitlement;
+import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.openapi.resource.ApiException;
 import com.redhat.swatch.contract.openapi.resource.DefaultApi;
@@ -35,16 +35,32 @@ import javax.transaction.Transactional;
 import javax.ws.rs.ProcessingException;
 import lombok.extern.slf4j.Slf4j;
 
+/*import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
+import com.redhat.swatch.JmsPriceProducer;*/
+
 @Slf4j
 @ApplicationScoped
 public class ContractsTestingResource implements DefaultApi {
 
   @Inject ContractService service;
 
+  /*  @Inject
+  JmsPriceProducer producer;
+
+  @Inject
+  @Channel("prices")
+  Emitter<String> emitter;
+
+  @Transactional
+  public void testActiveMQ(){
+    producer.generate();
+    emitter.send("Hello Kartik producer");
+  }*/
+
   @Override
   @Transactional
   public Contract createContract(Contract contract) throws ApiException, ProcessingException {
-
     return service.createContract(contract);
   }
 
@@ -81,9 +97,8 @@ public class ContractsTestingResource implements DefaultApi {
   }
 
   @Override
-  public StatusResponse createPartnerEntitlementContract(
-      ContractPartnerEntitlement contractPartnerEntitlement)
+  public StatusResponse createPartnerEntitlementContract(PartnerEntitlementContract contract)
       throws ApiException, ProcessingException {
-    return null;
+    return service.createPartnerContract(contract);
   }
 }

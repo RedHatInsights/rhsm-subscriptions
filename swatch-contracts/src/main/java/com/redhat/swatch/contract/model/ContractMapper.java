@@ -21,7 +21,13 @@
 package com.redhat.swatch.contract.model;
 
 import com.redhat.swatch.contract.openapi.model.Contract;
+import com.redhat.swatch.contract.openapi.model.Dimensions;
+import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.repository.ContractEntity;
+import com.redhat.swatch.contract.repository.ContractMetricEntity;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -32,4 +38,40 @@ public interface ContractMapper {
 
   @Mapping(target = "lastUpdated", ignore = true)
   ContractEntity dtoToContractEntity(Contract contract);
+
+  @Mapping(target = "subscriptionNumber", source = "contract.redHatSubscriptionNumber")
+  ContractEntity partnerContractToContractEntity(PartnerEntitlementContract contract);
+
+  @Mapping(target = "metricId", source = "dimension.dimensionName")
+  @Mapping(target = "value", source = "dimension.dimensionValue")
+  ContractMetricEntity convert(Dimensions dimension);
+
+  Set<ContractMetricEntity> convert(List<Dimensions> dimensions);
+
+  default ContractEntity reconcileUpstreamContract(PartnerEntitlementContract upstreamContract) {
+    ContractEntity entity = partnerContractToContractEntity(upstreamContract);
+    entity.setMetrics(convert(upstreamContract.getCurrentDimensions()));
+    if (Objects.nonNull(upstreamContract.getCurrentDimensions())) {
+      entity.setEndDate(upstreamContract.getCurrentDimensions().get(0).getExpirationDate());
+    }
+    return entity;
+  }
+
+  /*default ContractEntity reconcileUpstreamContract(PartnerEntitlementContract upstreamContract) {
+    ContractEntity entity = partnerContractToContractEntity(upstreamContract);
+    if (Objects.isNull(entity) && Objects.isNull(upstreamContract.getCurrentDimensions())) {
+      Set<ContractMetricEntity> contractMetricEntitySet =
+          upstreamContract.getCurrentDimensions().stream()
+              .map(
+                  dimensions ->
+                      new ContractMetricEntity(
+                          null,
+                          dimensions.getDimensionName(),
+                          Integer.valueOf(dimensions.getDimensionValue()),
+                          null))
+              .collect(Collectors.toSet());
+      entity.setMetrics(contractMetricEntitySet);
+    }
+    return entity;
+  }*/
 }

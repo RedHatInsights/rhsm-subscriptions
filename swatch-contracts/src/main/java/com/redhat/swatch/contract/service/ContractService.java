@@ -20,8 +20,13 @@
  */
 package com.redhat.swatch.contract.service;
 
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitlementV1;
+import com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException;
+import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
 import com.redhat.swatch.contract.model.ContractMapper;
 import com.redhat.swatch.contract.openapi.model.Contract;
+import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
+import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractRepository;
 import java.time.OffsetDateTime;
@@ -30,8 +35,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @Slf4j
 @ApplicationScoped
@@ -40,9 +47,15 @@ public class ContractService {
   private final ContractRepository contractRepository;
   private final ContractMapper mapper;
 
-  ContractService(ContractRepository contractRepository, ContractMapper mapper) {
+  // private final PartnerContractMapper partnerMapper;
+
+  @Inject @RestClient PartnerApi partnerApi;
+
+  ContractService(ContractRepository contractRepository, ContractMapper mapper
+      /*PartnerContractMapper partnerMapper*/ ) {
     this.contractRepository = contractRepository;
     this.mapper = mapper;
+    // this.partnerMapper = partnerMapper;
   }
 
   @Transactional
@@ -142,5 +155,68 @@ public class ContractService {
     var isSuccessful = contractRepository.deleteById(UUID.fromString(uuid));
 
     log.debug("Deletion status of {} is: {}", uuid, isSuccessful);
+  }
+
+  @Transactional
+  public StatusResponse createPartnerContract(PartnerEntitlementContract contract) {
+    StatusResponse statusResponse = new StatusResponse();
+    ContractEntity entity;
+    try {
+      entity = mapper.reconcileUpstreamContract(contract);
+      collectMissingUpStreamContractDetails(entity, contract);
+    } catch (Exception e) {
+      log.debug(e.getMessage());
+      statusResponse.setMessage("An Error occurred while reconciling contract");
+      return statusResponse;
+    }
+
+    // contractRepository.findContract
+    if (isDuplicateContract(entity, entity)) {
+      statusResponse.setMessage("Duplicate record found");
+      return statusResponse;
+    }
+
+    if (Objects.nonNull(entity)) {
+      createContract(entity);
+      statusResponse.setMessage("Contract created");
+    } else {
+      statusResponse.setMessage("Empty entity passed");
+    }
+    return statusResponse;
+  }
+
+  private boolean isDuplicateContract(ContractEntity newEntity, ContractEntity existing) {
+
+    return false;
+  }
+
+  private void createContract(ContractEntity entity) {
+    entity.setUuid(UUID.randomUUID());
+    var now = OffsetDateTime.now();
+
+    entity.setStartDate(now);
+    entity.setLastUpdated(now);
+    contractRepository.persist(entity);
+  }
+
+  private void collectMissingUpStreamContractDetails(
+      ContractEntity entity, PartnerEntitlementContract contract) {
+    try {
+      if (Objects.nonNull(contract.getCloudIdentifiers())
+          && Objects.nonNull(contract.getCloudIdentifiers().getAwsCustomerId())) {
+        var result =
+            partnerApi.getPartnerEntitlements(
+                new QueryPartnerEntitlementV1()
+                    .customerAwsAccountId(contract.getCloudIdentifiers().getAwsCustomerId()));
+        var partnerEntitlements = result.getPartnerEntitlements();
+        var entitlement = partnerEntitlements.get(0);
+        if (Objects.nonNull(entitlement)) {
+          entity.setOrgId(entitlement.getRhAccountId());
+          var purchase = entitlement.getPurchase();
+        }
+      }
+    } catch (ApiException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

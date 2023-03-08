@@ -217,7 +217,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ContractPartnerEntitlement'
+              $ref: '#/components/schemas/PartnerEntitlementContract'
             examples:
               contract info:
                 value:
@@ -246,8 +246,6 @@ paths:
                   value:
                     status: 'Success'
                     message: "Contract created"
-                    update_date: '2023-03-01T00:00:00Z'
-                    uuid: 8ece4096-bef6-4ad6-b0db-20c8e6b2a78c
           description: Success
 components:
   schemas:
@@ -356,13 +354,13 @@ components:
           type: array
           items:
             type: string
-    ContractPartnerEntitlement:
+    PartnerEntitlementContract:
       properties:
         action:
           description: Create or update contract
           type: string
-          enum:
-            - contract-updated
+#          enum:
+#            - contract-updated
         redHatSubscriptionNumber:
           description: Map it to subscription_number
           type: string
@@ -396,15 +394,6 @@ components:
           type: string
         message:
           type: string
-        uuid:
-          description: Randomly generated if not set
-          type: string
-          example: 8ece4096-bef6-4ad6-b0db-20c8e6b2a78c
-        updateDate:
-          format: date-time
-          description: ''
-          type: string
-          example: '2023-03-01T00:00:00Z'
   securitySchemes:
     support:
       type: apiKey

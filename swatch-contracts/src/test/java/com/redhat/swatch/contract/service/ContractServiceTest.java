@@ -29,7 +29,9 @@ import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.contract.BaseUnitTest;
 import com.redhat.swatch.contract.openapi.model.Contract;
+import com.redhat.swatch.contract.openapi.model.Dimensions;
 import com.redhat.swatch.contract.openapi.model.Metric;
+import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import com.redhat.swatch.contract.repository.ContractRepository;
@@ -170,5 +172,17 @@ class ContractServiceTest extends BaseUnitTest {
     assertEquals(
         expected.getMetrics().stream().toList().get(0).getMetricId(),
         actual.getMetrics().stream().toList().get(0).getMetricId());
+  }
+
+  @Test
+  void createPartnerContract() {
+    var contract = new PartnerEntitlementContract();
+    contract.setRedHatSubscriptionNumber("12400374");
+    Dimensions dimensions = new Dimensions();
+    dimensions.setDimensionName("test_dim_1");
+    dimensions.setDimensionValue("5");
+    contract.setCurrentDimensions(List.of(dimensions));
+    contractService.createPartnerContract(contract);
+    // verify(contractRepository).persist();
   }
 }

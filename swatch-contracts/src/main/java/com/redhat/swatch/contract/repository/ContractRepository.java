@@ -84,4 +84,10 @@ public class ContractRepository implements PanacheRepositoryBase<ContractEntity,
     log.info("Find contract by uuid {}", uuid);
     return find("uuid", uuid).firstResult();
   }
+
+  public ContractEntity findContractBySubscriptionNumber(UUID uuid) {
+    log.info("Find contract by uuid {}", uuid);
+    // return find("end_date", ).firstResult();
+    return null;
+  }
 }
