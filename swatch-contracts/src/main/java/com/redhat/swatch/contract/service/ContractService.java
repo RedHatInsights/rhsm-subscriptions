@@ -53,15 +53,6 @@ public class ContractService {
 
     var entity = mapper.dtoToContractEntity(contract);
 
-    entity.getMetrics().stream()
-        .forEach(
-            metric -> {
-              metric.setContractUuid(entity.getUuid());
-              metric.setContract(entity);
-            });
-
-    log.info("{}", entity);
-
     var now = OffsetDateTime.now();
 
     entity.setStartDate(now);
@@ -96,15 +87,6 @@ public class ContractService {
       return createContract(dto);
     }
 
-    var newData = mapper.dtoToContractEntity(dto);
-    newData
-        .getMetrics()
-        .forEach(
-            metric -> {
-              metric.setContractUuid(newData.getUuid());
-              metric.setContract(newData);
-            });
-
     /*
     If metric id, value, or product id changes, we want to keep record of the old value and logically update
      */
@@ -127,12 +109,7 @@ public class ContractService {
     newRecord.setUuid(newUuid);
     newRecord.setLastUpdated(OffsetDateTime.now());
     newRecord.setEndDate(null);
-    newRecord.getMetrics().stream()
-        .forEach(
-            metric -> {
-              metric.setContractUuid(newUuid);
-              metric.setContract(newRecord);
-            });
+
     return newRecord;
   }
 
