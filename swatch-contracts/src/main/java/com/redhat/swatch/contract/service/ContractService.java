@@ -31,6 +31,7 @@ import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractRepository;
 import com.redhat.swatch.contract.resource.SubscriptionSyncResource;
+import com.redhat.swatch.contract.repository.Specification;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -66,8 +67,7 @@ public class ContractService {
   @Transactional
   public Contract createContract(Contract contract) {
 
-    List<ContractEntity> contracts = listCurrentlyActiveContracts(
-        contract);
+    List<ContractEntity> contracts = listCurrentlyActiveContracts(contract);
     log.info("{}", contracts);
 
     if (!contracts.isEmpty()) {
@@ -97,14 +97,11 @@ public class ContractService {
   }
 
   private List<ContractEntity> listCurrentlyActiveContracts(Contract contract) {
-    Map<String, Object> stringObjectMap =
-        Map.of(
-            "productId",
-            contract.getProductId(),
-            "subscriptionNumber",
-            contract.getSubscriptionNumber());
-
-    List<ContractEntity> contracts = contractRepository.getContracts(stringObjectMap, true);
+    Specification<ContractEntity> specification =
+        ContractEntity.productIdEquals(contract.getProductId())
+            .and(ContractEntity.subscriptionNumberEquals(contract.getSubscriptionNumber()))
+            .and(ContractEntity.isActive());
+    List<ContractEntity> contracts = contractRepository.getContracts(specification);
     return contracts;
   }
 
@@ -127,17 +124,17 @@ public class ContractService {
           "Update called for contract uuid {}, but contract doesn't not exist.  Executing create contract instead",
           dto.getUuid());
       return createContract(dto);
-      //TODO just throw an error here instead
+      // TODO just throw an error here instead
     }
 
-    //"sunset" the previous record
-      existingContract.setEndDate(now);
-      existingContract.setLastUpdated(now);
-      existingContract.persist();
+    // "sunset" the previous record
+    existingContract.setEndDate(now);
+    existingContract.setLastUpdated(now);
+    existingContract.persist();
 
-      //create new contract record representing an "update"
-      ContractEntity newRecord = createContractForLogicalUpdate(dto);
-      newRecord.persist();
+    // create new contract record representing an "update"
+    ContractEntity newRecord = createContractForLogicalUpdate(dto);
+    newRecord.persist();
 
     return dto;
   }
