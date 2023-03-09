@@ -127,4 +127,17 @@ public class ContractEntity extends PanacheEntityBase {
     return Objects.hash(
         subscriptionNumber, orgId, sku, billingProvider, billingAccountId, productId, metrics);
   }
+
+  public static Specification<ContractEntity> productIdEquals(String productId) {
+    return (root, query, builder) -> builder.equal(root.get(ContractEntity_.productId), productId);
+  }
+
+  public static Specification<ContractEntity> subscriptionNumberEquals(String subscriptionNumber) {
+    return (root, query, builder) ->
+            builder.equal(root.get(ContractEntity_.subscriptionNumber), subscriptionNumber);
+  }
+
+  public static Specification<ContractEntity> isActive() {
+    return (root, query, builder) -> builder.isNull(root.get(ContractEntity_.endDate));
+  }
 }
