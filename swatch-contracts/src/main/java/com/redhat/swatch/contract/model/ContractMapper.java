@@ -49,7 +49,7 @@ public interface ContractMapper {
     if (Objects.requireNonNullElse(contractDto.getMetrics(), new ArrayList<>()).isEmpty()) {
       contractEntity.metrics(new HashSet<>());
     } else {
-      var metrics =
+      contractEntity.metrics(
           contractDto.getMetrics().stream()
               .map(
                   (x -> {
@@ -61,9 +61,7 @@ public interface ContractMapper {
                     }
                     return builder.build();
                   }))
-              .collect(Collectors.toSet());
-
-      contractEntity.metrics(metrics);
+              .collect(Collectors.toSet()));
     }
   }
 }
