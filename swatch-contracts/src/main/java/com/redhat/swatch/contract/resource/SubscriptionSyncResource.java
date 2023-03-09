@@ -25,6 +25,7 @@ import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.Inte
 import com.redhat.swatch.contract.model.ProductTagsMapper;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
 import com.redhat.swatch.contract.openapi.resource.OfferingsApi;
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.ProcessingException;
@@ -36,6 +37,7 @@ public class SubscriptionSyncResource implements OfferingsApi {
 
   @Inject ProductTagsMapper mapper;
 
+  @RolesAllowed({"test"})
   public OfferingProductTags getSkuProductTags(@PathParam("sku") String sku) {
     try {
       return mapper.clientToApi(internalSubscriptionsApi.getSkuProductTags(sku));

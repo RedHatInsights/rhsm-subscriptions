@@ -27,6 +27,7 @@ import com.redhat.swatch.contract.service.ContractService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.security.RolesAllowed;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
@@ -41,18 +42,21 @@ public class ContractsTestingResource implements DefaultApi {
 
   @Override
   @Transactional
+  @RolesAllowed({"test"})
   public Contract createContract(Contract contract) throws ApiException, ProcessingException {
-
+    log.info("Creating contract");
     return service.createContract(contract);
   }
 
   @Override
+  @RolesAllowed({"test"})
   public void deleteContractByUUID(String uuid) throws ApiException, ProcessingException {
-
+    log.info("Deleting contract {}", uuid);
     service.deleteContract(uuid);
   }
 
   @Override
+  @RolesAllowed({"test", "support", "service"})
   public List<Contract> getContract(
       String orgId,
       String productId,
@@ -60,7 +64,6 @@ public class ContractsTestingResource implements DefaultApi {
       String billingProvider,
       String billingAccountId)
       throws ApiException, ProcessingException {
-
     Map<String, Object> parameters = new HashMap<>();
     parameters.put("orgId", orgId);
     parameters.put("productId", productId);
@@ -72,9 +75,10 @@ public class ContractsTestingResource implements DefaultApi {
   }
 
   @Override
+  @RolesAllowed({"test"})
   public Contract updateContract(String uuid, Contract contract)
       throws ApiException, ProcessingException {
-
+    log.info("Updating contract {}", uuid);
     return service.updateContract(contract);
   }
 }

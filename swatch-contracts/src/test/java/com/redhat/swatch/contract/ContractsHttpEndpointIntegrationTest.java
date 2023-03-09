@@ -29,6 +29,7 @@ import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.service.ContractService;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
+import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
@@ -41,6 +42,9 @@ class ContractsHttpEndpointIntegrationTest {
   @InjectMock ContractService contractService;
 
   @Test
+  @TestSecurity(
+      user = "placeholder",
+      roles = {"service"})
   void whenGetContract_thenContractShouldBeFound() {
     Contract contract = new Contract();
     contract.setOrgId("org123");
@@ -57,6 +61,9 @@ class ContractsHttpEndpointIntegrationTest {
   }
 
   @Test
+  @TestSecurity(
+      user = "placeholder",
+      roles = {"test"})
   void whenUpdateContract_thenUpdatedContractShouldBeReturned() {
     String contract =
         """
@@ -75,6 +82,9 @@ class ContractsHttpEndpointIntegrationTest {
   }
 
   @Test
+  @TestSecurity(
+      user = "placeholder",
+      roles = {"test"})
   void whenCreateContract_thenCreatedContractShouldBeReturned() {
     Contract newContract = new Contract();
     newContract.setOrgId("org123");
@@ -96,6 +106,9 @@ class ContractsHttpEndpointIntegrationTest {
   }
 
   @Test
+  @TestSecurity(
+      user = "placeholder",
+      roles = {"test"})
   void whenDeleteContract_thenSuccess() {
     given()
         .contentType(ContentType.JSON)

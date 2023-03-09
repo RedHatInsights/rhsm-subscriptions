@@ -73,6 +73,8 @@ paths:
           description: Success
       operationId: updateContract
       description: Update a contract record by its uuid.  Only update values passed.
+      security:
+        - test: []
     delete:
       description: >-
         This will execute a hard delete of a contract and its associated metrics from the database.  This
@@ -93,6 +95,8 @@ paths:
         '200':
           description: Success
       operationId: deleteContractByUUID
+      security:
+        - test: []
   /api/swatch-contracts/internal/contracts:
     get:
       parameters:
@@ -151,10 +155,9 @@ paths:
                   $ref: '#/components/schemas/Contract'
           description: success
       security:
-        -
-          support: []
-        -
-          test: []
+        - support: []
+        - test: []
+        - service: []
       operationId: getContract
     post:
       requestBody:
