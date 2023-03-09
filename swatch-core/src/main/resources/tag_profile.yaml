@@ -348,6 +348,14 @@ tagMetrics:
   - tag: RHEL Workstation
     uom: SOCKETS
 
+  # Satellite metrics.
+  - tag: Satellite
+    uom: SOCKETS
+  - tag: Satellite Capsule
+    uom: SOCKETS
+  - tag: Satellite Server
+    uom: SOCKETS
+
 # The tagMetaData section defines additional information around how a tag is tallied.  Most notably,
 # tags need to have their finest granularity defined so that we can create accurate snapshots.  A
 # tag that only supports DAILY granularity shouldn't be tallied hourly, for example.  Other metadata

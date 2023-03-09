@@ -50,7 +50,7 @@ class ContractsHttpEndpointIntegrationTest {
         .contentType(ContentType.JSON)
         .param("org_id", "org123")
         .when()
-        .get("/api/rhsm-subscriptions/v1/internal/contracts")
+        .get("/api/swatch-contracts/internal/contracts")
         .then()
         .statusCode(200)
         .body("size()", is(1))
@@ -70,7 +70,7 @@ class ContractsHttpEndpointIntegrationTest {
         .contentType(ContentType.JSON)
         .body(contract)
         .when()
-        .put("/api/rhsm-subscriptions/v1/internal/contracts/1322")
+        .put("/api/swatch-contracts/internal/contracts/1322")
         .then()
         .statusCode(204);
   }
@@ -91,7 +91,7 @@ class ContractsHttpEndpointIntegrationTest {
         .contentType(ContentType.JSON)
         .body(contract)
         .when()
-        .post("/api/rhsm-subscriptions/v1/internal/contracts")
+        .post("/api/swatch-contracts/internal/contracts")
         .then()
         .statusCode(200);
   }
@@ -101,7 +101,7 @@ class ContractsHttpEndpointIntegrationTest {
     given()
         .contentType(ContentType.JSON)
         .when()
-        .delete("/api/rhsm-subscriptions/v1/internal/contracts/123")
+        .delete("/api/swatch-contracts/internal/contracts/123")
         .then()
         .statusCode(204);
   }

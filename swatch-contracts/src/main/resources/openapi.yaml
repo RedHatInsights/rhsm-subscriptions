@@ -10,17 +10,8 @@ info:
   license:
     name: Apache 2.0
     url: 'https://www.apache.org/licenses/LICENSE-2.0.html'
-servers:
-  -
-    url: 'http://{domain}:{port}/app/rhsm-subscriptions/internal'
-    description: ''
-    variables:
-      domain:
-        default: localhost
-      port:
-        default: '8000'
 paths:
-  '/api/rhsm-subscriptions/v1/internal/contracts/{uuid}':
+  '/api/swatch-contracts/internal/contracts/{uuid}':
     put:
       requestBody:
         content:
@@ -102,7 +93,7 @@ paths:
         '200':
           description: Success
       operationId: deleteContractByUUID
-  /api/rhsm-subscriptions/v1/internal/contracts:
+  /api/swatch-contracts/internal/contracts:
     get:
       parameters:
         -

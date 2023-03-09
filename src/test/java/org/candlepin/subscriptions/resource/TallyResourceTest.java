@@ -678,7 +678,8 @@ class TallyResourceTest {
             null,
             null,
             null,
-            null);
+            null,
+            false);
     assertEquals(
         4.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
   }
@@ -705,7 +706,8 @@ class TallyResourceTest {
             null,
             null,
             null,
-            null);
+            null,
+            false);
     assertEquals(
         4.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
   }
@@ -735,7 +737,8 @@ class TallyResourceTest {
             null,
             null,
             null,
-            null);
+            null,
+            false);
     assertEquals(
         4.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
   }
@@ -765,7 +768,8 @@ class TallyResourceTest {
             null,
             null,
             null,
-            null);
+            null,
+            false);
     assertEquals(
         4.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
   }
@@ -788,7 +792,8 @@ class TallyResourceTest {
             null,
             null,
             null,
-            null);
+            null,
+            false);
     assertEquals(30, response.getMeta().getCount());
     assertEquals(30, response.getData().size());
   }
@@ -818,7 +823,8 @@ class TallyResourceTest {
             null,
             null,
             null,
-            null);
+            null,
+            false);
     assertEquals(hasCloudigradeData, response.getMeta().getHasCloudigradeData());
   }
 
@@ -848,7 +854,8 @@ class TallyResourceTest {
             null,
             null,
             null,
-            null);
+            null,
+            false);
     assertEquals(hasCloudigradeMeasurement, response.getMeta().getHasCloudigradeData());
   }
 
@@ -880,7 +887,8 @@ class TallyResourceTest {
             null,
             null,
             null,
-            null);
+            null,
+            false);
     assertEquals(hasCloudigradeMismatch, response.getMeta().getHasCloudigradeMismatch());
   }
 
@@ -912,7 +920,8 @@ class TallyResourceTest {
             null,
             null,
             null,
-            null);
+            null,
+            false);
     assertEquals(hasCloudigradeMismatch, response.getMeta().getHasCloudigradeMismatch());
   }
 
@@ -934,7 +943,8 @@ class TallyResourceTest {
             null,
             null,
             null,
-            null);
+            null,
+            false);
     assertNull(response.getMeta().getTotalMonthly());
   }
 
@@ -956,7 +966,8 @@ class TallyResourceTest {
             null,
             null,
             null,
-            null);
+            null,
+            false);
     assertNull(response.getMeta().getTotalMonthly());
   }
 
@@ -978,7 +989,8 @@ class TallyResourceTest {
             null,
             null,
             0,
-            10);
+            10,
+            false);
     assertNull(response.getMeta().getTotalMonthly());
   }
 
@@ -1000,7 +1012,8 @@ class TallyResourceTest {
             null,
             null,
             null,
-            null);
+            null,
+            false);
     TallyReportDataPoint expectedTotalMonthly =
         new TallyReportDataPoint().date(null).value(0.0).hasData(false);
     assertEquals(expectedTotalMonthly, response.getMeta().getTotalMonthly());
@@ -1032,7 +1045,8 @@ class TallyResourceTest {
             null,
             null,
             null,
-            null);
+            null,
+            false);
     TallyReportDataPoint expectedTotalMonthly =
         new TallyReportDataPoint()
             .date(OffsetDateTime.parse("2021-11-03T00:00Z"))
@@ -1069,7 +1083,8 @@ class TallyResourceTest {
             BillingProviderType.RED_HAT,
             null,
             null,
-            null);
+            null,
+            false);
     TallyReportDataPoint expectedTotalMonthly =
         new TallyReportDataPoint()
             .date(OffsetDateTime.parse("2021-11-03T00:00Z"))
@@ -1077,5 +1092,59 @@ class TallyResourceTest {
             .hasData(true);
     assertEquals(expectedTotalMonthly, response.getMeta().getTotalMonthly());
     assertEquals(BillingProviderType.RED_HAT, response.getMeta().getBillingProvider());
+  }
+
+  @Test
+  void testRunningTotalFormatUsedForNewerTallyAPI() {
+    List<TallySnapshot> snapshots =
+        List.of(1, 2, 8).stream()
+            .map(
+                i -> {
+                  var snapshot = new TallySnapshot();
+                  snapshot.setSnapshotDate(
+                      OffsetDateTime.of(2023, 3, i, 12, 35, 0, 0, ZoneOffset.UTC));
+                  snapshot.setMeasurement(
+                      HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, i * 2.0);
+                  return snapshot;
+                })
+            .collect(Collectors.toList());
+
+    TallyReportDataPoint expectedTotalMonthly =
+        new TallyReportDataPoint()
+            .date(OffsetDateTime.parse("2023-03-08T12:35Z"))
+            .value(30.0)
+            .hasData(true);
+
+    when(repository.findSnapshot(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(new PageImpl<>(snapshots));
+
+    TallyReportData report =
+        resource.getTallyReportData(
+            ProductId.OPENSHIFT_DEDICATED_METRICS,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            OffsetDateTime.parse("2023-03-01T00:00Z"),
+            OffsetDateTime.parse("2023-03-31T23:59:59.999Z"),
+            null,
+            null,
+            null,
+            BillingProviderType.RED_HAT,
+            null,
+            null,
+            null,
+            true);
+    assertEquals(31, report.getData().size());
+
+    var firstSnapshot = report.getData().get(0);
+    assertEquals(2.0, firstSnapshot.getValue());
+
+    var secondSnapshot = report.getData().get(1);
+    assertEquals(6.0, secondSnapshot.getValue());
+
+    var thirdSnapshot = report.getData().get(7);
+    assertEquals(22.0, thirdSnapshot.getValue());
+
+    assertEquals(expectedTotalMonthly, report.getMeta().getTotalMonthly());
   }
 }

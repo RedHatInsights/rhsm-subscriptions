@@ -25,11 +25,19 @@ import com.redhat.swatch.contract.openapi.model.Dimensions;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "cdi")
 public interface ContractMapper {
@@ -74,4 +82,30 @@ public interface ContractMapper {
     }
     return entity;
   }*/
+
+  @AfterMapping
+  default void propogateContractUuid(
+      @MappingTarget final ContractEntity.ContractEntityBuilder contractEntity,
+      final Contract contractDto) {
+
+    if (Objects.requireNonNullElse(contractDto.getMetrics(), new ArrayList<>()).isEmpty()) {
+      contractEntity.metrics(new HashSet<>());
+    } else {
+      var metrics =
+          contractDto.getMetrics().stream()
+              .map(
+                  (x -> {
+                    var builder = ContractMetricEntity.builder();
+                    builder.metricId(x.getMetricId());
+                    builder.value(x.getValue());
+                    if (Objects.nonNull(contractDto.getUuid())) {
+                      builder.contractUuid(UUID.fromString(contractDto.getUuid()));
+                    }
+                    return builder.build();
+                  }))
+              .collect(Collectors.toSet());
+
+      contractEntity.metrics(metrics);
+    }
+  }
 }
