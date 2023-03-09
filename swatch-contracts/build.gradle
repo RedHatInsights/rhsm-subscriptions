@@ -43,11 +43,11 @@ dependencies {
     implementation("io.quarkus:quarkus-jdbc-postgresql")
     testImplementation("io.quarkus:quarkus-jdbc-h2")
     implementation("io.quarkus:quarkus-hibernate-orm-panache")
-    implementation 'org.mapstruct:mapstruct:1.5.3.Final'
-    annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.3.Final'
-    testAnnotationProcessor 'org.mapstruct:mapstruct-processor:1.5.3.Final'
+    implementation libraries["mapstruct"]
+    annotationProcessor libraries["mapstruct-processor"]
+    testAnnotationProcessor libraries["mapstruct-processor"]
     // if you are using mapstruct in test code
-    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+    annotationProcessor libraries["lombok-mapstruct-binding"]
 }
 
 group 'com.redhat.swatch'
