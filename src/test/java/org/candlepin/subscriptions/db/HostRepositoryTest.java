@@ -132,7 +132,7 @@ class HostRepositoryTest {
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  private List<Host> persistHosts(Host... hosts) {
+  List<Host> persistHosts(Host... hosts) {
     List<Host> toSave = Arrays.asList(hosts);
     toSave.stream()
         .filter(h -> h.getDisplayName() == null)
@@ -982,7 +982,7 @@ class HostRepositoryTest {
     String sortValue = HostsResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
     Pageable page = PageRequest.of(0, 10, Sort.by(sortValue));
 
-    Page<Host> results =
+    Page<HostApiProjection> results =
         repo.findAllBy(
             "ORG_a1",
             COOL_PROD,
@@ -1000,7 +1000,7 @@ class HostRepositoryTest {
     assertEquals(1L, results.getTotalElements());
     assertEquals(BillingProvider.AWS, results.getContent().get(0).getBillingProvider());
 
-    Page<Host> allResults =
+    Page<HostApiProjection> allResults =
         repo.findAllBy(
             "ORG_a1",
             COOL_PROD,
@@ -1016,14 +1016,15 @@ class HostRepositoryTest {
             null,
             page);
     assertEquals(3L, allResults.getTotalElements());
-    Map<String, Host> hostToBill =
-        allResults.stream().collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
+    Map<String, HostApiProjection> hostToBill =
+        allResults.stream()
+            .collect(Collectors.toMap(HostApiProjection::getInventoryId, Function.identity()));
     assertTrue(
         hostToBill.keySet().containsAll(Arrays.asList("i1", "i2", "i3")),
         "Result did not contain expected hosts!");
     assertEquals(BillingProvider.RED_HAT, hostToBill.get("i1").getBillingProvider());
     assertEquals(BillingProvider.AWS, hostToBill.get("i2").getBillingProvider());
-    assertNull(hostToBill.get("i3").getBillingProvider());
+    assertEquals(BillingProvider.EMPTY, hostToBill.get("i3").getBillingProvider());
   }
 
   // TODO More tests
@@ -1110,7 +1111,7 @@ class HostRepositoryTest {
     String sortValue = HostsResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
     Pageable page = PageRequest.of(0, 10, Sort.by(sortValue));
 
-    Page<Host> results =
+    Page<HostApiProjection> results =
         repo.findAllBy(
             "ORG_a1",
             COOL_PROD,
@@ -1126,11 +1127,9 @@ class HostRepositoryTest {
             List.of(HardwareMeasurementType.VIRTUAL),
             page);
     assertEquals(1L, results.getTotalElements());
-    assertEquals(
-        HardwareMeasurementType.VIRTUAL,
-        results.getContent().get(0).getBuckets().iterator().next().getMeasurementType());
+    assertEquals(HardwareMeasurementType.VIRTUAL, results.getContent().get(0).getMeasurementType());
 
-    Page<Host> allResults =
+    Page<HostApiProjection> allResults =
         repo.findAllBy(
             "ORG_a1",
             COOL_PROD,
@@ -1146,20 +1145,15 @@ class HostRepositoryTest {
             null,
             page);
     assertEquals(3L, allResults.getTotalElements());
-    Map<String, Host> hostToBill =
-        allResults.stream().collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
+    Map<String, HostApiProjection> hostToBill =
+        allResults.stream()
+            .collect(Collectors.toMap(HostApiProjection::getInventoryId, Function.identity()));
     assertTrue(
         hostToBill.keySet().containsAll(Arrays.asList("i1", "i2", "i3")),
         "Result did not contain expected hosts!");
-    assertEquals(
-        HardwareMeasurementType.PHYSICAL,
-        hostToBill.get("i1").getBuckets().iterator().next().getMeasurementType());
-    assertEquals(
-        HardwareMeasurementType.VIRTUAL,
-        hostToBill.get("i2").getBuckets().iterator().next().getMeasurementType());
-    assertEquals(
-        HardwareMeasurementType.HYPERVISOR,
-        hostToBill.get("i3").getBuckets().iterator().next().getMeasurementType());
+    assertEquals(HardwareMeasurementType.PHYSICAL, hostToBill.get("i1").getMeasurementType());
+    assertEquals(HardwareMeasurementType.VIRTUAL, hostToBill.get("i2").getMeasurementType());
+    assertEquals(HardwareMeasurementType.HYPERVISOR, hostToBill.get("i3").getMeasurementType());
   }
 
   @Transactional
@@ -1218,7 +1212,7 @@ class HostRepositoryTest {
     String sortValue = HostsResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
     Pageable page = PageRequest.of(0, 10, Sort.by(sortValue));
 
-    Page<Host> results =
+    Page<HostApiProjection> results =
         repo.findAllBy(
             "ORG_a1",
             COOL_PROD,
@@ -1234,8 +1228,9 @@ class HostRepositoryTest {
             HardwareMeasurementType.getCloudProviderTypes(),
             page);
     assertEquals(4L, results.getTotalElements());
-    Map<String, Host> hostToBill =
-        results.stream().collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
+    Map<String, HostApiProjection> hostToBill =
+        results.stream()
+            .collect(Collectors.toMap(HostApiProjection::getInventoryId, Function.identity()));
     assertTrue(hostToBill.keySet().containsAll(Arrays.asList("i1", "i2", "i3", "i4")));
   }
 

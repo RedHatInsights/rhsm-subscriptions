@@ -23,29 +23,24 @@ package org.candlepin.subscriptions.db;
 import static org.hibernate.jpa.QueryHints.HINT_FETCH_SIZE;
 import static org.hibernate.jpa.QueryHints.HINT_READONLY;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Stream;
 import javax.persistence.QueryHint;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Join;
 import javax.persistence.criteria.JoinType;
+import javax.persistence.criteria.MapJoin;
+import javax.persistence.criteria.Root;
 import javax.validation.constraints.NotNull;
-import org.candlepin.subscriptions.db.model.BillingProvider;
-import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.db.model.Host;
-import org.candlepin.subscriptions.db.model.HostBucketKey_;
-import org.candlepin.subscriptions.db.model.HostTallyBucket_;
-import org.candlepin.subscriptions.db.model.Host_;
-import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.TallyHostView;
-import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.db.model.*;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -57,7 +52,17 @@ import org.springframework.util.StringUtils;
 /** Provides access to Host database entities. */
 @SuppressWarnings({"linelength", "indentation"})
 public interface HostRepository
-    extends JpaRepository<Host, UUID>, JpaSpecificationExecutor<Host>, TagProfileLookup {
+    extends JpaRepository<Host, UUID>,
+        JpaSpecificationExecutor<Host>,
+        TagProfileLookup,
+        EntityManagerLookup {
+
+  String BUCKET_JOIN = "bucket";
+  String MEASUREMENT_JOIN_CORES = "coresMeasurements";
+  String MEASUREMENT_JOIN_SOCKETS = "socketsMeasurements";
+  String MONTHLY_TOTAL_JOIN_CORES = "coresMonthlyTotal";
+  String MONTHLY_TOTAL_JOIN_INSTANCE_HOURS = "instanceHoursMonthlyTotal";
+  String MONTHLY_TOTALS = "monthlyTotals";
 
   /* NOTE: in below query, ordering is crucial for correct streaming reconciliation of HBI data */
   @Query(
@@ -135,9 +140,149 @@ public interface HostRepository
       @Param("minSockets") int minSockets,
       Pageable pageable);
 
-  @Override
-  @EntityGraph(attributePaths = {"buckets"})
-  Page<Host> findAll(Specification<Host> specification, Pageable pageable);
+  default Page<HostApiProjection> findAllHostApiProjections(
+      Specification<Host> specification,
+      Pageable pageable,
+      Measurement.Uom referenceUom,
+      String productId) {
+    var entityManager = getEntityManager();
+    var criteriaBuilder = entityManager.getCriteriaBuilder();
+    var query = criteriaBuilder.createQuery(HostApiProjection.class);
+    var countQuery = criteriaBuilder.createQuery(Long.class);
+    var root = query.from(Host.class);
+    var countRoot = countQuery.from(Host.class);
+    createJoins(root);
+    createJoins(countRoot);
+    var bucketJoin = findJoin(root, BUCKET_JOIN);
+    var coresMeasurementJoin = findMapJoin(root, MEASUREMENT_JOIN_CORES);
+    var socketsMeasurementJoin = findMapJoin(root, MEASUREMENT_JOIN_SOCKETS);
+    var coresMonthlyTotalsJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_CORES);
+    var instanceHoursMonthlyTotalsJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_INSTANCE_HOURS);
+
+    Uom effectiveUom = Optional.ofNullable(referenceUom).orElse(getDefaultUomForProduct(productId));
+
+    query.select(
+        criteriaBuilder.construct(
+            HostApiProjection.class,
+            root.get(Host_.INVENTORY_ID),
+            root.get(Host_.INSIGHTS_ID),
+            root.get(Host_.DISPLAY_NAME),
+            root.get(Host_.SUBSCRIPTION_MANAGER_ID),
+            socketsMeasurementJoin.value(),
+            coresMeasurementJoin.value(),
+            coresMonthlyTotalsJoin.value(),
+            instanceHoursMonthlyTotalsJoin.value(),
+            root.get(Host_.HARDWARE_TYPE),
+            bucketJoin.get(HostTallyBucket_.MEASUREMENT_TYPE),
+            root.get(Host_.NUM_OF_GUESTS),
+            root.get(Host_.LAST_SEEN),
+            root.get(Host_.IS_UNMAPPED_GUEST),
+            root.get(Host_.IS_HYPERVISOR),
+            root.get(Host_.CLOUD_PROVIDER),
+            root.get(Host_.BILLING_PROVIDER),
+            root.get(Host_.BILLING_ACCOUNT_ID)));
+
+    countQuery.select(criteriaBuilder.countDistinct(countRoot));
+
+    if (specification != null) {
+      var predicate = specification.toPredicate(root, query, criteriaBuilder);
+      query.where(predicate);
+      countQuery.where(predicate);
+    }
+
+    addSort(root, query, criteriaBuilder, effectiveUom, pageable);
+
+    List<HostApiProjection> resultList;
+    Long countTotal;
+    if (pageable.isPaged()) {
+      resultList =
+          entityManager
+              .createQuery(query)
+              .setFirstResult(pageable.getPageNumber() * pageable.getPageSize())
+              .setMaxResults(pageable.getPageSize())
+              .getResultList();
+      countTotal = entityManager.createQuery(countQuery).getSingleResult();
+    } else {
+      resultList = entityManager.createQuery(query).getResultList();
+      countTotal = (long) resultList.size();
+    }
+
+    return new PageImpl<>(resultList, pageable, countTotal);
+  }
+
+  private void addSort(
+      Root<Host> root,
+      CriteriaQuery<HostApiProjection> query,
+      CriteriaBuilder criteriaBuilder,
+      Measurement.Uom effectiveUom,
+      Pageable pageable) {
+    var sort = pageable.getSort();
+    var orderOptional = sort.get().findFirst();
+    if (orderOptional.isPresent()) {
+      var order = orderOptional.get();
+      if (order.isAscending()) {
+        setOrderByAsc(root, criteriaBuilder, query, order, effectiveUom);
+      } else if (order.isDescending()) {
+        setOrderByDesc(root, criteriaBuilder, query, order, effectiveUom);
+      }
+    }
+  }
+
+  private static void setOrderByAsc(
+      Root<Host> root,
+      CriteriaBuilder criteriaBuilder,
+      CriteriaQuery<HostApiProjection> query,
+      Sort.Order order,
+      Measurement.Uom effectiveUom) {
+    if (order.getProperty().equals(MONTHLY_TOTALS)) {
+      var coresMonthlyTotalsJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_CORES);
+      var instanceHoursMonthlyTotalsJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_INSTANCE_HOURS);
+      if (Uom.CORES.equals(effectiveUom)) {
+        query.orderBy(criteriaBuilder.asc(coresMonthlyTotalsJoin.value()));
+      } else if (Uom.INSTANCE_HOURS.equals(effectiveUom)) {
+        query.orderBy(criteriaBuilder.asc(instanceHoursMonthlyTotalsJoin.value()));
+      }
+    } else {
+      query.orderBy(criteriaBuilder.asc(root.get(order.getProperty())));
+    }
+  }
+
+  private static void setOrderByDesc(
+      Root<Host> root,
+      CriteriaBuilder criteriaBuilder,
+      CriteriaQuery<HostApiProjection> query,
+      Sort.Order order,
+      Measurement.Uom effectiveUom) {
+    if (order.getProperty().equals(MONTHLY_TOTALS)) {
+      var coresMonthlyTotalsJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_CORES);
+      var instanceHoursMonthlyTotalsJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_INSTANCE_HOURS);
+      if (Uom.CORES.equals(effectiveUom)) {
+        query.orderBy(criteriaBuilder.asc(coresMonthlyTotalsJoin.value()));
+      } else if (Uom.INSTANCE_HOURS.equals(effectiveUom)) {
+        query.orderBy(criteriaBuilder.asc(instanceHoursMonthlyTotalsJoin.value()));
+      }
+    } else {
+      query.orderBy(criteriaBuilder.desc(root.get(order.getProperty())));
+    }
+  }
+
+  static <T> Join<Host, T> findJoin(Root<Host> root, String alias) {
+    for (Join<Host, ?> join : root.getJoins()) {
+      if (join.getAlias().equals(alias)) {
+        return (Join<Host, T>) join;
+      }
+    }
+    throw new IllegalArgumentException("Cannot find join w/ alias: " + alias);
+  }
+
+  static <T, S, U> MapJoin<T, S, U> findMapJoin(Root<Host> root, String alias) {
+    for (Join<Host, ?> join : root.getJoins()) {
+      if (join.getAlias().equals(alias)) {
+        return (MapJoin<T, S, U>) join;
+      }
+    }
+    throw new IllegalArgumentException("Cannot find join w/ alias: " + alias);
+  }
 
   /**
    * Find all Hosts by bucket criteria and return a page of TallyHostView objects. A TallyHostView
@@ -157,7 +302,7 @@ public interface HostRepository
    * @return a page of Host entities matching the criteria.
    */
   @SuppressWarnings("java:S107")
-  default Page<Host> findAllBy(
+  default Page<HostApiProjection> findAllBy(
       String orgId,
       String productId,
       ServiceLevel sla,
@@ -171,7 +316,8 @@ public interface HostRepository
       String billingAccountId,
       List<HardwareMeasurementType> hardwareMeasurementTypes,
       Pageable pageable) {
-    return findAll(
+
+    return findAllHostApiProjections(
         buildSearchSpecification(
             orgId,
             productId,
@@ -185,12 +331,14 @@ public interface HostRepository
             billingProvider,
             billingAccountId,
             hardwareMeasurementTypes),
-        pageable);
+        pageable,
+        referenceUom,
+        productId);
   }
 
   static Specification<Host> productIdEquals(String productId) {
     return (root, query, builder) -> {
-      var bucketJoin = root.join(Host_.buckets, JoinType.INNER);
+      Join<Host, HostTallyBucket> bucketJoin = findJoin(root, BUCKET_JOIN);
       var key = bucketJoin.get(HostTallyBucket_.key);
       return builder.equal(key.get(HostBucketKey_.productId), productId);
     };
@@ -198,7 +346,7 @@ public interface HostRepository
 
   static Specification<Host> slaEquals(ServiceLevel sla) {
     return (root, query, builder) -> {
-      var bucketJoin = root.join(Host_.buckets, JoinType.INNER);
+      Join<Host, HostTallyBucket> bucketJoin = findJoin(root, BUCKET_JOIN);
       var key = bucketJoin.get(HostTallyBucket_.key);
       return builder.equal(key.get(HostBucketKey_.sla), sla);
     };
@@ -206,7 +354,7 @@ public interface HostRepository
 
   static Specification<Host> usageEquals(Usage usage) {
     return (root, query, builder) -> {
-      var bucketJoin = root.join(Host_.buckets, JoinType.INNER);
+      Join<Host, HostTallyBucket> bucketJoin = findJoin(root, BUCKET_JOIN);
       var key = bucketJoin.get(HostTallyBucket_.key);
       return builder.equal(key.get(HostBucketKey_.usage), usage);
     };
@@ -214,7 +362,7 @@ public interface HostRepository
 
   static Specification<Host> billingProviderEquals(BillingProvider billingProvider) {
     return (root, query, builder) -> {
-      var bucketJoin = root.join(Host_.buckets, JoinType.INNER);
+      Join<Host, HostTallyBucket> bucketJoin = findJoin(root, BUCKET_JOIN);
       var key = bucketJoin.get(HostTallyBucket_.key);
       return builder.equal(key.get(HostBucketKey_.billingProvider), billingProvider);
     };
@@ -222,7 +370,7 @@ public interface HostRepository
 
   static Specification<Host> billingAccountIdEquals(String billingAccountId) {
     return (root, query, builder) -> {
-      var bucketJoin = root.join(Host_.buckets, JoinType.INNER);
+      Join<Host, HostTallyBucket> bucketJoin = findJoin(root, BUCKET_JOIN);
       var key = bucketJoin.get(HostTallyBucket_.key);
       return builder.equal(key.get(HostBucketKey_.billingAccountId), billingAccountId);
     };
@@ -234,7 +382,7 @@ public interface HostRepository
 
   static Specification<Host> socketsAndCoresGreaterThanOrEqualTo(int minCores, int minSockets) {
     return (root, query, builder) -> {
-      var bucketJoin = root.join(Host_.buckets, JoinType.INNER);
+      Join<Host, HostTallyBucket> bucketJoin = findJoin(root, BUCKET_JOIN);
       return builder.and(
           builder.greaterThanOrEqualTo(bucketJoin.get(HostTallyBucket_.cores), minCores),
           builder.greaterThanOrEqualTo(bucketJoin.get(HostTallyBucket_.sockets), minSockets));
@@ -243,15 +391,20 @@ public interface HostRepository
 
   static Specification<Host> hardwareMeasurementTypeIn(List<HardwareMeasurementType> types) {
     return (root, query, builder) -> {
-      var bucketJoin = root.join(Host_.buckets, JoinType.INNER);
-      return bucketJoin.get(HostTallyBucket_.measurementType).in(types);
+      var bucketJoin = findJoin(root, BUCKET_JOIN);
+      return bucketJoin.get(HostTallyBucket_.MEASUREMENT_TYPE).in(types);
     };
   }
 
   static Specification<Host> monthlyKeyEquals(InstanceMonthlyTotalKey totalKey) {
     return (root, query, builder) -> {
-      var instanceMonthlyTotalRoot = root.join(Host_.monthlyTotals, JoinType.LEFT);
-      return builder.equal(instanceMonthlyTotalRoot.key(), totalKey);
+      MapJoin<Object, Object, Object> monthlyTotalJoin;
+      if (totalKey.getUom().equals(Uom.CORES)) {
+        monthlyTotalJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_CORES);
+      } else {
+        monthlyTotalJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_INSTANCE_HOURS);
+      }
+      return builder.equal(monthlyTotalJoin.key(), totalKey);
     };
   }
 
@@ -260,6 +413,35 @@ public interface HostRepository
         builder.like(
             builder.lower(root.get(Host_.displayName)),
             "%" + displayNameSubstring.toLowerCase() + "%");
+  }
+
+  private static void createJoins(Root<Host> root) {
+    root.join(Host_.buckets, JoinType.INNER).alias(BUCKET_JOIN);
+    root.joinMap(Host_.MEASUREMENTS, JoinType.LEFT).alias(MEASUREMENT_JOIN_CORES);
+    root.joinMap(Host_.MEASUREMENTS, JoinType.LEFT).alias(MEASUREMENT_JOIN_SOCKETS);
+    root.joinMap(Host_.MONTHLY_TOTALS, JoinType.LEFT).alias(MONTHLY_TOTAL_JOIN_CORES);
+    root.joinMap(Host_.MONTHLY_TOTALS, JoinType.LEFT).alias(MONTHLY_TOTAL_JOIN_INSTANCE_HOURS);
+  }
+
+  static Specification<Host> setJoinCriteria(String month) {
+    return (root, query, builder) -> {
+      var measurementCoresJoin = findMapJoin(root, MEASUREMENT_JOIN_CORES);
+      measurementCoresJoin.on(builder.equal(measurementCoresJoin.key(), Uom.CORES));
+      var measurementSocketsJoin = findMapJoin(root, MEASUREMENT_JOIN_SOCKETS);
+      measurementSocketsJoin.on(builder.equal(measurementSocketsJoin.key(), Uom.SOCKETS));
+      if (StringUtils.hasText(month)) {
+        var monthlyTotalCoresJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_CORES);
+        monthlyTotalCoresJoin.on(
+            builder.equal(
+                monthlyTotalCoresJoin.key(), new InstanceMonthlyTotalKey(month, Uom.CORES)));
+        var monthlyTotalInstanceHoursJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_INSTANCE_HOURS);
+        monthlyTotalInstanceHoursJoin.on(
+            builder.equal(
+                monthlyTotalInstanceHoursJoin.key(),
+                new InstanceMonthlyTotalKey(month, Uom.INSTANCE_HOURS)));
+      }
+      return null;
+    };
   }
 
   @SuppressWarnings("java:S107")
@@ -280,8 +462,8 @@ public interface HostRepository
     /* The where call allows us to build a Specification object to operate on even if the
      * first specification method we call returns null (it won't be null in this case, but it's
      * good practice to handle it) */
-    var searchCriteria =
-        Specification.where(socketsAndCoresGreaterThanOrEqualTo(minCores, minSockets));
+    var searchCriteria = Specification.where(setJoinCriteria(month));
+    searchCriteria = searchCriteria.and(socketsAndCoresGreaterThanOrEqualTo(minCores, minSockets));
 
     if (Objects.nonNull(orgId)) {
       searchCriteria = searchCriteria.and(orgEquals(orgId));
