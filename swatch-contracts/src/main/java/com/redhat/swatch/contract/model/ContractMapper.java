@@ -25,11 +25,17 @@ import com.redhat.swatch.contract.openapi.model.Dimension;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "cdi")
 public interface ContractMapper {
@@ -51,11 +57,9 @@ public interface ContractMapper {
   default ContractEntity reconcileUpstreamContract(PartnerEntitlementContract upstreamContract) {
     ContractEntity entity = partnerContractToContractEntity(upstreamContract);
     entity.setMetrics(dimensionToContractMetricEntity(upstreamContract.getCurrentDimensions()));
-    if (Objects.nonNull(upstreamContract.getCurrentDimensions())) {
-      entity.setEndDate(upstreamContract.getCurrentDimensions().get(0).getExpirationDate());
     return entity;
   }
-  
+
   @AfterMapping
   default void propogateContractUuid(
       @MappingTarget final ContractEntity.ContractEntityBuilder contractEntity,

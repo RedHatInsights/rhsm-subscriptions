@@ -111,16 +111,13 @@ public class ContractEntity extends PanacheEntityBase {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     ContractEntity that = (ContractEntity) o;
-    return Objects.equals(uuid, that.uuid)
-        && Objects.equals(subscriptionNumber, that.subscriptionNumber)
-        && Objects.equals(lastUpdated, that.lastUpdated)
-        && Objects.equals(startDate, that.startDate)
-        && Objects.equals(endDate, that.endDate)
+    return Objects.equals(subscriptionNumber, that.subscriptionNumber)
         && Objects.equals(orgId, that.orgId)
         && Objects.equals(sku, that.sku)
         && Objects.equals(billingProvider, that.billingProvider)
         && Objects.equals(billingAccountId, that.billingAccountId)
-        && Objects.equals(productId, that.productId);
+        && Objects.equals(productId, that.productId)
+        && Objects.equals(metrics, that.metrics);
   }
 
   @Override
@@ -135,6 +132,7 @@ public class ContractEntity extends PanacheEntityBase {
         sku,
         billingProvider,
         billingAccountId,
-        productId);
+        productId,
+        metrics);
   }
 }

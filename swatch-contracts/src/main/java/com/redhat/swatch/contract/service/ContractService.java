@@ -25,10 +25,12 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
 import com.redhat.swatch.contract.model.ContractMapper;
 import com.redhat.swatch.contract.openapi.model.Contract;
+import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractRepository;
+import com.redhat.swatch.contract.resource.SubscriptionSyncResource;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -50,9 +52,15 @@ public class ContractService {
 
   @Inject @RestClient PartnerApi partnerApi;
 
-  ContractService(ContractRepository contractRepository, ContractMapper mapper) {
+  @Inject SubscriptionSyncResource syncResource;
+
+  ContractService(
+      ContractRepository contractRepository,
+      ContractMapper mapper,
+      SubscriptionSyncResource syncResource) {
     this.contractRepository = contractRepository;
     this.mapper = mapper;
+    this.syncResource = syncResource;
   }
 
   @Transactional
@@ -134,39 +142,59 @@ public class ContractService {
   @Transactional
   public StatusResponse createPartnerContract(PartnerEntitlementContract contract) {
     StatusResponse statusResponse = new StatusResponse();
-    ContractEntity entity;
+    ContractEntity entity = null;
     try {
+      // Fill up information from upstream and swatch
       entity = mapper.reconcileUpstreamContract(contract);
       collectMissingUpStreamContractDetails(entity, contract);
-    } catch (Exception e) {
-      log.debug(e.getMessage());
+      if (Objects.isNull(entity)
+          || Objects.isNull(entity.getSubscriptionNumber())
+          || Objects.isNull(entity.getOrgId())
+          || Objects.isNull(entity.getSku())
+          || Objects.isNull(entity.getBillingProvider())
+          || Objects.isNull(entity.getBillingAccountId())
+          || Objects.isNull(entity.getProductId())) { // Check all non-null fields
+        statusResponse.setMessage("Empty value in non-null fields");
+        return statusResponse;
+      }
+    } catch (NumberFormatException e) {
+      log.error(e.getMessage());
       statusResponse.setMessage("An Error occurred while reconciling contract");
+      return statusResponse;
+    } catch (ApiException e) {
+      log.error(e.getMessage());
+      statusResponse.setMessage("An Error occurred while calling Partner Api");
       return statusResponse;
     }
 
-    if (Objects.nonNull(entity)) {
-      Optional<ContractEntity> existing = currentlyActiveContract(entity);
-      boolean isDuplicateContract = false;
-      if (existing.isPresent()) {
-        ContractEntity existingContract = existing.get();
-        isDuplicateContract = isDuplicateContract(entity, existingContract);
-        if (isDuplicateContract) {
-          statusResponse.setMessage("Duplicate record found");
-        } else {
-          var now = OffsetDateTime.now();
-          persistContract(existingContract, now);
-
-          entity.setUuid(UUID.randomUUID());
-          persistContract(entity, now);
-        }
+    Optional<ContractEntity> existing = currentlyActiveContract(entity);
+    boolean isDuplicateContract = false;
+    if (existing.isPresent()) {
+      ContractEntity existingContract = existing.get();
+      isDuplicateContract = isDuplicateContract(entity, existingContract);
+      if (isDuplicateContract) {
+        statusResponse.setMessage("Duplicate record found");
       } else {
+        // Record found in contract table but, the contract has changed
         var now = OffsetDateTime.now();
-        entity.setUuid(UUID.randomUUID());
+        persistContract(existingContract, now);
+
+        var uuid = UUID.randomUUID();
+        entity.setUuid(uuid);
+        entity.getMetrics().forEach(f -> f.setContractUuid(uuid));
+        entity.setProductId("temp");
         persistContract(entity, now);
-        statusResponse.setMessage("New contract created");
+        statusResponse.setMessage("Previous contract archived and new contract created");
       }
     } else {
-      statusResponse.setMessage("Empty entity passed");
+      // New contract
+      var now = OffsetDateTime.now();
+      var uuid = UUID.randomUUID();
+      entity.setUuid(uuid);
+      entity.getMetrics().forEach(f -> f.setContractUuid(uuid));
+      entity.setProductId("temp");
+      persistContract(entity, now);
+      statusResponse.setMessage("New contract created");
     }
 
     return statusResponse;
@@ -186,31 +214,39 @@ public class ContractService {
   }
 
   private boolean isDuplicateContract(ContractEntity newEntity, ContractEntity existing) {
-
-    return false;
+    return Objects.equals(newEntity, existing);
   }
 
-  private void collectMissingUpStreamContractDetails(
-      ContractEntity entity, PartnerEntitlementContract contract) {
-    try {
-      if (Objects.nonNull(contract.getCloudIdentifiers())
-          && Objects.nonNull(contract.getCloudIdentifiers().getAwsCustomerId())) {
-        var result =
-            partnerApi.getPartnerEntitlements(
-                new QueryPartnerEntitlementV1()
-                    .customerAwsAccountId(contract.getCloudIdentifiers().getAwsCustomerId()));
-        var partnerEntitlements = result.getPartnerEntitlements();
-        var entitlement = partnerEntitlements.get(0);
-        if (Objects.nonNull(entitlement)) {
-          entity.setOrgId(entitlement.getRhAccountId());
-          var purchase = entitlement.getPurchase();
-          if (Objects.nonNull(purchase)) {
-            entity.setSku(purchase.getSku());
+  // SWATCH-1014 reformat this logic
+  private void collectMissingUpStreamContractDetails( // NOSONAR
+      ContractEntity entity, PartnerEntitlementContract contract) throws ApiException {
+    if (Objects.nonNull(contract.getCloudIdentifiers()) // NOSONAR
+        && Objects.nonNull(contract.getCloudIdentifiers().getAwsCustomerId())) {
+      var result =
+          partnerApi.getPartnerEntitlements(
+              new QueryPartnerEntitlementV1()
+                  .customerAwsAccountId(contract.getCloudIdentifiers().getAwsCustomerId()));
+      var partnerEntitlements = result.getPartnerEntitlements();
+      var entitlement = partnerEntitlements.get(0);
+      if (Objects.nonNull(entitlement)) {
+        entity.setOrgId(entitlement.getRhAccountId());
+        entity.setBillingProvider(entitlement.getSourcePartner().value());
+        var partnerIdentity = entitlement.getPartnerIdentities();
+        if (Objects.nonNull(partnerIdentity)) {
+          entity.setBillingAccountId(partnerIdentity.getAwsAccountId());
+        }
+        var purchase = entitlement.getPurchase();
+        if (Objects.nonNull(purchase)) {
+          entity.setSku(purchase.getSku());
+          OfferingProductTags productTags = syncResource.getSkuProductTags(purchase.getSku());
+          if (Objects.nonNull(productTags.getData())
+              && Objects.nonNull(productTags.getData().get(0))) {
+            entity.setProductId(productTags.getData().get(0));
+          } else {
+            log.error("Error getting product tags");
           }
         }
       }
-    } catch (ApiException e) {
-      throw new RuntimeException(e);
     }
   }
 }

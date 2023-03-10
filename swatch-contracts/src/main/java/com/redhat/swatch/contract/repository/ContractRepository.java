@@ -98,10 +98,7 @@ public class ContractRepository implements PanacheRepositoryBase<ContractEntity,
 
     String query =
         nonNullParams.keySet().stream()
-            .map(
-                key -> {
-                  return key + "=:" + key;
-                })
+            .map(key -> key + "=:" + key)
             .collect(Collectors.joining(" and "));
 
     if (isCurrentlyActive) {

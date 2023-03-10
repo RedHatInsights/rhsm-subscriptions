@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.contract.resource;
 
-/*import com.redhat.swatch.JmsPriceProducer;*/
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
@@ -36,36 +35,15 @@ import javax.transaction.Transactional;
 import javax.ws.rs.ProcessingException;
 import lombok.extern.slf4j.Slf4j;
 
-/*import org.eclipse.microprofile.reactive.messaging.Channel;
-import org.eclipse.microprofile.reactive.messaging.Emitter;
-import com.redhat.swatch.JmsPriceProducer;*/
-
 @Slf4j
 @ApplicationScoped
 public class ContractsTestingResource implements DefaultApi {
 
   @Inject ContractService service;
 
-  /*@Inject JmsPriceProducer producer;
-
-  @Inject
-  @Channel("prices")
-  Emitter<String> emitter;
-
-  @Transactional
-  public void testActiveMQ(){
-    producer.generate();
-    emitter.send("Hello Kartik producer");
-
-    Jsonb jsonb = JsonbBuilder.create();
-    String jsonString = jsonb.toJson(contract);
-    producer.sendContract(jsonString);
-  }*/
-
   @Override
   @Transactional
   public Contract createContract(Contract contract) throws ApiException, ProcessingException {
-    // producer.send("Hello Kartik shah");
     return service.createContract(contract);
   }
 
