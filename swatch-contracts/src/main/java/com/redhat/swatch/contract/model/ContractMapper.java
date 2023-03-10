@@ -53,7 +53,30 @@ public interface ContractMapper {
     entity.setMetrics(dimensionToContractMetricEntity(upstreamContract.getCurrentDimensions()));
     if (Objects.nonNull(upstreamContract.getCurrentDimensions())) {
       entity.setEndDate(upstreamContract.getCurrentDimensions().get(0).getExpirationDate());
-    }
     return entity;
+  }
+  
+  @AfterMapping
+  default void propogateContractUuid(
+      @MappingTarget final ContractEntity.ContractEntityBuilder contractEntity,
+      final Contract contractDto) {
+
+    if (Objects.requireNonNullElse(contractDto.getMetrics(), new ArrayList<>()).isEmpty()) {
+      contractEntity.metrics(new HashSet<>());
+    } else {
+      contractEntity.metrics(
+          contractDto.getMetrics().stream()
+              .map(
+                  (x -> {
+                    var builder = ContractMetricEntity.builder();
+                    builder.metricId(x.getMetricId());
+                    builder.value(x.getValue());
+                    if (Objects.nonNull(contractDto.getUuid())) {
+                      builder.contractUuid(UUID.fromString(contractDto.getUuid()));
+                    }
+                    return builder.build();
+                  }))
+              .collect(Collectors.toSet()));
+    }
   }
 }
