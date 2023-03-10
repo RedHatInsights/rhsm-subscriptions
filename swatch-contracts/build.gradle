@@ -48,6 +48,10 @@ dependencies {
     testAnnotationProcessor 'org.mapstruct:mapstruct-processor:1.5.3.Final'
     // if you are using mapstruct in test code
     annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+
+    implementation 'io.quarkus:quarkus-artemis-jms'
+    implementation 'org.apache.activemq:artemis-server:2.28.0'
+    implementation 'org.apache.activemq:artemis-jms-client:2.28.0'
 }
 
 group 'com.redhat.swatch'

@@ -47,6 +47,8 @@ parameters:
     value: swatch-tally
   - name: QUARKUS_PROFILE
     value: prod
+  - name: QUARKUS_ACTIVEMQ_BROKER_URL
+    value: vm://localhost?broker.persistent=false
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -184,6 +186,33 @@ objects:
                   secretKeyRef:
                     name: tls
                     key: keystore_password
+              - name: UMB_KEYSTORE
+                value: file:/pinhead/keystore.jks
+              - name: UMB_KEYSTORE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: tls
+                    key: keystore_password
+              - name: UMB_TRUSTSTORE
+                value: file:/pinhead/truststore.jks
+              - name: UMB_TRUSTSTORE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: tls
+                    key: keystore_password
+              - name: UMB_PROCESSING_ENABLED
+                value: ${UMB_PROCESSING_ENABLED}
+#              - name: UMB_SERVICE_ACCOUNT_NAME
+#                value: ${UMB_SERVICE_ACCOUNT_NAME}
+#              - name: ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC
+#                value: ${ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC}
+              - name: UMB_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.namespace
+              - name: QUARKUS_ACTIVEMQ_BROKER_URL
+                value: ${QUARKUS_ACTIVEMQ_BROKER_URL}
             volumeMounts:
               - name: logs
                 mountPath: /logs
