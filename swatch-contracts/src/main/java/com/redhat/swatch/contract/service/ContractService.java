@@ -33,6 +33,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -47,15 +48,11 @@ public class ContractService {
   private final ContractRepository contractRepository;
   private final ContractMapper mapper;
 
-  // private final PartnerContractMapper partnerMapper;
-
   @Inject @RestClient PartnerApi partnerApi;
 
-  ContractService(ContractRepository contractRepository, ContractMapper mapper
-      /*PartnerContractMapper partnerMapper*/ ) {
+  ContractService(ContractRepository contractRepository, ContractMapper mapper) {
     this.contractRepository = contractRepository;
     this.mapper = mapper;
-    // this.partnerMapper = partnerMapper;
   }
 
   @Transactional
@@ -147,33 +144,50 @@ public class ContractService {
       return statusResponse;
     }
 
-    // contractRepository.findContract
-    if (isDuplicateContract(entity, entity)) {
-      statusResponse.setMessage("Duplicate record found");
-      return statusResponse;
-    }
-
     if (Objects.nonNull(entity)) {
-      createContract(entity);
-      statusResponse.setMessage("Contract created");
+      Optional<ContractEntity> existing = currentlyActiveContract(entity);
+      boolean isDuplicateContract = false;
+      if (existing.isPresent()) {
+        ContractEntity existingContract = existing.get();
+        isDuplicateContract = isDuplicateContract(entity, existingContract);
+        if (isDuplicateContract) {
+          statusResponse.setMessage("Duplicate record found");
+        } else {
+          var now = OffsetDateTime.now();
+          persistContract(existingContract, now);
+
+          entity.setUuid(UUID.randomUUID());
+          persistContract(entity, now);
+        }
+      } else {
+        var now = OffsetDateTime.now();
+        entity.setUuid(UUID.randomUUID());
+        persistContract(entity, now);
+        statusResponse.setMessage("New contract created");
+      }
     } else {
       statusResponse.setMessage("Empty entity passed");
     }
+
     return statusResponse;
+  }
+
+  private void persistContract(ContractEntity entity, OffsetDateTime now) {
+    entity.setStartDate(now);
+    entity.setLastUpdated(now);
+    contractRepository.persist(entity);
+  }
+
+  private Optional<ContractEntity> currentlyActiveContract(ContractEntity contract) {
+    Map<String, Object> stringObjectMap =
+        Map.of("subscriptionNumber", contract.getSubscriptionNumber());
+
+    return contractRepository.getContract(stringObjectMap, true);
   }
 
   private boolean isDuplicateContract(ContractEntity newEntity, ContractEntity existing) {
 
     return false;
-  }
-
-  private void createContract(ContractEntity entity) {
-    entity.setUuid(UUID.randomUUID());
-    var now = OffsetDateTime.now();
-
-    entity.setStartDate(now);
-    entity.setLastUpdated(now);
-    contractRepository.persist(entity);
   }
 
   private void collectMissingUpStreamContractDetails(
@@ -190,6 +204,9 @@ public class ContractService {
         if (Objects.nonNull(entitlement)) {
           entity.setOrgId(entitlement.getRhAccountId());
           var purchase = entitlement.getPurchase();
+          if (Objects.nonNull(purchase)) {
+            entity.setSku(purchase.getSku());
+          }
         }
       }
     } catch (ApiException e) {

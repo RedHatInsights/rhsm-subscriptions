@@ -359,7 +359,7 @@ components:
           description: ''
           type: array
           items:
-            $ref: '#/components/schemas/Dimensions'
+            $ref: '#/components/schemas/Dimension'
           example: '[{"dimensionName": "test_dim_1", "dimensionValue": 5, "expirationDate": "2023-02-15T00:00:00Z"}]'
         cloudIdentifiers:
           type: object
@@ -368,7 +368,7 @@ components:
               type: string
             productCode:
               type: string
-    Dimensions:
+    Dimension:
       properties:
         dimensionName:
           type: string

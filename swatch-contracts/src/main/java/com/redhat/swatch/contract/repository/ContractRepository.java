@@ -23,6 +23,7 @@ package com.redhat.swatch.contract.repository;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
@@ -80,14 +81,43 @@ public class ContractRepository implements PanacheRepositoryBase<ContractEntity,
     return find(query, nonNullParams).list();
   }
 
+  public Optional<ContractEntity> getContract(
+      Map<String, Object> parameters, boolean isCurrentlyActive) {
+    if (parameters == null) {
+      return Optional.empty();
+    }
+
+    Map<String, Object> nonNullParams =
+        parameters.entrySet().stream()
+            .filter(entry -> entry.getValue() != null)
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    if (nonNullParams.isEmpty()) {
+      return Optional.empty();
+    }
+
+    String query =
+        nonNullParams.keySet().stream()
+            .map(
+                key -> {
+                  return key + "=:" + key;
+                })
+            .collect(Collectors.joining(" and "));
+
+    if (isCurrentlyActive) {
+      query += " and endDate IS NULL ";
+    }
+
+    var contractTable = "select c from " + ContractEntity.class.getName() + " c where ";
+    query = contractTable + query;
+
+    log.info("Dynamically generated query: {}", query);
+
+    return find(query, nonNullParams).singleResultOptional();
+  }
+
   public ContractEntity findContract(UUID uuid) {
     log.info("Find contract by uuid {}", uuid);
     return find("uuid", uuid).firstResult();
-  }
-
-  public ContractEntity findContractBySubscriptionNumber(UUID uuid) {
-    log.info("Find contract by uuid {}", uuid);
-    // return find("end_date", ).firstResult();
-    return null;
   }
 }
