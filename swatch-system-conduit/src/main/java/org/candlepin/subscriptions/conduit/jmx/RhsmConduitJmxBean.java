@@ -25,9 +25,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.conduit.InventoryController;
 import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
-import org.candlepin.subscriptions.conduit.rhsm.client.ApiException;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OrgConfig;
+import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.exception.MissingAccountNumberException;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -70,6 +70,9 @@ public class RhsmConduitJmxBean {
         "Starting JMX-initiated sync for org ID {} by {}", orgId, ResourceUtils.getPrincipal());
     try {
       controller.updateInventoryForOrg(orgId);
+    } catch (ExternalServiceException e) {
+      log.warn(e.getMessage());
+      throw new RhsmJmxException(e.getMessage());
     } catch (Exception e) {
       log.error("Error during JMX-initiated sync for org ID {}", orgId, e);
       throw new RhsmJmxException(e);
@@ -83,6 +86,9 @@ public class RhsmConduitJmxBean {
         ResourceUtils.getPrincipal());
     try {
       tasks.syncFullOrgList();
+    } catch (ExternalServiceException e) {
+      log.warn(e.getMessage());
+      throw new RhsmJmxException(e.getMessage());
     } catch (Exception e) {
       log.error("Error during JMX-initiated sync for full org list", e);
       throw new RhsmJmxException(e);
@@ -143,9 +149,9 @@ public class RhsmConduitJmxBean {
   public OrgInventory getInventoryForOrg(String orgId, String offset) throws RhsmJmxException {
     try {
       return controller.getInventoryForOrg(orgId, offset);
-    } catch (ApiException e) {
-      log.error("Unable to fetch org systems via JMX");
-      throw new RhsmJmxException(e);
+    } catch (ExternalServiceException e) {
+      log.warn(e.getMessage());
+      throw new RhsmJmxException(e.getMessage());
     } catch (MissingAccountNumberException e) {
       log.error("Systems are missing account number in orgId {}", orgId);
       throw new RhsmJmxException(e);
