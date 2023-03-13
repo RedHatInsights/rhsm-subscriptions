@@ -15,7 +15,9 @@ plugins {
     id 'jacoco'
 }
 
-group = "org.candlepin"
+allprojects {
+    group 'com.redhat.swatch'
+}
 
 dependencies {
     implementation project(':swatch-core')
