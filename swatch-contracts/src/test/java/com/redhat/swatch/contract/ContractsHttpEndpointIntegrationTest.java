@@ -103,7 +103,7 @@ class ContractsHttpEndpointIntegrationTest {
         .when()
         .put("/api/swatch-contracts/internal/contracts/1322")
         .then()
-        .statusCode(500)
+        .statusCode(400)
         .assertThat()
         .body(containsStringIgnoringCase("Uuid in path variable and uuid in payload do not match"));
   }

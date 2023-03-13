@@ -20,12 +20,23 @@
  */
 package com.redhat.swatch.contract.exception;
 
-/**
- * Represents an exception that occurs when something goes wrong while updating a Contract record.
- */
-public class UpdateContractException extends RuntimeException {
+import lombok.Getter;
 
-  public UpdateContractException(String message) {
-    super(message);
+@Getter
+public enum ErrorCode {
+  CONTRACT_EXISTS(
+      1001, "There's already an active contract for that productId & subscriptionNumber"),
+  CONTRACT_DOES_NOT_EXIST(1002, "Contract does not exist"),
+  BAD_UPDATE(4000, "Bad update request"),
+  UNHANDLED_EXCEPTION(5000, "Unhandled exception");
+
+  private static final String CODE_PREFIX = "CONTRACTS";
+
+  ErrorCode(int intCode, String description) {
+    this.code = CODE_PREFIX + intCode;
+    this.description = description;
   }
+
+  private String code;
+  private String description;
 }

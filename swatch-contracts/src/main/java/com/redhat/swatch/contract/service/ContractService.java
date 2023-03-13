@@ -25,8 +25,8 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.model.PurchaseV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
+import com.redhat.swatch.contract.exception.ContractMissingException;
 import com.redhat.swatch.contract.exception.CreateContractException;
-import com.redhat.swatch.contract.exception.UpdateContractException;
 import com.redhat.swatch.contract.model.ContractMapper;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
@@ -176,7 +176,7 @@ public class ContractService {
           String.format(
               "Update called for contract uuid %s, but contract does not exist", dto.getUuid());
       log.error(message);
-      throw new UpdateContractException(message);
+      throw new ContractMissingException(message);
     }
 
     // "sunset" the previous record
