@@ -50,9 +50,6 @@ dependencies {
     annotationProcessor libraries["lombok-mapstruct-binding"]
 }
 
-group 'com.redhat.swatch'
-version 'swatch-contracts'
-
 compileJava.dependsOn tasks.openApiGenerate
 
 openApiGenerate {

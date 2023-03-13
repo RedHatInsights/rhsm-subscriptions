@@ -21,6 +21,8 @@
 package com.redhat.swatch.contract.resource;
 
 import com.redhat.swatch.contract.openapi.model.Contract;
+import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
+import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.openapi.resource.ApiException;
 import com.redhat.swatch.contract.openapi.resource.DefaultApi;
 import com.redhat.swatch.contract.service.ContractService;
@@ -43,7 +45,6 @@ public class ContractsTestingResource implements DefaultApi {
   @Override
   @Transactional
   public Contract createContract(Contract contract) throws ApiException, ProcessingException {
-
     return service.createContract(contract);
   }
 
@@ -78,5 +79,11 @@ public class ContractsTestingResource implements DefaultApi {
       throws ApiException, ProcessingException {
 
     return service.updateContract(contract);
+  }
+
+  @Override
+  public StatusResponse createPartnerEntitlementContract(PartnerEntitlementContract contract)
+      throws ApiException, ProcessingException {
+    return service.createPartnerContract(contract);
   }
 }

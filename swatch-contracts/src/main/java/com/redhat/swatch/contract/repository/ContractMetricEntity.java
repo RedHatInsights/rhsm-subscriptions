@@ -21,6 +21,7 @@
 package com.redhat.swatch.contract.repository;
 
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
+import java.util.Objects;
 import java.util.UUID;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -32,11 +33,15 @@ import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 import lombok.ToString.Exclude;
 
-@Data
+@Getter
+@Setter
+@ToString
 @Entity
 @IdClass(ContractMetricEmbeddableId.class)
 @Table(name = "contract_metrics")
@@ -61,4 +66,17 @@ public class ContractMetricEntity extends PanacheEntityBase {
   @ManyToOne(targetEntity = ContractEntity.class, fetch = FetchType.LAZY)
   @JoinColumn(name = "contract_uuid", insertable = false, updatable = false)
   private ContractEntity contract;
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    ContractMetricEntity that = (ContractMetricEntity) o;
+    return value == that.value && Objects.equals(metricId, that.metricId);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(contractUuid, metricId, value);
+  }
 }

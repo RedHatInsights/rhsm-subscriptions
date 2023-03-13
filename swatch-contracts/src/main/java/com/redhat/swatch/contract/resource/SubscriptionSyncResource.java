@@ -25,11 +25,15 @@ import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.Inte
 import com.redhat.swatch.contract.model.ProductTagsMapper;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
 import com.redhat.swatch.contract.openapi.resource.OfferingsApi;
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.ProcessingException;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
+@Slf4j
+@ApplicationScoped
 public class SubscriptionSyncResource implements OfferingsApi {
 
   @RestClient @Inject InternalSubscriptionsApi internalSubscriptionsApi;

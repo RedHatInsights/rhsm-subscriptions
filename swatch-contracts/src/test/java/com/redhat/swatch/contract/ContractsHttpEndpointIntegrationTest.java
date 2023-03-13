@@ -26,6 +26,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.contract.openapi.model.Contract;
+import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.service.ContractService;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
@@ -103,5 +104,39 @@ class ContractsHttpEndpointIntegrationTest {
         .delete("/api/swatch-contracts/internal/contracts/123")
         .then()
         .statusCode(204);
+  }
+
+  @Test
+  void createPartnerEntitlementContract() {
+    StatusResponse statusResponse = new StatusResponse();
+    statusResponse.setMessage("Contract created successfully");
+    when(contractService.createPartnerContract(any())).thenReturn(statusResponse);
+    String contract =
+        """
+                    {
+                      "action" : "contract-updated",
+                      "redHatSubscriptionNumber" : "12400374",
+                      "currentDimensions" : [ {
+                        "dimensionName" : "test_dim_1",
+                        "dimensionValue" : "5",
+                        "expirationDate" : "2023-02-15T00:00:00Z"
+                      }, {
+                        "dimensionName" : "test_dim_2",
+                        "dimensionValue" : "10",
+                        "expirationDate" : "2023-02-15T00:00:00Z"
+                      } ],
+                      "cloudIdentifiers" : {
+                        "awsCustomerId" : "EK57ooq39qs",
+                        "productCode" : "ek1lel8qbwnqimt2wogc5nmey"
+                      }
+                    }
+                    """;
+    given()
+        .contentType(ContentType.JSON)
+        .body(contract)
+        .when()
+        .post("/api/rhsm-subscriptions/v1/internal/rpc/partner/contracts")
+        .then()
+        .statusCode(200);
   }
 }
