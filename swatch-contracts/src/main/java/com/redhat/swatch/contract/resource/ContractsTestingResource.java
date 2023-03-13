@@ -27,6 +27,7 @@ import com.redhat.swatch.contract.openapi.resource.ApiException;
 import com.redhat.swatch.contract.openapi.resource.DefaultApi;
 import com.redhat.swatch.contract.service.ContractService;
 import java.util.List;
+import java.util.Objects;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
@@ -65,6 +66,12 @@ public class ContractsTestingResource implements DefaultApi {
   @Override
   public Contract updateContract(String uuid, Contract contract)
       throws ApiException, ProcessingException {
+
+    if (Objects.nonNull(contract.getUuid()) && !Objects.equals(uuid, contract.getUuid())) {
+      throw new RuntimeException("Uuid in path variable and uuid in payload do not match");
+    }
+
+    contract.setUuid(uuid);
 
     return service.updateContract(contract);
   }
