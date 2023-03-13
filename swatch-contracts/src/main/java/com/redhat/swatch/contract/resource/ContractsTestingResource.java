@@ -24,6 +24,7 @@ import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.resource.ApiException;
 import com.redhat.swatch.contract.openapi.resource.DefaultApi;
 import com.redhat.swatch.contract.service.ContractService;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +59,8 @@ public class ContractsTestingResource implements DefaultApi {
       String productId,
       String metricId,
       String billingProvider,
-      String billingAccountId)
+      String billingAccountId,
+      OffsetDateTime timestamp)
       throws ApiException, ProcessingException {
 
     Map<String, Object> parameters = new HashMap<>();
