@@ -26,9 +26,7 @@ import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.openapi.resource.ApiException;
 import com.redhat.swatch.contract.openapi.resource.DefaultApi;
 import com.redhat.swatch.contract.service.ContractService;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
@@ -61,15 +59,7 @@ public class ContractsTestingResource implements DefaultApi {
       String billingProvider,
       String billingAccountId)
       throws ApiException, ProcessingException {
-
-    Map<String, Object> parameters = new HashMap<>();
-    parameters.put("orgId", orgId);
-    parameters.put("productId", productId);
-    parameters.put("metricId", metricId);
-    parameters.put("billingProvider", billingProvider);
-    parameters.put("billingAccountId", billingAccountId);
-
-    return service.getContracts(parameters);
+    return service.getContracts(orgId, productId, metricId, billingProvider, billingAccountId);
   }
 
   @Override

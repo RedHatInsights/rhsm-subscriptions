@@ -20,18 +20,15 @@
  */
 package com.redhat.swatch.contract.repository;
 
-import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
-import io.quarkus.panache.common.Page;
-import java.util.List;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
 /**
- * Functional interface to allow use of specifications as seen in Spring Data JPA.
+ * Functional interface to allow use of the specification pattern as seen in Spring Data JPA.
  *
- * @param <T>
+ * @param <T> Entity type of the specification
  */
 public interface Specification<T> {
   static <T> Specification<T> not(Specification<T> specification) {
@@ -49,20 +46,4 @@ public interface Specification<T> {
   }
 
   Predicate toPredicate(Root<T> root, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder);
-
-  interface PanacheImpl<Entity, Id> extends PanacheRepositoryBase<Entity, Id> {
-    default List<Entity> find(Class<Entity> clazz, Specification<Entity> specification, Page page) {
-      var entityManager = getEntityManager();
-      var criteriaBuilder = entityManager.getCriteriaBuilder();
-      var criteriaQuery = criteriaBuilder.createQuery(clazz);
-      var root = criteriaQuery.from(clazz);
-      criteriaQuery.where(specification.toPredicate(root, criteriaQuery, criteriaBuilder));
-      var query = entityManager.createQuery(criteriaQuery);
-      if (page != null) {
-        query.setMaxResults(page.size);
-        query.setFirstResult(page.index * page.size);
-      }
-      return query.getResultList();
-    }
-  }
 }

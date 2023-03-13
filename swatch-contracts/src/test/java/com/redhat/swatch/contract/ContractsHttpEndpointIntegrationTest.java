@@ -45,7 +45,8 @@ class ContractsHttpEndpointIntegrationTest {
   void whenGetContract_thenContractShouldBeFound() {
     Contract contract = new Contract();
     contract.setOrgId("org123");
-    when(contractService.getContracts(any())).thenReturn(List.of(contract));
+    when(contractService.getContracts(any(), any(), any(), any(), any()))
+        .thenReturn(List.of(contract));
     given()
         .contentType(ContentType.JSON)
         .param("org_id", "org123")

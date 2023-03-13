@@ -30,11 +30,10 @@ import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractRepository;
-import com.redhat.swatch.contract.resource.SubscriptionSyncResource;
 import com.redhat.swatch.contract.repository.Specification;
+import com.redhat.swatch.contract.resource.SubscriptionSyncResource;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -105,8 +104,29 @@ public class ContractService {
     return contracts;
   }
 
-  public List<Contract> getContracts(Map<String, Object> parameters) {
-    return contractRepository.getContracts(parameters, false).stream()
+  public List<Contract> getContracts(
+      String orgId,
+      String productId,
+      String metricId,
+      String billingProvider,
+      String billingAccountId) {
+
+    Specification<ContractEntity> specification = ContractEntity.orgIdEquals(orgId);
+
+    if (productId != null) {
+      specification = specification.and(ContractEntity.productIdEquals(productId));
+    }
+    if (metricId != null) {
+      specification = specification.and(ContractEntity.metricIdEquals(metricId));
+    }
+    if (billingProvider != null) {
+      specification = specification.and(ContractEntity.billingProviderEquals(billingProvider));
+    }
+    if (billingAccountId != null) {
+      specification = specification.and(ContractEntity.billingAccountIdEquals(billingAccountId));
+    }
+
+    return contractRepository.getContracts(specification).stream()
         .map(mapper::contractEntityToDto)
         .toList();
   }
@@ -226,10 +246,10 @@ public class ContractService {
   }
 
   private Optional<ContractEntity> currentlyActiveContract(ContractEntity contract) {
-    Map<String, Object> stringObjectMap =
-        Map.of("subscriptionNumber", contract.getSubscriptionNumber());
-
-    return contractRepository.getContract(stringObjectMap, true);
+    var specification =
+        ContractEntity.subscriptionNumberEquals(contract.getSubscriptionNumber())
+            .and(ContractEntity.isActive());
+    return contractRepository.getContracts(specification).stream().findFirst();
   }
 
   private boolean isDuplicateContract(ContractEntity newEntity, ContractEntity existing) {
