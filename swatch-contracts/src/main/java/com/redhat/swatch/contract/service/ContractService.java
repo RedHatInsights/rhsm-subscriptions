@@ -135,18 +135,13 @@ public class ContractService {
 
   @Transactional
   public Contract updateContract(Contract dto) {
-
     ContractEntity existingContract =
         contractRepository.findContract(UUID.fromString(dto.getUuid()));
 
     var now = OffsetDateTime.now();
 
     if (Objects.isNull(existingContract)) {
-      log.warn(
-          "Update called for contract uuid {}, but contract doesn't not exist.  Executing create contract instead",
-          dto.getUuid());
-      return createContract(dto);
-      // TODO just throw an error here instead
+      throw new RuntimeException("No contract exists for " + dto.getUuid());
     }
 
     // "sunset" the previous record
@@ -165,8 +160,11 @@ public class ContractService {
     var newUuid = UUID.randomUUID();
     dto.setUuid(newUuid.toString());
 
+    var now = OffsetDateTime.now();
     var newRecord = mapper.dtoToContractEntity(dto);
-    newRecord.setLastUpdated(OffsetDateTime.now());
+
+    newRecord.setStartDate(now);
+    newRecord.setLastUpdated(now);
     newRecord.setEndDate(null);
 
     return newRecord;
