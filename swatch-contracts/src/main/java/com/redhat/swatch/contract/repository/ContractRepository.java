@@ -21,71 +21,13 @@
 package com.redhat.swatch.contract.repository;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @ApplicationScoped
-public class ContractRepository implements Specification.PanacheImpl<ContractEntity, UUID> {
-
-  public List<ContractEntity> getContracts(
-      Map<String, Object> parameters, boolean isCurrentlyActive) {
-    if (parameters == null) {
-      return listAll();
-    }
-
-    Map<String, Object> nonNullParams =
-        parameters.entrySet().stream()
-            .filter(entry -> entry.getValue() != null)
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-    if (nonNullParams.isEmpty()) {
-      return listAll();
-    }
-
-    var propertiesRequiringJoin = List.of("metricId");
-    var isJoinTableNeeded = nonNullParams.containsKey("metricId");
-
-    String query =
-        nonNullParams.keySet().stream()
-            .map(
-                key -> {
-                  if (isJoinTableNeeded) {
-                    if (propertiesRequiringJoin.contains(key)) {
-                      return "m." + key + "=:" + key;
-                    } else {
-                      return "c." + key + "=:" + key;
-                    }
-                  }
-
-                  return key + "=:" + key;
-                })
-            .collect(Collectors.joining(" and "));
-
-    if (isCurrentlyActive) {
-      // TODO take into consideration m. or c.
-      query += " and endDate IS NULL ";
-    }
-
-    if (isJoinTableNeeded) {
-      var metricTableJoin =
-          "select c from "
-              + ContractEntity.class.getName()
-              + " c inner join "
-              + ContractMetricEntity.class.getName()
-              + " m on c.uuid = m.contractUuid where ";
-      query = metricTableJoin + query;
-    }
-
-    log.info("Dynamically generated query: {}", query);
-
-    return find(query, nonNullParams).list();
-  }
-
+public class ContractRepository implements PanacheSpecificationSupport<ContractEntity, UUID> {
   public List<ContractEntity> getContracts(Specification<ContractEntity> specification) {
     return find(ContractEntity.class, specification, null);
   }
@@ -94,5 +36,4 @@ public class ContractRepository implements Specification.PanacheImpl<ContractEnt
     log.info("Find contract by uuid {}", uuid);
     return find("uuid", uuid).firstResult();
   }
-
 }
