@@ -94,7 +94,7 @@ class ResourceRolesAllowedTest {
                       assertNotNull(
                           operation.getSecurity(),
                           String.format(
-                              "Security schemes must not defined for path %s method %s",
+                              "Security schemes not defined for path %s method %s",
                               path, httpMethod));
                       assertTrue(
                           operation.getSecurity().size() > 0,

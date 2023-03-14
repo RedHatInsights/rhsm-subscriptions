@@ -85,8 +85,18 @@ components:
             - aws_marketplace
         status:
           type: string
+        partnerIdentities:
+          $ref: '#/components/schemas/PartnerIdentityV1'
         purchase:
           $ref: '#/components/schemas/PurchaseV1'
+    PartnerIdentityV1:
+      properties:
+        awsCustomerId:
+          type: string
+        awsAccountId:
+          type: string
+        sellerAccountId:
+          type: string
     PurchaseV1:
       properties:
         productCode:

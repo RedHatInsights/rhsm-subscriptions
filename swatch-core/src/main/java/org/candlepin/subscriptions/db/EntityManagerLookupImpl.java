@@ -18,19 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.conduit.jmx;
+package org.candlepin.subscriptions.db;
+
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import org.springframework.stereotype.Component;
 
 /**
- * Thrown by JMX beans when an error occurs executing a method. When throwing an exception, be sure
- * to log it first, otherwise it will get returned to the client.
+ * Repository "mixin" that can provides access to the entity manager. To use, extend
+ * EntityManagerLookup
  */
-public class RhsmJmxException extends Exception {
+@Component
+public class EntityManagerLookupImpl implements EntityManagerLookup {
 
-  public RhsmJmxException(Throwable t) {
-    super(t);
-  }
+  @PersistenceContext private EntityManager entityManager;
 
-  public RhsmJmxException(String message) {
-    super(message);
+  @Override
+  public EntityManager getEntityManager() {
+    return entityManager;
   }
 }

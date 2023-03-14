@@ -21,6 +21,8 @@
 package com.redhat.swatch.contract.resource;
 
 import com.redhat.swatch.contract.openapi.model.Contract;
+import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
+import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.openapi.resource.ApiException;
 import com.redhat.swatch.contract.openapi.resource.DefaultApi;
 import com.redhat.swatch.contract.service.ContractService;
@@ -80,5 +82,12 @@ public class ContractsTestingResource implements DefaultApi {
       throws ApiException, ProcessingException {
     log.info("Updating contract {}", uuid);
     return service.updateContract(contract);
+  }
+
+  @Override
+  @RolesAllowed({"test"})
+  public StatusResponse createPartnerEntitlementContract(PartnerEntitlementContract contract)
+      throws ApiException, ProcessingException {
+    return service.createPartnerContract(contract);
   }
 }

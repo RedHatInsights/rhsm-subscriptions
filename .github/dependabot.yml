@@ -20,3 +20,8 @@ updates:
     schedule:
       interval: "daily"
     target-branch: "main"
+  - package-ecosystem: "docker"
+    directory: "swatch-contracts/src/main/docker"
+    schedule:
+      interval: "daily"
+    target-branch: "main"

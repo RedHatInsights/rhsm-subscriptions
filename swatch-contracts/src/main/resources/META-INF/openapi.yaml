@@ -203,6 +203,46 @@ paths:
           - Offerings
         security:
           - test: []
+  '/api/rhsm-subscriptions/v1/internal/rpc/partner/contracts':
+    post:
+      operationId: createPartnerEntitlementContract
+      requestBody:
+        description: Create a contract record from partner entitlement.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartnerEntitlementContract'
+            examples:
+              contract info:
+                value:
+                  action: contract-updated
+                  redHatSubscriptionNumber: some text
+                  currentDimensions:
+                    -
+                      dimensionName: some text
+                      dimensionValue: 5
+                      expirationDate: '2018-02-10T09:30Z'
+                    -
+                      dimensionName: some text
+                      dimensionValue: 10
+                      expirationDate: '2018-02-10T09:30Z'
+                  cloudIdentifiers:
+                    awsCustomerId: some text
+                    productCode: some text
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              examples:
+                status response:
+                  value:
+                    status: 'Success'
+                    message: "Contract created"
+          description: Success
+      security:
+        - test: []
 components:
   schemas:
     Error:
@@ -310,6 +350,46 @@ components:
           type: array
           items:
             type: string
+    PartnerEntitlementContract:
+      properties:
+        action:
+          description: Create or update contract
+          type: string
+#          enum:
+#            - contract-updated
+        redHatSubscriptionNumber:
+          description: Map it to subscription_number
+          type: string
+        currentDimensions:
+          description: ''
+          type: array
+          items:
+            $ref: '#/components/schemas/Dimension'
+          example: '[{"dimensionName": "test_dim_1", "dimensionValue": 5, "expirationDate": "2023-02-15T00:00:00Z"}]'
+        cloudIdentifiers:
+          type: object
+          properties:
+            awsCustomerId:
+              type: string
+            productCode:
+              type: string
+    Dimension:
+      properties:
+        dimensionName:
+          type: string
+        dimensionValue:
+          type: string
+        expirationDate:
+          format: date-time
+          description: ''
+          type: string
+          example: '2023-03-01T00:00:00Z'
+    StatusResponse:
+      properties:
+        status:
+          type: string
+        message:
+          type: string
   securitySchemes:
     support:
       type: apiKey

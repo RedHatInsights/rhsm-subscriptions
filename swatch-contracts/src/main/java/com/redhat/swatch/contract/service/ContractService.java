@@ -20,18 +20,28 @@
  */
 package com.redhat.swatch.contract.service;
 
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitlementV1;
+import com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException;
+import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
 import com.redhat.swatch.contract.model.ContractMapper;
 import com.redhat.swatch.contract.openapi.model.Contract;
+import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
+import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
+import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractRepository;
+import com.redhat.swatch.contract.resource.SubscriptionSyncResource;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @Slf4j
 @ApplicationScoped
@@ -40,9 +50,17 @@ public class ContractService {
   private final ContractRepository contractRepository;
   private final ContractMapper mapper;
 
-  ContractService(ContractRepository contractRepository, ContractMapper mapper) {
+  @Inject @RestClient PartnerApi partnerApi;
+
+  @Inject SubscriptionSyncResource syncResource;
+
+  ContractService(
+      ContractRepository contractRepository,
+      ContractMapper mapper,
+      SubscriptionSyncResource syncResource) {
     this.contractRepository = contractRepository;
     this.mapper = mapper;
+    this.syncResource = syncResource;
   }
 
   @Transactional
@@ -52,15 +70,6 @@ public class ContractService {
     contract.setUuid(uuid);
 
     var entity = mapper.dtoToContractEntity(contract);
-
-    entity.getMetrics().stream()
-        .forEach(
-            metric -> {
-              metric.setContractUuid(entity.getUuid());
-              metric.setContract(entity);
-            });
-
-    log.info("{}", entity);
 
     var now = OffsetDateTime.now();
 
@@ -96,15 +105,6 @@ public class ContractService {
       return createContract(dto);
     }
 
-    var newData = mapper.dtoToContractEntity(dto);
-    newData
-        .getMetrics()
-        .forEach(
-            metric -> {
-              metric.setContractUuid(newData.getUuid());
-              metric.setContract(newData);
-            });
-
     /*
     If metric id, value, or product id changes, we want to keep record of the old value and logically update
      */
@@ -127,12 +127,7 @@ public class ContractService {
     newRecord.setUuid(newUuid);
     newRecord.setLastUpdated(OffsetDateTime.now());
     newRecord.setEndDate(null);
-    newRecord.getMetrics().stream()
-        .forEach(
-            metric -> {
-              metric.setContractUuid(newUuid);
-              metric.setContract(newRecord);
-            });
+
     return newRecord;
   }
 
@@ -142,5 +137,116 @@ public class ContractService {
     var isSuccessful = contractRepository.deleteById(UUID.fromString(uuid));
 
     log.debug("Deletion status of {} is: {}", uuid, isSuccessful);
+  }
+
+  @Transactional
+  public StatusResponse createPartnerContract(PartnerEntitlementContract contract) {
+    StatusResponse statusResponse = new StatusResponse();
+    ContractEntity entity = null;
+    try {
+      // Fill up information from upstream and swatch
+      entity = mapper.reconcileUpstreamContract(contract);
+      collectMissingUpStreamContractDetails(entity, contract);
+      if (Objects.isNull(entity)
+          || Objects.isNull(entity.getSubscriptionNumber())
+          || Objects.isNull(entity.getOrgId())
+          || Objects.isNull(entity.getSku())
+          || Objects.isNull(entity.getBillingProvider())
+          || Objects.isNull(entity.getBillingAccountId())
+          || Objects.isNull(entity.getProductId())) { // Check all non-null fields
+        statusResponse.setMessage("Empty value in non-null fields");
+        return statusResponse;
+      }
+    } catch (NumberFormatException e) {
+      log.error(e.getMessage());
+      statusResponse.setMessage("An Error occurred while reconciling contract");
+      return statusResponse;
+    } catch (ApiException e) {
+      log.error(e.getMessage());
+      statusResponse.setMessage("An Error occurred while calling Partner Api");
+      return statusResponse;
+    }
+
+    Optional<ContractEntity> existing = currentlyActiveContract(entity);
+    boolean isDuplicateContract = false;
+    if (existing.isPresent()) {
+      ContractEntity existingContract = existing.get();
+      isDuplicateContract = isDuplicateContract(entity, existingContract);
+      if (isDuplicateContract) {
+        statusResponse.setMessage("Duplicate record found");
+      } else {
+        // Record found in contract table but, the contract has changed
+        var now = OffsetDateTime.now();
+        persistContract(existingContract, now);
+
+        var uuid = UUID.randomUUID();
+        entity.setUuid(uuid);
+        entity.getMetrics().forEach(f -> f.setContractUuid(uuid));
+        entity.setProductId("temp");
+        persistContract(entity, now);
+        statusResponse.setMessage("Previous contract archived and new contract created");
+      }
+    } else {
+      // New contract
+      var now = OffsetDateTime.now();
+      var uuid = UUID.randomUUID();
+      entity.setUuid(uuid);
+      entity.getMetrics().forEach(f -> f.setContractUuid(uuid));
+      entity.setProductId("temp");
+      persistContract(entity, now);
+      statusResponse.setMessage("New contract created");
+    }
+
+    return statusResponse;
+  }
+
+  private void persistContract(ContractEntity entity, OffsetDateTime now) {
+    entity.setStartDate(now);
+    entity.setLastUpdated(now);
+    contractRepository.persist(entity);
+  }
+
+  private Optional<ContractEntity> currentlyActiveContract(ContractEntity contract) {
+    Map<String, Object> stringObjectMap =
+        Map.of("subscriptionNumber", contract.getSubscriptionNumber());
+
+    return contractRepository.getContract(stringObjectMap, true);
+  }
+
+  private boolean isDuplicateContract(ContractEntity newEntity, ContractEntity existing) {
+    return Objects.equals(newEntity, existing);
+  }
+
+  // SWATCH-1014 reformat this logic
+  private void collectMissingUpStreamContractDetails( // NOSONAR
+      ContractEntity entity, PartnerEntitlementContract contract) throws ApiException {
+    if (Objects.nonNull(contract.getCloudIdentifiers()) // NOSONAR
+        && Objects.nonNull(contract.getCloudIdentifiers().getAwsCustomerId())) {
+      var result =
+          partnerApi.getPartnerEntitlements(
+              new QueryPartnerEntitlementV1()
+                  .customerAwsAccountId(contract.getCloudIdentifiers().getAwsCustomerId()));
+      var partnerEntitlements = result.getPartnerEntitlements();
+      var entitlement = partnerEntitlements.get(0);
+      if (Objects.nonNull(entitlement)) {
+        entity.setOrgId(entitlement.getRhAccountId());
+        entity.setBillingProvider(entitlement.getSourcePartner().value());
+        var partnerIdentity = entitlement.getPartnerIdentities();
+        if (Objects.nonNull(partnerIdentity)) {
+          entity.setBillingAccountId(partnerIdentity.getAwsAccountId());
+        }
+        var purchase = entitlement.getPurchase();
+        if (Objects.nonNull(purchase)) {
+          entity.setSku(purchase.getSku());
+          OfferingProductTags productTags = syncResource.getSkuProductTags(purchase.getSku());
+          if (Objects.nonNull(productTags.getData())
+              && Objects.nonNull(productTags.getData().get(0))) {
+            entity.setProductId(productTags.getData().get(0));
+          } else {
+            log.error("Error getting product tags");
+          }
+        }
+      }
+    }
   }
 }

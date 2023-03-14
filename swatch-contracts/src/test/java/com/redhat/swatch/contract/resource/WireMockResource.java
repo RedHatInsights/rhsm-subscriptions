@@ -74,35 +74,40 @@ public class WireMockResource
                     .withHeader("Content-Type", "application/json")
                     .withBody(
                         """
-                        {
-                          "partnerEntitlements": [
-                            {
-                              "rhAccountId": "org123",
-                              "sourcePartner": "aws_marketplace",
-                              "purchase": {
-                                "productCode": "1234567890abcdefghijklmno",
-                                "sku": "RH000000",
-                                "subscriptionNumber": "123456",
-                                "contracts": [
                                 {
-                                  "startDate": "2022-09-23T20:07:51.010445Z",
-                                  "endDate": "2022-10-23T20:07:51.01054Z",
-                                  "dimensions": [
+                                  "partnerEntitlements": [
                                     {
-                                      "name": "foobar",
-                                      "value": 1000000
+                                      "rhAccountId": "org123",
+                                      "sourcePartner": "aws_marketplace",
+                                      "partnerIdentities": {
+                                        "awsCustomerId": "e1dSCLwo6ib",
+                                        "awsAccountId": "896801664647",
+                                        "sellerAccountId": "568056954830"
+                                      },
+                                      "purchase": {
+                                        "productCode": "1234567890abcdefghijklmno",
+                                        "sku": "RH000000",
+                                        "subscriptionNumber": "123456",
+                                        "contracts": [
+                                        {
+                                          "startDate": "2022-09-23T20:07:51.010445Z",
+                                          "endDate": "2022-10-23T20:07:51.01054Z",
+                                          "dimensions": [
+                                            {
+                                              "name": "foobar",
+                                              "value": 1000000
+                                            }
+                                          ]
+                                        }
+                                        ]
+                                      },
+                                      "status": "SUBSCRIBED",
+                                      "extra": "this shows we ignore unknown fields"
                                     }
-                                  ]
+                                  ],
+                                  "hasNext": true
                                 }
-                                ]
-                              },
-                              "status": "SUBSCRIBED",
-                              "extra": "this shows we ignore unknown fields"
-                            }
-                          ],
-                          "hasNext": true
-                        }
-                        """)));
+                                """)));
   }
 
   @Override

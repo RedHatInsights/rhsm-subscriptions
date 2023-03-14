@@ -18,19 +18,10 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.conduit.jmx;
+package org.candlepin.subscriptions.db;
 
-/**
- * Thrown by JMX beans when an error occurs executing a method. When throwing an exception, be sure
- * to log it first, otherwise it will get returned to the client.
- */
-public class RhsmJmxException extends Exception {
+import javax.persistence.EntityManager;
 
-  public RhsmJmxException(Throwable t) {
-    super(t);
-  }
-
-  public RhsmJmxException(String message) {
-    super(message);
-  }
+public interface EntityManagerLookup {
+  EntityManager getEntityManager();
 }

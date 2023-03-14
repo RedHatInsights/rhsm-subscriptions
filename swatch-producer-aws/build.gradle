@@ -40,9 +40,6 @@ dependencies {
 
 }
 
-group = 'com.redhat.swatch'
-description = 'swatch-producer-aws'
-
 compileJava.dependsOn tasks.openApiGenerate
 
 openApiGenerate {

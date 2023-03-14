@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.conduit;
 
+import static org.candlepin.subscriptions.exception.ErrorCode.RHSM_SERVICE_UNKNOWN_ORG_ERROR;
+
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -52,6 +54,7 @@ import org.candlepin.subscriptions.conduit.rhsm.client.ApiException;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.Consumer;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.InstalledProducts;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.Pagination;
+import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.exception.MissingAccountNumberException;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
 import org.candlepin.subscriptions.validator.IpAddressValidator;
@@ -511,16 +514,31 @@ public class InventoryController {
   }
 
   public void updateInventoryForOrg(String orgId)
-      throws MissingAccountNumberException, ApiException {
+      throws MissingAccountNumberException, ExternalServiceException {
     updateInventoryForOrg(orgId, null);
+  }
+
+  private org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory getConsumerFeed(
+      String orgId, String offset) throws ExternalServiceException {
+    try {
+      return rhsmService.getPageOfConsumers(orgId, offset, rhsmService.formattedTime());
+    } catch (ApiException e) {
+      if (400 == e.getCode()) {
+        String message =
+            String.format("RHSM API could not find orgId=%s while updating inventory.", orgId);
+        throw new ExternalServiceException(RHSM_SERVICE_UNKNOWN_ORG_ERROR, message, e);
+      }
+      throw new ExternalServiceException(RHSM_SERVICE_UNKNOWN_ORG_ERROR, e.getMessage(), e);
+    }
   }
 
   @Timed("rhsm-conduit.sync.org-page")
   public void updateInventoryForOrg(String orgId, String offset)
-      throws ApiException, MissingAccountNumberException {
+      throws ExternalServiceException, MissingAccountNumberException {
 
     org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory feedPage =
-        rhsmService.getPageOfConsumers(orgId, offset, rhsmService.formattedTime());
+        getConsumerFeed(orgId, offset);
+
     Stream<ConduitFacts> facts = validateConduitFactsForOrg(feedPage);
 
     long updateSize =
@@ -560,10 +578,9 @@ public class InventoryController {
   }
 
   public OrgInventory getInventoryForOrg(String orgId, String offset)
-      throws MissingAccountNumberException, ApiException {
-
+      throws MissingAccountNumberException, ExternalServiceException {
     org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory feedPage =
-        rhsmService.getPageOfConsumers(orgId, offset, rhsmService.formattedTime());
+        getConsumerFeed(orgId, offset);
     return inventoryService.getInventoryForOrgConsumers(
         validateConduitFactsForOrg(feedPage).collect(Collectors.toList()));
   }
