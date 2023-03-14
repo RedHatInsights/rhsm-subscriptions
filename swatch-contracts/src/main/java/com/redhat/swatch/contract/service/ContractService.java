@@ -133,7 +133,8 @@ public class ContractService {
       String productId,
       String metricId,
       String billingProvider,
-      String billingAccountId) {
+      String billingAccountId,
+      OffsetDateTime timestamp) {
 
     Specification<ContractEntity> specification = ContractEntity.orgIdEquals(orgId);
 
@@ -148,6 +149,9 @@ public class ContractService {
     }
     if (billingAccountId != null) {
       specification = specification.and(ContractEntity.billingAccountIdEquals(billingAccountId));
+    }
+    if (timestamp != null) {
+      specification = specification.and(ContractEntity.activeOn(timestamp));
     }
 
     return contractRepository.getContracts(specification).stream()
