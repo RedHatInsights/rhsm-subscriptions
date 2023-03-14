@@ -10,6 +10,7 @@ dependencies {
     annotationProcessor "org.hibernate:hibernate-jpamodelgen"
     implementation project(":api") // for util methods in ResourceUtils
     implementation project(":clients:rbac-client") // for security integration w/ rbac
+    implementation project(":swatch-common-resteasy")
     implementation "org.hibernate.validator:hibernate-validator"
     implementation "javax.validation:validation-api"
     implementation "org.springframework.boot:spring-boot-starter"

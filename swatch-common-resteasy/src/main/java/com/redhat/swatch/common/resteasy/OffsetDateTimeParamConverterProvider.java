@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.config;
+package com.redhat.swatch.common.resteasy;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
@@ -26,10 +26,8 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import javax.ws.rs.ext.ParamConverter;
 import javax.ws.rs.ext.ParamConverterProvider;
-import javax.ws.rs.ext.Provider;
 
 /** ParamConverterProvider to enable use of OffsetDateTime in query parameters. */
-@Provider
 public class OffsetDateTimeParamConverterProvider implements ParamConverterProvider {
 
   @Override
