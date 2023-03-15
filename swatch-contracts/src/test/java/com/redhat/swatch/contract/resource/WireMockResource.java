@@ -75,13 +75,14 @@ public class WireMockResource
                     .withBody(
                         """
                                 {
+                                "_embedded": {
                                   "partnerEntitlements": [
                                     {
                                       "rhAccountId": "org123",
                                       "sourcePartner": "aws_marketplace",
                                       "partnerIdentities": {
                                         "awsCustomerId": "e1dSCLwo6ib",
-                                        "awsAccountId": "896801664647",
+                                        "customerAwsAccountId": "896801664647",
                                         "sellerAccountId": "568056954830"
                                       },
                                       "purchase": {
@@ -104,9 +105,16 @@ public class WireMockResource
                                       "status": "SUBSCRIBED",
                                       "extra": "this shows we ignore unknown fields"
                                     }
-                                  ],
-                                  "hasNext": true
+                                  ]
+                                  },
+                                      "page": {
+                                          "size": 20,
+                                          "totalElements": 2,
+                                          "totalPages": 1,
+                                          "number": 0
+                                      }
                                 }
+
                                 """)));
   }
 
