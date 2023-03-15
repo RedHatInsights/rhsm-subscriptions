@@ -77,11 +77,17 @@ public class JmsPriceMessageConsumer implements Runnable {
 
   @Override
   public void run() {
+    log.info("Running consumer");
     try (JMSContext context = connectionFactory.createContext(JMSContext.AUTO_ACKNOWLEDGE)) {
+      log.info("Creating consumer");
       JMSConsumer consumer = context.createConsumer(context.createQueue("prices"));
+      log.info("Entering loop");
       while (true) {
+        log.info("Receiving");
         Message message = consumer.receive();
+        log.info("{}", message);
         String me = consumeContract(message.getBody(String.class));
+        log.info(me);
         // throw new Exception();
         /*if (message == null) return;
         lastPrice = message.getBody(String.class);*/
