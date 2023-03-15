@@ -21,6 +21,7 @@
 package com.redhat.swatch.contract;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.containsStringIgnoringCase;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -62,7 +63,7 @@ class ContractsHttpEndpointIntegrationTest {
   void whenUpdateContract_thenUpdatedContractShouldBeReturned() {
     String contract =
         """
-    {"uuid":"string","subscription_number":"string","sku":"string",
+    {"subscription_number":"string","sku":"string",
     "start_date":"2022-03-10T12:15:50-04:00","end_date":"2022-03-10T12:15:50-04:00",
     "org_id":"string","billing_provider":"string","billing_account_id":"string",
     "product_id":"string","metrics": [ {"metric_id":"string","value": 0 } ] }
@@ -74,6 +75,27 @@ class ContractsHttpEndpointIntegrationTest {
         .put("/api/swatch-contracts/internal/contracts/1322")
         .then()
         .statusCode(204);
+  }
+
+  @Test
+  void whenUpdateContract_MismatchedUuid() {
+
+    String contract =
+        """
+        {"uuid":"1234567890","subscription_number":"string","sku":"string",
+        "start_date":"2022-03-10T12:15:50-04:00","end_date":"2022-03-10T12:15:50-04:00",
+        "org_id":"string","billing_provider":"string","billing_account_id":"string",
+        "product_id":"string","metrics": [ {"metric_id":"string","value": 0 } ] }
+        """;
+    given()
+        .contentType(ContentType.JSON)
+        .body(contract)
+        .when()
+        .put("/api/swatch-contracts/internal/contracts/1322")
+        .then()
+        .statusCode(500)
+        .assertThat()
+        .body(containsStringIgnoringCase("Uuid in path variable and uuid in payload do not match"));
   }
 
   @Test
