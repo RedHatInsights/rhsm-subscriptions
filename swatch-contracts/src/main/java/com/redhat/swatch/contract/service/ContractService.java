@@ -47,16 +47,18 @@ import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
+/**
+ * Service layer for interfacing with database and external APIs for manipulation of swatch Contract
+ * records
+ */
 @Slf4j
 @ApplicationScoped
 public class ContractService {
 
   private final ContractRepository contractRepository;
   private final ContractMapper mapper;
-
-  @Inject @RestClient PartnerApi partnerApi;
-
   private final SubscriptionSyncResource syncResource;
+  @Inject @RestClient PartnerApi partnerApi;
 
   ContractService(
       ContractRepository contractRepository,
@@ -67,6 +69,14 @@ public class ContractService {
     this.syncResource = syncResource;
   }
 
+  /**
+   * If there's not an already active contract in the database, create a new Contract for the given
+   * payload. This method will always set the end date to 'null', which indicates an active
+   * contract.
+   *
+   * @param contract
+   * @return Contract dto
+   */
   @Transactional
   public Contract createContract(Contract contract) {
 
@@ -107,6 +117,17 @@ public class ContractService {
     return contractRepository.getContracts(specification);
   }
 
+  /**
+   * Build Specifications based on provided parameters if not null and use to query the database
+   * based on specifications.
+   *
+   * @param orgId
+   * @param productId
+   * @param metricId
+   * @param billingProvider
+   * @param billingAccountId
+   * @return List<Contract> dtos
+   */
   public List<Contract> getContracts(
       String orgId,
       String productId,
@@ -134,6 +155,15 @@ public class ContractService {
         .toList();
   }
 
+  /**
+   * First look up an existing contract by UUID. Instead of truly updating this entity in the
+   * database, create a copy of it with a new UUID and update values accordingly from the provided
+   * dto. The original record will get an end date of "now", and the new record will become the
+   * active contract by having its end date set to null.
+   *
+   * @param dto
+   * @return Contract
+   */
   @Transactional
   public Contract updateContract(Contract dto) {
     ContractEntity existingContract =
@@ -159,6 +189,13 @@ public class ContractService {
     return dto;
   }
 
+  /**
+   * Helper method that sets the UUID, start date, and end date fields that represent an update of
+   * an existing contract
+   *
+   * @param dto
+   * @return ContractEntity
+   */
   public ContractEntity createContractForLogicalUpdate(Contract dto) {
     var newUuid = UUID.randomUUID();
     dto.setUuid(newUuid.toString());
@@ -173,6 +210,12 @@ public class ContractService {
     return newRecord;
   }
 
+  /**
+   * Delete a contract for a given uuid. This is hard delete, because its intended use is for
+   * cleaning up test data.
+   *
+   * @param uuid
+   */
   @Transactional
   public void deleteContract(String uuid) {
 

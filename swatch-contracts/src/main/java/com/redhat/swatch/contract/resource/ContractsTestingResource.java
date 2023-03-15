@@ -41,6 +41,14 @@ public class ContractsTestingResource implements DefaultApi {
 
   @Inject ContractService service;
 
+  /**
+   * Create contract record in database from provided contract dto payload
+   *
+   * @param contract
+   * @return Contract
+   * @throws ApiException
+   * @throws ProcessingException
+   */
   @Override
   @Transactional
   public Contract createContract(Contract contract) throws ApiException, ProcessingException {
@@ -53,6 +61,18 @@ public class ContractsTestingResource implements DefaultApi {
     service.deleteContract(uuid);
   }
 
+  /**
+   * Get a list of saved contracts based on URL query parameters
+   *
+   * @param orgId
+   * @param productId
+   * @param metricId
+   * @param billingProvider
+   * @param billingAccountId
+   * @return List<Contract> dtos
+   * @throws ApiException
+   * @throws ProcessingException
+   */
   @Override
   public List<Contract> getContract(
       String orgId,
@@ -64,6 +84,16 @@ public class ContractsTestingResource implements DefaultApi {
     return service.getContracts(orgId, productId, metricId, billingProvider, billingAccountId);
   }
 
+  /**
+   * Verify that the path variable uuid matches the payload uuid, then update the contract in the
+   * database with provided values
+   *
+   * @param uuid
+   * @param contract
+   * @return Contract
+   * @throws ApiException
+   * @throws ProcessingException
+   */
   @Override
   public Contract updateContract(String uuid, Contract contract)
       throws ApiException, ProcessingException {
