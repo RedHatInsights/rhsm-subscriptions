@@ -32,7 +32,7 @@ import java.util.List;
  * @param <Entity> The type of entity to operate on
  * @param <Id> The ID type of the entity
  */
-@SuppressWarnings("java:S119") //Sonar doesn't like the generic type names
+@SuppressWarnings("java:S119") // Sonar doesn't like the generic type names
 public interface PanacheSpecificationSupport<Entity, Id> extends PanacheRepositoryBase<Entity, Id> {
   default List<Entity> find(Class<Entity> clazz, Specification<Entity> specification, Page page) {
     var entityManager = getEntityManager();
