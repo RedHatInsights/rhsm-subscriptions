@@ -85,8 +85,6 @@ public class ContractService {
     var entity = mapper.dtoToContractEntity(contract);
 
     var now = OffsetDateTime.now();
-
-    entity.setStartDate(now);
     entity.setLastUpdated(now);
 
     // Force end date to be null to indicate this it the current/applicable record
