@@ -213,19 +213,19 @@ paths:
               contract info:
                 value:
                   action: contract-updated
-                  redHatSubscriptionNumber: some text
+                  redHatSubscriptionNumber: '12400374'
                   currentDimensions:
                     -
-                      dimensionName: some text
-                      dimensionValue: 5
+                      dimensionName: cpu-hours
+                      dimensionValue: '5'
                       expirationDate: '2018-02-10T09:30Z'
                     -
-                      dimensionName: some text
-                      dimensionValue: 10
+                      dimensionName: instance-hours
+                      dimensionValue: '10'
                       expirationDate: '2018-02-10T09:30Z'
                   cloudIdentifiers:
-                    awsCustomerId: some text
-                    productCode: some text
+                    awsCustomerId: '795061427196'
+                    productCode: '1234567890abcdefghijklmno'
       responses:
         '200':
           content:

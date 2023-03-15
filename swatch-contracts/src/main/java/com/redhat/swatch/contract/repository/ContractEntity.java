@@ -123,16 +123,6 @@ public class ContractEntity extends PanacheEntityBase {
   @Override
   public int hashCode() {
     return Objects.hash(
-        uuid,
-        subscriptionNumber,
-        lastUpdated,
-        startDate,
-        endDate,
-        orgId,
-        sku,
-        billingProvider,
-        billingAccountId,
-        productId,
-        metrics);
+        subscriptionNumber, orgId, sku, billingProvider, billingAccountId, productId, metrics);
   }
 }

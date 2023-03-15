@@ -77,6 +77,6 @@ public class ContractMetricEntity extends PanacheEntityBase {
 
   @Override
   public int hashCode() {
-    return Objects.hash(contractUuid, metricId, value);
+    return Objects.hash(metricId, value);
   }
 }

@@ -297,7 +297,7 @@ class ContractServiceTest extends BaseUnitTest {
     existingContract.setStartDate(offsetDateTime);
     existingContract.setEndDate(null);
     existingContract.setBillingProvider("aws_marketplace");
-    existingContract.setSku("RH000000");
+    existingContract.setSku("MW01484");
     existingContract.setProductId("BASILISK123");
     existingContract.setOrgId("org123");
     existingContract.setLastUpdated(offsetDateTime);
@@ -320,7 +320,6 @@ class ContractServiceTest extends BaseUnitTest {
         .thenReturn(Optional.of(existingContract));
 
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
-    assertEquals(
-        "Previous contract archived and new contract created", statusResponse.getMessage());
+    assertEquals("Duplicate record found", statusResponse.getMessage());
   }
 }
