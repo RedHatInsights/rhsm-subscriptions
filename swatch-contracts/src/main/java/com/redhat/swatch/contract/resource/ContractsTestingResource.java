@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.resource;
 
+import com.redhat.swatch.contract.exception.UpdateContractException;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
@@ -68,7 +69,7 @@ public class ContractsTestingResource implements DefaultApi {
       throws ApiException, ProcessingException {
 
     if (Objects.nonNull(contract.getUuid()) && !Objects.equals(uuid, contract.getUuid())) {
-      throw new RuntimeException("Uuid in path variable and uuid in payload do not match");
+      throw new UpdateContractException("Uuid in path variable and uuid in payload do not match");
     }
 
     contract.setUuid(uuid);

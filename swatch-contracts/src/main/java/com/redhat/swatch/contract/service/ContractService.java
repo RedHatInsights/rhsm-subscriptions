@@ -25,6 +25,8 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.model.PurchaseV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
+import com.redhat.swatch.contract.exception.CreateContractException;
+import com.redhat.swatch.contract.exception.UpdateContractException;
 import com.redhat.swatch.contract.model.ContractMapper;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
@@ -72,11 +74,10 @@ public class ContractService {
     log.info("{}", contracts);
 
     if (!contracts.isEmpty()) {
-      log.error(
-          "There's already an active contract for that productId & subscriptionNumber: {}",
-          contracts);
-      throw new RuntimeException(
-          "There's already an active contract for that productId & subscriptionNumber");
+      var message =
+          "There's already an active contract for that productId & subscriptionNumber: " + contract;
+      log.error(message);
+      throw new CreateContractException(message);
     }
 
     var uuid = Objects.requireNonNullElse(contract.getUuid(), UUID.randomUUID().toString());
@@ -88,6 +89,9 @@ public class ContractService {
     entity.setLastUpdated(now);
 
     // Force end date to be null to indicate this it the current/applicable record
+    if (Objects.nonNull(contract.getEndDate())) {
+      log.warn("Ignoring end date from payload and saving as null");
+    }
     entity.setEndDate(null);
 
     contractRepository.persist(entity);
@@ -100,8 +104,7 @@ public class ContractService {
         ContractEntity.productIdEquals(contract.getProductId())
             .and(ContractEntity.subscriptionNumberEquals(contract.getSubscriptionNumber()))
             .and(ContractEntity.isActive());
-    List<ContractEntity> contracts = contractRepository.getContracts(specification);
-    return contracts;
+    return contractRepository.getContracts(specification);
   }
 
   public List<Contract> getContracts(
@@ -139,7 +142,9 @@ public class ContractService {
     var now = OffsetDateTime.now();
 
     if (Objects.isNull(existingContract)) {
-      throw new RuntimeException("No contract exists for " + dto.getUuid());
+      var message = "";
+      log.error(message);
+      throw new UpdateContractException(message);
     }
 
     // "sunset" the previous record
