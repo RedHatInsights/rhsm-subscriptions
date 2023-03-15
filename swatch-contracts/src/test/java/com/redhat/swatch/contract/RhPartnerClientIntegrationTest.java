@@ -45,7 +45,7 @@ class RhPartnerClientIntegrationTest {
     // see WireMockResource for setup details, and canned response JSON
     var result =
         partnerApi.getPartnerEntitlements(new QueryPartnerEntitlementV1().rhAccountId("org123"));
-    var partnerEntitlements = result.getPartnerEntitlements();
+    var partnerEntitlements = result.getEmbedded().getPartnerEntitlements();
     assertNotNull(partnerEntitlements);
     assertEquals(1, partnerEntitlements.size());
     var entitlement = partnerEntitlements.get(0);
@@ -67,6 +67,5 @@ class RhPartnerClientIntegrationTest {
     var dimension = contract.getDimensions().get(0);
     assertEquals("foobar", dimension.getName());
     assertEquals("1000000", dimension.getValue());
-    assertEquals(true, result.getHasNext());
   }
 }
