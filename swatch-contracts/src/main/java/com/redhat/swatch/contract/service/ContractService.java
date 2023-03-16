@@ -25,6 +25,8 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.model.PurchaseV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
+import com.redhat.swatch.contract.exception.CreateContractException;
+import com.redhat.swatch.contract.exception.UpdateContractException;
 import com.redhat.swatch.contract.model.ContractMapper;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
@@ -32,10 +34,10 @@ import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractRepository;
+import com.redhat.swatch.contract.repository.Specification;
 import com.redhat.swatch.contract.resource.SubscriptionSyncResource;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,16 +47,18 @@ import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
+/**
+ * Service layer for interfacing with database and external APIs for manipulation of swatch Contract
+ * records
+ */
 @Slf4j
 @ApplicationScoped
 public class ContractService {
 
   private final ContractRepository contractRepository;
   private final ContractMapper mapper;
-
-  @Inject @RestClient PartnerApi partnerApi;
-
   private final SubscriptionSyncResource syncResource;
+  @Inject @RestClient PartnerApi partnerApi;
 
   ContractService(
       ContractRepository contractRepository,
@@ -65,8 +69,26 @@ public class ContractService {
     this.syncResource = syncResource;
   }
 
+  /**
+   * If there's not an already active contract in the database, create a new Contract for the given
+   * payload. This method will always set the end date to 'null', which indicates an active
+   * contract.
+   *
+   * @param contract
+   * @return Contract dto
+   */
   @Transactional
   public Contract createContract(Contract contract) {
+
+    List<ContractEntity> contracts = listCurrentlyActiveContracts(contract);
+    log.info("{}", contracts);
+
+    if (!contracts.isEmpty()) {
+      var message =
+          "There's already an active contract for that productId & subscriptionNumber: " + contract;
+      log.error(message);
+      throw new CreateContractException(message);
+    }
 
     var uuid = Objects.requireNonNullElse(contract.getUuid(), UUID.randomUUID().toString());
     contract.setUuid(uuid);
@@ -74,11 +96,12 @@ public class ContractService {
     var entity = mapper.dtoToContractEntity(contract);
 
     var now = OffsetDateTime.now();
-
-    entity.setStartDate(now);
     entity.setLastUpdated(now);
 
     // Force end date to be null to indicate this it the current/applicable record
+    if (Objects.nonNull(contract.getEndDate())) {
+      log.warn("Ignoring end date from payload and saving as null");
+    }
     entity.setEndDate(null);
 
     contractRepository.persist(entity);
@@ -86,53 +109,115 @@ public class ContractService {
     return contract;
   }
 
-  public List<Contract> getContracts(Map<String, Object> parameters) {
-    return contractRepository.getContracts(parameters).stream()
+  private List<ContractEntity> listCurrentlyActiveContracts(Contract contract) {
+    Specification<ContractEntity> specification =
+        ContractEntity.productIdEquals(contract.getProductId())
+            .and(ContractEntity.subscriptionNumberEquals(contract.getSubscriptionNumber()))
+            .and(ContractEntity.isActive());
+    return contractRepository.getContracts(specification);
+  }
+
+  /**
+   * Build Specifications based on provided parameters if not null and use to query the database
+   * based on specifications.
+   *
+   * @param orgId
+   * @param productId
+   * @param metricId
+   * @param billingProvider
+   * @param billingAccountId
+   * @return List<Contract> dtos
+   */
+  public List<Contract> getContracts(
+      String orgId,
+      String productId,
+      String metricId,
+      String billingProvider,
+      String billingAccountId) {
+
+    Specification<ContractEntity> specification = ContractEntity.orgIdEquals(orgId);
+
+    if (productId != null) {
+      specification = specification.and(ContractEntity.productIdEquals(productId));
+    }
+    if (metricId != null) {
+      specification = specification.and(ContractEntity.metricIdEquals(metricId));
+    }
+    if (billingProvider != null) {
+      specification = specification.and(ContractEntity.billingProviderEquals(billingProvider));
+    }
+    if (billingAccountId != null) {
+      specification = specification.and(ContractEntity.billingAccountIdEquals(billingAccountId));
+    }
+
+    return contractRepository.getContracts(specification).stream()
         .map(mapper::contractEntityToDto)
         .toList();
   }
 
+  /**
+   * First look up an existing contract by UUID. Instead of truly updating this entity in the
+   * database, create a copy of it with a new UUID and update values accordingly from the provided
+   * dto. The original record will get an end date of "now", and the new record will become the
+   * active contract by having its end date set to null.
+   *
+   * @param dto
+   * @return Contract
+   */
   @Transactional
   public Contract updateContract(Contract dto) {
-
     ContractEntity existingContract =
         contractRepository.findContract(UUID.fromString(dto.getUuid()));
 
     var now = OffsetDateTime.now();
 
     if (Objects.isNull(existingContract)) {
-      log.warn(
-          "Update called for contract uuid {}, but contract doesn't not exist.  Executing create contract instead",
-          dto.getUuid());
-      return createContract(dto);
+      var message =
+          String.format(
+              "Update called for contract uuid %s, but contract does not exist", dto.getUuid());
+      log.error(message);
+      throw new UpdateContractException(message);
     }
 
-    /*
-    If metric id, value, or product id changes, we want to keep record of the old value and logically update
-     */
-    var isNewRecordRequired = true;
+    // "sunset" the previous record
+    existingContract.setEndDate(now);
+    existingContract.setLastUpdated(now);
+    existingContract.persist();
 
-    if (isNewRecordRequired) { // NOSONAR
+    // create new contract record representing an "update"
+    ContractEntity newRecord = createContractForLogicalUpdate(dto);
+    newRecord.persist();
 
-      existingContract.setEndDate(now);
-      existingContract.setLastUpdated(now);
-      existingContract.persist();
-      ContractEntity newRecord = createContractForLogicalUpdate(dto);
-      newRecord.persist();
-    }
     return dto;
   }
 
+  /**
+   * Helper method that sets the UUID, start date, and end date fields that represent an update of
+   * an existing contract
+   *
+   * @param dto
+   * @return ContractEntity
+   */
   public ContractEntity createContractForLogicalUpdate(Contract dto) {
     var newUuid = UUID.randomUUID();
+    dto.setUuid(newUuid.toString());
+
+    var now = OffsetDateTime.now();
     var newRecord = mapper.dtoToContractEntity(dto);
-    newRecord.setUuid(newUuid);
-    newRecord.setLastUpdated(OffsetDateTime.now());
+
+    newRecord.setStartDate(now);
+    newRecord.setLastUpdated(now);
     newRecord.setEndDate(null);
 
     return newRecord;
   }
 
+  /**
+   * Delete a contract for a given uuid. This is hard delete, because its intended use is for
+   * cleaning up test data.
+   *
+   * @param uuid
+   */
   @Transactional
   public void deleteContract(String uuid) {
 
@@ -215,10 +300,10 @@ public class ContractService {
   }
 
   private Optional<ContractEntity> currentlyActiveContract(ContractEntity contract) {
-    Map<String, Object> stringObjectMap =
-        Map.of("subscriptionNumber", contract.getSubscriptionNumber());
-
-    return contractRepository.getContract(stringObjectMap, true);
+    var specification =
+        ContractEntity.subscriptionNumberEquals(contract.getSubscriptionNumber())
+            .and(ContractEntity.isActive());
+    return contractRepository.getContracts(specification).stream().findFirst();
   }
 
   private boolean isDuplicateContract(ContractEntity newEntity, ContractEntity existing) {
