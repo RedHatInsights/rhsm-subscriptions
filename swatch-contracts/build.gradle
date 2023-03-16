@@ -29,6 +29,7 @@ dependencies {
     implementation libraries["quarkus-logging-splunk"]
     implementation libraries["splunk-library-javalogging"]
     implementation project(":clients:rh-partner-gateway-client")
+    annotationProcessor libraries["hibernate-jpamodelgen"]
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.quarkus:quarkus-junit5-mockito'
     testImplementation 'io.rest-assured:rest-assured'
