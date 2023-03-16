@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.contract.security;
 
+import io.quarkus.runtime.util.StringUtil;
+import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.security.identity.AuthenticationRequestContext;
 import io.quarkus.security.identity.IdentityProvider;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -47,8 +49,25 @@ public class RhIdentityIdentityProvider
   public Uni<SecurityIdentity> authenticate(
       RhIdentityAuthenticationRequest request, AuthenticationRequestContext context) {
     log.trace("x-rh-identity: {}", request.getIdentity());
+    if (!isValid(request.getIdentity())) {
+      return Uni.createFrom()
+          .failure(new AuthenticationFailedException("x-rh-identity is invalid"));
+    }
     QuarkusSecurityIdentity securityIdentity =
         QuarkusSecurityIdentity.builder().setPrincipal(request.getIdentity()).build();
     return Uni.createFrom().item(securityIdentity);
+  }
+
+  private boolean isValid(RhIdentityPrincipal identity) {
+    try {
+      var name = identity.getName();
+      if (StringUtil.isNullOrEmpty(name)) {
+        log.error("Empty principal extracted from {}", identity);
+      }
+    } catch (Exception e) {
+      log.error("Cannot extract principal from {}", identity);
+      return false;
+    }
+    return true;
   }
 }

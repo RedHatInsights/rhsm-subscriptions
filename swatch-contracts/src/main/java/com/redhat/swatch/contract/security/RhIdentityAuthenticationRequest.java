@@ -30,5 +30,5 @@ import lombok.EqualsAndHashCode;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 public class RhIdentityAuthenticationRequest extends BaseAuthenticationRequest {
-  private RhIdentityPrincipal identity;
+  private final RhIdentityPrincipal identity;
 }

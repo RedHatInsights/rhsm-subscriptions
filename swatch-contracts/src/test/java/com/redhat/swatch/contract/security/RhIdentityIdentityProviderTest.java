@@ -28,6 +28,10 @@ class RhIdentityIdentityProviderTest {
   @Test
   void testRhIdentityIsPassedThrough() {
     var rhIdentity = new RhIdentityPrincipal();
+    rhIdentity.setIdentity(new Identity());
+    rhIdentity.getIdentity().setSamlAssertions(new SamlAssertions());
+    rhIdentity.getIdentity().setType("Associate");
+    rhIdentity.getIdentity().getSamlAssertions().setEmail("test@example.com");
     var identityProvider = new RhIdentityIdentityProvider();
     var subscriber =
         identityProvider

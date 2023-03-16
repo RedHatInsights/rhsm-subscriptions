@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.security;
 
+import io.quarkus.runtime.util.StringUtil;
 import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.security.identity.IdentityProviderManager;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -54,12 +55,15 @@ public class RhIdentityHeaderAuthenticationMechanism implements HttpAuthenticati
   public Uni<SecurityIdentity> authenticate(
       RoutingContext context, IdentityProviderManager identityProviderManager) {
     String xRhIdentityHeader = context.request().headers().get(RH_IDENTITY_HEADER);
-    if (xRhIdentityHeader == null) {
+    if (StringUtil.isNullOrEmpty(xRhIdentityHeader)) {
       // no authentication attempted
       return Uni.createFrom().nullItem();
     }
     try {
       RhIdentityPrincipal identity = RhIdentityPrincipal.fromHeader(xRhIdentityHeader);
+      // NOTE: it is important we call identityProviderManager.authenticate rather than building a
+      // SecurityIdentity directly, as identityProviderManager is responsible for invoking the
+      // RolesAugmentor
       return identityProviderManager.authenticate(new RhIdentityAuthenticationRequest(identity));
     } catch (Exception e) {
       return Uni.createFrom().failure(new AuthenticationFailedException(e));

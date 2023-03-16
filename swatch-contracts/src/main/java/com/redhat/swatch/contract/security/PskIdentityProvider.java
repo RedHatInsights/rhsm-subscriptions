@@ -51,7 +51,7 @@ public class PskIdentityProvider implements IdentityProvider<PskAuthenticationRe
   public Uni<SecurityIdentity> authenticate(
       PskAuthenticationRequest request, AuthenticationRequestContext context) {
     if (!Objects.equals(psk, request.getPsk())) {
-      log.trace("PSK auth attempted, but failed because it was incorrect");
+      log.error("PSK auth attempted, but failed because it was incorrect");
       return Uni.createFrom()
           .failure(new AuthenticationFailedException("x-rh-swatch-psk specified but incorrect"));
     }

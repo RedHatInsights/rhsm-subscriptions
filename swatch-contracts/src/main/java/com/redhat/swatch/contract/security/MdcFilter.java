@@ -21,6 +21,7 @@
 package com.redhat.swatch.contract.security;
 
 import java.io.IOException;
+import java.util.Objects;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.container.ContainerResponseContext;
@@ -42,7 +43,7 @@ public class MdcFilter implements ContainerRequestFilter, ContainerResponseFilte
 
   @Override
   public void filter(ContainerRequestContext requestContext) throws IOException {
-    if (securityContext.getUserPrincipal() != null) {
+    if (Objects.nonNull(securityContext.getUserPrincipal())) {
       MDC.put("user", securityContext.getUserPrincipal().getName());
     }
   }

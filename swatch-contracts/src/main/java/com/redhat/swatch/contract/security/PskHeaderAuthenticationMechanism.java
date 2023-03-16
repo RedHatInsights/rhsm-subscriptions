@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.security;
 
+import io.quarkus.runtime.util.StringUtil;
 import io.quarkus.security.identity.IdentityProviderManager;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.identity.request.AuthenticationRequest;
@@ -50,10 +51,13 @@ public class PskHeaderAuthenticationMechanism implements HttpAuthenticationMecha
   public Uni<SecurityIdentity> authenticate(
       RoutingContext context, IdentityProviderManager identityProviderManager) {
     String pskHeader = context.request().headers().get(PSK_HEADER);
-    if (pskHeader == null) {
+    if (StringUtil.isNullOrEmpty(pskHeader)) {
       // no authentication attempted
       return Uni.createFrom().nullItem();
     }
+    // NOTE: it is important we call identityProviderManager.authenticate rather than building a
+    // SecurityIdentity directly, as identityProviderManager is responsible for invoking the
+    // RolesAugmentor
     return identityProviderManager.authenticate(new PskAuthenticationRequest(pskHeader));
   }
 
