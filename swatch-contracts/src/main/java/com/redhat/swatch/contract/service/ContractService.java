@@ -172,7 +172,9 @@ public class ContractService {
     var now = OffsetDateTime.now();
 
     if (Objects.isNull(existingContract)) {
-      var message = "";
+      var message =
+          String.format(
+              "Update called for contract uuid %s, but contract does not exist", dto.getUuid());
       log.error(message);
       throw new UpdateContractException(message);
     }
