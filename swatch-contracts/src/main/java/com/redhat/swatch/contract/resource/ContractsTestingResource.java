@@ -27,11 +27,9 @@ import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.openapi.resource.ApiException;
 import com.redhat.swatch.contract.openapi.resource.DefaultApi;
 import com.redhat.swatch.contract.service.ContractService;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import javax.annotation.security.RolesAllowed;
 import java.util.Objects;
+import javax.annotation.security.RolesAllowed;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
@@ -102,6 +100,7 @@ public class ContractsTestingResource implements DefaultApi {
    * @throws ProcessingException
    */
   @Override
+  @RolesAllowed({"test"})
   public Contract updateContract(String uuid, Contract contract)
       throws ApiException, ProcessingException {
 

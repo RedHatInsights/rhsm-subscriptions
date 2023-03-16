@@ -90,6 +90,8 @@ paths:
         \ metrics from the database.  This is NOT the same as setting a contract to\
         \ expired.  To expire a certificate, the updateContract endpoint should be\
         \ used with an end_date."
+      security:
+        - test: []
   /api/swatch-contracts/internal/contracts:
     get:
       parameters:
