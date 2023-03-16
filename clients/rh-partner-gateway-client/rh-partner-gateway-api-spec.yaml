@@ -39,13 +39,27 @@ paths:
 components:
   schemas:
     GetPartnerEntitlementsResponse:
+      type: object
+      properties:
+        _embedded:
+          $ref: '#/components/schemas/PartnerEntitlements'
+        page:
+          type: object
+          properties:
+            size:
+              type: integer
+            totalElements:
+              type: integer
+            totalPages:
+              type: integer
+            number:
+              type: integer
+    PartnerEntitlements:
       properties:
         partnerEntitlements:
           type: array
           items:
             $ref: '#/components/schemas/PartnerEntitlementV1'
-        hasNext:
-          type: boolean
     QueryPartnerEntitlementV1:
       properties:
         rhAccountId:
@@ -93,7 +107,7 @@ components:
       properties:
         awsCustomerId:
           type: string
-        awsAccountId:
+        customerAwsAccountId:
           type: string
         sellerAccountId:
           type: string
