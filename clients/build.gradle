@@ -48,6 +48,6 @@ project(":clients:rh-partner-gateway-client") {
 project(":clients:contracts-client") {
     apply plugin: "swatch.spring-boot-rest-client-conventions"
     openApiGenerate {
-        inputSpec = "${rootDir}/swatch-contracts/src/main/resources/openapi.yaml"
+        inputSpec = "${rootDir}/swatch-contracts/src/main/resources/META-INF/openapi.yaml"
     }
 }

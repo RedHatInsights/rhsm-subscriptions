@@ -20,7 +20,8 @@ dependencies {
     implementation 'io.quarkus:quarkus-jsonb'
     implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
     implementation 'io.quarkus:quarkus-openshift'
-    implementation 'io.quarkus:quarkus-resteasy'
+    implementation 'io.quarkus:quarkus-resteasy-jsonb'
+    implementation 'io.quarkus:quarkus-security'
     implementation 'io.quarkus:quarkus-smallrye-fault-tolerance'
     implementation 'io.quarkus:quarkus-smallrye-health'
     implementation 'io.quarkus:quarkus-smallrye-openapi'
@@ -38,6 +39,7 @@ dependencies {
     testImplementation 'org.testcontainers:kafka'
     testImplementation 'org.testcontainers:postgresql'
     testImplementation 'org.testcontainers:testcontainers'
+    testImplementation 'io.quarkus:quarkus-test-security'
     testImplementation libraries["junit-jupiter"]
     testImplementation libraries["wiremock-jre8"]
     implementation("io.quarkus:quarkus-liquibase")
@@ -55,7 +57,7 @@ compileJava.dependsOn tasks.openApiGenerate
 
 openApiGenerate {
     generatorName = "java"
-    inputSpec = "${projectDir}/src/main/resources/openapi.yaml"
+    inputSpec = "${projectDir}/src/main/resources/META-INF/openapi.yaml"
     outputDir = "${buildDir}/generated"
     apiPackage = "com.redhat.swatch.contract.openapi.resource"
     modelPackage = "com.redhat.swatch.contract.openapi.model"
