@@ -42,10 +42,7 @@ import com.redhat.swatch.contract.resource.SubscriptionSyncResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import java.time.OffsetDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import javax.inject.Inject;
@@ -130,10 +127,11 @@ class ContractServiceTest extends BaseUnitTest {
   @Test
   void testGetContracts() {
     when(contractRepository.getContracts(any())).thenReturn((List.of(actualContract1)));
-    Map<String, Object> parameters = new HashMap<>();
-    parameters.put("productId", "BASILISK123");
-    List<Contract> contractList = contractService.getContracts(parameters);
-    verify(contractRepository).getContracts(parameters);
+    var spec =
+        ContractEntity.orgIdEquals("org123").and(ContractEntity.productIdEquals("BASILISK123"));
+    List<Contract> contractList =
+        contractService.getContracts("org123", "BASILISK123", null, null, null);
+    verify(contractRepository).getContracts(any());
     assertEquals(1, contractList.size());
     assertEquals(2, contractList.get(0).getMetrics().size());
   }
@@ -263,10 +261,7 @@ class ContractServiceTest extends BaseUnitTest {
     productTags.data(List.of("MH123"));
     when(syncResource.getSkuProductTags(any())).thenReturn(productTags);
 
-    Map<String, Object> stringObjectMap =
-        Map.of("subscriptionNumber", contract.getRedHatSubscriptionNumber());
-    when(contractRepository.getContract(stringObjectMap, true))
-        .thenReturn(Optional.of(existingContract));
+    when(contractRepository.getContracts(any())).thenReturn(List.of(existingContract));
 
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals(
@@ -297,7 +292,7 @@ class ContractServiceTest extends BaseUnitTest {
     existingContract.setStartDate(offsetDateTime);
     existingContract.setEndDate(null);
     existingContract.setBillingProvider("aws_marketplace");
-    existingContract.setSku("RH000000");
+    existingContract.setSku("MW01484");
     existingContract.setProductId("BASILISK123");
     existingContract.setOrgId("org123");
     existingContract.setLastUpdated(offsetDateTime);
@@ -314,13 +309,9 @@ class ContractServiceTest extends BaseUnitTest {
     productTags.data(List.of("BASILISK123"));
     when(syncResource.getSkuProductTags(any())).thenReturn(productTags);
 
-    Map<String, Object> stringObjectMap =
-        Map.of("subscriptionNumber", contract.getRedHatSubscriptionNumber());
-    when(contractRepository.getContract(stringObjectMap, true))
-        .thenReturn(Optional.of(existingContract));
+    when(contractRepository.getContracts(any())).thenReturn(List.of(existingContract));
 
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
-    assertEquals(
-        "Previous contract archived and new contract created", statusResponse.getMessage());
+    assertEquals("Duplicate record found", statusResponse.getMessage());
   }
 }

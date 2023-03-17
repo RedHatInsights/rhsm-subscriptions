@@ -27,9 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import com.redhat.swatch.contract.QuarkusTransactionalTest;
 import io.quarkus.test.junit.QuarkusTest;
 import java.time.OffsetDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -162,30 +160,18 @@ class ContractRepositoryTest {
   }
 
   @Test
-  void whenGetContractWithEmptyParam_thenReturnAllContracts() {
-    List<ContractEntity> allContracts = contractRepository.getContracts(null);
-    assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
-
-    Map<String, Object> parameters = new HashMap<>();
-    parameters.put("productId", null);
-    allContracts = contractRepository.getContracts(parameters);
-    assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
-  }
-
-  @Test
   void whenGetContractWithCorrectParam_thenReturnAllContracts() {
-    Map<String, Object> parameters = new HashMap<>();
-    parameters.put("metricId", "instance-hours");
-    parameters.put("productId", "BASILISK123");
-    List<ContractEntity> allContracts = contractRepository.getContracts(parameters);
+    var spec =
+        ContractEntity.metricIdEquals("instance-hours")
+            .and(ContractEntity.productIdEquals("BASILISK123"));
+    List<ContractEntity> allContracts = contractRepository.getContracts(spec);
     assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
   }
 
   @Test
   void whenGetContractWithMissingMetricIdParam_thenReturnAllContracts() {
-    Map<String, Object> parameters = new HashMap<>();
-    parameters.put("productId", "BASILISK123");
-    List<ContractEntity> allContracts = contractRepository.getContracts(parameters);
+    var spec = ContractEntity.productIdEquals("BASILISK123");
+    List<ContractEntity> allContracts = contractRepository.getContracts(spec);
     assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
   }
 
