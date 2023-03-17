@@ -63,7 +63,8 @@ public class ContractsController {
               usage.getProductId(),
               usage.getUom().value(),
               usage.getBillingProvider().value(),
-              usage.getBillingAccountId());
+              usage.getBillingAccountId(),
+              usage.getSnapshotDate());
 
       Integer totalUnderContract =
           contracts.stream()
