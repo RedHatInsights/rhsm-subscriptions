@@ -70,6 +70,8 @@ paths:
           description: Success
       operationId: updateContract
       description: Update a contract record by its uuid.  Only update values passed.
+      security:
+        - test: []
     delete:
       parameters:
         - examples:
@@ -89,6 +91,8 @@ paths:
         \ metrics from the database.  This is NOT the same as setting a contract to\
         \ expired.  To expire a certificate, the updateContract endpoint should be\
         \ used with an end_date."
+      security:
+        - test: []
   /api/swatch-contracts/internal/contracts:
     get:
       parameters:
@@ -145,6 +149,7 @@ paths:
       security:
         - support: []
         - test: []
+        - service: []
       operationId: getContract
     post:
       requestBody:
@@ -240,6 +245,8 @@ paths:
                     status: 'Success'
                     message: "Contract created"
           description: Success
+      security:
+        - test: []
 components:
   schemas:
     Error:
