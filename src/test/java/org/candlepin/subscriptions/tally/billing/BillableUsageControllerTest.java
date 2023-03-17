@@ -80,13 +80,15 @@ class BillableUsageControllerTest {
   @Mock TallySnapshotRepository snapshotRepo;
   @Mock TagProfile tagProfile;
   @Mock DefaultApi contractsApi;
+  @Mock ContractsClientProperties contractsClientProperties;
 
   BillableUsageController controller;
   ContractsController contractsController;
 
   @BeforeEach
   void setup() {
-    contractsController = new ContractsController(tagProfile, contractsApi);
+    contractsController =
+        new ContractsController(tagProfile, contractsApi, contractsClientProperties);
     controller =
         new BillableUsageController(
             CLOCK, producer, remittanceRepo, snapshotRepo, tagProfile, contractsController);
@@ -491,5 +493,16 @@ class BillableUsageControllerTest {
     log.info("Second: {}", updatedContract);
     when(contractsApi.getContract(orgId, productId, metric, billingProvider, billingAccountId))
         .thenReturn(List.of(contract1, updatedContract));
+  }
+
+  @Test
+  void usageIsSentWhenContractIsMissingWithinWindow() throws Exception {
+    BillableUsage usage = billable(OffsetDateTime.now(), 1.0);
+    usage.setSnapshotDate(OffsetDateTime.now());
+    usage.setUom(Uom.CORES);
+    when(tagProfile.isTagContractEnabled(usage.getProductId())).thenReturn(true);
+    when(contractsApi.getContract(any(), any(), any(), any(), any())).thenReturn(List.of());
+    controller.submitBillableUsage(BillingWindow.MONTHLY, usage);
+    verify(producer).produce(usage);
   }
 }

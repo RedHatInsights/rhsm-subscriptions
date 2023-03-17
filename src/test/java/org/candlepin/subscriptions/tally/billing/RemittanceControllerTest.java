@@ -73,6 +73,7 @@ class RemittanceControllerTest {
   @Mock private TallySnapshotRepository snapshotRepo;
   @Mock private KafkaTemplate<String, BillableUsage> billableTemplate;
   @Mock private DefaultApi contractApi;
+  @Mock private ContractsClientProperties contractsClientProperties;
   private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
 
   private TagProfile tagProfile;
@@ -84,7 +85,8 @@ class RemittanceControllerTest {
     tagProfile = initTagProfile();
     BillingProducer billingProducer =
         new BillingProducer(new TaskQueueProperties(), billableTemplate);
-    ContractsController contractsController = new ContractsController(tagProfile, contractApi);
+    ContractsController contractsController =
+        new ContractsController(tagProfile, contractApi, contractsClientProperties);
     BillableUsageController usageController =
         new BillableUsageController(
             clock, billingProducer, remittanceRepo, snapshotRepo, tagProfile, contractsController);

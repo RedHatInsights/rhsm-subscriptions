@@ -51,6 +51,10 @@ rhsm-subscriptions:
     outgoing:
       topic: ${BILLABLE_USAGE_TOPIC}
     contracts:
+      back-off-initial-interval: ${CONTRACT_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS:1000}
+      back-off-max-interval: ${CONTRACT_CLIENT_BACK_OFF_MAX_INTERVAL_MILLIS:64000}
+      back-off-multiplier: ${CONTRACT_CLIENT__BACK_OFF_MULTIPLIER:2}
+      max-attempts: ${CONTRACT_CLIENT__MAX_ATTEMPTS:6}
       url: ${CONTRACTS_URL:http://localhost:8000}
       psk: ${SWATCH_SELF_PSK:placeholder}
   tasks:

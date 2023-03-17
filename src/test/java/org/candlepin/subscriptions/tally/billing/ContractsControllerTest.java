@@ -33,6 +33,7 @@ import com.redhat.swatch.contracts.api.model.Metric;
 import com.redhat.swatch.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.contracts.client.ApiException;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.candlepin.subscriptions.FixedClockConfiguration;
@@ -56,13 +57,14 @@ class ContractsControllerTest {
 
   @Mock DefaultApi contractsApi;
   @Mock TagProfile tagProfile;
+  @Mock ContractsClientProperties contractsClientProperties;
   private ApplicationClock clock;
   private ContractsController controller;
 
   @BeforeEach
   void setupTest() {
     clock = new FixedClockConfiguration().fixedClock();
-    controller = new ContractsController(tagProfile, contractsApi);
+    controller = new ContractsController(tagProfile, contractsApi, contractsClientProperties);
   }
 
   @Test
@@ -188,6 +190,21 @@ class ContractsControllerTest {
     assertEquals(ErrorCode.CONTRACTS_SERVICE_ERROR, e.getCode());
     assertEquals(
         String.format("Could not look up contract info for usage! %s", usage), e.getMessage());
+  }
+
+  @Test
+  void throwsExternalServiceExceptionWhenNoContractsFound() throws Exception {
+    BillableUsage usage = defaultUsage();
+    when(tagProfile.isTagContractEnabled(usage.getProductId())).thenReturn(true);
+    when(contractsApi.getContract(any(), any(), any(), any(), any())).thenReturn(new ArrayList<>());
+    ExternalServiceException e =
+        assertThrows(
+            ExternalServiceException.class,
+            () -> {
+              controller.getContractCoverage(usage);
+            });
+    assertEquals(ErrorCode.CONTRACTS_SERVICE_ERROR, e.getCode());
+    assertEquals(String.format("No contract info found for usage! %s", usage), e.getMessage());
   }
 
   private BillableUsage defaultUsage() {

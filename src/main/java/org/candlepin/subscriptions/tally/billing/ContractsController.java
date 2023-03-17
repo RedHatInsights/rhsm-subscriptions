@@ -32,6 +32,8 @@ import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.registry.TagProfile;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
 /** Encapsulates the billing business logic for contract based billing. */
@@ -41,12 +43,26 @@ public class ContractsController {
 
   private final TagProfile tagProfile;
   private final DefaultApi contractsApi;
+  @SuppressWarnings("java:S1068")
+  private final ContractsClientProperties contractsClientProperties;
 
-  public ContractsController(TagProfile tagProfile, DefaultApi contractsApi) {
+  public ContractsController(
+      TagProfile tagProfile,
+      DefaultApi contractsApi,
+      ContractsClientProperties contractsClientProperties) {
     this.tagProfile = tagProfile;
     this.contractsApi = contractsApi;
+    this.contractsClientProperties = contractsClientProperties;
   }
 
+  @Retryable(
+      value = ExternalServiceException.class,
+      maxAttemptsExpression = "#{@contractsClientProperties.getMaxAttempts()}",
+      backoff =
+          @Backoff(
+              delayExpression = "#{@contractsClientProperties.getBackOffInitialInterval()}",
+              maxDelayExpression = "#{@contractsClientProperties.getBackOffMaxInterval()}",
+              multiplierExpression = "#{@contractsClientProperties.getBackOffMultiplier()}"))
   public Optional<Double> getContractCoverage(BillableUsage usage) {
     if (!tagProfile.isTagContractEnabled(usage.getProductId())) {
       // Contract not enabled for product, nothing to return.
@@ -64,6 +80,13 @@ public class ContractsController {
               usage.getUom().value(),
               usage.getBillingProvider().value(),
               usage.getBillingAccountId());
+
+      if (contracts == null || contracts.isEmpty()) {
+        throw new ExternalServiceException(
+            ErrorCode.CONTRACTS_SERVICE_ERROR,
+            String.format("No contract info found for usage! %s", usage),
+            null);
+      }
 
       Integer totalUnderContract =
           contracts.stream()
