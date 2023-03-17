@@ -69,7 +69,6 @@ class TallySnapshotControllerTest {
     accountCalc.setAccount(ACCOUNT);
 
     when(inventoryCollector.collect(any(), any(), any())).thenReturn(new OrgHostsData(ORG_ID));
-    when(inventoryCollector.tally(any(), any())).thenReturn(accountCalc);
     when(inventoryCollector.tally(any())).thenReturn(accountCalc);
   }
 
@@ -119,21 +118,5 @@ class TallySnapshotControllerTest {
     when(accountRepo.findAccountNumberByOrgId(ORG_ID)).thenReturn(ACCOUNT);
     controller.produceSnapshotsForAccount(ACCOUNT);
     verify(cloudigradeCollector).enrichUsageWithCloudigradeData(any());
-  }
-
-  @Test
-  void dbTallyWhenLegacyTallyIsDisabled() {
-    props.setLegacyNightlyTallyEnabled(false);
-    controller.produceSnapshotsForOrg(ORG_ID);
-    verify(inventoryCollector).tally(ORG_ID);
-  }
-
-  @Test
-  void legacyTallyWhenLegacyTallyIsEnabled() {
-    props.setLegacyNightlyTallyEnabled(true);
-    when(accountRepo.findAccountNumberByOrgId(ORG_ID)).thenReturn(ACCOUNT);
-
-    controller.produceSnapshotsForOrg(ORG_ID);
-    verify(inventoryCollector).tally(any(), any());
   }
 }

@@ -30,6 +30,7 @@ import com.redhat.swatch.contract.service.ContractService;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.security.RolesAllowed;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
@@ -52,13 +53,16 @@ public class ContractsTestingResource implements DefaultApi {
    */
   @Override
   @Transactional
+  @RolesAllowed({"test"})
   public Contract createContract(Contract contract) throws ApiException, ProcessingException {
+    log.info("Creating contract");
     return service.createContract(contract);
   }
 
   @Override
+  @RolesAllowed({"test"})
   public void deleteContractByUUID(String uuid) throws ApiException, ProcessingException {
-
+    log.info("Deleting contract {}", uuid);
     service.deleteContract(uuid);
   }
 
@@ -75,6 +79,7 @@ public class ContractsTestingResource implements DefaultApi {
    * @throws ProcessingException
    */
   @Override
+  @RolesAllowed({"test", "support", "service"})
   public List<Contract> getContract(
       String orgId,
       String productId,
@@ -97,12 +102,14 @@ public class ContractsTestingResource implements DefaultApi {
    * @throws ProcessingException
    */
   @Override
+  @RolesAllowed({"test"})
   public Contract updateContract(String uuid, Contract contract)
       throws ApiException, ProcessingException {
 
     if (Objects.nonNull(contract.getUuid()) && !Objects.equals(uuid, contract.getUuid())) {
       throw new UpdateContractException("Uuid in path variable and uuid in payload do not match");
     }
+    log.info("Updating contract {}", uuid);
 
     contract.setUuid(uuid);
 
@@ -110,6 +117,7 @@ public class ContractsTestingResource implements DefaultApi {
   }
 
   @Override
+  @RolesAllowed({"test"})
   public StatusResponse createPartnerEntitlementContract(PartnerEntitlementContract contract)
       throws ApiException, ProcessingException {
     return service.createPartnerContract(contract);
