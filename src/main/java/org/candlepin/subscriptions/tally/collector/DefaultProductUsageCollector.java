@@ -86,7 +86,7 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
             key.getUsage(),
             key.getBillingProvider(),
             key.getBillingAccountId(),
-            true,
+            false,
             appliedCores,
             appliedSockets,
             appliedType);

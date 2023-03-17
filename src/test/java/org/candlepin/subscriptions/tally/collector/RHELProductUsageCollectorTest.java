@@ -35,10 +35,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class RHELProductUsageCollectorTest {
 
@@ -160,6 +163,36 @@ class RHELProductUsageCollectorTest {
       collector.collect(calc, current);
     }
     assertTotalsCalculation(calc, 0, 0, 3);
+  }
+
+  public static Stream<NormalizedFacts> generateFacts() {
+    var unmappedGuest = new NormalizedFacts();
+    unmappedGuest.setHypervisorUnknown(true);
+    unmappedGuest.setHardwareType(HostHardwareType.VIRTUALIZED);
+    var cloudSystem = new NormalizedFacts();
+    cloudSystem.setHardwareType(HostHardwareType.CLOUD);
+    cloudSystem.setCloudProviderType(HardwareMeasurementType.AWS);
+    var physicalSystem = new NormalizedFacts();
+    physicalSystem.setHardwareType(HostHardwareType.PHYSICAL);
+    return Stream.of(cloudSystem, unmappedGuest, physicalSystem);
+  }
+
+  @ParameterizedTest
+  @MethodSource("generateFacts")
+  void testNonHypervisorBucketsHaveAsHypervisorFalse(NormalizedFacts facts) {
+    var key = createUsageKey();
+    var bucket = collector.buildBucket(key, facts);
+    assertTrue(bucket.isPresent());
+    assertFalse(bucket.get().getKey().getAsHypervisor());
+  }
+
+  @Test
+  void testHypervisorBucketsHaveAsHypervisorTrue() {
+    var key = createUsageKey();
+    var facts = new NormalizedFacts();
+    var bucket = collector.buildBucketForHypervisor(key, facts);
+    assertTrue(bucket.isPresent());
+    assertTrue(bucket.get().getKey().getAsHypervisor());
   }
 
   private UsageCalculation.Key createUsageKey() {
