@@ -51,7 +51,7 @@ rhsm-subscriptions:
     outgoing:
       topic: ${BILLABLE_USAGE_TOPIC}
     contracts:
-      url: ${CONTRACTS_URL:http://localhost:8000}
+      url: ${SWATCH_CONTRACTS_INTERNAL_SERVICE_URL:http://localhost:8001}
       psk: ${SWATCH_SELF_PSK:placeholder}
   tasks:
     topic: ${TASKS_TOPIC}
