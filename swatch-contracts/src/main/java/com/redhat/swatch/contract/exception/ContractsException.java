@@ -26,8 +26,8 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ContractsException extends RuntimeException {
-  private ErrorCode code;
-  private String detail;
+  private final ErrorCode code;
+  private final String detail;
 
   /**
    * Instantiate an exception using the error code's description as the message.
