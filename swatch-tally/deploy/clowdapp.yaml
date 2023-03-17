@@ -291,31 +291,6 @@ objects:
               value: ${DATABASE_CONNECTION_TIMEOUT_MS}
             - name: DATABASE_MAX_POOL_SIZE
               value: ${DATABASE_MAX_POOL_SIZE}
-            - name: DATABASE_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.host
-            - name: DATABASE_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.port
-            - name: DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.user
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.password
-            - name: DATABASE_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.name
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
                 secretKeyRef:
@@ -509,31 +484,6 @@ objects:
               value: ${LOGGING_LEVEL_ROOT}
             - name: LOGGING_LEVEL_ORG_CANDLEPIN
               value: ${LOGGING_LEVEL}
-            - name: DATABASE_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.host
-            - name: DATABASE_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.port
-            - name: DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.user
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.password
-            - name: DATABASE_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.name
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
                 secretKeyRef:
@@ -638,31 +588,6 @@ objects:
               value: ${LOGGING_LEVEL_ROOT}
             - name: LOGGING_LEVEL_ORG_CANDLEPIN
               value: ${LOGGING_LEVEL}
-            - name: DATABASE_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.host
-            - name: DATABASE_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.port
-            - name: DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.user
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.password
-            - name: DATABASE_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.name
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
                 secretKeyRef:
@@ -769,31 +694,6 @@ objects:
               value: ${LOGGING_LEVEL}
             - name: EVENT_RECORD_RETENTION
               value: ${EVENT_RECORD_RETENTION}
-            - name: DATABASE_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.host
-            - name: DATABASE_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.port
-            - name: DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.user
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.password
-            - name: DATABASE_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.name
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
                 secretKeyRef:
