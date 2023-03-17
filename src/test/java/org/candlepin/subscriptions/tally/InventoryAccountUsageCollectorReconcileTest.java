@@ -332,4 +332,34 @@ class InventoryAccountUsageCollectorReconcileTest {
         hbiSystem, swatchSystem, orgHostsData, Set.of("RHEL"));
     assertTrue(swatchSystem.getBuckets().isEmpty());
   }
+
+  @Test
+  void testSystemNoLongerMarkedAsHypervisorHasHypervisorBucketsRemoved() {
+    NormalizedFacts normalizedFacts = new NormalizedFacts();
+    normalizedFacts.setHardwareType(HostHardwareType.PHYSICAL);
+    when(factNormalizer.normalize(any(), any())).thenReturn(normalizedFacts);
+
+    var collector = setupCollector();
+    var hbiSystem = new InventoryHostFacts();
+    Host swatchSystem = new Host();
+    OrgHostsData orgHostsData = new OrgHostsData("org123");
+    collector.reconcileHbiSystemWithSwatchSystem(
+        hbiSystem, swatchSystem, orgHostsData, Set.of("RHEL"));
+    HostTallyBucket staleBucket =
+        new HostTallyBucket(
+            swatchSystem,
+            "stale",
+            ServiceLevel._ANY,
+            Usage._ANY,
+            BillingProvider._ANY,
+            "_ANY",
+            true,
+            0,
+            0,
+            HardwareMeasurementType.HYPERVISOR);
+    swatchSystem.addBucket(staleBucket);
+    collector.reconcileHbiSystemWithSwatchSystem(
+        hbiSystem, swatchSystem, orgHostsData, Set.of("RHEL"));
+    assertTrue(swatchSystem.getBuckets().isEmpty());
+  }
 }
