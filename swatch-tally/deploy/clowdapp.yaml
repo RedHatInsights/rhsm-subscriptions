@@ -161,8 +161,6 @@ parameters:
     value: '' # don't restrict to a specific machine pool by default
   - name: JOB_MACHINE_POOL
     value: ''
-  - name: LEGACY_NIGHTLY_TALLY_ENABLED
-    value: 'false'
   - name: SWATCH_CONTRACTS_INTERNAL_SERVICE_URL
     value: http://swatch-contracts-service:8000
 
@@ -293,31 +291,6 @@ objects:
               value: ${DATABASE_CONNECTION_TIMEOUT_MS}
             - name: DATABASE_MAX_POOL_SIZE
               value: ${DATABASE_MAX_POOL_SIZE}
-            - name: DATABASE_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.host
-            - name: DATABASE_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.port
-            - name: DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.user
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.password
-            - name: DATABASE_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.name
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
                 secretKeyRef:
@@ -395,8 +368,6 @@ objects:
               value: ${ENABLE_SYNCHRONOUS_OPERATIONS}
             - name: TALLY_MAX_HBI_ACCOUNT_SIZE
               value: ${TALLY_MAX_HBI_ACCOUNT_SIZE}
-            - name: LEGACY_NIGHTLY_TALLY_ENABLED
-              value: ${LEGACY_NIGHTLY_TALLY_ENABLED}
             - name: HBI_RECONCILIATION_FLUSH_INTERVAL
               value: ${HBI_RECONCILIATION_FLUSH_INTERVAL}
             - name: HOST_LAST_SYNC_THRESHOLD
@@ -513,31 +484,6 @@ objects:
               value: ${LOGGING_LEVEL_ROOT}
             - name: LOGGING_LEVEL_ORG_CANDLEPIN
               value: ${LOGGING_LEVEL}
-            - name: DATABASE_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.host
-            - name: DATABASE_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.port
-            - name: DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.user
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.password
-            - name: DATABASE_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.name
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
                 secretKeyRef:
@@ -642,31 +588,6 @@ objects:
               value: ${LOGGING_LEVEL_ROOT}
             - name: LOGGING_LEVEL_ORG_CANDLEPIN
               value: ${LOGGING_LEVEL}
-            - name: DATABASE_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.host
-            - name: DATABASE_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.port
-            - name: DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.user
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.password
-            - name: DATABASE_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.name
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
                 secretKeyRef:
@@ -773,31 +694,6 @@ objects:
               value: ${LOGGING_LEVEL}
             - name: EVENT_RECORD_RETENTION
               value: ${EVENT_RECORD_RETENTION}
-            - name: DATABASE_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.host
-            - name: DATABASE_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.port
-            - name: DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.user
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.password
-            - name: DATABASE_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-tally-db
-                  key: db.name
             - name: INVENTORY_DATABASE_HOST
               valueFrom:
                 secretKeyRef:
@@ -908,4 +804,3 @@ objects:
     name: cloudigrade-psk
   data:
     psk: ZHVtbXk=
-

@@ -222,68 +222,6 @@ public class InventoryAccountUsageCollector {
     return orgHostsData;
   }
 
-  /**
-   * @deprecated Please use tally(String orgId) as it is the preferred method of running the tally
-   *     operation.
-   */
-  @Deprecated
-  @SuppressWarnings({"squid:S3776", "java:S1133"})
-  @Transactional
-  public AccountUsageCalculation tally(Set<String> products, OrgHostsData orgHostsData) {
-    log.info("Running legacy nightly tally for orgId={}", orgHostsData.getOrgId());
-    AccountUsageCalculation accountCalc = new AccountUsageCalculation(orgHostsData.getOrgId());
-    for (var entry : orgHostsData.getHostNormalizedFactsMap().entrySet()) {
-      Host host = entry.getKey();
-      NormalizedFacts facts = entry.getValue();
-
-      // Validate and set the account number.
-      // Don't set null account as it may overwrite an existing value.
-      // Likely won't happen, but there could be stale data in inventory with no account set.
-      String hostAccount = facts.getAccount();
-      if (hostAccount != null) {
-        String currentAccount = accountCalc.getAccount();
-        if (StringUtils.hasText(currentAccount) && !currentAccount.equalsIgnoreCase(hostAccount)) {
-          throw new IllegalStateException(
-              String.format(
-                  "Attempt to set a different account for an org: %s:%s",
-                  currentAccount, hostAccount));
-        }
-        accountCalc.setAccount(hostAccount);
-      }
-
-      Set<Key> usageKeys =
-          createKeyCombinations(
-              products,
-              Set.of(facts.getSla(), ServiceLevel._ANY),
-              Set.of(facts.getUsage(), Usage._ANY),
-              Set.of(BillingProvider._ANY),
-              Set.of("_ANY"));
-
-      // Calculate for each UsageKey
-      // review current implementation of default values, and determine if factnormalizer needs
-      // to handle billingAcctId & BillingProvider
-      for (Key key : usageKeys) {
-        var product = key.getProductId();
-        UsageCalculation calc = accountCalc.getOrCreateCalculation(key);
-        if (!facts.getProducts().contains(product)) {
-          continue;
-        }
-        try {
-          ProductUsageCollectorFactory.get(product).collect(calc, facts);
-        } catch (Exception e) {
-          log.error(
-              "Unable to tally usage data for host: {} product: {}",
-              host.getSubscriptionManagerId(),
-              product,
-              e);
-        }
-      }
-    }
-    orgHostsData.tallyGuestData(accountCalc);
-    log.debug("Account Usage: {}", accountCalc);
-    return accountCalc;
-  }
-
   @Transactional
   public AccountUsageCalculation tally(String orgId) {
     log.info("Running tally via DB for orgId={}", orgId);
