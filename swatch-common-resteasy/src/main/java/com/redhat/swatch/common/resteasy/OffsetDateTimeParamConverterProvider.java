@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resteasy;
+package com.redhat.swatch.common.resteasy;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
@@ -26,12 +26,8 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import javax.ws.rs.ext.ParamConverter;
 import javax.ws.rs.ext.ParamConverterProvider;
-import javax.ws.rs.ext.Provider;
-import org.springframework.stereotype.Component;
 
 /** ParamConverterProvider to enable use of OffsetDateTime in query parameters. */
-@Component
-@Provider
 public class OffsetDateTimeParamConverterProvider implements ParamConverterProvider {
 
   @Override
@@ -43,7 +39,10 @@ public class OffsetDateTimeParamConverterProvider implements ParamConverterProvi
     return null;
   }
 
-  /** ParamConverter that uses an ObjectMapper to convert OffsetDateTime to/from String. */
+  /**
+   * ParamConverter that uses OffsetDateTime#parse and toString to convert OffsetDateTime to/from
+   * String.
+   */
   public static class OffsetDateTimeParamConverter implements ParamConverter<OffsetDateTime> {
 
     @Override
