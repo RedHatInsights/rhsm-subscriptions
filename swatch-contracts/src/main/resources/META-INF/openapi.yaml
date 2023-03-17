@@ -1,17 +1,18 @@
+---
 openapi: 3.0.2
 info:
   title: SWATCH Contract Service
   version: 1.0.0
   description: CRUD Operations for contract information
-  termsOfService: 'http://swagger.io/terms/'
+  termsOfService: http://swagger.io/terms/
   contact:
     name: SWATCH Dev
-    url: 'https://github.com/RedHatInsights/rhsm-subscriptions'
+    url: https://github.com/RedHatInsights/rhsm-subscriptions
   license:
     name: Apache 2.0
-    url: 'https://www.apache.org/licenses/LICENSE-2.0.html'
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
 paths:
-  '/api/swatch-contracts/internal/contracts/{uuid}':
+  /api/swatch-contracts/internal/contracts/{uuid}:
     put:
       requestBody:
         content:
@@ -23,23 +24,20 @@ paths:
                 value:
                   uuid: some text
                   subscription_number: some text
-                  start_date: '2018-02-10T09:30Z'
-                  end_date: '2018-02-10T09:30Z'
+                  start_date: 2018-02-10T09:30Z
+                  end_date: 2018-02-10T09:30Z
                   org_id: some text
                   billing_provider: aws
                   billing_account_id: some text
                   product_id: some text
                   metrics:
-                    -
-                      metric_id: some text
+                    - metric_id: some text
                       value: 18.15
-                    -
-                      metric_id: some text
+                    - metric_id: some text
                       value: 28.69
         required: false
       parameters:
-        -
-          examples:
+        - examples:
             uuid:
               value: 8ece4096-bef6-4ad6-b0db-20c8e6b2a78c
           name: uuid
@@ -49,7 +47,7 @@ paths:
           in: path
           required: true
       responses:
-        '200':
+        "200":
           content:
             application/json:
               schema:
@@ -57,18 +55,17 @@ paths:
               examples:
                 persisted contract info:
                   value:
-                    billing_account_id: '123456789101'
+                    billing_account_id: "123456789101"
                     billing_provider: aws
-                    end_date: '2023-03-01T00:00:00Z'
+                    end_date: 2023-03-01T00:00:00Z
                     metrics:
-                      -
-                        metric_id: Instance-hours
+                      - metric_id: Instance-hours
                         value: 68.6
                     org_id: org123
                     product_id: BASILISK
-                    start_date: '2022-01-01T00:00:00Z'
-                    subscription_number: '12345678'
-                    sku: 'BAS123'
+                    start_date: 2022-01-01T00:00:00Z
+                    subscription_number: "12345678"
+                    sku: BAS123
                     uuid: 8ece4096-bef6-4ad6-b0db-20c8e6b2a78c
           description: Success
       operationId: updateContract
@@ -76,13 +73,8 @@ paths:
       security:
         - test: []
     delete:
-      description: >-
-        This will execute a hard delete of a contract and its associated metrics from the database.  This
-        is NOT the same as setting a contract to expired.  To expire a certificate, the updateContract
-        endpoint should be used with an end_date.
       parameters:
-        -
-          examples:
+        - examples:
             uuid:
               value: 8ece4096-bef6-4ad6-b0db-20c8e6b2a78c
           name: uuid
@@ -92,61 +84,61 @@ paths:
           in: path
           required: true
       responses:
-        '200':
+        "200":
           description: Success
       operationId: deleteContractByUUID
+      description: "This will execute a hard delete of a contract and its associated\
+        \ metrics from the database.  This is NOT the same as setting a contract to\
+        \ expired.  To expire a certificate, the updateContract endpoint should be\
+        \ used with an end_date."
       security:
         - test: []
   /api/swatch-contracts/internal/contracts:
     get:
       parameters:
-        -
-          examples:
+        - examples:
             org_id:
               value: org123
           name: org_id
-          description: ''
+          description: ""
           schema:
             type: string
           in: query
-        -
-          examples:
+          required: true
+        - examples:
             product_id:
               value: BASILISK
           name: product_id
-          description: ''
+          description: ""
           schema:
             type: string
           in: query
-        -
-          examples:
+        - examples:
             metric_id:
               value: Instance-hours
           name: metric_id
-          description: ''
+          description: ""
           schema:
             type: string
           in: query
-        -
-          examples:
+        - examples:
             billing_provider:
               value: aws
           name: billing_provider
-          description: ''
+          description: ""
           schema:
             type: string
           in: query
-        -
-          examples:
+        - examples:
             billing_account_id:
-              value: '123456789101'
+              value: "123456789101"
           name: billing_account_id
-          description: ''
+          description: ""
           schema:
             type: string
           in: query
       responses:
-        '200':
+        "200":
           content:
             application/json:
               schema:
@@ -165,17 +157,29 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Contract'
+            examples:
+              create contract payload:
+                value:
+                  subscription_number: sn789
+                  sku: MW999
+                  start_date: 2022-03-05T00:00:00Z
+                  org_id: RACEMS
+                  billing_provider: aws
+                  billing_account_id: bp1
+                  product_id: BASILISK
+                  metrics:
+                    - metric_id: instance-hours
+                      value: 100
         required: true
       responses:
-        '200':
+        "200":
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Contract'
           description: success
       security:
-        -
-          test: []
+        - test: []
       operationId: createContract
   /internal/offerings/{sku}/product_tags:
       description: "Mapping sku to product tags."
@@ -256,7 +260,7 @@ components:
         message:
           type: string
     Contract:
-      description: ''
+      description: ""
       required:
         - start_date
         - org_id
@@ -271,64 +275,62 @@ components:
           type: string
           example: 8ece4096-bef6-4ad6-b0db-20c8e6b2a78c
         subscription_number:
-          description: ''
+          description: ""
           type: string
-          example: '12345678'
+          example: "12345678"
         sku:
-          description: ''
+          description: ""
           type: string
-          example: 'BAS123'
+          example: BAS123
         start_date:
           format: date-time
-          description: ''
+          description: ""
           type: string
-          example: '2022-01-01T00:00:00Z'
+          example: 2022-01-01T00:00:00Z
         end_date:
           format: date-time
-          description: ''
+          description: ""
           type: string
-          example: '2023-03-01T00:00:00Z'
+          example: 2023-03-01T00:00:00Z
         org_id:
-          description: ''
+          description: ""
           type: string
           example: org123
         billing_provider:
-          description: ''
+          description: ""
           type: string
           example: aws
         billing_account_id:
           description: AWS billing account ids are 12 digits
           type: string
-          example: '123456789101'
+          example: "123456789101"
         product_id:
-          description: ''
+          description: ""
           type: string
           example: BASILISK
         metrics:
-          description: ''
+          description: ""
           type: array
           items:
             $ref: '#/components/schemas/Metric'
-          example: '[{"metric_id": "Instance-hours", "value": 68.6}]'
+          example: "[{\"metric_id\": \"Instance-hours\", \"value\": 68.6}]"
       example:
         uuid: some text
         subscription_number: some text
-        start_date: '2018-02-10T09:30Z'
-        end_date: '2018-02-10T09:30Z'
+        start_date: 2018-02-10T09:30Z
+        end_date: 2018-02-10T09:30Z
         org_id: some text
         billing_provider: aws
         billing_account_id: some text
         product_id: some text
         metrics:
-          -
-            metric_id: some text
+          - metric_id: some text
             value: 3.57
-          -
-            metric_id: some text
+          - metric_id: some text
             value: 52.67
     Metric:
       title: Root Type for Metric
-      description: ''
+      description: ""
       required:
         - value
         - metric_id
@@ -403,6 +405,7 @@ components:
       in: header
     test:
       type: apiKey
-      description: API is available for testing purposes (pre-production environments only)
+      description: API is available for testing purposes (pre-production environments
+        only)
       name: x-rh-swatch-psk
       in: header

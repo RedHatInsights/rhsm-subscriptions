@@ -18,22 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.repository;
+package com.redhat.swatch.contract.exception;
 
-import java.util.List;
-import java.util.UUID;
-import javax.enterprise.context.ApplicationScoped;
-import lombok.extern.slf4j.Slf4j;
+/**
+ * Represents an exception that occurs when something goes wrong while updating a Contract record.
+ */
+public class UpdateContractException extends RuntimeException {
 
-@Slf4j
-@ApplicationScoped
-public class ContractRepository implements PanacheSpecificationSupport<ContractEntity, UUID> {
-  public List<ContractEntity> getContracts(Specification<ContractEntity> specification) {
-    return find(ContractEntity.class, specification, null);
-  }
-
-  public ContractEntity findContract(UUID uuid) {
-    log.info("Find contract by uuid {}", uuid);
-    return find("uuid", uuid).firstResult();
+  public UpdateContractException(String message) {
+    super(message);
   }
 }

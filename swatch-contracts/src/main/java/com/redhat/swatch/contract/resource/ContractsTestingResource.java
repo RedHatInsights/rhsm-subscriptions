@@ -20,15 +20,15 @@
  */
 package com.redhat.swatch.contract.resource;
 
+import com.redhat.swatch.contract.exception.UpdateContractException;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.openapi.resource.ApiException;
 import com.redhat.swatch.contract.openapi.resource.DefaultApi;
 import com.redhat.swatch.contract.service.ContractService;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import javax.annotation.security.RolesAllowed;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -42,6 +42,14 @@ public class ContractsTestingResource implements DefaultApi {
 
   @Inject ContractService service;
 
+  /**
+   * Create contract record in database from provided contract dto payload
+   *
+   * @param contract
+   * @return Contract
+   * @throws ApiException
+   * @throws ProcessingException
+   */
   @Override
   @Transactional
   @RolesAllowed({"test"})
@@ -57,6 +65,18 @@ public class ContractsTestingResource implements DefaultApi {
     service.deleteContract(uuid);
   }
 
+  /**
+   * Get a list of saved contracts based on URL query parameters
+   *
+   * @param orgId
+   * @param productId
+   * @param metricId
+   * @param billingProvider
+   * @param billingAccountId
+   * @return List<Contract> dtos
+   * @throws ApiException
+   * @throws ProcessingException
+   */
   @Override
   @RolesAllowed({"test", "support", "service"})
   public List<Contract> getContract(
@@ -66,21 +86,31 @@ public class ContractsTestingResource implements DefaultApi {
       String billingProvider,
       String billingAccountId)
       throws ApiException, ProcessingException {
-    Map<String, Object> parameters = new HashMap<>();
-    parameters.put("orgId", orgId);
-    parameters.put("productId", productId);
-    parameters.put("metricId", metricId);
-    parameters.put("billingProvider", billingProvider);
-    parameters.put("billingAccountId", billingAccountId);
-
-    return service.getContracts(parameters);
+    return service.getContracts(orgId, productId, metricId, billingProvider, billingAccountId);
   }
 
+  /**
+   * Verify that the path variable uuid matches the payload uuid, then update the contract in the
+   * database with provided values
+   *
+   * @param uuid
+   * @param contract
+   * @return Contract
+   * @throws ApiException
+   * @throws ProcessingException
+   */
   @Override
   @RolesAllowed({"test"})
   public Contract updateContract(String uuid, Contract contract)
       throws ApiException, ProcessingException {
+
+    if (Objects.nonNull(contract.getUuid()) && !Objects.equals(uuid, contract.getUuid())) {
+      throw new UpdateContractException("Uuid in path variable and uuid in payload do not match");
+    }
     log.info("Updating contract {}", uuid);
+
+    contract.setUuid(uuid);
+
     return service.updateContract(contract);
   }
 
