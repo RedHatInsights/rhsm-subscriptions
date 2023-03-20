@@ -201,7 +201,8 @@ class ContractsControllerTest {
   void throwsExternalServiceExceptionWhenNoContractsFound() throws Exception {
     BillableUsage usage = defaultUsage();
     when(tagProfile.isTagContractEnabled(usage.getProductId())).thenReturn(true);
-    when(contractsApi.getContract(any(), any(), any(), any(), any())).thenReturn(new ArrayList<>());
+    when(contractsApi.getContract(any(), any(), any(), any(), any(), any()))
+        .thenReturn(new ArrayList<>());
     ExternalServiceException e =
         assertThrows(
             ExternalServiceException.class,

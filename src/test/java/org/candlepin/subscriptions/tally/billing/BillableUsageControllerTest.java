@@ -504,7 +504,7 @@ class BillableUsageControllerTest {
     usage.setSnapshotDate(OffsetDateTime.now());
     usage.setUom(Uom.CORES);
     when(tagProfile.isTagContractEnabled(usage.getProductId())).thenReturn(true);
-    when(contractsApi.getContract(any(), any(), any(), any(), any())).thenReturn(List.of());
+    when(contractsApi.getContract(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
     controller.submitBillableUsage(BillingWindow.MONTHLY, usage);
     verify(producer).produce(usage);
   }
