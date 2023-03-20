@@ -90,7 +90,8 @@ class ContractsControllerTest {
             usage.getProductId(),
             usage.getUom().value(),
             usage.getBillingProvider().value(),
-            usage.getBillingAccountId()))
+            usage.getBillingAccountId(),
+            usage.getSnapshotDate()))
         .thenReturn(List.of(contract1, contract2));
 
     // Make sure product is contract enabled.
@@ -121,7 +122,8 @@ class ContractsControllerTest {
             usage.getProductId(),
             usage.getUom().value(),
             usage.getBillingProvider().value(),
-            usage.getBillingAccountId()))
+            usage.getBillingAccountId(),
+            usage.getSnapshotDate()))
         .thenReturn(List.of(contract1, contract2));
 
     // Make sure product is contract enabled.
@@ -162,7 +164,8 @@ class ContractsControllerTest {
             usage.getProductId(),
             usage.getUom().value(),
             usage.getBillingProvider().value(),
-            usage.getBillingAccountId()))
+            usage.getBillingAccountId(),
+            usage.getSnapshotDate()))
         .thenReturn(List.of(contract1, contract2));
 
     // Make sure product is contract enabled.
@@ -178,7 +181,9 @@ class ContractsControllerTest {
   void throwsExternalServiceExceptionWhenApiCallFails() throws Exception {
     BillableUsage usage = defaultUsage();
     when(tagProfile.isTagContractEnabled(usage.getProductId())).thenReturn(true);
-    doThrow(ApiException.class).when(contractsApi).getContract(any(), any(), any(), any(), any());
+    doThrow(ApiException.class)
+        .when(contractsApi)
+        .getContract(any(), any(), any(), any(), any(), any());
     ExternalServiceException e =
         assertThrows(
             ExternalServiceException.class,

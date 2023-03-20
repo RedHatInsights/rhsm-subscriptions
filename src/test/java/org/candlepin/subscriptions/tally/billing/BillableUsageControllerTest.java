@@ -441,7 +441,8 @@ class BillableUsageControllerTest {
           usage.getProductId(),
           usage.getUom().value(),
           usage.getBillingProvider().value(),
-          usage.getBillingAccountId());
+          usage.getBillingAccountId(),
+          usage.getSnapshotDate());
     }
 
     controller.submitBillableUsage(BillingWindow.MONTHLY, usage);
@@ -474,7 +475,8 @@ class BillableUsageControllerTest {
       String productId,
       String metric,
       String billingProvider,
-      String billingAccountId)
+      String billingAccountId,
+      OffsetDateTime startDate)
       throws ApiException {
     Contract contract1 =
         new Contract()
@@ -489,7 +491,8 @@ class BillableUsageControllerTest {
             .addMetricsItem(new Metric().metricId(metric).value(200));
 
     log.info("Second: {}", updatedContract);
-    when(contractsApi.getContract(orgId, productId, metric, billingProvider, billingAccountId))
+    when(contractsApi.getContract(
+            orgId, productId, metric, billingProvider, billingAccountId, startDate))
         .thenReturn(List.of(contract1, updatedContract));
   }
 }
