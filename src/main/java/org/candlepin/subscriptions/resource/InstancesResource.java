@@ -41,6 +41,7 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
@@ -79,6 +80,7 @@ public class InstancesResource implements InstancesApi {
           .put(InstanceReportSort.NUMBER_OF_GUESTS, "numOfGuests")
           .put(InstanceReportSort.CATEGORY, "key.measurementType")
           .putAll(getUomSorts())
+          .put(InstanceReportSort.SOCKETS, "sockets")
           .build();
 
   public static final Map<InstanceReportSort, Measurement.Uom> SORT_TO_UOM_MAP =
@@ -308,6 +310,7 @@ public class InstancesResource implements InstancesApi {
             uom ->
                 Arrays.stream(InstanceReportSort.values())
                     .map(InstanceReportSort::toString)
+                    .filter(value -> !value.equals(Uom.SOCKETS.value()))
                     .collect(Collectors.toSet())
                     .contains(uom.value()))
         .collect(

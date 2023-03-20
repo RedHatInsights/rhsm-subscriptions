@@ -39,13 +39,27 @@ paths:
 components:
   schemas:
     GetPartnerEntitlementsResponse:
+      type: object
+      properties:
+        _embedded:
+          $ref: '#/components/schemas/PartnerEntitlements'
+        page:
+          type: object
+          properties:
+            size:
+              type: integer
+            totalElements:
+              type: integer
+            totalPages:
+              type: integer
+            number:
+              type: integer
+    PartnerEntitlements:
       properties:
         partnerEntitlements:
           type: array
           items:
             $ref: '#/components/schemas/PartnerEntitlementV1'
-        hasNext:
-          type: boolean
     QueryPartnerEntitlementV1:
       properties:
         rhAccountId:
@@ -85,8 +99,18 @@ components:
             - aws_marketplace
         status:
           type: string
+        partnerIdentities:
+          $ref: '#/components/schemas/PartnerIdentityV1'
         purchase:
           $ref: '#/components/schemas/PurchaseV1'
+    PartnerIdentityV1:
+      properties:
+        awsCustomerId:
+          type: string
+        customerAwsAccountId:
+          type: string
+        sellerAccountId:
+          type: string
     PurchaseV1:
       properties:
         productCode:

@@ -27,6 +27,7 @@ dependencies {
     implementation libraries["quarkus-logging-splunk"]
     implementation libraries["splunk-library-javalogging"]
     implementation project(":clients:swatch-internal-subscription-client")
+    implementation project(":swatch-common-resteasy")
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.quarkus:quarkus-junit5-mockito'
     testImplementation 'io.rest-assured:rest-assured'
@@ -39,9 +40,6 @@ dependencies {
     testImplementation libraries["wiremock-jre8"]
 
 }
-
-group = 'com.redhat.swatch'
-description = 'swatch-producer-aws'
 
 compileJava.dependsOn tasks.openApiGenerate
 

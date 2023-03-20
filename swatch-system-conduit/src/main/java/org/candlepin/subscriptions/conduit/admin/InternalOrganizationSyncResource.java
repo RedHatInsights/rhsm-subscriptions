@@ -22,12 +22,14 @@ package org.candlepin.subscriptions.conduit.admin;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.ws.rs.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.conduit.InventoryController;
 import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
-import org.candlepin.subscriptions.conduit.rhsm.client.ApiException;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OrgConfig;
+import org.candlepin.subscriptions.exception.ErrorCode;
+import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.exception.MissingAccountNumberException;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -117,7 +119,12 @@ public class InternalOrganizationSyncResource implements InternalOrganizationsAp
         ResourceUtils.getPrincipal());
     try {
       controller.updateInventoryForOrg(orgSyncRequest.getOrgId());
-    } catch (MissingAccountNumberException | ApiException ex) {
+    } catch (ExternalServiceException ex) {
+      if (ErrorCode.RHSM_SERVICE_UNKNOWN_ORG_ERROR.equals(ex.getCode())) {
+        throw new NotFoundException(ex.getMessage());
+      }
+      throw new InternalServerErrorException(ex.getMessage());
+    } catch (MissingAccountNumberException ex) {
       throw new InternalServerErrorException(ex.getMessage());
     }
 

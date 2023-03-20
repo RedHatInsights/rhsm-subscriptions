@@ -29,4 +29,8 @@ public class RhsmJmxException extends Exception {
   public RhsmJmxException(Throwable t) {
     super(t);
   }
+
+  public RhsmJmxException(String message) {
+    super(message);
+  }
 }

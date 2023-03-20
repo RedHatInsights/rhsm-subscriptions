@@ -20,3 +20,5 @@ Preferred Package Structure
   * PanacheRepository and JpaRepository 
   * JPA entities 
     * Class names should have "Entity" suffix to differentiate them from their DTO counterparts
+* security
+  * authentication, authorization, RBAC, etc.

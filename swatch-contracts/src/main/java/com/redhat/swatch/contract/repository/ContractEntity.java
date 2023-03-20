@@ -39,6 +39,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 @Entity
 @Table(name = "contracts")
@@ -47,6 +48,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
+@ToString
 public class ContractEntity extends PanacheEntityBase {
 
   @Id
@@ -111,30 +113,51 @@ public class ContractEntity extends PanacheEntityBase {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     ContractEntity that = (ContractEntity) o;
-    return Objects.equals(uuid, that.uuid)
-        && Objects.equals(subscriptionNumber, that.subscriptionNumber)
-        && Objects.equals(lastUpdated, that.lastUpdated)
-        && Objects.equals(startDate, that.startDate)
-        && Objects.equals(endDate, that.endDate)
+    return Objects.equals(subscriptionNumber, that.subscriptionNumber)
         && Objects.equals(orgId, that.orgId)
         && Objects.equals(sku, that.sku)
         && Objects.equals(billingProvider, that.billingProvider)
         && Objects.equals(billingAccountId, that.billingAccountId)
-        && Objects.equals(productId, that.productId);
+        && Objects.equals(productId, that.productId)
+        && Objects.equals(metrics, that.metrics);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
-        uuid,
-        subscriptionNumber,
-        lastUpdated,
-        startDate,
-        endDate,
-        orgId,
-        sku,
-        billingProvider,
-        billingAccountId,
-        productId);
+        subscriptionNumber, orgId, sku, billingProvider, billingAccountId, productId, metrics);
+  }
+
+  public static Specification<ContractEntity> orgIdEquals(String orgId) {
+    return (root, query, builder) -> builder.equal(root.get(ContractEntity_.orgId), orgId);
+  }
+
+  public static Specification<ContractEntity> productIdEquals(String productId) {
+    return (root, query, builder) -> builder.equal(root.get(ContractEntity_.productId), productId);
+  }
+
+  public static Specification<ContractEntity> metricIdEquals(String metricId) {
+    return (root, query, builder) ->
+        builder.equal(
+            root.join(ContractEntity_.metrics).get(ContractMetricEntity_.metricId), metricId);
+  }
+
+  public static Specification<ContractEntity> billingProviderEquals(String billingProvider) {
+    return (root, query, builder) ->
+        builder.equal(root.get(ContractEntity_.billingProvider), billingProvider);
+  }
+
+  public static Specification<ContractEntity> billingAccountIdEquals(String billingAccountId) {
+    return (root, query, builder) ->
+        builder.equal(root.get(ContractEntity_.billingAccountId), billingAccountId);
+  }
+
+  public static Specification<ContractEntity> subscriptionNumberEquals(String subscriptionNumber) {
+    return (root, query, builder) ->
+        builder.equal(root.get(ContractEntity_.subscriptionNumber), subscriptionNumber);
+  }
+
+  public static Specification<ContractEntity> isActive() {
+    return (root, query, builder) -> builder.isNull(root.get(ContractEntity_.endDate));
   }
 }

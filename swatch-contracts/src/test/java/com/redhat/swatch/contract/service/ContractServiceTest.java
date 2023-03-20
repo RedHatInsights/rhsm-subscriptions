@@ -29,16 +29,20 @@ import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.contract.BaseUnitTest;
 import com.redhat.swatch.contract.openapi.model.Contract;
+import com.redhat.swatch.contract.openapi.model.Dimension;
 import com.redhat.swatch.contract.openapi.model.Metric;
+import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
+import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
+import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContractCloudIdentifiers;
+import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import com.redhat.swatch.contract.repository.ContractRepository;
+import com.redhat.swatch.contract.resource.SubscriptionSyncResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import java.time.OffsetDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import javax.inject.Inject;
@@ -54,6 +58,7 @@ class ContractServiceTest extends BaseUnitTest {
   @Inject ContractService contractService;
   @InjectMock ContractRepository contractRepository;
 
+  @InjectMock SubscriptionSyncResource syncResource;
   ContractEntity actualContract1;
 
   Contract contractDto;
@@ -122,10 +127,11 @@ class ContractServiceTest extends BaseUnitTest {
   @Test
   void testGetContracts() {
     when(contractRepository.getContracts(any())).thenReturn((List.of(actualContract1)));
-    Map<String, Object> parameters = new HashMap<>();
-    parameters.put("productId", "BASILISK123");
-    List<Contract> contractList = contractService.getContracts(parameters);
-    verify(contractRepository).getContracts(parameters);
+    var spec =
+        ContractEntity.orgIdEquals("org123").and(ContractEntity.productIdEquals("BASILISK123"));
+    List<Contract> contractList =
+        contractService.getContracts("org123", "BASILISK123", null, null, null);
+    verify(contractRepository).getContracts(any());
     assertEquals(1, contractList.size());
     assertEquals(2, contractList.get(0).getMetrics().size());
   }
@@ -170,5 +176,142 @@ class ContractServiceTest extends BaseUnitTest {
     assertEquals(
         expected.getMetrics().stream().toList().get(0).getMetricId(),
         actual.getMetrics().stream().toList().get(0).getMetricId());
+  }
+
+  @Test
+  void createPartnerContract_WhenNonNullEntityAndContractNotFoundInDB() {
+    var contract = new PartnerEntitlementContract();
+    contract.setRedHatSubscriptionNumber("12400374");
+    Dimension dimensions = new Dimension();
+    dimensions.setDimensionName("test_dim_1");
+    dimensions.setDimensionValue("5");
+    contract.setCurrentDimensions(List.of(dimensions));
+
+    PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
+        new PartnerEntitlementContractCloudIdentifiers();
+    cloudIdentifiers.setAwsCustomerId("awsc123");
+    contract.setCloudIdentifiers(cloudIdentifiers);
+
+    OfferingProductTags productTags = new OfferingProductTags();
+    productTags.data(List.of("MH123"));
+    when(syncResource.getSkuProductTags(any())).thenReturn(productTags);
+    StatusResponse statusResponse = contractService.createPartnerContract(contract);
+    assertEquals("New contract created", statusResponse.getMessage());
+  }
+
+  @Test
+  void createPartnerContract_WhenNullEntityThrowError() {
+    var contract = new PartnerEntitlementContract();
+    contract.setRedHatSubscriptionNumber("12400374");
+    Dimension dimensions = new Dimension();
+    dimensions.setDimensionName("test_dim_1");
+    dimensions.setDimensionValue("5");
+    contract.setCurrentDimensions(List.of(dimensions));
+
+    PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
+        new PartnerEntitlementContractCloudIdentifiers();
+    cloudIdentifiers.setAwsCustomerId("awsc123");
+    contract.setCloudIdentifiers(cloudIdentifiers);
+
+    OfferingProductTags productTags = new OfferingProductTags();
+    productTags.data(null);
+    when(syncResource.getSkuProductTags(any())).thenReturn(productTags);
+    StatusResponse statusResponse = contractService.createPartnerContract(contract);
+    assertEquals("Empty value in non-null fields", statusResponse.getMessage());
+  }
+
+  @Test
+  void createPartnerContract_NotDuplicateContractThenPersist() {
+    ContractEntity incomingContract = new ContractEntity();
+    var uuid = UUID.randomUUID();
+    OffsetDateTime offsetDateTime = OffsetDateTime.now();
+
+    var contract = new PartnerEntitlementContract();
+    contract.setRedHatSubscriptionNumber("12400374");
+    Dimension dimensions = new Dimension();
+    dimensions.setDimensionName("test_dim_1");
+    dimensions.setDimensionValue("5");
+    contract.setCurrentDimensions(List.of(dimensions));
+
+    PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
+        new PartnerEntitlementContractCloudIdentifiers();
+    cloudIdentifiers.setAwsCustomerId("awsc123");
+    contract.setCloudIdentifiers(cloudIdentifiers);
+
+    ContractEntity existingContract = new ContractEntity();
+    existingContract.setUuid(uuid);
+    existingContract.setBillingAccountId("awsc123");
+    existingContract.setStartDate(offsetDateTime);
+    existingContract.setEndDate(null);
+    existingContract.setBillingProvider("aws_marketplace");
+    existingContract.setSku("RH000000");
+    existingContract.setProductId("BASILISK123");
+    existingContract.setOrgId("org123");
+    existingContract.setLastUpdated(offsetDateTime);
+    existingContract.setSubscriptionNumber("12400374");
+
+    ContractMetricEntity contractMetric4 = new ContractMetricEntity();
+    contractMetric4.setContractUuid(uuid);
+    contractMetric4.setMetricId("test_dim_1");
+    contractMetric4.setValue(5);
+
+    existingContract.setMetrics(Set.of(contractMetric4));
+
+    OfferingProductTags productTags = new OfferingProductTags();
+    productTags.data(List.of("MH123"));
+    when(syncResource.getSkuProductTags(any())).thenReturn(productTags);
+
+    when(contractRepository.getContracts(any())).thenReturn(List.of(existingContract));
+
+    StatusResponse statusResponse = contractService.createPartnerContract(contract);
+    assertEquals(
+        "Previous contract archived and new contract created", statusResponse.getMessage());
+  }
+
+  @Test
+  void createPartnerContract_DuplicateContractThenDoNotPersist() {
+    ContractEntity incomingContract = new ContractEntity();
+    var uuid = UUID.randomUUID();
+    OffsetDateTime offsetDateTime = OffsetDateTime.now();
+
+    var contract = new PartnerEntitlementContract();
+    contract.setRedHatSubscriptionNumber("12400374");
+    Dimension dimensions = new Dimension();
+    dimensions.setDimensionName("test_dim_1");
+    dimensions.setDimensionValue("5");
+    contract.setCurrentDimensions(List.of(dimensions));
+
+    PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
+        new PartnerEntitlementContractCloudIdentifiers();
+    cloudIdentifiers.setAwsCustomerId("896801664647");
+    contract.setCloudIdentifiers(cloudIdentifiers);
+
+    ContractEntity existingContract = new ContractEntity();
+    existingContract.setUuid(uuid);
+    existingContract.setBillingAccountId("896801664647");
+    existingContract.setStartDate(offsetDateTime);
+    existingContract.setEndDate(null);
+    existingContract.setBillingProvider("aws_marketplace");
+    existingContract.setSku("MW01484");
+    existingContract.setProductId("BASILISK123");
+    existingContract.setOrgId("org123");
+    existingContract.setLastUpdated(offsetDateTime);
+    existingContract.setSubscriptionNumber("12400374");
+
+    ContractMetricEntity contractMetric4 = new ContractMetricEntity();
+    contractMetric4.setContractUuid(uuid);
+    contractMetric4.setMetricId("test_dim_1");
+    contractMetric4.setValue(5);
+
+    existingContract.setMetrics(Set.of(contractMetric4));
+
+    OfferingProductTags productTags = new OfferingProductTags();
+    productTags.data(List.of("BASILISK123"));
+    when(syncResource.getSkuProductTags(any())).thenReturn(productTags);
+
+    when(contractRepository.getContracts(any())).thenReturn(List.of(existingContract));
+
+    StatusResponse statusResponse = contractService.createPartnerContract(contract);
+    assertEquals("Duplicate record found", statusResponse.getMessage());
   }
 }

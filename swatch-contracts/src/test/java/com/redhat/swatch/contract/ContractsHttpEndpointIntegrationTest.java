@@ -21,14 +21,17 @@
 package com.redhat.swatch.contract;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.containsStringIgnoringCase;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.contract.openapi.model.Contract;
+import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.service.ContractService;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
+import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
@@ -41,10 +44,14 @@ class ContractsHttpEndpointIntegrationTest {
   @InjectMock ContractService contractService;
 
   @Test
+  @TestSecurity(
+      user = "placeholder",
+      roles = {"service"})
   void whenGetContract_thenContractShouldBeFound() {
     Contract contract = new Contract();
     contract.setOrgId("org123");
-    when(contractService.getContracts(any())).thenReturn(List.of(contract));
+    when(contractService.getContracts(any(), any(), any(), any(), any()))
+        .thenReturn(List.of(contract));
     given()
         .contentType(ContentType.JSON)
         .param("org_id", "org123")
@@ -57,10 +64,13 @@ class ContractsHttpEndpointIntegrationTest {
   }
 
   @Test
+  @TestSecurity(
+      user = "placeholder",
+      roles = {"test"})
   void whenUpdateContract_thenUpdatedContractShouldBeReturned() {
     String contract =
         """
-    {"uuid":"string","subscription_number":"string","sku":"string",
+    {"subscription_number":"string","sku":"string",
     "start_date":"2022-03-10T12:15:50-04:00","end_date":"2022-03-10T12:15:50-04:00",
     "org_id":"string","billing_provider":"string","billing_account_id":"string",
     "product_id":"string","metrics": [ {"metric_id":"string","value": 0 } ] }
@@ -75,6 +85,33 @@ class ContractsHttpEndpointIntegrationTest {
   }
 
   @Test
+  @TestSecurity(
+      user = "placeholder",
+      roles = {"test"})
+  void whenUpdateContract_MismatchedUuid() {
+
+    String contract =
+        """
+        {"uuid":"1234567890","subscription_number":"string","sku":"string",
+        "start_date":"2022-03-10T12:15:50-04:00","end_date":"2022-03-10T12:15:50-04:00",
+        "org_id":"string","billing_provider":"string","billing_account_id":"string",
+        "product_id":"string","metrics": [ {"metric_id":"string","value": 0 } ] }
+        """;
+    given()
+        .contentType(ContentType.JSON)
+        .body(contract)
+        .when()
+        .put("/api/swatch-contracts/internal/contracts/1322")
+        .then()
+        .statusCode(500)
+        .assertThat()
+        .body(containsStringIgnoringCase("Uuid in path variable and uuid in payload do not match"));
+  }
+
+  @Test
+  @TestSecurity(
+      user = "placeholder",
+      roles = {"test"})
   void whenCreateContract_thenCreatedContractShouldBeReturned() {
     Contract newContract = new Contract();
     newContract.setOrgId("org123");
@@ -96,6 +133,9 @@ class ContractsHttpEndpointIntegrationTest {
   }
 
   @Test
+  @TestSecurity(
+      user = "placeholder",
+      roles = {"test"})
   void whenDeleteContract_thenSuccess() {
     given()
         .contentType(ContentType.JSON)
@@ -103,5 +143,42 @@ class ContractsHttpEndpointIntegrationTest {
         .delete("/api/swatch-contracts/internal/contracts/123")
         .then()
         .statusCode(204);
+  }
+
+  @Test
+  @TestSecurity(
+      user = "placeholder",
+      roles = {"test"})
+  void createPartnerEntitlementContract() {
+    StatusResponse statusResponse = new StatusResponse();
+    statusResponse.setMessage("Contract created successfully");
+    when(contractService.createPartnerContract(any())).thenReturn(statusResponse);
+    String contract =
+        """
+                    {
+                      "action" : "contract-updated",
+                      "redHatSubscriptionNumber" : "12400374",
+                      "currentDimensions" : [ {
+                        "dimensionName" : "test_dim_1",
+                        "dimensionValue" : "5",
+                        "expirationDate" : "2023-02-15T00:00:00Z"
+                      }, {
+                        "dimensionName" : "test_dim_2",
+                        "dimensionValue" : "10",
+                        "expirationDate" : "2023-02-15T00:00:00Z"
+                      } ],
+                      "cloudIdentifiers" : {
+                        "awsCustomerId" : "EK57ooq39qs",
+                        "productCode" : "ek1lel8qbwnqimt2wogc5nmey"
+                      }
+                    }
+                    """;
+    given()
+        .contentType(ContentType.JSON)
+        .body(contract)
+        .when()
+        .post("/api/rhsm-subscriptions/v1/internal/rpc/partner/contracts")
+        .then()
+        .statusCode(200);
   }
 }

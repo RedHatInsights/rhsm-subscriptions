@@ -356,6 +356,12 @@ tagMetrics:
   - tag: Satellite Server
     uom: SOCKETS
 
+  # Openshift Container Platform metrics.
+  - tag: OpenShift Container Platform
+    uom: SOCKETS
+  - tag: OpenShift Container Platform
+    uom: CORES
+
 # The tagMetaData section defines additional information around how a tag is tallied.  Most notably,
 # tags need to have their finest granularity defined so that we can create accurate snapshots.  A
 # tag that only supports DAILY granularity shouldn't be tallied hourly, for example.  Other metadata

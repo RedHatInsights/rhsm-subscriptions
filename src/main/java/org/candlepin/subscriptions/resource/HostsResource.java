@@ -36,6 +36,7 @@ import javax.ws.rs.core.UriInfo;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostApiProjection;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyHostView;
@@ -198,9 +199,9 @@ public class HostsResource implements HostsApi {
               null,
               page);
       payload =
-          ((Page<Host>) hosts)
+          ((Page<HostApiProjection>) hosts)
               .getContent().stream()
-                  .map(h -> h.asTallyHostViewApiHost(month))
+                  .map(HostApiProjection::asTallyHostViewApiHost)
                   .collect(Collectors.toList());
     } else {
       if (sort != null) {
