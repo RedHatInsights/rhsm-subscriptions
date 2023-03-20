@@ -23,6 +23,7 @@ package com.redhat.swatch.contracts.client;
 import com.redhat.swatch.contracts.api.model.Contract;
 import com.redhat.swatch.contracts.api.model.Metric;
 import com.redhat.swatch.contracts.api.resources.DefaultApi;
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 
@@ -38,7 +39,8 @@ public class StubContactsApi extends DefaultApi {
       String productId,
       String metricId,
       String billingProvider,
-      String billingAccountId)
+      String billingAccountId,
+      OffsetDateTime timestamp)
       throws ApiException {
     if ("org999".equals(orgId)) {
       return Collections.emptyList();

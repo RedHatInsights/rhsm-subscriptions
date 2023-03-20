@@ -80,7 +80,8 @@ public class ContractsController {
               usage.getProductId(),
               usage.getUom().value(),
               usage.getBillingProvider().value(),
-              usage.getBillingAccountId());
+              usage.getBillingAccountId(),
+              usage.getSnapshotDate());
 
       if (contracts == null || contracts.isEmpty()) {
         throw new ExternalServiceException(
