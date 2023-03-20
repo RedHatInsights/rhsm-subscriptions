@@ -26,6 +26,7 @@ import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.openapi.resource.ApiException;
 import com.redhat.swatch.contract.openapi.resource.DefaultApi;
+import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.service.ContractService;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -116,6 +117,27 @@ public class ContractsTestingResource implements DefaultApi {
     contract.setUuid(uuid);
 
     return service.updateContract(contract);
+  }
+
+  @Override
+  @Transactional
+  @RolesAllowed({"test"})
+  public StatusResponse syncAllContracts() throws ApiException, ProcessingException {
+    log.info("Syncing All Contracts");
+    var contracts = service.getAllContracts();
+    if (contracts.isEmpty()) {
+      return new StatusResponse().status("No active contract found for the orgIds");
+    }
+    for (ContractEntity org : contracts) {
+      syncContractsByOrg(org.getOrgId());
+    }
+    return new StatusResponse().status("All Contract are Synced");
+  }
+
+  @Override
+  @RolesAllowed({"test"})
+  public StatusResponse syncContractsByOrg(String orgId) throws ApiException, ProcessingException {
+    return service.syncContractByOrgId(orgId);
   }
 
   @Override

@@ -99,6 +99,44 @@ public class WireMockResource
                                               {
                                                 "name": "foobar",
                                                 "value": "1000000"
+                                              },
+                                              {
+                                                "name": "cpu-hours",
+                                                "value": "1000000"
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      "status": "STATUS",
+                                      "entitlementDates": {
+                                        "startDate": "2023-03-17T12:29:48.569Z",
+                                        "endDate": "2023-03-17T12:29:48.569Z"
+                                      }
+                                    },
+                                    {
+                                      "rhAccountId": "org223",
+                                      "sourcePartner": "aws_marketplace",
+                                      "partnerIdentities": {
+                                        "awsCustomerId": "568056954830",
+                                        "customerAwsAccountId": "568056954830",
+                                        "sellerAccountId": "568056954830"
+                                      },
+                                      "rhEntitlements": [
+                                        {
+                                          "sku": "RH000000",
+                                          "redHatSubscriptionNumber": "121256"
+                                        }
+                                      ],
+                                      "purchase": {
+                                        "vendorProductCode": "1234567890abcdefghijklmno",
+                                        "contracts": [
+                                          {
+                                            "startDate": "2022-09-23T20:07:51.010445Z",
+                                            "dimensions": [
+                                              {
+                                                "name": "foobar",
+                                                "value": "1000000"
                                               }
                                             ]
                                           }

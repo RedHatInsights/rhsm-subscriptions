@@ -28,13 +28,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.contract.BaseUnitTest;
-import com.redhat.swatch.contract.openapi.model.Contract;
-import com.redhat.swatch.contract.openapi.model.Dimension;
-import com.redhat.swatch.contract.openapi.model.Metric;
-import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
-import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
-import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContractCloudIdentifiers;
-import com.redhat.swatch.contract.openapi.model.StatusResponse;
+import com.redhat.swatch.contract.openapi.model.*;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import com.redhat.swatch.contract.repository.ContractRepository;
@@ -42,9 +36,7 @@ import com.redhat.swatch.contract.resource.SubscriptionSyncResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import javax.inject.Inject;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -343,5 +335,54 @@ class ContractServiceTest extends BaseUnitTest {
 
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("Duplicate record found", statusResponse.getMessage());
+  }
+
+  @Test
+  void syncContractWIthExistingAndNewContracts() {
+    var updateContract = new ContractEntity();
+    updateContract.setUuid(UUID.randomUUID());
+    updateContract.setOrgId("org123");
+    updateContract.setSubscriptionNumber("123456");
+    updateContract.setBillingProvider("redhat_fake");
+    updateContract.setBillingAccountId("896801664647");
+    updateContract.setStartDate(OffsetDateTime.now().minusDays(2));
+    updateContract.setEndDate(OffsetDateTime.now());
+    updateContract.setProductId("BASILISK123");
+    updateContract.setSku("MW01484");
+    when(contractRepository.getContracts(any()))
+        .thenReturn(List.of(actualContract1, updateContract));
+    when(contractRepository.findContract(any())).thenReturn(updateContract);
+
+    // mock sync call for updating contracts
+    OfferingProductTags productTags = new OfferingProductTags();
+    productTags.data(List.of("BASILISK123"));
+    when(syncResource.getSkuProductTags(any())).thenReturn(productTags);
+
+    StatusResponse statusResponse = contractService.syncContractByOrgId(updateContract.getOrgId());
+    assertEquals("Contracts Synced for " + updateContract.getOrgId(), statusResponse.getMessage());
+  }
+
+  @Test
+  void syncContractWIthEmptyContractsList() {
+    var updateContract = new ContractEntity();
+    updateContract.setUuid(UUID.randomUUID());
+    updateContract.setOrgId("org123");
+    updateContract.setSubscriptionNumber("123456");
+    updateContract.setBillingProvider("redhat_fake");
+    updateContract.setBillingAccountId("896801664647");
+    updateContract.setStartDate(OffsetDateTime.now().minusDays(2));
+    updateContract.setEndDate(OffsetDateTime.now());
+    updateContract.setProductId("BASILISK123");
+    updateContract.setSku("MW01484");
+    when(contractRepository.getContracts(any())).thenReturn(Collections.emptyList());
+    when(contractRepository.findContract(any())).thenReturn(updateContract);
+
+    // mock sync call for updating contracts
+    OfferingProductTags productTags = new OfferingProductTags();
+    productTags.data(List.of("BASILISK123"));
+    when(syncResource.getSkuProductTags(any())).thenReturn(productTags);
+
+    StatusResponse statusResponse = contractService.syncContractByOrgId(updateContract.getOrgId());
+    assertEquals(updateContract.getOrgId() + " not found in table", statusResponse.getMessage());
   }
 }

@@ -47,7 +47,7 @@ class RhPartnerClientIntegrationTest {
         partnerApi.getPartnerEntitlements(new QueryPartnerEntitlementV1().rhAccountId("org123"));
     var partnerEntitlements = result.getContent();
     assertNotNull(partnerEntitlements);
-    assertEquals(1, partnerEntitlements.size());
+    assertEquals(2, partnerEntitlements.size());
     var entitlement = partnerEntitlements.get(0);
     assertEquals("org123", entitlement.getRhAccountId());
     assertEquals(SourcePartnerEnum.AWS_MARKETPLACE, entitlement.getSourcePartner());
@@ -66,7 +66,7 @@ class RhPartnerClientIntegrationTest {
     assertNotNull(contract);
     assertEquals(OffsetDateTime.parse("2022-09-23T20:07:51.010445Z"), contract.getStartDate());
     assertNotNull(contract.getDimensions());
-    assertEquals(1, contract.getDimensions().size());
+    assertEquals(2, contract.getDimensions().size());
     var dimension = contract.getDimensions().get(0);
     assertEquals("foobar", dimension.getName());
     assertEquals("1000000", dimension.getValue());
