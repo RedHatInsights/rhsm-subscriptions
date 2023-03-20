@@ -43,6 +43,7 @@ public class ContractsController {
 
   private final TagProfile tagProfile;
   private final DefaultApi contractsApi;
+
   @SuppressWarnings("java:S1068")
   private final ContractsClientProperties contractsClientProperties;
 
