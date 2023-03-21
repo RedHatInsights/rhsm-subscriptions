@@ -22,9 +22,6 @@ package com.redhat.swatch;
 
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
-import io.smallrye.mutiny.Multi;
-import java.time.Duration;
-import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -39,41 +36,50 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class JmsPriceProducer {
 
-  private Random random = new Random();
-
-  // @Outgoing("pricesout")
-  public Multi<Double> generate() {
-    // Build an infinite stream of random prices
-    // It emits a price every second
-    log.info("Hello");
-    return Multi.createFrom().ticks().every(Duration.ofSeconds(1)).map(x -> random.nextDouble());
-  }
-
   @Inject ConnectionFactory connectionFactory;
 
-  // private final Random random = new Random();
   private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
+  String contract =
+      """
+                    {
+                      "action" : "contract-updated",
+                      "redHatSubscriptionNumber" : "12400374",
+                      "currentDimensions" : [ {
+                        "dimensionName" : "test_dim_1",
+                        "dimensionValue" : "5",
+                        "expirationDate" : "2023-02-15T00:00:00Z"
+                      }, {
+                        "dimensionName" : "test_dim_2",
+                        "dimensionValue" : "10",
+                        "expirationDate" : "2023-02-15T00:00:00Z"
+                      } ],
+                      "cloudIdentifiers" : {
+                        "awsCustomerId" : "896801664647",
+                        "productCode" : "1e1234el8qbwnqimt2wogc5n"
+                      }
+                    }
+                            """;
+
   void onStart(@Observes StartupEvent ev) {
-      scheduler.scheduleWithFixedDelay(() -> {send("foo"); log.info("done sending"); }, 0L, 10L, TimeUnit.SECONDS);
+    scheduler.scheduleWithFixedDelay(
+        () -> {
+          sendContract(contract);
+          log.info("done sending");
+        },
+        0L,
+        10L,
+        TimeUnit.SECONDS);
   }
 
   void onStop(@Observes ShutdownEvent ev) {
-      scheduler.shutdown();
+    scheduler.shutdown();
   }
 
   public void sendContract(String contract) {
     try (JMSContext context = connectionFactory.createContext(JMSContext.AUTO_ACKNOWLEDGE)) {
       context.createProducer().send(context.createQueue("prices"), contract);
     }
-  }
-
-  public void send(String message) {
-    log.info("Sending2");
-    try (JMSContext context = connectionFactory.createContext(JMSContext.AUTO_ACKNOWLEDGE)) {
-      log.info("have context");
-      context.createProducer().send(context.createQueue("prices"), message);
-    }
-    log.info("Donnnne sending");
+    log.info("Done sending Contract");
   }
 }

@@ -20,6 +20,10 @@
  */
 package com.redhat.swatch;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
+import com.redhat.swatch.contract.openapi.model.StatusResponse;
+import com.redhat.swatch.contract.service.ContractService;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import java.util.concurrent.ExecutorService;
@@ -32,22 +36,17 @@ import javax.jms.JMSConsumer;
 import javax.jms.JMSContext;
 import javax.jms.JMSException;
 import javax.jms.Message;
+import javax.json.bind.Jsonb;
+import javax.json.bind.JsonbBuilder;
 import lombok.extern.slf4j.Slf4j;
 
 @ApplicationScoped
 @Slf4j
 public class JmsPriceMessageConsumer implements Runnable {
-  // @Incoming("pricein")
-
+  @Inject ContractService service;
   @Inject ConnectionFactory connectionFactory;
 
   private final ExecutorService scheduler = Executors.newSingleThreadExecutor();
-
-  private volatile String lastPrice;
-
-  public String getLastPrice() {
-    return lastPrice;
-  }
 
   void onStart(@Observes StartupEvent ev) {
     scheduler.submit(this);
@@ -57,59 +56,35 @@ public class JmsPriceMessageConsumer implements Runnable {
     scheduler.shutdown();
   }
 
-  /*@Override
-  public void run() {
-      try (JMSContext context = connectionFactory.createContext(JMSContext.AUTO_ACKNOWLEDGE)) {
-          JMSConsumer consumer = context.createConsumer(context.createQueue("prices"));
-          while (true) {
-              Message message = consumer.receive();
-              String me = consume(message.getBody(String.class));
-              //throw new Exception();
-              */
-  /*if (message == null) return;
-  lastPrice = message.getBody(String.class);*/
-  /*
-          }
-      } catch (JMSException e) {
-          throw new RuntimeException(e);
-      }
-  }*/
-
   @Override
   public void run() {
-    log.info("Running consumer");
+    log.trace("Running consumer");
     try (JMSContext context = connectionFactory.createContext(JMSContext.AUTO_ACKNOWLEDGE)) {
-      log.info("Creating consumer");
+      log.trace("Creating JMS Consumer");
       JMSConsumer consumer = context.createConsumer(context.createQueue("prices"));
-      log.info("Entering loop");
+      log.trace("Entering loop");
       while (true) {
-        log.info("Receiving");
+        log.trace("Receiving");
         Message message = consumer.receive();
-        log.info("{}", message);
-        String me = consumeContract(message.getBody(String.class));
-        log.info(me);
-        // throw new Exception();
-        /*if (message == null) return;
-        lastPrice = message.getBody(String.class);*/
+        StatusResponse response = consumeContract(message.getBody(String.class));
+        log.trace(response.toString());
+        message.acknowledge();
       }
-    } catch (JMSException e) {
+    } catch (JMSException | JsonProcessingException e) {
       throw new RuntimeException(e);
     }
   }
 
-  public String consumeContract(String price) {
-    // process your price.
+  public StatusResponse consumeContract(String dtoContract) throws JsonProcessingException {
+    // process UMB contract.
 
     // Acknowledge the incoming message
-    log.info("yaay" + price);
-    return "yaay";
-  }
+    log.info(dtoContract);
 
-  public String consume(String price) {
-    // process your price.
+    Jsonb mapper = JsonbBuilder.create();
+    PartnerEntitlementContract contract =
+        mapper.fromJson(dtoContract, PartnerEntitlementContract.class);
 
-    // Acknowledge the incoming message
-    log.info("yaay" + price);
-    return "yaay";
+    return service.createPartnerContract(contract);
   }
 }

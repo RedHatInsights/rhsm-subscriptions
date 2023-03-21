@@ -34,8 +34,6 @@ import java.util.Objects;
 import javax.annotation.security.RolesAllowed;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
 import javax.transaction.Transactional;
 import javax.ws.rs.ProcessingException;
 import lombok.extern.slf4j.Slf4j;
@@ -47,18 +45,6 @@ public class ContractsTestingResource implements DefaultApi {
   @Inject ContractService service;
 
   @Inject JmsPriceProducer producer;
-
-  /*@Inject
-  @Channel("prices")
-  Emitter<String> emitter;
-  @Transactional
-  public void testActiveMQ(){
-    producer.generate();
-    emitter.send("Hello Kartik producer");
-    Jsonb jsonb = JsonbBuilder.create();
-    String jsonString = jsonb.toJson(contract);
-    producer.sendContract(jsonString);
-  }*/
 
   /**
    * Create contract record in database from provided contract dto payload
@@ -75,7 +61,6 @@ public class ContractsTestingResource implements DefaultApi {
     log.info("Creating contract");
     return service.createContract(contract);
   }
-
 
   @Override
   @RolesAllowed({"test"})
@@ -134,25 +119,10 @@ public class ContractsTestingResource implements DefaultApi {
     return service.updateContract(contract);
   }
 
-/*  @Override
+  @Override
   @RolesAllowed({"test"})
   public StatusResponse createPartnerEntitlementContract(PartnerEntitlementContract contract)
       throws ApiException, ProcessingException {
     return service.createPartnerContract(contract);
-  }*/
-
-  /**
-   * @param contract
-   * @return
-   * @throws ApiException
-   * @throws ProcessingException
-   */
-
-  public StatusResponse createPartnerEntitlementContract(PartnerEntitlementContract contract)
-          throws ApiException, ProcessingException {
-    Jsonb jsonb = JsonbBuilder.create();
-    String jsonString = jsonb.toJson(contract);
-    producer.sendContract(jsonString);
-    return null;
   }
 }

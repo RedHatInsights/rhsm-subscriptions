@@ -21,7 +21,6 @@ dependencies {
     implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
     implementation 'io.quarkus:quarkus-openshift'
     implementation 'io.quarkus:quarkus-resteasy'
-    //implementation 'io.quarkus:quarkus-resteasy-jsonb'
     implementation 'io.quarkus:quarkus-security'
     implementation 'io.quarkus:quarkus-smallrye-fault-tolerance'
     implementation 'io.quarkus:quarkus-smallrye-health'
@@ -57,9 +56,6 @@ dependencies {
     implementation 'org.apache.activemq:artemis-server:2.28.0'
     implementation 'org.apache.activemq:artemis-jms-client:2.28.0'
 }
-
-group 'com.redhat.swatch'
-version 'swatch-contracts'
 
 compileJava.dependsOn tasks.openApiGenerate
 
