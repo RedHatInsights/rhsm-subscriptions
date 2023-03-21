@@ -58,4 +58,7 @@ public class HttpClientProperties extends TlsProperties {
    * used in testing, for example
    */
   @ToString.Exclude private HostnameVerifier hostnameVerifier = new DefaultHostnameVerifier();
+
+  /** PSK used to access the API. */
+  @ToString.Exclude private String psk;
 }

@@ -1,3 +1,4 @@
+// Plugin: swatch.quarkus-rest-client-conventions
 import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
 
 plugins {

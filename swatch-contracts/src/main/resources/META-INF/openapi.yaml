@@ -153,6 +153,7 @@ paths:
                   $ref: '#/components/schemas/Contract'
           description: success
       security:
+        - service: []
         - support: []
         - test: []
         - service: []

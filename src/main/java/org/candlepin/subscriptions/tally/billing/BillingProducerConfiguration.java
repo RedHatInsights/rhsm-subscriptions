@@ -23,8 +23,10 @@ package org.candlepin.subscriptions.tally.billing;
 import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getProducerProperties;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.contracts.client.ContractsApiFactory;
 import java.util.Map;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -144,5 +146,18 @@ public class BillingProducerConfiguration {
       @Qualifier("billableUsageProducerFactory")
           ProducerFactory<String, BillableUsage> billableUsageProducerFactory) {
     return new KafkaTemplate<>(billableUsageProducerFactory);
+  }
+
+  @Qualifier("contractsClientProperties")
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.billing-producer.contracts")
+  @Bean
+  public HttpClientProperties contractsClientProperties() {
+    return new HttpClientProperties();
+  }
+
+  @Bean
+  public ContractsApiFactory contractsApiFactory(
+      @Qualifier("contractsClientProperties") HttpClientProperties clientProperties) {
+    return new ContractsApiFactory(clientProperties);
   }
 }

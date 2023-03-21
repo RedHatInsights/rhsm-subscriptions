@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.tally.billing;
 
 import java.time.OffsetDateTime;
 import java.util.Objects;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
@@ -52,18 +53,21 @@ public class BillableUsageController {
   private final BillableUsageRemittanceRepository billableUsageRemittanceRepository;
   private final TallySnapshotRepository snapshotRepository;
   private final TagProfile tagProfile;
+  private final ContractsController contractsController;
 
   public BillableUsageController(
       ApplicationClock clock,
       BillingProducer billingProducer,
       BillableUsageRemittanceRepository billableUsageRemittanceRepository,
       TallySnapshotRepository snapshotRepository,
-      TagProfile tagProfile) {
+      TagProfile tagProfile,
+      ContractsController contractsController) {
     this.clock = clock;
     this.billingProducer = billingProducer;
     this.billableUsageRemittanceRepository = billableUsageRemittanceRepository;
     this.snapshotRepository = snapshotRepository;
     this.tagProfile = tagProfile;
+    this.contractsController = contractsController;
   }
 
   public void submitBillableUsage(BillingWindow billingWindow, BillableUsage usage) {
@@ -129,16 +133,16 @@ public class BillableUsageController {
     // if not we will just calculate as usual
     if (tagFactor != 1.0) {
       var prevBilled = currentRemittedValue / prevBillingFactor; // previously billed
-      var unbilledAmount = measuredTotal - prevBilled;
+      var unbilledAmount = adjustBillable(measuredTotal - prevBilled);
       var updatedBill = unbilledAmount * tagFactor;
       var prevBilledAdjusted = prevBilled * tagFactor;
 
       billableValue = Math.ceil(updatedBill);
-      remittedValue = checkIfBilled(billableValue) + prevBilledAdjusted;
+      remittedValue = adjustBillable(billableValue) + prevBilledAdjusted;
     } else {
       double adjustedMeasuredTotal = Math.ceil(measuredTotal);
-      billableValue = adjustedMeasuredTotal - currentRemittedValue;
-      remittedValue = currentRemittedValue + checkIfBilled(billableValue);
+      billableValue = adjustBillable(adjustedMeasuredTotal - currentRemittedValue);
+      remittedValue = currentRemittedValue + billableValue;
     }
 
     return BillableUsageCalculation.builder()
@@ -149,7 +153,7 @@ public class BillableUsageController {
         .build();
   }
 
-  private Double checkIfBilled(double billableValue) {
+  private Double adjustBillable(double billableValue) {
     if (billableValue < 0) {
       // Message could have been received out of order via another process,
       // or on re-tally we have already billed for this usage and using
@@ -166,17 +170,25 @@ public class BillableUsageController {
 
   private BillableUsage produceMonthlyBillable(BillableUsage usage) {
     log.debug("Processing monthly billable usage {}", usage);
-    Double currentMonthlyTotal =
+
+    Optional<Double> contractOptional = contractsController.getContractCoverage(usage);
+    Double currentlyMeasuredTotal =
         getCurrentlyMeasuredTotal(
             usage, clock.startOfMonth(usage.getSnapshotDate()), usage.getSnapshotDate());
+
+    double applicableUsage =
+        contractOptional.isPresent()
+            ? adjustBillable(currentlyMeasuredTotal - contractOptional.get())
+            : currentlyMeasuredTotal;
+
     BillableUsageRemittanceEntity remittance = getLatestRemittance(usage);
-    BillableUsageCalculation usageCalc =
-        calculateBillableUsage(currentMonthlyTotal, usage, remittance);
+    BillableUsageCalculation usageCalc = calculateBillableUsage(applicableUsage, usage, remittance);
 
     log.debug(
-        "Processing monthly billable usage: Usage: {}, Current total: {}, Current remittance: {}, New billable: {}",
+        "Processing monthly billable usage: Usage: {}, Contracted: {}, Current total: {}, Current remittance: {}, New billable: {}",
         usage,
-        currentMonthlyTotal,
+        contractOptional.isPresent() ? contractOptional.get() : "N/A",
+        currentlyMeasuredTotal,
         remittance,
         usageCalc);
 

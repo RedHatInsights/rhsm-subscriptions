@@ -63,93 +63,7 @@ class TagProfileTest {
 
   @BeforeEach
   void setup() {
-    TagMapping tagMapping1 =
-        TagMapping.builder()
-            .value("69")
-            .valueType("engId")
-            .tags(Set.of(RHEL_TAG, RHEL_DESKTOP_TAG))
-            .build();
-    TagMapping tagMapping2 =
-        TagMapping.builder().value("x86_64").valueType("arch").tags(Set.of(RHEL_x86)).build();
-    TagMapping tagMapping3 =
-        TagMapping.builder()
-            .valueType("productName")
-            .tags(Set.of(RHEL_DESKTOP_TAG))
-            .value("RHEL Desktop")
-            .build();
-
-    TagMapping openshiftRoleMapping =
-        TagMapping.builder()
-            .tags(Set.of(OPENSHIFT_DEDICATED_TAG))
-            .valueType("role")
-            .value("osd")
-            .build();
-
-    Map<String, String> params = new HashMap<>();
-    params.put("prometheusMetric", "cluster:usage:workload:capacity_physical_cpu_cores:max:5m");
-    params.put("prometheusMetadataMetric", "subscription_labels");
-
-    // Mutable List for purpose of modifying during testing.
-    List<TagMetric> tagMetrics = new LinkedList<>();
-    tagMetrics.add(
-        TagMetric.builder()
-            .tag("OpenShift-metrics")
-            .uom(Uom.CORES)
-            .metricId("m_cores")
-            .queryParams(params)
-            .build());
-    tagMetrics.add(
-        TagMetric.builder()
-            .tag("OpenShift-metrics")
-            .uom(Uom.INSTANCE_HOURS)
-            .metricId("m_ihours")
-            .queryParams(params)
-            .build());
-    tagMetrics.add(
-        TagMetric.builder()
-            .tag(BASILISK_TAG)
-            .uom(Uom.INSTANCE_HOURS)
-            .metricId("b_instance_hours")
-            .queryParams(params)
-            .build());
-
-    TagMetaData openshiftClusterMetaData =
-        TagMetaData.builder()
-            .tags(Set.of(OPENSHIFT_TAG, OPENSHIFT_DEDICATED_TAG))
-            .serviceType(OPENSHIFT_CLUSTER_ST)
-            .finestGranularity(Granularity.HOURLY)
-            .defaultSla(ServiceLevel.PREMIUM)
-            .defaultUsage(Usage.PRODUCTION)
-            .billingModel(BILLING_MODEL_PAYG)
-            .build();
-
-    TagMetaData kafkaClusterMetaData =
-        TagMetaData.builder()
-            .tags(Set.of(RHOSAK_TAG))
-            .serviceType(KAFKA_CLUSTER_ST)
-            .finestGranularity(Granularity.HOURLY)
-            .defaultSla(ServiceLevel.PREMIUM)
-            .defaultUsage(Usage.PRODUCTION)
-            .billingModel(BILLING_MODEL_PAYG)
-            .build();
-
-    TagMetaData basiliskMetaData =
-        TagMetaData.builder()
-            .tags(Set.of(BASILISK_TAG))
-            .serviceType(BASILISK_ST)
-            .finestGranularity(Granularity.HOURLY)
-            .defaultSla(ServiceLevel.PREMIUM)
-            .defaultUsage(Usage.PRODUCTION)
-            .billingModel(BILLING_MODEL_PAYG)
-            .contractEnabled(true)
-            .build();
-
-    tagProfile =
-        TagProfile.builder()
-            .tagMappings(List.of(tagMapping1, tagMapping2, tagMapping3, openshiftRoleMapping))
-            .tagMetrics(tagMetrics)
-            .tagMetaData(List.of(openshiftClusterMetaData, kafkaClusterMetaData, basiliskMetaData))
-            .build();
+    tagProfile = buildTagProfile();
 
     // Manually invoke @PostConstruct so that the class is properly initialized.
     tagProfile.initLookups();
@@ -303,5 +217,109 @@ class TagProfileTest {
             "A tag can only be configured as contractEnabled if billingModel=PAYG. %s",
             expectedMetaData);
     assertEquals(expectedMessage, e.getMessage());
+  }
+
+  @Test
+  void throwsIllegalStateOnInitializationOnContractEnabledTagWithoutMonthlyBillingWindow() {
+    TagProfile profile = buildTagProfile();
+    profile
+        .getTagMetric(BASILISK_TAG, Uom.INSTANCE_HOURS)
+        .get()
+        .setBillingWindow(BillingWindow.HOURLY);
+
+    IllegalStateException e =
+        assertThrows(IllegalStateException.class, () -> profile.initLookups());
+    assertEquals(
+        "Contract enabled tags must be configured with MONTHLY billing window: [BASILISK]",
+        e.getMessage());
+  }
+
+  private static TagProfile buildTagProfile() {
+    TagMapping tagMapping1 =
+        TagMapping.builder()
+            .value("69")
+            .valueType("engId")
+            .tags(Set.of(RHEL_TAG, RHEL_DESKTOP_TAG))
+            .build();
+    TagMapping tagMapping2 =
+        TagMapping.builder().value("x86_64").valueType("arch").tags(Set.of(RHEL_x86)).build();
+    TagMapping tagMapping3 =
+        TagMapping.builder()
+            .valueType("productName")
+            .tags(Set.of(RHEL_DESKTOP_TAG))
+            .value("RHEL Desktop")
+            .build();
+
+    TagMapping openshiftRoleMapping =
+        TagMapping.builder()
+            .tags(Set.of(OPENSHIFT_DEDICATED_TAG))
+            .valueType("role")
+            .value("osd")
+            .build();
+
+    Map<String, String> params = new HashMap<>();
+    params.put("prometheusMetric", "cluster:usage:workload:capacity_physical_cpu_cores:max:5m");
+    params.put("prometheusMetadataMetric", "subscription_labels");
+
+    // Mutable List for purpose of modifying during testing.
+    List<TagMetric> tagMetrics = new LinkedList<>();
+    tagMetrics.add(
+        TagMetric.builder()
+            .tag("OpenShift-metrics")
+            .uom(Uom.CORES)
+            .metricId("m_cores")
+            .queryParams(params)
+            .build());
+    tagMetrics.add(
+        TagMetric.builder()
+            .tag("OpenShift-metrics")
+            .uom(Uom.INSTANCE_HOURS)
+            .metricId("m_ihours")
+            .queryParams(params)
+            .build());
+    tagMetrics.add(
+        TagMetric.builder()
+            .tag(BASILISK_TAG)
+            .uom(Uom.INSTANCE_HOURS)
+            .metricId("b_instance_hours")
+            .queryParams(params)
+            .build());
+
+    TagMetaData openshiftClusterMetaData =
+        TagMetaData.builder()
+            .tags(Set.of(OPENSHIFT_TAG, OPENSHIFT_DEDICATED_TAG))
+            .serviceType(OPENSHIFT_CLUSTER_ST)
+            .finestGranularity(Granularity.HOURLY)
+            .defaultSla(ServiceLevel.PREMIUM)
+            .defaultUsage(Usage.PRODUCTION)
+            .billingModel(BILLING_MODEL_PAYG)
+            .build();
+
+    TagMetaData kafkaClusterMetaData =
+        TagMetaData.builder()
+            .tags(Set.of(RHOSAK_TAG))
+            .serviceType(KAFKA_CLUSTER_ST)
+            .finestGranularity(Granularity.HOURLY)
+            .defaultSla(ServiceLevel.PREMIUM)
+            .defaultUsage(Usage.PRODUCTION)
+            .billingModel(BILLING_MODEL_PAYG)
+            .build();
+
+    TagMetaData basiliskMetaData =
+        TagMetaData.builder()
+            .tags(Set.of(BASILISK_TAG))
+            .serviceType(BASILISK_ST)
+            .finestGranularity(Granularity.HOURLY)
+            .defaultSla(ServiceLevel.PREMIUM)
+            .defaultUsage(Usage.PRODUCTION)
+            .billingModel(BILLING_MODEL_PAYG)
+            .contractEnabled(true)
+            .build();
+
+    return TagProfile.builder()
+        .tagMappings(List.of(tagMapping1, tagMapping2, tagMapping3, openshiftRoleMapping))
+        .tagMetrics(tagMetrics)
+        .tagMetaData(List.of(openshiftClusterMetaData, kafkaClusterMetaData, basiliskMetaData))
+        .build();
   }
 }
