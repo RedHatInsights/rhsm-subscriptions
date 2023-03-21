@@ -1,0 +1,10 @@
+plugins {
+    id 'swatch.java-conventions'
+}
+
+dependencies {
+    implementation platform(libraries["quarkus-bom"])
+    implementation 'org.eclipse.microprofile.config:microprofile-config-api'
+}
+
+description = 'Workaround for classpath issue in clowder config source'
