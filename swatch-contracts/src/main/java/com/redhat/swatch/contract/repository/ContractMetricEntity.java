@@ -60,7 +60,7 @@ public class ContractMetricEntity extends PanacheEntityBase {
 
   @Id
   @Column(name = "metric_value", nullable = false)
-  private int value;
+  private double value;
 
   @Exclude
   @ManyToOne(targetEntity = ContractEntity.class, fetch = FetchType.LAZY)

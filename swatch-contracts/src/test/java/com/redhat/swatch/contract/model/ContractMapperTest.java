@@ -87,7 +87,7 @@ class ContractMapperTest {
         dto.getMetrics().stream().map(Metric::getMetricId).toList());
     assertEquals(
         entity.getMetrics().stream().map(ContractMetricEntity::getValue).toList(),
-        dto.getMetrics().stream().map(Metric::getValue).toList());
+        dto.getMetrics().stream().map(Metric::getValue).map(Double::valueOf).toList());
   }
 
   @Test
