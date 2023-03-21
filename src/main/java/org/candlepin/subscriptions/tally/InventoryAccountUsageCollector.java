@@ -450,6 +450,7 @@ public class InventoryAccountUsageCollector {
 
   private void reconcileHypervisorData(
       NormalizedFacts normalizedFacts, Host system, OrgHostsData orgHostsData, Set<Key> usageKeys) {
+    Set<HostBucketKey> seenBucketKeys = new HashSet<>();
     if (system.getHypervisorUuid() != null
         && orgHostsData.hasHypervisorUuid(system.getHypervisorUuid())) {
       // system is a guest w/ known hypervisor, we should add its buckets to hypervisor-guest data
@@ -465,7 +466,6 @@ public class InventoryAccountUsageCollector {
         log.debug("Applying buckets and guest-count from orgHostsData.");
         system.setHypervisor(true);
         system.setNumOfGuests(placeholder.getNumOfGuests());
-        Set<HostBucketKey> seenBucketKeys = new HashSet<>();
         placeholder
             .getBuckets()
             .forEach(
@@ -479,12 +479,14 @@ public class InventoryAccountUsageCollector {
                   system.addBucket(bucket);
                   seenBucketKeys.add(bucket.getKey());
                 });
-        // remove any buckets for guests no longer present
-        system
-            .getBuckets()
-            .removeIf(b -> b.getKey().getAsHypervisor() && !seenBucketKeys.contains(b.getKey()));
       }
     }
+    // remove any buckets for guests no longer present
+    // NOTE: asHypervisor=true is used to limit cleanup to buckets added to represent guest
+    // subscription requirements (i.e. the bucket was populated from a guest).
+    system
+        .getBuckets()
+        .removeIf(b -> b.getKey().getAsHypervisor() && !seenBucketKeys.contains(b.getKey()));
   }
 
   private Host createSwatchSystem(
@@ -530,6 +532,8 @@ public class InventoryAccountUsageCollector {
     // Remove any *non-hypervisor* keys that weren't seen this time.
     // Hypervisor keys need to be evaluated against hypervisor-guest data and are handled by
     // reconcileHypervisorData
+    // NOTE: asHypervisor=false is used to operate solely on buckets for this system (filtering out
+    // those added for a guest system).
     host.getBuckets()
         .removeIf(b -> !b.getKey().getAsHypervisor() && !seenBucketKeys.contains(b.getKey()));
   }

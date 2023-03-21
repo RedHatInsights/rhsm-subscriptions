@@ -95,14 +95,14 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
       appliedSockets = normalizedFacts.isMarketplace() ? 0 : 1;
       return Optional.of(
           createBucket(
-              key, true, appliedCores, appliedSockets, normalizedFacts.getCloudProviderType()));
+              key, false, appliedCores, appliedSockets, normalizedFacts.getCloudProviderType()));
     } else if (guestWithUnknownHypervisor) {
       // If the hypervisor is unknown for a guest, we consider it as having a
       // unique hypervisor instance contributing to the hypervisor counts.
       // Since the guest is unmapped, we only contribute a single socket.
       appliedSockets = normalizedFacts.isMarketplace() ? 0 : 1;
       return Optional.of(
-          createBucket(key, true, appliedCores, appliedSockets, HardwareMeasurementType.VIRTUAL));
+          createBucket(key, false, appliedCores, appliedSockets, HardwareMeasurementType.VIRTUAL));
     }
     // Accumulate for physical systems.
     else if (!normalizedFacts.isVirtual()) {
