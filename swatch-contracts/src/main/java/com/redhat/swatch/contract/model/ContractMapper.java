@@ -22,22 +22,20 @@ package com.redhat.swatch.contract.model;
 
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.Dimension;
+import com.redhat.swatch.contract.openapi.model.Metric;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import org.mapstruct.AfterMapping;
+import org.mapstruct.BeanMapping;
+import org.mapstruct.Builder;
+import org.mapstruct.CollectionMappingStrategy;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
 
-@Mapper(componentModel = "cdi")
+@Mapper(
+    componentModel = "cdi",
+    collectionMappingStrategy = CollectionMappingStrategy.ADDER_PREFERRED,
+    builder = @Builder(disableBuilder = true))
 public interface ContractMapper {
 
   Contract contractEntityToDto(ContractEntity contract);
@@ -45,42 +43,19 @@ public interface ContractMapper {
   @Mapping(target = "lastUpdated", ignore = true)
   ContractEntity dtoToContractEntity(Contract contract);
 
+  @Mapping(target = "contract", ignore = true)
+  @Mapping(target = "contractUuid", ignore = true)
+  ContractMetricEntity metricDtoToMetricEntity(Metric metric);
+
   @Mapping(target = "subscriptionNumber", source = "contract.redHatSubscriptionNumber")
+  @Mapping(target = "metrics", source = "currentDimensions")
+  // NOTE: we only care about subscriptionNumber and metrics for now
+  @BeanMapping(ignoreByDefault = true)
   ContractEntity partnerContractToContractEntity(PartnerEntitlementContract contract);
 
   @Mapping(target = "metricId", source = "dimension.dimensionName")
   @Mapping(target = "value", source = "dimension.dimensionValue")
+  @Mapping(target = "contract", ignore = true)
+  @Mapping(target = "contractUuid", ignore = true)
   ContractMetricEntity dimensionToContractMetricEntity(Dimension dimension);
-
-  Set<ContractMetricEntity> dimensionToContractMetricEntity(List<Dimension> dimensions);
-
-  default ContractEntity reconcileUpstreamContract(PartnerEntitlementContract upstreamContract) {
-    ContractEntity entity = partnerContractToContractEntity(upstreamContract);
-    entity.setMetrics(dimensionToContractMetricEntity(upstreamContract.getCurrentDimensions()));
-    return entity;
-  }
-
-  @AfterMapping
-  default void propogateContractUuid(
-      @MappingTarget final ContractEntity.ContractEntityBuilder contractEntity,
-      final Contract contractDto) {
-
-    if (Objects.requireNonNullElse(contractDto.getMetrics(), new ArrayList<>()).isEmpty()) {
-      contractEntity.metrics(new HashSet<>());
-    } else {
-      contractEntity.metrics(
-          contractDto.getMetrics().stream()
-              .map(
-                  (x -> {
-                    var builder = ContractMetricEntity.builder();
-                    builder.metricId(x.getMetricId());
-                    builder.value(x.getValue());
-                    if (Objects.nonNull(contractDto.getUuid())) {
-                      builder.contractUuid(UUID.fromString(contractDto.getUuid()));
-                    }
-                    return builder.build();
-                  }))
-              .collect(Collectors.toSet()));
-    }
-  }
 }

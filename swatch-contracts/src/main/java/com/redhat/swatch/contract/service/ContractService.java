@@ -232,7 +232,7 @@ public class ContractService {
     ContractEntity entity;
     try {
       // Fill up information from upstream and swatch
-      entity = mapper.reconcileUpstreamContract(contract);
+      entity = mapper.partnerContractToContractEntity(contract);
       collectMissingUpStreamContractDetails(entity, contract);
       if (!isValidEntity(entity)) {
         statusResponse.setMessage("Empty value in non-null fields");
