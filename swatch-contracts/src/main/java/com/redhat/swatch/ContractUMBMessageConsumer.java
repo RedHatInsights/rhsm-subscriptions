@@ -21,6 +21,7 @@
 package com.redhat.swatch;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.redhat.swatch.contract.exception.CreateContractException;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.service.ContractService;
@@ -42,7 +43,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @ApplicationScoped
 @Slf4j
-public class JmsPriceMessageConsumer implements Runnable {
+public class ContractUMBMessageConsumer implements Runnable {
   @Inject ContractService service;
   @Inject ConnectionFactory connectionFactory;
 
@@ -61,30 +62,35 @@ public class JmsPriceMessageConsumer implements Runnable {
     log.trace("Running consumer");
     try (JMSContext context = connectionFactory.createContext(JMSContext.AUTO_ACKNOWLEDGE)) {
       log.trace("Creating JMS Consumer");
-      JMSConsumer consumer = context.createConsumer(context.createQueue("prices"));
+      JMSConsumer consumer = context.createConsumer(context.createQueue("umb-contract"));
       log.trace("Entering loop");
-      while (true) {
+      while (true) { // NOSONAR
         log.trace("Receiving");
         Message message = consumer.receive();
         StatusResponse response = consumeContract(message.getBody(String.class));
         log.trace(response.toString());
+        // Acknowledge the incoming message
         message.acknowledge();
       }
     } catch (JMSException | JsonProcessingException e) {
-      throw new RuntimeException(e);
+      throw new CreateContractException(e.getMessage());
     }
   }
 
   public StatusResponse consumeContract(String dtoContract) throws JsonProcessingException {
     // process UMB contract.
-
-    // Acknowledge the incoming message
     log.info(dtoContract);
 
-    Jsonb mapper = JsonbBuilder.create();
-    PartnerEntitlementContract contract =
-        mapper.fromJson(dtoContract, PartnerEntitlementContract.class);
+    try (Jsonb jsonbMapper = JsonbBuilder.create()) {
+      PartnerEntitlementContract contract =
+          jsonbMapper.fromJson(dtoContract, PartnerEntitlementContract.class);
 
-    return service.createPartnerContract(contract);
+      return service.createPartnerContract(contract);
+    } catch (Exception e) {
+      log.warn("Unable to read UMB message from JSON.", e);
+      StatusResponse response = new StatusResponse();
+      response.setMessage("Unable to read UMB message from JSON");
+      return response;
+    }
   }
 }

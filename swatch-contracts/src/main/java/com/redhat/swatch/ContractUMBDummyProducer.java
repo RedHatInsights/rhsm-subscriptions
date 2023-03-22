@@ -31,12 +31,17 @@ import javax.inject.Inject;
 import javax.jms.ConnectionFactory;
 import javax.jms.JMSContext;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+/** This class is only to test the ContractUMBMessageConsumer via ActiveMQ JMS */
 @ApplicationScoped
 @Slf4j
-public class JmsPriceProducer {
+public class ContractUMBDummyProducer {
 
   @Inject ConnectionFactory connectionFactory;
+
+  @ConfigProperty(name = "SWATCH_JMS_PRODUCER_ENABLED")
+  boolean jmsProducerEnabled;
 
   private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
@@ -62,14 +67,16 @@ public class JmsPriceProducer {
                             """;
 
   void onStart(@Observes StartupEvent ev) {
-    scheduler.scheduleWithFixedDelay(
-        () -> {
-          sendContract(contract);
-          log.info("done sending");
-        },
-        0L,
-        10L,
-        TimeUnit.SECONDS);
+    if (jmsProducerEnabled) {
+      scheduler.scheduleWithFixedDelay(
+          () -> {
+            sendContract(contract);
+            log.info("done sending");
+          },
+          0L,
+          10L,
+          TimeUnit.SECONDS);
+    }
   }
 
   void onStop(@Observes ShutdownEvent ev) {
@@ -78,7 +85,7 @@ public class JmsPriceProducer {
 
   public void sendContract(String contract) {
     try (JMSContext context = connectionFactory.createContext(JMSContext.AUTO_ACKNOWLEDGE)) {
-      context.createProducer().send(context.createQueue("prices"), contract);
+      context.createProducer().send(context.createQueue("umb-contract"), contract);
     }
     log.info("Done sending Contract");
   }

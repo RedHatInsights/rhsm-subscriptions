@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.contract.resource;
 
-import com.redhat.swatch.JmsPriceProducer;
 import com.redhat.swatch.contract.exception.UpdateContractException;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
@@ -43,8 +42,6 @@ import lombok.extern.slf4j.Slf4j;
 public class ContractsTestingResource implements DefaultApi {
 
   @Inject ContractService service;
-
-  @Inject JmsPriceProducer producer;
 
   /**
    * Create contract record in database from provided contract dto payload

@@ -67,7 +67,7 @@ public class ActiveMQReactiveConfiguration {
 
   @Produces
   ConnectionFactory factory() throws Exception {
-    var factory = new ActiveMQJMSConnectionFactory();
+    var factory = new ActiveMQJMSConnectionFactory(); // NOSONAR
 
     var options = new HashMap<String, Object>();
     if (!Objects.equals(brokerUrl.getScheme(), "vm")) {
