@@ -1,3 +1,4 @@
+// Plugin: swatch.spring-boot-rest-client-conventions
 import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
 
 plugins {

@@ -29,6 +29,8 @@ import static org.candlepin.subscriptions.tally.collector.TestHelper.cloudMachin
 import static org.candlepin.subscriptions.tally.collector.TestHelper.guestFacts;
 import static org.candlepin.subscriptions.tally.collector.TestHelper.hypervisorFacts;
 import static org.candlepin.subscriptions.tally.collector.TestHelper.physicalNonHypervisor;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -134,6 +136,14 @@ class DefaultProductUsageCollectorTest {
       collector.collect(calc, current);
     }
     assertTotalsCalculation(calc, 0, 0, 3);
+  }
+
+  @Test
+  void testBucketsHaveAsHypervisorFalse() {
+    var facts = new NormalizedFacts();
+    var bucket = collector.buildBucket(createUsageKey(), facts);
+    assertTrue(bucket.isPresent());
+    assertFalse(bucket.get().getKey().getAsHypervisor());
   }
 
   private UsageCalculation.Key createUsageKey() {

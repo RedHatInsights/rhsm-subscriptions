@@ -1,3 +1,4 @@
+// Plugin: swatch.spring-boot-conventions
 // gradle config common to any swatch component implemented as a spring boot app
 plugins {
     id "swatch.java-conventions"

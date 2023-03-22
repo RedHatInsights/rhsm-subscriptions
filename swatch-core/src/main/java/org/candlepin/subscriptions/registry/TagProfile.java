@@ -90,6 +90,26 @@ public class TagProfile {
     tagMappings.forEach(this::handleTagMapping);
     tagMetrics.forEach(this::handleTagMetric);
     tagMetaData.forEach(this::handleTagMetaData);
+
+    // Validation needs to be performed once all data is loaded.
+    validateContractEnabledBillingWindow();
+  }
+
+  private void validateContractEnabledBillingWindow() {
+    Set<String> invalidTags =
+        tagMetrics.stream()
+            .filter(
+                metric ->
+                    isTagContractEnabled(metric.getTag())
+                        && !BillingWindow.MONTHLY.equals(metric.getBillingWindow()))
+            .map(TagMetric::getTag)
+            .collect(Collectors.toSet());
+    if (!invalidTags.isEmpty()) {
+      throw new IllegalStateException(
+          String.format(
+              "Contract enabled tags must be configured with MONTHLY billing window: %s",
+              invalidTags));
+    }
   }
 
   private void handleTagMapping(TagMapping mapping) {

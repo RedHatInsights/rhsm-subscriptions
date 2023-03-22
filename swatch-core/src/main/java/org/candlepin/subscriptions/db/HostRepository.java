@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.db;
 
 import static org.hibernate.jpa.QueryHints.HINT_FETCH_SIZE;
-import static org.hibernate.jpa.QueryHints.HINT_READONLY;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -77,11 +76,7 @@ public interface HostRepository
         and h.instanceType='HBI_HOST'
       order by coalesce(h.hypervisorUuid, h.subscriptionManagerId), h.hypervisorUuid, h.inventoryId
           """)
-  @QueryHints(
-      value = {
-        @QueryHint(name = HINT_FETCH_SIZE, value = "1024"),
-        @QueryHint(name = HINT_READONLY, value = "true")
-      })
+  @QueryHints(value = {@QueryHint(name = HINT_FETCH_SIZE, value = "1024")})
   Stream<Host> streamHbiHostsByOrgId(@Param("orgId") String orgId);
 
   /**

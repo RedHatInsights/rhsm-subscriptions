@@ -161,6 +161,8 @@ parameters:
     value: '' # don't restrict to a specific machine pool by default
   - name: JOB_MACHINE_POOL
     value: ''
+  - name: SWATCH_CONTRACTS_INTERNAL_SERVICE_URL
+    value: http://swatch-contracts-service:8000
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -370,6 +372,8 @@ objects:
               value: ${HBI_RECONCILIATION_FLUSH_INTERVAL}
             - name: HOST_LAST_SYNC_THRESHOLD
               value: ${HOST_LAST_SYNC_THRESHOLD}
+            - name: SWATCH_CONTRACTS_INTERNAL_SERVICE_URL
+              value: ${SWATCH_CONTRACTS_INTERNAL_SERVICE_URL}
           livenessProbe:
             failureThreshold: 3
             httpGet:
