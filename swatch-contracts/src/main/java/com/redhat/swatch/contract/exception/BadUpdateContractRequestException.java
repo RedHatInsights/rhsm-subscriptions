@@ -20,10 +20,10 @@
  */
 package com.redhat.swatch.contract.exception;
 
-/** Represents an exception that occurs when creation attempted, but the contract already exists. */
-public class CreateContractException extends ContractsException {
+/** Represents an exception that occurs when an update request is malformed. */
+public class BadUpdateContractRequestException extends ContractsException {
 
-  public CreateContractException(String message) {
-    super(ErrorCode.CONTRACT_EXISTS, message);
+  public BadUpdateContractRequestException(String message) {
+    super(ErrorCode.BAD_UPDATE, message);
   }
 }

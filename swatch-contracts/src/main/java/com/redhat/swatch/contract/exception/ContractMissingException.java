@@ -20,10 +20,9 @@
  */
 package com.redhat.swatch.contract.exception;
 
-/** Represents an exception that occurs when creation attempted, but the contract already exists. */
-public class CreateContractException extends ContractsException {
-
-  public CreateContractException(String message) {
-    super(ErrorCode.CONTRACT_EXISTS, message);
+/** Exception thrown when a contract is missing. */
+public class ContractMissingException extends ContractsException {
+  public ContractMissingException(String message) {
+    super(ErrorCode.CONTRACT_DOES_NOT_EXIST, message);
   }
 }
