@@ -91,6 +91,7 @@ public class ContractEntity extends PanacheEntityBase {
   @Column(name = "product_id", nullable = false)
   private String productId;
 
+  @Builder.Default
   @OneToMany(
       targetEntity = ContractMetricEntity.class,
       cascade = CascadeType.ALL,
@@ -101,9 +102,10 @@ public class ContractEntity extends PanacheEntityBase {
   public void addMetric(ContractMetricEntity metric) {
     metrics.add(metric);
     metric.setContract(this);
+    metric.setContractUuid(uuid);
   }
 
-  public void remoteMetric(ContractMetricEntity metric) {
+  public void removeMetric(ContractMetricEntity metric) {
     metrics.remove(metric);
     metric.setContract(null);
   }
