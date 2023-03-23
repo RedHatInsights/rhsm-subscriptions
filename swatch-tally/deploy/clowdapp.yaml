@@ -93,7 +93,6 @@ parameters:
     value: '2'
   - name: HOST_LAST_SYNC_THRESHOLD
     value: 30h
-
   - name: PURGE_SNAPSHOT_SCHEDULE
     value: 0 3 * * *
   - name: CAPTURE_SNAPSHOT_SCHEDULE
@@ -163,6 +162,14 @@ parameters:
     value: ''
   - name: SWATCH_CONTRACTS_INTERNAL_SERVICE_URL
     value: http://swatch-contracts-service:8000
+  - name: CONTRACT_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS
+    value: '1000'
+  - name: CONTRACT_CLIENT_BACK_OFF_MAX_INTERVAL_MILLIS
+    value: '64000'
+  - name: CONTRACT_CLIENT_BACK_OFF_MULTIPLIER
+    value: '2'
+  - name: CONTRACT_CLIENT_MAX_ATTEMPTS
+    value: '6'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
