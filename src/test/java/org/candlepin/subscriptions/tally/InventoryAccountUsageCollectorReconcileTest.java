@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.tally;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.in;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -361,5 +362,47 @@ class InventoryAccountUsageCollectorReconcileTest {
     collector.reconcileHbiSystemWithSwatchSystem(
         hbiSystem, swatchSystem, orgHostsData, Set.of("RHEL"));
     assertTrue(swatchSystem.getBuckets().isEmpty());
+  }
+
+  @Test
+  void collectorPutsPlaceholderBucketsOnSingleCopyOfHypervisor() {
+    NormalizedFacts hypervisorFacts = new NormalizedFacts();
+    hypervisorFacts.setProducts(Set.of());
+    hypervisorFacts.setHardwareType(HostHardwareType.PHYSICAL);
+    hypervisorFacts.setSockets(4);
+    hypervisorFacts.setCores(8);
+    when(factNormalizer.normalize(any(), any())).thenReturn(hypervisorFacts);
+
+    var collector = setupCollector();
+    var hbiSystem = new InventoryHostFacts();
+    hbiSystem.setSubscriptionManagerId("123e4567-e89b-12d3-a456-426614174000");
+    Host hypervisorCopy0 = new Host();
+    Host hypervisorCopy1 = new Host();
+    OrgHostsData orgHostsData = new OrgHostsData("org123");
+    Host placeholder = new Host();
+    HostTallyBucket expectedBucket =
+        new HostTallyBucket(
+            hypervisorCopy0,
+            "hitchhiker",
+            ServiceLevel._ANY,
+            Usage._ANY,
+            BillingProvider._ANY,
+            "_ANY",
+            true,
+            0,
+            0,
+            HardwareMeasurementType.HYPERVISOR);
+    placeholder.addBucket(expectedBucket);
+    orgHostsData.addHostToHypervisor("123e4567-e89b-12d3-a456-426614174000", placeholder);
+    orgHostsData.addHostMapping(
+        "123e4567-e89b-12d3-a456-426614174000", "123e4567-e89b-12d3-a456-426614174000");
+    orgHostsData.addHypervisorFacts("123e4567-e89b-12d3-a456-426614174000", new NormalizedFacts());
+    collector.reconcileHbiSystemWithSwatchSystem(
+        hbiSystem, hypervisorCopy0, orgHostsData, Set.of("RHEL"));
+    assertTrue(orgHostsData.hypervisorHostMap().isEmpty(), "placeholder was not consumed");
+    assertFalse(hypervisorCopy0.getBuckets().isEmpty(), "no buckets added to hypervisor");
+    collector.reconcileHbiSystemWithSwatchSystem(
+        hbiSystem, hypervisorCopy1, orgHostsData, Set.of("RHEL"));
+    assertTrue(hypervisorCopy1.getBuckets().isEmpty(), "buckets added to hypervisor copy");
   }
 }
