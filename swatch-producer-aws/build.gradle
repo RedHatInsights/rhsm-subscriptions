@@ -23,6 +23,7 @@ dependencies {
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging'
     implementation 'software.amazon.awssdk:marketplacemetering'
+    implementation 'software.amazon.awssdk:sts'
     implementation libraries["clowder-quarkus-config-source"]
     implementation libraries["quarkus-logging-splunk"]
     implementation libraries["splunk-library-javalogging"]

@@ -78,6 +78,21 @@ public class WiremockRunner {
                                 .subscriptionStartDate(OffsetDateTime.now().minusDays(1))))));
     wireMockServer.stubFor(
         any(urlMatching("/api/rhsm-subscriptions/v1/?.*"))
+            .withQueryParam("accountNumber", equalTo("account1234"))
+            .withQueryParam("orgId", equalTo("org1234"))
+            .willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        jsonb.toJson(
+                            new AwsUsageContext()
+                                .customerId(awsCustomerId)
+                                .productCode(awsProductCode)
+                                .awsSellerAccountId("role_arn_test")
+                                .rhSubscriptionId("rhSubscriptionId")
+                                .subscriptionStartDate(OffsetDateTime.now().minusDays(1))))));
+    wireMockServer.stubFor(
+        any(urlMatching("/api/rhsm-subscriptions/v1/?.*"))
             .withQueryParam("accountNumber", equalTo("unconfigured"))
             .withQueryParam("orgId", equalTo("unconfigured"))
             .willReturn(
