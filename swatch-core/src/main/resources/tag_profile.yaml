@@ -154,6 +154,11 @@ tagMappings:
     tags:
       - BASILISK
 
+  - value: rosa
+    valueType: productName
+    tags:
+      - rosa
+
   # System Architecture
   - value: aarch64
     valueType: arch
