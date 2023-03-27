@@ -1084,6 +1084,7 @@ components:
         - rhacs
         - rhods
         - BASILISK
+        - rosa
     MetricId:
       type: string
       enum:
