@@ -283,16 +283,16 @@ class ContractServiceTest extends BaseUnitTest {
 
     PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
         new PartnerEntitlementContractCloudIdentifiers();
-    cloudIdentifiers.setAwsCustomerId("896801664647");
+    cloudIdentifiers.setAwsCustomerId("568056954830");
     contract.setCloudIdentifiers(cloudIdentifiers);
 
     ContractEntity existingContract = new ContractEntity();
     existingContract.setUuid(uuid);
-    existingContract.setBillingAccountId("896801664647");
+    existingContract.setBillingAccountId("568056954830");
     existingContract.setStartDate(offsetDateTime);
     existingContract.setEndDate(null);
     existingContract.setBillingProvider("aws_marketplace");
-    existingContract.setSku("MW01484");
+    existingContract.setSku("RH000000");
     existingContract.setProductId("BASILISK123");
     existingContract.setOrgId("org123");
     existingContract.setLastUpdated(offsetDateTime);

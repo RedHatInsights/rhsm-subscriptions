@@ -45,23 +45,26 @@ class RhPartnerClientIntegrationTest {
     // see WireMockResource for setup details, and canned response JSON
     var result =
         partnerApi.getPartnerEntitlements(new QueryPartnerEntitlementV1().rhAccountId("org123"));
-    var partnerEntitlements = result.getEmbedded().getPartnerEntitlements();
+    var partnerEntitlements = result.getContent();
     assertNotNull(partnerEntitlements);
     assertEquals(1, partnerEntitlements.size());
     var entitlement = partnerEntitlements.get(0);
     assertEquals("org123", entitlement.getRhAccountId());
     assertEquals(SourcePartnerEnum.AWS_MARKETPLACE, entitlement.getSourcePartner());
+
+    var rhEntitlements = entitlement.getRhEntitlements();
+    assertNotNull(rhEntitlements);
+    assertNotNull(rhEntitlements.get(0));
+    assertEquals("RH000000", rhEntitlements.get(0).getSku());
+    assertEquals("123456", rhEntitlements.get(0).getRedHatSubscriptionNumber());
     var purchase = entitlement.getPurchase();
     assertNotNull(purchase);
-    assertEquals("RH000000", purchase.getSku());
-    assertEquals("123456", purchase.getSubscriptionNumber());
-    assertEquals("1234567890abcdefghijklmno", purchase.getProductCode());
+    assertEquals("1234567890abcdefghijklmno", purchase.getVendorProductCode());
     assertNotNull(purchase.getContracts());
     assertEquals(1, purchase.getContracts().size());
     var contract = purchase.getContracts().get(0);
     assertNotNull(contract);
     assertEquals(OffsetDateTime.parse("2022-09-23T20:07:51.010445Z"), contract.getStartDate());
-    assertEquals(OffsetDateTime.parse("2022-10-23T20:07:51.010540Z"), contract.getEndDate());
     assertNotNull(contract.getDimensions());
     assertEquals(1, contract.getDimensions().size());
     var dimension = contract.getDimensions().get(0);

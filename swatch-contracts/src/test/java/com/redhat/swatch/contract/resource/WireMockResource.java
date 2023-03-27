@@ -75,44 +75,48 @@ public class WireMockResource
                     .withBody(
                         """
                                 {
-                                "_embedded": {
-                                  "partnerEntitlements": [
+                                  "content": [
                                     {
                                       "rhAccountId": "org123",
                                       "sourcePartner": "aws_marketplace",
                                       "partnerIdentities": {
-                                        "awsCustomerId": "e1dSCLwo6ib",
-                                        "customerAwsAccountId": "896801664647",
+                                        "awsCustomerId": "568056954830",
+                                        "customerAwsAccountId": "568056954830",
                                         "sellerAccountId": "568056954830"
                                       },
-                                      "purchase": {
-                                        "productCode": "1234567890abcdefghijklmno",
-                                        "sku": "RH000000",
-                                        "subscriptionNumber": "123456",
-                                        "contracts": [
+                                      "rhEntitlements": [
                                         {
-                                          "startDate": "2022-09-23T20:07:51.010445Z",
-                                          "endDate": "2022-10-23T20:07:51.01054Z",
-                                          "dimensions": [
-                                            {
-                                              "name": "foobar",
-                                              "value": 1000000
-                                            }
-                                          ]
+                                          "sku": "RH000000",
+                                          "redHatSubscriptionNumber": "123456"
                                         }
+                                      ],
+                                      "purchase": {
+                                        "vendorProductCode": "1234567890abcdefghijklmno",
+                                        "contracts": [
+                                          {
+                                            "startDate": "2022-09-23T20:07:51.010445Z",
+                                            "dimensions": [
+                                              {
+                                                "name": "foobar",
+                                                "value": "1000000"
+                                              }
+                                            ]
+                                          }
                                         ]
                                       },
-                                      "status": "SUBSCRIBED",
-                                      "extra": "this shows we ignore unknown fields"
-                                    }
-                                  ]
-                                  },
-                                      "page": {
-                                          "size": 20,
-                                          "totalElements": 2,
-                                          "totalPages": 1,
-                                          "number": 0
+                                      "status": "STATUS",
+                                      "entitlementDates": {
+                                        "startDate": "2023-03-17T12:29:48.569Z",
+                                        "endDate": "2023-03-17T12:29:48.569Z"
                                       }
+                                    }
+                                  ],
+                                  "page": {
+                                    "size": 0,
+                                    "totalElements": 0,
+                                    "totalPages": 0,
+                                    "number": 0
+                                  }
                                 }
 
                                 """)));
