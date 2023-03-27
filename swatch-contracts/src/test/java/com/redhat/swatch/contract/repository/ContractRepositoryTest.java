@@ -72,7 +72,7 @@ class ContractRepositoryTest {
     actualContract1.setEndDate(END);
     actualContract1.setBillingProvider("test123");
     actualContract1.setSku("BAS123");
-    actualContract1.setProductId("BASILISK123");
+    actualContract1.setProductId("rosa");
     actualContract1.setOrgId("org123");
     actualContract1.setLastUpdated(OffsetDateTime.now());
     actualContract1.setSubscriptionNumber("test");
@@ -98,7 +98,7 @@ class ContractRepositoryTest {
     actualContract2.setEndDate(null);
     actualContract2.setBillingProvider("test456");
     actualContract2.setSku("BAS456");
-    actualContract2.setProductId("BASILISK456");
+    actualContract2.setProductId("rosa");
     actualContract2.setOrgId("org456");
     actualContract2.setLastUpdated(OffsetDateTime.now());
     actualContract2.setSubscriptionNumber("test");
@@ -167,15 +167,14 @@ class ContractRepositoryTest {
   @Test
   void whenGetContractWithCorrectParam_thenReturnAllContracts() {
     var spec =
-        ContractEntity.metricIdEquals("instance-hours")
-            .and(ContractEntity.productIdEquals("BASILISK123"));
+        ContractEntity.metricIdEquals("instance-hours").and(ContractEntity.productIdEquals("rosa"));
     List<ContractEntity> allContracts = contractRepository.getContracts(spec);
     assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
   }
 
   @Test
   void whenGetContractWithMissingMetricIdParam_thenReturnAllContracts() {
-    var spec = ContractEntity.productIdEquals("BASILISK123");
+    var spec = ContractEntity.productIdEquals("rosa");
     List<ContractEntity> allContracts = contractRepository.getContracts(spec);
     assertEquals(allContracts.get(0).getUuid(), contractList.get(0).getUuid());
   }

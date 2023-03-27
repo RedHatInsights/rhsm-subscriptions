@@ -1083,7 +1083,6 @@ components:
         - rhosak
         - rhacs
         - rhods
-        - BASILISK
         - rosa
     MetricId:
       type: string

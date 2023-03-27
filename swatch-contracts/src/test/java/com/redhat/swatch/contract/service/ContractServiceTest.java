@@ -75,7 +75,7 @@ class ContractServiceTest extends BaseUnitTest {
     actualContract1.setEndDate(OffsetDateTime.now());
     actualContract1.setBillingProvider("test123");
     actualContract1.setSku("BAS123");
-    actualContract1.setProductId("BASILISK123");
+    actualContract1.setProductId("rosa");
     actualContract1.setOrgId("org123");
     actualContract1.setLastUpdated(OffsetDateTime.now());
     actualContract1.setSubscriptionNumber("test");
@@ -98,8 +98,8 @@ class ContractServiceTest extends BaseUnitTest {
     contractDto.setStartDate(OffsetDateTime.now());
     contractDto.setEndDate(OffsetDateTime.now());
     contractDto.setBillingProvider("test123");
-    contractDto.setSku("BAS123");
-    contractDto.setProductId("BASILISK123");
+    contractDto.setSku("rosa");
+    contractDto.setProductId("rosa");
     contractDto.setOrgId("org123");
     contractDto.setSubscriptionNumber("test");
 
@@ -127,8 +127,7 @@ class ContractServiceTest extends BaseUnitTest {
   @Test
   void testGetContracts() {
     when(contractRepository.getContracts(any())).thenReturn((List.of(actualContract1)));
-    var spec =
-        ContractEntity.orgIdEquals("org123").and(ContractEntity.productIdEquals("BASILISK123"));
+    var spec = ContractEntity.orgIdEquals("org123").and(ContractEntity.productIdEquals("rosa"));
     List<Contract> contractList =
         contractService.getContracts("org123", "BASILISK123", null, null, null, null);
     verify(contractRepository).getContracts(any());
@@ -245,7 +244,7 @@ class ContractServiceTest extends BaseUnitTest {
     existingContract.setEndDate(null);
     existingContract.setBillingProvider("aws_marketplace");
     existingContract.setSku("RH000000");
-    existingContract.setProductId("BASILISK123");
+    existingContract.setProductId("rosa");
     existingContract.setOrgId("org123");
     existingContract.setLastUpdated(offsetDateTime);
     existingContract.setSubscriptionNumber("12400374");
@@ -306,7 +305,7 @@ class ContractServiceTest extends BaseUnitTest {
     existingContract.setMetrics(Set.of(contractMetric4));
 
     OfferingProductTags productTags = new OfferingProductTags();
-    productTags.data(List.of("BASILISK123"));
+    productTags.data(List.of("rosa"));
     when(syncResource.getSkuProductTags(any())).thenReturn(productTags);
 
     when(contractRepository.getContracts(any())).thenReturn(List.of(existingContract));

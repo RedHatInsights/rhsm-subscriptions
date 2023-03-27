@@ -728,6 +728,7 @@ objects:
       name: capacity-allowlist
     data:
       product-allowlist.txt: |-
+#        SWATCH-1061
         BASILISK
         CL110
         CL110A

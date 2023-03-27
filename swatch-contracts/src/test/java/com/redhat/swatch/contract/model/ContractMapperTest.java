@@ -59,7 +59,7 @@ class ContractMapperTest {
     entity.setOrgId("org123");
     entity.setBillingAccountId("billAcct123");
     entity.setBillingProvider("aws");
-    entity.setProductId("BASILISK");
+    entity.setProductId("rosa");
     entity.setSubscriptionNumber("subs123");
 
     var contractMetric = new ContractMetricEntity();
@@ -105,7 +105,7 @@ class ContractMapperTest {
     dto.setOrgId("org123");
     dto.setBillingAccountId("billAcct123");
     dto.setBillingProvider("aws");
-    dto.setProductId("BASILISK");
+    dto.setProductId("rosa");
     dto.setSubscriptionNumber("subs123");
 
     var metric = new Metric();

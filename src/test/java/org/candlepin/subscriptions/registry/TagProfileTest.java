@@ -52,11 +52,11 @@ class TagProfileTest {
   private static final String OPENSHIFT_DEDICATED_TAG = "OpenShift-dedicated-metrics";
   public static final String OPENSHIFT_TAG = "OpenShift-metrics";
   public static final String RHOSAK_TAG = "rhosak";
-  public static final String BASILISK_TAG = "BASILISK";
+  public static final String ROSA_TAG = "rosa";
 
   private static final String OPENSHIFT_CLUSTER_ST = "OpenShift Cluster";
   private static final String KAFKA_CLUSTER_ST = "Kafka Cluster";
-  public static final String BASILISK_ST = "BASILISK Instance";
+  public static final String ROSA_ST = "Rosa Instance";
   public static final String BILLING_MODEL_PAYG = "PAYG";
 
   private TagProfile tagProfile;
@@ -140,7 +140,7 @@ class TagProfileTest {
   @Test
   void serviceTypesGetInitialized() {
     assertEquals(
-        Set.of(OPENSHIFT_CLUSTER_ST, KAFKA_CLUSTER_ST, BASILISK_ST), tagProfile.getServiceTypes());
+        Set.of(OPENSHIFT_CLUSTER_ST, KAFKA_CLUSTER_ST, ROSA_ST), tagProfile.getServiceTypes());
   }
 
   @Test
@@ -196,7 +196,7 @@ class TagProfileTest {
   @Test
   void testIsContractEnabledForTag() {
     assertFalse(tagProfile.isTagContractEnabled(OPENSHIFT_TAG));
-    assertTrue(tagProfile.isTagContractEnabled(BASILISK_TAG));
+    assertTrue(tagProfile.isTagContractEnabled(ROSA_TAG));
   }
 
   @Test
@@ -222,15 +222,12 @@ class TagProfileTest {
   @Test
   void throwsIllegalStateOnInitializationOnContractEnabledTagWithoutMonthlyBillingWindow() {
     TagProfile profile = buildTagProfile();
-    profile
-        .getTagMetric(BASILISK_TAG, Uom.INSTANCE_HOURS)
-        .get()
-        .setBillingWindow(BillingWindow.HOURLY);
+    profile.getTagMetric(ROSA_TAG, Uom.INSTANCE_HOURS).get().setBillingWindow(BillingWindow.HOURLY);
 
     IllegalStateException e =
         assertThrows(IllegalStateException.class, () -> profile.initLookups());
     assertEquals(
-        "Contract enabled tags must be configured with MONTHLY billing window: [BASILISK]",
+        "Contract enabled tags must be configured with MONTHLY billing window: [rosa]",
         e.getMessage());
   }
 
@@ -279,7 +276,7 @@ class TagProfileTest {
             .build());
     tagMetrics.add(
         TagMetric.builder()
-            .tag(BASILISK_TAG)
+            .tag(ROSA_TAG)
             .uom(Uom.INSTANCE_HOURS)
             .metricId("b_instance_hours")
             .queryParams(params)
@@ -305,10 +302,10 @@ class TagProfileTest {
             .billingModel(BILLING_MODEL_PAYG)
             .build();
 
-    TagMetaData basiliskMetaData =
+    TagMetaData rosaMetadata =
         TagMetaData.builder()
-            .tags(Set.of(BASILISK_TAG))
-            .serviceType(BASILISK_ST)
+            .tags(Set.of(ROSA_TAG))
+            .serviceType(ROSA_ST)
             .finestGranularity(Granularity.HOURLY)
             .defaultSla(ServiceLevel.PREMIUM)
             .defaultUsage(Usage.PRODUCTION)
@@ -319,7 +316,7 @@ class TagProfileTest {
     return TagProfile.builder()
         .tagMappings(List.of(tagMapping1, tagMapping2, tagMapping3, openshiftRoleMapping))
         .tagMetrics(tagMetrics)
-        .tagMetaData(List.of(openshiftClusterMetaData, kafkaClusterMetaData, basiliskMetaData))
+        .tagMetaData(List.of(openshiftClusterMetaData, kafkaClusterMetaData, rosaMetadata))
         .build();
   }
 }
