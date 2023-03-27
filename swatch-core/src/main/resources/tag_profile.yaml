@@ -106,6 +106,10 @@ tagMappings:
     valueType: role
     tags:
       - BASILISK
+  - value: rosa
+    valueType: role
+    tags:
+      - rosa
 
   - value: Red Hat Enterprise Linux Server
     valueType: role
@@ -445,6 +449,14 @@ tagMetaData:
   - tags:
       - BASILISK
     serviceType: BASILISK Instance
+    finestGranularity: HOURLY
+    defaultSla: PREMIUM
+    defaultUsage: PRODUCTION
+    billingModel: PAYG
+    contractEnabled: true
+  - tags:
+      - rosa
+    serviceType: rosa Instance
     finestGranularity: HOURLY
     defaultSla: PREMIUM
     defaultUsage: PRODUCTION
