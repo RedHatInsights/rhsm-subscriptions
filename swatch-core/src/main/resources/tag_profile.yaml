@@ -333,6 +333,28 @@ tagMetrics:
       prometheusMetric: kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibyte_months
       prometheusMetadataMetric: subscription_labels
 
+  #RHOSA tag metadata
+  - tag: rosa
+    metricId: redhat.com:rosa:cluster_hour
+    rhmMetricId: redhat.com:rosa:cluster_hour
+    awsDimension: cluster_hour
+    uom: INSTANCE_HOURS
+    billingWindow: MONTHLY
+    queryParams:
+      product: rosa
+      prometheusMetric: cluster:usage:workload:capacity_physical_instance_hours
+      prometheusMetadataMetric: subscription_labels
+  - tag: rosa
+    metricId: redhat.com:rosa:cpu_hour
+    rhmMetricId: redhat.com:rosa:cpu_hour
+    awsDimension: cpu_hour
+    uom: CORES
+    billingWindow: MONTHLY
+    queryParams:
+      product: rosa
+      prometheusMetric: cluster:usage:workload:capacity_physical_cpu_hours
+      prometheusMetadataMetric: subscription_labels
+
   # RHEL metrics. This is ugly and we should find a way to consolidate this.
   - tag: RHEL
     uom: SOCKETS
