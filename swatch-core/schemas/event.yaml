@@ -136,6 +136,7 @@ properties:
       - rhacs
       - addon-open-data-hub
       - BASILISK
+      - rosa
     required: false
   sla:
     description: Service level for the subject.

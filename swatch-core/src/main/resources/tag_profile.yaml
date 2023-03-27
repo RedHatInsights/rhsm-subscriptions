@@ -106,6 +106,10 @@ tagMappings:
     valueType: role
     tags:
       - BASILISK
+  - value: moa-hostedcontrolplane
+    valueType: role
+    tags:
+      - rosa
 
   - value: Red Hat Enterprise Linux Server
     valueType: role
@@ -153,6 +157,11 @@ tagMappings:
     valueType: productName
     tags:
       - BASILISK
+
+  - value: OpenShift Dedicated
+    valueType: productName
+    tags:
+      - rosa
 
   # System Architecture
   - value: aarch64
@@ -328,6 +337,28 @@ tagMetrics:
       prometheusMetric: kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibyte_months
       prometheusMetadataMetric: subscription_labels
 
+  #ROSA tag metadata
+  - tag: rosa
+    metricId: redhat.com:rosa:cluster_hour
+    rhmMetricId: redhat.com:rosa:cluster_hour
+    awsDimension: cluster_hour
+    uom: INSTANCE_HOURS
+    billingWindow: MONTHLY
+    queryParams:
+      product: moa-hostedcontrolplane
+      prometheusMetric: cluster:usage:workload:capacity_physical_instance_hours
+      prometheusMetadataMetric: subscription_labels
+  - tag: rosa
+    metricId: redhat.com:rosa:cpu_hour
+    rhmMetricId: redhat.com:rosa:cpu_hour
+    awsDimension: cpu_hour
+    uom: CORES
+    billingWindow: MONTHLY
+    queryParams:
+      product: moa-hostedcontrolplane
+      prometheusMetric: cluster:usage:workload:capacity_physical_cpu_hours
+      prometheusMetadataMetric: subscription_labels
+
   # RHEL metrics. This is ugly and we should find a way to consolidate this.
   - tag: RHEL
     uom: SOCKETS
@@ -418,6 +449,14 @@ tagMetaData:
   - tags:
       - BASILISK
     serviceType: BASILISK Instance
+    finestGranularity: HOURLY
+    defaultSla: PREMIUM
+    defaultUsage: PRODUCTION
+    billingModel: PAYG
+    contractEnabled: true
+  - tags:
+      - rosa
+    serviceType: rosa Instance
     finestGranularity: HOURLY
     defaultSla: PREMIUM
     defaultUsage: PRODUCTION
