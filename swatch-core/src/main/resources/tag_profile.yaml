@@ -106,7 +106,7 @@ tagMappings:
     valueType: role
     tags:
       - BASILISK
-  - value: rosa
+  - value: moa-hostedcontrolplane
     valueType: role
     tags:
       - rosa
@@ -158,7 +158,7 @@ tagMappings:
     tags:
       - BASILISK
 
-  - value: rosa
+  - value: OpenShift Dedicated
     valueType: productName
     tags:
       - rosa
@@ -337,7 +337,7 @@ tagMetrics:
       prometheusMetric: kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibyte_months
       prometheusMetadataMetric: subscription_labels
 
-  #RHOSA tag metadata
+  #ROSA tag metadata
   - tag: rosa
     metricId: redhat.com:rosa:cluster_hour
     rhmMetricId: redhat.com:rosa:cluster_hour
@@ -345,7 +345,7 @@ tagMetrics:
     uom: INSTANCE_HOURS
     billingWindow: MONTHLY
     queryParams:
-      product: rosa
+      product: moa-hostedcontrolplane
       prometheusMetric: cluster:usage:workload:capacity_physical_instance_hours
       prometheusMetadataMetric: subscription_labels
   - tag: rosa
@@ -355,7 +355,7 @@ tagMetrics:
     uom: CORES
     billingWindow: MONTHLY
     queryParams:
-      product: rosa
+      product: moa-hostedcontrolplane
       prometheusMetric: cluster:usage:workload:capacity_physical_cpu_hours
       prometheusMetadataMetric: subscription_labels
 
