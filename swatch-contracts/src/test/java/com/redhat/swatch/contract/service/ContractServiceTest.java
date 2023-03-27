@@ -130,7 +130,7 @@ class ContractServiceTest extends BaseUnitTest {
     var spec =
         ContractEntity.orgIdEquals("org123").and(ContractEntity.productIdEquals("BASILISK123"));
     List<Contract> contractList =
-        contractService.getContracts("org123", "BASILISK123", null, null, null);
+        contractService.getContracts("org123", "BASILISK123", null, null, null, null);
     verify(contractRepository).getContracts(any());
     assertEquals(1, contractList.size());
     assertEquals(2, contractList.get(0).getMetrics().size());

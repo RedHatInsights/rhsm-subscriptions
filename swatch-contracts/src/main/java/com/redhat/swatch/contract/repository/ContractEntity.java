@@ -162,4 +162,13 @@ public class ContractEntity extends PanacheEntityBase {
   public static Specification<ContractEntity> isActive() {
     return (root, query, builder) -> builder.isNull(root.get(ContractEntity_.endDate));
   }
+
+  public static Specification<ContractEntity> activeOn(OffsetDateTime timestamp) {
+    return (root, query, builder) ->
+        builder.and(
+            builder.lessThanOrEqualTo(root.get(ContractEntity_.startDate), timestamp),
+            builder.or(
+                builder.isNull(root.get(ContractEntity_.endDate)),
+                builder.greaterThan(root.get(ContractEntity_.endDate), timestamp)));
+  }
 }
