@@ -21,12 +21,11 @@
 package com.redhat.swatch.contract.service;
 
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PageRequest;
-import com.redhat.swatch.clients.rh.partner.gateway.api.model.PurchaseV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
+import com.redhat.swatch.contract.exception.ContractMissingException;
 import com.redhat.swatch.contract.exception.CreateContractException;
-import com.redhat.swatch.contract.exception.UpdateContractException;
 import com.redhat.swatch.contract.model.ContractMapper;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
@@ -133,7 +132,8 @@ public class ContractService {
       String productId,
       String metricId,
       String billingProvider,
-      String billingAccountId) {
+      String billingAccountId,
+      OffsetDateTime timestamp) {
 
     Specification<ContractEntity> specification = ContractEntity.orgIdEquals(orgId);
 
@@ -148,6 +148,9 @@ public class ContractService {
     }
     if (billingAccountId != null) {
       specification = specification.and(ContractEntity.billingAccountIdEquals(billingAccountId));
+    }
+    if (timestamp != null) {
+      specification = specification.and(ContractEntity.activeOn(timestamp));
     }
 
     return contractRepository.getContracts(specification).stream()
@@ -176,7 +179,7 @@ public class ContractService {
           String.format(
               "Update called for contract uuid %s, but contract does not exist", dto.getUuid());
       log.error(message);
-      throw new UpdateContractException(message);
+      throw new ContractMissingException(message);
     }
 
     // "sunset" the previous record
@@ -232,7 +235,7 @@ public class ContractService {
     ContractEntity entity;
     try {
       // Fill up information from upstream and swatch
-      entity = mapper.reconcileUpstreamContract(contract);
+      entity = mapper.partnerContractToContractEntity(contract);
       collectMissingUpStreamContractDetails(entity, contract);
       if (!isValidEntity(entity)) {
         statusResponse.setMessage("Empty value in non-null fields");
@@ -316,38 +319,33 @@ public class ContractService {
     PageRequest page = new PageRequest();
     page.setSize(20);
     page.setNumber(0);
-    if (Objects.nonNull(contract.getCloudIdentifiers()) // NOSONAR
+    if (Objects.nonNull(contract.getCloudIdentifiers())
         && Objects.nonNull(contract.getCloudIdentifiers().getAwsCustomerId())) {
       var result =
           partnerApi.getPartnerEntitlements(
               new QueryPartnerEntitlementV1()
                   .customerAwsAccountId(contract.getCloudIdentifiers().getAwsCustomerId())
                   .page(page));
-      if (Objects.nonNull(result.getEmbedded())) {
-        var partnerEntitlements = result.getEmbedded().getPartnerEntitlements();
-        var entitlement = partnerEntitlements.get(0);
-        if (Objects.nonNull(entitlement)) {
-          entity.setOrgId(entitlement.getRhAccountId());
-          entity.setBillingProvider(entitlement.getSourcePartner().value());
-          var partnerIdentity = entitlement.getPartnerIdentities();
-          if (Objects.nonNull(partnerIdentity)) {
-            entity.setBillingAccountId(partnerIdentity.getCustomerAwsAccountId());
-          }
-
-          /*SWATCH-1014 Uncomment next line after entitlement gateway provides sku in message
-          var purchase = entitlement.getPurchase(); //NOSONAR
-          Remove next two lines after entitlement gateway provides sku in message*/
-          PurchaseV1 purchase = new PurchaseV1();
-          purchase.setSku("MW01484");
-          if (Objects.nonNull(purchase)) { // NOSONAR
-            entity.setSku(purchase.getSku());
-            OfferingProductTags productTags = syncResource.getSkuProductTags(purchase.getSku());
-            if (Objects.nonNull(productTags.getData())
-                && Objects.nonNull(productTags.getData().get(0))) {
-              entity.setProductId(productTags.getData().get(0));
-            } else {
-              log.error("Error getting product tags");
-            }
+      if (Objects.nonNull(result.getContent()) && Objects.nonNull(result.getContent().get(0))) {
+        var entitlement = result.getContent().get(0);
+        entity.setOrgId(entitlement.getRhAccountId());
+        entity.setBillingProvider(entitlement.getSourcePartner().value());
+        var partnerIdentity = entitlement.getPartnerIdentities();
+        if (Objects.nonNull(partnerIdentity)) {
+          entity.setBillingAccountId(partnerIdentity.getCustomerAwsAccountId());
+        }
+        var rhEntitlements = entitlement.getRhEntitlements();
+        if (Objects.nonNull(rhEntitlements)
+            && !rhEntitlements.isEmpty()
+            && Objects.nonNull(rhEntitlements.get(0))) {
+          var sku = rhEntitlements.get(0).getSku();
+          entity.setSku(sku);
+          OfferingProductTags productTags = syncResource.getSkuProductTags(sku);
+          if (Objects.nonNull(productTags.getData())
+              && Objects.nonNull(productTags.getData().get(0))) {
+            entity.setProductId(productTags.getData().get(0));
+          } else {
+            log.error("Error getting product tags");
           }
         }
       }

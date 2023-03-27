@@ -18,16 +18,12 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.repository;
+package com.redhat.swatch.contract.exception;
 
-import java.io.Serializable;
-import java.util.UUID;
-import lombok.Data;
+/** Represents an exception that occurs when an update request is malformed. */
+public class BadUpdateContractRequestException extends ContractsException {
 
-@Data
-public class ContractMetricEmbeddableId implements Serializable {
-
-  private UUID contractUuid;
-  private String metricId;
-  private double value;
+  public BadUpdateContractRequestException(String message) {
+    super(ErrorCode.BAD_UPDATE, message);
+  }
 }

@@ -49,10 +49,12 @@ import org.springframework.kafka.listener.CommonErrorHandler;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
 
 @Configuration
+@EnableRetry
 public class BillingProducerConfiguration {
 
   @Bean
@@ -151,8 +153,8 @@ public class BillingProducerConfiguration {
   @Qualifier("contractsClientProperties")
   @ConfigurationProperties(prefix = "rhsm-subscriptions.billing-producer.contracts")
   @Bean
-  public HttpClientProperties contractsClientProperties() {
-    return new HttpClientProperties();
+  public ContractsClientProperties contractsClientProperties() {
+    return new ContractsClientProperties();
   }
 
   @Bean

@@ -22,7 +22,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetPartnerEntitlementsResponse'
+                $ref: '#/components/schemas/PartnerEntitlements'
         400:
           description: Order does not exist
           content:
@@ -38,11 +38,12 @@ paths:
 
 components:
   schemas:
-    GetPartnerEntitlementsResponse:
-      type: object
+    PartnerEntitlements:
       properties:
-        _embedded:
-          $ref: '#/components/schemas/PartnerEntitlements'
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartnerEntitlementV1'
         page:
           type: object
           properties:
@@ -54,12 +55,6 @@ components:
               type: integer
             number:
               type: integer
-    PartnerEntitlements:
-      properties:
-        partnerEntitlements:
-          type: array
-          items:
-            $ref: '#/components/schemas/PartnerEntitlementV1'
     QueryPartnerEntitlementV1:
       properties:
         rhAccountId:
@@ -97,12 +92,25 @@ components:
           type: string
           enum:
             - aws_marketplace
-        status:
-          type: string
         partnerIdentities:
           $ref: '#/components/schemas/PartnerIdentityV1'
+        rhEntitlements:
+          type: array
+          items:
+            $ref: '#/components/schemas/RhEntitlementV1'
         purchase:
           $ref: '#/components/schemas/PurchaseV1'
+        status:
+          type: string
+        entitlementDates:
+          type: object
+          properties:
+            startDate:
+              type: string
+              format: date-time
+            endDate:
+              type: string
+              format: date-time
     PartnerIdentityV1:
       properties:
         awsCustomerId:
@@ -113,11 +121,7 @@ components:
           type: string
     PurchaseV1:
       properties:
-        productCode:
-          type: string
-        sku:
-          type: string
-        subscriptionNumber:
+        vendorProductCode:
           type: string
         contracts:
           type: array
@@ -126,9 +130,6 @@ components:
     SaasContractV1:
       properties:
         startDate:
-          type: string
-          format: date-time
-        endDate:
           type: string
           format: date-time
         dimensions:
@@ -140,6 +141,12 @@ components:
         name:
           type: string
         value:
+          type: string
+    RhEntitlementV1:
+      properties:
+        sku:
+          type: string
+        redHatSubscriptionNumber:
           type: string
     ApiErrorV1:
       properties:

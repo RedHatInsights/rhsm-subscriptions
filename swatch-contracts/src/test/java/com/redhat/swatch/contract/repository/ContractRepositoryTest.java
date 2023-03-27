@@ -20,6 +20,9 @@
  */
 package com.redhat.swatch.contract.repository;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -47,6 +50,8 @@ import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 @DisabledIfEnvironmentVariable(named = "CI", matches = "true")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ContractRepositoryTest {
+  final OffsetDateTime BEGIN = OffsetDateTime.parse("2023-01-01T00:00Z");
+  final OffsetDateTime END = OffsetDateTime.parse("2024-01-01T00:00Z");
 
   @Inject ContractRepository contractRepository;
 
@@ -63,8 +68,8 @@ class ContractRepositoryTest {
     var uuid = UUID.randomUUID();
     actualContract1.setUuid(uuid);
     actualContract1.setBillingAccountId("billAcct123");
-    actualContract1.setStartDate(OffsetDateTime.now());
-    actualContract1.setEndDate(OffsetDateTime.now());
+    actualContract1.setStartDate(BEGIN);
+    actualContract1.setEndDate(END);
     actualContract1.setBillingProvider("test123");
     actualContract1.setSku("BAS123");
     actualContract1.setProductId("BASILISK123");
@@ -84,13 +89,13 @@ class ContractRepositoryTest {
 
     actualContract1.setMetrics(Set.of(contractMetric1, contractMetric2));
 
-    // Contract2 with same UUID but different metrics
+    // Contract2 with same UUID but different metrics, and no end date
     actualContract2 = new ContractEntity();
     var uuid2 = UUID.randomUUID();
     actualContract2.setUuid(uuid2);
     actualContract2.setBillingAccountId("billAcct456");
-    actualContract2.setStartDate(OffsetDateTime.now());
-    actualContract2.setEndDate(OffsetDateTime.now());
+    actualContract2.setStartDate(BEGIN);
+    actualContract2.setEndDate(null);
     actualContract2.setBillingProvider("test456");
     actualContract2.setSku("BAS456");
     actualContract2.setProductId("BASILISK456");
@@ -191,6 +196,42 @@ class ContractRepositoryTest {
     var uuid = UUID.randomUUID();
     assertNull(contractRepository.findById(uuid));
     assertFalse(contractRepository.deleteById(uuid));
+  }
+
+  @Test
+  void testActiveOnFiltersOutContractsStartingAfterTimestampWithNullEndDate() {
+    var spec = ContractEntity.activeOn(BEGIN.minusSeconds(1));
+    assertThat(contractRepository.find(ContractEntity.class, spec), empty());
+  }
+
+  @Test
+  void testActiveOnMatchesContractsStartingOnTimestampWithNullEndDate() {
+    var spec = ContractEntity.activeOn(BEGIN);
+    assertThat(
+        contractRepository.find(ContractEntity.class, spec),
+        containsInAnyOrder(actualContract1, actualContract2));
+  }
+
+  @Test
+  void testActiveOnMatchesContractsStartingBeforeTimestampWithNullEndDate() {
+    var spec = ContractEntity.activeOn(BEGIN.plusSeconds(1));
+    assertThat(
+        contractRepository.find(ContractEntity.class, spec),
+        containsInAnyOrder(actualContract1, actualContract2));
+  }
+
+  @Test
+  void testActiveOnFiltersOutContractsEndingAfterTimestamp() {
+    var spec = ContractEntity.activeOn(END.plusSeconds(1));
+    assertThat(
+        contractRepository.find(ContractEntity.class, spec), containsInAnyOrder(actualContract2));
+  }
+
+  @Test
+  void testActiveOnFiltersOutContractsEndingOnTimestamp() {
+    var spec = ContractEntity.activeOn(END);
+    assertThat(
+        contractRepository.find(ContractEntity.class, spec), containsInAnyOrder(actualContract2));
   }
 
   @AfterAll

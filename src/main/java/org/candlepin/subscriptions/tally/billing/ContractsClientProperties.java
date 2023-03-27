@@ -18,26 +18,22 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.files;
+package org.candlepin.subscriptions.tally.billing;
 
 import lombok.Data;
-import software.amazon.awssdk.auth.credentials.AwsCredentials;
+import org.candlepin.subscriptions.http.HttpClientProperties;
 
-/** AWS credentials represented with bean spec, with added seller account field. */
 @Data
-public class AwsSellerAccountCredentials implements AwsCredentials {
+public class ContractsClientProperties extends HttpClientProperties {
+  /** How many attempts before giving up. */
+  private Integer maxAttempts;
 
-  private String accessKeyId;
-  private String secretAccessKey;
-  private String sellerAccount;
+  /** Retry backoff interval in milliseconds. */
+  private Integer backOffInitialInterval;
 
-  @Override
-  public String accessKeyId() {
-    return accessKeyId;
-  }
+  /** Retry backoff interval in milliseconds. */
+  private Integer backOffMaxInterval;
 
-  @Override
-  public String secretAccessKey() {
-    return secretAccessKey;
-  }
+  /** Retry exponential backoff multiplier. */
+  private Double backOffMultiplier;
 }

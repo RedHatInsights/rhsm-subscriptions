@@ -20,7 +20,7 @@
  */
 package com.redhat.swatch.contract.resource;
 
-import com.redhat.swatch.contract.exception.UpdateContractException;
+import com.redhat.swatch.contract.exception.BadUpdateContractRequestException;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
@@ -88,7 +88,8 @@ public class ContractsTestingResource implements DefaultApi {
       String billingAccountId,
       OffsetDateTime timestamp)
       throws ApiException, ProcessingException {
-    return service.getContracts(orgId, productId, metricId, billingProvider, billingAccountId);
+    return service.getContracts(
+        orgId, productId, metricId, billingProvider, billingAccountId, timestamp);
   }
 
   /**
@@ -107,7 +108,8 @@ public class ContractsTestingResource implements DefaultApi {
       throws ApiException, ProcessingException {
 
     if (Objects.nonNull(contract.getUuid()) && !Objects.equals(uuid, contract.getUuid())) {
-      throw new UpdateContractException("Uuid in path variable and uuid in payload do not match");
+      throw new BadUpdateContractRequestException(
+          "Uuid in path variable and uuid in payload do not match");
     }
     log.info("Updating contract {}", uuid);
 

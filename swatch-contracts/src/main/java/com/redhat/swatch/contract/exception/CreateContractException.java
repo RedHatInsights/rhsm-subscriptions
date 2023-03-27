@@ -20,12 +20,10 @@
  */
 package com.redhat.swatch.contract.exception;
 
-/**
- * Represents an exception that occurs when something goes wrong while creating a Contract record.
- */
-public class CreateContractException extends RuntimeException {
+/** Represents an exception that occurs when creation attempted, but the contract already exists. */
+public class CreateContractException extends ContractsException {
 
   public CreateContractException(String message) {
-    super(message);
+    super(ErrorCode.CONTRACT_EXISTS, message);
   }
 }

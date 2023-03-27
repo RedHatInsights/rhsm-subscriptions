@@ -130,7 +130,7 @@ class ContractServiceTest extends BaseUnitTest {
     var spec =
         ContractEntity.orgIdEquals("org123").and(ContractEntity.productIdEquals("BASILISK123"));
     List<Contract> contractList =
-        contractService.getContracts("org123", "BASILISK123", null, null, null);
+        contractService.getContracts("org123", "BASILISK123", null, null, null, null);
     verify(contractRepository).getContracts(any());
     assertEquals(1, contractList.size());
     assertEquals(2, contractList.get(0).getMetrics().size());
@@ -283,16 +283,16 @@ class ContractServiceTest extends BaseUnitTest {
 
     PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
         new PartnerEntitlementContractCloudIdentifiers();
-    cloudIdentifiers.setAwsCustomerId("896801664647");
+    cloudIdentifiers.setAwsCustomerId("568056954830");
     contract.setCloudIdentifiers(cloudIdentifiers);
 
     ContractEntity existingContract = new ContractEntity();
     existingContract.setUuid(uuid);
-    existingContract.setBillingAccountId("896801664647");
+    existingContract.setBillingAccountId("568056954830");
     existingContract.setStartDate(offsetDateTime);
     existingContract.setEndDate(null);
     existingContract.setBillingProvider("aws_marketplace");
-    existingContract.setSku("MW01484");
+    existingContract.setSku("RH000000");
     existingContract.setProductId("BASILISK123");
     existingContract.setOrgId("org123");
     existingContract.setLastUpdated(offsetDateTime);

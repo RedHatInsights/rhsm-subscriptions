@@ -18,16 +18,11 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.repository;
+package com.redhat.swatch.contract.exception;
 
-import java.io.Serializable;
-import java.util.UUID;
-import lombok.Data;
-
-@Data
-public class ContractMetricEmbeddableId implements Serializable {
-
-  private UUID contractUuid;
-  private String metricId;
-  private double value;
+/** Exception thrown when a contract is missing. */
+public class ContractMissingException extends ContractsException {
+  public ContractMissingException(String message) {
+    super(ErrorCode.CONTRACT_DOES_NOT_EXIST, message);
+  }
 }

@@ -21,53 +21,38 @@
 package com.redhat.swatch.files;
 
 import com.redhat.swatch.exception.AwsMissingCredentialsException;
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
+import software.amazon.awssdk.profiles.ProfileFile;
 
 /**
- * Loads AWS credentials used for multiple accounts from JSON.
+ * Loads AWS credentials by looking them up in AWS config by profile name.
  *
- * <p>Intended to support multiple seller accounts needing separate credentials
- *
- * <p>Example JSON: [ { "accessKeyId": "placeholder", "secretAccessKey": "placeholder",
- * "sellerAccount": "account123" } ]
+ * <p>Assumes the profile name will be the seller account. Creates and caches a single
+ * ProfileCredentialsProvider per seller account, in order to avoid repeated role assumption API
+ * operations.
  */
 @ApplicationScoped
 @Slf4j
 public class AwsCredentialsLookup {
 
-  private Map<String, StaticCredentialsProvider> awsCredentialMap = Collections.emptyMap();
+  private final Map<String, ProfileCredentialsProvider> awsCredentialMap = new HashMap<>();
+  private final ProfileFile profileFile = ProfileFile.defaultProfileFile();
 
-  public AwsCredentialsLookup(
-      @ConfigProperty(name = "AWS_CREDENTIALS_JSON") String credentialsJson) {
-    try (Jsonb jsonb = JsonbBuilder.create()) {
-      AwsSellerAccountCredentials[] awsSellerAccountCredentials =
-          jsonb.fromJson(credentialsJson, AwsSellerAccountCredentials[].class);
-      awsCredentialMap =
-          Arrays.stream(awsSellerAccountCredentials)
-              .collect(
-                  Collectors.toMap(
-                      AwsSellerAccountCredentials::getSellerAccount,
-                      StaticCredentialsProvider::create));
-    } catch (Exception e) {
-      log.warn("Unable to read AWS credentials from JSON.", e);
-    }
+  public synchronized AwsCredentialsProvider getCredentialsProvider(String awsSellerAccount) {
+    return awsCredentialMap.computeIfAbsent(awsSellerAccount, this::createCredentialsFromProfile);
   }
 
-  public AwsCredentialsProvider getCredentialsProvider(String awsSellerAccount) {
-    StaticCredentialsProvider credentialsProvider = awsCredentialMap.get(awsSellerAccount);
-    if (credentialsProvider == null) {
+  public ProfileCredentialsProvider createCredentialsFromProfile(String awsSellerAccount) {
+    // NOTE: it is useful to do this check here, because it allows us to catch missing credentials
+    // in a predictable way.
+    if (profileFile.profile(awsSellerAccount).isEmpty()) {
       throw new AwsMissingCredentialsException(awsSellerAccount);
     }
-    return credentialsProvider;
+    return ProfileCredentialsProvider.create(awsSellerAccount);
   }
 }

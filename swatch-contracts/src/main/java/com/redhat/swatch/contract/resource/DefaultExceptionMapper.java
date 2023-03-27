@@ -18,16 +18,27 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.repository;
+package com.redhat.swatch.contract.resource;
 
-import java.io.Serializable;
-import java.util.UUID;
-import lombok.Data;
+import com.redhat.swatch.contract.exception.ErrorCode;
+import com.redhat.swatch.contract.openapi.model.Error;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
 
-@Data
-public class ContractMetricEmbeddableId implements Serializable {
+@Provider
+public class DefaultExceptionMapper implements ExceptionMapper<Exception> {
 
-  private UUID contractUuid;
-  private String metricId;
-  private double value;
+  @Override
+  public Response toResponse(Exception exception) {
+    var status = Status.INTERNAL_SERVER_ERROR;
+    return Response.status(status)
+        .entity(
+            new Error()
+                .code(ErrorCode.UNHANDLED_EXCEPTION.getCode())
+                .status(String.valueOf(status.getStatusCode()))
+                .title(exception.getMessage()))
+        .build();
+  }
 }

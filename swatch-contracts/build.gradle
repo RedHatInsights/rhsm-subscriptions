@@ -2,7 +2,6 @@ plugins {
     id 'swatch.java-conventions'
     id 'io.quarkus'
     id 'org.openapi.generator'
-    id 'swatch.quarkus-rest-client-conventions'
 }
 
 repositories {

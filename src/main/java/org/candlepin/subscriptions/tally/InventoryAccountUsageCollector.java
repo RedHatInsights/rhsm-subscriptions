@@ -460,7 +460,9 @@ public class InventoryAccountUsageCollector {
       orgHostsData.collectGuestData(new HashMap<>());
     } else if (system.getSubscriptionManagerId() != null) {
       // this is a potential hypervisor record
-      Host placeholder = orgHostsData.hypervisorHostMap().get(system.getSubscriptionManagerId());
+      // NOTE: remove is used in order to ensure a placeholder is processed only once
+      // (otherwise we end up attempting to apply the buckets to every duplicate hypervisor record).
+      Host placeholder = orgHostsData.hypervisorHostMap().remove(system.getSubscriptionManagerId());
       if (placeholder != null) {
         // this system is a hypervisor, transfer buckets & counts to it
         log.debug("Applying buckets and guest-count from orgHostsData.");

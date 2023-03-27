@@ -68,6 +68,8 @@ paths:
                     sku: BAS123
                     uuid: 8ece4096-bef6-4ad6-b0db-20c8e6b2a78c
           description: Success
+        default:
+          $ref: '#/components/responses/ErrorResponse'
       operationId: updateContract
       description: Update a contract record by its uuid.  Only update values passed.
       security:
@@ -86,6 +88,8 @@ paths:
       responses:
         "200":
           description: Success
+        default:
+          $ref: '#/components/responses/ErrorResponse'
       operationId: deleteContractByUUID
       description: "This will execute a hard delete of a contract and its associated\
         \ metrics from the database.  This is NOT the same as setting a contract to\
@@ -152,6 +156,8 @@ paths:
                 items:
                   $ref: '#/components/schemas/Contract'
           description: success
+        default:
+          $ref: '#/components/responses/ErrorResponse'
       security:
         - service: []
         - support: []
@@ -185,6 +191,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Contract'
           description: success
+        default:
+          $ref: '#/components/responses/ErrorResponse'
       security:
         - test: []
       operationId: createContract
@@ -210,6 +218,8 @@ paths:
                   data:
                     - Rho one
                     - Rho two
+          default:
+            $ref: '#/components/responses/ErrorResponse'
         tags:
           - Offerings
         security:
@@ -252,19 +262,25 @@ paths:
                     status: 'Success'
                     message: "Contract created"
           description: Success
+        default:
+          $ref: '#/components/responses/ErrorResponse'
       security:
         - test: []
 components:
   schemas:
     Error:
       required:
+        - status
         - code
-        - message
+        - title
       properties:
+        status:
+          type: string
         code:
-          format: int32
-          type: integer
-        message:
+          type: string
+        title:
+          type: string
+        detail:
           type: string
     Contract:
       description: ""
@@ -399,6 +415,13 @@ components:
           type: string
         message:
           type: string
+  responses:
+    ErrorResponse:
+      description: "Error handling request"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
   securitySchemes:
     support:
       type: apiKey

@@ -91,6 +91,7 @@ public class ContractEntity extends PanacheEntityBase {
   @Column(name = "product_id", nullable = false)
   private String productId;
 
+  @Builder.Default
   @OneToMany(
       targetEntity = ContractMetricEntity.class,
       cascade = CascadeType.ALL,
@@ -101,9 +102,10 @@ public class ContractEntity extends PanacheEntityBase {
   public void addMetric(ContractMetricEntity metric) {
     metrics.add(metric);
     metric.setContract(this);
+    metric.setContractUuid(uuid);
   }
 
-  public void remoteMetric(ContractMetricEntity metric) {
+  public void removeMetric(ContractMetricEntity metric) {
     metrics.remove(metric);
     metric.setContract(null);
   }
@@ -159,5 +161,14 @@ public class ContractEntity extends PanacheEntityBase {
 
   public static Specification<ContractEntity> isActive() {
     return (root, query, builder) -> builder.isNull(root.get(ContractEntity_.endDate));
+  }
+
+  public static Specification<ContractEntity> activeOn(OffsetDateTime timestamp) {
+    return (root, query, builder) ->
+        builder.and(
+            builder.lessThanOrEqualTo(root.get(ContractEntity_.startDate), timestamp),
+            builder.or(
+                builder.isNull(root.get(ContractEntity_.endDate)),
+                builder.greaterThan(root.get(ContractEntity_.endDate), timestamp)));
   }
 }

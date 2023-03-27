@@ -50,7 +50,7 @@ class ContractsHttpEndpointIntegrationTest {
   void whenGetContract_thenContractShouldBeFound() {
     Contract contract = new Contract();
     contract.setOrgId("org123");
-    when(contractService.getContracts(any(), any(), any(), any(), any()))
+    when(contractService.getContracts(any(), any(), any(), any(), any(), any()))
         .thenReturn(List.of(contract));
     given()
         .contentType(ContentType.JSON)
@@ -103,7 +103,7 @@ class ContractsHttpEndpointIntegrationTest {
         .when()
         .put("/api/swatch-contracts/internal/contracts/1322")
         .then()
-        .statusCode(500)
+        .statusCode(400)
         .assertThat()
         .body(containsStringIgnoringCase("Uuid in path variable and uuid in payload do not match"));
   }
