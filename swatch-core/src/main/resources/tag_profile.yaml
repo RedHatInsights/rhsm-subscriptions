@@ -102,6 +102,10 @@ tagMappings:
     valueType: role
     tags:
       - rhods
+  - value: BASILISK
+    valueType: role
+    tags:
+      - BASILISK
   - value: rosa
     valueType: role
     tags:
@@ -148,6 +152,11 @@ tagMappings:
     valueType: productName
     tags:
       - rhods
+
+  - value: BASILISK
+    valueType: productName
+    tags:
+      - BASILISK
 
   - value: rosa
     valueType: productName
@@ -296,7 +305,39 @@ tagMetrics:
       prometheusMetric: cluster:usage:workload:capacity_virtual_cpu_hours
       prometheusMetadataMetric: ocm_subscription_resource
 
-  #ROSA tag metadata
+  # BASILISK metrics
+  - tag: BASILISK
+    metricId: redhat.com:BASILISK:transfer_gb
+    rhmMetricId: redhat.com:BASILISK:transfer_gb
+    awsDimension: transfer_gb
+    uom: TRANSFER_GIBIBYTES
+    billingWindow: MONTHLY
+    queryParams:
+      product: BASILISK
+      prometheusMetric: kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes
+      prometheusMetadataMetric: subscription_labels
+  - tag: BASILISK
+    metricId: redhat.com:BASILISK:cluster_hour
+    rhmMetricId: redhat.com:BASILISK:cluster_hour
+    awsDimension: cluster_hour
+    uom: INSTANCE_HOURS
+    billingWindow: MONTHLY
+    queryParams:
+      product: BASILISK
+      prometheusMetric: kafka_id:strimzi_resource_state:max_over_time1h
+      prometheusMetadataMetric: subscription_labels
+  - tag: BASILISK
+    metricId: redhat.com:BASILISK:storage_gib_months
+    rhmMetricId: redhat.com:BASILISK:storage_gib_months
+    awsDimension: storage_gb
+    uom: STORAGE_GIBIBYTE_MONTHS
+    billingWindow: MONTHLY
+    queryParams:
+      product: BASILISK
+      prometheusMetric: kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibyte_months
+      prometheusMetadataMetric: subscription_labels
+
+  #RHOSA tag metadata
   - tag: rosa
     metricId: redhat.com:rosa:cluster_hour
     rhmMetricId: redhat.com:rosa:cluster_hour
@@ -405,6 +446,14 @@ tagMetaData:
     defaultSla: PREMIUM
     defaultUsage: PRODUCTION
     billingModel: PAYG
+  - tags:
+      - BASILISK
+    serviceType: BASILISK Instance
+    finestGranularity: HOURLY
+    defaultSla: PREMIUM
+    defaultUsage: PRODUCTION
+    billingModel: PAYG
+    contractEnabled: true
   - tags:
       - rosa
     serviceType: rosa Instance

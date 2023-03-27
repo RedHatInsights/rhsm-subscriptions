@@ -135,6 +135,7 @@ properties:
       - rhosak
       - rhacs
       - addon-open-data-hub
+      - BASILISK
       - rosa
     required: false
   sla:
