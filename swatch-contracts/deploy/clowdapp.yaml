@@ -47,10 +47,6 @@ parameters:
     value: swatch-tally
   - name: QUARKUS_PROFILE
     value: prod
-  - name: ACTIVEMQ_BROKER_URL
-    value: vm://0
-  - name: ACTIVEMQ_SSL_ENABLED
-    value: 'false'
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -197,15 +193,11 @@ objects:
                   secretKeyRef:
                     name: tls
                     key: keystore_password
-              - name: ACTIVEMQ_SSL_ENABLED
-                value: ${ACTIVEMQ_SSL_ENABLED}
               - name: UMB_NAMESPACE
                 valueFrom:
                   fieldRef:
                     apiVersion: v1
                     fieldPath: metadata.namespace
-              - name: ACTIVEMQ_BROKER_URL
-                value: ${ACTIVEMQ_BROKER_URL}
             volumeMounts:
               - name: logs
                 mountPath: /logs

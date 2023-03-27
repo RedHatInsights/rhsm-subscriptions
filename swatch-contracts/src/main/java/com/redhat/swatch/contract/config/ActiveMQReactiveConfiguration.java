@@ -18,8 +18,9 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch;
+package com.redhat.swatch.contract.config;
 
+import io.quarkus.arc.Priority;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import java.net.URI;
@@ -29,6 +30,7 @@ import java.util.Objects;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
+import javax.enterprise.inject.Alternative;
 import javax.enterprise.inject.Produces;
 import javax.jms.ConnectionFactory;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +47,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @Slf4j
 public class ActiveMQReactiveConfiguration {
 
-  @ConfigProperty(name = "ACTIVEMQ_BROKER_URL", defaultValue = "vm://0")
+  @ConfigProperty(name = "quarkus.artemis.url")
   URI brokerUrl;
 
   @ConfigProperty(name = "ACTIVEMQ_SSL_ENABLED", defaultValue = "false")
@@ -66,6 +68,8 @@ public class ActiveMQReactiveConfiguration {
   EmbeddedActiveMQ embeddedActiveMQ;
 
   @Produces
+  @Alternative
+  @Priority(Integer.MAX_VALUE)
   ConnectionFactory factory() throws Exception {
     var factory = new ActiveMQJMSConnectionFactory(); // NOSONAR
 

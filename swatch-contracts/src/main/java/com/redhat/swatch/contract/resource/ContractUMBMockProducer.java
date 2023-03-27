@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch;
+package com.redhat.swatch.contract.resource;
 
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
@@ -36,7 +36,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 /** This class is only to test the ContractUMBMessageConsumer via ActiveMQ JMS */
 @ApplicationScoped
 @Slf4j
-public class ContractUMBDummyProducer {
+public class ContractUMBMockProducer {
 
   @Inject ConnectionFactory connectionFactory;
 
