@@ -20,6 +20,7 @@ dependencies {
     implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
     implementation 'io.quarkus:quarkus-openshift'
     implementation 'io.quarkus:quarkus-resteasy-jsonb'
+    implementation 'io.quarkus:quarkus-resteasy'
     implementation 'io.quarkus:quarkus-security'
     implementation 'io.quarkus:quarkus-smallrye-fault-tolerance'
     implementation 'io.quarkus:quarkus-smallrye-health'
@@ -52,6 +53,10 @@ dependencies {
     testAnnotationProcessor libraries["mapstruct-processor"]
     // if you are using mapstruct in test code
     annotationProcessor libraries["lombok-mapstruct-binding"]
+
+    implementation platform(libraries["quarkus-artemis-bom"])
+    implementation 'io.quarkiverse.artemis:quarkus-artemis-jms'
+    implementation 'org.apache.activemq:artemis-server'
 }
 
 compileJava.dependsOn tasks.openApiGenerate

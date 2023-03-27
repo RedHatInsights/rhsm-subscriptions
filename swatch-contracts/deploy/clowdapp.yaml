@@ -184,6 +184,20 @@ objects:
                   secretKeyRef:
                     name: tls
                     key: keystore_password
+              - name: KEYSTORE_PATH
+                value: file:/pinhead/keystore.jks
+              - name: TRUSTSTORE_PATH
+                value: file:/pinhead/truststore.jks
+              - name: TRUSTSTORE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: tls
+                    key: keystore_password
+              - name: UMB_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.namespace
             volumeMounts:
               - name: logs
                 mountPath: /logs
