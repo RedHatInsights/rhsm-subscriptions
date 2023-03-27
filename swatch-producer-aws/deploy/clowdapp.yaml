@@ -161,11 +161,8 @@ objects:
               value: ${SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT}
             - name: AWS_MANUAL_SUBMISSION_ENABLED
               value: ${AWS_MANUAL_SUBMISSION_ENABLED}
-            - name: AWS_CREDENTIALS_JSON
-              valueFrom:
-                secretKeyRef:
-                  name: aws-marketplace-credentials
-                  key: credentials
+            - name: AWS_CONFIG_FILE
+              value: /aws-marketplace-credentials/config.ini
             - name: AWS_MARKETPLACE_ENDPOINT_URL
               value: ${AWS_MARKETPLACE_ENDPOINT_URL}
             - name: SWATCH_SELF_PSK
@@ -186,12 +183,17 @@ objects:
               mountPath: /logs
             - name: pinhead
               mountPath: /pinhead
+            - name: aws-marketplace-credentials
+              mountPath: /aws-marketplace-credentials
           volumes:
             - name: logs
               emptyDir:
             - name: pinhead
               secret:
                 secretName: pinhead
+            - name: aws-marketplace-credentials
+              secret:
+                secretName: aws-marketplace-credentials
 
 - apiVersion: v1
   kind: Secret

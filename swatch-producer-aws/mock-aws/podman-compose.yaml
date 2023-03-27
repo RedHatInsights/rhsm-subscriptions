@@ -1,0 +1,17 @@
+services:
+  moto:
+    image: docker.io/motoserver/moto:latest
+    hostname: moto
+    ports:
+      - '5000:5000'
+  nginx:
+    image: docker.io/nginx:latest
+    links:
+      - moto
+    ports:
+      - '8443:8443'
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:z
+      - ./test-ca.crt:/test-ca.crt:z
+      - ./test-server.crt:/test-server.crt:z
+      - ./test-server.key:/test-server.key:z
