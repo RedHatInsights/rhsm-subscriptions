@@ -185,9 +185,9 @@ objects:
                     name: tls
                     key: keystore_password
               - name: KEYSTORE_PATH
-                value: file:/pinhead/keystore.jks
+                value: /pinhead/keystore.jks
               - name: TRUSTSTORE_PATH
-                value: file:/pinhead/truststore.jks
+                value: /pinhead/truststore.jks
               - name: TRUSTSTORE_PASSWORD
                 valueFrom:
                   secretKeyRef:

@@ -40,6 +40,9 @@ public class ContractUMBMockProducer {
 
   @Inject ConnectionFactory connectionFactory;
 
+  @ConfigProperty(name = "CONTRACT_UMB_QUEUE")
+  String queueName;
+
   @ConfigProperty(name = "SWATCH_JMS_PRODUCER_ENABLED")
   boolean jmsProducerEnabled;
 
@@ -85,7 +88,7 @@ public class ContractUMBMockProducer {
 
   public void sendContract(String contract) {
     try (JMSContext context = connectionFactory.createContext(JMSContext.AUTO_ACKNOWLEDGE)) {
-      context.createProducer().send(context.createQueue("umb-contract"), contract);
+      context.createProducer().send(context.createQueue(queueName), contract);
     }
     log.info("Done sending Contract");
   }
