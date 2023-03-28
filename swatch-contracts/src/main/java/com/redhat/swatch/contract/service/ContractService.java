@@ -232,6 +232,13 @@ public class ContractService {
   @Transactional
   public StatusResponse createPartnerContract(PartnerEntitlementContract contract) {
     StatusResponse statusResponse = new StatusResponse();
+
+    if (!validPartnerEntitlementContract(contract)) {
+      statusResponse.setMessage("Empty value found in UMB message");
+      log.info("Empty value found in UMB message {}", contract);
+      return statusResponse;
+    }
+
     ContractEntity entity;
     try {
       // Fill up information from upstream and swatch
@@ -239,6 +246,7 @@ public class ContractService {
       collectMissingUpStreamContractDetails(entity, contract);
       if (!isValidEntity(entity)) {
         statusResponse.setMessage("Empty value in non-null fields");
+        log.warn("Empty value in non-null fields for contract entity {}", entity);
         return statusResponse;
       }
     } catch (NumberFormatException e) {
@@ -276,6 +284,15 @@ public class ContractService {
     return statusResponse;
   }
 
+  private boolean validPartnerEntitlementContract(PartnerEntitlementContract contract) {
+    return Objects.nonNull(contract.getRedHatSubscriptionNumber())
+        && Objects.nonNull(contract.getCurrentDimensions())
+        && !contract.getCurrentDimensions().isEmpty()
+        && Objects.nonNull(contract.getCloudIdentifiers())
+        && Objects.nonNull(contract.getCloudIdentifiers().getAwsCustomerId())
+        && Objects.nonNull(contract.getCloudIdentifiers().getProductCode());
+  }
+
   private void persistExistingContract(ContractEntity existingContract, OffsetDateTime now) {
     existingContract.setEndDate(now);
     existingContract.setLastUpdated(now);
@@ -284,13 +301,13 @@ public class ContractService {
 
   private boolean isValidEntity(ContractEntity entity) {
     // Check all non-null fields
-    return !Objects.isNull(entity)
-        && !Objects.isNull(entity.getSubscriptionNumber())
-        && !Objects.isNull(entity.getOrgId())
-        && !Objects.isNull(entity.getSku())
-        && !Objects.isNull(entity.getBillingProvider())
-        && !Objects.isNull(entity.getBillingAccountId())
-        && !Objects.isNull(entity.getProductId());
+    return Objects.nonNull(entity)
+        && Objects.nonNull(entity.getSubscriptionNumber())
+        && Objects.nonNull(entity.getOrgId())
+        && Objects.nonNull(entity.getSku())
+        && Objects.nonNull(entity.getBillingProvider())
+        && Objects.nonNull(entity.getBillingAccountId())
+        && Objects.nonNull(entity.getProductId());
   }
 
   private void persistContract(ContractEntity entity, OffsetDateTime now) {
@@ -325,8 +342,11 @@ public class ContractService {
           partnerApi.getPartnerEntitlements(
               new QueryPartnerEntitlementV1()
                   .customerAwsAccountId(contract.getCloudIdentifiers().getAwsCustomerId())
+                  .vendorProductCode(contract.getCloudIdentifiers().getProductCode())
                   .page(page));
-      if (Objects.nonNull(result.getContent()) && Objects.nonNull(result.getContent().get(0))) {
+      if (Objects.nonNull(result.getContent())
+          && !result.getContent().isEmpty()
+          && Objects.nonNull(result.getContent().get(0))) {
         var entitlement = result.getContent().get(0);
         entity.setOrgId(entitlement.getRhAccountId());
         entity.setBillingProvider(entitlement.getSourcePartner().value());
@@ -342,6 +362,7 @@ public class ContractService {
           entity.setSku(sku);
           OfferingProductTags productTags = syncResource.getSkuProductTags(sku);
           if (Objects.nonNull(productTags.getData())
+              && !productTags.getData().isEmpty()
               && Objects.nonNull(productTags.getData().get(0))) {
             entity.setProductId(productTags.getData().get(0));
           } else {
