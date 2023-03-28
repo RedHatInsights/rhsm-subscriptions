@@ -136,7 +136,7 @@ properties:
       - rhacs
       - addon-open-data-hub
       - BASILISK
-      - rosa
+      - moa-hostedcontrolplane
     required: false
   sla:
     description: Service level for the subject.
