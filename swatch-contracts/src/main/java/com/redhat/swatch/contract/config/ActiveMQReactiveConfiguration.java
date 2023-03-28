@@ -83,7 +83,7 @@ public class ActiveMQReactiveConfiguration {
     }
 
     var fullUrl = URISupport.createURIWithQuery(brokerUrl, URISupport.createQueryString(options));
-    log.info("broker URL: {}", fullUrl);
+    log.trace("broker URL: {}", fullUrl);
     factory.setBrokerURL(fullUrl.toString());
     return factory;
   }
