@@ -25,6 +25,7 @@ import com.redhat.swatch.contract.exception.CreateContractException;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.service.ContractService;
+import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import java.util.concurrent.ExecutorService;
@@ -59,21 +60,26 @@ public class ContractUMBMessageConsumer implements Runnable {
 
   @Override
   public void run() {
-    log.trace("Running consumer");
+    log.info("Running consumer");
     try (JMSContext context = connectionFactory.createContext(JMSContext.AUTO_ACKNOWLEDGE)) {
-      log.trace("Creating JMS Consumer");
+      log.info("Creating JMS Consumer");
       JMSConsumer consumer = context.createConsumer(context.createQueue("umb-contract"));
       log.trace("Entering loop");
       while (true) { // NOSONAR
-        log.trace("Receiving");
-        Message message = consumer.receive();
-        StatusResponse response = consumeContract(message.getBody(String.class));
-        log.trace(response.toString());
-        // Acknowledge the incoming message
-        message.acknowledge();
+        try {
+          log.info("Receiving");
+          Message message = consumer.receive();
+          StatusResponse response = consumeContract(message.getBody(String.class));
+          log.trace(response.toString());
+          // Acknowledge the incoming message
+          message.acknowledge();
+        } catch (JMSException | JsonProcessingException e) {
+          throw new CreateContractException(e.getMessage());
+        }
       }
-    } catch (JMSException | JsonProcessingException e) {
-      throw new CreateContractException(e.getMessage());
+    } catch (Exception e) {
+      log.error("Error creating ActiveMQ connection", e);
+      Quarkus.asyncExit();
     }
   }
 
