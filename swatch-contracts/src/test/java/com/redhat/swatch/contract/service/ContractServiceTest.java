@@ -190,6 +190,7 @@ class ContractServiceTest extends BaseUnitTest {
     PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
         new PartnerEntitlementContractCloudIdentifiers();
     cloudIdentifiers.setAwsCustomerId("awsc123");
+    cloudIdentifiers.setProductCode("product123");
     contract.setCloudIdentifiers(cloudIdentifiers);
 
     OfferingProductTags productTags = new OfferingProductTags();
@@ -211,6 +212,7 @@ class ContractServiceTest extends BaseUnitTest {
     PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
         new PartnerEntitlementContractCloudIdentifiers();
     cloudIdentifiers.setAwsCustomerId("awsc123");
+    cloudIdentifiers.setProductCode("product123");
     contract.setCloudIdentifiers(cloudIdentifiers);
 
     OfferingProductTags productTags = new OfferingProductTags();
@@ -218,6 +220,27 @@ class ContractServiceTest extends BaseUnitTest {
     when(syncResource.getSkuProductTags(any())).thenReturn(productTags);
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("Empty value in non-null fields", statusResponse.getMessage());
+  }
+
+  @Test
+  void whenInvalidPartnerContract_DoNotPersist() {
+    var contract = new PartnerEntitlementContract();
+    contract.setRedHatSubscriptionNumber("12400374");
+    Dimension dimensions = new Dimension();
+    dimensions.setDimensionName("test_dim_1");
+    dimensions.setDimensionValue("5");
+    contract.setCurrentDimensions(List.of(dimensions));
+
+    PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
+        new PartnerEntitlementContractCloudIdentifiers();
+    cloudIdentifiers.setAwsCustomerId("awsc123");
+    contract.setCloudIdentifiers(cloudIdentifiers);
+
+    OfferingProductTags productTags = new OfferingProductTags();
+    productTags.data(null);
+    when(syncResource.getSkuProductTags(any())).thenReturn(productTags);
+    StatusResponse statusResponse = contractService.createPartnerContract(contract);
+    assertEquals("Empty value found in UMB message", statusResponse.getMessage());
   }
 
   @Test
@@ -236,6 +259,7 @@ class ContractServiceTest extends BaseUnitTest {
     PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
         new PartnerEntitlementContractCloudIdentifiers();
     cloudIdentifiers.setAwsCustomerId("awsc123");
+    cloudIdentifiers.setProductCode("product123");
     contract.setCloudIdentifiers(cloudIdentifiers);
 
     ContractEntity existingContract = new ContractEntity();
@@ -284,6 +308,7 @@ class ContractServiceTest extends BaseUnitTest {
     PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
         new PartnerEntitlementContractCloudIdentifiers();
     cloudIdentifiers.setAwsCustomerId("568056954830");
+    cloudIdentifiers.setProductCode("product123");
     contract.setCloudIdentifiers(cloudIdentifiers);
 
     ContractEntity existingContract = new ContractEntity();
