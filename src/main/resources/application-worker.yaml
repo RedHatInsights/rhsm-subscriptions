@@ -54,7 +54,7 @@ rhsm-subscriptions:
       back-off-initial-interval: ${CONTRACT_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS:1000}
       back-off-max-interval: ${CONTRACT_CLIENT_BACK_OFF_MAX_INTERVAL_MILLIS:64000}
       back-off-multiplier: ${CONTRACT_CLIENT_BACK_OFF_MULTIPLIER:2}
-      max-attempts: ${CONTRACT_CLIENT_MAX_ATTEMPTS:6}
+      max-attempts: ${CONTRACT_CLIENT_MAX_ATTEMPTS:1}
       url: ${SWATCH_CONTRACTS_INTERNAL_SERVICE_URL:http://localhost:8001}
       psk: ${SWATCH_SELF_PSK:placeholder}
   tasks:

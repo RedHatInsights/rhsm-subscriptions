@@ -35,6 +35,7 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.Measurement;
@@ -179,13 +180,18 @@ public class BillableUsageController {
     } catch (ExternalServiceException ex) {
       if (usage.getSnapshotDate().isAfter(OffsetDateTime.now().minus(30, ChronoUnit.MINUTES))) {
         log.warn(
-            "Unable to retrieve contract for usage less than {} minutes old. Usage: {}", 30, usage);
-      } else {
-        log.error(
-            "Unable to retrieve contract for usage older than {} minutes old. Usage: {}",
+            "{} - Unable to retrieve contract for usage less than {} minutes old. Usage: {}",
+            ErrorCode.CONTRACT_NOT_AVAILABLE,
             30,
             usage);
-        throw ex;
+        return null;
+      } else {
+        log.error(
+            "{} - Unable to retrieve contract for usage older than {} minutes old. Usage: {}",
+            ErrorCode.CONTRACT_NOT_AVAILABLE,
+            30,
+            usage);
+        return null;
       }
     }
 
