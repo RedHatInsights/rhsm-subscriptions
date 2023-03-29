@@ -177,7 +177,7 @@ class ContractsHttpEndpointIntegrationTest {
         .contentType(ContentType.JSON)
         .body(contract)
         .when()
-        .post("/api/rhsm-subscriptions/v1/internal/rpc/partner/contracts")
+        .post("/api/swatch-contracts/internal/rpc/partner/contracts")
         .then()
         .statusCode(200);
   }

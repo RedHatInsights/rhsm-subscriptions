@@ -224,7 +224,7 @@ paths:
           - Offerings
         security:
           - test: []
-  '/api/rhsm-subscriptions/v1/internal/rpc/partner/contracts':
+  '/api/swatch-contracts/internal/rpc/partner/contracts':
     post:
       operationId: createPartnerEntitlementContract
       requestBody:
