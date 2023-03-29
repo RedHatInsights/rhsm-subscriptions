@@ -54,6 +54,7 @@ public class BillingProducer {
     log.debug("Sending billable usage {} to topic {}", usage, billableUsageTopic);
     if (usage == null) {
       log.warn("Skipping billable usage; see previous errors/warnings.");
+      return;
     }
     billableUsageKafkaTemplate.send(billableUsageTopic, usage);
   }
