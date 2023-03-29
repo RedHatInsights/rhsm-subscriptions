@@ -169,7 +169,7 @@ parameters:
   - name: CONTRACT_CLIENT_BACK_OFF_MULTIPLIER
     value: '2'
   - name: CONTRACT_CLIENT_MAX_ATTEMPTS
-    value: '6'
+    value: '1'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1

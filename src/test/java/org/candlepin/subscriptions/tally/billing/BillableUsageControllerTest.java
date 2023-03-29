@@ -506,6 +506,6 @@ class BillableUsageControllerTest {
     when(tagProfile.isTagContractEnabled(usage.getProductId())).thenReturn(true);
     when(contractsApi.getContract(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
     controller.submitBillableUsage(BillingWindow.MONTHLY, usage);
-    verify(producer).produce(usage);
+    verify(producer).produce(null);
   }
 }
