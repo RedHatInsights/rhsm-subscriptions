@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executor;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.cloudigrade.CloudigradeClientConfiguration;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
@@ -59,6 +60,8 @@ import org.springframework.retry.backoff.FixedBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 /**
  * Configuration for the "worker" profile.
@@ -68,6 +71,7 @@ import org.springframework.retry.support.RetryTemplateBuilder;
  */
 @EnableRetry
 @Configuration
+@EnableAsync
 @Profile("worker")
 @Import({
   TallyTaskQueueConfiguration.class,
@@ -83,9 +87,11 @@ import org.springframework.retry.support.RetryTemplateBuilder;
       "org.candlepin.subscriptions.event",
       "org.candlepin.subscriptions.inventory.db",
       "org.candlepin.subscriptions.jmx",
-      "org.candlepin.subscriptions.tally"
+      "org.candlepin.subscriptions.tally",
+      "org.candlepin.subscriptions.retention"
     })
 public class TallyWorkerConfiguration {
+
   @Bean
   public FactNormalizer factNormalizer(
       ApplicationProperties applicationProperties, TagProfile tagProfile, ApplicationClock clock) {
@@ -186,5 +192,17 @@ public class TallyWorkerConfiguration {
   public KafkaTemplate<String, TallySummary> tallySummaryKafkaTemplate(
       ProducerFactory<String, TallySummary> tallySummaryProducerFactory) {
     return new KafkaTemplate<>(tallySummaryProducerFactory);
+  }
+
+  @Bean(name = "purgeTallySnapshotsJobExecutor")
+  public Executor getPurgeSnapshotsJobExecutor() {
+    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    executor.setThreadNamePrefix("purge-tally-snapshots-");
+    // Ensure that we can only have one task running.
+    executor.setCorePoolSize(1);
+    executor.setMaxPoolSize(1);
+    executor.setQueueCapacity(0);
+    executor.initialize();
+    return executor;
   }
 }

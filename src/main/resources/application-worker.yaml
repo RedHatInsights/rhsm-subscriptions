@@ -22,7 +22,20 @@ rhsm-subscriptions:
         maximum-pool-size: ${INVENTORY_DATABASE_MAX_POOL_SIZE:10}
         auto-commit: false  # required to enable cursor-based streaming in native queries
   account-list-resource-location: ${ACCOUNT_LIST_RESOURCE_LOCATION:}
-
+  event-retention-policy:
+    eventRetentionDuration: ${EVENT_RECORD_RETENTION:90d}
+  tally-retention-policy:
+    # 70 days worth
+    hourly: ${TALLY_RETENTION_HOURLY:1680}
+    # A year and change
+    daily: ${TALLY_RETENTION_DAILY:370}
+    # Roughly 3 months worth
+    weekly: ${TALLY_RETENTION_WEEKLY:12}
+    # A year's worth
+    monthly: ${TALLY_RETENTION_MONTHLY:12}
+    # Four year's worth
+    quarterly: ${TALLY_RETENTION_QUARTERLY:16}
+    yearly: ${TALLY_RETENTION_YEARLY:5}
   cloudigrade-enabled: ${CLOUDIGRADE_ENABLED:false}
   cloudigrade-max-attempts: ${CLOUDIGRADE_MAX_ATTEMPTS:2}
   cloudigrade:

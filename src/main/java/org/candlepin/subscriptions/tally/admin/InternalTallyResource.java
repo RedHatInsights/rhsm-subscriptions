@@ -25,6 +25,7 @@ import javax.ws.rs.BadRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.resource.ResourceUtils;
+import org.candlepin.subscriptions.retention.TallyRetentionController;
 import org.candlepin.subscriptions.tally.MarketplaceResendTallyController;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.tally.admin.api.InternalApi;
@@ -35,6 +36,7 @@ import org.candlepin.subscriptions.tally.billing.RemittanceController;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
+import org.springframework.core.task.TaskRejectedException;
 import org.springframework.stereotype.Component;
 
 /** This resource is for exposing administrator REST endpoints for Tally. */
@@ -48,6 +50,7 @@ public class InternalTallyResource implements InternalApi {
   private final RemittanceController remittanceController;
   private final TallySnapshotController tallySnapshotController;
   private final CaptureSnapshotsTaskManager snapshotsTaskManager;
+  private final TallyRetentionController retentionController;
 
   public InternalTallyResource(
       ApplicationClock clock,
@@ -55,13 +58,15 @@ public class InternalTallyResource implements InternalApi {
       MarketplaceResendTallyController resendTallyController,
       RemittanceController remittanceController,
       TallySnapshotController tallySnapshotController,
-      CaptureSnapshotsTaskManager snapshotsTaskManager) {
+      CaptureSnapshotsTaskManager snapshotsTaskManager,
+      TallyRetentionController retentionController) {
     this.clock = clock;
     this.applicationProperties = applicationProperties;
     this.resendTallyController = resendTallyController;
     this.remittanceController = remittanceController;
     this.tallySnapshotController = tallySnapshotController;
     this.snapshotsTaskManager = snapshotsTaskManager;
+    this.retentionController = retentionController;
   }
 
   @Override
@@ -95,5 +100,15 @@ public class InternalTallyResource implements InternalApi {
   @Override
   public void syncRemittance() {
     remittanceController.syncRemittance();
+  }
+
+  @Override
+  public void purgeTallySnapshots() {
+    try {
+      log.info("Initiating tally snapshot purge.");
+      retentionController.purgeSnapshotsAsync();
+    } catch (TaskRejectedException e) {
+      log.warn("A tally snapshots purge job is already running.");
+    }
   }
 }
