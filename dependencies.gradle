@@ -59,6 +59,6 @@ libraries["resteasy-validator-provider"] = "org.jboss.resteasy:resteasy-validato
 libraries["splunk-library-javalogging"] = "com.splunk.logging:splunk-library-javalogging:1.11.7"
 libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-dependencies:2.7.10"
 libraries["swagger-annotations"] = "io.swagger:swagger-annotations:1.6.10"
-libraries["swagger-ui"] = "org.webjars:swagger-ui:4.18.1"
+libraries["swagger-ui"] = "org.webjars:swagger-ui:4.18.2"
 libraries["webjars-locator"] = "org.webjars:webjars-locator:0.46"
 libraries["wiremock-jre8"] = "com.github.tomakehurst:wiremock-jre8:2.35.0"
