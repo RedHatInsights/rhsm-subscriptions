@@ -27,6 +27,7 @@ public enum ErrorCode {
   CONTRACT_EXISTS(
       1001, "There's already an active contract for that productId & subscriptionNumber"),
   CONTRACT_DOES_NOT_EXIST(1002, "Contract does not exist"),
+  CONTRACT_UPDATE_NOT_ALLOWED(1003, "Update to contract attribute not allowed"),
   BAD_UPDATE(4000, "Bad update request"),
   UNHANDLED_EXCEPTION(5000, "Unhandled exception");
 

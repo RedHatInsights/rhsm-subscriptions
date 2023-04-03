@@ -25,7 +25,9 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitl
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
 import com.redhat.swatch.contract.exception.ContractMissingException;
+import com.redhat.swatch.contract.exception.ContractsException;
 import com.redhat.swatch.contract.exception.CreateContractException;
+import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.model.ContractMapper;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
@@ -172,6 +174,13 @@ public class ContractService {
     ContractEntity existingContract =
         contractRepository.findContract(UUID.fromString(dto.getUuid()));
 
+    if (!isUpdateAllowed(existingContract, dto)) {
+
+      var message = "Cannot update product ID.  Use create contract instead";
+      log.error(message);
+      throw new ContractsException(ErrorCode.CONTRACT_UPDATE_NOT_ALLOWED, message);
+    }
+
     var now = OffsetDateTime.now();
 
     if (Objects.isNull(existingContract)) {
@@ -192,6 +201,16 @@ public class ContractService {
     newRecord.persist();
 
     return dto;
+  }
+
+  /**
+   * @param o
+   * @param dto
+   * @return boolean
+   */
+  boolean isUpdateAllowed(ContractEntity o, Contract dto) {
+
+    return Objects.equals(o.getProductId(), dto.getProductId());
   }
 
   /**
