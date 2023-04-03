@@ -80,7 +80,7 @@ public class WireMockResource
                                       "rhAccountId": "org123",
                                       "sourcePartner": "aws_marketplace",
                                       "partnerIdentities": {
-                                        "awsCustomerId": "568056954830",
+                                        "awsCustomerId": "HSwCpt6sqkC",
                                         "customerAwsAccountId": "568056954830",
                                         "sellerAccountId": "568056954830"
                                       },

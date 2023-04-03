@@ -21,12 +21,15 @@
 package com.redhat.swatch.contract.service;
 
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PageRequest;
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlements;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
 import com.redhat.swatch.contract.exception.ContractMissingException;
 import com.redhat.swatch.contract.exception.CreateContractException;
 import com.redhat.swatch.contract.model.ContractMapper;
+import com.redhat.swatch.contract.model.ContractSourcePartnerEnum;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
@@ -265,6 +268,9 @@ public class ContractService {
       ContractEntity existingContract = existing.get();
       isDuplicateContract = isDuplicateContract(entity, existingContract);
       if (isDuplicateContract) {
+        log.info(
+            "Duplicate contract found that matches the record for uuid {}",
+            existingContract.getUuid());
         statusResponse.setMessage("Duplicate record found");
       } else {
         // Record found in contract table but, the contract has changed
@@ -272,6 +278,7 @@ public class ContractService {
         persistExistingContract(existingContract, now); // Persist previous contract
 
         persistContract(entity, now); // Persist new contract
+        log.info("Previous contract archived and new contract created");
         statusResponse.setMessage("Previous contract archived and new contract created");
       }
     } else {
@@ -317,6 +324,7 @@ public class ContractService {
     entity.setStartDate(now);
     entity.setLastUpdated(now);
     contractRepository.persist(entity);
+    log.info("New contract created with UUID {}", uuid);
   }
 
   private Optional<ContractEntity> currentlyActiveContract(ContractEntity contract) {
@@ -330,45 +338,68 @@ public class ContractService {
     return Objects.equals(newEntity, existing);
   }
 
-  // SWATCH-1014 reformat this logic
-  private void collectMissingUpStreamContractDetails( // NOSONAR
+  private void collectMissingUpStreamContractDetails(
       ContractEntity entity, PartnerEntitlementContract contract) throws ApiException {
-    PageRequest page = new PageRequest();
-    page.setSize(20);
-    page.setNumber(0);
+    String awsCustomerAccountId = contract.getCloudIdentifiers().getAwsCustomerAccountId();
+    String productCode = contract.getCloudIdentifiers().getProductCode();
     if (Objects.nonNull(contract.getCloudIdentifiers())
-        && Objects.nonNull(contract.getCloudIdentifiers().getAwsCustomerId())) {
+        && Objects.nonNull(awsCustomerAccountId)
+        && Objects.nonNull(productCode)) {
+      PageRequest page = new PageRequest();
+      page.setSize(20);
+      page.setNumber(0);
+      log.trace(
+          "Call Partner Api to fill missing information using customerAwsAccountId {} and vendorProductCode {}",
+          awsCustomerAccountId,
+          productCode);
       var result =
           partnerApi.getPartnerEntitlements(
               new QueryPartnerEntitlementV1()
-                  .customerAwsAccountId(contract.getCloudIdentifiers().getAwsCustomerId())
-                  .vendorProductCode(contract.getCloudIdentifiers().getProductCode())
+                  .customerAwsAccountId(awsCustomerAccountId)
+                  .vendorProductCode(productCode)
                   .page(page));
-      if (Objects.nonNull(result.getContent())
-          && !result.getContent().isEmpty()
-          && Objects.nonNull(result.getContent().get(0))) {
-        var entitlement = result.getContent().get(0);
-        entity.setOrgId(entitlement.getRhAccountId());
-        entity.setBillingProvider(entitlement.getSourcePartner().value());
-        var partnerIdentity = entitlement.getPartnerIdentities();
-        if (Objects.nonNull(partnerIdentity)) {
-          entity.setBillingAccountId(partnerIdentity.getCustomerAwsAccountId());
+      mapUpstreamContractToContractEntity(entity, result);
+    }
+  }
+
+  private void mapUpstreamContractToContractEntity(
+      ContractEntity entity, PartnerEntitlements result) {
+    if (Objects.nonNull(result.getContent())
+        && !result.getContent().isEmpty()
+        && Objects.nonNull(result.getContent().get(0))) {
+      var entitlement = result.getContent().get(0);
+      entity.setOrgId(entitlement.getRhAccountId());
+      entity.setBillingProvider(
+          ContractSourcePartnerEnum.getByCode(entitlement.getSourcePartner().value()));
+      var partnerIdentity = entitlement.getPartnerIdentities();
+      if (Objects.nonNull(partnerIdentity)) {
+        entity.setBillingAccountId(partnerIdentity.getCustomerAwsAccountId());
+      }
+      mapRhEntitlementsToContractEntity(entity, entitlement);
+    }
+  }
+
+  private void mapRhEntitlementsToContractEntity(
+      ContractEntity entity, PartnerEntitlementV1 entitlement) {
+    var rhEntitlements = entitlement.getRhEntitlements();
+    if (Objects.nonNull(rhEntitlements)
+        && !rhEntitlements.isEmpty()
+        && Objects.nonNull(rhEntitlements.get(0))) {
+      var sku = rhEntitlements.get(0).getSku();
+      entity.setSku(sku);
+      log.trace("Call swatch api to get producttags by sku {}", sku);
+      try {
+        OfferingProductTags productTags = syncResource.getSkuProductTags(sku);
+        if (Objects.nonNull(productTags)
+            && Objects.nonNull(productTags.getData())
+            && !productTags.getData().isEmpty()
+            && Objects.nonNull(productTags.getData().get(0))) {
+          entity.setProductId(productTags.getData().get(0));
+        } else {
+          log.error("Error getting product tags");
         }
-        var rhEntitlements = entitlement.getRhEntitlements();
-        if (Objects.nonNull(rhEntitlements)
-            && !rhEntitlements.isEmpty()
-            && Objects.nonNull(rhEntitlements.get(0))) {
-          var sku = rhEntitlements.get(0).getSku();
-          entity.setSku(sku);
-          OfferingProductTags productTags = syncResource.getSkuProductTags(sku);
-          if (Objects.nonNull(productTags.getData())
-              && !productTags.getData().isEmpty()
-              && Objects.nonNull(productTags.getData().get(0))) {
-            entity.setProductId(productTags.getData().get(0));
-          } else {
-            log.error("Error getting product tags");
-          }
-        }
+      } catch (Exception e) {
+        log.error("Unable to connect to swatch api to get product tags");
       }
     }
   }

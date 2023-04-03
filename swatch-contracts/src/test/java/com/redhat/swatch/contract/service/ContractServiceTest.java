@@ -189,7 +189,8 @@ class ContractServiceTest extends BaseUnitTest {
 
     PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
         new PartnerEntitlementContractCloudIdentifiers();
-    cloudIdentifiers.setAwsCustomerId("awsc123");
+    cloudIdentifiers.setAwsCustomerId("HSwCpt6sqkC");
+    cloudIdentifiers.setAwsCustomerAccountId("568056954830");
     cloudIdentifiers.setProductCode("product123");
     contract.setCloudIdentifiers(cloudIdentifiers);
 
@@ -211,7 +212,8 @@ class ContractServiceTest extends BaseUnitTest {
 
     PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
         new PartnerEntitlementContractCloudIdentifiers();
-    cloudIdentifiers.setAwsCustomerId("awsc123");
+    cloudIdentifiers.setAwsCustomerId("HSwCpt6sqkC");
+    cloudIdentifiers.setAwsCustomerAccountId("568056954830");
     cloudIdentifiers.setProductCode("product123");
     contract.setCloudIdentifiers(cloudIdentifiers);
 
@@ -233,7 +235,8 @@ class ContractServiceTest extends BaseUnitTest {
 
     PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
         new PartnerEntitlementContractCloudIdentifiers();
-    cloudIdentifiers.setAwsCustomerId("awsc123");
+    cloudIdentifiers.setAwsCustomerId("HSwCpt6sqkC");
+    cloudIdentifiers.setAwsCustomerAccountId("568056954830");
     contract.setCloudIdentifiers(cloudIdentifiers);
 
     OfferingProductTags productTags = new OfferingProductTags();
@@ -258,16 +261,17 @@ class ContractServiceTest extends BaseUnitTest {
 
     PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
         new PartnerEntitlementContractCloudIdentifiers();
-    cloudIdentifiers.setAwsCustomerId("awsc123");
+    cloudIdentifiers.setAwsCustomerId("HSwCpt6sqkC");
+    cloudIdentifiers.setAwsCustomerAccountId("568056954830");
     cloudIdentifiers.setProductCode("product123");
     contract.setCloudIdentifiers(cloudIdentifiers);
 
     ContractEntity existingContract = new ContractEntity();
     existingContract.setUuid(uuid);
-    existingContract.setBillingAccountId("awsc123");
+    existingContract.setBillingAccountId("568056954830");
     existingContract.setStartDate(offsetDateTime);
     existingContract.setEndDate(null);
-    existingContract.setBillingProvider("aws_marketplace");
+    existingContract.setBillingProvider("aws");
     existingContract.setSku("RH000000");
     existingContract.setProductId("BASILISK123");
     existingContract.setOrgId("org123");
@@ -307,7 +311,8 @@ class ContractServiceTest extends BaseUnitTest {
 
     PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
         new PartnerEntitlementContractCloudIdentifiers();
-    cloudIdentifiers.setAwsCustomerId("568056954830");
+    cloudIdentifiers.setAwsCustomerId("HSwCpt6sqkC");
+    cloudIdentifiers.setAwsCustomerAccountId("568056954830");
     cloudIdentifiers.setProductCode("product123");
     contract.setCloudIdentifiers(cloudIdentifiers);
 
@@ -316,7 +321,7 @@ class ContractServiceTest extends BaseUnitTest {
     existingContract.setBillingAccountId("568056954830");
     existingContract.setStartDate(offsetDateTime);
     existingContract.setEndDate(null);
-    existingContract.setBillingProvider("aws_marketplace");
+    existingContract.setBillingProvider("aws");
     existingContract.setSku("RH000000");
     existingContract.setProductId("BASILISK123");
     existingContract.setOrgId("org123");
