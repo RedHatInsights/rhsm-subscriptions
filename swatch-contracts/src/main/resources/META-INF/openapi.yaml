@@ -159,7 +159,6 @@ paths:
         default:
           $ref: '#/components/responses/ErrorResponse'
       security:
-        - service: []
         - support: []
         - test: []
         - service: []
@@ -248,7 +247,8 @@ paths:
                       dimensionValue: '10'
                       expirationDate: '2018-02-10T09:30Z'
                   cloudIdentifiers:
-                    awsCustomerId: '795061427196'
+                    awsCustomerId: 'HSwCpt6sqkC'
+                    awsCustomerAccountId: '795061427196'
                     productCode: '1234567890abcdefghijklmno'
       responses:
         '200':
@@ -395,6 +395,8 @@ components:
           type: object
           properties:
             awsCustomerId:
+              type: string
+            awsCustomerAccountId:
               type: string
             productCode:
               type: string

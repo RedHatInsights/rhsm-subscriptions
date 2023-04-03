@@ -63,7 +63,8 @@ public class ContractUMBMockProducer {
                         "expirationDate" : "2023-02-15T00:00:00Z"
                       } ],
                       "cloudIdentifiers" : {
-                        "awsCustomerId" : "896801664647",
+                        "awsCustomerId" : "HSwCpt6sqkC",
+                        "awsCustomerAccountId" : "896801664647",
                         "productCode" : "1e1234el8qbwnqimt2wogc5n"
                       }
                     }
