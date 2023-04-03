@@ -353,6 +353,7 @@ tagMetrics:
     rhmMetricId: redhat.com:rosa:cpu_hour
     awsDimension: cpu_hour
     uom: CORES
+    billingFactor: 0.25
     billingWindow: MONTHLY
     queryParams:
       product: moa-hostedcontrolplane
