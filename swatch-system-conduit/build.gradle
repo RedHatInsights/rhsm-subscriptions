@@ -55,6 +55,7 @@ dependencies {
     implementation "org.postgresql:postgresql"
     implementation "io.hawt:hawtio-springboot"
     implementation "org.hibernate.validator:hibernate-validator"
+    implementation libraries["resilience4j-spring-boot2"]
 
     testImplementation "org.springframework.security:spring-security-test"
     testImplementation "org.springframework.kafka:spring-kafka-test"

@@ -20,16 +20,21 @@
  */
 package org.candlepin.subscriptions.conduit.rhsm;
 
+import io.github.resilience4j.ratelimiter.RateLimiter;
+import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import javax.validation.constraints.Pattern;
+import javax.ws.rs.core.Response.Status;
 import org.candlepin.subscriptions.conduit.inventory.InventoryServiceProperties;
 import org.candlepin.subscriptions.conduit.rhsm.client.ApiException;
 import org.candlepin.subscriptions.conduit.rhsm.client.RhsmApiProperties;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory;
 import org.candlepin.subscriptions.conduit.rhsm.client.resources.RhsmApi;
+import org.candlepin.subscriptions.exception.ErrorCode;
+import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,18 +55,21 @@ public class RhsmService {
   private final int batchSize;
   private final RetryTemplate retryTemplate;
   private final Duration hostCheckinThreshold;
+  private final RateLimiter rateLimiter;
 
   @Autowired
   public RhsmService(
       InventoryServiceProperties inventoryServiceProperties,
       RhsmApiProperties apiProperties,
       RhsmApi api,
-      @Qualifier("rhsmRetryTemplate") RetryTemplate retryTemplate) {
+      @Qualifier("rhsmRetryTemplate") RetryTemplate retryTemplate,
+      RateLimiterRegistry rateLimiterRegistry) {
     this.hostCheckinThreshold = inventoryServiceProperties.getHostLastSyncThreshold();
     log.info("rhsm-conduit stale threshold: {}", hostCheckinThreshold);
     this.batchSize = apiProperties.getRequestBatchSize();
     this.api = api;
     this.retryTemplate = retryTemplate;
+    this.rateLimiter = rateLimiterRegistry.rateLimiter("rhsmApi");
   }
 
   /**
@@ -90,6 +98,13 @@ public class RhsmService {
       throws ApiException {
     return retryTemplate.execute(
         context -> {
+          if (!rateLimiter.acquirePermission()) {
+            throw new SubscriptionsException(
+                ErrorCode.RHSM_SERVICE_REQUEST_ERROR,
+                Status.TOO_MANY_REQUESTS,
+                "Failed due to rate limit timeout",
+                (String) null);
+          }
           log.debug("Fetching page of consumers for org {}.", orgId);
           OrgInventory consumersForOrg =
               api.getConsumersForOrg(orgId, batchSize, offset, lastCheckinTime);

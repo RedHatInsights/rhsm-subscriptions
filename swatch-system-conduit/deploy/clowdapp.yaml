@@ -97,6 +97,12 @@ parameters:
     value: '3'
   - name: HOST_LAST_SYNC_THRESHOLD
     value: '30h'
+  - name: RHSM_API_LIMIT_FOR_PERIOD
+    value: '150'
+  - name: RHSM_API_LIMIT_REFRESH_PERIOD
+    value: 100ms
+  - name: RHSM_API_LIMIT_TIMEOUT_DURATION
+    value: 30m
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -279,6 +285,12 @@ objects:
                 secretKeyRef:
                   name: swatch-psks
                   key: self
+            - name: RHSM_API_LIMIT_FOR_PERIOD
+              value: ${RHSM_API_LIMIT_FOR_PERIOD}
+            - name: RHSM_API_LIMIT_REFRESH_PERIOD
+              value: ${RHSM_API_LIMIT_REFRESH_PERIOD}
+            - name: RHSM_API_LIMIT_TIMEOUT_DURATION
+              value: ${RHSM_API_LIMIT_TIMEOUT_DURATION}
           livenessProbe:
             failureThreshold: 3
             httpGet:
