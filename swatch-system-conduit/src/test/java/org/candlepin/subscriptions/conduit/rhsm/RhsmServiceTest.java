@@ -24,6 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
+import io.github.resilience4j.ratelimiter.RateLimiterConfig;
+import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import java.util.Collections;
 import javax.validation.ConstraintViolationException;
 import org.candlepin.subscriptions.conduit.inventory.InventoryServiceProperties;
@@ -71,12 +73,18 @@ class RhsmServiceTest {
     when(rhsmApi.getConsumersForOrg(
             anyString(), any(Integer.class), nullable(String.class), anyString()))
         .thenThrow(ApiException.class);
+    var rateLimiterConfig = RateLimiterConfig.custom().limitForPeriod(Integer.MAX_VALUE).build();
+    var rateLimiterRegistry = RateLimiterRegistry.of(rateLimiterConfig);
 
     // Make the tests run faster!
     retryTemplate.setBackOffPolicy(new NoBackOffPolicy());
     RhsmService mockBackedService =
         new RhsmService(
-            inventoryServiceProperties, new RhsmApiProperties(), rhsmApi, retryTemplate);
+            inventoryServiceProperties,
+            new RhsmApiProperties(),
+            rhsmApi,
+            retryTemplate,
+            rateLimiterRegistry);
 
     assertThrows(
         ApiException.class,

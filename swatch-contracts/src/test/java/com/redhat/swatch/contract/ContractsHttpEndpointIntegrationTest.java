@@ -169,6 +169,7 @@ class ContractsHttpEndpointIntegrationTest {
                       } ],
                       "cloudIdentifiers" : {
                         "awsCustomerId" : "EK57ooq39qs",
+                        "awsCustomerAccountId" : "896801664647",
                         "productCode" : "ek1lel8qbwnqimt2wogc5nmey"
                       }
                     }
