@@ -117,7 +117,8 @@ public class MetricUsageCollector {
     We need to recalculate several things if we are re-tallying, namely monthly totals need to be
     cleared and re-updated for each host record
      */
-    if (newestInstanceTimestamp.isAfter(range.getStartDate())) {
+    if (newestInstanceTimestamp.isAfter(range.getStartDate())
+        || newestInstanceTimestamp.isEqual(range.getStartDate())) {
       effectiveStartDateTime = clock.startOfMonth(range.getStartDate());
       effectiveEndDateTime = clock.endOfCurrentHour();
       log.info(
