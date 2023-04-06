@@ -606,6 +606,51 @@ class MetricUsageCollectorTest {
   }
 
   @Test
+  void testRecalculatesWhenEventLastSeenEqualToRangeStart() {
+    Measurement measurement = new Measurement().withUom(Measurement.Uom.CORES).withValue(42.0);
+    String instanceId = UUID.randomUUID().toString();
+    OffsetDateTime eventDate = clock.startOfCurrentHour();
+    Event event =
+        new Event()
+            .withEventId(UUID.randomUUID())
+            .withTimestamp(eventDate)
+            .withServiceType(SERVICE_TYPE)
+            .withInstanceId(instanceId)
+            .withMeasurements(Collections.singletonList(measurement))
+            .withUsage(Event.Usage.PRODUCTION);
+
+    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
+
+    String monthId = InstanceMonthlyTotalKey.formatMonthId(eventDate);
+    Host activeInstance = new Host();
+    activeInstance.setInstanceId(instanceId);
+    activeInstance.setInstanceType(SERVICE_TYPE);
+    activeInstance.addToMonthlyTotal(monthId, Measurement.Uom.CORES, 11.0);
+    activeInstance.setLastSeen(eventDate);
+    accountServiceInventory.getServiceInstances().put(instanceId, activeInstance);
+
+    when(accountRepo.findById(any())).thenReturn(Optional.of(accountServiceInventory));
+
+    when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
+        .thenAnswer(
+            m -> {
+              OffsetDateTime begin = m.getArgument(2, OffsetDateTime.class);
+              OffsetDateTime end = m.getArgument(3, OffsetDateTime.class);
+              if (begin.equals(eventDate) && end.equals(eventDate.plusHours(1))) {
+                return Stream.of(event);
+              }
+              return Stream.of();
+            });
+
+    when(eventController.hasEventsInTimeRange(any(), any(), any(), any())).thenReturn(true);
+
+    metricUsageCollector.collect(
+        SERVICE_TYPE, "account123", "org123", new DateRange(eventDate, eventDate.plusHours(1)));
+    assertEquals(
+        Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
+  }
+
+  @Test
   void collectionThrowsExceptionWhenDateRangeIsNotRounded() {
     DateRange range = new DateRange(clock.startOfCurrentHour(), clock.now());
     assertThrows(
