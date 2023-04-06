@@ -74,7 +74,8 @@ public class ContractService {
   /**
    * If there's not an already active contract in the database, create a new Contract for the given
    * payload. This method will always set the end date to 'null', which indicates an active
-   * contract.
+   * contract. In the event you try to update an un-updatable value, we'll persist a new contract
+   * record with those details instead of attempting (and failing) the update
    *
    * @param contract
    * @return Contract dto
