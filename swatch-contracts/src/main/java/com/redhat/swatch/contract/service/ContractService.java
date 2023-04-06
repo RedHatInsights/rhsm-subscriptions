@@ -27,9 +27,7 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitl
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
 import com.redhat.swatch.contract.exception.ContractMissingException;
-import com.redhat.swatch.contract.exception.ContractsException;
 import com.redhat.swatch.contract.exception.CreateContractException;
-import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.model.ContractMapper;
 import com.redhat.swatch.contract.model.ContractSourcePartnerEnum;
 import com.redhat.swatch.contract.openapi.model.Contract;
@@ -179,9 +177,12 @@ public class ContractService {
 
     if (!isUpdateAllowed(existingContract, dto)) {
 
-      var message = "Cannot update product ID.  Use create contract instead";
-      log.error(message);
-      throw new ContractsException(ErrorCode.CONTRACT_UPDATE_NOT_ALLOWED, message);
+      log.warn(
+          "Cannot update one or more of the attributes in the request.  Creating new contract record out of "
+              + dto
+              + "instead");
+
+      return createContract(dto);
     }
 
     var now = OffsetDateTime.now();
@@ -213,7 +214,9 @@ public class ContractService {
    */
   boolean isUpdateAllowed(ContractEntity o, Contract dto) {
 
-    return Objects.equals(o.getProductId(), dto.getProductId());
+    return Objects.equals(o.getProductId(), dto.getProductId())
+        && Objects.equals(o.getSubscriptionNumber(), dto.getSubscriptionNumber())
+        && Objects.equals(o.getStartDate(), dto.getStartDate());
   }
 
   /**
