@@ -209,6 +209,9 @@ public class ContractService {
   }
 
   /**
+   * Updating of the unique constraint properties (productId, subscriptionNumber, and startDate are
+   * not allowed.
+   *
    * @param o
    * @param dto
    * @return boolean
