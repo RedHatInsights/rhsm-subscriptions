@@ -49,7 +49,7 @@ public interface ContractMapper {
 
   @Mapping(target = "subscriptionNumber", source = "contract.redHatSubscriptionNumber")
   @Mapping(target = "metrics", source = "currentDimensions")
-  // NOTE: we only care about subscriptionNumber and metrics for now
+  @Mapping(target = "vendorProductCode", source = "cloudIdentifiers.productCode")
   @BeanMapping(ignoreByDefault = true)
   ContractEntity partnerContractToContractEntity(PartnerEntitlementContract contract);
 

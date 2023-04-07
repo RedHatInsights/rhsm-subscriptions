@@ -66,6 +66,7 @@ class ContractServiceTest extends BaseUnitTest {
     actualContract1.setStartDate(OffsetDateTime.now());
     actualContract1.setEndDate(OffsetDateTime.now());
     actualContract1.setBillingProvider("test123");
+    actualContract1.setVendorProductCode("product123");
     actualContract1.setSku("BAS123");
     actualContract1.setProductId("BASILISK123");
     actualContract1.setOrgId("org123");
@@ -92,6 +93,7 @@ class ContractServiceTest extends BaseUnitTest {
     contractDto.setBillingProvider("test123");
     contractDto.setSku("BAS123");
     contractDto.setProductId("BASILISK123");
+    contractDto.setVendorProductCode("product123");
     contractDto.setOrgId("org123");
     contractDto.setSubscriptionNumber("test");
 
@@ -122,7 +124,7 @@ class ContractServiceTest extends BaseUnitTest {
     var spec =
         ContractEntity.orgIdEquals("org123").and(ContractEntity.productIdEquals("BASILISK123"));
     List<Contract> contractList =
-        contractService.getContracts("org123", "BASILISK123", null, null, null, null);
+        contractService.getContracts("org123", "BASILISK123", null, null, null, null, null);
     verify(contractRepository).getContracts(any());
     assertEquals(1, contractList.size());
     assertEquals(2, contractList.get(0).getMetrics().size());
@@ -266,6 +268,7 @@ class ContractServiceTest extends BaseUnitTest {
     existingContract.setBillingProvider("aws");
     existingContract.setSku("RH000000");
     existingContract.setProductId("BASILISK123");
+    existingContract.setVendorProductCode("product123");
     existingContract.setOrgId("org123");
     existingContract.setLastUpdated(offsetDateTime);
     existingContract.setSubscriptionNumber("12400374");
@@ -316,6 +319,7 @@ class ContractServiceTest extends BaseUnitTest {
     existingContract.setBillingProvider("aws");
     existingContract.setSku("RH000000");
     existingContract.setProductId("BASILISK123");
+    existingContract.setVendorProductCode("product123");
     existingContract.setOrgId("org123");
     existingContract.setLastUpdated(offsetDateTime);
     existingContract.setSubscriptionNumber("12400374");
@@ -373,6 +377,7 @@ class ContractServiceTest extends BaseUnitTest {
     updateContract.setStartDate(OffsetDateTime.now().minusDays(2));
     updateContract.setEndDate(OffsetDateTime.now());
     updateContract.setProductId("BASILISK123");
+    updateContract.setVendorProductCode("1234567890abcdefghijklmno");
     updateContract.setSku("MW01484");
     when(contractRepository.getContracts(any())).thenReturn(Collections.emptyList());
     when(contractRepository.findContract(any())).thenReturn(updateContract);

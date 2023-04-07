@@ -76,6 +76,7 @@ class ContractRepositoryTest {
     actualContract1.setOrgId("org123");
     actualContract1.setLastUpdated(OffsetDateTime.now());
     actualContract1.setSubscriptionNumber("test");
+    actualContract1.setVendorProductCode("vendorTest");
 
     ContractMetricEntity contractMetric1 = new ContractMetricEntity();
     contractMetric1.setContractUuid(uuid);
@@ -102,6 +103,7 @@ class ContractRepositoryTest {
     actualContract2.setOrgId("org456");
     actualContract2.setLastUpdated(OffsetDateTime.now());
     actualContract2.setSubscriptionNumber("test");
+    actualContract2.setVendorProductCode("vendorTest");
 
     ContractMetricEntity contractMetric3 = new ContractMetricEntity();
     contractMetric3.setContractUuid(uuid2);

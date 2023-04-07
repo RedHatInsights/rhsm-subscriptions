@@ -86,11 +86,18 @@ public class ContractsTestingResource implements DefaultApi {
       String productId,
       String metricId,
       String billingProvider,
+      String vendorProductCode,
       String billingAccountId,
       OffsetDateTime timestamp)
       throws ApiException, ProcessingException {
     return service.getContracts(
-        orgId, productId, metricId, billingProvider, billingAccountId, timestamp);
+        orgId,
+        productId,
+        metricId,
+        billingProvider,
+        billingAccountId,
+        vendorProductCode,
+        timestamp);
   }
 
   /**

@@ -133,6 +133,7 @@ public class ContractService {
    * @param metricId
    * @param billingProvider
    * @param billingAccountId
+   * @param vendorProductCode
    * @return List<Contract> dtos
    */
   public List<Contract> getContracts(
@@ -141,6 +142,7 @@ public class ContractService {
       String metricId,
       String billingProvider,
       String billingAccountId,
+      String vendorProductCode,
       OffsetDateTime timestamp) {
 
     Specification<ContractEntity> specification = ContractEntity.orgIdEquals(orgId);
@@ -156,6 +158,9 @@ public class ContractService {
     }
     if (billingAccountId != null) {
       specification = specification.and(ContractEntity.billingAccountIdEquals(billingAccountId));
+    }
+    if (vendorProductCode != null) {
+      specification = specification.and(ContractEntity.vendorProductCodeEquals(vendorProductCode));
     }
     if (timestamp != null) {
       specification = specification.and(ContractEntity.activeOn(timestamp));
@@ -180,8 +185,6 @@ public class ContractService {
     ContractEntity existingContract =
         contractRepository.findContract(UUID.fromString(dto.getUuid()));
 
-    var now = OffsetDateTime.now();
-
     if (Objects.isNull(existingContract)) {
       var message =
           String.format(
@@ -189,6 +192,16 @@ public class ContractService {
       log.error(message);
       throw new ContractMissingException(message);
     }
+    if (!isUpdateAllowed(existingContract, dto)) {
+
+      log.warn(
+          "Cannot update one or more of the attributes in the request.  Creating new contract record out of "
+              + dto
+              + "instead");
+
+      return createContract(dto);
+    }
+    var now = OffsetDateTime.now();
 
     // "sunset" the previous record
     existingContract.setEndDate(now);
@@ -318,6 +331,7 @@ public class ContractService {
                 new QueryPartnerEntitlementV1()
                     .rhAccountId(contract.getOrgId())
                     .customerAwsAccountId(contract.getBillingAccountId())
+                    .vendorProductCode(contract.getVendorProductCode())
                     .source(contract.getBillingProvider()));
         if (Objects.nonNull(result.getContent()) && !result.getContent().isEmpty()) {
           var entitlementEntity =
@@ -399,6 +413,19 @@ public class ContractService {
 
   private boolean isDuplicateContract(ContractEntity newEntity, ContractEntity existing) {
     return Objects.equals(newEntity, existing);
+  }
+
+  /**
+   * Updating of the unique constraint properties (productId, subscriptionNumber, and startDate are
+   * not allowed.
+   *
+   * @param o
+   * @param dto
+   * @return boolean
+   */
+  boolean isUpdateAllowed(ContractEntity o, Contract dto) {
+
+    return Objects.equals(dto.getVendorProductCode(), o.getVendorProductCode());
   }
 
   private ContractEntity transformEntitlementToContractEntity( // NOSONAR
