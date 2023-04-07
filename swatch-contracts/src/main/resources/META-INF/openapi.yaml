@@ -195,6 +195,52 @@ paths:
       security:
         - test: []
       operationId: createContract
+  /api/swatch-contracts/internal/rpc/sync/contracts/{org_id}:
+    description: "Trigger a contract sync for a given Org ID"
+    post:
+      parameters:
+        - name: org_id
+          description: ""
+          schema:
+            type: string
+          in: path
+          required: true
+      summary: "Sync contracts for given org_id."
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              examples:
+                status response:
+                  value:
+                    status: 'Success'
+                    message: "Contracts Synced for given org_id"
+          description: success
+
+      security:
+        - test: []
+      operationId: syncContractsByOrg
+  /internal/rpc/syncAllContracts:
+    description: "Trigger a sync for all contracts"
+    post:
+      summary: "Sync all contracts."
+      operationId: syncAllContracts
+      responses:
+        '202':
+          description: "The request for syncing all contracts is successfully running."
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+              examples:
+                status response:
+                  value:
+                    status: 'Success'
+                    message: "All contracts Synced"
+      security:
+        - test: []
   /internal/offerings/{sku}/product_tags:
       description: "Mapping sku to product tags."
       parameters:

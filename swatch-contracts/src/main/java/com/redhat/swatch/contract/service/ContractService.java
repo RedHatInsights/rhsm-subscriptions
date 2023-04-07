@@ -119,6 +119,11 @@ public class ContractService {
     return contractRepository.getContracts(specification);
   }
 
+  @Transactional
+  public List<ContractEntity> getAllContracts() {
+    return contractRepository.findAll().stream().toList();
+  }
+
   /**
    * Build Specifications based on provided parameters if not null and use to query the database
    * based on specifications.
@@ -291,6 +296,58 @@ public class ContractService {
     return statusResponse;
   }
 
+  @Transactional
+  public StatusResponse syncContractByOrgId(String contractOrgSync) {
+    StatusResponse statusResponse = new StatusResponse();
+    final String failureMessage = "FAILED";
+    final String successMsg = "SUCCESS";
+
+    try {
+      var currentContracts = listCurrentlyActiveContractsByOrgId(contractOrgSync);
+
+      if (currentContracts.isEmpty()) {
+        log.debug("No active contract for {}", contractOrgSync);
+        return statusResponse
+            .status(failureMessage)
+            .message(contractOrgSync + " not found in table");
+      }
+
+      for (ContractEntity contract : currentContracts) {
+        var result =
+            partnerApi.getPartnerEntitlements(
+                new QueryPartnerEntitlementV1()
+                    .rhAccountId(contract.getOrgId())
+                    .customerAwsAccountId(contract.getBillingAccountId())
+                    .source(contract.getBillingProvider()));
+        if (Objects.nonNull(result.getContent()) && !result.getContent().isEmpty()) {
+          var entitlementEntity =
+              transformEntitlementToContractEntity(result.getContent(), contract);
+          if (Objects.nonNull(entitlementEntity)) {
+            log.info("Syncing new Contract for {}", contractOrgSync);
+            statusResponse.setStatus(successMsg);
+            persistContract(entitlementEntity, OffsetDateTime.now());
+          } else {
+            statusResponse.setStatus(failureMessage);
+            statusResponse.setMessage("Entitlement Cannot be found for " + contractOrgSync);
+            return statusResponse;
+          }
+        }
+      }
+      statusResponse.setMessage("Contracts Synced for " + contractOrgSync);
+    } catch (NumberFormatException e) {
+      log.error(e.getMessage());
+      statusResponse.setStatus(failureMessage);
+      statusResponse.setMessage("An Error occurred while reconciling contract");
+      return statusResponse;
+    } catch (ApiException e) {
+      log.error(e.getMessage());
+      statusResponse.setStatus(failureMessage);
+      statusResponse.setMessage("An Error occurred while calling Partner Api");
+      return statusResponse;
+    }
+    return statusResponse;
+  }
+
   private boolean validPartnerEntitlementContract(PartnerEntitlementContract contract) {
     return Objects.nonNull(contract.getRedHatSubscriptionNumber())
         && Objects.nonNull(contract.getCurrentDimensions())
@@ -334,11 +391,59 @@ public class ContractService {
     return contractRepository.getContracts(specification).stream().findFirst();
   }
 
+  private List<ContractEntity> listCurrentlyActiveContractsByOrgId(String orgId) {
+    Specification<ContractEntity> specification =
+        ContractEntity.orgIdEquals(orgId).and(ContractEntity.isActive());
+    return contractRepository.getContracts(specification);
+  }
+
   private boolean isDuplicateContract(ContractEntity newEntity, ContractEntity existing) {
     return Objects.equals(newEntity, existing);
   }
 
-  private void collectMissingUpStreamContractDetails(
+  private ContractEntity transformEntitlementToContractEntity( // NOSONAR
+      List<PartnerEntitlementV1> entitlements, ContractEntity prevEntity) throws ApiException {
+    if (Objects.nonNull(entitlements) && Objects.nonNull(entitlements.get(0))) {
+      // This is so that current entities have the other fields not being updated here,
+      // so it can be persisted without missing information
+      var entitlement = entitlements.get(0);
+
+      if (Objects.nonNull(prevEntity.getEndDate())
+          && Objects.nonNull(entitlement.getEntitlementDates())
+          && prevEntity.getEndDate().isAfter(entitlement.getEntitlementDates().getEndDate())) {
+        log.debug("This Contract is No longer active for {}", prevEntity.getOrgId());
+        return prevEntity;
+      }
+
+      prevEntity.setOrgId(entitlement.getRhAccountId());
+      prevEntity.setBillingProvider(entitlement.getSourcePartner().value());
+      var partnerIdentity = entitlement.getPartnerIdentities();
+      if (Objects.nonNull(partnerIdentity)) {
+        prevEntity.setBillingAccountId(partnerIdentity.getCustomerAwsAccountId());
+
+        var rhEntitlements = entitlement.getRhEntitlements();
+        if (Objects.nonNull(rhEntitlements)
+            && !rhEntitlements.isEmpty()
+            && Objects.nonNull(rhEntitlements.get(0))) {
+          var subscription = rhEntitlements.get(0).getRedHatSubscriptionNumber();
+          var sku = rhEntitlements.get(0).getSku();
+          prevEntity.setSku(sku);
+          prevEntity.setSubscriptionNumber(subscription);
+          OfferingProductTags productTags = syncResource.getSkuProductTags(sku);
+          if (Objects.nonNull(productTags.getData())
+              && Objects.nonNull(productTags.getData().get(0))) {
+            prevEntity.setProductId(productTags.getData().get(0));
+          } else {
+            log.error("Error getting product tags");
+          }
+        }
+      }
+      return prevEntity;
+    }
+    return null;
+  }
+
+  private void collectMissingUpStreamContractDetails( // NOSONAR
       ContractEntity entity, PartnerEntitlementContract contract) throws ApiException {
     String awsCustomerAccountId = contract.getCloudIdentifiers().getAwsCustomerAccountId();
     String productCode = contract.getCloudIdentifiers().getProductCode();
