@@ -91,6 +91,7 @@ class ContractsControllerTest {
             usage.getOrgId(),
             usage.getProductId(),
             usage.getUom().value(),
+            usage.getVendorProductCode(),
             usage.getBillingProvider().value(),
             usage.getBillingAccountId(),
             usage.getSnapshotDate()))
@@ -123,6 +124,7 @@ class ContractsControllerTest {
             usage.getOrgId(),
             usage.getProductId(),
             usage.getUom().value(),
+            usage.getVendorProductCode(),
             usage.getBillingProvider().value(),
             usage.getBillingAccountId(),
             usage.getSnapshotDate()))
@@ -165,6 +167,7 @@ class ContractsControllerTest {
             usage.getOrgId(),
             usage.getProductId(),
             usage.getUom().value(),
+            usage.getVendorProductCode(),
             usage.getBillingProvider().value(),
             usage.getBillingAccountId(),
             usage.getSnapshotDate()))
@@ -185,7 +188,7 @@ class ContractsControllerTest {
     when(tagProfile.isTagContractEnabled(usage.getProductId())).thenReturn(true);
     doThrow(ApiException.class)
         .when(contractsApi)
-        .getContract(any(), any(), any(), any(), any(), any());
+        .getContract(any(), any(), any(), any(), any(), any(), any());
     ExternalServiceException e =
         assertThrows(
             ExternalServiceException.class,
@@ -201,7 +204,7 @@ class ContractsControllerTest {
   void throwsExternalServiceExceptionWhenNoContractsFound() throws Exception {
     BillableUsage usage = defaultUsage();
     when(tagProfile.isTagContractEnabled(usage.getProductId())).thenReturn(true);
-    when(contractsApi.getContract(any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getContract(any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(new ArrayList<>());
     ExternalServiceException e =
         assertThrows(

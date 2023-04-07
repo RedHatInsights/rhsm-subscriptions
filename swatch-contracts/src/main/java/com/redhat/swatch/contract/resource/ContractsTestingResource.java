@@ -85,8 +85,8 @@ public class ContractsTestingResource implements DefaultApi {
       String orgId,
       String productId,
       String metricId,
-      String billingProvider,
       String vendorProductCode,
+      String billingProvider,
       String billingAccountId,
       OffsetDateTime timestamp)
       throws ApiException, ProcessingException {

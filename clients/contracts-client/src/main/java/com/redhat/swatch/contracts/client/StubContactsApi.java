@@ -38,6 +38,7 @@ public class StubContactsApi extends DefaultApi {
       String orgId,
       String productId,
       String metricId,
+      String vendorProductCode,
       String billingProvider,
       String billingAccountId,
       OffsetDateTime timestamp)
@@ -47,14 +48,17 @@ public class StubContactsApi extends DefaultApi {
     }
 
     return List.of(
-        createContract(orgId, productId, metricId, billingProvider, billingAccountId, 5),
-        createContract(orgId, productId, metricId, billingProvider, billingAccountId, 10));
+        createContract(
+            orgId, productId, metricId, vendorProductCode, billingProvider, billingAccountId, 5),
+        createContract(
+            orgId, productId, metricId, vendorProductCode, billingProvider, billingAccountId, 10));
   }
 
   private Contract createContract(
       String orgId,
       String productId,
       String metricId,
+      String vendorProductCode,
       String billingProvider,
       String billingAccountId,
       int value) {
@@ -63,6 +67,7 @@ public class StubContactsApi extends DefaultApi {
         .productId(productId)
         .billingProvider(billingProvider)
         .billingAccountId(billingAccountId)
+        .vendorProductCode(vendorProductCode)
         .addMetricsItem(new Metric().metricId(metricId).value(value));
   }
 }
