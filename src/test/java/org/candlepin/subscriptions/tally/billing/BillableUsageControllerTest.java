@@ -442,6 +442,7 @@ class BillableUsageControllerTest {
           usage.getOrgId(),
           usage.getProductId(),
           usage.getUom().value(),
+          usage.getVendorProductCode(),
           usage.getBillingProvider().value(),
           usage.getBillingAccountId(),
           usage.getSnapshotDate());
@@ -476,6 +477,7 @@ class BillableUsageControllerTest {
       String orgId,
       String productId,
       String metric,
+      String vendorProductCode,
       String billingProvider,
       String billingAccountId,
       OffsetDateTime startDate)
@@ -494,7 +496,13 @@ class BillableUsageControllerTest {
 
     log.info("Second: {}", updatedContract);
     when(contractsApi.getContract(
-            orgId, productId, metric, billingProvider, billingAccountId, startDate))
+            orgId,
+            productId,
+            metric,
+            vendorProductCode,
+            billingProvider,
+            billingAccountId,
+            startDate))
         .thenReturn(List.of(contract1, updatedContract));
   }
 
@@ -504,7 +512,8 @@ class BillableUsageControllerTest {
     usage.setSnapshotDate(OffsetDateTime.now());
     usage.setUom(Uom.CORES);
     when(tagProfile.isTagContractEnabled(usage.getProductId())).thenReturn(true);
-    when(contractsApi.getContract(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
+    when(contractsApi.getContract(any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(List.of());
     controller.submitBillableUsage(BillingWindow.MONTHLY, usage);
     verify(producer).produce(null);
   }

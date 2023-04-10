@@ -79,6 +79,7 @@ public class ContractsController {
               usage.getOrgId(),
               usage.getProductId(),
               usage.getUom().value(),
+              usage.getVendorProductCode(),
               usage.getBillingProvider().value(),
               usage.getBillingAccountId(),
               usage.getSnapshotDate());

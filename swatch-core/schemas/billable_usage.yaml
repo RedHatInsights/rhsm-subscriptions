@@ -61,3 +61,6 @@ properties:
   billing_factor:
     description: Field is used to multiple or divide the remittance values by a configured amount
     type: number
+  vendor_product_code:
+    description: Field used to specify a unique contract
+    type: string

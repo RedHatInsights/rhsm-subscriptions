@@ -30,11 +30,13 @@ paths:
                   billing_provider: aws
                   billing_account_id: some text
                   product_id: some text
+                  sku: some text
+                  vendor_product_code: some text
                   metrics:
                     - metric_id: some text
-                      value: 18.15
+                      value: 18
                     - metric_id: some text
-                      value: 28.69
+                      value: 28
         required: false
       parameters:
         - examples:
@@ -60,7 +62,7 @@ paths:
                     end_date: 2023-03-01T00:00:00Z
                     metrics:
                       - metric_id: Instance-hours
-                        value: 68.6
+                        value: 68
                     org_id: org123
                     product_id: BASILISK
                     start_date: 2022-01-01T00:00:00Z
@@ -121,6 +123,14 @@ paths:
             metric_id:
               value: Instance-hours
           name: metric_id
+          description: ""
+          schema:
+            type: string
+          in: query
+        - examples:
+            vendor_product_code:
+              value: 6n58d3s3qpvk22dgew2gal7w3
+          name: vendor_product_code
           description: ""
           schema:
             type: string
@@ -337,6 +347,8 @@ components:
         - billing_account_id
         - product_id
         - metrics
+        - sku
+        - vendor_product_code
       type: object
       properties:
         uuid:
@@ -377,6 +389,10 @@ components:
           description: ""
           type: string
           example: BASILISK
+        vendor_product_code:
+          description: ""
+          type: string
+          example: "6n58d3s3qpvk22dgew2gal7w3"
         metrics:
           description: ""
           type: array

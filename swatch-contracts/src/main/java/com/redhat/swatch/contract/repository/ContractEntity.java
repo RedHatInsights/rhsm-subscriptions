@@ -91,6 +91,10 @@ public class ContractEntity extends PanacheEntityBase {
   @Column(name = "product_id", nullable = false)
   private String productId;
 
+  @Basic
+  @Column(name = "vendor_product_code", nullable = false)
+  private String vendorProductCode;
+
   @Builder.Default
   @OneToMany(
       targetEntity = ContractMetricEntity.class,
@@ -121,13 +125,21 @@ public class ContractEntity extends PanacheEntityBase {
         && Objects.equals(billingProvider, that.billingProvider)
         && Objects.equals(billingAccountId, that.billingAccountId)
         && Objects.equals(productId, that.productId)
-        && Objects.equals(metrics, that.metrics);
+        && Objects.equals(metrics, that.metrics)
+        && Objects.equals(vendorProductCode, that.vendorProductCode);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
-        subscriptionNumber, orgId, sku, billingProvider, billingAccountId, productId, metrics);
+        subscriptionNumber,
+        orgId,
+        sku,
+        billingProvider,
+        billingAccountId,
+        productId,
+        metrics,
+        vendorProductCode);
   }
 
   public static Specification<ContractEntity> orgIdEquals(String orgId) {
@@ -157,6 +169,11 @@ public class ContractEntity extends PanacheEntityBase {
   public static Specification<ContractEntity> subscriptionNumberEquals(String subscriptionNumber) {
     return (root, query, builder) ->
         builder.equal(root.get(ContractEntity_.subscriptionNumber), subscriptionNumber);
+  }
+
+  public static Specification<ContractEntity> vendorProductCodeEquals(String vendorProductCode) {
+    return (root, query, builder) ->
+        builder.equal(root.get(ContractEntity_.vendorProductCode), vendorProductCode);
   }
 
   public static Specification<ContractEntity> isActive() {

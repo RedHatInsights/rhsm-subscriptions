@@ -50,7 +50,7 @@ class ContractsHttpEndpointIntegrationTest {
   void whenGetContract_thenContractShouldBeFound() {
     Contract contract = new Contract();
     contract.setOrgId("org123");
-    when(contractService.getContracts(any(), any(), any(), any(), any(), any()))
+    when(contractService.getContracts(any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(List.of(contract));
     given()
         .contentType(ContentType.JSON)
@@ -73,7 +73,7 @@ class ContractsHttpEndpointIntegrationTest {
     {"subscription_number":"string","sku":"string",
     "start_date":"2022-03-10T12:15:50-04:00","end_date":"2022-03-10T12:15:50-04:00",
     "org_id":"string","billing_provider":"string","billing_account_id":"string",
-    "product_id":"string","metrics": [ {"metric_id":"string","value": 0 } ] }
+    "product_id":"string","vendor_product_code":"string","metrics": [ {"metric_id":"string","value": 0 } ] }
     """;
     given()
         .contentType(ContentType.JSON)
@@ -95,7 +95,7 @@ class ContractsHttpEndpointIntegrationTest {
         {"uuid":"1234567890","subscription_number":"string","sku":"string",
         "start_date":"2022-03-10T12:15:50-04:00","end_date":"2022-03-10T12:15:50-04:00",
         "org_id":"string","billing_provider":"string","billing_account_id":"string",
-        "product_id":"string","metrics": [ {"metric_id":"string","value": 0 } ] }
+        "product_id":"string","vendor_product_code":"string","metrics": [ {"metric_id":"string","value": 0 } ] }
         """;
     given()
         .contentType(ContentType.JSON)
@@ -121,7 +121,7 @@ class ContractsHttpEndpointIntegrationTest {
         {"uuid":"string","subscription_number":"string","sku":"string",
         "start_date":"2022-03-10T12:15:50-04:00","end_date":"2022-03-10T12:15:50-04:00",
         "org_id":"string","billing_provider":"string","billing_account_id":"string",
-        "product_id":"string","metrics": [ {"metric_id":"string","value": 0 } ] }
+        "product_id":"string","vendor_product_code":"string","metrics": [ {"metric_id":"string","value": 0 } ] }
         """;
     given()
         .contentType(ContentType.JSON)
