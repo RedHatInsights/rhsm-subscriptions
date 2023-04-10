@@ -54,6 +54,12 @@ parameters:
     value: '1000'
   - name: SPLUNK_HEC_TERMINATION_TIMEOUT
     value: '2000'
+  - name: NGINX_OTEL_IMAGE_TAG
+    value: '1df2c89'
+  - name: OTEL_ENABLED
+    value: 'off'
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: 'http://localhost:4317'
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
     kind: ClowdApp
@@ -255,7 +261,7 @@ objects:
               enabled: true
               apiPath: rhsm-subscriptions
           podSpec:
-            image: quay.io/app-sre/ubi8-nginx-118
+            image: quay.io/cloudservices/nginx-otel:${NGINX_OTEL_IMAGE_TAG}
             command:
             - nginx
             - "-g"
@@ -263,6 +269,10 @@ objects:
             env:
             - name: DEV_MODE
               value: ${DEV_MODE}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+            - name: OTEL_SERVICE_NAME
+              value: swatch-api-nginx-proxy
             volumeMounts:
             - name: swatch-api-nginx-conf
               mountPath: /etc/nginx
@@ -295,8 +305,11 @@ objects:
       name: nginx-conf
     data:
       nginx.conf: |-
+        load_module /opt/otel_ngx_module.so;
         events {}
         http {
+          opentelemetry ${OTEL_ENABLED};
+          opentelemetry_config /etc/nginx/otel.toml;
           upstream swatch-api {
             server swatch-api-service:8000;
           }
@@ -309,6 +322,7 @@ objects:
             client_header_buffer_size 46k;
 
             location /healthz {
+                opentelemetry       off;
                 auth_basic          off;
                 allow               all;
                 return              200;
@@ -319,3 +333,14 @@ objects:
             }
           }
         }
+      otel.toml: |-
+        exporter = "otlp"
+        processor = "batch"
+
+        [exporters.otlp]
+        # host and port are set via OTEL_EXPORTER_OTLP_ENDPOINT
+
+        [processors.batch]
+        max_queue_size = 2048
+        schedule_delay_millis = 5000
+        max_export_batch_size = 512
