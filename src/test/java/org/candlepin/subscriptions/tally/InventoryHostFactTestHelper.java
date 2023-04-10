@@ -58,22 +58,28 @@ public class InventoryHostFactTestHelper {
       String orgId,
       List<Integer> products,
       String syspurposeRole,
+      String releaseVer,
       OffsetDateTime syncTimestamp) {
     return createRhsmHost(
         account,
         orgId,
         StringUtils.collectionToCommaDelimitedString(products),
         syspurposeRole,
+        releaseVer,
         syncTimestamp);
   }
 
   public static InventoryHostFacts createRhsmHost(
-      List<Integer> products, String syspurposeRole, OffsetDateTime syncTimestamp) {
+      List<Integer> products,
+      String syspurposeRole,
+      String releaseVer,
+      OffsetDateTime syncTimestamp) {
     return createRhsmHost(
         "Account",
         "test_org",
         StringUtils.collectionToCommaDelimitedString(products),
         syspurposeRole,
+        releaseVer,
         syncTimestamp);
   }
 
@@ -82,9 +88,10 @@ public class InventoryHostFactTestHelper {
       String orgId,
       String products,
       String syspurposeRole,
+      String releaseVer,
       OffsetDateTime syncTimeStamp) {
     return createRhsmHost(
-        account, orgId, products, ServiceLevel.EMPTY, syspurposeRole, syncTimeStamp);
+        account, orgId, products, ServiceLevel.EMPTY, syspurposeRole, releaseVer, syncTimeStamp);
   }
 
   public static InventoryHostFacts createRhsmHost(
@@ -93,10 +100,11 @@ public class InventoryHostFactTestHelper {
       String products,
       ServiceLevel sla,
       String syspurposeRole,
+      String releaseVer,
       OffsetDateTime syncTimeStamp) {
 
     return createRhsmHost(
-        account, orgId, products, sla, Usage.EMPTY, syspurposeRole, syncTimeStamp);
+        account, orgId, products, sla, Usage.EMPTY, syspurposeRole, releaseVer, syncTimeStamp);
   }
 
   public static InventoryHostFacts createRhsmHost(
@@ -106,6 +114,7 @@ public class InventoryHostFactTestHelper {
       ServiceLevel sla,
       Usage usage,
       String syspurposeRole,
+      String releaseVer,
       OffsetDateTime syncTimeStamp) {
 
     InventoryHostFacts baseFacts = createBaseHost(account, orgId);
@@ -113,6 +122,7 @@ public class InventoryHostFactTestHelper {
     baseFacts.setSyspurposeRole(syspurposeRole);
     baseFacts.setSyspurposeSla(sla.getValue());
     baseFacts.setSyspurposeUsage(usage.getValue());
+    baseFacts.setReleaseVer(releaseVer);
     baseFacts.setSyncTimestamp(syncTimeStamp.toString());
     return baseFacts;
   }

@@ -101,7 +101,7 @@ class FactNormalizerTest {
 
   @Test
   void testRhsmNormalization() {
-    InventoryHostFacts rhsmHost = createRhsmHost(Arrays.asList(1), null, clock.now());
+    InventoryHostFacts rhsmHost = createRhsmHost(Arrays.asList(1), null, null, clock.now());
     rhsmHost.setSystemProfileCoresPerSocket(6);
     rhsmHost.setSystemProfileSockets(2);
     NormalizedFacts normalized = normalizer.normalize(rhsmHost, hypervisorData());
@@ -131,7 +131,7 @@ class FactNormalizerTest {
 
   @Test
   void testNormalizeNonRhelProduct() {
-    InventoryHostFacts rhsmHost = createRhsmHost(Arrays.asList(42), null, clock.now());
+    InventoryHostFacts rhsmHost = createRhsmHost(Arrays.asList(42), null, null, clock.now());
     rhsmHost.setSystemProfileCoresPerSocket(4);
     rhsmHost.setSystemProfileSockets(8);
     NormalizedFacts normalized = normalizer.normalize(rhsmHost, hypervisorData());
@@ -163,7 +163,7 @@ class FactNormalizerTest {
 
   @Test
   void testNormalizeWhenProductsMissingFromFactsAndOnlyCoresAreSet() {
-    InventoryHostFacts host = createRhsmHost((List<Integer>) null, null, clock.now());
+    InventoryHostFacts host = createRhsmHost((List<Integer>) null, null, null, clock.now());
     host.setSystemProfileCoresPerSocket(4);
     NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
     assertNotNull(normalized.getProducts());
@@ -174,7 +174,7 @@ class FactNormalizerTest {
 
   @Test
   void testNormalizeWhenProductsMissingFromFactsAndOnlySocketsAreSet() {
-    InventoryHostFacts host = createRhsmHost((List<Integer>) null, null, clock.now());
+    InventoryHostFacts host = createRhsmHost((List<Integer>) null, null, null, clock.now());
     host.setSystemProfileSockets(8);
     NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
     assertNotNull(normalized.getProducts());
@@ -186,7 +186,8 @@ class FactNormalizerTest {
   @Test
   void testNormalizeWhenCoresAndSocketsMissingFromFacts() {
     NormalizedFacts normalized =
-        normalizer.normalize(createRhsmHost(Arrays.asList(1), null, clock.now()), hypervisorData());
+        normalizer.normalize(
+            createRhsmHost(Arrays.asList(1), null, null, clock.now()), hypervisorData());
     assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
     assertEquals(Integer.valueOf(0), normalized.getCores());
     assertEquals(Integer.valueOf(0), normalized.getSockets());
@@ -195,7 +196,7 @@ class FactNormalizerTest {
   @Test
   void testIgnoresHostWhenLastSyncIsOutOfConfiguredThreshold() {
     OffsetDateTime lastSynced = clock.now().minusDays(2);
-    InventoryHostFacts facts = createRhsmHost("A1", "O1", "1", null, lastSynced);
+    InventoryHostFacts facts = createRhsmHost("A1", "O1", "1", null, null, lastSynced);
 
     NormalizedFacts normalized = normalizer.normalize(facts, hypervisorData());
     assertThat(normalized.getProducts(), Matchers.empty());
@@ -205,7 +206,7 @@ class FactNormalizerTest {
   @Test
   void testIncludesHostWhenLastSyncIsWithinTheConfiguredThreshold() {
     OffsetDateTime lastSynced = clock.now().minusDays(1);
-    InventoryHostFacts facts = createRhsmHost("A1", "O1", "1", null, lastSynced);
+    InventoryHostFacts facts = createRhsmHost("A1", "O1", "1", null, null, lastSynced);
     facts.setSystemProfileCoresPerSocket(2);
     facts.setSystemProfileSockets(2);
     NormalizedFacts normalized = normalizer.normalize(facts, hypervisorData());
@@ -236,7 +237,7 @@ class FactNormalizerTest {
 
   @Test
   void testNullSocketsNormalizeToZero() {
-    InventoryHostFacts host = createRhsmHost(Collections.emptyList(), null, clock.now());
+    InventoryHostFacts host = createRhsmHost(Collections.emptyList(), null, null, clock.now());
     NormalizedFacts normalizedHost = normalizer.normalize(host, hypervisorData());
 
     assertEquals(0, normalizedHost.getSockets().intValue());
@@ -246,7 +247,7 @@ class FactNormalizerTest {
   void testDetectsMultipleProductsBasedOnProductId() {
     NormalizedFacts normalized =
         normalizer.normalize(
-            createRhsmHost(Arrays.asList(1, 5, 7), null, clock.now()), hypervisorData());
+            createRhsmHost(Arrays.asList(1, 5, 7), null, null, clock.now()), hypervisorData());
     assertThat(
         normalized.getProducts(),
         Matchers.containsInAnyOrder("RHEL", "NOT RHEL", "RHEL Ungrouped"));
@@ -256,7 +257,8 @@ class FactNormalizerTest {
   void testDetectsProductFromSyspurposeRole() {
     NormalizedFacts normalized =
         normalizer.normalize(
-            createRhsmHost(Collections.emptyList(), "Red Hat Enterprise Linux Server", clock.now()),
+            createRhsmHost(
+                Collections.emptyList(), "Red Hat Enterprise Linux Server", "8.0", clock.now()),
             hypervisorData());
     assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Server"));
   }
@@ -272,7 +274,8 @@ class FactNormalizerTest {
   void variantFromSyspurposeWinsIfMultipleVariants() {
     NormalizedFacts normalized =
         normalizer.normalize(
-            createRhsmHost(Arrays.asList(9, 10), "Red Hat Enterprise Linux Server", clock.now()),
+            createRhsmHost(
+                Arrays.asList(9, 10), "Red Hat Enterprise Linux Server", "8.0", clock.now()),
             hypervisorData());
     assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Server"));
   }
@@ -282,14 +285,15 @@ class FactNormalizerTest {
     NormalizedFacts normalized =
         normalizer.normalize(
             createRhsmHost(
-                "A1", "O1", "9,10,Foobar", "Red Hat Enterprise Linux Server", clock.now()),
+                "A1", "O1", "9,10,Foobar", "Red Hat Enterprise Linux Server", "8.0", clock.now()),
             hypervisorData());
     assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Server"));
   }
 
   @Test
   void testNormalizationDiscardsRHELWhenSatelliteExists() {
-    InventoryHostFacts host = createRhsmHost(Collections.singletonList(250), null, clock.now());
+    InventoryHostFacts host =
+        createRhsmHost(Collections.singletonList(250), null, null, clock.now());
     host.setSystemProfileCoresPerSocket(6);
     host.setSystemProfileSockets(2);
     NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
@@ -301,7 +305,7 @@ class FactNormalizerTest {
 
   @Test
   void testNormalizationDiscardsRHELWhenOpenShiftExists() {
-    InventoryHostFacts host = createRhsmHost(Arrays.asList(2, 13), null, clock.now());
+    InventoryHostFacts host = createRhsmHost(Arrays.asList(2, 13), null, null, clock.now());
     host.setSystemProfileCoresPerSocket(6);
     host.setSystemProfileSockets(2);
     NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
@@ -313,7 +317,7 @@ class FactNormalizerTest {
 
   @Test
   void testNormalizationDiscardsRHELForArchWhenSatelliteExists() {
-    InventoryHostFacts host = createRhsmHost(Arrays.asList(2, 250), null, clock.now());
+    InventoryHostFacts host = createRhsmHost(Arrays.asList(2, 250), null, null, clock.now());
     host.setSystemProfileCoresPerSocket(6);
     host.setSystemProfileSockets(2);
     NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
@@ -325,7 +329,7 @@ class FactNormalizerTest {
 
   @Test
   void testNormalizationDiscardsRHELWhenSatelliteExistsSameProduct() {
-    InventoryHostFacts host = createRhsmHost(Arrays.asList(2, 269), null, clock.now());
+    InventoryHostFacts host = createRhsmHost(Arrays.asList(2, 269), null, null, clock.now());
     host.setSystemProfileCoresPerSocket(6);
     host.setSystemProfileSockets(2);
     NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
@@ -352,7 +356,7 @@ class FactNormalizerTest {
 
   @Test
   void testModulo2SocketNormalizationForPhysicalHosts() {
-    InventoryHostFacts host = createRhsmHost(Arrays.asList(1), null, clock.now());
+    InventoryHostFacts host = createRhsmHost(Arrays.asList(1), null, null, clock.now());
     host.setSystemProfileCoresPerSocket(4);
     host.setSystemProfileSockets(3);
     NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
@@ -478,7 +482,7 @@ class FactNormalizerTest {
 
   @Test
   void testPhysicalClassification() {
-    InventoryHostFacts physical = createRhsmHost(Arrays.asList(12), null, clock.now());
+    InventoryHostFacts physical = createRhsmHost(Arrays.asList(12), null, null, clock.now());
     NormalizedFacts facts = normalizer.normalize(physical, hypervisorData());
     assertClassification(facts, false, true, false);
   }
@@ -611,6 +615,7 @@ class FactNormalizerTest {
     facts.setSyspurposeRole("Red Hat Enterprise Linux Workstation");
     facts.setSyspurposeSla("Standard");
     facts.setSyspurposeUsage("Development/Test");
+    facts.setReleaseVer("8.0");
     NormalizedFacts normalized = normalizer.normalize(facts, hypervisorData());
     assertThat(normalized.getProducts(), Matchers.contains("RHEL Workstation", "RHEL"));
     assertEquals(ServiceLevel.STANDARD, normalized.getSla());
@@ -643,7 +648,7 @@ class FactNormalizerTest {
 
   @Test
   void testCalculationOfRhsmVirtualCPUFacts() {
-    InventoryHostFacts facts = createRhsmHost(Arrays.asList(1), null, clock.now());
+    InventoryHostFacts facts = createRhsmHost(Arrays.asList(1), null, null, clock.now());
 
     facts.setSystemProfileArch("x86_64");
     facts.setSystemProfileCoresPerSocket(7);
@@ -656,7 +661,7 @@ class FactNormalizerTest {
 
   @Test
   void testCalculationOfMarketplaceMeasurements() {
-    InventoryHostFacts facts = createRhsmHost(List.of(1), null, clock.now());
+    InventoryHostFacts facts = createRhsmHost(List.of(1), null, null, clock.now());
     facts.setMarketplace(true);
     facts.setSystemProfileCoresPerSocket(7);
     facts.setSystemProfileSockets(1);

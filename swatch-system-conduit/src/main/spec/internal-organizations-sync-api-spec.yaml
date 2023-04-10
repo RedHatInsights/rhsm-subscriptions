@@ -253,6 +253,8 @@ components:
           type: string
         sys_purpose_usage:
           type: string
+        release_ver:
+          type: string
         sys_purpose_addons:
           type: array
           items:

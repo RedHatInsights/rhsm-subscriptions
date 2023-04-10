@@ -291,6 +291,7 @@ public class FactNormalizer {
       handleRole(normalizedFacts, hostFacts.getSyspurposeRole());
       handleSla(normalizedFacts, hostFacts, hostFacts.getSyspurposeSla());
       handleUsage(normalizedFacts, hostFacts, hostFacts.getSyspurposeUsage());
+      normalizedFacts.setReleaseVer(hostFacts.getReleaseVer());
     }
   }
 

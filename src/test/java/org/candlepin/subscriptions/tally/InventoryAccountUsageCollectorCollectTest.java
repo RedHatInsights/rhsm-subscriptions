@@ -143,7 +143,8 @@ class InventoryAccountUsageCollectorCollectTest {
   @Test
   void removesDuplicateHostRecords() {
     List<Integer> products = List.of(TEST_PRODUCT_ID);
-    InventoryHostFacts host = createRhsmHost(ACCOUNT, ORG_ID, products, "", OffsetDateTime.now());
+    InventoryHostFacts host =
+        createRhsmHost(ACCOUNT, ORG_ID, products, "", "", OffsetDateTime.now());
     host.setSystemProfileCoresPerSocket(4);
     host.setSystemProfileSockets(3);
     Host orig =
@@ -182,7 +183,8 @@ class InventoryAccountUsageCollectorCollectTest {
   @Test
   void ensureStaleHostsAreDeleted() {
     List<Integer> products = List.of(TEST_PRODUCT_ID);
-    InventoryHostFacts host = createRhsmHost(ACCOUNT, ORG_ID, products, "", OffsetDateTime.now());
+    InventoryHostFacts host =
+        createRhsmHost(ACCOUNT, ORG_ID, products, "", "", OffsetDateTime.now());
     host.setSystemProfileCoresPerSocket(4);
     host.setSystemProfileSockets(3);
     Host orig =

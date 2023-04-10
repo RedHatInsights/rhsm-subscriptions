@@ -59,6 +59,7 @@ public class InventoryHostFacts {
   private String syspurposeRole;
   private String syspurposeSla;
   private String syspurposeUsage;
+  private String releaseVer;
   private String syspurposeUnits;
   private String billingModel;
   private String cloudProvider;
@@ -93,6 +94,7 @@ public class InventoryHostFacts {
       String syspurposeRole,
       String syspurposeSla,
       String syspurposeUsage,
+      String releaseVer,
       String syspurposeUnits,
       String billingModel,
       String isVirtual,
@@ -125,6 +127,7 @@ public class InventoryHostFacts {
     this.syspurposeRole = syspurposeRole;
     this.syspurposeSla = syspurposeSla;
     this.syspurposeUsage = syspurposeUsage;
+    this.releaseVer = releaseVer;
     this.syspurposeUnits = syspurposeUnits;
     this.isVirtual = asBoolean(isVirtual);
     this.hypervisorUuid = hypervisorUuid;

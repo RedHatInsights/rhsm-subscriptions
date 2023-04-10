@@ -125,6 +125,8 @@ components:
           type: string
         sysPurposeUsage:
           type: string
+        releaseVer:
+          type: string
         sysPurposeAddons:
           type: array
           items:

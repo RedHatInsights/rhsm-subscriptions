@@ -200,7 +200,8 @@ class InventoryAccountUsageCollectorTallyTest {
   void physicalSystemTotalsForRHEL() {
     List<Integer> products = List.of(TEST_PRODUCT_ID);
 
-    InventoryHostFacts host = createRhsmHost(ACCOUNT, ORG_ID, products, "", OffsetDateTime.now());
+    InventoryHostFacts host =
+        createRhsmHost(ACCOUNT, ORG_ID, products, "", "", OffsetDateTime.now());
     host.setSystemProfileCoresPerSocket(4);
     host.setSystemProfileSockets(3);
     mockReportedHypervisors(ORG_ID, new HashMap<>());
@@ -229,15 +230,18 @@ class InventoryAccountUsageCollectorTallyTest {
 
     List<Integer> products = List.of(TEST_PRODUCT_ID);
 
-    InventoryHostFacts host1 = createRhsmHost(account1, orgId1, products, "", OffsetDateTime.now());
+    InventoryHostFacts host1 =
+        createRhsmHost(account1, orgId1, products, "", "", OffsetDateTime.now());
     host1.setSystemProfileCoresPerSocket(1);
     host1.setSystemProfileSockets(4);
 
-    InventoryHostFacts host2 = createRhsmHost(account1, orgId1, products, "", OffsetDateTime.now());
+    InventoryHostFacts host2 =
+        createRhsmHost(account1, orgId1, products, "", "", OffsetDateTime.now());
     host2.setSystemProfileCoresPerSocket(2);
     host2.setSystemProfileSockets(4);
 
-    InventoryHostFacts host3 = createRhsmHost(account2, orgId2, products, "", OffsetDateTime.now());
+    InventoryHostFacts host3 =
+        createRhsmHost(account2, orgId2, products, "", "", OffsetDateTime.now());
     host3.setSystemProfileCoresPerSocket(3);
     host3.setSystemProfileSockets(2);
 
@@ -280,6 +284,7 @@ class InventoryAccountUsageCollectorTallyTest {
             TEST_PRODUCT_ID.toString(),
             ServiceLevel.STANDARD,
             "",
+            "",
             OffsetDateTime.now());
     host1.setSystemProfileCoresPerSocket(1);
     host1.setSystemProfileSockets(6);
@@ -290,6 +295,7 @@ class InventoryAccountUsageCollectorTallyTest {
             ORG_ID,
             TEST_PRODUCT_ID.toString(),
             ServiceLevel.PREMIUM,
+            "",
             "",
             OffsetDateTime.now());
     host2.setSystemProfileCoresPerSocket(1);
@@ -319,6 +325,7 @@ class InventoryAccountUsageCollectorTallyTest {
             ServiceLevel.EMPTY,
             Usage.DEVELOPMENT_TEST,
             "",
+            "",
             OffsetDateTime.now());
     host1.setSystemProfileCoresPerSocket(1);
     host1.setSystemProfileSockets(6);
@@ -330,6 +337,7 @@ class InventoryAccountUsageCollectorTallyTest {
             TEST_PRODUCT_ID.toString(),
             ServiceLevel.EMPTY,
             Usage.PRODUCTION,
+            "",
             "",
             OffsetDateTime.now());
     host2.setSystemProfileCoresPerSocket(1);
@@ -433,11 +441,12 @@ class InventoryAccountUsageCollectorTallyTest {
   @Test
   void testCalculationDoesNotIncludeHostWhenProductDoesntMatch() {
     InventoryHostFacts h1 =
-        createRhsmHost(ACCOUNT, ORG_ID, List.of(TEST_PRODUCT_ID), "", OffsetDateTime.now());
+        createRhsmHost(ACCOUNT, ORG_ID, List.of(TEST_PRODUCT_ID), "", "", OffsetDateTime.now());
     h1.setSystemProfileCoresPerSocket(4);
     h1.setSystemProfileSockets(2);
 
-    InventoryHostFacts h2 = createRhsmHost(ACCOUNT, ORG_ID, List.of(32), "", OffsetDateTime.now());
+    InventoryHostFacts h2 =
+        createRhsmHost(ACCOUNT, ORG_ID, List.of(32), "", "", OffsetDateTime.now());
     h2.setSystemProfileCoresPerSocket(12);
     h2.setSystemProfileSockets(14);
 
@@ -464,7 +473,7 @@ class InventoryAccountUsageCollectorTallyTest {
     List<String> orgIds = List.of(orgId1, orgId2);
 
     InventoryHostFacts host1 =
-        createRhsmHost(account1, orgId1, List.of(TEST_PRODUCT_ID), "", OffsetDateTime.now());
+        createRhsmHost(account1, orgId1, List.of(TEST_PRODUCT_ID), "", "", OffsetDateTime.now());
     host1.setSystemProfileCoresPerSocket(1);
     host1.setSystemProfileSockets(4);
 
@@ -473,7 +482,7 @@ class InventoryAccountUsageCollectorTallyTest {
     host2.setSystemProfileSockets(4);
 
     InventoryHostFacts host3 =
-        createRhsmHost(account2, orgId2, List.of(TEST_PRODUCT_ID), "", OffsetDateTime.now());
+        createRhsmHost(account2, orgId2, List.of(TEST_PRODUCT_ID), "", "", OffsetDateTime.now());
     host3.setSystemProfileCoresPerSocket(5);
     host3.setSystemProfileSockets(1);
 
@@ -659,7 +668,8 @@ class InventoryAccountUsageCollectorTallyTest {
   @Test
   void accountsWithNullInventoryIdFiltered() {
     List<Integer> products = List.of(TEST_PRODUCT_ID);
-    InventoryHostFacts host = createRhsmHost(ACCOUNT, ORG_ID, products, "", OffsetDateTime.now());
+    InventoryHostFacts host =
+        createRhsmHost(ACCOUNT, ORG_ID, products, "", "", OffsetDateTime.now());
     host.setSystemProfileCoresPerSocket(4);
     host.setSystemProfileSockets(3);
 
@@ -681,7 +691,8 @@ class InventoryAccountUsageCollectorTallyTest {
   @Test
   void removesDuplicateHostRecords() {
     List<Integer> products = List.of(TEST_PRODUCT_ID);
-    InventoryHostFacts host = createRhsmHost(ACCOUNT, ORG_ID, products, "", OffsetDateTime.now());
+    InventoryHostFacts host =
+        createRhsmHost(ACCOUNT, ORG_ID, products, "", "", OffsetDateTime.now());
     host.setSystemProfileCoresPerSocket(4);
     host.setSystemProfileSockets(3);
     Host orig =
@@ -720,7 +731,8 @@ class InventoryAccountUsageCollectorTallyTest {
   @Test
   void ensureStaleHostsAreDeleted() {
     List<Integer> products = List.of(TEST_PRODUCT_ID);
-    InventoryHostFacts host = createRhsmHost(ACCOUNT, ORG_ID, products, "", OffsetDateTime.now());
+    InventoryHostFacts host =
+        createRhsmHost(ACCOUNT, ORG_ID, products, "", "", OffsetDateTime.now());
     host.setSystemProfileCoresPerSocket(4);
     host.setSystemProfileSockets(3);
     Host orig =
