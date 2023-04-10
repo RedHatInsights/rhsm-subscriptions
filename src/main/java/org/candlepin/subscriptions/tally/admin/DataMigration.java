@@ -81,7 +81,9 @@ public abstract class DataMigration {
 
   static DataMigration getMigration(
       Class<? extends DataMigration> clazz, JdbcTemplate jdbcTemplate, MeterRegistry meterRegistry)
-      throws NoSuchMethodException, InvocationTargetException, InstantiationException,
+      throws NoSuchMethodException,
+          InvocationTargetException,
+          InstantiationException,
           IllegalAccessException {
     return clazz
         .getConstructor(JdbcTemplate.class, MeterRegistry.class)
