@@ -82,6 +82,7 @@ objects:
           - name: DYNACONF_browsers__chrome__webdriver_options__desired_capabilities__chromeOptions__args
             value: "['--headless','--window-size=1600,900']"
           image: ${IQE_IMAGE}
+          imagePullPolicy: Always
           resources:
             limits:
               cpu: "1"
@@ -91,18 +92,6 @@ objects:
               memory: 1Gi
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
-        - name: rhsm-stage-post-deploy-selenium-${UID}
-          image: ${IQE_SEL_IMAGE}
-          resources:
-            limits:
-              cpu: 300m
-              memory: 1Gi
-            requests:
-              cpu: 150m
-              memory: 512Mi
-          volumeMounts:
-            - name: sel-shm
-              mountPath: /dev/shm
 
 
 parameters:
@@ -132,5 +121,3 @@ parameters:
   value: ''
 - name: IQE_TEST_IMPORTANCE
   value: ''
-- name: IQE_SEL_IMAGE
-  value: 'quay.io/redhatqe/selenium-standalone:ff_91.9.1esr_chrome_103.0.5060.114'
