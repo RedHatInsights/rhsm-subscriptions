@@ -43,6 +43,10 @@ public class SubscriptionSyncResource implements OfferingsApi {
 
   @RolesAllowed({"test", "support", "service"})
   public OfferingProductTags getSkuProductTags(@PathParam("sku") String sku) {
+    return getOfferingProductTags(sku);
+  }
+
+  public OfferingProductTags getOfferingProductTags(String sku) {
     try {
       return mapper.clientToApi(internalSubscriptionsApi.getSkuProductTags(sku));
     } catch (ApiException e) {

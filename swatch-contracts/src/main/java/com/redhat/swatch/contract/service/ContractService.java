@@ -456,7 +456,7 @@ public class ContractService {
           var sku = rhEntitlements.get(0).getSku();
           prevEntity.setSku(sku);
           prevEntity.setSubscriptionNumber(subscription);
-          OfferingProductTags productTags = syncResource.getSkuProductTags(sku);
+          OfferingProductTags productTags = syncResource.getOfferingProductTags(sku);
           if (Objects.nonNull(productTags.getData())
               && Objects.nonNull(productTags.getData().get(0))) {
             prevEntity.setProductId(productTags.getData().get(0));
@@ -521,7 +521,7 @@ public class ContractService {
       entity.setSku(sku);
       log.trace("Call swatch api to get producttags by sku {}", sku);
       try {
-        OfferingProductTags productTags = syncResource.getSkuProductTags(sku);
+        OfferingProductTags productTags = syncResource.getOfferingProductTags(sku);
         if (Objects.nonNull(productTags)
             && Objects.nonNull(productTags.getData())
             && !productTags.getData().isEmpty()
