@@ -59,18 +59,15 @@ public class ContractService {
 
   private final ContractRepository contractRepository;
   private final ContractMapper mapper;
-  private final SubscriptionSyncResource syncResource;
   private final SubscriptionSyncService syncService;
   @Inject @RestClient PartnerApi partnerApi;
 
   ContractService(
       ContractRepository contractRepository,
       ContractMapper mapper,
-      SubscriptionSyncResource syncResource,
       SubscriptionSyncService syncService) {
     this.contractRepository = contractRepository;
     this.mapper = mapper;
-    this.syncResource = syncResource;
     this.syncService = syncService;
   }
 
