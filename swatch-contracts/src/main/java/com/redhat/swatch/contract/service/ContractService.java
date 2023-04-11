@@ -37,7 +37,6 @@ import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractRepository;
 import com.redhat.swatch.contract.repository.Specification;
-import com.redhat.swatch.contract.resource.SubscriptionSyncResource;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
