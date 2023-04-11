@@ -18,25 +18,29 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.resource;
+package com.redhat.swatch.contract.service;
 
+import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
+import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
+import com.redhat.swatch.contract.model.ProductTagsMapper;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
-import com.redhat.swatch.contract.openapi.resource.OfferingsApi;
-import com.redhat.swatch.contract.service.SubscriptionSyncService;
-import javax.annotation.security.RolesAllowed;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.ws.rs.PathParam;
-import lombok.extern.slf4j.Slf4j;
+import javax.ws.rs.ProcessingException;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
-@Slf4j
 @ApplicationScoped
-public class SubscriptionSyncResource implements OfferingsApi {
+public class SubscriptionSyncService {
 
-  @Inject SubscriptionSyncService service;
+  @RestClient @Inject InternalSubscriptionsApi internalSubscriptionsApi;
 
-  @RolesAllowed({"test", "support", "service"})
-  public OfferingProductTags getSkuProductTags(@PathParam("sku") String sku) {
-    return service.getOfferingProductTags(sku);
+  @Inject ProductTagsMapper mapper;
+
+  public OfferingProductTags getOfferingProductTags(String sku) {
+    try {
+      return mapper.clientToApi(internalSubscriptionsApi.getSkuProductTags(sku));
+    } catch (ApiException e) {
+      throw new ProcessingException(e);
+    }
   }
 }

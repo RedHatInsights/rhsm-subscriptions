@@ -32,7 +32,6 @@ import com.redhat.swatch.contract.openapi.model.*;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import com.redhat.swatch.contract.repository.ContractRepository;
-import com.redhat.swatch.contract.resource.SubscriptionSyncResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import java.time.OffsetDateTime;
@@ -50,7 +49,7 @@ class ContractServiceTest extends BaseUnitTest {
   @Inject ContractService contractService;
   @InjectMock ContractRepository contractRepository;
 
-  @InjectMock SubscriptionSyncResource syncResource;
+  @InjectMock SubscriptionSyncService syncService;
   ContractEntity actualContract1;
 
   Contract contractDto;
@@ -190,7 +189,7 @@ class ContractServiceTest extends BaseUnitTest {
 
     OfferingProductTags productTags = new OfferingProductTags();
     productTags.data(List.of("MH123"));
-    when(syncResource.getSkuProductTags(any())).thenReturn(productTags);
+    when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("New contract created", statusResponse.getMessage());
   }
@@ -213,7 +212,7 @@ class ContractServiceTest extends BaseUnitTest {
 
     OfferingProductTags productTags = new OfferingProductTags();
     productTags.data(null);
-    when(syncResource.getSkuProductTags(any())).thenReturn(productTags);
+    when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("Empty value in non-null fields", statusResponse.getMessage());
   }
@@ -235,7 +234,7 @@ class ContractServiceTest extends BaseUnitTest {
 
     OfferingProductTags productTags = new OfferingProductTags();
     productTags.data(null);
-    when(syncResource.getSkuProductTags(any())).thenReturn(productTags);
+    when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("Empty value found in UMB message", statusResponse.getMessage());
   }
@@ -282,7 +281,7 @@ class ContractServiceTest extends BaseUnitTest {
 
     OfferingProductTags productTags = new OfferingProductTags();
     productTags.data(List.of("MH123"));
-    when(syncResource.getSkuProductTags(any())).thenReturn(productTags);
+    when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
 
     when(contractRepository.getContracts(any())).thenReturn(List.of(existingContract));
 
@@ -333,7 +332,7 @@ class ContractServiceTest extends BaseUnitTest {
 
     OfferingProductTags productTags = new OfferingProductTags();
     productTags.data(List.of("BASILISK123"));
-    when(syncResource.getSkuProductTags(any())).thenReturn(productTags);
+    when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
 
     when(contractRepository.getContracts(any())).thenReturn(List.of(existingContract));
 
@@ -360,7 +359,7 @@ class ContractServiceTest extends BaseUnitTest {
     // mock sync call for updating contracts
     OfferingProductTags productTags = new OfferingProductTags();
     productTags.data(List.of("BASILISK123"));
-    when(syncResource.getSkuProductTags(any())).thenReturn(productTags);
+    when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
 
     StatusResponse statusResponse = contractService.syncContractByOrgId(updateContract.getOrgId());
     assertEquals("Contracts Synced for " + updateContract.getOrgId(), statusResponse.getMessage());
@@ -385,7 +384,7 @@ class ContractServiceTest extends BaseUnitTest {
     // mock sync call for updating contracts
     OfferingProductTags productTags = new OfferingProductTags();
     productTags.data(List.of("BASILISK123"));
-    when(syncResource.getSkuProductTags(any())).thenReturn(productTags);
+    when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
 
     StatusResponse statusResponse = contractService.syncContractByOrgId(updateContract.getOrgId());
     assertEquals(updateContract.getOrgId() + " not found in table", statusResponse.getMessage());
