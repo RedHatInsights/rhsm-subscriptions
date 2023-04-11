@@ -78,7 +78,7 @@ class TallyRetentionControllerTest {
     List<String> testList = Arrays.asList("1", "2", "3", "4");
     when(accountConfigRepository.findSyncEnabledOrgs()).thenReturn(testList.stream());
 
-    controller.purgeSnapshots();
+    controller.purgeSnapshotsAsync();
 
     verify(repository, times(4))
         .deleteAllByOrgIdAndGranularityAndSnapshotDateBefore(

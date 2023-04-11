@@ -19,6 +19,12 @@ $defs:
       application/vnd.api+json:
         schema:
           $ref: "error-responses.yaml#/$defs/Errors"
+  Unauthorized:
+    description: "The request has not been completed because it lacks valid authentication credentials"
+    content:
+      application/vnd.api+json:
+        schema:
+          $ref: "error-responses.yaml#/$defs/Errors"
   ResourceNotFound:
     description: "The requested resource was not found."
     content:

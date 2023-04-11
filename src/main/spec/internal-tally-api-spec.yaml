@@ -86,6 +86,19 @@ paths:
     $ref: "../../../spec/openapi-paths.yaml#/openapi-json"
   /internal-tally-openapi.yaml:
     $ref: "../../../spec/openapi-paths.yaml#/openapi-yaml"
+  /internal/rpc/tally/purge:
+    description: 'Operations to purge existing tally snapshots matching the configured retention policy.'
+    post:
+      operationId: purgeTallySnapshots
+      summary: 'Purge existing tally snapshots matching the configured retention policy.'
+      responses:
+        '204':
+          description: 'The request for purging tally snapshots was successful.'
+        '401':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Unauthorized"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [internalTally]
 components:
   requestBodies:
     UuidListBody:

@@ -29,6 +29,7 @@ import java.time.OffsetDateTime;
 import javax.ws.rs.BadRequestException;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.retention.TallyRetentionController;
 import org.candlepin.subscriptions.tally.MarketplaceResendTallyController;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.tally.billing.RemittanceController;
@@ -48,6 +49,7 @@ class InternalTallyResourceTest {
   @Mock private RemittanceController remittanceController;
   @Mock private TallySnapshotController snapshotController;
   @Mock private CaptureSnapshotsTaskManager snapshotTaskManager;
+  @Mock private TallyRetentionController tallyRetentionController;
 
   private InternalTallyResource resource;
   private ApplicationProperties appProps;
@@ -64,7 +66,8 @@ class InternalTallyResourceTest {
             resendTallyController,
             remittanceController,
             snapshotController,
-            snapshotTaskManager);
+            snapshotTaskManager,
+            tallyRetentionController);
   }
 
   @Test
