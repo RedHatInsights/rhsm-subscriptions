@@ -41,7 +41,6 @@ import org.candlepin.subscriptions.metering.MeteringConfiguration;
 import org.candlepin.subscriptions.product.OfferingWorkerConfiguration;
 import org.candlepin.subscriptions.registry.RegistryConfiguration;
 import org.candlepin.subscriptions.resource.ApiConfiguration;
-import org.candlepin.subscriptions.retention.PurgeSnapshotsConfiguration;
 import org.candlepin.subscriptions.rhmarketplace.RhMarketplaceWorkerConfiguration;
 import org.candlepin.subscriptions.security.AuthProperties;
 import org.candlepin.subscriptions.security.SecurityConfig;
@@ -76,7 +75,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   CapacityIngressConfiguration.class,
   CaptureSnapshotsConfiguration.class,
   CaptureHourlySnapshotsConfiguration.class,
-  PurgeSnapshotsConfiguration.class,
   LiquibaseUpdateOnlyConfiguration.class,
   TallyWorkerConfiguration.class,
   RhMarketplaceWorkerConfiguration.class,
