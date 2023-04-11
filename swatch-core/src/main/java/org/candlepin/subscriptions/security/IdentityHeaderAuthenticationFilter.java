@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.security;
 
-import static org.candlepin.subscriptions.security.SecurityConfig.*;
+import static org.candlepin.subscriptions.security.SecurityConfiguration.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;

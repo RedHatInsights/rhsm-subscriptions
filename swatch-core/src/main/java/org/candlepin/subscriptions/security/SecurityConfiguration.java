@@ -32,10 +32,10 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 @ComponentScan("org.candlepin.subscriptions.security")
-public class SecurityConfig {
+public class SecurityConfiguration {
   public static final Marker SECURITY_STACKTRACE = MarkerFactory.getMarker("SECURITY_STACKTRACE");
 
-  protected SecurityConfig() {
+  protected SecurityConfiguration() {
     // Container class only
   }
 }
