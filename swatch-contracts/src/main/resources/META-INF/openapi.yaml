@@ -278,7 +278,9 @@ paths:
         tags:
           - Offerings
         security:
-          - test: []
+          - test: [ ]
+          - support: [ ]
+          - service: [ ]
   '/api/swatch-contracts/internal/rpc/partner/contracts':
     post:
       operationId: createPartnerEntitlementContract

@@ -37,7 +37,6 @@ import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractRepository;
 import com.redhat.swatch.contract.repository.Specification;
-import com.redhat.swatch.contract.resource.SubscriptionSyncResource;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -59,16 +58,16 @@ public class ContractService {
 
   private final ContractRepository contractRepository;
   private final ContractMapper mapper;
-  private final SubscriptionSyncResource syncResource;
+  private final SubscriptionSyncService syncService;
   @Inject @RestClient PartnerApi partnerApi;
 
   ContractService(
       ContractRepository contractRepository,
       ContractMapper mapper,
-      SubscriptionSyncResource syncResource) {
+      SubscriptionSyncService syncService) {
     this.contractRepository = contractRepository;
     this.mapper = mapper;
-    this.syncResource = syncResource;
+    this.syncService = syncService;
   }
 
   /**
@@ -456,7 +455,7 @@ public class ContractService {
           var sku = rhEntitlements.get(0).getSku();
           prevEntity.setSku(sku);
           prevEntity.setSubscriptionNumber(subscription);
-          OfferingProductTags productTags = syncResource.getSkuProductTags(sku);
+          OfferingProductTags productTags = syncService.getOfferingProductTags(sku);
           if (Objects.nonNull(productTags.getData())
               && Objects.nonNull(productTags.getData().get(0))) {
             prevEntity.setProductId(productTags.getData().get(0));
@@ -521,7 +520,7 @@ public class ContractService {
       entity.setSku(sku);
       log.trace("Call swatch api to get producttags by sku {}", sku);
       try {
-        OfferingProductTags productTags = syncResource.getSkuProductTags(sku);
+        OfferingProductTags productTags = syncService.getOfferingProductTags(sku);
         if (Objects.nonNull(productTags)
             && Objects.nonNull(productTags.getData())
             && !productTags.getData().isEmpty()
