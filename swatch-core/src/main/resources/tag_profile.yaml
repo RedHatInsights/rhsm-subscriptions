@@ -341,7 +341,7 @@ tagMetrics:
   - tag: rosa
     metricId: redhat.com:rosa:cluster_hour
     rhmMetricId: redhat.com:rosa:cluster_hour
-    awsDimension: cluster_hour
+    awsDimension: control_plane
     uom: INSTANCE_HOURS
     billingWindow: MONTHLY
     queryParams:
@@ -351,7 +351,7 @@ tagMetrics:
   - tag: rosa
     metricId: redhat.com:rosa:cpu_hour
     rhmMetricId: redhat.com:rosa:cpu_hour
-    awsDimension: cpu_hour
+    awsDimension: four_cpu_hour
     uom: CORES
     billingFactor: 0.25
     billingWindow: MONTHLY
