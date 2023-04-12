@@ -5,6 +5,8 @@ properties:
     $ref: "hbi-system-profile-operating-system.yaml"
   os_release:
     type: string
+  releasever:
+    type: string
   arch:
     type: string
   bios_vendor:

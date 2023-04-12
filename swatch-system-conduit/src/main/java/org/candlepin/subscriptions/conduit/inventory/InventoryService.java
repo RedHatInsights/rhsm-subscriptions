@@ -34,7 +34,11 @@ import org.slf4j.LoggerFactory;
 /**
  * Defines operations against the inventory service. This service allows batching host fact updates.
  * Once the maximum fact queue depth is reached, the service will auto flush the updates so that we
- * don't keep too many facts in memory before they are pushed to inventory.
+ * don't keep too many facts in memory before they are pushed to inventory. We have four types of
+ * things stored in HBI hosts. 1. Core information like orgId, IP 2. system_profile_facts json
+ * includes non-core information like os_release, 3. canonical_facts json is important for HBI but,
+ * not for swatch table. 4. facts are all other information. Facts used to store all values
+ * initially and later separated out.
  */
 public abstract class InventoryService {
 
@@ -138,6 +142,7 @@ public abstract class InventoryService {
     systemProfile.setOwnerId(facts.getSubscriptionManagerId());
     systemProfile.setNetworkInterfaces(facts.getNetworkInterfaces());
     systemProfile.setIsMarketplace(facts.getIsMarketplace());
+    systemProfile.setReleasever(facts.getReleaseVer());
     return systemProfile;
   }
 

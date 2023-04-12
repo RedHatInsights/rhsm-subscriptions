@@ -171,6 +171,7 @@ public class InventoryController {
     facts.setSysPurposeRole(consumer.getSysPurposeRole());
     facts.setSysPurposeSla(consumer.getServiceLevel());
     facts.setSysPurposeUsage(consumer.getSysPurposeUsage());
+    facts.setReleaseVer(consumer.getReleaseVer());
     facts.setSysPurposeAddons(consumer.getSysPurposeAddons());
     facts.setSysPurposeUnits(rhsmFacts.get(OCM_UNITS));
     facts.setBillingModel(rhsmFacts.get(OCM_BILLING_MODEL));

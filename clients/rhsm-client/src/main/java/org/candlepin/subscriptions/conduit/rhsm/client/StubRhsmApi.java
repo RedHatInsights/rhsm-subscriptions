@@ -48,6 +48,7 @@ public class StubRhsmApi extends RhsmApi {
     consumer1.setAccountNumber("ACCOUNT_1");
     consumer1.setHypervisorName("hypervisor1.test.com");
     consumer1.setServiceLevel("Premium");
+    consumer1.setReleaseVer("8.0");
     consumer1.getFacts().put("network.fqdn", "host1.test.com");
     consumer1.getFacts().put("dmi.system.uuid", UUID.randomUUID().toString());
     consumer1.getFacts().put("Ip-addresses", "192.168.1.1, 10.0.0.1");
