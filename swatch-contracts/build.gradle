@@ -12,7 +12,6 @@ repositories {
 dependencies {
     compileOnly libraries["lombok"]
     implementation enforcedPlatform(libraries["quarkus-bom"])
-    implementation enforcedPlatform(libraries["quarkus-qpid-jms-bom"])
     implementation 'io.quarkus:quarkus-arc'
     implementation 'io.quarkus:quarkus-config-yaml'
     implementation 'io.quarkus:quarkus-hibernate-validator'
@@ -33,7 +32,7 @@ dependencies {
     implementation libraries["quarkus-logging-splunk"]
     implementation libraries["splunk-library-javalogging"]
     implementation project(":clients:rh-partner-gateway-client")
-    implementation 'org.amqphub.quarkus:quarkus-qpid-jms'
+    implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-amqp'
     annotationProcessor libraries["hibernate-jpamodelgen"]
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.quarkus:quarkus-junit5-mockito'

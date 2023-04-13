@@ -27,9 +27,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
-import javax.inject.Inject;
-import javax.jms.ConnectionFactory;
-import javax.jms.JMSContext;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -38,7 +35,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @Slf4j
 public class ContractUMBMockProducer {
 
-  @Inject ConnectionFactory connectionFactory;
+  // @Inject ConnectionFactory connectionFactory;
 
   @ConfigProperty(name = "CONTRACT_UMB_QUEUE")
   String queueName;
@@ -88,9 +85,10 @@ public class ContractUMBMockProducer {
   }
 
   public void sendContract(String contract) {
-    try (JMSContext context = connectionFactory.createContext(JMSContext.AUTO_ACKNOWLEDGE)) {
-      context.createProducer().send(context.createQueue(queueName), contract);
-    }
+    // TODO FIXME
+//    try (JMSContext context = connectionFactory.createContext(JMSContext.AUTO_ACKNOWLEDGE)) {
+//      context.createProducer().send(context.createQueue(queueName), contract);
+//    }
     log.info("Done sending Contract");
   }
 }
