@@ -49,11 +49,10 @@ public class ContractUMBMessageConsumer {
   @ConfigProperty(name = "UMB_ENABLED")
   boolean umbEnabled;
 
-  private final ExecutorService scheduler = Executors.newSingleThreadExecutor();
 
-
-  @Incoming("contract")
+  @Incoming("contracts")
   public void consumeMessage(String dtoContract){
+    log.info("Consumer was called");
     if(umbEnabled) {
       try {
         consumeContract(dtoContract);
@@ -63,7 +62,7 @@ public class ContractUMBMessageConsumer {
     }
   }
 
-  // TODO integrate w/ smallrye listener
+
   public StatusResponse consumeContract(String dtoContract) throws JsonProcessingException {
     // process UMB contract.
     log.info(dtoContract);
