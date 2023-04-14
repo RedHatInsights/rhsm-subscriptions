@@ -21,7 +21,6 @@
 package com.redhat.swatch.contract.resource;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.redhat.swatch.contract.config.UmbConfiguration;
 import com.redhat.swatch.contract.exception.CreateContractException;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
@@ -40,10 +39,6 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 public class ContractUMBMessageConsumer {
 
   @Inject ContractService service;
-  @Inject UmbConfiguration umbConfiguration;
-
-  @ConfigProperty(name = "CONTRACT_UMB_QUEUE")
-  String queueName;
 
   @ConfigProperty(name = "UMB_ENABLED")
   boolean umbEnabled;

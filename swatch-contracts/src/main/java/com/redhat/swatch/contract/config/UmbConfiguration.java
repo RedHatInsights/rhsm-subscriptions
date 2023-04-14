@@ -45,12 +45,6 @@ public class UmbConfiguration {
   @ConfigProperty(name = "TRUSTSTORE_PASSWORD")
   Optional<String> truststorePassword;
 
-  @ConfigProperty(name = "UMB_NAMESPACE")
-  Optional<String> namespace;
-
-  @ConfigProperty(name = "UMB_SERVICE_ACCOUNT_NAME")
-  Optional<String> serviceAccountName;
-
   @ConfigProperty(name = "UMB_PORT")
   Optional<String> umbPort;
 

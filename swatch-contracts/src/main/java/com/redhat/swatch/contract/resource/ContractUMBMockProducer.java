@@ -38,9 +38,6 @@ import org.eclipse.microprofile.reactive.messaging.Emitter;
 @Slf4j
 public class ContractUMBMockProducer {
 
-  @ConfigProperty(name = "CONTRACT_UMB_QUEUE")
-  String queueName;
-
   @ConfigProperty(name = "SWATCH_CONTRACT_PRODUCER_ENABLED")
   boolean contractProducerEnabled;
 
@@ -66,8 +63,8 @@ public class ContractUMBMockProducer {
                       } ],
                       "cloudIdentifiers" : {
                         "awsCustomerId" : "HSwCpt6sqkC",
-                        "awsCustomerAccountId" : "896801664647",
-                        "productCode" : "1e1234el8qbwnqimt2wogc5n"
+                        "awsCustomerAccountId" : "568056954830",
+                        "productCode" : "6n58d3s3qpvk22dgew2gal7w3"
                       }
                     }
                             """;
