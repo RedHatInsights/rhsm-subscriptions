@@ -33,6 +33,7 @@ dependencies {
     implementation libraries["splunk-library-javalogging"]
     implementation project(":clients:rh-partner-gateway-client")
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-amqp'
+    implementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'
     annotationProcessor libraries["hibernate-jpamodelgen"]
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.quarkus:quarkus-junit5-mockito'

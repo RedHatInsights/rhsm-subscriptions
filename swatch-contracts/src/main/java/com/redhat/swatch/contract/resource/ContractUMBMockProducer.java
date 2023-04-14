@@ -27,23 +27,28 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
+import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
 
 /** This class is only to test the ContractUMBMessageConsumer via ActiveMQ JMS */
 @ApplicationScoped
 @Slf4j
 public class ContractUMBMockProducer {
 
-  // @Inject ConnectionFactory connectionFactory;
-
   @ConfigProperty(name = "CONTRACT_UMB_QUEUE")
   String queueName;
 
-  @ConfigProperty(name = "SWATCH_JMS_PRODUCER_ENABLED")
-  boolean jmsProducerEnabled;
+  @ConfigProperty(name = "SWATCH_CONTRACT_PRODUCER_ENABLED")
+  boolean contractProducerEnabled;
 
   private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+
+  @Inject
+  @Channel("contractstest")
+  Emitter<String> contractEmitter;
 
   String contract =
       """
@@ -68,7 +73,7 @@ public class ContractUMBMockProducer {
                             """;
 
   void onStart(@Observes StartupEvent ev) {
-    if (jmsProducerEnabled) {
+    if (contractProducerEnabled) {
       scheduler.scheduleWithFixedDelay(
           () -> {
             sendContract(contract);
@@ -85,10 +90,7 @@ public class ContractUMBMockProducer {
   }
 
   public void sendContract(String contract) {
-    // TODO FIXME
-//    try (JMSContext context = connectionFactory.createContext(JMSContext.AUTO_ACKNOWLEDGE)) {
-//      context.createProducer().send(context.createQueue(queueName), contract);
-//    }
+    contractEmitter.send(contract);
     log.info("Done sending Contract");
   }
 }

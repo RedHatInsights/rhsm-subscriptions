@@ -26,8 +26,7 @@ import com.redhat.swatch.contract.exception.CreateContractException;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.service.ContractService;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import io.smallrye.common.annotation.Blocking;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.json.bind.Jsonb;
@@ -49,11 +48,11 @@ public class ContractUMBMessageConsumer {
   @ConfigProperty(name = "UMB_ENABLED")
   boolean umbEnabled;
 
-
+  @Blocking
   @Incoming("contracts")
-  public void consumeMessage(String dtoContract){
+  public void consumeMessage(String dtoContract) {
     log.info("Consumer was called");
-    if(umbEnabled) {
+    if (umbEnabled) {
       try {
         consumeContract(dtoContract);
       } catch (JsonProcessingException e) {
@@ -61,7 +60,6 @@ public class ContractUMBMessageConsumer {
       }
     }
   }
-
 
   public StatusResponse consumeContract(String dtoContract) throws JsonProcessingException {
     // process UMB contract.

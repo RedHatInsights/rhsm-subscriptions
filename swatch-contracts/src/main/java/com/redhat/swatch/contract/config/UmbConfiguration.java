@@ -23,7 +23,6 @@ package com.redhat.swatch.contract.config;
 import io.smallrye.common.annotation.Identifier;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.core.net.PfxOptions;
-import java.net.URI;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
@@ -33,9 +32,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @ApplicationScoped
 @Slf4j
 public class UmbConfiguration {
-
-  @ConfigProperty(name = "quarkus.qpid-jms.url")
-  URI brokerUrl;
 
   @ConfigProperty(name = "KEYSTORE_PATH")
   Optional<String> keystorePath;
@@ -55,29 +51,26 @@ public class UmbConfiguration {
   @ConfigProperty(name = "UMB_SERVICE_ACCOUNT_NAME")
   Optional<String> serviceAccountName;
 
+  @ConfigProperty(name = "UMB_PORT")
+  Optional<String> umbPort;
+
   @Produces
   @Identifier("umb")
   AmqpClientOptions amqpClientOptions() {
     var options = new AmqpClientOptions();
+    options.setPort(Integer.parseInt(umbPort.get()));
     if (truststorePath.isPresent() && truststorePassword.isPresent()) {
       var trustOptions = new PfxOptions();
       trustOptions.setPath(truststorePath.get());
       trustOptions.setPassword(truststorePassword.get());
-      options
-          .setSsl(true)
-          .setPfxTrustOptions(trustOptions);
+      options.setSsl(true).setPfxTrustOptions(trustOptions);
     }
     if (keystorePath.isPresent() && keystorePassword.isPresent()) {
       var keyCertOptions = new PfxOptions();
       keyCertOptions.setPath(keystorePath.get());
       keyCertOptions.setPassword(keystorePassword.get());
-      options
-          .setSsl(true)
-          .setPfxKeyCertOptions(keyCertOptions);
+      options.setSsl(true).setPfxKeyCertOptions(keyCertOptions);
     }
     return options;
   }
-
-  // TODO figure out how to get smallrye messaging config to call this
-
 }
