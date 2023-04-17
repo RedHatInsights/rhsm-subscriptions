@@ -16,7 +16,7 @@ objects:
       spec:
         imagePullSecrets:
         - name: quay-cloudservices-pull
-        restartPolicy: OnFailure
+        restartPolicy: Never
         volumes:
         - name: sel-shm
           emptyDir:
@@ -106,7 +106,7 @@ parameters:
   description: "container image path for the iqe plugin"
   value: quay.io/cloudservices/iqe-tests:rhsm-subscriptions
 - name: ENV_FOR_DYNACONF
-  value: stage_proxy
+  value: stage
 - name: IQE_PLUGINS
   value: rhsm_subscriptions,curiosity
 - name: IQE_MARKER_EXPRESSION
