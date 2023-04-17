@@ -221,14 +221,9 @@ public class FactNormalizer {
       return;
     }
 
-    normalizedFacts.setMarketplace(hostFacts.isMarketplace());
-    if (normalizedFacts.getCores() != 0) {
-      normalizedFacts.setCores(0);
-    }
-
-    if (normalizedFacts.getSockets() != 0) {
-      normalizedFacts.setSockets(0);
-    }
+    normalizedFacts.setMarketplace(true);
+    normalizedFacts.setCores(0);
+    normalizedFacts.setSockets(0);
   }
 
   private void defaultNullFacts(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
