@@ -492,6 +492,17 @@ class InventoryControllerTest {
   }
 
   @Test
+  void testReleaseverInFacts_WhenReleaseVerPresent() {
+    String uuid = UUID.randomUUID().toString();
+    Consumer consumer = new Consumer();
+    consumer.setUuid(uuid);
+    consumer.setReleaseVer("8.0");
+
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertEquals("8.0", conduitFacts.getReleaseVer());
+  }
+
+  @Test
   void testIsMarketplaceFacts_WhenAzureOfferPresent() {
     String azureOfferFact = "azure_offer";
     String azzureOffer = "RHEL";

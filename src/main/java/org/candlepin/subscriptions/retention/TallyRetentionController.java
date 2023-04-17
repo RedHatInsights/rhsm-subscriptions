@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.retention;
 
+import io.micrometer.core.annotation.Timed;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.stream.Stream;
@@ -30,6 +31,7 @@ import org.candlepin.subscriptions.db.model.Granularity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,10 +60,18 @@ public class TallyRetentionController {
     this.eventRecordsRetentionProperties = eventRecordsRetentionProperties;
   }
 
+  @Timed("rhsm-subscriptions.snapshots.purge")
+  @Async("purgeTallySnapshotsJobExecutor")
   @Transactional
-  public void purgeSnapshots() {
-    try (Stream<String> orgList = accountConfigRepository.findSyncEnabledOrgs()) {
-      orgList.forEach(this::cleanStaleSnapshotsForOrgId);
+  public void purgeSnapshotsAsync() {
+    try {
+      log.info("Starting tally snapshot purge.");
+      try (Stream<String> orgList = accountConfigRepository.findSyncEnabledOrgs()) {
+        orgList.forEach(this::cleanStaleSnapshotsForOrgId);
+      }
+      log.info("Tally snapshot purge completed successfully.");
+    } catch (Exception e) {
+      log.error("Unable to purge tally snapshots: {}", e.getMessage());
     }
   }
 
