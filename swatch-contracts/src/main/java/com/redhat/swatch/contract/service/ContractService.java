@@ -26,7 +26,6 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlement
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
-import com.redhat.swatch.contract.exception.ContractMissingException;
 import com.redhat.swatch.contract.exception.CreateContractException;
 import com.redhat.swatch.contract.model.ContractMapper;
 import com.redhat.swatch.contract.model.ContractSourcePartnerEnum;
@@ -168,71 +167,6 @@ public class ContractService {
     return contractRepository.getContracts(specification).stream()
         .map(mapper::contractEntityToDto)
         .toList();
-  }
-
-  /**
-   * First look up an existing contract by UUID. Instead of truly updating this entity in the
-   * database, create a copy of it with a new UUID and update values accordingly from the provided
-   * dto. The original record will get an end date of "now", and the new record will become the
-   * active contract by having its end date set to null.
-   *
-   * @param dto
-   * @return Contract
-   */
-  @Transactional
-  public Contract updateContract(Contract dto) {
-    ContractEntity existingContract =
-        contractRepository.findContract(UUID.fromString(dto.getUuid()));
-
-    if (Objects.isNull(existingContract)) {
-      var message =
-          String.format(
-              "Update called for contract uuid %s, but contract does not exist", dto.getUuid());
-      log.error(message);
-      throw new ContractMissingException(message);
-    }
-    if (!isUpdateAllowed(existingContract, dto)) {
-
-      log.warn(
-          "Cannot update one or more of the attributes in the request.  Creating new contract record out of "
-              + dto
-              + "instead");
-
-      return createContract(dto);
-    }
-    var now = OffsetDateTime.now();
-
-    // "sunset" the previous record
-    existingContract.setEndDate(now);
-    existingContract.setLastUpdated(now);
-    existingContract.persist();
-
-    // create new contract record representing an "update"
-    ContractEntity newRecord = createContractForLogicalUpdate(dto);
-    newRecord.persist();
-
-    return dto;
-  }
-
-  /**
-   * Helper method that sets the UUID, start date, and end date fields that represent an update of
-   * an existing contract
-   *
-   * @param dto
-   * @return ContractEntity
-   */
-  public ContractEntity createContractForLogicalUpdate(Contract dto) {
-    var newUuid = UUID.randomUUID();
-    dto.setUuid(newUuid.toString());
-
-    var now = OffsetDateTime.now();
-    var newRecord = mapper.dtoToContractEntity(dto);
-
-    newRecord.setStartDate(now);
-    newRecord.setLastUpdated(now);
-    newRecord.setEndDate(null);
-
-    return newRecord;
   }
 
   /**
