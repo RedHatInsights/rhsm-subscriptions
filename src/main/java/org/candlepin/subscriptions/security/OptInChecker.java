@@ -26,10 +26,14 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
 /**
- * A simple class to check that the user has opted in. This class is meant to be used from a SpEL
- * expression like so "@optInChecker.checkAccess(authentication, request)". A WebExpressionVoter
- * will then run that expression and based on the result vote +1 or -1 for granting access. That
- * vote will got to the AccessDecisionManager who makes the final access control decision.
+ * A simple class to check that the user has opted in. This class can be used from a SpEL expression
+ * like so "@optInChecker.checkAccess(authentication)".
+ *
+ * <p>Normally, this type of check would be handled via a role, ROLE_OPTED_IN, and Spring Security
+ * would check for the required role on the relevant endpoints. However, we want to return a custom
+ * error message telling the user they need to opt in. If the user is missing a role, Spring
+ * Security just returns a generic "Access Denied" message. So instead of using a role, we have this
+ * custom class in the authorization layer to control the error message returned.
  */
 @Component
 public class OptInChecker {
