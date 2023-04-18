@@ -22,7 +22,7 @@ package com.redhat.swatch.contract.service;
 
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
-import com.redhat.swatch.contract.model.ProductTagsMapper;
+import com.redhat.swatch.contract.model.OfferingProductTagsMapper;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -34,7 +34,7 @@ public class SubscriptionSyncService {
 
   @RestClient @Inject InternalSubscriptionsApi internalSubscriptionsApi;
 
-  @Inject ProductTagsMapper mapper;
+  @Inject OfferingProductTagsMapper mapper;
 
   public OfferingProductTags getOfferingProductTags(String sku) {
     try {
