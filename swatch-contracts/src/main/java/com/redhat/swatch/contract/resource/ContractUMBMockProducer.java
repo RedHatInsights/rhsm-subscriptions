@@ -28,25 +28,24 @@ import java.util.concurrent.TimeUnit;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-import javax.jms.ConnectionFactory;
-import javax.jms.JMSContext;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.reactive.messaging.Channel;
+import org.eclipse.microprofile.reactive.messaging.Emitter;
 
 /** This class is only to test the ContractUMBMessageConsumer via ActiveMQ JMS */
 @ApplicationScoped
 @Slf4j
 public class ContractUMBMockProducer {
 
-  @Inject ConnectionFactory connectionFactory;
-
-  @ConfigProperty(name = "CONTRACT_UMB_QUEUE")
-  String queueName;
-
-  @ConfigProperty(name = "SWATCH_JMS_PRODUCER_ENABLED")
-  boolean jmsProducerEnabled;
+  @ConfigProperty(name = "SWATCH_CONTRACT_PRODUCER_ENABLED")
+  boolean contractProducerEnabled;
 
   private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+
+  @Inject
+  @Channel("contractstest")
+  Emitter<String> contractEmitter;
 
   String contract =
       """
@@ -64,14 +63,14 @@ public class ContractUMBMockProducer {
                       } ],
                       "cloudIdentifiers" : {
                         "awsCustomerId" : "HSwCpt6sqkC",
-                        "awsCustomerAccountId" : "896801664647",
-                        "productCode" : "1e1234el8qbwnqimt2wogc5n"
+                        "awsCustomerAccountId" : "568056954830",
+                        "productCode" : "6n58d3s3qpvk22dgew2gal7w3"
                       }
                     }
                             """;
 
   void onStart(@Observes StartupEvent ev) {
-    if (jmsProducerEnabled) {
+    if (contractProducerEnabled) {
       scheduler.scheduleWithFixedDelay(
           () -> {
             sendContract(contract);
@@ -88,9 +87,7 @@ public class ContractUMBMockProducer {
   }
 
   public void sendContract(String contract) {
-    try (JMSContext context = connectionFactory.createContext(JMSContext.AUTO_ACKNOWLEDGE)) {
-      context.createProducer().send(context.createQueue(queueName), contract);
-    }
+    contractEmitter.send(contract);
     log.info("Done sending Contract");
   }
 }

@@ -20,26 +20,18 @@
  */
 package com.redhat.swatch.contract.config;
 
-import io.quarkus.arc.Priority;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.Objects;
+import io.smallrye.common.annotation.Identifier;
+import io.vertx.amqp.AmqpClientOptions;
+import io.vertx.core.net.PfxOptions;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Alternative;
 import javax.enterprise.inject.Produces;
-import javax.jms.ConnectionFactory;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.qpid.jms.JmsConnectionFactory;
-import org.apache.qpid.jms.util.PropertyUtil;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
 @Slf4j
 public class UmbConfiguration {
-
-  @ConfigProperty(name = "quarkus.qpid-jms.url")
-  URI brokerUrl;
 
   @ConfigProperty(name = "KEYSTORE_PATH")
   Optional<String> keystorePath;
@@ -53,42 +45,26 @@ public class UmbConfiguration {
   @ConfigProperty(name = "TRUSTSTORE_PASSWORD")
   Optional<String> truststorePassword;
 
-  @ConfigProperty(name = "UMB_NAMESPACE")
-  Optional<String> namespace;
-
-  @ConfigProperty(name = "UMB_SERVICE_ACCOUNT_NAME")
-  Optional<String> serviceAccountName;
+  @ConfigProperty(name = "UMB_PORT")
+  Optional<String> umbPort;
 
   @Produces
-  @Alternative
-  @Priority(Integer.MAX_VALUE)
-  @ApplicationScoped
-  ConnectionFactory factory() throws Exception { // NOSONAR
-    var options = new HashMap<String, String>();
-    if (!Objects.equals(brokerUrl.getHost(), "localhost")) {
-      options.put("transport.useOpenSSL", "true");
-      options.put("transport.trustStoreType", "PKCS12");
-      options.put("transport.keyStoreType", "PKCS12");
-      keystorePath.ifPresent(s -> options.put("transport.keyStoreLocation", s));
-      keystorePassword.ifPresent(s -> options.put("transport.keyStorePassword", s));
-      truststorePath.ifPresent(s -> options.put("transport.trustStoreLocation", s));
-      truststorePassword.ifPresent(s -> options.put("transport.trustStorePassword", s));
+  @Identifier("umb")
+  AmqpClientOptions amqpClientOptions() {
+    var options = new AmqpClientOptions();
+    options.setPort(Integer.parseInt(umbPort.get()));
+    if (truststorePath.isPresent() && truststorePassword.isPresent()) {
+      var trustOptions = new PfxOptions();
+      trustOptions.setPath(truststorePath.get());
+      trustOptions.setPassword(truststorePassword.get());
+      options.setSsl(true).setPfxTrustOptions(trustOptions);
     }
-
-    var fullUrl = PropertyUtil.replaceQuery(brokerUrl, options);
-    log.info("broker URL: {}", brokerUrl);
-    return new JmsConnectionFactory(fullUrl);
-  }
-
-  public String getConsumerTopic(String topic) {
-    if (!topic.startsWith("VirtualTopic")) {
-      return topic;
+    if (keystorePath.isPresent() && keystorePassword.isPresent()) {
+      var keyCertOptions = new PfxOptions();
+      keyCertOptions.setPath(keystorePath.get());
+      keyCertOptions.setPassword(keystorePassword.get());
+      options.setSsl(true).setPfxKeyCertOptions(keyCertOptions);
     }
-    if (namespace.isEmpty() || serviceAccountName.isEmpty()) {
-      throw new IllegalStateException(
-          "VirtualTopic usage requires both UMB_NAMESPACE and UMB_SERVICE_ACCOUNT_NAME to be set.");
-    }
-    String subscriptionId = String.format("swatch-%s-%s", namespace.get(), topic.replace(".", "_"));
-    return String.format("Consumer.%s.%s.%s", serviceAccountName.get(), subscriptionId, topic);
+    return options;
   }
 }
