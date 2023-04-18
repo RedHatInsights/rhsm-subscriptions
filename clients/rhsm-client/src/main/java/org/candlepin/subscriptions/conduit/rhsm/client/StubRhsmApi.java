@@ -36,10 +36,13 @@ import org.slf4j.LoggerFactory;
 public class StubRhsmApi extends RhsmApi {
   private static Logger log = LoggerFactory.getLogger(StubRhsmApi.class);
 
+  private static final String MAX_ALLOWED_MEMORY_ORG_ID = "maxAllowedMemoryOrg";
+
   @Override
   public OrgInventory getConsumersForOrg(
       String xRhsmApiAccountID, Integer limit, String offset, String lastCheckinAfter)
       throws ApiException {
+
     OrgInventory inventory = new OrgInventory();
 
     Consumer consumer1 = new Consumer();
@@ -64,6 +67,7 @@ public class StubRhsmApi extends RhsmApi {
     consumer1.getFacts().put("Mac-addresses", "00:00:00:00:00:00, ff:ff:ff:ff:ff:ff");
     consumer1.getFacts().put("cpu.cpu_socket(s)", "2");
     consumer1.getFacts().put("cpu.core(s)_per_socket", "2");
+
     consumer1.getFacts().put("memory.memtotal", "32757812");
     consumer1.getFacts().put("uname.machine", "x86_64");
     consumer1.getFacts().put("virt.is_guest", "True");
@@ -75,6 +79,7 @@ public class StubRhsmApi extends RhsmApi {
     InstalledProducts product = new InstalledProducts();
     product.setProductId("72");
     consumer1.getInstalledProducts().add(product);
+    applyOrgIdUpdates(xRhsmApiAccountID, consumer1);
 
     Consumer consumer2 = new Consumer();
     String consumer2Uuid = UUID.randomUUID().toString();
@@ -96,5 +101,11 @@ public class StubRhsmApi extends RhsmApi {
     inventory.pagination(pagination);
     log.info("Returning canned rhsm response: {}", inventory);
     return inventory;
+  }
+
+  private void applyOrgIdUpdates(String orgId, Consumer consumer) {
+    if (orgId.equals(MAX_ALLOWED_MEMORY_ORG_ID)) {
+      consumer.getFacts().put("memory.memtotal", "8830587505648");
+    }
   }
 }
