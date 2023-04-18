@@ -20,23 +20,54 @@
  */
 package com.redhat.swatch.contract.resource;
 
-import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
-import com.redhat.swatch.contract.openapi.resource.OfferingsApi;
+import com.redhat.swatch.contract.model.OfferingProductTagsMapper;
 import com.redhat.swatch.contract.service.SubscriptionSyncService;
 import javax.annotation.security.RolesAllowed;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.microprofile.openapi.annotations.OpenAPIDefinition;
+import org.eclipse.microprofile.openapi.annotations.info.Contact;
+import org.eclipse.microprofile.openapi.annotations.info.Info;
+import org.eclipse.microprofile.openapi.annotations.info.License;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
 @Slf4j
 @ApplicationScoped
-public class SubscriptionSyncResource implements OfferingsApi {
+@RegisterRestClient
+@Path("/internal/offerings/{sku}/product_tags")
+@OpenAPIDefinition(
+    tags = {
+      @Tag(name = "widget", description = "Widget operations."),
+      @Tag(name = "gasket", description = "Operations related to gaskets")
+    },
+    info =
+        @Info(
+            title = "Example API",
+            version = "1.0.1",
+            contact =
+                @Contact(
+                    name = "Example API Support",
+                    url = "http://exampleurl.com/contact",
+                    email = "techsupport@example.com"),
+            license =
+                @License(
+                    name = "Apache 2.0",
+                    url = "https://www.apache.org/licenses/LICENSE-2.0.html")))
+public class SubscriptionSyncResource {
 
   @Inject SubscriptionSyncService service;
+  @Inject OfferingProductTagsMapper mapper;
 
+  @GET
+  @Produces({"application/json"})
   @RolesAllowed({"test", "support", "service"})
-  public OfferingProductTags getSkuProductTags(@PathParam("sku") String sku) {
-    return service.getOfferingProductTags(sku);
+  public BananaOfferingProductTags getSkuProductTags(@PathParam("sku") String sku) {
+    return mapper.openApiToPojo(service.getOfferingProductTags(sku));
   }
 }

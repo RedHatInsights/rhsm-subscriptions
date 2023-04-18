@@ -251,36 +251,6 @@ paths:
                     message: "All contracts Synced"
       security:
         - test: []
-  /internal/offerings/{sku}/product_tags:
-      description: "Mapping sku to product tags."
-      parameters:
-        - name: sku
-          in: path
-          required: true
-          schema:
-            type: string
-      get:
-        summary: "Lookup product tags by sku"
-        operationId: getSkuProductTags
-        responses:
-          '200':
-            description: "The request to get product tags by sku ."
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/OfferingProductTags'
-                example:
-                  data:
-                    - Rho one
-                    - Rho two
-          default:
-            $ref: '#/components/responses/ErrorResponse'
-        tags:
-          - Offerings
-        security:
-          - test: [ ]
-          - support: [ ]
-          - service: [ ]
   '/api/swatch-contracts/internal/rpc/partner/contracts':
     post:
       operationId: createPartnerEntitlementContract
