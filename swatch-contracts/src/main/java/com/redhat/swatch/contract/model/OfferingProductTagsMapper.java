@@ -21,7 +21,6 @@
 package com.redhat.swatch.contract.model;
 
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
-import com.redhat.swatch.contract.resource.BananaOfferingProductTags;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "cdi")

@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.resource;
 
+import com.redhat.swatch.contract.model.BananaOfferingProductTags;
 import com.redhat.swatch.contract.model.OfferingProductTagsMapper;
 import com.redhat.swatch.contract.service.SubscriptionSyncService;
 import javax.annotation.security.RolesAllowed;

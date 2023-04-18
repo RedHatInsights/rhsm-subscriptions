@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.resource;
+package com.redhat.swatch.contract.model;
 
 import java.util.List;
 import javax.json.bind.annotation.JsonbProperty;
