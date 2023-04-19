@@ -431,7 +431,7 @@ public class InventoryAccountUsageCollector {
     if (hbiSystem == null && swatchSystem == null) {
       log.debug("Unexpected, both HBI & Swatch system records are empty");
     } else if (hbiSystem == null) {
-      log.debug("Deleting system w/ inventoryId={}", swatchSystem.getInventoryId());
+      log.info("Deleting system w/ inventoryId={}", swatchSystem.getInventoryId());
       hostRepository.delete(swatchSystem);
     } else {
       NormalizedFacts normalizedFacts = factNormalizer.normalize(hbiSystem, orgHostsData);
