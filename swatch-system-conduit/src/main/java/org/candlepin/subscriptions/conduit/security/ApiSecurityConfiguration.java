@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.conduit.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import javax.servlet.http.HttpServletRequest;
 import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
 import org.candlepin.subscriptions.security.AuthProperties;
@@ -41,13 +42,13 @@ import org.springframework.boot.actuate.autoconfigure.web.server.ManagementServe
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 
 /**
@@ -80,55 +81,51 @@ import org.springframework.security.web.access.AccessDeniedHandler;
  */
 @Configuration
 @Import(RbacConfiguration.class)
-public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
+public class ApiSecurityConfiguration {
 
-  @Autowired protected ObjectMapper mapper;
-  @Autowired protected SecurityProperties secProps;
   @Autowired protected ManagementServerProperties actuatorProps;
-  @Autowired protected RbacProperties rbacProperties;
-  @Autowired protected ConfigurableEnvironment env;
-  @Autowired protected RbacService rbacService;
-  @Autowired protected AuthProperties authProperties;
 
   private static final String[] URLS_PERMITTED_WITHOUT_AUTH =
       new String[] {
         "/**/*openapi.yaml", "/**/*openapi.json", "/**/version", "/api-docs/**", "/webjars/**"
       };
 
-  @Override
-  public void configure(AuthenticationManagerBuilder auth) {
-    // Add our AuthenticationProvider to the Provider Manager's list
-    auth.authenticationProvider(
-        identityHeaderAuthenticationProvider(
-            identityHeaderAuthenticationDetailsService(secProps, rbacProperties, rbacService),
-            authProperties));
-  }
-
-  @Bean
-  public IdentityHeaderAuthenticationDetailsService identityHeaderAuthenticationDetailsService(
-      SecurityProperties secProps, RbacProperties rbacProperties, RbacService rbacService) {
-    return new IdentityHeaderAuthenticationDetailsService(
-        secProps, rbacProperties, identityHeaderAuthoritiesMapper(), rbacService);
-  }
-
-  @Bean
-  public AuthenticationProvider identityHeaderAuthenticationProvider(
-      @Qualifier("identityHeaderAuthenticationDetailsService")
-          IdentityHeaderAuthenticationDetailsService detailsService,
-      AuthProperties authProperties) {
-    return new IdentityHeaderAuthenticationProvider(
-        detailsService, identityHeaderAuthoritiesMapper(), authProperties);
-  }
-
-  // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application
-  // filter
-  public IdentityHeaderAuthenticationFilter identityHeaderAuthenticationFilter() throws Exception {
+  // NOTE: intentionally not annotated w/ @Bean; @Bean causes an extra use as an application filter
+  public IdentityHeaderAuthenticationFilter identityHeaderAuthenticationFilter(
+      AuthenticationManager authenticationManager, ObjectMapper mapper) {
     IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
     filter.setCheckForPrincipalChanges(true);
-    filter.setAuthenticationManager(authenticationManager());
+    filter.setAuthenticationManager(authenticationManager);
     filter.setAuthenticationFailureHandler(new IdentityHeaderAuthenticationFailureHandler(mapper));
     filter.setContinueFilterChainOnUnsuccessfulAuthentication(false);
     return filter;
+  }
+
+  // NOTE: intentionally not annotated w/ @Bean; @Bean causes an extra use as an application filter
+  public MdcFilter mdcFilter() {
+    return new MdcFilter();
+  }
+
+  // NOTE: intentionally not annotated w/ @Bean; @Bean causes an extra use as an application filter
+  public LogPrincipalFilter logPrincipalFilter() {
+    return new LogPrincipalFilter();
+  }
+
+  @Bean
+  public IdentityHeaderAuthenticationFailureHandler identityHeaderAuthenticationFailureHandler(
+      ObjectMapper mapper) {
+    return new IdentityHeaderAuthenticationFailureHandler(mapper);
+  }
+
+  @Bean
+  public AccessDeniedHandler restAccessDeniedHandler(ObjectMapper mapper) {
+    return new RestAccessDeniedHandler(mapper);
+  }
+
+  @Bean
+  public AuthenticationEntryPoint restAuthenticationEntryPoint(
+      IdentityHeaderAuthenticationFailureHandler identityHeaderAuthenticationFailureHandler) {
+    return new RestAuthenticationEntryPoint(identityHeaderAuthenticationFailureHandler);
   }
 
   @Bean
@@ -137,83 +134,96 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
   }
 
   @Bean
-  public AccessDeniedHandler restAccessDeniedHandler() {
-    return new RestAccessDeniedHandler(mapper);
+  public IdentityHeaderAuthenticationDetailsService identityHeaderAuthenticationDetailsService(
+      SecurityProperties secProps,
+      RbacProperties rbacProperties,
+      RbacService rbacService,
+      IdentityHeaderAuthoritiesMapper identityHeaderAuthoritiesMapper) {
+    return new IdentityHeaderAuthenticationDetailsService(
+        secProps, rbacProperties, identityHeaderAuthoritiesMapper, rbacService);
   }
 
   @Bean
-  public AuthenticationEntryPoint restAuthenticationEntryPoint() {
-    return new RestAuthenticationEntryPoint(new IdentityHeaderAuthenticationFailureHandler(mapper));
+  public AuthenticationProvider identityHeaderAuthenticationProvider(
+      @Qualifier("identityHeaderAuthenticationDetailsService")
+          IdentityHeaderAuthenticationDetailsService detailsService,
+      AuthProperties authProperties,
+      IdentityHeaderAuthoritiesMapper identityHeaderAuthoritiesMapper) {
+    return new IdentityHeaderAuthenticationProvider(
+        detailsService, identityHeaderAuthoritiesMapper, authProperties);
   }
 
-  // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application
-  // filter
-  public MdcFilter mdcFilter() {
-    return new MdcFilter();
+  @Bean
+  public AuthenticationManager authenticationManager(
+      HttpSecurity http, AuthenticationProvider identityHeaderAuthenticationProvider)
+      throws Exception {
+    AuthenticationManagerBuilder authenticationManagerBuilder =
+        http.getSharedObject(AuthenticationManagerBuilder.class);
+    AuthenticationManager parentAuthenticationManager =
+        http.getSharedObject(AuthenticationManager.class);
+    authenticationManagerBuilder.authenticationProvider(identityHeaderAuthenticationProvider);
+    authenticationManagerBuilder.parentAuthenticationManager(parentAuthenticationManager);
+    return authenticationManagerBuilder.build();
   }
 
-  public LogPrincipalFilter logPrincipalFilter() {
-    return new LogPrincipalFilter();
-  }
-
-  @Override
+  /**
+   * Check for DummmyRequest in case of below issue forwarding to /error: <a
+   * href="https://stackoverflow.com/a/71695378">See this Stack Overflow question</a>
+   */
+  // We can't use instance of for the class check since DummyRequest isn't publicly visible
   @SuppressWarnings("java:S1872")
-  protected void configure(HttpSecurity http) throws Exception {
-    String apiPath =
-        env.getRequiredProperty(
-            "rhsm-conduit.package_uri_mappings.org.candlepin.subscriptions.conduit.resteasy");
-    http.addFilter(identityHeaderAuthenticationFilter())
+  private boolean isDummyRequest(HttpServletRequest request) {
+    return !request
+            .getClass()
+            .getName()
+            .equals("org.springframework.security.web.FilterInvocation$DummyRequest")
+        && request.getServerPort() == actuatorProps.getPort()
+        && request.getContextPath().equals(actuatorProps.getBasePath());
+  }
+
+  @Bean
+  public SecurityFilterChain conduitFilterChain(
+      HttpSecurity http,
+      AuthenticationManager authenticationManager,
+      AccessDeniedHandler restAccessDeniedHandler,
+      AuthenticationEntryPoint restAuthenticationEntryPoint,
+      ObjectMapper mapper)
+      throws Exception {
+    http.addFilter(identityHeaderAuthenticationFilter(authenticationManager, mapper))
         .addFilterAfter(mdcFilter(), IdentityHeaderAuthenticationFilter.class)
         .addFilterAfter(logPrincipalFilter(), MdcFilter.class)
-        .csrf()
-        .disable()
-        .exceptionHandling()
-        .accessDeniedHandler(restAccessDeniedHandler())
-        .authenticationEntryPoint(restAuthenticationEntryPoint())
-        .and()
-        // disable sessions, our API is stateless, and sessions cause RBAC information to be
-        // cached
-        .sessionManagement()
-        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-        .and()
-        .anonymous() // Creates an anonymous user if no header is present at all. Prevents NPEs
-        .and()
-        .authorizeRequests()
-        .antMatchers(URLS_PERMITTED_WITHOUT_AUTH)
-        .permitAll()
-        // ingress security uses server settings (require ssl cert auth), so permit all here
-        .antMatchers(String.format("/%s/ingress/**", apiPath))
-        .permitAll()
-        // Allow access to the Spring Actuator "root" which displays the available endpoints
-        .requestMatchers(
-            request ->
-                // Need to check for DummmyRequest in case of below issue forwarding to /error:
-                // https://stackoverflow.com/questions/45910725/unsupportedoperationexception-javax-servlet-servletrequest-getservername-is-no/71695378#71695378
-                !request
-                        .getClass()
-                        .getName()
-                        .equals("org.springframework.security.web.FilterInvocation$DummyRequest")
-                    && request.getServerPort() == actuatorProps.getPort()
-                    && request.getContextPath().equals(actuatorProps.getBasePath()))
-        .permitAll()
-        .requestMatchers(EndpointRequest.to("health", "info", "prometheus", "hawtio"))
-        .permitAll()
+        .csrf(csrf -> csrf.disable())
+        .exceptionHandling(
+            handler -> {
+              handler.accessDeniedHandler(restAccessDeniedHandler);
+              handler.authenticationEntryPoint(restAuthenticationEntryPoint);
+            })
+        // disable sessions, our API is stateless, and sessions cause RBAC information to be cached
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(
+            requests -> {
+              requests.antMatchers(URLS_PERMITTED_WITHOUT_AUTH).permitAll();
+              requests.requestMatchers(this::isDummyRequest).permitAll();
 
-        /* Values assigned to management.path-mapping.* shouldn't have a leading slash. However, Clowder
-         * only provides a path starting with a leading slash.  I have elected to set the default
-         * to do the same for the sake of consistency.  The leading slash can potentially cause problems with Spring
-         * Security since the path now becomes (assuming management.base-path is "/") "//metrics".
-         * Browser requests to "/metrics" aren't going to match according to Spring Security's path matching rules
-         * and the end result is that any security rule applied to EndpointRequest.to("prometheus") will be
-         * applied to the defined path ("//metrics") rather than the de facto path ("/metrics").
-         * Accordingly, I've put in a custom rule in the security config to allow for access to "/metrics"
-         */
-
-        .antMatchers("/metrics")
-        .permitAll()
-        .antMatchers("/**/internal/**")
-        .access("hasRole('ROLE_INTERNAL')")
-        .anyRequest()
-        .authenticated();
+              requests
+                  .requestMatchers(EndpointRequest.to("health", "info", "prometheus", "hawtio"))
+                  .permitAll();
+              /* Values assigned to management.path-mapping.* shouldn't have a leading slash. However, Clowder
+               * only provides a path starting with a leading slash.  I have elected to set the default
+               * to do the same for the sake of consistency.  The leading slash can potentially cause problems with Spring
+               * Security since the path now becomes (assuming management.base-path is "/") "//metrics".
+               * Browser requests to "/metrics" aren't going to match according to Spring Security's path matching rules
+               * and the end result is that any security rule applied to EndpointRequest.to("prometheus") will be
+               * applied to the defined path ("//metrics") rather than the de facto path ("/metrics").
+               * Accordingly, I've put in a custom rule in the security config to allow for access to "/metrics"
+               */
+              requests.antMatchers("/metrics").permitAll();
+              // Intentionally not prefixed with "ROLE_"
+              requests.antMatchers("/**/internal/**").hasRole("INTERNAL");
+              requests.anyRequest().authenticated();
+            })
+        .anonymous(); // Creates an anonymous user if no header is present at all. Prevents NPEs
+    return http.build();
   }
 }

@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.security;
 
-import static org.candlepin.subscriptions.security.SecurityConfig.*;
+import static org.candlepin.subscriptions.security.SecurityConfiguration.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
@@ -38,8 +38,8 @@ import org.springframework.util.StringUtils;
  * Spring Security filter responsible for pulling the principal out of the x-rh-identity header.
  *
  * <p>Note that we don't register the filter as a bean anywhere, because if we did it would be
- * registered as a an extraneous ServletFilter in addition to its use in our SpringSecurity config.
- * See https://stackoverflow.com/a/31571715
+ * registered as an extraneous ServletFilter in addition to its use in our SpringSecurity config.
+ * See <a href="https://stackoverflow.com/a/31571715">this StackOverflow answer</a>.
  */
 public class IdentityHeaderAuthenticationFilter extends AbstractPreAuthenticatedProcessingFilter {
   private static final Logger log =

@@ -22,17 +22,16 @@ package org.candlepin.subscriptions.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.candlepin.subscriptions.rbac.RbacProperties;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CsrfFilter;
 
 /**
@@ -45,17 +44,57 @@ import org.springframework.security.web.csrf.CsrfFilter;
  */
 @Order(1)
 @Configuration
-public class JolokiaActuatorConfiguration extends WebSecurityConfigurerAdapter {
+public class JolokiaActuatorConfiguration {
 
-  @Autowired private SecurityProperties secProps;
-  @Autowired private ConfigurableEnvironment env;
-  @Autowired protected ObjectMapper mapper;
+  // NOTE: intentionally *not* annotated with @Bean; @Bean causes an extra use as an application
+  // filter
+  public AntiCsrfFilter getVerbIncludingAntiCsrfFilter(
+      SecurityProperties appProps, ConfigurableEnvironment env) {
+    return new GetVerbIncludingAntiCsrfFilter(appProps, env);
+  }
 
-  @Override
-  protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-    auth.authenticationProvider(
-        jolokiaIdentityHeaderAuthenticationProvider(
-            jolokiaIdentityHeaderAuthenticationDetailsService(secProps)));
+  // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application
+  // filter
+  public IdentityHeaderAuthenticationFilter identityHeaderAuthenticationFilter(
+      AuthenticationManager authenticationManager, ObjectMapper mapper) {
+    IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
+    filter.setCheckForPrincipalChanges(true);
+    filter.setAuthenticationManager(authenticationManager);
+    filter.setAuthenticationFailureHandler(new IdentityHeaderAuthenticationFailureHandler(mapper));
+    filter.setContinueFilterChainOnUnsuccessfulAuthentication(false);
+    return filter;
+  }
+
+  // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application
+  // filter
+  public MdcFilter mdcFilter() {
+    return new MdcFilter();
+  }
+
+  @Bean
+  public AuthenticationProvider jolokiaIdentityHeaderAuthenticationProvider(
+      @Qualifier("jolokiaIdentityHeaderAuthenticationDetailsService")
+          IdentityHeaderAuthenticationDetailsService detailsService,
+      IdentityHeaderAuthoritiesMapper conduitIdentityHeaderAuthoritiesMapper,
+      AuthProperties conduitAuthProperties) {
+    return new IdentityHeaderAuthenticationProvider(
+        detailsService, conduitIdentityHeaderAuthoritiesMapper, conduitAuthProperties);
+  }
+
+  @Bean
+  public IdentityHeaderAuthenticationDetailsService
+      jolokiaIdentityHeaderAuthenticationDetailsService(
+          SecurityProperties secProps,
+          IdentityHeaderAuthoritiesMapper jolokiaIdentityHeaderAuthoritiesMapper) {
+    // NOTE: we use empty rbac properties and null rbac controller because jolokia access doesn't
+    // use RBAC service.
+    return new IdentityHeaderAuthenticationDetailsService(
+        secProps, new RbacProperties(), jolokiaIdentityHeaderAuthoritiesMapper, null);
+  }
+
+  @Bean
+  public IdentityHeaderAuthoritiesMapper jolokiaIdentityHeaderAuthoritiesMapper() {
+    return new IdentityHeaderAuthoritiesMapper();
   }
 
   @Bean
@@ -69,64 +108,23 @@ public class JolokiaActuatorConfiguration extends WebSecurityConfigurerAdapter {
   }
 
   @Bean
-  public AuthenticationProvider jolokiaIdentityHeaderAuthenticationProvider(
-      @Qualifier("jolokiaIdentityHeaderAuthenticationDetailsService")
-          IdentityHeaderAuthenticationDetailsService detailsService) {
-    return new IdentityHeaderAuthenticationProvider(
-        detailsService, conduitIdentityHeaderAuthoritiesMapper(), conduitAuthProperties());
-  }
-
-  @Bean
-  public IdentityHeaderAuthenticationDetailsService
-      jolokiaIdentityHeaderAuthenticationDetailsService(SecurityProperties secProps) {
-    // NOTE: we use empty rbac properties and null rbac controller because jolokia access doesn't
-    // use RBAC service.
-    return new IdentityHeaderAuthenticationDetailsService(
-        secProps, new RbacProperties(), jolokiaIdentityHeaderAuthoritiesMapper(), null);
-  }
-
-  @Bean
-  public IdentityHeaderAuthoritiesMapper jolokiaIdentityHeaderAuthoritiesMapper() {
-    return new IdentityHeaderAuthoritiesMapper();
-  }
-
-  // NOTE: intentionally *not* annotated with @Bean; @Bean causes an extra use as an application
-  // filter
-  public AntiCsrfFilter getVerbIncludingAntiCsrfFilter(
-      SecurityProperties appProps, ConfigurableEnvironment env) {
-    return new GetVerbIncludingAntiCsrfFilter(appProps, env);
-  }
-
-  // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application
-  // filter
-  public IdentityHeaderAuthenticationFilter identityHeaderAuthenticationFilter() throws Exception {
-    IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
-    filter.setCheckForPrincipalChanges(true);
-    filter.setAuthenticationManager(authenticationManager());
-    filter.setAuthenticationFailureHandler(new IdentityHeaderAuthenticationFailureHandler(mapper));
-    filter.setContinueFilterChainOnUnsuccessfulAuthentication(false);
-    return filter;
-  }
-
-  // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application
-  // filter
-  public MdcFilter mdcFilter() {
-    return new MdcFilter();
-  }
-
-  @Override
-  protected void configure(HttpSecurity http) throws Exception {
+  public SecurityFilterChain jolokiaFilterChain(
+      HttpSecurity http,
+      SecurityProperties secProps,
+      AuthenticationManager authenticationManager,
+      ConfigurableEnvironment env,
+      ObjectMapper mapper)
+      throws Exception {
     // See
     // https://docs.spring.io/spring-security/site/docs/current/reference/html5/#ns-custom-filters
     // for list of filters and their order
     http.requestMatcher(EndpointRequest.to("jolokia"))
-        .csrf()
-        .disable()
-        .addFilter(identityHeaderAuthenticationFilter())
+        .addFilter(identityHeaderAuthenticationFilter(authenticationManager, mapper))
         .addFilterAfter(mdcFilter(), IdentityHeaderAuthenticationFilter.class)
         .addFilterAt(getVerbIncludingAntiCsrfFilter(secProps, env), CsrfFilter.class)
-        .authorizeRequests()
-        .anyRequest()
-        .authenticated();
+        .csrf(csrf -> csrf.disable())
+        .authorizeHttpRequests(requests -> requests.anyRequest().authenticated());
+
+    return http.build();
   }
 }

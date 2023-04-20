@@ -43,7 +43,7 @@ import org.candlepin.subscriptions.registry.RegistryConfiguration;
 import org.candlepin.subscriptions.resource.ApiConfiguration;
 import org.candlepin.subscriptions.rhmarketplace.RhMarketplaceWorkerConfiguration;
 import org.candlepin.subscriptions.security.AuthProperties;
-import org.candlepin.subscriptions.security.SecurityConfig;
+import org.candlepin.subscriptions.security.SecurityConfiguration;
 import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration;
 import org.candlepin.subscriptions.subscription.SubscriptionWorkerConfiguration;
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
@@ -85,7 +85,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   OfferingSyncConfiguration.class,
   RegistryConfiguration.class,
   DevModeConfiguration.class,
-  SecurityConfig.class,
+  SecurityConfiguration.class,
   HawtioConfiguration.class,
   MeteringConfiguration.class,
   SubscriptionServiceConfiguration.class,

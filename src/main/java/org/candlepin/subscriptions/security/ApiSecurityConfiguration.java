@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import javax.servlet.http.HttpServletRequest;
 import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,12 +32,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.csrf.CsrfFilter;
 
@@ -44,9 +47,9 @@ import org.springframework.security.web.csrf.CsrfFilter;
  * Configuration class for Spring Security.
  *
  * <p>The architecture here can be confusing due to our use of a custom filter. Here is a discussion
- * of the Spring Security architecture:
- * https://spring.io/guides/topicals/spring-security-architecture In our case, requests are
- * pre-authenticated and the relevant information is stored in a custom header.
+ * of the <a href="https://spring.io/guides/topicals/spring-security-architecture">Spring Security
+ * architecture</a> In our case, requests are pre-authenticated and the relevant information is
+ * stored in a custom header.
  *
  * <p>We add the IdentityHeaderAuthenticationFilter as a filter to the Spring Security
  * FilterChainProxy that sits in the standard servlet filter chain and delegates out to all the
@@ -70,55 +73,91 @@ import org.springframework.security.web.csrf.CsrfFilter;
  */
 @Configuration
 @Import(RbacConfiguration.class)
-public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
+public class ApiSecurityConfiguration {
 
-  @Autowired protected ObjectMapper mapper;
-  @Autowired protected SecurityProperties secProps;
   @Autowired protected ManagementServerProperties actuatorProps;
-  @Autowired protected RbacProperties rbacProperties;
-  @Autowired protected ConfigurableEnvironment env;
-  @Autowired protected RbacService rbacService;
-  @Autowired protected AuthProperties authProperties;
 
   private static final String[] URLS_PERMITTED_WITHOUT_AUTH =
       new String[] {
         "/**/*openapi.yaml", "/**/*openapi.json", "/**/version", "/api-docs/**", "/webjars/**"
       };
 
-  @Override
-  public void configure(AuthenticationManagerBuilder auth) {
-    // Add our AuthenticationProvider to the Provider Manager's list
-    auth.authenticationProvider(
-        identityHeaderAuthenticationProvider(
-            identityHeaderAuthenticationDetailsService(secProps, rbacProperties, rbacService),
-            authProperties));
+  // NOTE: intentionally not annotated w/ @Bean; @Bean causes an extra use as an application filter
+  public IdentityHeaderAuthenticationFilter identityHeaderAuthenticationFilter(
+      AuthenticationManager authenticationManager, ObjectMapper mapper) {
+    IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
+    filter.setCheckForPrincipalChanges(true);
+    filter.setAuthenticationManager(authenticationManager);
+    filter.setAuthenticationFailureHandler(new IdentityHeaderAuthenticationFailureHandler(mapper));
+    filter.setContinueFilterChainOnUnsuccessfulAuthentication(false);
+    return filter;
+  }
+
+  // NOTE: intentionally not annotated w/ @Bean; @Bean causes an extra use as an application filter
+  public AntiCsrfFilter antiCsrfFilter(SecurityProperties secProps, ConfigurableEnvironment env) {
+    return new AntiCsrfFilter(secProps, env);
+  }
+
+  // NOTE: intentionally not annotated w/ @Bean; @Bean causes an extra use as an application filter
+  public MdcFilter mdcFilter() {
+    return new MdcFilter();
+  }
+
+  // NOTE: intentionally not annotated w/ @Bean; @Bean causes an extra use as an application filter
+  public LogPrincipalFilter logPrincipalFilter() {
+    return new LogPrincipalFilter();
+  }
+
+  @Bean
+  public IdentityHeaderAuthenticationFailureHandler identityHeaderAuthenticationFailureHandler(
+      ObjectMapper mapper) {
+    return new IdentityHeaderAuthenticationFailureHandler(mapper);
+  }
+
+  @Bean
+  public AccessDeniedHandler restAccessDeniedHandler(ObjectMapper mapper) {
+    return new RestAccessDeniedHandler(mapper);
+  }
+
+  @Bean
+  public AuthenticationEntryPoint restAuthenticationEntryPoint(
+      IdentityHeaderAuthenticationFailureHandler identityHeaderAuthenticationFailureHandler) {
+    return new RestAuthenticationEntryPoint(identityHeaderAuthenticationFailureHandler);
+  }
+
+  /**
+   * Check for DummmyRequest in case of below issue forwarding to /error: <a
+   * href="https://stackoverflow.com/a/71695378">See this Stack Overflow question</a>
+   */
+  // We can't use instance of for the class check since DummyRequest isn't publicly visible
+  @SuppressWarnings("java:S1872")
+  private boolean isDummyRequest(HttpServletRequest request) {
+    return !request
+            .getClass()
+            .getName()
+            .equals("org.springframework.security.web.FilterInvocation$DummyRequest")
+        && request.getServerPort() == actuatorProps.getPort()
+        && request.getContextPath().equals(actuatorProps.getBasePath());
   }
 
   @Bean
   public IdentityHeaderAuthenticationDetailsService identityHeaderAuthenticationDetailsService(
-      SecurityProperties secProps, RbacProperties rbacProperties, RbacService rbacService) {
+      SecurityProperties secProps,
+      RbacProperties rbacProperties,
+      RbacService rbacService,
+      IdentityHeaderAuthoritiesMapper identityHeaderAuthoritiesMapper) {
     return new IdentityHeaderAuthenticationDetailsService(
-        secProps, rbacProperties, identityHeaderAuthoritiesMapper(), rbacService);
+        secProps, rbacProperties, identityHeaderAuthoritiesMapper, rbacService);
   }
 
   @Bean
   public AuthenticationProvider identityHeaderAuthenticationProvider(
       @Qualifier("identityHeaderAuthenticationDetailsService")
           IdentityHeaderAuthenticationDetailsService detailsService,
-      AuthProperties authProperties) {
+      AuthProperties authProperties,
+      IdentityHeaderAuthoritiesMapper identityHeaderAuthoritiesMapper) {
     return new IdentityHeaderAuthenticationProvider(
-        detailsService, identityHeaderAuthoritiesMapper(), authProperties);
-  }
-
-  // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application
-  // filter
-  public IdentityHeaderAuthenticationFilter identityHeaderAuthenticationFilter() throws Exception {
-    IdentityHeaderAuthenticationFilter filter = new IdentityHeaderAuthenticationFilter(mapper);
-    filter.setCheckForPrincipalChanges(true);
-    filter.setAuthenticationManager(authenticationManager());
-    filter.setAuthenticationFailureHandler(new IdentityHeaderAuthenticationFailureHandler(mapper));
-    filter.setContinueFilterChainOnUnsuccessfulAuthentication(false);
-    return filter;
+        detailsService, identityHeaderAuthoritiesMapper, authProperties);
   }
 
   @Bean
@@ -126,93 +165,85 @@ public class ApiSecurityConfiguration extends WebSecurityConfigurerAdapter {
     return new IdentityHeaderAuthoritiesMapper();
   }
 
+  /**
+   * Register a <em>global</em> AuthenticationManager. That means that this AuthenticationManager
+   * will be used in all SecurityFilterChains.
+   *
+   * @param http the HttpSecurityObject
+   * @param identityHeaderAuthenticationProvider the authentication provider to use
+   * @return a configured AuthenticationManager
+   * @throws Exception if an error occurs building the AuthenticationManger
+   */
   @Bean
-  public AccessDeniedHandler restAccessDeniedHandler() {
-    return new RestAccessDeniedHandler(mapper);
+  public AuthenticationManager authenticationManager(
+      HttpSecurity http, AuthenticationProvider identityHeaderAuthenticationProvider)
+      throws Exception {
+    AuthenticationManagerBuilder authenticationManagerBuilder =
+        http.getSharedObject(AuthenticationManagerBuilder.class);
+    AuthenticationManager parentAuthenticationManager =
+        http.getSharedObject(AuthenticationManager.class);
+    authenticationManagerBuilder.authenticationProvider(identityHeaderAuthenticationProvider);
+    authenticationManagerBuilder.parentAuthenticationManager(parentAuthenticationManager);
+    return authenticationManagerBuilder.build();
   }
 
   @Bean
-  public AuthenticationEntryPoint restAuthenticationEntryPoint() {
-    return new RestAuthenticationEntryPoint(new IdentityHeaderAuthenticationFailureHandler(mapper));
-  }
-
-  // NOTE: intentionally *not* annotated with @Bean; @Bean causes an extra use as an application
-  // filter
-  public AntiCsrfFilter antiCsrfFilter(SecurityProperties secProps, ConfigurableEnvironment env) {
-    return new AntiCsrfFilter(secProps, env);
-  }
-
-  // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application
-  // filter
-  public MdcFilter mdcFilter() {
-    return new MdcFilter();
-  }
-
-  public LogPrincipalFilter logPrincipalFilter() {
-    return new LogPrincipalFilter();
-  }
-
-  @Override
-  @SuppressWarnings("java:S1872")
-  protected void configure(HttpSecurity http) throws Exception {
-    String apiPath =
-        env.getRequiredProperty(
-            "rhsm-subscriptions.package_uri_mappings.org.candlepin.subscriptions.resteasy");
-    http.addFilter(identityHeaderAuthenticationFilter())
+  public SecurityFilterChain apiFilterChain(
+      HttpSecurity http,
+      SecurityProperties secProps,
+      AuthenticationManager authenticationManager,
+      ConfigurableEnvironment env,
+      AccessDeniedHandler restAccessDeniedHandler,
+      AuthenticationEntryPoint restAuthenticationEntryPoint,
+      ObjectMapper mapper,
+      OptInChecker optInChecker)
+      throws Exception {
+    http.addFilter(identityHeaderAuthenticationFilter(authenticationManager, mapper))
         .addFilterAfter(mdcFilter(), IdentityHeaderAuthenticationFilter.class)
         .addFilterAfter(logPrincipalFilter(), MdcFilter.class)
         .addFilterAt(antiCsrfFilter(secProps, env), CsrfFilter.class)
-        .csrf()
-        .disable()
-        .exceptionHandling()
-        .accessDeniedHandler(restAccessDeniedHandler())
-        .authenticationEntryPoint(restAuthenticationEntryPoint())
-        .and()
-        // disable sessions, our API is stateless, and sessions cause RBAC information to be
-        // cached
-        .sessionManagement()
-        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-        .and()
-        .anonymous() // Creates an anonymous user if no header is present at all. Prevents NPEs
-        .and()
-        .authorizeRequests()
-        .antMatchers(URLS_PERMITTED_WITHOUT_AUTH)
-        .permitAll()
-        // ingress security uses server settings (require ssl cert auth), so permit all here
-        .antMatchers(String.format("/%s/ingress/**", apiPath))
-        .permitAll()
-        // Allow access to the Spring Actuator "root" which displays the available endpoints
-        .requestMatchers(
-            request ->
-                // Need to check for DummmyRequest in case of below issue forwarding to /error:
-                // https://stackoverflow.com/questions/45910725/unsupportedoperationexception-javax-servlet-servletrequest-getservername-is-no/71695378#71695378
-                !request
-                        .getClass()
-                        .getName()
-                        .equals("org.springframework.security.web.FilterInvocation$DummyRequest")
-                    && request.getServerPort() == actuatorProps.getPort()
-                    && request.getContextPath().equals(actuatorProps.getBasePath()))
-        .permitAll()
-        .requestMatchers(EndpointRequest.to("health", "info", "prometheus", "hawtio"))
-        .permitAll()
+        .csrf(csrf -> csrf.disable()) // We use our own CSRF filter
+        .exceptionHandling(
+            handler -> {
+              handler.accessDeniedHandler(restAccessDeniedHandler);
+              handler.authenticationEntryPoint(restAuthenticationEntryPoint);
+            })
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(
+            requests -> {
+              requests.antMatchers(URLS_PERMITTED_WITHOUT_AUTH).permitAll();
+              requests.requestMatchers(this::isDummyRequest).permitAll();
+              requests
+                  .requestMatchers(EndpointRequest.to("health", "info", "prometheus", "hawtio"))
+                  .permitAll();
 
-        /* Values assigned to management.path-mapping.* shouldn't have a leading slash. However, Clowder
-         * only provides a path starting with a leading slash.  I have elected to set the default
-         * to do the same for the sake of consistency.  The leading slash can potentially cause problems with Spring
-         * Security since the path now becomes (assuming management.base-path is "/") "//metrics".
-         * Browser requests to "/metrics" aren't going to match according to Spring Security's path matching rules
-         * and the end result is that any security rule applied to EndpointRequest.to("prometheus") will be
-         * applied to the defined path ("//metrics") rather than the de facto path ("/metrics").
-         * Accordingly, I've put in a custom rule in the security config to allow for access to "/metrics"
-         */
-
-        .antMatchers("/metrics")
-        .permitAll()
-        .antMatchers("/**/internal/**")
-        .access("hasRole('ROLE_INTERNAL')")
-        .antMatchers("/**/capacity/**", "/**/tally/**", "/**/hosts/**")
-        .access("@optInChecker.checkAccess(authentication)")
-        .anyRequest()
-        .authenticated();
+              /* Values assigned to management.path-mapping.* shouldn't have a leading slash. However, Clowder
+               * only provides a path starting with a leading slash.  I have elected to set the default
+               * to do the same for the sake of consistency.  The leading slash can potentially cause problems with Spring
+               * Security since the path now becomes (assuming management.base-path is "/") "//metrics".
+               * Browser requests to "/metrics" aren't going to match according to Spring Security's path matching rules
+               * and the end result is that any security rule applied to EndpointRequest.to("prometheus") will be
+               * applied to the defined path ("//metrics") rather than the de facto path ("/metrics").
+               * Accordingly, I've put in a custom rule in the security config to allow for access to "/metrics"
+               */
+              requests.antMatchers("/metrics").permitAll();
+              // Intentionally not prefixed with "ROLE_"
+              requests.antMatchers("/**/internal/**").hasRole("INTERNAL");
+              /* For Spring Security 6, we can use
+               * .access(
+               * new WebExpressionAuthorizationManager("@optInChecker.checkAccess(authentication)")
+               * )
+               */
+              requests
+                  .antMatchers(
+                      "/**/capacity/**", "/**/tally/**", "/**/hosts/**", "/**/instances/**")
+                  .access(
+                      (auth, req) ->
+                          new AuthorizationDecision(optInChecker.checkAccess(auth.get())));
+              requests.anyRequest().authenticated();
+            })
+        .anonymous();
+    return http.build();
   }
 }

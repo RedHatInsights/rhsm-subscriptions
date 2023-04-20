@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.exception.mapper;
 
-import static org.candlepin.subscriptions.security.SecurityConfig.*;
+import static org.candlepin.subscriptions.security.SecurityConfiguration.*;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
