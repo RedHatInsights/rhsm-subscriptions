@@ -56,6 +56,61 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+
+  /internal/subscriptions/rhmUsageContext:
+    description: "Get the Red Hat Marketplace usage context."
+    parameters:
+      - name: accountNumber
+        in: query
+        required: false
+        schema:
+          type: string
+        description: "Customer's Account Number"
+      - name: orgId
+        in: query
+        required: true
+        schema:
+          type: string
+        description: "Customer's Org Id"
+      - name: date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: productId
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: sla
+        in: query
+        schema:
+          type: string
+      - name: usage
+        in: query
+        schema:
+          type: string
+    get:
+      summary: "Lookup necessary info to submit a usage record to RHM"
+      operationId: getRhmUsageContext
+      responses:
+        '200':
+          description: "Found RHM usage context matching the criteria."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RhmUsageContext'
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - internalSubscriptions
   /internal/subscriptions/awsUsageContext:
     description: "Get AWS usage context."
     parameters:
@@ -190,6 +245,11 @@ paths:
 
 components:
   schemas:
+    RhmUsageContext:
+      description: Encapsulates all data needed to map tally snapshot usage to AWS UsageRecords.
+      properties:
+        rhSubscriptionId:
+          type: string
     AwsUsageContext:
       description: Encapsulates all data needed to map tally snapshot usage to AWS UsageRecords.
       properties:

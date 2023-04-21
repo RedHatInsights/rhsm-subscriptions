@@ -20,6 +20,9 @@
  */
 package org.candlepin.subscriptions.rhmarketplace;
 
+import com.redhat.swatch.clients.internal.subscriptions.api.client.ApiException;
+import com.redhat.swatch.clients.internal.subscriptions.api.model.RhmUsageContext;
+import com.redhat.swatch.clients.internal.subscriptions.api.resources.InternalSubscriptionsApi;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Collections;
@@ -27,24 +30,25 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
-import org.candlepin.subscriptions.db.model.BillingProvider;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.json.BillableUsage;
+import org.candlepin.subscriptions.json.BillableUsage.Sla;
+import org.candlepin.subscriptions.json.BillableUsage.Usage;
 import org.candlepin.subscriptions.json.TallyMeasurement.Uom;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageMeasurement;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageRequest;
-import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.billing.BillableUsageMapper;
 import org.candlepin.subscriptions.user.AccountService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 /** Maps BillableUsage to payload contents to be sent to RHM apis */
 @Service
@@ -55,21 +59,24 @@ public class RhMarketplacePayloadMapper {
       "redhat.com:openshift_dedicated:4cpu_hour";
 
   private final AccountService accountService;
-  private final RhMarketplaceSubscriptionIdProvider idProvider;
   private final BillableUsageMapper billableUsageMapper;
   private final TagProfile tagProfile;
+  private final InternalSubscriptionsApi subscriptionsClient;
+  private final RetryTemplate usageContextRetryTemplate;
 
   @Autowired
   public RhMarketplacePayloadMapper(
       TagProfile tagProfile,
       AccountService accountService,
-      RhMarketplaceSubscriptionIdProvider idProvider) {
+      InternalSubscriptionsApi subscriptionsClient,
+      @Qualifier("rhmUsageContextLookupRetryTemplate") RetryTemplate usageContextRetryTemplate) {
     this.tagProfile = tagProfile;
     this.accountService = accountService;
-    this.idProvider = idProvider;
+    this.subscriptionsClient = subscriptionsClient;
     // NOTE(khowell) this dependency is temporary, and instantiating here was easier than
     // refactoring profiles.
     this.billableUsageMapper = new BillableUsageMapper(tagProfile);
+    this.usageContextRetryTemplate = usageContextRetryTemplate;
   }
 
   /**
@@ -106,23 +113,6 @@ public class RhMarketplacePayloadMapper {
       log.warn("Skipping invalid billable usage {}", billableUsage);
       return null;
     }
-    String accountNumber = billableUsage.getAccountNumber();
-    String orgId = billableUsage.getOrgId();
-    if (orgId == null) {
-      orgId = accountService.lookupOrgId(accountNumber);
-    }
-
-    String productId = billableUsage.getProductId();
-    // Use "_ANY" because we don't support multiple rh marketplace accounts for a single customer
-    String billingAcctId = "_ANY";
-
-    UsageCalculation.Key usageKey =
-        new UsageCalculation.Key(
-            productId,
-            ServiceLevel.fromString(billableUsage.getSla().toString()),
-            Usage.fromString(billableUsage.getUsage().toString()),
-            BillingProvider.fromString(billableUsage.getBillingProvider().toString()),
-            billingAcctId);
 
     OffsetDateTime snapshotDate = billableUsage.getSnapshotDate();
     String eventId = billableUsage.getId().toString();
@@ -134,10 +124,15 @@ public class RhMarketplacePayloadMapper {
     long start = snapshotDate.toInstant().toEpochMilli();
     long end = snapshotDate.plus(Duration.ofHours(1L)).toInstant().toEpochMilli();
 
-    var subscriptionIdOpt =
-        idProvider.findSubscriptionId(accountNumber, orgId, usageKey, snapshotDate, snapshotDate);
+    RhmUsageContext context = null;
+    try {
+      context = lookupRhmUsageContext(billableUsage);
+    } catch (RhmUsageContextLookupException e) {
+      log.error(e.getMessage());
+      return null;
+    }
 
-    if (subscriptionIdOpt.isEmpty()) {
+    if (Objects.isNull(context) || !StringUtils.hasText(context.getRhSubscriptionId())) {
       log.error("{}", ErrorCode.SUBSCRIPTION_SERVICE_MARKETPLACE_ID_LOOKUP_ERROR);
       return null;
     }
@@ -148,9 +143,37 @@ public class RhMarketplacePayloadMapper {
         .measuredUsage(List.of(usageMeasurement))
         .end(end)
         .start(start)
-        .subscriptionId(subscriptionIdOpt.get())
+        .subscriptionId(context.getRhSubscriptionId())
         .eventId(eventId)
         .additionalAttributes(Collections.emptyMap());
+  }
+
+  public RhmUsageContext lookupRhmUsageContext(BillableUsage billableUsage)
+      throws RhmUsageContextLookupException {
+    return usageContextRetryTemplate.execute(
+        context -> {
+          String accountNumber = billableUsage.getAccountNumber();
+          String orgId = billableUsage.getOrgId();
+          if (orgId == null) {
+            orgId = accountService.lookupOrgId(accountNumber);
+          }
+
+          try {
+            log.debug(
+                "Looking up RHM usage context for orgId={} billableUsage={}", orgId, billableUsage);
+            return subscriptionsClient.getRhmUsageContext(
+                orgId,
+                billableUsage.getSnapshotDate(),
+                billableUsage.getProductId(),
+                accountNumber,
+                Optional.ofNullable(billableUsage.getSla()).map(Sla::value).orElse(null),
+                Optional.ofNullable(billableUsage.getUsage()).map(Usage::value).orElse(null));
+          } catch (ApiException e) {
+            throw new RhmUsageContextLookupException(
+                ErrorCode.SUBSCRIPTION_SERVICE_MARKETPLACE_ID_LOOKUP_ERROR,
+                String.format("API returned code %d", e.getCode()));
+          }
+        });
   }
 
   /**
