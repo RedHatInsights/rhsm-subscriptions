@@ -666,6 +666,18 @@ class FactNormalizerTest {
     assertEquals(0, normalizedFacts.getSockets());
   }
 
+  @Test
+  void testNullSocketsMarketplaceDefaulting() {
+    InventoryHostFacts facts = createRhsmHost(List.of(1), null, clock.now());
+    facts.setMarketplace(true);
+    facts.setSystemProfileSockets(null);
+    facts.setSystemProfileCoresPerSocket(null);
+    NormalizedFacts normalizedFacts = normalizer.normalize(facts, hypervisorData());
+    assertTrue(normalizedFacts.isMarketplace());
+    assertEquals(0, normalizedFacts.getCores());
+    assertEquals(0, normalizedFacts.getSockets());
+  }
+
   private void assertClassification(
       NormalizedFacts check, boolean isHypervisor, boolean isHypervisorUnknown, boolean isVirtual) {
     assertEquals(isHypervisor, check.isHypervisor());
