@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.contract.resource;
 
-import com.redhat.swatch.contract.exception.BadUpdateContractRequestException;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
@@ -30,7 +29,6 @@ import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.service.ContractService;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Objects;
 import javax.annotation.security.RolesAllowed;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -98,32 +96,6 @@ public class ContractsTestingResource implements DefaultApi {
         billingAccountId,
         vendorProductCode,
         timestamp);
-  }
-
-  /**
-   * Verify that the path variable uuid matches the payload uuid, then update the contract in the
-   * database with provided values
-   *
-   * @param uuid
-   * @param contract
-   * @return Contract
-   * @throws ApiException
-   * @throws ProcessingException
-   */
-  @Override
-  @RolesAllowed({"test"})
-  public Contract updateContract(String uuid, Contract contract)
-      throws ApiException, ProcessingException {
-
-    if (Objects.nonNull(contract.getUuid()) && !Objects.equals(uuid, contract.getUuid())) {
-      throw new BadUpdateContractRequestException(
-          "Uuid in path variable and uuid in payload do not match");
-    }
-    log.info("Updating contract {}", uuid);
-
-    contract.setUuid(uuid);
-
-    return service.updateContract(contract);
   }
 
   @Override

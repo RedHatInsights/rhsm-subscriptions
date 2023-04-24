@@ -147,31 +147,6 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
-  void testCreateContractForLogicalUpdate() {
-    var dto = new Contract();
-
-    Metric actualMetric1 = new Metric();
-    actualMetric1.setMetricId("cpu-hours");
-    actualMetric1.setValue(5);
-
-    dto.setMetrics(List.of(actualMetric1));
-
-    ContractMetricEntity expectedMetric2 = new ContractMetricEntity();
-    expectedMetric2.setMetricId("cpu-hours");
-    expectedMetric2.setValue(5);
-    var expected = ContractEntity.builder().metrics(Set.of(expectedMetric2)).build();
-    var actual = contractService.createContractForLogicalUpdate(dto);
-
-    // new.uuid != old.uuid
-    // new.uuid == new.metrics[].uuid
-    // new.endDate == null
-    // new.startDate == old.endDate
-    assertEquals(
-        expected.getMetrics().stream().toList().get(0).getMetricId(),
-        actual.getMetrics().stream().toList().get(0).getMetricId());
-  }
-
-  @Test
   void createPartnerContract_WhenNonNullEntityAndContractNotFoundInDB() {
     var contract = new PartnerEntitlementContract();
     contract.setRedHatSubscriptionNumber("12400374");

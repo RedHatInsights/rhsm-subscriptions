@@ -21,7 +21,6 @@
 package com.redhat.swatch.contract;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.containsStringIgnoringCase;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -61,51 +60,6 @@ class ContractsHttpEndpointIntegrationTest {
         .statusCode(200)
         .body("size()", is(1))
         .body("[0].org_id", is("org123"));
-  }
-
-  @Test
-  @TestSecurity(
-      user = "placeholder",
-      roles = {"test"})
-  void whenUpdateContract_thenUpdatedContractShouldBeReturned() {
-    String contract =
-        """
-    {"subscription_number":"string","sku":"string",
-    "start_date":"2022-03-10T12:15:50-04:00","end_date":"2022-03-10T12:15:50-04:00",
-    "org_id":"string","billing_provider":"string","billing_account_id":"string",
-    "product_id":"string","vendor_product_code":"string","metrics": [ {"metric_id":"string","value": 0 } ] }
-    """;
-    given()
-        .contentType(ContentType.JSON)
-        .body(contract)
-        .when()
-        .put("/api/swatch-contracts/internal/contracts/1322")
-        .then()
-        .statusCode(204);
-  }
-
-  @Test
-  @TestSecurity(
-      user = "placeholder",
-      roles = {"test"})
-  void whenUpdateContract_MismatchedUuid() {
-
-    String contract =
-        """
-        {"uuid":"1234567890","subscription_number":"string","sku":"string",
-        "start_date":"2022-03-10T12:15:50-04:00","end_date":"2022-03-10T12:15:50-04:00",
-        "org_id":"string","billing_provider":"string","billing_account_id":"string",
-        "product_id":"string","vendor_product_code":"string","metrics": [ {"metric_id":"string","value": 0 } ] }
-        """;
-    given()
-        .contentType(ContentType.JSON)
-        .body(contract)
-        .when()
-        .put("/api/swatch-contracts/internal/contracts/1322")
-        .then()
-        .statusCode(400)
-        .assertThat()
-        .body(containsStringIgnoringCase("Uuid in path variable and uuid in payload do not match"));
   }
 
   @Test
