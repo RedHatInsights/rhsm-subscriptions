@@ -32,7 +32,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonNaming(PropertyNamingStrategies.UpperCamelCaseStrategy.class)
-public class SubscriptionProduct {
-  private String sku;
-  private SubscriptionProductStatus status;
+public class SubscriptionProductStatus {
+
+  private String state;
 }

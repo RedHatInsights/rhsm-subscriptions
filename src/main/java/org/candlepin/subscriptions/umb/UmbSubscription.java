@@ -97,6 +97,14 @@ public class UmbSubscription {
     return products[0].getSku();
   }
 
+  public String getProductStatusState() {
+    if (products.length != 1) {
+      throw new IllegalStateException(
+          "Could not find top level product with a status for subscription " + this);
+    }
+    return products[0].getStatus().getState();
+  }
+
   public String getEbsAccountNumber() {
     return getReference("EBS", "Account", "number").orElse(null);
   }
