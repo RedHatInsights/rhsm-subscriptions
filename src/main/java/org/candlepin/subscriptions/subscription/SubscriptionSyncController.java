@@ -445,7 +445,21 @@ public class SubscriptionSyncController {
 
   @Transactional
   public void saveUmbSubscription(UmbSubscription umbSubscription) {
+
+    // TODO optional/null check required
+    var asdf =
+        Arrays.stream(umbSubscription.getProducts())
+            .findFirst()
+            .get()
+            .getSubscriptionProductStatusState("Terminated");
+
+    if ("Terminated".equals(asdf)) {
+      // this is where we'd pick up on a termination and do whatever with it
+    }
+
+    // TODO candidate for MapStruct
     org.candlepin.subscriptions.db.model.Subscription subscription = convertDto(umbSubscription);
+
     syncSubscription(
         subscription,
         subscriptionRepository.findBySubscriptionNumber(subscription.getSubscriptionNumber()));

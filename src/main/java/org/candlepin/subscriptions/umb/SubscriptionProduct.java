@@ -34,4 +34,10 @@ import lombok.NoArgsConstructor;
 @JsonNaming(PropertyNamingStrategies.UpperCamelCaseStrategy.class)
 public class SubscriptionProduct {
   private String sku;
+
+  // TODO...btw product can have nested Product apparently
+  // private SubscriptionProductStatus.State
+  public String getSubscriptionProductStatusState(String hardcodedStatus) {
+    return hardcodedStatus;
+  }
 }
