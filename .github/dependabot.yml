@@ -25,3 +25,8 @@ updates:
     schedule:
       interval: "daily"
     target-branch: "main"
+  - package-ecosystem: "docker"
+    directory: "swatch-system-conduit"
+    schedule:
+      interval: "daily"
+    target-branch: "main"
