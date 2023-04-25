@@ -18,8 +18,9 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.retention;
+package org.candlepin.subscriptions.metering.retention;
 
+import org.candlepin.subscriptions.metering.api.admin.InternalMeteringResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -30,18 +31,18 @@ public class PurgeEventRecordsJob implements Runnable {
 
   private static final Logger log = LoggerFactory.getLogger(PurgeEventRecordsJob.class);
 
-  private final TallyRetentionController retentionController;
+  private final InternalMeteringResource meteringResource;
 
-  public PurgeEventRecordsJob(TallyRetentionController retentionController) {
-    this.retentionController = retentionController;
+  public PurgeEventRecordsJob(InternalMeteringResource meteringResource) {
+    this.meteringResource = meteringResource;
   }
 
   @Override
-  @Scheduled(cron = "${rhsm-subscriptions.jobs.purge-snapshot-schedule}")
+  @Scheduled(cron = "${rhsm-subscriptions.jobs.purge-events-schedule}")
   public void run() {
     log.info("Starting PurgeEventRecordsJob job.");
 
-    retentionController.purgeOldEventRecords();
+    meteringResource.purgeEventRecords();
 
     log.info("PurgeEventRecordsJob complete.");
   }

@@ -20,14 +20,19 @@
  */
 package org.candlepin.subscriptions.metering.api.admin;
 
+import io.micrometer.core.annotation.Timed;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
+import javax.transaction.Transactional;
 import javax.ws.rs.BadRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
+import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.metering.ResourceUtil;
 import org.candlepin.subscriptions.metering.admin.api.InternalApi;
+import org.candlepin.subscriptions.metering.retention.EventRecordsRetentionProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -37,27 +42,46 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 public class InternalMeteringResource implements InternalApi {
-
   private final ResourceUtil util;
   private final ApplicationProperties applicationProperties;
   private final PrometheusMetricsTaskManager tasks;
   private final PrometheusMeteringController controller;
   private final AccountConfigRepository accountConfigRepository;
   private final TagProfile tagProfile;
+  private final EventRecordsRetentionProperties eventRecordsRetentionProperties;
+  private final EventRecordRepository eventRecordRepository;
 
   public InternalMeteringResource(
       ResourceUtil util,
       ApplicationProperties applicationProperties,
+      EventRecordsRetentionProperties eventRecordsRetentionProperties,
       TagProfile tagProfile,
       PrometheusMetricsTaskManager tasks,
       PrometheusMeteringController controller,
-      AccountConfigRepository accountConfigRepository) {
+      AccountConfigRepository accountConfigRepository,
+      EventRecordRepository eventRecordRepository) {
     this.util = util;
     this.applicationProperties = applicationProperties;
+    this.eventRecordsRetentionProperties = eventRecordsRetentionProperties;
     this.tagProfile = tagProfile;
     this.tasks = tasks;
     this.controller = controller;
     this.accountConfigRepository = accountConfigRepository;
+    this.eventRecordRepository = eventRecordRepository;
+  }
+
+  @Override
+  @Transactional
+  @Timed("rhsm-subscriptions.events.purge")
+  public void purgeEventRecords() {
+    var eventRetentionDuration = eventRecordsRetentionProperties.getEventRetentionDuration();
+
+    OffsetDateTime cutoffDate =
+        OffsetDateTime.now().truncatedTo(ChronoUnit.DAYS).minus(eventRetentionDuration);
+
+    log.info("Purging event records older than {}", cutoffDate);
+    eventRecordRepository.deleteEventRecordsByTimestampBefore(cutoffDate);
+    log.info("Event record purge completed successfully");
   }
 
   @Override

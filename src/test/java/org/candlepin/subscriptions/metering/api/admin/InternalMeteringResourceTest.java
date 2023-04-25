@@ -33,8 +33,10 @@ import javax.ws.rs.BadRequestException;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
+import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.ResourceUtil;
+import org.candlepin.subscriptions.metering.retention.EventRecordsRetentionProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -54,6 +56,8 @@ class InternalMeteringResourceTest {
   @Mock private PrometheusMetricsTaskManager tasks;
   @Mock private PrometheusMeteringController controller;
   @Mock private AccountConfigRepository accountConfigRepository;
+  @Mock private EventRecordsRetentionProperties eventRecordsRetentionProperties;
+  @Mock private EventRecordRepository eventRecordRepository;
 
   private ApplicationProperties appProps;
   private ResourceUtil util;
@@ -72,7 +76,14 @@ class InternalMeteringResourceTest {
     lenient().when(accountConfigRepository.findOrgByAccountNumber("account1")).thenReturn("org1");
     resource =
         new InternalMeteringResource(
-            util, appProps, tagProfile, tasks, controller, accountConfigRepository);
+            util,
+            appProps,
+            eventRecordsRetentionProperties,
+            tagProfile,
+            tasks,
+            controller,
+            accountConfigRepository,
+            eventRecordRepository);
   }
 
   @Test

@@ -14,6 +14,10 @@ parameters:
     value: latest
   - name: IMAGE_PULL_SECRET
     value: quay-cloudservices-pull
+  - name: CURL_CRON_IMAGE
+    value: quay.io/app-sre/ubi8-ubi-minimal
+  - name: CURL_CRON_IMAGE_TAG
+    value: latest
   - name: MEMORY_REQUEST
     value: 1000Mi
   - name: MEMORY_LIMIT
@@ -86,6 +90,10 @@ parameters:
     value: '2'
   - name: METERING_SCHEDULE
     value: '30 * * * *'
+  - name: PURGE_EVENTS_SCHEDULE
+    value: '30 4 * * *'
+  - name: EVENT_RECORD_RETENTION
+    value: '90d'
   - name: OPENSHIFT_METERING_RANGE
     value: '60'
   - name: HOURLY_TALLY_OFFSET
@@ -280,6 +288,8 @@ objects:
                     key: psk
               - name: PROM_URL
                 value: ${PROM_URL}
+              - name: EVENT_RECORD_RETENTION
+                value: ${EVENT_RECORD_RETENTION}
               - name: OPENSHIFT_BILLING_MODEL_FILTER
                 value: ${OPENSHIFT_BILLING_MODEL_FILTER}
               - name: USER_HOST
@@ -486,6 +496,32 @@ objects:
             sidecars:
               - name: token-refresher
                 enabled: true
+        - name: purge-events
+          schedule: ${PURGE_EVENTS_SCHEDULE}
+          activeDeadlineSeconds: 1800
+          successfulJobsHistoryLimit: 2
+          restartPolicy: Never
+          podSpec:
+            image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+            command:
+              - /usr/bin/bash
+              - -c
+              - >
+                /usr/bin/curl --fail -i -H "Origin: https://swatch-metrics-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X DELETE "http://swatch-metrics-service:8000/api/rhsm-subscriptions/v1/internal/metering/events"
+            env:
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+          resources:
+            requests:
+              cpu: ${CURL_CRON_CPU_REQUEST}
+              memory: ${CURL_CRON_MEMORY_REQUEST}
+            limits:
+              cpu: ${CURL_CRON_CPU_LIMIT}
+              memory: ${CURL_CRON_MEMORY_LIMIT}
+
 
   - apiVersion: v1
     kind: Secret
