@@ -980,4 +980,32 @@ class InventoryControllerTest {
     verify(inventoryService).scheduleHostUpdate(expected);
     verify(inventoryService, times(1)).flushHostUpdates();
   }
+
+  @Test
+  void testSystemMemoryBytesOverMaxValueSetsToNull()
+      throws ApiException, MissingAccountNumberException {
+    UUID uuid = UUID.randomUUID();
+    BigDecimal memTotal =
+        new BigDecimal((InventoryController.MAX_ALLOWED_SYSTEM_MEMORY_BYTES / 1020L) + 1000L);
+    Consumer consumer = new Consumer();
+    consumer.setUuid(uuid.toString());
+    consumer.setAccountNumber("account");
+    consumer.setOrgId("456");
+    consumer.getFacts().put("memory.memtotal", memTotal.toString());
+
+    when(rhsmService.getPageOfConsumers(eq("456"), nullable(String.class), anyString()))
+        .thenReturn(pageOf(consumer));
+    controller.updateInventoryForOrg("456");
+
+    ConduitFacts cfacts = new ConduitFacts();
+    cfacts.setOrgId("456");
+    cfacts.setAccountNumber("account");
+    cfacts.setSubscriptionManagerId(uuid.toString());
+    cfacts.setMemory(8421505L);
+    cfacts.setSystemMemoryBytes(null);
+    cfacts.setRhProd(new ArrayList<>());
+    cfacts.setSysPurposeAddons(new ArrayList<>());
+    verify(inventoryService).scheduleHostUpdate(cfacts);
+    verify(inventoryService, times(1)).flushHostUpdates();
+  }
 }
