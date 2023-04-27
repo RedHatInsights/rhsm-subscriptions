@@ -34,7 +34,11 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 @Profile("capacity-ingress")
-@ComponentScan(basePackages = "org.candlepin.subscriptions.subscription")
+@ComponentScan(
+    basePackages = {
+      "org.candlepin.subscriptions.subscription",
+      "org.candlepin.subscriptions.product"
+    })
 @Import(SubscriptionServiceConfiguration.class)
 @Configuration
 public class SubscriptionWorkerConfiguration {

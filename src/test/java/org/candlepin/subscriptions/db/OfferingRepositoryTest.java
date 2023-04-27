@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.db;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -94,5 +95,17 @@ class OfferingRepositoryTest {
     repository.save(extra);
     var actual = repository.findProductNameBySku("foo");
     assertEquals("test", actual.get());
+  }
+
+  @Test
+  @Transactional
+  void testFindAllDistinctSkus() {
+    var offering1 = Offering.builder().sku("foo").build();
+    var offering2 = Offering.builder().sku("foo2").build();
+    repository.save(offering1);
+    repository.save(offering2);
+    var actual = repository.findAllDistinctSkus();
+    assertTrue(actual.contains(offering1.getSku()));
+    assertTrue(actual.contains(offering2.getSku()));
   }
 }

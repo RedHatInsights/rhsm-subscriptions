@@ -42,4 +42,7 @@ public interface OfferingRepository extends JpaRepository<Offering, String> {
 
   @Query("select distinct o.productName from Offering o where o.sku = :sku")
   Optional<String> findProductNameBySku(@Param("sku") String sku);
+
+  @Query(value = "select distinct sku from Offering")
+  Set<String> findAllDistinctSkus();
 }

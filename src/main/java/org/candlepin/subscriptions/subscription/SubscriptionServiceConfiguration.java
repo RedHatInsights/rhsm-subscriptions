@@ -46,7 +46,11 @@ import org.springframework.retry.support.RetryTemplateBuilder;
   CapacityReconciliationConfiguration.class
 })
 @EnableJms
-@ComponentScan({"org.candlepin.subscriptions.subscription", "org.candlepin.subscriptions.umb"})
+@ComponentScan({
+  "org.candlepin.subscriptions.subscription",
+  "org.candlepin.subscriptions.umb",
+  "org.candlepin.subscriptions.product"
+})
 public class SubscriptionServiceConfiguration {
 
   @Bean
