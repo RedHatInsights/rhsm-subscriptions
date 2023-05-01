@@ -99,8 +99,6 @@ parameters:
     value: 0 6 * * *
   - name: CAPTURE_HOURLY_SNAPSHOT_SCHEDULE
     value: '@hourly'
-  - name: EVENT_RECORD_RETENTION
-    value: '90d'
   # TODO after enable individual functionality (see ENT-4487)
   - name: DEV_MODE
     value: 'false'

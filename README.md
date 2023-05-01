@@ -457,7 +457,7 @@ cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
       path: /deploy/clowdapp.yaml
       parameters:
         REPLICAS: 1
-        IMAGE: quay.io/cloudservices/rhsm-subscriptions
+        swatch-api/IMAGE: quay.io/cloudservices/rhsm-subscriptions
         RHSM_RBAC_USE_STUB: "true"
 
     - name: swatch-producer-aws

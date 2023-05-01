@@ -56,7 +56,10 @@ import org.springframework.retry.support.RetryTemplate;
   TaskConsumerConfiguration.class,
   MeteringTasksConfiguration.class
 })
-@ComponentScan("org.candlepin.subscriptions.metering.api")
+@ComponentScan({
+  "org.candlepin.subscriptions.metering.api",
+  "org.candlepin.subscriptions.metering.retention"
+})
 public class OpenShiftWorkerProfile {
 
   @Bean(name = "openshiftMetricRetryTemplate")

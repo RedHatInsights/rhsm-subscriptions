@@ -4,6 +4,17 @@ info:
   version: 1.0.0
 
 paths:
+  /internal/metering/events:
+    description: 'Purge event records'
+    delete:
+      operationId: purgeEventRecords
+      responses:
+        '200':
+          description: "Purge was successful."
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
   /internal/metering/{productTag}:
     description: 'Operations related to product metering.'
     post:
