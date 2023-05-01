@@ -24,7 +24,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
 import org.mapstruct.factory.Mappers;
 
-// We have to ignore the mappings for two methods tht the jax-rs generator creates which the java generator skips
+// We have to ignore the mappings for two methods tht the jax-rs generator creates which the java
+// generator skips
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface StatusResponseMapper {
 
@@ -32,5 +33,4 @@ public interface StatusResponseMapper {
 
   org.candlepin.subscriptions.rhmarketplace.admin.api.model.StatusResponse clientToApi(
       org.candlepin.subscriptions.rhmarketplace.api.model.StatusResponse response);
-
 }
