@@ -44,7 +44,7 @@ public enum SyncResult {
   }
 
   public static boolean isSynced(SyncResult syncResult) {
-    return !Objects.isNull(syncResult) && SUCCESSFUL_SYNC_RESULTS.contains(syncResult);
+    return Objects.nonNull(syncResult) && SUCCESSFUL_SYNC_RESULTS.contains(syncResult);
   }
 
   @Override
