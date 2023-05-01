@@ -18,27 +18,12 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.rbac;
+package com.redhat.swatch.contract.security;
 
-import java.util.List;
-import org.candlepin.subscriptions.rbac.model.Access;
-import org.candlepin.subscriptions.rbac.resources.AccessApi;
+/** Exception thrown when a call to RBAC service outright fails for some reason. */
+public class RbacServiceException extends RuntimeException {
 
-/** A wrapper around the RBAC API. */
-public class RbacApiImpl implements RbacApi {
-
-  private AccessApi accessApi;
-
-  public RbacApiImpl(ApiClient client) {
-    accessApi = new AccessApi(client);
-  }
-
-  @Override
-  public List<Access> getCurrentUserAccess(String applicationName) throws RbacApiException {
-    try {
-      return accessApi.getPrincipalAccess(applicationName, null, null, null, null).getData();
-    } catch (ApiException apie) {
-      throw new RbacApiException("Unable to get current user access.", apie);
-    }
+  public RbacServiceException(String message, Exception cause) {
+    super(message, cause);
   }
 }
