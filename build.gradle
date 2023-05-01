@@ -45,6 +45,10 @@ dependencies {
     implementation "org.liquibase:liquibase-core"
     implementation "org.postgresql:postgresql"
 
+    implementation libraries["mapstruct"]
+    annotationProcessor libraries["mapstruct-processor"]
+    testAnnotationProcessor libraries["mapstruct-processor"]
+
     testImplementation "org.springframework.security:spring-security-test"
     testImplementation "org.springframework.kafka:spring-kafka-test"
     testImplementation project(':swatch-core-test')
@@ -124,6 +128,10 @@ ext {
 
     metering_api_spec_file = "${internal_spec_dir}/internal-metering-api-spec.yaml"
     metering_config_file = "${internal_spec_dir}/internal-metering-api-config.json"
+
+    swatch_producer_rhm_api_spec_file = "${internal_spec_dir}/internal-swatch-producer-red-hat-marketplace-api-spec.yaml"
+    swatch_producer_rhm_config_spec_file = "${internal_spec_dir}/internal-swatch-producer-red-hat-marketplace-api-config.json"
+
 }
 
 tasks.register("buildApiTally", GenerateTask) {
@@ -167,6 +175,18 @@ tasks.register("buildApiMetering", GenerateTask) {
     inputSpec = metering_api_spec_file
     configFile = metering_config_file
     outputDir = "$buildDir/generated/metering"
+    configOptions = [
+            interfaceOnly: "true",
+            generatePom: "false",
+            dateLibrary: "java8",
+    ]
+}
+
+tasks.register("buildApiProducerRHM", GenerateTask) {
+    generatorName = "jaxrs-spec"
+    inputSpec = swatch_producer_rhm_api_spec_file
+    configFile = swatch_producer_rhm_config_spec_file
+    outputDir = "$buildDir/generated/rhm"
     configOptions = [
             interfaceOnly: "true",
             generatePom: "false",
@@ -278,6 +298,17 @@ tasks.register("generateOpenApiJsonMetering", GenerateTask) {
     ]
 }
 
+tasks.register("generateOpenApiJsonProducerRhM", GenerateTask) {
+    generatorName = "openapi"
+    inputSpec = swatch_producer_rhm_api_spec_file
+    outputDir = "$buildDir/openapijson"
+    generateModelTests = false
+    generateApiTests = false
+    configOptions = [
+            outputFileName: "internal-swatch-producer-red-hat-marketplace-openapi.json"
+    ]
+}
+
 processResources {
     from tasks.generateOpenApiJsonTally, tasks.generateOpenApiJsonSubSync, tasks.generateOpenApiJsonBilling, tasks.generateOpenApiJsonMetering
     from tally_api_spec_file, sub_sync_api_spec_file, billing_api_spec_file, metering_api_spec_file
@@ -287,7 +318,8 @@ sourceSets.main.java.srcDirs += [
     "${buildDir}/generated/tally/src/gen/java",
     "${buildDir}/generated/sub-sync/src/gen/java",
     "${buildDir}/generated/billing/src/gen/java",
-    "${buildDir}/generated/metering/src/gen/java"
+    "${buildDir}/generated/metering/src/gen/java",
+    "${buildDir}/generated/rhm/src/gen/java"
 ]
 
 compileJava {
