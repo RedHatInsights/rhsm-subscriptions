@@ -170,17 +170,33 @@ public class ContractService {
   }
 
   /**
-   * Delete a contract for a given uuid. This is hard delete, because its intended use is for
-   * cleaning up test data.
+   * Delete a contract for a given uuid. This is soft delete. It sets the end date of a contract to
+   * the current timestamp.
    *
    * @param uuid
    */
   @Transactional
   public void deleteContract(String uuid) {
 
-    var isSuccessful = contractRepository.deleteById(UUID.fromString(uuid));
+    updateContractEndDate(uuid, OffsetDateTime.now());
+  }
 
-    log.debug("Deletion status of {} is: {}", uuid, isSuccessful);
+  /**
+   * Look up a contract via uuid and update the record to have the given end date.
+   *
+   * @param uuid
+   * @param endDate
+   */
+  void updateContractEndDate(String uuid, OffsetDateTime endDate) {
+
+    var contract = contractRepository.find(uuid);
+    contract.stream()
+        .findFirst()
+        .ifPresent(
+            (x) -> {
+              log.debug("Setting end date to {} for contract {}", endDate, uuid);
+              x.setEndDate(endDate);
+            });
   }
 
   @Transactional
