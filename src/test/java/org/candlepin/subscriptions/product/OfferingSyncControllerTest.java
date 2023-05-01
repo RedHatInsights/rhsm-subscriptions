@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.product;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -61,6 +62,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -222,14 +224,14 @@ class OfferingSyncControllerTest {
   @Test
   void testSyncAllOfferings() {
     // Given the allowlist has a list of SKUs,
-    when(allowlist.allProducts()).thenReturn(Set.of("RH00604F5", "RH0180191"));
+    when(repo.findAllDistinctSkus()).thenReturn(Set.of("RH00604F5", "RH0180191"));
 
     // When a request is made to sync all offerings,
     int numEnqueued = subject.syncAllOfferings();
 
     // Then the SKUs are enqueud to sync.
     assertEquals(
-        2, numEnqueued, "Number of enqueued offerings should match what was given by allowlist.");
+        2, numEnqueued, "Number of enqueued offerings should match distinct skus in repo.");
     verify(offeringSyncKafkaTemplate, times(2)).send(anyString(), any(OfferingSyncTask.class));
   }
 
@@ -361,5 +363,51 @@ class OfferingSyncControllerTest {
     when(repo.findSkusForDerivedSkus(any())).thenReturn(Stream.of("SKU1", "SKU2"));
     subject.syncUmbProductFromXml(read("mocked-svc-product-message.xml"));
     verify(offeringSyncKafkaTemplate, times(2)).send(anyString(), any(OfferingSyncTask.class));
+  }
+
+  @Test
+  void testSyncOfferingRetriesFetchIfFailsToInsert() {
+    // Given an Offering that is not yet persisted,
+    when(repo.findById(anyString()))
+        .thenReturn(Optional.empty())
+        .thenReturn(Optional.of(createStubProductApiOffering()));
+    when(repo.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("test"));
+    String sku = "MW01485";
+
+    // When syncing the Offering
+    var result = subject.syncOffering(sku);
+
+    // Then the Offering should already be synced
+    assertEquals(SyncResult.SKIPPED_MATCHING, result);
+  }
+
+  @Test
+  void testSyncOfferingThrowsExceptionIfFailsToInsertAndDoesNotMatchNew() {
+    // Given an Offering that is not yet persisted,
+    when(repo.findById(anyString()))
+        .thenReturn(Optional.empty())
+        .thenReturn(Optional.of(new Offering()));
+    when(repo.saveAndFlush(any())).thenThrow(new DataIntegrityViolationException("test"));
+    String sku = "MW01485";
+
+    // When syncing the Offering an exception is thrown
+    assertThrows(DataIntegrityViolationException.class, () -> subject.syncOffering(sku));
+  }
+
+  private Offering createStubProductApiOffering() {
+    var expectedOffering = new Offering();
+    expectedOffering.setSku("MW01485");
+    expectedOffering.setProductName("OpenShift Container Platform");
+    expectedOffering.setDescription("Red Hat OpenShift Container Platform (Hourly)");
+    expectedOffering.setProductFamily("OpenShift Enterprise");
+    expectedOffering.setChildSkus(Set.of("SVCMW01485"));
+    expectedOffering.setProductIds(
+        Set.of(
+            458, 519, 579, 518, 271, 329, 326, 205, 201, 318, 317, 197, 194, 311, 491, 610, 70, 69,
+            608, 546, 185, 604, 603, 240, 479, 473, 290, 408, 588, 645));
+    expectedOffering.setServiceLevel(ServiceLevel.PREMIUM);
+    expectedOffering.setHasUnlimitedUsage(false);
+    expectedOffering.setUsage(Usage.EMPTY);
+    return expectedOffering;
   }
 }

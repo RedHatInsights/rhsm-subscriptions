@@ -51,6 +51,8 @@ import org.candlepin.subscriptions.db.model.Subscription_;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.MissingOfferingException;
+import org.candlepin.subscriptions.product.OfferingSyncController;
+import org.candlepin.subscriptions.product.SyncResult;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
@@ -81,6 +83,7 @@ public class SubscriptionSyncController {
   private SubscriptionService subscriptionService;
   private ApplicationClock clock;
   private CapacityReconciliationController capacityReconciliationController;
+  private OfferingSyncController offeringSyncController;
   private SubscriptionServiceProperties properties;
   private Timer syncTimer;
   private Timer enqueueAllTimer;
@@ -99,6 +102,7 @@ public class SubscriptionSyncController {
       ApplicationClock clock,
       SubscriptionService subscriptionService,
       CapacityReconciliationController capacityReconciliationController,
+      OfferingSyncController offeringSyncController,
       SubscriptionServiceProperties properties,
       MeterRegistry meterRegistry,
       KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate,
@@ -112,6 +116,7 @@ public class SubscriptionSyncController {
     this.offeringRepository = offeringRepository;
     this.subscriptionService = subscriptionService;
     this.capacityReconciliationController = capacityReconciliationController;
+    this.offeringSyncController = offeringSyncController;
     this.clock = clock;
     this.properties = properties;
     this.syncTimer = meterRegistry.timer("swatch_subscription_sync_page");
@@ -157,12 +162,15 @@ public class SubscriptionSyncController {
     // NOTE: we do not need to check if the offering exists if there is an existing DB record for
     // the subscription that uses that offering
     if (subscriptionOptional.isEmpty() && !offeringRepository.existsById(sku)) {
-      log.debug(
-          "Sku={} not in Offering repository, skipping subscription sync for subscriptionId={} in org={}",
-          sku,
-          newOrUpdated.getSubscriptionId(),
-          newOrUpdated.getOrgId());
-      return;
+      log.debug("Sku={} not in Offering repository, syncing offering.", sku);
+      if (!SyncResult.isSynced(offeringSyncController.syncOffering(sku))) {
+        log.debug(
+            "Sku {} unable to be synced, skipping subscription sync for subscriptionId: {} in org: {}",
+            sku,
+            newOrUpdated.getSubscriptionId(),
+            newOrUpdated.getOrgId());
+        return;
+      }
     }
 
     log.debug("Syncing subscription from external service={}", newOrUpdated);

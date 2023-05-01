@@ -23,8 +23,6 @@ package org.candlepin.subscriptions.files;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Set;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.capacity.files.ProductAllowlist;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -51,18 +49,6 @@ class ProductAllowlistTest {
   void testDisallowsProductsIsNotInAllowlist() throws IOException {
     ProductAllowlist allowlist = initProductAllowlist("classpath:item_per_line.txt");
     assertFalse(allowlist.productIdMatches("not on the list :-("));
-  }
-
-  @Test
-  void testAllProducts() throws IOException {
-    ProductAllowlist allowlist = initProductAllowlist("classpath:item_per_line.txt");
-    assertEquals(Set.of("I1", "I2", "I3"), allowlist.allProducts());
-  }
-
-  @Test
-  void testAllProductsNoSource() throws IOException {
-    ProductAllowlist allowlist = initProductAllowlist("");
-    assertEquals(Collections.emptySet(), allowlist.allProducts());
   }
 
   private ProductAllowlist initProductAllowlist(String resourceLocation) throws IOException {

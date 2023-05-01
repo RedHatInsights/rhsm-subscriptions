@@ -42,6 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -149,7 +150,18 @@ public class OfferingSyncController {
     }
 
     // Update to the new entry or create it.
-    offeringRepository.saveAndFlush(newState);
+    try {
+      offeringRepository.saveAndFlush(newState);
+    } catch (DataIntegrityViolationException ex) {
+      LOGGER.debug(
+          "Failed to insert offering: {} because of constraint violation. Checking again if it already exists.",
+          newState);
+      if (alreadySynced(offeringRepository.findById(newState.getSku()), newState)) {
+        return SyncResult.SKIPPED_MATCHING;
+      } else {
+        throw ex;
+      }
+    }
 
     // Existing capacities might need updated if certain parts of the offering was changed.
     capacityReconciliationController.enqueueReconcileCapacityForOffering(newState.getSku());
@@ -165,7 +177,7 @@ public class OfferingSyncController {
   public int syncAllOfferings() {
     Timer.Sample enqueueTime = Timer.start();
 
-    Set<String> products = productAllowlist.allProducts();
+    Set<String> products = offeringRepository.findAllDistinctSkus();
     products.forEach(this::enqueueOfferingSyncTask);
 
     Duration enqueueDuration = Duration.ofNanos(enqueueTime.stop(enqueueAllTimer));

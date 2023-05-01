@@ -20,12 +20,18 @@
  */
 package org.candlepin.subscriptions.product;
 
+import java.util.Objects;
+import java.util.Set;
+
 public enum SyncResult {
   FETCHED_AND_SYNCED("Successfully fetched and synced updated value from upstream"),
   FAILED("Failed to fetch and/or sync"),
   SKIPPED_MATCHING("Upstream matches stored item, did not sync"),
   SKIPPED_NOT_FOUND("Was not found upstream, did not sync"),
   SKIPPED_NOT_ALLOWLISTED("Not in allowlist, did not sync");
+
+  public static final Set<SyncResult> SUCCESSFUL_SYNC_RESULTS =
+      Set.of(FETCHED_AND_SYNCED, SKIPPED_MATCHING);
 
   private final String description;
 
@@ -35,6 +41,10 @@ public enum SyncResult {
 
   public String description() {
     return description;
+  }
+
+  public static boolean isSynced(SyncResult syncResult) {
+    return Objects.nonNull(syncResult) && SUCCESSFUL_SYNC_RESULTS.contains(syncResult);
   }
 
   @Override
