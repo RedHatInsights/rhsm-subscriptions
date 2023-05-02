@@ -180,6 +180,14 @@ parameters:
     value: 350m
   - name: CURL_CRON_CPU_LIMIT
     value: 500m
+  - name: OTEL_SERVICE_NAME
+    value: swatch-tally
+  - name: OTEL_ENABLED
+    value: 'off'
+  - name: OTEL_JAVAAGENT_ENABLED
+    value: 'false'
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: 'http://localhost:4317'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -391,6 +399,12 @@ objects:
               value: ${HOST_LAST_SYNC_THRESHOLD}
             - name: SWATCH_CONTRACTS_INTERNAL_SERVICE_URL
               value: ${SWATCH_CONTRACTS_INTERNAL_SERVICE_URL}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+            - name: OTEL_SERVICE_NAME
+              value: ${OTEL_SERVICE_NAME}
+            - name: OTEL_JAVAAGENT_ENABLED
+              value: ${OTEL_JAVAAGENT_ENABLED}
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -521,6 +535,12 @@ objects:
                 secretKeyRef:
                   name: ${INVENTORY_SECRET_KEY_NAME}
                   key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+            - name: OTEL_SERVICE_NAME
+              value: ${OTEL_SERVICE_NAME}
+            - name: OTEL_JAVAAGENT_ENABLED
+              value: ${OTEL_JAVAAGENT_ENABLED}
           resources:
             requests:
               cpu: ${CPU_REQUEST}
@@ -625,6 +645,12 @@ objects:
                 secretKeyRef:
                   name: ${INVENTORY_SECRET_KEY_NAME}
                   key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+            - name: OTEL_SERVICE_NAME
+              value: ${OTEL_SERVICE_NAME}
+            - name: OTEL_JAVAAGENT_ENABLED
+              value: ${OTEL_JAVAAGENT_ENABLED}
           resources:
             requests:
               cpu: ${CPU_REQUEST}

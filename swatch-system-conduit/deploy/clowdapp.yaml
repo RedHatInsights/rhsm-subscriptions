@@ -103,6 +103,14 @@ parameters:
     value: 100ms
   - name: RHSM_API_LIMIT_TIMEOUT_DURATION
     value: 30m
+  - name: OTEL_SERVICE_NAME
+    value: swatch-system-conduit
+  - name: OTEL_ENABLED
+    value: 'off'
+  - name: OTEL_JAVAAGENT_ENABLED
+    value: 'false'
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: 'http://localhost:4317'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -291,6 +299,12 @@ objects:
               value: ${RHSM_API_LIMIT_REFRESH_PERIOD}
             - name: RHSM_API_LIMIT_TIMEOUT_DURATION
               value: ${RHSM_API_LIMIT_TIMEOUT_DURATION}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+            - name: OTEL_SERVICE_NAME
+              value: ${OTEL_SERVICE_NAME}
+            - name: OTEL_JAVAAGENT_ENABLED
+              value: ${OTEL_JAVAAGENT_ENABLED}
           livenessProbe:
             failureThreshold: 3
             httpGet:
