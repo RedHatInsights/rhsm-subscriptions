@@ -122,6 +122,29 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+  /internal/rpc/tally/data/{event_id}:
+    description: Delete an event. Supported only in dev-mode.
+    delete:
+      operationId: deleteEvent
+      parameters:
+        - in: path
+          name: event_id
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successfully deleted Event with ID
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
 components:
   requestBodies:
     UuidListBody:

@@ -21,9 +21,11 @@
 package org.candlepin.subscriptions.tally.admin;
 
 import java.time.OffsetDateTime;
+import java.util.UUID;
 import javax.ws.rs.BadRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.retention.TallyRetentionController;
 import org.candlepin.subscriptions.security.SecurityProperties;
@@ -54,6 +56,7 @@ public class InternalTallyResource implements InternalApi {
   private final CaptureSnapshotsTaskManager snapshotsTaskManager;
   private final TallyRetentionController retentionController;
   private final AccountResetService accountResetService;
+  private final EventController eventController;
   private final SecurityProperties properties;
   public static final String FEATURE_NOT_ENABLED_MESSSAGE = "Account Reset feature not enabled.";
 
@@ -67,6 +70,7 @@ public class InternalTallyResource implements InternalApi {
       CaptureSnapshotsTaskManager snapshotsTaskManager,
       TallyRetentionController retentionController,
       AccountResetService accountResetService,
+      EventController eventController,
       SecurityProperties properties) {
     this.clock = clock;
     this.applicationProperties = applicationProperties;
@@ -76,6 +80,7 @@ public class InternalTallyResource implements InternalApi {
     this.snapshotsTaskManager = snapshotsTaskManager;
     this.retentionController = retentionController;
     this.accountResetService = accountResetService;
+    this.eventController = eventController;
     this.properties = properties;
   }
 
@@ -147,5 +152,25 @@ public class InternalTallyResource implements InternalApi {
     log.info(successMessage);
 
     return successMessage;
+  }
+
+  /**
+   * Delete an event. Supported only in dev-mode.
+   *
+   * @param eventId Event Id
+   * @return success or error message
+   */
+  @Override
+  public String deleteEvent(String eventId) {
+    if (!properties.isDevMode() && !properties.isManualEventEditingEnabled()) {
+      log.error(FEATURE_NOT_ENABLED_MESSSAGE);
+    }
+    try {
+      eventController.deleteEvent(UUID.fromString(eventId));
+      return String.format("Successfully deleted Event with ID: %s", eventId);
+    } catch (Exception e) {
+      return String.format(
+          "Failed to delete Event with ID: %s  Cause: %s", eventId, e.getMessage());
+    }
   }
 }
