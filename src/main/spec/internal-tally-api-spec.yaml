@@ -99,7 +99,7 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [internalTally]
-  /internal/rpc/tally/data/{org_id}:
+  /internal/rpc/tally/{org_id}:
     description: Clear tallies, hosts, and events for a given org ID. Enabled via ENABLE_ACCOUNT_RESET environment variable.
     delete:
       operationId: deleteDataAssociatedWithOrg
@@ -123,7 +123,7 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [internalTally]
-  /internal/rpc/tally/data/{event_id}:
+  /internal/rpc/tally/{event_id}:
     description: Delete an event. Supported only in dev-mode.
     delete:
       operationId: deleteEvent
@@ -147,7 +147,7 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [internalTally]
-  /internal/rpc/tally/data/snapshots:
+  /internal/rpc/tally/all-org-snapshots:
     description: Trigger and update tally for all configured org.
     put:
       operationId: tallyConfiguredAccounts
@@ -163,6 +163,28 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [internalTally]
+  /internal/rpc/tally/snapshots/{org_id}:
+    description: Trigger and update tally snapshot for an org.
+    put:
+      operationId: tallyOrg
+      parameters:
+        - in: path
+          name: org_id
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: "Updated snapshots for the org."
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [ internalTally ]
 components:
   requestBodies:
     UuidListBody:

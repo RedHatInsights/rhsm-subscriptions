@@ -43,21 +43,19 @@ public class InternalTallyDataController {
     this.tasks = tasks;
   }
 
-  /**
-   * @param orgId Red Hat orgId
-   */
   public void deleteDataAssociatedWithOrg(String orgId) {
     accountResetService.deleteDataForOrg(orgId);
   }
 
-  /**
-   * @param eventId Event Id
-   */
   public void deleteEvent(String eventId) {
     eventController.deleteEvent(UUID.fromString(eventId));
   }
 
   public void tallyConfiguredOrgs() {
     tasks.updateSnapshotsForAllOrg();
+  }
+
+  public void tallyOrg(String orgId) {
+    tasks.updateOrgSnapshots(orgId);
   }
 }

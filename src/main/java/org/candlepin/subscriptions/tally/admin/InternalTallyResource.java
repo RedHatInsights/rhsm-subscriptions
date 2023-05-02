@@ -58,6 +58,7 @@ public class InternalTallyResource implements InternalApi {
   public static final String FEATURE_NOT_ENABLED_MESSSAGE =
       "This feature is not currently enabled.";
 
+  @SuppressWarnings("java:S107")
   public InternalTallyResource(
       ApplicationClock clock,
       ApplicationProperties applicationProperties,
@@ -173,6 +174,14 @@ public class InternalTallyResource implements InternalApi {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Tally for all orgs triggered over JMX by {}", principal);
     internalTallyDataController.tallyConfiguredOrgs();
+  }
+
+  /** Trigger a tally for an org */
+  @Override
+  public void tallyOrg(String orgId) {
+    Object principal = ResourceUtils.getPrincipal();
+    log.info("Tally for org {} triggered over JMX by {}", orgId, principal);
+    internalTallyDataController.tallyOrg(orgId);
   }
 
   private boolean isFeatureEnabled() {
