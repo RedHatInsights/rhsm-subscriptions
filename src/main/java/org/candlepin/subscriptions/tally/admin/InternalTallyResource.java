@@ -21,15 +21,12 @@
 package org.candlepin.subscriptions.tally.admin;
 
 import java.time.OffsetDateTime;
-import java.util.UUID;
 import javax.ws.rs.BadRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.retention.TallyRetentionController;
 import org.candlepin.subscriptions.security.SecurityProperties;
-import org.candlepin.subscriptions.tally.AccountResetService;
 import org.candlepin.subscriptions.tally.MarketplaceResendTallyController;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.tally.admin.api.InternalApi;
@@ -55,12 +52,12 @@ public class InternalTallyResource implements InternalApi {
   private final TallySnapshotController tallySnapshotController;
   private final CaptureSnapshotsTaskManager snapshotsTaskManager;
   private final TallyRetentionController retentionController;
-  private final AccountResetService accountResetService;
-  private final EventController eventController;
+  private final InternalTallyDataController internalTallyDataController;
   private final SecurityProperties properties;
-  public static final String FEATURE_NOT_ENABLED_MESSSAGE = "Account Reset feature not enabled.";
 
-  @SuppressWarnings("java:S107")
+  public static final String FEATURE_NOT_ENABLED_MESSSAGE =
+      "This feature is not currently enabled.";
+
   public InternalTallyResource(
       ApplicationClock clock,
       ApplicationProperties applicationProperties,
@@ -69,8 +66,7 @@ public class InternalTallyResource implements InternalApi {
       TallySnapshotController tallySnapshotController,
       CaptureSnapshotsTaskManager snapshotsTaskManager,
       TallyRetentionController retentionController,
-      AccountResetService accountResetService,
-      EventController eventController,
+      InternalTallyDataController internalTallyDataController,
       SecurityProperties properties) {
     this.clock = clock;
     this.applicationProperties = applicationProperties;
@@ -79,8 +75,7 @@ public class InternalTallyResource implements InternalApi {
     this.tallySnapshotController = tallySnapshotController;
     this.snapshotsTaskManager = snapshotsTaskManager;
     this.retentionController = retentionController;
-    this.accountResetService = accountResetService;
-    this.eventController = eventController;
+    this.internalTallyDataController = internalTallyDataController;
     this.properties = properties;
   }
 
@@ -128,30 +123,27 @@ public class InternalTallyResource implements InternalApi {
   }
 
   /**
-   * "Clear tallies, hosts, and events for a given org ID. Enabled via ENABLE_ACCOUNT_RESET
+   * Clear tallies, hosts, and events for a given org ID. Enabled via ENABLE_ACCOUNT_RESET
    * environment variable. Intended only for non-prod environments.
    *
    * @param orgId Red Hat orgId
    */
   @Override
   public String deleteDataAssociatedWithOrg(String orgId) {
-    if (!properties.isResetAccountEnabled() && !properties.isDevMode()) {
-      log.error(FEATURE_NOT_ENABLED_MESSSAGE);
+    if (isFeatureEnabled()) {
+      log.info("Received request to delete all data associated with orgId {}", orgId);
+      try {
+        internalTallyDataController.deleteDataAssociatedWithOrg(orgId);
+      } catch (Exception e) {
+        log.error("Unable to delete data for organization {} due to {}", orgId, e);
+        return String.format("Unable to delete data for organization %s", orgId);
+      }
+      var successMessage = "Finished deleting data associated with organization " + orgId;
+      log.info(successMessage);
+      return successMessage;
+    } else {
+      return FEATURE_NOT_ENABLED_MESSSAGE;
     }
-
-    log.info("Received request to delete all data associated with orgId {}", orgId);
-
-    try {
-      accountResetService.deleteDataForOrg(orgId);
-    } catch (Exception e) {
-      log.error("Unable to delete data for organization {} due to {}", orgId, e);
-    }
-
-    var successMessage = "Finished deleting data associated with organization " + orgId;
-
-    log.info(successMessage);
-
-    return successMessage;
   }
 
   /**
@@ -162,15 +154,32 @@ public class InternalTallyResource implements InternalApi {
    */
   @Override
   public String deleteEvent(String eventId) {
+    if (isFeatureEnabled()) {
+      try {
+        internalTallyDataController.deleteEvent(eventId);
+        return String.format("Successfully deleted Event with ID: %s", eventId);
+      } catch (Exception e) {
+        return String.format(
+            "Failed to delete Event with ID: %s  Cause: %s", eventId, e.getMessage());
+      }
+    } else {
+      return FEATURE_NOT_ENABLED_MESSSAGE;
+    }
+  }
+
+  /** Update tally snapshots for all orgs */
+  @Override
+  public void tallyConfiguredAccounts() {
+    Object principal = ResourceUtils.getPrincipal();
+    log.info("Tally for all orgs triggered over JMX by {}", principal);
+    internalTallyDataController.tallyConfiguredOrgs();
+  }
+
+  private boolean isFeatureEnabled() {
     if (!properties.isDevMode() && !properties.isManualEventEditingEnabled()) {
       log.error(FEATURE_NOT_ENABLED_MESSSAGE);
+      return false;
     }
-    try {
-      eventController.deleteEvent(UUID.fromString(eventId));
-      return String.format("Successfully deleted Event with ID: %s", eventId);
-    } catch (Exception e) {
-      return String.format(
-          "Failed to delete Event with ID: %s  Cause: %s", eventId, e.getMessage());
-    }
+    return true;
   }
 }

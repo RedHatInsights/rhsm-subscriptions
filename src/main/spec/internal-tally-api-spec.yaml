@@ -122,6 +122,7 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [internalTally]
   /internal/rpc/tally/data/{event_id}:
     description: Delete an event. Supported only in dev-mode.
     delete:
@@ -145,6 +146,23 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [internalTally]
+  /internal/rpc/tally/data/snapshots:
+    description: Trigger and update tally for all configured org.
+    put:
+      operationId: tallyConfiguredAccounts
+      responses:
+        '200':
+          description: "Updated snapshots for all org."
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [internalTally]
 components:
   requestBodies:
     UuidListBody:
