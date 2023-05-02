@@ -187,16 +187,18 @@ public class ContractService {
    * @param uuid
    * @param endDate
    */
-  void updateContractEndDate(String uuid, OffsetDateTime endDate) {
+  @Transactional
+  Optional<ContractEntity> updateContractEndDate(String uuid, OffsetDateTime endDate) {
+    var contract = contractRepository.findContract(UUID.fromString(uuid));
 
-    var contract = contractRepository.find(uuid);
-    contract.stream()
-        .findFirst()
-        .ifPresent(
-            (x) -> {
-              log.debug("Setting end date to {} for contract {}", endDate, uuid);
-              x.setEndDate(endDate);
-            });
+    if (Objects.nonNull(contract)) {
+      log.debug("Setting end date to {} for contract {}", endDate, uuid);
+      contract.setEndDate(endDate);
+      contractRepository.persist(contract);
+      return Optional.of(contract);
+    }
+
+    return Optional.empty();
   }
 
   @Transactional
