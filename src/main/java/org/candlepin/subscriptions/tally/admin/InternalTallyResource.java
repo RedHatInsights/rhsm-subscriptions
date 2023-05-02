@@ -26,6 +26,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.retention.TallyRetentionController;
+import org.candlepin.subscriptions.security.SecurityProperties;
+import org.candlepin.subscriptions.tally.AccountResetService;
 import org.candlepin.subscriptions.tally.MarketplaceResendTallyController;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.tally.admin.api.InternalApi;
@@ -51,7 +53,11 @@ public class InternalTallyResource implements InternalApi {
   private final TallySnapshotController tallySnapshotController;
   private final CaptureSnapshotsTaskManager snapshotsTaskManager;
   private final TallyRetentionController retentionController;
+  private final AccountResetService accountResetService;
+  private final SecurityProperties properties;
+  public static final String FEATURE_NOT_ENABLED_MESSSAGE = "Account Reset feature not enabled.";
 
+  @SuppressWarnings("java:S107")
   public InternalTallyResource(
       ApplicationClock clock,
       ApplicationProperties applicationProperties,
@@ -59,7 +65,9 @@ public class InternalTallyResource implements InternalApi {
       RemittanceController remittanceController,
       TallySnapshotController tallySnapshotController,
       CaptureSnapshotsTaskManager snapshotsTaskManager,
-      TallyRetentionController retentionController) {
+      TallyRetentionController retentionController,
+      AccountResetService accountResetService,
+      SecurityProperties properties) {
     this.clock = clock;
     this.applicationProperties = applicationProperties;
     this.resendTallyController = resendTallyController;
@@ -67,6 +75,8 @@ public class InternalTallyResource implements InternalApi {
     this.tallySnapshotController = tallySnapshotController;
     this.snapshotsTaskManager = snapshotsTaskManager;
     this.retentionController = retentionController;
+    this.accountResetService = accountResetService;
+    this.properties = properties;
   }
 
   @Override
@@ -110,5 +120,32 @@ public class InternalTallyResource implements InternalApi {
     } catch (TaskRejectedException e) {
       log.warn("A tally snapshots purge job is already running.");
     }
+  }
+
+  /**
+   * "Clear tallies, hosts, and events for a given org ID. Enabled via ENABLE_ACCOUNT_RESET
+   * environment variable. Intended only for non-prod environments.
+   *
+   * @param orgId Red Hat orgId
+   */
+  @Override
+  public String deleteDataAssociatedWithOrg(String orgId) {
+    if (!properties.isResetAccountEnabled() && !properties.isDevMode()) {
+      log.error(FEATURE_NOT_ENABLED_MESSSAGE);
+    }
+
+    log.info("Received request to delete all data associated with orgId {}", orgId);
+
+    try {
+      accountResetService.deleteDataForOrg(orgId);
+    } catch (Exception e) {
+      log.error("Unable to delete data for organization {} due to {}", orgId, e);
+    }
+
+    var successMessage = "Finished deleting data associated with organization " + orgId;
+
+    log.info(successMessage);
+
+    return successMessage;
   }
 }

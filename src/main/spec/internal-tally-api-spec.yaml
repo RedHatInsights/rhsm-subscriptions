@@ -99,6 +99,29 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [internalTally]
+  /internal/rpc/tally/data/{org_id}:
+    description: Clear tallies, hosts, and events for a given org ID. Enabled via ENABLE_ACCOUNT_RESET environment variable.
+    delete:
+      operationId: deleteDataAssociatedWithOrg
+      parameters:
+        - in: path
+          name: org_id
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Finished deleting data associated with organization
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
 components:
   requestBodies:
     UuidListBody:
