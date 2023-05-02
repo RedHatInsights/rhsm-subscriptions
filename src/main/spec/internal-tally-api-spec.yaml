@@ -123,6 +123,69 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [internalTally]
+  /internal/rpc/tally/events/{org_id}:
+    description: Fetch events by Org
+    get:
+      operationId: fetchEventsForOrgIdInTimeRange
+      parameters:
+        - name: org_id
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: begin
+          in: query
+          schema:
+            format: date-time
+            description: Beginning of time range (inclusive)
+            type: string
+            example: 2022-01-01T00:00:00Z
+        - name: end
+          in: query
+          schema:
+           format: date-time
+           description: ""
+           type: string
+           example: 2023-03-01T00:00:00Z
+      responses:
+        '200':
+          description: Finished deleting data associated with organization
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [ internalTally ]
+  /internal/rpc/tally/events:
+    description: Save a list of events. Supported only in dev-mode.
+    post:
+      operationId: saveEvents
+      requestBody:
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Save a list of events
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [ internalTally ]
   /internal/rpc/tally/events/{event_id}:
     description: Delete an event. Supported only in dev-mode.
     delete:
@@ -147,32 +210,6 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [internalTally]
-  /internal/rpc/tally/events:
-    description: Save a list of events. Supported only in dev-mode.
-    post:
-      operationId: saveEvents
-      parameters:
-        - in: query
-          name: json_list_of_events
-          schema:
-            type: string
-          required: true
-      responses:
-        '200':
-          description: Save a list of events
-          content:
-            application/json:
-              schema:
-                type: string
-        '400':
-          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
-        '403':
-          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
-        '404':
-          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
-        '500':
-          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
-      tags: [ internalTally ]
   /internal/rpc/tally/all-org-snapshots:
     description: Trigger and update tally for all configured org.
     put:

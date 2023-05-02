@@ -170,6 +170,25 @@ public class InternalTallyResource implements InternalApi {
   }
 
   /**
+   * Fetch events by org
+   *
+   * @param orgId Red Hat orgId
+   * @param begin Beginning of time range (inclusive)
+   * @param end End of time range (exclusive)
+   * @return success or error message
+   */
+  @Override
+  public String fetchEventsForOrgIdInTimeRange(
+      String orgId, OffsetDateTime begin, OffsetDateTime end) {
+    try {
+      return internalTallyDataController.fetchEventsForOrgIdInTimeRange(orgId, begin, end);
+    } catch (Exception e) {
+      log.error("Unable to deserialize event list ", e);
+      return "Unable to deserialize event list";
+    }
+  }
+
+  /**
    * Save a list of events. Supported only in dev-mode.
    *
    * @param jsonListOfEvents Event list specified as JSON

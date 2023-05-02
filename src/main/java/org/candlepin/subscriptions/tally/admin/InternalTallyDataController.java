@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.tally.admin;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -86,5 +87,11 @@ public class InternalTallyDataController {
       log.error("Error serializing saved event data!", e);
       return "Error serializing saved event data";
     }
+  }
+
+  public String fetchEventsForOrgIdInTimeRange(
+      String orgId, OffsetDateTime begin, OffsetDateTime end) throws JsonProcessingException {
+    List<Event> events = eventController.fetchEventsInTimeRange(orgId, begin, end).toList();
+    return objectMapper.writeValueAsString(events);
   }
 }
