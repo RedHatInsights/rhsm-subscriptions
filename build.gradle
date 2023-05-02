@@ -55,8 +55,7 @@ dependencies {
 
     runtimeOnly "org.hsqldb:hsqldb"
 
-    javaagent 'com.splunk:splunk-otel-javaagent:1.22.0'
-
+    javaagent  libraries["splunk-otel-agent"]
 }
 
 allprojects {

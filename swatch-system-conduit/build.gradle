@@ -80,7 +80,7 @@ dependencies {
     runtimeOnly "org.jolokia:jolokia-core"
     runtimeOnly "org.jboss.resteasy:resteasy-jackson2-provider"
 
-    javaagent 'com.splunk:splunk-otel-javaagent:1.22.0'
+    javaagent  libraries["splunk-otel-agent"]
 }
 
 jsonSchema2Pojo {
