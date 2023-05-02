@@ -38,6 +38,7 @@ import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
 import org.springframework.core.task.TaskRejectedException;
+import org.springframework.jmx.JmxException;
 import org.springframework.stereotype.Component;
 
 /** This resource is for exposing administrator REST endpoints for Tally. */
@@ -163,6 +164,21 @@ public class InternalTallyResource implements InternalApi {
         return String.format(
             "Failed to delete Event with ID: %s  Cause: %s", eventId, e.getMessage());
       }
+    } else {
+      return FEATURE_NOT_ENABLED_MESSSAGE;
+    }
+  }
+
+  /**
+   * Save a list of events. Supported only in dev-mode.
+   *
+   * @param jsonListOfEvents Event list specified as JSON
+   * @return success or error message
+   */
+  @Override
+  public String saveEvents(String jsonListOfEvents) throws JmxException {
+    if (isFeatureEnabled()) {
+      return internalTallyDataController.saveEvents(jsonListOfEvents);
     } else {
       return FEATURE_NOT_ENABLED_MESSSAGE;
     }
