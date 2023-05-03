@@ -25,7 +25,6 @@ objects:
         - name: rhsm-stage-post-deploy-tests-${IMAGE_TAG}-${UID}
           args:
           - run
-          # This is pretty ugly, envFrom and a configmap in namespace would be a lot cleaner
           env:
           - name: ENV_FOR_DYNACONF
             value: ${ENV_FOR_DYNACONF}
@@ -88,7 +87,7 @@ objects:
           resources:
             limits:
               cpu: "1"
-              memory: 2Gi
+              memory: 3Gi
             requests:
               cpu: 500m
               memory: 1Gi
@@ -108,7 +107,7 @@ parameters:
   description: "container image path for the iqe plugin"
   value: quay.io/cloudservices/iqe-tests:rhsm-subscriptions
 - name: ENV_FOR_DYNACONF
-  value: stage
+  value: stage_proxy
 - name: IQE_PLUGINS
   value: rhsm_subscriptions,curiosity
 - name: IQE_MARKER_EXPRESSION
