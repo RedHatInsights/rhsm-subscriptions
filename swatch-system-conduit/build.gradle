@@ -5,6 +5,10 @@ plugins {
     id "jacoco"
 }
 
+configurations {
+    javaagent
+}
+
 ext {
     api_spec_path = "${projectDir}/src/main/spec/internal-organizations-sync-api-spec.yaml"
     config_file = "${projectDir}/src/main/spec/internal-organizations-sync-api-config.json"
@@ -27,8 +31,19 @@ openApiValidate {
     inputSpec = api_spec_path
 }
 
+tasks.register("downloadJavaAgent", Copy) {
+    into "$buildDir/javaagent"
+    from {
+        configurations.javaagent
+    }
+    rename { filename ->
+        'splunk-otel-javaagent.jar'
+    }
+}
+
 sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
 compileJava.dependsOn tasks.openApiGenerate
+assemble.dependsOn tasks.downloadJavaAgent
 
 dependencies {
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
@@ -64,6 +79,8 @@ dependencies {
     runtimeOnly "org.hsqldb:hsqldb"
     runtimeOnly "org.jolokia:jolokia-core"
     runtimeOnly "org.jboss.resteasy:resteasy-jackson2-provider"
+
+    javaagent  libraries["splunk-otel-agent"]
 }
 
 jsonSchema2Pojo {

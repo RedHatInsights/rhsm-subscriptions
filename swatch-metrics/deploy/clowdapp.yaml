@@ -109,6 +109,12 @@ parameters:
     value: '3'
   - name: ENABLE_SYNCHRONOUS_OPERATIONS
     value: 'false'
+  - name: OTEL_SERVICE_NAME
+    value: swatch-metrics
+  - name: OTEL_JAVAAGENT_ENABLED
+    value: 'false'
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: 'http://localhost:4317'
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -320,6 +326,12 @@ objects:
                     key: self
               - name: ENABLE_SYNCHRONOUS_OPERATIONS
                 value: ${ENABLE_SYNCHRONOUS_OPERATIONS}
+              - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+              - name: OTEL_SERVICE_NAME
+                value: ${OTEL_SERVICE_NAME}
+              - name: OTEL_JAVAAGENT_ENABLED
+                value: ${OTEL_JAVAAGENT_ENABLED}
             livenessProbe:
               failureThreshold: 3
               httpGet:
@@ -480,6 +492,12 @@ objects:
                     key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
               - name: PROM_URL
                 value: ${PROM_URL}
+              - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+              - name: OTEL_SERVICE_NAME
+                value: ${OTEL_SERVICE_NAME}
+              - name: OTEL_JAVAAGENT_ENABLED
+                value: ${OTEL_JAVAAGENT_ENABLED}
             resources:
               requests:
                 cpu: ${CPU_REQUEST}

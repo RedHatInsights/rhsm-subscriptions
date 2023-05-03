@@ -62,3 +62,4 @@ libraries["swagger-annotations"] = "io.swagger:swagger-annotations:1.6.10"
 libraries["swagger-ui"] = "org.webjars:swagger-ui:4.18.2"
 libraries["webjars-locator"] = "org.webjars:webjars-locator:0.46"
 libraries["wiremock-jre8"] = "com.github.tomakehurst:wiremock-jre8:2.35.0"
+libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:1.22.0'

@@ -3,5 +3,6 @@
 
 # allow the build libs for spring-boot based contexts
 !build/libs
+!build/javaagent
 # allow the quarkus-app build folder for quarkus based builds
 !build/quarkus-app
