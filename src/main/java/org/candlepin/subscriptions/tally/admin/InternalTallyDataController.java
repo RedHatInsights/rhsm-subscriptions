@@ -27,12 +27,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.tally.AccountResetService;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.util.DateRange;
-import org.springframework.jmx.JmxException;
+import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -42,16 +44,19 @@ public class InternalTallyDataController {
   private final EventController eventController;
   private final CaptureSnapshotsTaskManager tasks;
   private final ObjectMapper objectMapper;
+  private final OptInController controller;
 
   public InternalTallyDataController(
       AccountResetService accountResetService,
       EventController eventController,
       CaptureSnapshotsTaskManager tasks,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      OptInController controller) {
     this.accountResetService = accountResetService;
     this.eventController = eventController;
     this.tasks = tasks;
     this.objectMapper = objectMapper;
+    this.controller = controller;
   }
 
   public void deleteDataAssociatedWithOrg(String orgId) {
@@ -70,7 +75,7 @@ public class InternalTallyDataController {
     tasks.updateOrgSnapshots(orgId);
   }
 
-  public String saveEvents(String jsonListOfEvents) throws JmxException {
+  public String saveEvents(String jsonListOfEvents) {
     List<Event> saved;
     try {
       saved =
@@ -99,5 +104,12 @@ public class InternalTallyDataController {
 
   public void tallyAllOrgsByHourly(DateRange range) throws IllegalArgumentException {
     tasks.updateHourlySnapshotsForAllOrgs(Optional.ofNullable(range));
+  }
+
+  public String createOrUpdateOptInConfig(String accountNumber, String orgId, OptInType api) {
+    OptInConfig config = controller.optIn(accountNumber, orgId, api);
+
+    String text = "Completed opt in for account %s and org %s:\n%s";
+    return String.format(text, accountNumber, orgId, config.toString());
   }
 }

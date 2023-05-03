@@ -24,6 +24,7 @@ import java.time.OffsetDateTime;
 import javax.ws.rs.BadRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.retention.TallyRetentionController;
 import org.candlepin.subscriptions.security.SecurityProperties;
@@ -38,7 +39,6 @@ import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
 import org.springframework.core.task.TaskRejectedException;
-import org.springframework.jmx.JmxException;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -196,7 +196,7 @@ public class InternalTallyResource implements InternalApi {
    * @return success or error message
    */
   @Override
-  public String saveEvents(String jsonListOfEvents) throws JmxException {
+  public String saveEvents(String jsonListOfEvents) {
     if (isFeatureEnabled()) {
       return internalTallyDataController.saveEvents(jsonListOfEvents);
     } else {
@@ -208,7 +208,7 @@ public class InternalTallyResource implements InternalApi {
   @Override
   public void tallyConfiguredOrgs() {
     Object principal = ResourceUtils.getPrincipal();
-    log.info("Tally for all orgs triggered over JMX by {}", principal);
+    log.info("Tally for all orgs triggered over API by {}", principal);
     internalTallyDataController.tallyConfiguredOrgs();
   }
 
@@ -216,10 +216,20 @@ public class InternalTallyResource implements InternalApi {
   @Override
   public void tallyOrg(String orgId) {
     Object principal = ResourceUtils.getPrincipal();
-    log.info("Tally for org {} triggered over JMX by {}", orgId, principal);
+    log.info("Tally for org {} triggered over API by {}", orgId, principal);
     internalTallyDataController.tallyOrg(orgId);
   }
 
+  /**
+   * Trigger hourly tally for all configured orgs for the specified range. The 'start' and 'end'
+   * parameters MUST be specified as a pair to complete a range. If they are left empty, a date
+   * range is used based on NOW with the configured offsets applied (identical to if the job was
+   * run)
+   *
+   * @param start
+   * @param end
+   * @throws IllegalArgumentException
+   */
   @Override
   public void tallyAllOrgsByHourly(String start, String end) throws IllegalArgumentException {
 
@@ -228,7 +238,7 @@ public class InternalTallyResource implements InternalApi {
       try {
         range = DateRange.fromStrings(start, end);
         log.info(
-            "Hourly tally for all orgs triggered for range {} over JMX by {}",
+            "Hourly tally for all orgs triggered for range {} over API by {}",
             range,
             ResourceUtils.getPrincipal());
       } catch (Exception e) {
@@ -237,10 +247,27 @@ public class InternalTallyResource implements InternalApi {
       }
     } else {
       log.info(
-          "Hourly tally for all accounts triggered over JMX by {}", ResourceUtils.getPrincipal());
+          "Hourly tally for all accounts triggered over API by {}", ResourceUtils.getPrincipal());
     }
 
     internalTallyDataController.tallyAllOrgsByHourly(range);
+  }
+
+  /**
+   * Create or update an opt in configuration. This operation is idempotent
+   *
+   * @param accountNumber
+   * @param orgId
+   * @return success or error message
+   */
+  @Override
+  public String createOrUpdateOptInConfig(String accountNumber, String orgId) {
+    Object principal = ResourceUtils.getPrincipal();
+    log.info(
+        "Opt in for account {}, org {} triggered via API by {}", accountNumber, orgId, principal);
+    log.debug("Creating OptInConfig over API for account {}, org {}", accountNumber, orgId);
+    return internalTallyDataController.createOrUpdateOptInConfig(
+        accountNumber, orgId, OptInType.API);
   }
 
   private boolean isFeatureEnabled() {
