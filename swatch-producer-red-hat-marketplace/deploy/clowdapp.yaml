@@ -128,8 +128,6 @@ parameters:
     value: '3'
   - name: OTEL_SERVICE_NAME
     value: swatch-producer-red-hat-marketplace
-  - name: OTEL_ENABLED
-    value: 'off'
   - name: OTEL_JAVAAGENT_ENABLED
     value: 'false'
   - name: OTEL_EXPORTER_OTLP_ENDPOINT

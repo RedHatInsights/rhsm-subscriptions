@@ -105,8 +105,6 @@ parameters:
     value: 30m
   - name: OTEL_SERVICE_NAME
     value: swatch-system-conduit
-  - name: OTEL_ENABLED
-    value: 'off'
   - name: OTEL_JAVAAGENT_ENABLED
     value: 'false'
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
