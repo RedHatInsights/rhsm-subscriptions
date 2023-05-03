@@ -40,6 +40,7 @@ import org.candlepin.subscriptions.util.DateRange;
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.jmx.JmxException;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 /** This resource is for exposing administrator REST endpoints for Tally. */
 @Component
@@ -205,7 +206,7 @@ public class InternalTallyResource implements InternalApi {
 
   /** Update tally snapshots for all orgs */
   @Override
-  public void tallyConfiguredAccounts() {
+  public void tallyConfiguredOrgs() {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Tally for all orgs triggered over JMX by {}", principal);
     internalTallyDataController.tallyConfiguredOrgs();
@@ -217,6 +218,29 @@ public class InternalTallyResource implements InternalApi {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Tally for org {} triggered over JMX by {}", orgId, principal);
     internalTallyDataController.tallyOrg(orgId);
+  }
+
+  @Override
+  public void tallyAllOrgsByHourly(String start, String end) throws IllegalArgumentException {
+
+    DateRange range = null;
+    if (StringUtils.hasText(start) || StringUtils.hasText(end)) {
+      try {
+        range = DateRange.fromStrings(start, end);
+        log.info(
+            "Hourly tally for all orgs triggered for range {} over JMX by {}",
+            range,
+            ResourceUtils.getPrincipal());
+      } catch (Exception e) {
+        throw new IllegalArgumentException(
+            "Both startDateTime and endDateTime must be set to " + "valid date Strings.");
+      }
+    } else {
+      log.info(
+          "Hourly tally for all accounts triggered over JMX by {}", ResourceUtils.getPrincipal());
+    }
+
+    internalTallyDataController.tallyAllOrgsByHourly(range);
   }
 
   private boolean isFeatureEnabled() {

@@ -24,12 +24,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.tally.AccountResetService;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
+import org.candlepin.subscriptions.util.DateRange;
 import org.springframework.jmx.JmxException;
 import org.springframework.stereotype.Component;
 
@@ -93,5 +95,9 @@ public class InternalTallyDataController {
       String orgId, OffsetDateTime begin, OffsetDateTime end) throws JsonProcessingException {
     List<Event> events = eventController.fetchEventsInTimeRange(orgId, begin, end).toList();
     return objectMapper.writeValueAsString(events);
+  }
+
+  public void tallyAllOrgsByHourly(DateRange range) throws IllegalArgumentException {
+    tasks.updateHourlySnapshotsForAllOrgs(Optional.ofNullable(range));
   }
 }
