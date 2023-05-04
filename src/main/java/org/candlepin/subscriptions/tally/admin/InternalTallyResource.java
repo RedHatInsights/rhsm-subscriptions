@@ -162,8 +162,8 @@ public class InternalTallyResource implements InternalApi {
         internalTallyDataController.deleteEvent(eventId);
         return String.format("Successfully deleted Event with ID: %s", eventId);
       } catch (Exception e) {
-        return String.format(
-            "Failed to delete Event with ID: %s  Cause: %s", eventId, e.getMessage());
+        log.error("Failed to delete Event with ID: {}  Cause: {}", eventId, e.getMessage());
+        return String.format("Failed to delete Event with ID: %s ", eventId);
       }
     } else {
       return FEATURE_NOT_ENABLED_MESSSAGE;

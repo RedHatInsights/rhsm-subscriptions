@@ -167,7 +167,7 @@ paths:
       operationId: saveEvents
       requestBody:
         content:
-          text/plain:
+          application/json:
             schema:
               type: string
       responses:
@@ -221,8 +221,8 @@ paths:
             type: string
           required: true
       responses:
-        '200':
-          description: "Updated snapshots for the org."
+        '204':
+          description: Updated snapshots for the org.
         '400':
           $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
@@ -237,8 +237,8 @@ paths:
     put:
       operationId: tallyConfiguredOrgs
       responses:
-        '200':
-          description: "Updated snapshots for all org."
+        '204':
+          description: Updated snapshots for all org.
         '400':
           $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
@@ -269,8 +269,8 @@ paths:
             type: string
             example: 2023-03-01T00:00:00Z
       responses:
-        '200':
-          description: "Updated snapshots for the org."
+        '204':
+          description: Updated snapshots for the orgs.
         '400':
           $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
@@ -285,16 +285,18 @@ paths:
     put:
       operationId: createOrUpdateOptInConfig
       parameters:
-        - name: accountNumber
+        - name: account_number
           in: query
           schema:
             description: Red Hat Account Number
             type: string
-        - name: orgId
+          required: true
+        - name: org_id
           in: query
           schema:
             description: Red Hat Org ID
             type: string
+          required: true
       responses:
         '200':
           description: Completed opt in for account and org

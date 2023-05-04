@@ -26,6 +26,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.event.EventController;
@@ -89,13 +90,15 @@ public class InternalTallyDataController {
     }
 
     try {
-      return objectMapper.writeValueAsString(saved);
+      log.info("Events saved: {}", objectMapper.writeValueAsString(saved));
+      return "Events saved";
     } catch (JsonProcessingException e) {
       log.error("Error serializing saved event data!", e);
       return "Error serializing saved event data";
     }
   }
 
+  @Transactional
   public String fetchEventsForOrgIdInTimeRange(
       String orgId, OffsetDateTime begin, OffsetDateTime end) throws JsonProcessingException {
     List<Event> events = eventController.fetchEventsInTimeRange(orgId, begin, end).toList();
@@ -109,7 +112,12 @@ public class InternalTallyDataController {
   public String createOrUpdateOptInConfig(String accountNumber, String orgId, OptInType api) {
     OptInConfig config = controller.optIn(accountNumber, orgId, api);
 
-    String text = "Completed opt in for account %s and org %s:\n%s";
-    return String.format(text, accountNumber, orgId, config.toString());
+    log.info(
+        "Completed opt in for account {} and org {}: \n{}",
+        accountNumber,
+        orgId,
+        config.toString());
+    String text = "Completed opt in for account %s and org %s";
+    return String.format(text, accountNumber, orgId);
   }
 }
