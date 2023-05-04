@@ -173,7 +173,6 @@ We have a number of profiles. Each profile activates a subset of components in t
 - `liquibase-only`: Run the Liquibase migrations and stop
 - `rh-marketplace`: Run the worker responsible for processing tally summaries and
   emitting usage to Red Hat Marketplace.
-- `metering-jmx`: Expose the JMX bean to create metering jobs
 - `metering-job`: Create metering jobs and place them on the job queue
 - `openshift-metering-worker`: Process OpenShift metering jobs off the job queue
 - `purge-snapshots`: Run the retention job and exit
