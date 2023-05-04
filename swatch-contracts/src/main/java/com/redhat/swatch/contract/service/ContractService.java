@@ -194,7 +194,7 @@ public class ContractService {
     if (Objects.nonNull(contract)) {
       log.debug("Setting end date to {} for contract {}", endDate, uuid);
       contract.setEndDate(endDate);
-      contract.setEndDate(OffsetDateTime.now());
+      contract.setLastUpdated(OffsetDateTime.now());
       contractRepository.persist(contract);
       return Optional.of(contract);
     }
