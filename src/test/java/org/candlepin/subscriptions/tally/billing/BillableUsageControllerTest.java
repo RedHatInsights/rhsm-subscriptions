@@ -214,7 +214,7 @@ class BillableUsageControllerTest {
 
   // Simulates progression through contract billing.
   static Stream<Arguments> contractRemittanceParameters() {
-    OffsetDateTime startOfUsage = CLOCK.startOfCurrentMonth().plusDays(4);
+    OffsetDateTime startOfUsage = CLOCK.startOfCurrentMonth();
     return Stream.of(
         // arguments(currentUsage, currentRemittance, expectedRemitted, expectedBilledValue)
         // NOTES:
@@ -224,9 +224,11 @@ class BillableUsageControllerTest {
         //        200 coverage from 2019-05-16T00:00Z onwards
         arguments(startOfUsage, 50.0, 0.0, 0.0, 0.0),
         arguments(startOfUsage.plusDays(5), 150.0, 0.0, 50.0, 50.0),
-        arguments(startOfUsage.plusDays(13), 200.0, 50.0, 50.0, 0.0),
-        arguments(startOfUsage.plusDays(20), 300.0, 50.0, 100.0, 50.0),
+        arguments(startOfUsage.plusDays(13), 200.0, 50.0, 100.0, 50.0),
+        // NOTE: Contract bumps to 200 here.
+        arguments(startOfUsage.plusDays(20), 300.0, 100.0, 100.0, 0.0),
         arguments(CLOCK.endOfCurrentMonth(), 350.00, 100.0, 150.0, 50.0),
+        // NOTE: New month so simulate remittance reset, contract remains at 200.
         arguments(CLOCK.startOfCurrentMonth().plusMonths(1), 150.0, 0.0, 0.0, 0.0));
   }
 
@@ -258,12 +260,110 @@ class BillableUsageControllerTest {
         //    - Test setup mocks contracts as follows:
         //        100 coverage from 2019-05-01T00:00Z to 2019-05-15T23:59:59.999999999Z
         //        200 coverage from 2019-05-16T00:00Z onwards
-        arguments(startOfUsage, 50.0, 0.0, 0.0, 0.0),
-        arguments(startOfUsage.plusDays(5), 150.0, 0.0, 25.0, 25.0),
-        arguments(startOfUsage.plusDays(10), 200.0, 25.0, 50.0, 25.0),
-        arguments(startOfUsage.plusDays(20), 300.0, 50.0, 50.0, 0.0),
-        arguments(CLOCK.endOfCurrentMonth(), 350.00, 50.0, 75.0, 25.0),
-        arguments(CLOCK.startOfCurrentMonth().plusMonths(1), 150.0, 0.0, 0.0, 0.0));
+        //    - gtez is a function that returns 0 if the value is less than 0
+
+        // contract = 100 (billable_units)
+        // applicable_contract = 100 / 0.5 = 200 (measurement units)
+        // applicable_usage = gtez(current_usage - applicable_contact)
+        //                  = gtez(100 - 200)
+        //                  = 0 (measurement units)
+        // unbilled = gtez(applicable_usage - (current_remittance / prev_billing_factor))
+        //          = gtez(0 - (0/0.5)
+        //          = 0 (measurement units)
+        // billed = ceil(unbilled) * billing_factor
+        //        = ceil(0) * 0.5
+        //        = 0.0 (billable units)
+        // remitted = billed + current_remittance
+        //          = 0.0 + 0.0
+        //          = 0.0
+        arguments(startOfUsage, 100.0, 0.0, 0.0, 0.0),
+
+        // contract = 100 (billable_units)
+        // applicable_contract = 100 / 0.5 = 200 (measurement units)
+        // applicable_usage = gtez(current_usage - applicable_contact)
+        //                  = gtez(250 - 200)
+        //                  = 50 (measurement units)
+        // unbilled = gtez(applicable_usage - (current_remittance / prev_billing_factor))
+        //          = gtez(50 - (0.0/0.5))
+        //          = 50 (measurement units)
+        // billed = ceil(unbilled) * billing_factor
+        //        = ceil(50) * 0.5
+        //        = 25 (billable units)
+        // remitted = billed + current_remittance
+        //          = 25 + 0.0
+        //          = 25
+        arguments(startOfUsage.plusDays(10), 250.0, 0.0, 25.0, 25.0),
+
+        // contract = 100 (billable_units)
+        // applicable_contract = 100 / 0.5 = 200 (measurement units)
+        // applicable_usage = gtez(current_usage - applicable_contact)
+        //                  = gtez(400 - 200)
+        //                  = 200 (measurement units)
+        // unbilled = gtez(applicable_usage - (current_remittance / prev_billing_factor))
+        //          = gtez(200 - (25.0/0.5))
+        //          = 150 (measurement units)
+        // billed = ceil(unbilled) * billing_factor
+        //        = ceil(150) * 0.5
+        //        = 75 (billable units)
+        // remitted = billed + current_remittance
+        //          = 75 + 25.0
+        //          = 100
+        arguments(startOfUsage.plusDays(5), 400.0, 25.0, 100.0, 75.0),
+
+        // NOTE: Contract rolls to 200 here.
+        //
+        // contract = 200 (billable_units)
+        // applicable_contract = 200 / 0.5 = 400 (measurement units)
+        // applicable_usage = gtez(current_usage - applicable_contact)
+        //                  = gtez(500 - 400)
+        //                  = 100 (measurement units)
+        // unbilled = gtez(applicable_usage - (current_remittance / prev_billing_factor))
+        //          = gtez(100 - (100.0/0.5))
+        //          = gtez(-100)
+        //          = 0 (measurement units)
+        // billed = ceil(unbilled) * billing_factor
+        //        = ceil(0) * 0.5
+        //        = 0 (billable units)
+        // remitted = billed + current_remittance
+        //          = 0 + 100
+        //          = 100
+        arguments(startOfUsage.plusDays(20), 500.0, 100.0, 100.0, 0.0),
+
+        // contract = 200 (billable_units)
+        // applicable_contract = 200 / 0.5 = 400 (measurement units)
+        // applicable_usage = gtez(current_usage - applicable_contact)
+        //                  = gtez(601.25 - 400)
+        //                  = 201.25 (measurement units)
+        // unbilled = gtez(applicable_usage - (current_remittance / prev_billing_factor))
+        //          = gtez(201.25 - (100.0/0.5))
+        //          = gtez(1.25)
+        //          = 1.25 (measurement units)
+        // billed = ceil(unbilled) * billing_factor
+        //        = ceil(1.25) * 0.5
+        //        = 1 (billable units)
+        // remitted = billed + current_remittance
+        //          = 1 + 100
+        //          = 101
+        arguments(CLOCK.endOfCurrentMonth(), 601.25, 100.0, 101.0, 1.0),
+
+        // NOTE: New billing month so simulate remittance of 0 with 200 contract.
+        //
+        // contract = 200 (billable_units)
+        // applicable_contract = 200 / 0.5 = 400 (measurement units)
+        // applicable_usage = gtez(current_usage - applicable_contact)
+        //                  = gtez(400 - 400)
+        //                  = 0 (measurement units)
+        // unbilled = gtez(applicable_usage - (current_remittance / prev_billing_factor))
+        //          = gtez(0 - (0.0/0.5))
+        //          = gtez(0)
+        //          = 0 (measurement units)
+        // billed = ceil(unbilled) * billing_factor
+        //        = ceil(0) * 0.5
+        //        = 0 (billable units)
+        // remitted = billed + current_remittance
+        //          = 0 + 0
+        //          = 0
+        arguments(CLOCK.startOfCurrentMonth().plusMonths(1), 400.0, 0.0, 0.0, 0.0));
   }
 
   @ParameterizedTest()
