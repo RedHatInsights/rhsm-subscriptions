@@ -1,0 +1,133 @@
+/*
+ * Copyright Red Hat, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Red Hat trademarks are not licensed under GPLv3. No permission is
+ * granted to use or replicate Red Hat trademarks that are incorporated
+ * in this software or its documentation.
+ */
+package org.candlepin.subscriptions.db.model;
+
+import java.io.Serializable;
+import java.util.Objects;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.Id;
+import javax.persistence.IdClass;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
+import lombok.*;
+import org.candlepin.subscriptions.db.model.Subscription.SubscriptionCompoundId;
+import org.candlepin.subscriptions.db.model.SubscriptionMeasurement.SubscriptionMeasurementKey;
+
+/** Capacity provided by a subscription for a given product. */
+@Entity
+@Getter
+@Setter
+@ToString
+@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor
+@Table(name = "subscription_measurements")
+@IdClass(SubscriptionMeasurementKey.class)
+public class SubscriptionMeasurement implements Serializable {
+  @Id
+  @ManyToOne(fetch = FetchType.EAGER)
+  @JoinColumn(name = "subscription_id", referencedColumnName = "subscription_id")
+  @JoinColumn(name = "start_date", referencedColumnName = "start_date")
+  private Subscription subscription;
+
+  @Id
+  @Column(name = "metric_id")
+  private String metricId;
+
+  @Id
+  @Column(name = "measurement_type")
+  private String measurementType;
+
+  @Column(name = "value")
+  private Double value;
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof SubscriptionMeasurement measurement)) {
+      return false;
+    }
+
+    return Objects.equals(metricId, measurement.getMetricId())
+        && Objects.equals(measurementType, measurement.getMeasurementType())
+        && Objects.equals(
+            subscription.getSubscriptionId(), measurement.getSubscription().getSubscriptionId())
+        && Objects.equals(
+            subscription.getStartDate(), measurement.getSubscription().getStartDate());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        metricId, measurementType, subscription.getSubscriptionId(), subscription.getStartDate());
+  }
+
+  /** Primary key for a subscription_measurement record */
+  @Getter
+  @Setter
+  public static class SubscriptionMeasurementKey implements Serializable {
+    // NB: this name must match the field name used in the dependent entity
+    // (SubscriptionMeasurement) See JPA 2.1 specification, section 2.4.1.3 example 2a
+    private SubscriptionCompoundId subscription;
+
+    private String metricId;
+
+    private String measurementType;
+
+    public SubscriptionMeasurementKey() {}
+
+    public SubscriptionMeasurementKey(
+        SubscriptionCompoundId subscription, String metricId, String measurementType) {
+      this.subscription = subscription;
+      this.metricId = metricId;
+      this.measurementType = measurementType;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof SubscriptionMeasurementKey measurementKey)) {
+        return false;
+      }
+
+      return Objects.equals(metricId, measurementKey.getMetricId())
+          && Objects.equals(measurementType, measurementKey.getMeasurementType())
+          && Objects.equals(
+              subscription.getSubscriptionId(),
+              measurementKey.getSubscription().getSubscriptionId())
+          && Objects.equals(
+              subscription.getStartDate(), measurementKey.getSubscription().getStartDate());
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(
+          metricId, measurementType, subscription.getSubscriptionId(), subscription.getStartDate());
+    }
+  }
+}

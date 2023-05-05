@@ -20,12 +20,14 @@
  */
 package org.candlepin.subscriptions.capacity;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import java.time.OffsetDateTime;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -33,20 +35,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.OfferingRepository;
-import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
+import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
+import org.candlepin.subscriptions.db.model.SubscriptionProductId;
 import org.candlepin.subscriptions.resource.ResourceUtils;
-import org.candlepin.subscriptions.task.TaskQueueProperties;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.hamcrest.MockitoHamcrest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
@@ -68,45 +65,60 @@ class CapacityReconciliationControllerTest {
 
   @MockBean SubscriptionRepository subscriptionRepository;
 
-  @MockBean SubscriptionCapacityRepository subscriptionCapacityRepository;
-
   @MockBean CapacityProductExtractor capacityProductExtractor;
 
   @MockBean
   KafkaTemplate<String, ReconcileCapacityByOfferingTask> reconcileCapacityByOfferingKafkaTemplate;
 
-  @Autowired
-  @Qualifier("reconcileCapacityTasks")
-  private TaskQueueProperties taskQueueProperties;
-
   @AfterEach
   void afterEach() {
-    reset(subscriptionCapacityRepository, capacityProductExtractor, offeringRepository, denylist);
+    reset(subscriptionRepository, capacityProductExtractor, offeringRepository, denylist);
+  }
+
+  private static SubscriptionMeasurement createMeasurement(
+      Subscription newSubscription, String measurementType, String metricId, double value) {
+    var m = new SubscriptionMeasurement();
+    m.setSubscription(newSubscription);
+    m.setMeasurementType(measurementType);
+    m.setMetricId(metricId);
+    m.setValue(value);
+    return m;
   }
 
   @Test
-  void shouldAddNewCapacitiesIfNotAlreadyExisting() {
+  void shouldAddNewMeasurementsAndProductIdsIfNotAlreadyExisting() {
 
     List<String> productIds = List.of("RHEL");
-    Offering offering = Offering.builder().productIds(Set.of(45)).sku("MCT3718").build();
+    Offering offering =
+        Offering.builder()
+            .productIds(Set.of(45))
+            .cores(42)
+            .hypervisorCores(43)
+            .sockets(44)
+            .hypervisorSockets(45)
+            .sku("MCT3718")
+            .build();
 
     Subscription newSubscription = createSubscription("456", 10);
-    Collection<SubscriptionCapacity> capacities =
-        productIds.stream()
-            .map(productId -> SubscriptionCapacity.from(newSubscription, offering, productId))
-            .collect(Collectors.toList());
 
     when(denylist.productIdMatches(any())).thenReturn(false);
     when(capacityProductExtractor.getProducts(offering)).thenReturn(new HashSet<>(productIds));
     when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(offering));
-    when(subscriptionCapacityRepository.findByKeyOrgIdAndKeySubscriptionIdIn(
-            "123", Collections.singletonList("456")))
-        .thenReturn(Collections.emptyList());
 
     capacityReconciliationController.reconcileCapacityForSubscription(newSubscription);
 
-    verify(subscriptionCapacityRepository).saveAll(capacities);
-    verify(subscriptionCapacityRepository).deleteAll(Collections.emptyList());
+    assertThat(
+        newSubscription.getSubscriptionMeasurements(),
+        containsInAnyOrder(
+            createMeasurement(newSubscription, "PHYSICAL", "CORES", 420.0),
+            createMeasurement(newSubscription, "HYPERVISOR", "CORES", 430.0),
+            createMeasurement(newSubscription, "PHYSICAL", "SOCKETS", 440.0),
+            createMeasurement(newSubscription, "HYPERVISOR", "SOCKETS", 450.0)));
+    assertThat(
+        newSubscription.getSubscriptionProductIds().stream()
+            .map(SubscriptionProductId::getProductId)
+            .collect(Collectors.toSet()),
+        containsInAnyOrder("RHEL"));
   }
 
   @Test
@@ -118,156 +130,100 @@ class CapacityReconciliationControllerTest {
 
     Subscription updatedSubscription = createSubscription("456", 10);
 
-    List<SubscriptionCapacity> existingCapacities =
-        List.of(
-            SubscriptionCapacity.builder()
-                .key(
-                    SubscriptionCapacityKey.builder()
-                        .subscriptionId("456")
-                        .orgId("123")
-                        .productId("RHEL")
-                        .build())
-                .cores(10)
-                .sockets(15)
-                .build(),
-            SubscriptionCapacity.builder()
-                .key(
-                    SubscriptionCapacityKey.builder()
-                        .subscriptionId("456")
-                        .orgId("123")
-                        .productId("RHEL Workstation")
-                        .build())
-                .cores(10)
-                .sockets(15)
-                .build());
-
-    List<SubscriptionCapacity> updatedCapacities =
-        productIds.stream()
-            .map(
-                productId ->
-                    SubscriptionCapacity.from(updatedSubscription, updatedOffering, productId))
-            .collect(Collectors.toList());
+    updatedSubscription
+        .getSubscriptionMeasurements()
+        .add(createMeasurement(updatedSubscription, "PHYSICAL", "SOCKETS", 15.0));
+    updatedSubscription
+        .getSubscriptionMeasurements()
+        .add(createMeasurement(updatedSubscription, "PHYSICAL", "CORES", 10.0));
+    SubscriptionProductId subscriptionProductId = new SubscriptionProductId();
+    subscriptionProductId.setProductId("RHEL");
+    updatedSubscription.addSubscriptionProductId(subscriptionProductId);
 
     when(denylist.productIdMatches(any())).thenReturn(false);
     when(capacityProductExtractor.getProducts(updatedOffering)).thenReturn(productIds);
     when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(updatedOffering));
-    when(subscriptionCapacityRepository.findByKeyOrgIdAndKeySubscriptionIdIn(
-            "123", Collections.singletonList("456")))
-        .thenReturn(existingCapacities);
 
     capacityReconciliationController.reconcileCapacityForSubscription(updatedSubscription);
 
-    verify(subscriptionCapacityRepository).saveAll(updatedCapacities);
-    verify(subscriptionCapacityRepository).deleteAll(Collections.emptyList());
-  }
-
-  @Test
-  void shouldNotAddNewCapacitiesWhenProductIsOnDenylist() {
-
-    Offering offering = Offering.builder().productIds(Set.of(45, 25)).sku("MCT3718").build();
-    Subscription subscription = createSubscription("456", 10);
-
-    List<SubscriptionCapacity> existingCapacities =
-        List.of(
-            SubscriptionCapacity.builder()
-                .key(
-                    SubscriptionCapacityKey.builder()
-                        .subscriptionId("456")
-                        .orgId("123")
-                        .productId("RHEL")
-                        .build())
-                .cores(10)
-                .sockets(15)
-                .build(),
-            SubscriptionCapacity.builder()
-                .key(
-                    SubscriptionCapacityKey.builder()
-                        .subscriptionId("456")
-                        .orgId("123")
-                        .productId("RHEL Workstation")
-                        .build())
-                .cores(10)
-                .sockets(15)
-                .build());
-
-    when(denylist.productIdMatches(any())).thenReturn(true);
-    when(capacityProductExtractor.getProducts(offering))
-        .thenReturn(Set.of("RHEL", "RHEL Workstation"));
-    when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(offering));
-    when(subscriptionCapacityRepository.findByKeyOrgIdAndKeySubscriptionIdIn(
-            "123", Collections.singletonList("456")))
-        .thenReturn(existingCapacities);
-
-    capacityReconciliationController.reconcileCapacityForSubscription(subscription);
-    verify(subscriptionCapacityRepository)
-        .deleteAll(
-            MockitoHamcrest.argThat(
-                Matchers.containsInAnyOrder(existingCapacities.get(0), existingCapacities.get(1))));
+    assertThat(
+        updatedSubscription.getSubscriptionMeasurements(),
+        containsInAnyOrder(
+            createMeasurement(updatedSubscription, "PHYSICAL", "CORES", 200.0),
+            createMeasurement(updatedSubscription, "PHYSICAL", "SOCKETS", 400.0)));
+    assertEquals(
+        updatedSubscription.getSubscriptionProductIds().stream()
+            .map(SubscriptionProductId::getProductId)
+            .collect(Collectors.toSet()),
+        productIds);
   }
 
   @Test
   void shouldRemoveAllCapacitiesWhenProductIsOnDenylist() {
 
-    Offering offering = Offering.builder().productIds(Set.of(45, 25)).sku("MCT3718").build();
-    Subscription subscription = createSubscription("456", 10);
+    Set<String> productIds = Set.of("RHEL", "RHEL Workstation");
+    Offering updatedOffering =
+        Offering.builder().productIds(Set.of(45, 25)).sku("MCT3718").cores(20).sockets(40).build();
+
+    Subscription updatedSubscription = createSubscription("456", 10);
+
+    updatedSubscription
+        .getSubscriptionMeasurements()
+        .add(createMeasurement(updatedSubscription, "PHYSICAL", "SOCKETS", 15.0));
+    updatedSubscription
+        .getSubscriptionMeasurements()
+        .add(createMeasurement(updatedSubscription, "PHYSICAL", "CORES", 10.0));
+    SubscriptionProductId subscriptionProductId = new SubscriptionProductId();
+    subscriptionProductId.setProductId("RHEL");
+    updatedSubscription.addSubscriptionProductId(subscriptionProductId);
 
     when(denylist.productIdMatches(any())).thenReturn(true);
-    when(capacityProductExtractor.getProducts(offering)).thenReturn(Set.of("RHEL1", "RHEL2"));
-    when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(offering));
-    when(subscriptionCapacityRepository.findByKeyOrgIdAndKeySubscriptionIdIn(
-            "123", Collections.singletonList("456")))
-        .thenReturn(Collections.emptyList());
+    when(capacityProductExtractor.getProducts(updatedOffering)).thenReturn(productIds);
+    when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(updatedOffering));
 
-    capacityReconciliationController.reconcileCapacityForSubscription(subscription);
-    verify(subscriptionCapacityRepository, never()).saveAll(any());
+    capacityReconciliationController.reconcileCapacityForSubscription(updatedSubscription);
+
+    assertTrue(updatedSubscription.getSubscriptionMeasurements().isEmpty());
+    assertTrue(updatedSubscription.getSubscriptionProductIds().isEmpty());
   }
 
   @Test
   void shouldAddNewCapacitiesAndRemoveAllStaleCapacities() {
 
     Set<String> productIds = Set.of("RHEL");
-    Offering offering = Offering.builder().productIds(Set.of(45)).sku("MCT3718").build();
+    Offering offering = Offering.builder().productIds(Set.of(45)).sku("MCT3718").cores(42).build();
     Subscription subscription = createSubscription("456", 10);
+    Set<String> staleProductIds = Set.of("STALE RHEL", "STALE RHEL Workstation");
+    staleProductIds.stream()
+        .map(
+            productId -> {
+              var subscriptionProductId = new SubscriptionProductId();
+              subscriptionProductId.setProductId(productId);
+              return subscriptionProductId;
+            })
+        .forEach(subscription::addSubscriptionProductId);
 
-    List<SubscriptionCapacity> newCapacities =
-        List.of(SubscriptionCapacity.from(subscription, offering, "RHEL"));
-
-    List<SubscriptionCapacity> staleCapacities =
-        List.of(
-            SubscriptionCapacity.builder()
-                .key(
-                    SubscriptionCapacityKey.builder()
-                        .subscriptionId("456")
-                        .orgId("123")
-                        .productId("STALE RHEL")
-                        .build())
-                .cores(10)
-                .sockets(15)
-                .build(),
-            SubscriptionCapacity.builder()
-                .key(
-                    SubscriptionCapacityKey.builder()
-                        .subscriptionId("456")
-                        .orgId("123")
-                        .productId("STALE RHEL Workstation")
-                        .build())
-                .cores(10)
-                .sockets(15)
-                .build());
+    subscription
+        .getSubscriptionMeasurements()
+        .add(createMeasurement(subscription, "PHYSICAL", "CORES", 10.0));
+    subscription
+        .getSubscriptionMeasurements()
+        .add(createMeasurement(subscription, "PHYSICAL", "SOCKETS", 15.0));
 
     when(denylist.productIdMatches(any())).thenReturn(false);
     when(capacityProductExtractor.getProducts(offering)).thenReturn(productIds);
     when(offeringRepository.findById("MCT3718")).thenReturn(Optional.of(offering));
-    when(subscriptionCapacityRepository.findByKeyOrgIdAndKeySubscriptionIdIn(
-            "123", Collections.singletonList("456")))
-        .thenReturn(staleCapacities);
 
     capacityReconciliationController.reconcileCapacityForSubscription(subscription);
-    verify(subscriptionCapacityRepository).saveAll(newCapacities);
-    verify(subscriptionCapacityRepository)
-        .deleteAll(
-            MockitoHamcrest.argThat(
-                Matchers.containsInAnyOrder(staleCapacities.get(0), staleCapacities.get(1))));
+
+    assertThat(
+        subscription.getSubscriptionMeasurements(),
+        containsInAnyOrder(createMeasurement(subscription, "PHYSICAL", "CORES", 420.0)));
+    assertThat(
+        subscription.getSubscriptionProductIds().stream()
+            .map(SubscriptionProductId::getProductId)
+            .collect(Collectors.toSet()),
+        containsInAnyOrder("RHEL"));
   }
 
   @Test

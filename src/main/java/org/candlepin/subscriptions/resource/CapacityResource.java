@@ -24,7 +24,6 @@ import java.time.OffsetDateTime;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
@@ -32,10 +31,13 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import org.candlepin.subscriptions.db.HypervisorReportCategory;
-import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
+import org.candlepin.subscriptions.db.SubscriptionMeasurementRepository;
+import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.DbReportCriteria;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
+import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
@@ -65,7 +67,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class CapacityResource implements CapacityApi {
 
-  private final SubscriptionCapacityRepository repository;
+  private final SubscriptionMeasurementRepository repository;
+  private final SubscriptionRepository subscriptionRepository;
   private final PageLinkCreator pageLinkCreator;
   private final ApplicationClock clock;
   private final TagProfile tagProfile;
@@ -73,11 +76,13 @@ public class CapacityResource implements CapacityApi {
   @Context UriInfo uriInfo;
 
   public CapacityResource(
-      SubscriptionCapacityRepository repository,
+      SubscriptionMeasurementRepository repository,
+      SubscriptionRepository subscriptionRepository,
       PageLinkCreator pageLinkCreator,
       ApplicationClock clock,
       TagProfile tagProfile) {
     this.repository = repository;
+    this.subscriptionRepository = subscriptionRepository;
     this.pageLinkCreator = pageLinkCreator;
     this.clock = clock;
     this.tagProfile = tagProfile;
@@ -252,8 +257,10 @@ public class CapacityResource implements CapacityApi {
       throw new BadRequestException(e.getMessage());
     }
 
-    List<SubscriptionCapacity> matches;
-    matches = repository.findAllBy(orgId, productId.toString(), sla, usage, reportBegin, reportEnd);
+    List<SubscriptionMeasurement> matches =
+        repository.findAllBy(orgId, productId.toString(), sla, usage, reportBegin, reportEnd);
+    boolean hasInfiniteQuantity =
+        subscriptionHasInfiniteQuantity(orgId, productId, sla, usage, reportBegin, reportEnd);
 
     SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
 
@@ -265,7 +272,9 @@ public class CapacityResource implements CapacityApi {
     OffsetDateTime next = OffsetDateTime.from(start);
 
     while (next.isBefore(end) || next.isEqual(end)) {
-      result.add(createCapacitySnapshot(next, matches));
+      CapacitySnapshot capacitySnapshot = createCapacitySnapshot(next, matches);
+      capacitySnapshot.setHasInfiniteQuantity(hasInfiniteQuantity);
+      result.add(capacitySnapshot);
       next = timeAdjuster.adjustToPeriodStart(next.plus(offset));
     }
 
@@ -294,7 +303,7 @@ public class CapacityResource implements CapacityApi {
       throw new BadRequestException(e.getMessage());
     }
 
-    List<SubscriptionCapacity> matches =
+    List<SubscriptionMeasurement> matches =
         repository.findAllBy(
             orgId,
             productId.toString(),
@@ -304,6 +313,8 @@ public class CapacityResource implements CapacityApi {
             usage,
             reportBegin,
             reportEnd);
+    boolean hasInfiniteQuantity =
+        subscriptionHasInfiniteQuantity(orgId, productId, sla, usage, reportBegin, reportEnd);
 
     SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
 
@@ -315,13 +326,34 @@ public class CapacityResource implements CapacityApi {
     OffsetDateTime next = OffsetDateTime.from(start);
 
     while (next.isBefore(end) || next.isEqual(end)) {
-      result.add(
+      CapacitySnapshotByMetricId snapshot =
           createCapacitySnapshotWithMetricId(
-              next, matches, metricId, Optional.ofNullable(hypervisorReportCategory)));
+              next, matches, metricId, Optional.ofNullable(hypervisorReportCategory));
+      snapshot.setHasInfiniteQuantity(hasInfiniteQuantity);
+      result.add(snapshot);
       next = timeAdjuster.adjustToPeriodStart(next.plus(offset));
     }
 
     return result;
+  }
+
+  private boolean subscriptionHasInfiniteQuantity(
+      String orgId,
+      ProductId productId,
+      ServiceLevel sla,
+      Usage usage,
+      OffsetDateTime reportBegin,
+      OffsetDateTime reportEnd) {
+    var criteria =
+        DbReportCriteria.builder()
+            .orgId(orgId)
+            .productId(productId.toString())
+            .serviceLevel(sla)
+            .usage(usage)
+            .beginning(reportBegin)
+            .ending(reportEnd)
+            .build();
+    return !subscriptionRepository.findUnlimited(criteria).isEmpty();
   }
 
   private <T> List<T> paginate(List<T> capacities, Pageable pageable) {
@@ -333,11 +365,12 @@ public class CapacityResource implements CapacityApi {
     return capacities.subList(offset, lastIndex);
   }
 
+  @SuppressWarnings("java:S3776")
   protected CapacitySnapshot createCapacitySnapshot(
-      OffsetDateTime date, List<SubscriptionCapacity> matches) {
-    // NOTE there is room for future optimization here, as the we're *generally* calculating the
-    // same sum
-    // across a time range, also we might opt to do some of this in the DB query in the future.
+      OffsetDateTime date, List<SubscriptionMeasurement> matches) {
+    // NOTE there is room for future optimization here, as we're *generally* calculating the
+    // same sum across a time range, also we might opt to do some of this in the DB query in the
+    // future.
     int sockets = 0;
     int physicalSockets = 0;
     int hypervisorSockets = 0;
@@ -346,24 +379,32 @@ public class CapacityResource implements CapacityApi {
     int hypervisorCores = 0;
     boolean hasInfiniteQuantity = false;
 
-    for (SubscriptionCapacity capacity : matches) {
-      if (capacity.getBeginDate().isBefore(date) && capacity.getEndDate().isAfter(date)) {
-        int capacityVirtSockets = sanitize(capacity.getHypervisorSockets());
-        sockets += capacityVirtSockets;
-        hypervisorSockets += capacityVirtSockets;
+    for (SubscriptionMeasurement measurement : matches) {
+      var begin = measurement.getSubscription().getStartDate();
+      var end = measurement.getSubscription().getEndDate();
 
-        int capacityPhysicalSockets = sanitize(capacity.getSockets());
-        sockets += capacityPhysicalSockets;
-        physicalSockets += capacityPhysicalSockets;
-        int capacityPhysCores = sanitize(capacity.getCores());
-        cores += capacityPhysCores;
-        physicalCores += capacityPhysCores;
+      if (begin.isBefore(date) && end.isAfter(date)) {
+        var measurementType = measurement.getMeasurementType();
+        var isPhysical = HardwareMeasurementType.PHYSICAL.toString().equals(measurementType);
+        var isHypervisor = HardwareMeasurementType.HYPERVISOR.toString().equals(measurementType);
 
-        int capacityVirtCores = sanitize(capacity.getHypervisorCores());
-        cores += capacityVirtCores;
-        hypervisorCores += capacityVirtCores;
-
-        hasInfiniteQuantity |= Optional.ofNullable(capacity.getHasUnlimitedUsage()).orElse(false);
+        if (MetricId.CORES.toString().equals(measurement.getMetricId())) {
+          var val = measurement.getValue().intValue();
+          cores += val;
+          if (isPhysical) {
+            physicalCores += val;
+          } else if (isHypervisor) {
+            hypervisorCores += val;
+          }
+        } else if (MetricId.SOCKETS.toString().equals(measurement.getMetricId())) {
+          var val = measurement.getValue().intValue();
+          sockets += val;
+          if (isPhysical) {
+            physicalSockets += val;
+          } else if (isHypervisor) {
+            hypervisorSockets += val;
+          }
+        }
       }
     }
 
@@ -374,59 +415,47 @@ public class CapacityResource implements CapacityApi {
         .hypervisorSockets(hypervisorSockets)
         .cores(cores)
         .physicalCores(physicalCores)
-        .hypervisorCores(hypervisorCores)
-        .hasInfiniteQuantity(hasInfiniteQuantity);
+        .hypervisorCores(hypervisorCores);
   }
 
+  @SuppressWarnings("java:S3776")
   protected CapacitySnapshotByMetricId createCapacitySnapshotWithMetricId(
       OffsetDateTime date,
-      List<SubscriptionCapacity> matches,
+      List<SubscriptionMeasurement> matches,
       MetricId metricId,
       Optional<HypervisorReportCategory> hypervisorReportCategory) {
     int value = 0;
     boolean hasData = false;
-    boolean hasInfiniteQuantity = false;
 
-    for (SubscriptionCapacity capacity : matches) {
-      if (capacity.getBeginDate().isBefore(date) && capacity.getEndDate().isAfter(date)) {
+    for (SubscriptionMeasurement measurement : matches) {
+      var begin = measurement.getSubscription().getStartDate();
+      var end = measurement.getSubscription().getEndDate();
+      if (begin.isBefore(date) && end.isAfter(date)) {
         hasData = true;
-        if (metricId.equals(MetricId.SOCKETS)) {
-          var standardSockets = sanitize(capacity.getSockets());
-          var hypervisorSockets = sanitize(capacity.getHypervisorSockets());
-          value +=
-              calculateMetricCapacity(hypervisorReportCategory, standardSockets, hypervisorSockets);
-        } else if (metricId.equals(MetricId.CORES)) {
-          var standardCores = sanitize(capacity.getCores());
-          var hypervisorCores = sanitize(capacity.getHypervisorCores());
-          value +=
-              calculateMetricCapacity(hypervisorReportCategory, standardCores, hypervisorCores);
+        if (metricId.toString().equals(measurement.getMetricId())) {
+          if (hypervisorReportCategory.isEmpty()) {
+            value += measurement.getValue().intValue();
+            continue;
+          }
+
+          var measurementType = measurement.getMeasurementType();
+          var isNonHypervisorMeasurement =
+              HardwareMeasurementType.PHYSICAL.toString().equals(measurementType);
+          var isHypervisorMeasurement =
+              HardwareMeasurementType.HYPERVISOR.toString().equals(measurementType);
+
+          var category = hypervisorReportCategory.get();
+          var isHypervisorCategory = category.equals(HypervisorReportCategory.HYPERVISOR);
+          var isNonHypervisorCategory = category.equals(HypervisorReportCategory.NON_HYPERVISOR);
+
+          if ((isHypervisorCategory && isHypervisorMeasurement)
+              || (isNonHypervisorCategory && isNonHypervisorMeasurement)) {
+            value += measurement.getValue().intValue();
+          }
         }
-        hasInfiniteQuantity |= Optional.ofNullable(capacity.getHasUnlimitedUsage()).orElse(false);
       }
     }
 
-    return new CapacitySnapshotByMetricId()
-        .date(date)
-        .value(value)
-        .hasData(hasData)
-        .hasInfiniteQuantity(hasInfiniteQuantity);
-  }
-
-  private int calculateMetricCapacity(
-      Optional<HypervisorReportCategory> hypervisorReportCategory,
-      int standardMetricValue,
-      int hypervisorMetricValue) {
-    return hypervisorReportCategory
-        .map(
-            category ->
-                switch (category) {
-                  case HYPERVISOR -> hypervisorMetricValue;
-                  case NON_HYPERVISOR -> standardMetricValue;
-                })
-        .orElse(standardMetricValue + hypervisorMetricValue);
-  }
-
-  private int sanitize(Integer value) {
-    return Objects.requireNonNullElse(value, 0);
+    return new CapacitySnapshotByMetricId().date(date).value(value).hasData(hasData);
   }
 }

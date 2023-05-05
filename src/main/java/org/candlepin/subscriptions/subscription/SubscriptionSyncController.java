@@ -48,11 +48,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.OfferingRepository;
-import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
+import org.candlepin.subscriptions.db.SubscriptionMeasurementRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.DbReportCriteria;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
-import org.candlepin.subscriptions.db.model.ReportCriteria;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription_;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -86,7 +86,7 @@ public class SubscriptionSyncController {
 
   private static final XmlMapper umbMessageMapper = CanonicalMessage.createMapper();
   private SubscriptionRepository subscriptionRepository;
-  private SubscriptionCapacityRepository subscriptionCapacityRepository;
+  private SubscriptionMeasurementRepository measurementRepository;
   private OrgConfigRepository orgRepository;
   private OfferingRepository offeringRepository;
   private SubscriptionService subscriptionService;
@@ -105,7 +105,7 @@ public class SubscriptionSyncController {
   @Autowired
   public SubscriptionSyncController(
       SubscriptionRepository subscriptionRepository,
-      SubscriptionCapacityRepository subscriptionCapacityRepository,
+      SubscriptionMeasurementRepository measurementRepository,
       OrgConfigRepository orgRepository,
       OfferingRepository offeringRepository,
       ApplicationClock clock,
@@ -121,7 +121,7 @@ public class SubscriptionSyncController {
       TagProfile tagProfile,
       AccountService accountService) {
     this.subscriptionRepository = subscriptionRepository;
-    this.subscriptionCapacityRepository = subscriptionCapacityRepository;
+    this.measurementRepository = measurementRepository;
     this.orgRepository = orgRepository;
     this.offeringRepository = offeringRepository;
     this.subscriptionService = subscriptionService;
@@ -183,6 +183,7 @@ public class SubscriptionSyncController {
     }
 
     log.debug("Syncing subscription from external service={}", newOrUpdated);
+
     // UMB doesn't provide all the fields, so if we have an existing DB record, we'll populate from
     // that; otherwise, use the subscription service to fetch missing info
     try {
@@ -196,6 +197,7 @@ public class SubscriptionSyncController {
     }
     log.debug("New subscription that will need to be saved={}", newOrUpdated);
 
+    enrichUnlimitedUsageFromOffering(newOrUpdated);
     checkForMissingBillingProvider(newOrUpdated);
 
     if (subscriptionOptional.isPresent()) {
@@ -214,6 +216,7 @@ public class SubscriptionSyncController {
                 .sku(existingSubscription.getSku())
                 .orgId(existingSubscription.getOrgId())
                 .accountNumber(existingSubscription.getAccountNumber())
+                .hasUnlimitedUsage(existingSubscription.getHasUnlimitedUsage())
                 .quantity(newOrUpdated.getQuantity())
                 .startDate(OffsetDateTime.now())
                 .endDate(newOrUpdated.getEndDate())
@@ -232,6 +235,15 @@ public class SubscriptionSyncController {
       subscriptionRepository.save(newOrUpdated);
       capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
     }
+  }
+
+  private void enrichUnlimitedUsageFromOffering(
+      org.candlepin.subscriptions.db.model.Subscription newOrUpdated) {
+    var offering =
+        offeringRepository
+            .findById(newOrUpdated.getSku())
+            .orElseThrow(() -> new IllegalStateException("Offering failed to sync"));
+    newOrUpdated.setHasUnlimitedUsage(offering.getHasUnlimitedUsage());
   }
 
   private void checkForMissingBillingProvider(
@@ -322,23 +334,25 @@ public class SubscriptionSyncController {
     if (!swatchSubscriptions.isEmpty()) {
       log.info("Removing {} stale/incorrect subscription records", swatchSubscriptions.size());
     }
+    // TODO - Do we really need to do this or can we just let the delete cascade?
+    // TODO - What about subscription_productid records?
+    removeStaleMeasurementRecords(orgId, seenSubscriptionIds);
     // anything remaining in the map at this point is stale
     subscriptionRepository.deleteAll(swatchSubscriptions.values());
-    removeStaleCapacityRecords(orgId, seenSubscriptionIds);
   }
 
-  private void removeStaleCapacityRecords(String orgId, Set<String> seenSubscriptionIds) {
+  private void removeStaleMeasurementRecords(String orgId, Set<String> seenSubscriptionIds) {
     var staleCapacityCount = new AtomicInteger(0);
-    subscriptionCapacityRepository
-        .findByKeyOrgId(orgId)
-        .filter(c -> !seenSubscriptionIds.contains(c.getSubscriptionId()))
+    measurementRepository
+        .findBySubscriptionOrgId(orgId)
+        .filter(c -> !seenSubscriptionIds.contains(c.getSubscription().getSubscriptionId()))
         .forEach(
             c -> {
               staleCapacityCount.incrementAndGet();
-              subscriptionCapacityRepository.delete(c);
+              measurementRepository.delete(c);
             });
     if (staleCapacityCount.get() > 0) {
-      log.info("Removing {} stale/incorrect capacity records", staleCapacityCount.get());
+      log.info("Removing {} stale/incorrect measurement records", staleCapacityCount.get());
     }
   }
 
@@ -601,8 +615,8 @@ public class SubscriptionSyncController {
       return Collections.emptyList();
     }
 
-    ReportCriteria.ReportCriteriaBuilder reportCriteriaBuilder =
-        ReportCriteria.builder()
+    DbReportCriteria.DbReportCriteriaBuilder reportCriteriaBuilder =
+        DbReportCriteria.builder()
             .productNames(productNames)
             .serviceLevel(usageKey.getSla())
             // NOTE(khowell) due to an oversight PAYG SKUs don't currently have a usage set -
@@ -614,7 +628,7 @@ public class SubscriptionSyncController {
             .beginning(rangeStart)
             .ending(rangeEnd);
 
-    ReportCriteria subscriptionCriteria =
+    DbReportCriteria subscriptionCriteria =
         orgId
             .map(id -> reportCriteriaBuilder.orgId(id).build())
             .orElseGet(() -> reportCriteriaBuilder.accountNumber(accountNumber).build());

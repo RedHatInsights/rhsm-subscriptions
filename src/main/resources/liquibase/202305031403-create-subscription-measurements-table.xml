@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <property name="update_statement_for_has_unlimited_usage" dbms="postgresql"
+    value="UPDATE subscription s SET has_unlimited_usage = sc.has_unlimited_usage FROM
+      subscription_capacity sc WHERE sc.subscription_id = s.subscription_id" />
+
+  <property name="update_statement_for_has_unlimited_usage" dbms="hsqldb"
+    value="MERGE INTO subscription USING subscription_capacity
+    ON subscription.subscription_id = subscription_capacity.subscription_id
+    WHEN MATCHED THEN UPDATE
+    SET subscription.has_unlimited_usage = subscription_capacity.has_unlimited_usage"/>
+
+  <changeSet id="202305031403-01" author="awood">
+    <createTable tableName="subscription_measurements">
+      <column name="subscription_id" type="VARCHAR(255)"/>
+      <column name="start_date" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="metric_id" type="VARCHAR(255)"/>
+      <column name="measurement_type" type="VARCHAR(255)"/>
+      <column name="value" type="DOUBLE PRECISION"/>
+    </createTable>
+    <addPrimaryKey constraintName="subscription_measurements_pk"
+      tableName="subscription_measurements"
+      columnNames="subscription_id, start_date, metric_id,measurement_type"/>
+    <addForeignKeyConstraint constraintName="subscription_fk"
+      baseTableName="subscription_measurements"
+      referencedTableName="subscription"
+      baseColumnNames="subscription_id, start_date"
+      referencedColumnNames="subscription_id, start_date"/>
+  </changeSet>
+
+  <changeSet id="202305031403-02" author="awood">
+    <addColumn tableName="subscription">
+      <column name="has_unlimited_usage" type="BOOLEAN"/>
+    </addColumn>
+  </changeSet>
+
+  <changeSet id="202305031403-03" author="awood">
+    <createTable tableName="subscription_product_ids">
+      <column name="product_id" type="VARCHAR(32)"/>
+      <column name="subscription_id" type="VARCHAR(255)"/>
+      <column name="start_date" type="TIMESTAMP WITH TIME ZONE"/>
+    </createTable>
+    <addPrimaryKey constraintName="subscription_product_ids_pk"
+      tableName="subscription_product_ids"
+      columnNames="product_id, subscription_id, start_date"/>
+    <addForeignKeyConstraint constraintName="subs_product_ids_fk"
+      baseTableName="subscription_product_ids"
+      referencedTableName="subscription"
+      baseColumnNames="subscription_id, start_date"
+      referencedColumnNames="subscription_id, start_date"/>
+  </changeSet>
+
+  <!-- NB: All the changesets dealing with functions and triggers are scoped to postgresql.  We
+  don't need them during unit tests -->
+  <changeSet id="202305031403-04" author="awood" dbms="postgresql">
+    <createProcedure>
+      CREATE OR REPLACE FUNCTION copy_subscription_capacity_sockets_and_cores() RETURNS trigger AS
+      $$
+      BEGIN
+        IF (NEW.sockets IS NOT NULL AND NEW.sockets > 0) THEN
+          INSERT INTO subscription_measurements (
+            subscription_id, start_date, metric_id, measurement_type, value) VALUES (
+            NEW.subscription_id, NEW.begin_date, 'SOCKETS', 'PHYSICAL', NEW.sockets
+          );
+        END IF;
+        IF (NEW.hypervisor_sockets IS NOT NULL AND NEW.hypervisor_sockets > 0) THEN
+          INSERT INTO subscription_measurements (
+            subscription_id, start_date, metric_id, measurement_type, value) VALUES (
+            NEW.subscription_id, NEW.begin_date, 'SOCKETS', 'HYPERVISOR', NEW.hypervisor_sockets
+          );
+        END IF;
+        IF (NEW.cores IS NOT NULL AND NEW.cores > 0) THEN
+          INSERT INTO subscription_measurements (
+            subscription_id, start_date, metric_id, measurement_type, value) VALUES (
+            NEW.subscription_id, NEW.begin_date, 'CORES', 'PHYSICAL', NEW.cores
+          );
+        END IF;
+        IF (NEW.hypervisor_cores IS NOT NULL AND NEW.hypervisor_cores > 0) THEN
+          INSERT INTO subscription_measurements (
+            subscription_id, start_date, metric_id, measurement_type, value) VALUES (
+            NEW.subscription_id, NEW.begin_date, 'CORES', 'HYPERVISOR', NEW.hypervisor_cores
+          );
+        END IF;
+
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+    </createProcedure>
+
+    <rollback>
+      DROP FUNCTION copy_subscription_capacity_sockets_and_cores();
+    </rollback>
+  </changeSet>
+
+  <!-- See https://forum.liquibase.org/t/custom-rollback/384 for a discussion of why each of
+  these DDL statements are in a separate changeset.  Ultimately, it has to do with the database
+  auto-committing after DDL statements which makes rolling back impossible if only some of the
+  statements in a multi-statement changeset executed -->
+
+  <changeSet id="202305031403-05" author="awood" dbms="postgresql">
+    <sql>
+      CREATE TRIGGER subscription_measurements_insert BEFORE INSERT ON subscription_capacity FOR
+        EACH ROW EXECUTE PROCEDURE copy_subscription_capacity_sockets_and_cores();
+    </sql>
+    <rollback>
+      DROP TRIGGER subscription_measurements_insert ON subscription_capacity;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202305031403-06" author="awood" dbms="postgresql">
+    <sql>
+      CREATE TRIGGER subscription_measurements_update BEFORE UPDATE ON subscription_capacity FOR
+        EACH ROW EXECUTE PROCEDURE copy_subscription_capacity_sockets_and_cores();
+    </sql>
+    <rollback>
+      DROP TRIGGER subscription_measurements_update ON subscription_capacity;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202305031403-07" author="awood" dbms="postgresql">
+    <createProcedure>
+      CREATE OR REPLACE FUNCTION copy_subscription_capacity_has_unlimited_usage() RETURNS trigger AS
+      $$
+      BEGIN
+        UPDATE subscription SET has_unlimited_usage = NEW.has_unlimited_usage
+        WHERE subscription.subscription_id = NEW.subscription_ID;
+
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+    </createProcedure>
+
+    <rollback>
+      DROP FUNCTION copy_subscription_capacity_has_unlimited_usage();
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202305031403-08" author="awood" dbms="postgresql">
+    <sql>
+      CREATE TRIGGER subscription_insert BEFORE INSERT ON subscription_capacity FOR EACH
+        ROW EXECUTE PROCEDURE copy_subscription_capacity_has_unlimited_usage();
+    </sql>
+    <rollback>
+      DROP TRIGGER subscription_insert ON subscription_capacity;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202305031403-09" author="awood" dbms="postgresql">
+    <sql>
+      CREATE TRIGGER subscription_update BEFORE UPDATE ON subscription_capacity FOR EACH
+        ROW EXECUTE PROCEDURE copy_subscription_capacity_has_unlimited_usage();
+    </sql>
+    <rollback>
+      DROP TRIGGER subscription_update ON subscription_capacity;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202305031403-10" author="awood" dbms="postgresql">
+    <createProcedure>
+      CREATE OR REPLACE FUNCTION copy_subscription_product_id() RETURNS trigger AS
+      $$
+      BEGIN
+        INSERT INTO subscription_product_ids (product_id, subscription_id, start_date)
+        VALUES (NEW.product_id, NEW.subscription_id, NEW.begin_date);
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+    </createProcedure>
+    <rollback>
+      DROP FUNCTION copy_subscription_product_id();
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202305031403-11" author="awood" dbms="postgresql">
+    <sql>
+      CREATE TRIGGER subscription_product_id_insert BEFORE INSERT ON subscription_capacity FOR EACH
+        ROW EXECUTE PROCEDURE copy_subscription_product_id();
+    </sql>
+    <rollback>
+      DROP TRIGGER subscription_product_id_insert ON subscription_capacity;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202305031403-12" author="awood" dbms="postgresql">
+    <sql>
+      CREATE TRIGGER subscription_product_id_update BEFORE UPDATE ON subscription_capacity FOR EACH
+        ROW EXECUTE PROCEDURE copy_subscription_product_id();
+    </sql>
+    <rollback>
+      DROP TRIGGER subscription_product_id_update ON subscription_capacity;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202305031403-13" author="awood">
+    <customChange class="org.candlepin.subscriptions.liquibase.PopulateSubscriptionMeasurements"/>
+  </changeSet>
+
+  <changeSet id="202305031403-14" author="awood">
+    <sql>
+      ${update_statement_for_has_unlimited_usage}
+    </sql>
+    <rollback>
+      ALTER TABLE subscription DROP COLUMN has_unlimited_usage;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202305031403-15" author="awood">
+    <!-- This insert isn't going to pull over every record from subscription_capacity. Currently,
+    there is no referential integrity between these two tables, so the fact that we are doing a
+    join on subscription here is solely as an effort to avoid trying to insert records from
+    subscription_capacity that don't have a matching record in subscription. -->
+    <sql>
+      INSERT INTO subscription_product_ids (product_id, subscription_id, start_date)
+      SELECT sc.product_id, sc.subscription_id, sc.begin_date
+      FROM subscription_capacity sc JOIN subscription s ON sc.subscription_id = s.subscription_id
+      AND sc.begin_date = s.start_date AND sc.org_id = s.org_id
+    </sql>
+    <rollback>
+      DROP TABLE subscription_product_ids;
+    </rollback>
+  </changeSet>
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->

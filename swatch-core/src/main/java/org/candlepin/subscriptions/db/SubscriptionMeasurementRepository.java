@@ -25,12 +25,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
-import javax.persistence.metamodel.SingularAttribute;
+import org.candlepin.subscriptions.db.model.Offering;
+import org.candlepin.subscriptions.db.model.Offering_;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey_;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacity_;
+import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
+import org.candlepin.subscriptions.db.model.SubscriptionMeasurement.SubscriptionMeasurementKey;
+import org.candlepin.subscriptions.db.model.SubscriptionMeasurement_;
+import org.candlepin.subscriptions.db.model.SubscriptionProductId_;
+import org.candlepin.subscriptions.db.model.Subscription_;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.springframework.data.jpa.domain.Specification;
@@ -38,19 +40,21 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 /** Repository for subscription-provided product capacities. */
-public interface SubscriptionCapacityRepository
-    extends JpaRepository<SubscriptionCapacity, SubscriptionCapacityKey>,
-        JpaSpecificationExecutor<SubscriptionCapacity> {
+public interface SubscriptionMeasurementRepository
+    extends JpaRepository<SubscriptionMeasurement, SubscriptionMeasurementKey>,
+        JpaSpecificationExecutor<SubscriptionMeasurement> {
 
-  List<SubscriptionCapacity> findByKeyOrgIdAndKeySubscriptionIdIn(
+  // Yes this is a ridiculous method name, but it's how SpringData does joins.  I've just made an
+  // alias to it for public use
+  List<SubscriptionMeasurement> findBySubscriptionOrgIdAndSubscriptionSubscriptionIdIn(
       String orgId, List<String> subscriptionIds);
 
-  Stream<SubscriptionCapacity> findByKeyOrgId(String orgId);
+  Stream<SubscriptionMeasurement> findBySubscriptionOrgId(String orgId);
 
-  void deleteByKeyOrgId(String orgId);
+  void deleteBySubscriptionOrgId(String orgId);
 
   @SuppressWarnings("java:S107")
-  default List<SubscriptionCapacity> findAllBy(
+  default List<SubscriptionMeasurement> findAllBy(
       String orgId,
       String productId,
       MetricId metricId,
@@ -71,7 +75,7 @@ public interface SubscriptionCapacityRepository
             reportEnd));
   }
 
-  default List<SubscriptionCapacity> findAllBy(
+  default List<SubscriptionMeasurement> findAllBy(
       String orgId,
       String productId,
       ServiceLevel serviceLevel,
@@ -83,86 +87,122 @@ public interface SubscriptionCapacityRepository
             orgId, productId, null, null, serviceLevel, usage, reportBegin, reportEnd));
   }
 
-  static Specification<SubscriptionCapacity> orgAndProductEquals(String orgId, String productId) {
+  static Specification<SubscriptionMeasurement> orgAndProductEquals(
+      String orgId, String productId) {
     return (root, query, builder) -> {
-      var key = root.get(SubscriptionCapacity_.key);
+      var subscriptionRoot = root.join(SubscriptionMeasurement_.subscription);
+      var productIdRoot = subscriptionRoot.join(Subscription_.subscriptionProductIds);
       return builder.and(
-          builder.equal(key.get(SubscriptionCapacityKey_.orgId), orgId),
-          builder.equal(key.get(SubscriptionCapacityKey_.productId), productId));
+          builder.equal(subscriptionRoot.get(Subscription_.orgId), orgId),
+          builder.equal(productIdRoot.get(SubscriptionProductId_.productId), productId));
     };
   }
 
   /**
-   * This method looks for subscriptions that are active between the two dates given. See {@link
-   * SubscriptionCapacityViewRepository#subscriptionIsActiveBetween(OffsetDateTime, OffsetDateTime)}
-   * for a detailed discussion of how the logic for this method is derived.
+   * This method looks for subscriptions that are active between the two dates given. The logic is
+   * not intuitive: subscription_begin &lt;= report_end && subscription_end &gt;= report_begin. Here
+   * is how this predicate is derived. There are four points that need to be considered: the
+   * subscription begin date (Sb), the subscription end date (Se), the report begin date (Rb), and
+   * the report end date (Re). Those dates can be in five different relationships.
+   *
+   * <ol>
+   *   <li>Sb Se Rb Re (a subscription that expires before the report period even starts
+   *   <li>Sb Rb Se Re (a subscription that has started before the report period and ends during it.
+   *   <li>Rb Sb Se Re (a subscription that falls entirely within the report period)
+   *   <li>Rb Sb Re Se (a subscription that starts inside the report period but continues past the
+   *       end of the period)
+   *   <li>Rb Re Sb Se (a subscription that does not start until after the period has already ended)
+   * </ol>
+   *
+   * <p>We want this method to return subscriptions that are active within the report period. That
+   * means cases 2, 3, and 4. Here are the relationships for those cases:
+   *
+   * <ol>
+   *   <li>Sb &lt; Rb, Sb &lt; Re, Se &gt; Rb, Se &lt; Re
+   *   <li>Sb &gt; Rb, Sb &lt; Re, Se &gt; Rb, Se &lt; Re
+   *   <li>Sb &gt; Rb, Sb &lt; Re, Se &gt; Rb, Se &gt; Re
+   * </ol>
+   *
+   * <p>Looking at those inequalities, we can see that the two invariant relationships are Sb &lt;
+   * Re and Se &gt; Rb. Then we add the "or equal to" to the inequalities to capture edge cases.
    *
    * @param reportStart the date the reporting period begins
    * @param reportEnd the date the reporting period ends
    * @return A specification that determines if a subscription is active during the given period
    */
-  static Specification<SubscriptionCapacity> subscriptionIsActiveBetween(
+  static Specification<SubscriptionMeasurement> subscriptionIsActiveBetween(
       OffsetDateTime reportStart, OffsetDateTime reportEnd) {
     return (root, query, builder) -> {
       var p = builder.conjunction();
+      var subscriptionRoot = root.join(SubscriptionMeasurement_.subscription);
       if (Objects.nonNull(reportEnd)) {
         p.getExpressions()
-            .add(builder.lessThanOrEqualTo(root.get(SubscriptionCapacity_.beginDate), reportEnd));
+            .add(
+                builder.lessThanOrEqualTo(
+                    subscriptionRoot.get(Subscription_.startDate), reportEnd));
       }
       if (Objects.nonNull(reportStart)) {
         p.getExpressions()
             .add(
-                builder.greaterThanOrEqualTo(root.get(SubscriptionCapacity_.endDate), reportStart));
+                builder.greaterThanOrEqualTo(
+                    subscriptionRoot.get(Subscription_.endDate), reportStart));
       }
       return p;
     };
   }
 
-  static Specification<SubscriptionCapacity> slaEquals(ServiceLevel sla) {
-    return (root, query, builder) ->
-        builder.equal(root.get(SubscriptionCapacity_.serviceLevel), sla);
+  static Specification<SubscriptionMeasurement> slaEquals(ServiceLevel sla) {
+    return (root, query, builder) -> {
+      var offeringRoot = query.from(Offering.class);
+      var subscriptionRoot = root.join(SubscriptionMeasurement_.subscription);
+      return builder.and(
+          builder.equal(subscriptionRoot.get(Subscription_.sku), offeringRoot.get(Offering_.sku)),
+          builder.equal(offeringRoot.get(Offering_.serviceLevel), sla));
+    };
   }
 
-  static Specification<SubscriptionCapacity> usageEquals(Usage usage) {
-    return (root, query, builder) -> builder.equal(root.get(SubscriptionCapacity_.usage), usage);
+  static Specification<SubscriptionMeasurement> usageEquals(Usage usage) {
+    return (root, query, builder) -> {
+      var offeringRoot = query.from(Offering.class);
+      var subscriptionRoot = root.join(SubscriptionMeasurement_.subscription);
+      return builder.and(
+          builder.equal(subscriptionRoot.get(Subscription_.sku), offeringRoot.get(Offering_.sku)),
+          builder.equal(offeringRoot.get(Offering_.usage), usage));
+    };
   }
 
-  static Specification<SubscriptionCapacity> coresCriteria(
+  static Specification<SubscriptionMeasurement> coresCriteria(
       HypervisorReportCategory hypervisorReportCategory) {
-    return metricsCriteria(
-        hypervisorReportCategory,
-        SubscriptionCapacity_.cores,
-        SubscriptionCapacity_.hypervisorCores);
+    return metricsCriteria(hypervisorReportCategory, MetricId.CORES.toString());
   }
 
-  static Specification<SubscriptionCapacity> socketsCriteria(
+  static Specification<SubscriptionMeasurement> socketsCriteria(
       HypervisorReportCategory hypervisorReportCategory) {
-    return metricsCriteria(
-        hypervisorReportCategory,
-        SubscriptionCapacity_.sockets,
-        SubscriptionCapacity_.hypervisorSockets);
+    return metricsCriteria(hypervisorReportCategory, MetricId.SOCKETS.toString());
   }
 
-  static Specification<SubscriptionCapacity> metricsCriteria(
-      HypervisorReportCategory hypervisorReportCategory,
-      SingularAttribute<SubscriptionCapacity, Integer> standardAttribute,
-      SingularAttribute<SubscriptionCapacity, Integer> hypervisorAttribute) {
+  static Specification<SubscriptionMeasurement> metricsCriteria(
+      HypervisorReportCategory hypervisorReportCategory, String attribute) {
     return (root, query, builder) -> {
       // Note this is a *disjunction* (i.e. an "or" operation)
+      var subscriptionRoot = root.join(SubscriptionMeasurement_.subscription);
       var metricPredicate = builder.disjunction();
       metricPredicate
           .getExpressions()
-          .add(builder.isTrue(root.get(SubscriptionCapacity_.hasUnlimitedUsage)));
+          .add(builder.isTrue(subscriptionRoot.get(Subscription_.hasUnlimitedUsage)));
 
-      var standardPredicate = builder.greaterThan(root.get(standardAttribute), 0);
-      var hypervisorPredicate = builder.greaterThan(root.get(hypervisorAttribute), 0);
-      // Has no hypervisor capacity at all.  In practices, subscriptions with non-hypervisor SKUs
-      // have null for hypervisor_cores and hypervisor_sockets, but I am checking for zero here also
-      // just to cover the bases.
-      var nonHypervisorPredicate =
-          builder.or(
-              builder.isNull(root.get(hypervisorAttribute)),
-              builder.equal(root.get(hypervisorAttribute), 0));
+      var standardPredicate =
+          builder.and(
+              builder.equal(root.get(SubscriptionMeasurement_.measurementType), "PHYSICAL"),
+              builder.equal(root.get(SubscriptionMeasurement_.metricId), attribute));
+
+      var hypervisorPredicate =
+          builder.and(
+              builder.equal(root.get(SubscriptionMeasurement_.measurementType), "HYPERVISOR"),
+              builder.equal(root.get(SubscriptionMeasurement_.metricId), attribute));
+
+      // Has no hypervisor capacity at all.
+      var nonHypervisorPredicate = builder.and(standardPredicate, builder.not(hypervisorPredicate));
 
       if (Objects.nonNull(hypervisorReportCategory)) {
         switch (hypervisorReportCategory) {
@@ -184,7 +224,7 @@ public interface SubscriptionCapacityRepository
   }
 
   @SuppressWarnings("java:S107")
-  default Specification<SubscriptionCapacity> buildSearchSpecification(
+  default Specification<SubscriptionMeasurement> buildSearchSpecification(
       String orgId,
       String productId,
       MetricId metricId,
