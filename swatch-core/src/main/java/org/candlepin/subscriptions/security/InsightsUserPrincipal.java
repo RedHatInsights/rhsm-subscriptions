@@ -79,7 +79,7 @@ public class InsightsUserPrincipal implements RhIdentity.Identity {
   }
 
   public String toString() {
-    return String.format("[Account: %s, OrgId: %s]", accountNumber, getOrgId());
+    return getOrgId();
   }
 
   @Override

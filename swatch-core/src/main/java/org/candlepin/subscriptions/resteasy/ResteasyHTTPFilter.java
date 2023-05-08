@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.filters;
+package org.candlepin.subscriptions.resteasy;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -28,7 +28,6 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.ws.rs.container.ContainerRequestContext;
@@ -40,15 +39,17 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.ext.Provider;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
+@Component
 @Provider
 @Slf4j
-public class ContractsHTTPFilter implements ContainerRequestFilter, ContainerResponseFilter {
+public class ResteasyHTTPFilter implements ContainerRequestFilter, ContainerResponseFilter {
 
-  @ConfigProperty(name = "FILTER_ORGS")
-  Optional<List<String>> filterOrgs;
+  @Value("${FILTER_ORGS:}")
+  List<String> filterOrgs;
 
   public static final String HTTP_REQUEST_MDC_UUID_KEY = "HTTP_REQUEST_MDC_UUID_KEY";
   public static final String START_TIME = "START_TIME";
@@ -57,13 +58,11 @@ public class ContractsHTTPFilter implements ContainerRequestFilter, ContainerRes
 
   @Override
   public void filter(ContainerRequestContext requestContext) throws IOException {
-    if (filterOrgs.isPresent()
-        && Objects.nonNull(securityContext.getUserPrincipal())
-        && filterOrgs.get().contains(securityContext.getUserPrincipal().getName())) {
+    if (Objects.nonNull(securityContext.getUserPrincipal())
+        && filterOrgs.contains(securityContext.getUserPrincipal().getName())) {
       String token = UUID.randomUUID().toString().toUpperCase();
       MDC.put(HTTP_REQUEST_MDC_UUID_KEY, token);
       MDC.put(START_TIME, OffsetDateTime.now().toString());
-
       log.debug(
           "Http Request UUID {} at start time {} with URI {}",
           MDC.get(HTTP_REQUEST_MDC_UUID_KEY),
@@ -100,11 +99,10 @@ public class ContractsHTTPFilter implements ContainerRequestFilter, ContainerRes
 
   @Override
   public void filter(
-      ContainerRequestContext requestContext, ContainerResponseContext responseContext) {
+      ContainerRequestContext requestContext, ContainerResponseContext responseContext)
+      throws IOException {
 
-    if (filterOrgs.isPresent()
-        && Objects.nonNull(securityContext.getUserPrincipal())
-        && filterOrgs.get().contains(securityContext.getUserPrincipal().getName())
+    if (Objects.nonNull(securityContext.getUserPrincipal())
         && Objects.nonNull(MDC.get(HTTP_REQUEST_MDC_UUID_KEY))
         && Objects.nonNull(MDC.get(START_TIME))) {
       var delta =

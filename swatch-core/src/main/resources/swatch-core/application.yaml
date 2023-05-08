@@ -74,6 +74,8 @@ DATABASE_CONNECTION_TIMEOUT_MS: 30000
 DATABASE_MAX_POOL_SIZE: 10
 POSTGRES_STATEMENT_TIMEOUT: 5min
 
+FILTER_ORGS:
+
 server:
   port: ${SERVER_PORT}
 
@@ -172,3 +174,9 @@ rhsm-subscriptions:
   auth:
     swatchPsks:
       self: ${SWATCH_SELF_PSK:placeholder}
+logging:
+  level:
+    org:
+      candlepin:
+        subscriptions:
+          resteasy:
