@@ -31,13 +31,18 @@ import org.candlepin.subscriptions.security.SecurityProperties;
 import org.candlepin.subscriptions.tally.MarketplaceResendTallyController;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.tally.admin.api.InternalApi;
+import org.candlepin.subscriptions.tally.admin.api.model.DefaultResponse;
+import org.candlepin.subscriptions.tally.admin.api.model.EventsResponse;
+import org.candlepin.subscriptions.tally.admin.api.model.OptInResponse;
 import org.candlepin.subscriptions.tally.admin.api.model.TallyResend;
 import org.candlepin.subscriptions.tally.admin.api.model.TallyResendData;
+import org.candlepin.subscriptions.tally.admin.api.model.TallyResponse;
 import org.candlepin.subscriptions.tally.admin.api.model.UuidList;
 import org.candlepin.subscriptions.tally.billing.RemittanceController;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -59,6 +64,8 @@ public class InternalTallyResource implements InternalApi {
 
   public static final String FEATURE_NOT_ENABLED_MESSSAGE =
       "This feature is not currently enabled.";
+  private static final String SUCCESS_STATUS = "Success";
+  private static final String REJECTED_STATUS = "Rejected";
 
   @SuppressWarnings("java:S107")
   public InternalTallyResource(
@@ -116,13 +123,15 @@ public class InternalTallyResource implements InternalApi {
   }
 
   @Override
-  public void purgeTallySnapshots() {
+  public DefaultResponse purgeTallySnapshots() {
     try {
       log.info("Initiating tally snapshot purge.");
       retentionController.purgeSnapshotsAsync();
     } catch (TaskRejectedException e) {
       log.warn("A tally snapshots purge job is already running.");
+      return getDefaultResponse(REJECTED_STATUS);
     }
+    return getDefaultResponse(SUCCESS_STATUS);
   }
 
   /**
@@ -132,20 +141,24 @@ public class InternalTallyResource implements InternalApi {
    * @param orgId Red Hat orgId
    */
   @Override
-  public String deleteDataAssociatedWithOrg(String orgId) {
+  public TallyResponse deleteDataAssociatedWithOrg(String orgId) {
+    var response = new TallyResponse();
     if (isFeatureEnabled()) {
       log.info("Received request to delete all data associated with orgId {}", orgId);
       try {
         internalTallyDataController.deleteDataAssociatedWithOrg(orgId);
       } catch (Exception e) {
         log.error("Unable to delete data for organization {} due to {}", orgId, e);
-        return String.format("Unable to delete data for organization %s", orgId);
+        response.setDetail(String.format("Unable to delete data for organization %s", orgId));
+        return response;
       }
       var successMessage = "Finished deleting data associated with organization " + orgId;
+      response.setDetail(successMessage);
       log.info(successMessage);
-      return successMessage;
+      return response;
     } else {
-      return FEATURE_NOT_ENABLED_MESSSAGE;
+      response.setDetail(FEATURE_NOT_ENABLED_MESSSAGE);
+      return response;
     }
   }
 
@@ -156,17 +169,21 @@ public class InternalTallyResource implements InternalApi {
    * @return success or error message
    */
   @Override
-  public String deleteEvent(String eventId) {
+  public EventsResponse deleteEvent(String eventId) {
+    var response = new EventsResponse();
     if (isFeatureEnabled()) {
       try {
         internalTallyDataController.deleteEvent(eventId);
-        return String.format("Successfully deleted Event with ID: %s", eventId);
+        response.setDetail(String.format("Successfully deleted Event with ID: %s", eventId));
+        return response;
       } catch (Exception e) {
         log.error("Failed to delete Event with ID: {}  Cause: {}", eventId, e.getMessage());
-        return String.format("Failed to delete Event with ID: %s ", eventId);
+        response.setDetail(String.format("Failed to delete Event with ID: %s ", eventId));
+        return response;
       }
     } else {
-      return FEATURE_NOT_ENABLED_MESSSAGE;
+      response.setDetail(FEATURE_NOT_ENABLED_MESSSAGE);
+      return response;
     }
   }
 
@@ -179,13 +196,17 @@ public class InternalTallyResource implements InternalApi {
    * @return success or error message
    */
   @Override
-  public String fetchEventsForOrgIdInTimeRange(
+  public EventsResponse fetchEventsForOrgIdInTimeRange(
       String orgId, OffsetDateTime begin, OffsetDateTime end) {
+    var response = new EventsResponse();
     try {
-      return internalTallyDataController.fetchEventsForOrgIdInTimeRange(orgId, begin, end);
+      response.setDetail(
+          internalTallyDataController.fetchEventsForOrgIdInTimeRange(orgId, begin, end));
+      return response;
     } catch (Exception e) {
       log.error("Unable to deserialize event list ", e);
-      return "Unable to deserialize event list";
+      response.setDetail("Unable to deserialize event list");
+      return response;
     }
   }
 
@@ -196,28 +217,34 @@ public class InternalTallyResource implements InternalApi {
    * @return success or error message
    */
   @Override
-  public String saveEvents(String jsonListOfEvents) {
+  public EventsResponse saveEvents(String jsonListOfEvents) {
+    var response = new EventsResponse();
     if (isFeatureEnabled()) {
-      return internalTallyDataController.saveEvents(jsonListOfEvents);
+      response.setDetail(internalTallyDataController.saveEvents(jsonListOfEvents));
+      return response;
+
     } else {
-      return FEATURE_NOT_ENABLED_MESSSAGE;
+      response.setDetail(FEATURE_NOT_ENABLED_MESSSAGE);
+      return response;
     }
   }
 
   /** Update tally snapshots for all orgs */
   @Override
-  public void tallyConfiguredOrgs() {
+  public DefaultResponse tallyConfiguredOrgs() {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Tally for all orgs triggered over API by {}", principal);
     internalTallyDataController.tallyConfiguredOrgs();
+    return getDefaultResponse(SUCCESS_STATUS);
   }
 
   /** Trigger a tally for an org */
   @Override
-  public void tallyOrg(String orgId) {
+  public DefaultResponse tallyOrg(String orgId) {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Tally for org {} triggered over API by {}", orgId, principal);
     internalTallyDataController.tallyOrg(orgId);
+    return getDefaultResponse(SUCCESS_STATUS);
   }
 
   /**
@@ -231,7 +258,8 @@ public class InternalTallyResource implements InternalApi {
    * @throws IllegalArgumentException
    */
   @Override
-  public void tallyAllOrgsByHourly(String start, String end) throws IllegalArgumentException {
+  public DefaultResponse tallyAllOrgsByHourly(String start, String end)
+      throws IllegalArgumentException {
 
     DateRange range = null;
     if (StringUtils.hasText(start) || StringUtils.hasText(end)) {
@@ -251,6 +279,7 @@ public class InternalTallyResource implements InternalApi {
     }
 
     internalTallyDataController.tallyAllOrgsByHourly(range);
+    return getDefaultResponse(SUCCESS_STATUS);
   }
 
   /**
@@ -261,13 +290,15 @@ public class InternalTallyResource implements InternalApi {
    * @return success or error message
    */
   @Override
-  public String createOrUpdateOptInConfig(String accountNumber, String orgId) {
+  public OptInResponse createOrUpdateOptInConfig(String accountNumber, String orgId) {
+    var response = new OptInResponse();
     Object principal = ResourceUtils.getPrincipal();
     log.info(
         "Opt in for account {}, org {} triggered via API by {}", accountNumber, orgId, principal);
     log.debug("Creating OptInConfig over API for account {}, org {}", accountNumber, orgId);
-    return internalTallyDataController.createOrUpdateOptInConfig(
-        accountNumber, orgId, OptInType.API);
+    response.setDetail(
+        internalTallyDataController.createOrUpdateOptInConfig(accountNumber, orgId, OptInType.API));
+    return response;
   }
 
   private boolean isFeatureEnabled() {
@@ -276,5 +307,12 @@ public class InternalTallyResource implements InternalApi {
       return false;
     }
     return true;
+  }
+
+  @NotNull
+  private DefaultResponse getDefaultResponse(String status) {
+    var response = new DefaultResponse();
+    response.setStatus(status);
+    return response;
   }
 }

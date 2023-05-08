@@ -92,8 +92,12 @@ paths:
       operationId: purgeTallySnapshots
       summary: 'Purge existing tally snapshots matching the configured retention policy.'
       responses:
-        '204':
+        '200':
           description: 'The request for purging tally snapshots was successful.'
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
         '401':
           $ref: "../../../spec/error-responses.yaml#/$defs/Unauthorized"
         '500':
@@ -115,7 +119,7 @@ paths:
           content:
             application/json:
               schema:
-                type: string
+                $ref: "#/components/schemas/TallyResponse"
         '400':
           $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
@@ -153,7 +157,7 @@ paths:
           content:
             application/json:
               schema:
-                type: string
+                $ref: "#/components/schemas/EventsResponse"
         '400':
           $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
@@ -176,7 +180,7 @@ paths:
           content:
             application/json:
               schema:
-                type: string
+                $ref: "#/components/schemas/EventsResponse"
         '400':
           $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
@@ -202,7 +206,7 @@ paths:
           content:
             application/json:
               schema:
-                type: string
+                $ref: "#/components/schemas/EventsResponse"
         '400':
           $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
@@ -221,8 +225,12 @@ paths:
             type: string
           required: true
       responses:
-        '204':
+        '200':
           description: Updated snapshots for the org.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
         '400':
           $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
@@ -237,8 +245,12 @@ paths:
     put:
       operationId: tallyConfiguredOrgs
       responses:
-        '204':
+        '200':
           description: Updated snapshots for all org.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
         '400':
           $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
@@ -269,8 +281,12 @@ paths:
             type: string
             example: 2023-03-01T00:00:00Z
       responses:
-        '204':
+        '200':
           description: Updated snapshots for the orgs.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
         '400':
           $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
@@ -303,7 +319,7 @@ paths:
           content:
             application/json:
               schema:
-                type: string
+                $ref: "#/components/schemas/OptInResponse"
         '400':
           $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
@@ -339,3 +355,19 @@ components:
           properties:
             tallies_resent:
               type: integer
+    DefaultResponse:
+      properties:
+        status:
+          type: string
+    EventsResponse:
+      properties:
+        detail:
+          type: string
+    OptInResponse:
+      properties:
+        detail:
+          type: string
+    TallyResponse:
+      properties:
+        detail:
+          type: string
