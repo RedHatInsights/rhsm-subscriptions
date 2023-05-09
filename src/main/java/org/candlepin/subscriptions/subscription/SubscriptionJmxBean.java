@@ -88,15 +88,14 @@ public class SubscriptionJmxBean {
 
   @Transactional
   @ManagedOperation(
-      description = "Remove subscription and capacity records that are not in the allowlist.")
+      description = "Remove subscription and capacity records that are in the denylist.")
   public void pruneUnlistedSubscriptions() {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Prune of unlisted subscriptions triggered over JMX by {}", principal);
     subscriptionPruneController.pruneAllUnlistedSubscriptions();
   }
 
-  @ManagedOperation(
-      description = "Save subscriptions manually, ignoring allowlist. Supported only in dev-mode.")
+  @ManagedOperation(description = "Save subscriptions manually. Supported only in dev-mode.")
   @ManagedOperationParameter(
       name = "subscriptionsJson",
       description = "JSON array containing subscriptions to save")

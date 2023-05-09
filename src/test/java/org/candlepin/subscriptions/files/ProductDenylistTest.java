@@ -24,39 +24,35 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.capacity.files.ProductAllowlist;
+import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.FileSystemResourceLoader;
 
-class ProductAllowlistTest {
+class ProductDenylistTest {
 
   @Test
   void testUnspecifiedLocationAllowsArbitraryProducts() throws IOException {
-    ProductAllowlist allowlist = initProductAllowlist("");
-    assertTrue(allowlist.productIdMatches("whee!"));
+    ProductDenylist denylist = initProductDenylist("");
+    assertFalse(denylist.productIdMatches("whee!"));
   }
 
   @Test
-  void testAllowsProductsSpecified() throws IOException {
-    ProductAllowlist allowlist = initProductAllowlist("classpath:item_per_line.txt");
-    assertTrue(allowlist.productIdMatches("I1"));
-    assertTrue(allowlist.productIdMatches("I2"));
-    assertTrue(allowlist.productIdMatches("I3"));
+  void testAllowsProductsUnSpecifiedInDenylist() throws IOException {
+    ProductDenylist denylist = initProductDenylist("classpath:item_per_line.txt");
+    assertTrue(denylist.productIdMatches("I1"));
+    assertTrue(denylist.productIdMatches("I2"));
+    assertTrue(denylist.productIdMatches("I3"));
+    assertFalse(denylist.productIdMatches("I111"));
+    assertFalse(denylist.productIdMatches("I112"));
   }
 
-  @Test
-  void testDisallowsProductsIsNotInAllowlist() throws IOException {
-    ProductAllowlist allowlist = initProductAllowlist("classpath:item_per_line.txt");
-    assertFalse(allowlist.productIdMatches("not on the list :-("));
-  }
-
-  private ProductAllowlist initProductAllowlist(String resourceLocation) throws IOException {
+  private ProductDenylist initProductDenylist(String resourceLocation) {
     ApplicationProperties props = new ApplicationProperties();
-    props.setProductAllowlistResourceLocation(resourceLocation);
-    ProductAllowlist allowlist = new ProductAllowlist(props, new ApplicationClock());
-    allowlist.setResourceLoader(new FileSystemResourceLoader());
-    allowlist.init();
-    return allowlist;
+    props.setProductDenylistResourceLocation(resourceLocation);
+    ProductDenylist denylist = new ProductDenylist(props, new ApplicationClock());
+    denylist.setResourceLoader(new FileSystemResourceLoader());
+    denylist.init();
+    return denylist;
   }
 }

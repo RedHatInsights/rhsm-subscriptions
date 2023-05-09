@@ -245,7 +245,7 @@ RHSM_RBAC_USE_STUB=true ./gradlew bootRun
 * `INVENTORY_DATABASE_DATABASE`: inventory DB database
 * `INVENTORY_DATABASE_USERNAME`: inventory DB user
 * `INVENTORY_DATABASE_PASSWORD`: inventory DB password
-* `PRODUCT_ALLOWLIST_RESOURCE_LOCATION`: location of the product allowlist
+* `PRODUCT_DENYLIST_RESOURCE_LOCATION`: location of the product denylist
 * `ACCOUNT_LIST_RESOURCE_LOCATION`: location of the account list (opt-in used otherwise)
 * `DATABASE_HOST`: DB host
 * `DATABASE_PORT`: DB port
@@ -372,7 +372,7 @@ Prerequisite secrets:
 - `tls`: having `keystore.password`, the password used for capacity ingress.
 
 Prequisite configmaps:
-- `capacity-allowlist` having `product-allowlist.txt` which is a newline-separated list of which SKUs have been approved for capacity ingress.
+- `capacity-denylist` having `product-denylist.txt` which is a newline-separated list of which SKUs have been approved for capacity ingress.
 
 Adjust as desired:
 

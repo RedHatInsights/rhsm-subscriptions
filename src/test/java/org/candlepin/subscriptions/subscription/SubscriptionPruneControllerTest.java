@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.util.stream.Stream;
-import org.candlepin.subscriptions.capacity.files.ProductAllowlist;
+import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
@@ -58,15 +58,15 @@ class SubscriptionPruneControllerTest {
       @Mock MeterRegistry meterRegistry,
       @Mock Timer timer,
       @Mock KafkaTemplate<String, PruneSubscriptionsTask> kafkaTemplate,
-      @Mock ProductAllowlist allowList) {
+      @Mock ProductDenylist denylist) {
     this.subscriptionRepo = subscriptionRepo;
     this.capacityRepo = capacityRepo;
     this.orgConfigRepo = orgConfigRepo;
     this.kafkaTemplate = kafkaTemplate;
     TaskQueueProperties queueProperties = new TaskQueueProperties();
     when(meterRegistry.timer(any())).thenReturn(timer);
-    when(allowList.productIdMatches("allowed")).thenReturn(true);
-    when(allowList.productIdMatches("denied")).thenReturn(false);
+    when(denylist.productIdMatches("allowed")).thenReturn(false);
+    when(denylist.productIdMatches("denied")).thenReturn(true);
     controller =
         new SubscriptionPruneController(
             subscriptionRepo,
@@ -74,7 +74,7 @@ class SubscriptionPruneControllerTest {
             orgConfigRepo,
             meterRegistry,
             kafkaTemplate,
-            allowList,
+            denylist,
             queueProperties);
   }
 
@@ -87,7 +87,7 @@ class SubscriptionPruneControllerTest {
   }
 
   @Test
-  void testPruneDoesNothingIfSkuOnAllowlist() {
+  void testPruneDoesNothingIfSkuOnNonDenylist() {
     Subscription allowedSub = new Subscription();
     allowedSub.setSku("allowed");
     when(subscriptionRepo.findByOrgId("up-to-date")).thenReturn(Stream.of(allowedSub));

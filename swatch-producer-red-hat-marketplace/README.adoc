@@ -41,10 +41,10 @@ pip install --upgrade crc-bonfire
 apps:
 - name: rhsm-subscriptions
   components:
-    - name: capacity-allowlist
+    - name: capacity-denylist
       host: gitlab
-      repo: rhsm/swatch-product-allowlist
-      path: templates/capacity-allowlist.yml
+      repo: rhsm/swatch-product-denylist
+      path: templates/capacity-denylist.yml
     - name: rhsm-subscriptions
       host: local
       repo: /home/kevinflaherty/IdeaProjects/rhsm-subscriptions # Change me

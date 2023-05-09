@@ -42,7 +42,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
-import org.candlepin.subscriptions.capacity.files.ProductAllowlist;
+import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -105,14 +105,14 @@ class OfferingSyncControllerTest {
   }
 
   @MockBean OfferingRepository repo;
-  @MockBean ProductAllowlist allowlist;
+  @MockBean ProductDenylist denylist;
   @MockBean CapacityReconciliationController capController;
   @MockBean KafkaTemplate<String, OfferingSyncTask> offeringSyncKafkaTemplate;
   @Autowired OfferingSyncController subject;
 
   @BeforeEach
   void init() {
-    when(allowlist.productIdMatches(anyString())).thenReturn(true);
+    when(denylist.productIdMatches(anyString())).thenReturn(false);
   }
 
   @Test
@@ -203,9 +203,9 @@ class OfferingSyncControllerTest {
   }
 
   @Test
-  void testSyncOfferingNotInAllowlist() {
-    // Given a marketing SKU not listed in allowlist,
-    when(allowlist.productIdMatches(anyString())).thenReturn(false);
+  void testSyncOfferingInDenylist() {
+    // Given a marketing SKU listed in denylist,
+    when(denylist.productIdMatches(anyString())).thenReturn(true);
     var sku = "MW01485"; // The SKU would normally be successfully retrieved, but is denied
 
     // When getting the upstream Offering,
@@ -214,16 +214,14 @@ class OfferingSyncControllerTest {
     // Then syncing the offering is rejected, no attempt was made to fetch or store it, and no
     // capacities are reconciled.
     assertEquals(
-        SyncResult.SKIPPED_NOT_ALLOWLISTED,
-        actual,
-        "A sku not in the allowlist should not be synced.");
-    verify(allowlist).productIdMatches(sku);
+        SyncResult.SKIPPED_DENYLISTED, actual, "A sku in the denylist should not be synced.");
+    verify(denylist).productIdMatches(sku);
     verifyNoInteractions(repo, capController);
   }
 
   @Test
   void testSyncAllOfferings() {
-    // Given the allowlist has a list of SKUs,
+    // Given the non denylist has a list of SKUs,
     when(repo.findAllDistinctSkus()).thenReturn(Set.of("RH00604F5", "RH0180191"));
 
     // When a request is made to sync all offerings,
@@ -236,15 +234,15 @@ class OfferingSyncControllerTest {
   }
 
   @Test
-  void testSyncAllOfferingsEmptyWithAllowList() {
-    // Given the allowlist has no source (that is, no allowlist is provided),
-    when(allowlist.allProducts()).thenReturn(Collections.emptySet());
+  void testSyncAllOfferingsEmptyWithDenyList() {
+    // Given the denylist has no source (that is, no denylist is provided),
+    when(denylist.allProducts()).thenReturn(Collections.emptySet());
 
     // When a request is made to sync all offerings,
     int numEnqueued = subject.syncAllOfferings();
 
-    // Then no SKUs are synced.
-    assertEquals(0, numEnqueued, "Nothing should be synced when no allowlist exists.");
+    // Then SKUs are synced.
+    assertEquals(0, numEnqueued, "Everything should be synced when no denylist exists.");
     verify(offeringSyncKafkaTemplate, never()).send(anyString(), any(OfferingSyncTask.class));
   }
 

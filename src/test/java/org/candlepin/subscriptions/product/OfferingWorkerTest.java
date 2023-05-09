@@ -42,11 +42,11 @@ class OfferingWorkerTest {
 
   @Test
   void testReceive() {
-    // Given a SKU is allowlisted and retrievable from upstream,
+    // Given a SKU is not denied and retrievable from upstream,
 
     when(controller.syncOffering(anyString())).thenReturn(SyncResult.FETCHED_AND_SYNCED);
 
-    // When an allowlisted SKU is received,
+    // When a non denylisted SKU is received,
     String sku = "RH00604F5";
     offeringWorker.receive(new OfferingSyncTask(sku));
 

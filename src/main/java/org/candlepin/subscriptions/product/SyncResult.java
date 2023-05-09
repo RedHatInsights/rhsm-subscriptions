@@ -28,7 +28,7 @@ public enum SyncResult {
   FAILED("Failed to fetch and/or sync"),
   SKIPPED_MATCHING("Upstream matches stored item, did not sync"),
   SKIPPED_NOT_FOUND("Was not found upstream, did not sync"),
-  SKIPPED_NOT_ALLOWLISTED("Not in allowlist, did not sync");
+  SKIPPED_DENYLISTED("In denylist, did not sync");
 
   public static final Set<SyncResult> SUCCESSFUL_SYNC_RESULTS =
       Set.of(FETCHED_AND_SYNCED, SKIPPED_MATCHING);
