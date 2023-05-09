@@ -18,18 +18,32 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.retention;
+package org.candlepin.subscriptions.metering.retention;
 
-import java.time.Duration;
-import lombok.Getter;
-import lombok.Setter;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.candlepin.subscriptions.metering.api.admin.InternalMeteringResource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-@Getter
-@Setter
 @Component
-@ConfigurationProperties(prefix = "rhsm-subscriptions.event-retention-policy")
-public class EventRecordsRetentionProperties {
-  private Duration eventRetentionDuration = Duration.ofDays(90L);
+public class PurgeEventRecordsJob implements Runnable {
+
+  private static final Logger log = LoggerFactory.getLogger(PurgeEventRecordsJob.class);
+
+  private final InternalMeteringResource meteringResource;
+
+  public PurgeEventRecordsJob(InternalMeteringResource meteringResource) {
+    this.meteringResource = meteringResource;
+  }
+
+  @Override
+  @Scheduled(cron = "${rhsm-subscriptions.jobs.purge-events-schedule}")
+  public void run() {
+    log.info("Starting PurgeEventRecordsJob job.");
+
+    meteringResource.purgeEventRecords();
+
+    log.info("PurgeEventRecordsJob complete.");
+  }
 }

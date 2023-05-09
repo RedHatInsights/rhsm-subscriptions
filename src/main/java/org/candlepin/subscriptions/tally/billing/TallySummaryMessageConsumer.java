@@ -33,6 +33,9 @@ import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,8 +74,10 @@ public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
       topics = "#{__listener.topic}",
       containerFactory = "billingProducerKafkaTallySummaryListenerContainerFactory")
   @Transactional
-  public void receive(TallySummary tallySummary) {
-    log.debug("Tally Summary received. Producing billable usage.}");
+  public void receive(
+      @Payload TallySummary tallySummary,
+      @Header(name = KafkaHeaders.RECEIVED_MESSAGE_KEY, required = false) String kafkaMessageKey) {
+    log.debug("Tally Summary received w/ key={}. Producing billable usage.", kafkaMessageKey);
 
     billableUsageMapper
         .fromTallySummary(tallySummary)

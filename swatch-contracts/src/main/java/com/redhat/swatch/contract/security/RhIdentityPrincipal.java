@@ -26,6 +26,7 @@ import java.security.Principal;
 import java.util.Base64;
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
+import javax.json.bind.annotation.JsonbTransient;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -45,16 +46,21 @@ public class RhIdentityPrincipal implements Principal {
 
   private Identity identity;
 
+  /* header value captured so it can be easily forwarded to rbac service */
+  @JsonbTransient private String headerValue;
+
   public static RhIdentityPrincipal fromHeader(String header) {
-    return fromJson(new ByteArrayInputStream(Base64.getDecoder().decode(header)));
+    return fromJson(new ByteArrayInputStream(Base64.getDecoder().decode(header)), header);
   }
 
   public static RhIdentityPrincipal fromJson(String json) {
     return jsonb.fromJson(json, RhIdentityPrincipal.class);
   }
 
-  public static RhIdentityPrincipal fromJson(InputStream inputStream) {
-    return jsonb.fromJson(inputStream, RhIdentityPrincipal.class);
+  public static RhIdentityPrincipal fromJson(InputStream inputStream, String headerValue) {
+    var identity = jsonb.fromJson(inputStream, RhIdentityPrincipal.class);
+    identity.setHeaderValue(headerValue);
+    return identity;
   }
 
   @Override
@@ -62,6 +68,7 @@ public class RhIdentityPrincipal implements Principal {
     return switch (identity.getType()) {
       case "Associate" -> identity.getSamlAssertions().getEmail();
       case "X509" -> identity.getX509().getSubjectDn();
+      case "User" -> identity.getOrgId();
       default -> throw new IllegalArgumentException(
           String.format("Unsupported RhIdentity type %s", getIdentity().getType()));
     };

@@ -110,40 +110,33 @@ public class BillableUsageController {
    * billing is then applied before remitting. calculations that are need to bill any unbilled
    * amount and to record any unbilled amount
    *
-   * @param measuredTotal The total amount of a given usage for the month that is the latest record
-   *     tally total
+   * @param applicableUsage The total amount of measured usage used during the calculation.
    * @param usage The specific event within a given month to determine what need to be billed
    * @param remittance The previous record amount for remitted amount
    * @return calculations that are need to bill any un-billed amount and to record any un-billed
    *     amount
    */
   private BillableUsageCalculation calculateBillableUsage(
-      double measuredTotal, BillableUsage usage, BillableUsageRemittanceEntity remittance) {
-    var tagMetricOptional =
-        tagProfile.getTagMetric(
-            usage.getProductId(), Measurement.Uom.fromValue(usage.getUom().value()));
-    double tagFactor =
-        tagMetricOptional
-            .map(TagMetric::getBillingFactor)
-            .orElse(1.0); // get configured billingFactor in tag_profile yaml
+      double applicableUsage, BillableUsage usage, BillableUsageRemittanceEntity remittance) {
+    double tagFactor = getBillingFactor(usage);
     double billableValue;
     double remittedValue;
     var currentRemittedValue = remittance.getRemittedValue();
     var prevBillingFactor = Objects.requireNonNullElse(remittance.getBillingFactor(), 1.0);
 
-    // if the tag factor is different from latest billing factor,
+    // if the tag factor is different from the latest billing factor,
     // we will calculate the difference based on the current tag metric,
     // if not we will just calculate as usual
     if (tagFactor != 1.0) {
       var prevBilled = currentRemittedValue / prevBillingFactor; // previously billed
-      var unbilledAmount = adjustBillable(measuredTotal - prevBilled);
+      var unbilledAmount = adjustBillable(applicableUsage - prevBilled);
       var updatedBill = unbilledAmount * tagFactor;
       var prevBilledAdjusted = prevBilled * tagFactor;
 
       billableValue = Math.ceil(updatedBill);
       remittedValue = adjustBillable(billableValue) + prevBilledAdjusted;
     } else {
-      double adjustedMeasuredTotal = Math.ceil(measuredTotal);
+      double adjustedMeasuredTotal = Math.ceil(applicableUsage);
       billableValue = adjustBillable(adjustedMeasuredTotal - currentRemittedValue);
       remittedValue = currentRemittedValue + billableValue;
     }
@@ -154,6 +147,15 @@ public class BillableUsageController {
         .remittanceDate(clock.now())
         .billingFactor(tagFactor)
         .build();
+  }
+
+  private double getBillingFactor(BillableUsage usage) {
+    var tagMetricOptional =
+        tagProfile.getTagMetric(
+            usage.getProductId(), Measurement.Uom.fromValue(usage.getUom().value()));
+    return tagMetricOptional
+        .map(TagMetric::getBillingFactor)
+        .orElse(1.0); // get configured billingFactor in tag_profile yaml
   }
 
   private Double adjustBillable(double billableValue) {
@@ -199,10 +201,12 @@ public class BillableUsageController {
         getCurrentlyMeasuredTotal(
             usage, clock.startOfMonth(usage.getSnapshotDate()), usage.getSnapshotDate());
 
-    double applicableUsage =
-        contractOptional.isPresent()
-            ? adjustBillable(currentlyMeasuredTotal - contractOptional.get())
-            : currentlyMeasuredTotal;
+    double applicableUsage = currentlyMeasuredTotal;
+    if (contractOptional.isPresent()) {
+      double contractCoverage =
+          convertContractUnitsToMeasurementUnits(contractOptional.get(), getBillingFactor(usage));
+      applicableUsage = adjustBillable(currentlyMeasuredTotal - contractCoverage);
+    }
 
     BillableUsageRemittanceEntity remittance = getLatestRemittance(usage);
     BillableUsageCalculation usageCalc = calculateBillableUsage(applicableUsage, usage, remittance);
@@ -269,5 +273,23 @@ public class BillableUsageController {
         beginning,
         ending,
         measurementKey);
+  }
+
+  /**
+   * Since the contract is provided as billing units, we need to convert it to measurement units so
+   * that it can be properly deducted from the measured total from the snapshots.
+   *
+   * <p>For example, given a contract with 1 4vCPU capacity (billing factor of 0.25), and a tally
+   * measurement of 4 vCPUs, the contract units will be converted to 1/0.25 = 4
+   */
+  private double convertContractUnitsToMeasurementUnits(
+      double contractedValue, double billingFactor) {
+    double contractMeasurementUnits = contractedValue / billingFactor;
+    log.debug(
+        "Converting contract amount: {}/{}={}",
+        contractedValue,
+        billingFactor,
+        contractMeasurementUnits);
+    return contractMeasurementUnits;
   }
 }

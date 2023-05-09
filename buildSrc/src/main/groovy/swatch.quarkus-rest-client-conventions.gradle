@@ -9,8 +9,8 @@ plugins {
 }
 
 ext {
-    api_spec_path = "${projectDir}/${project.name.replace('-client', '-api-spec.yaml')}"
-    java_package = "com.redhat.swatch.clients.${project.name.replace('-client', '').replaceAll('-', '.')}"
+    api_spec_path = "${projectDir.toString().replace('quarkus/', '')}/${project.name.replace('-client', '-api-spec.yaml').replace(':quarkus', '')}"
+    java_package = "com.redhat.swatch.clients.${project.name.replace(':quarkus', '').replace('-client', '').replaceAll('-', '.')}"
 }
 
 tasks.register("generateApiDocs", GenerateTask) {

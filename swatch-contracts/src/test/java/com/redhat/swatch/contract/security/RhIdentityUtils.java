@@ -51,6 +51,18 @@ public class RhIdentityUtils {
 
   public static final String X509_IDENTITY_HEADER = generateHeader(X509_IDENTITY_JSON);
 
+  public static final String CUSTOMER_IDENTITY_JSON =
+      """
+            {
+              "identity": {
+                "type": "User",
+                "org_id": "org123"
+              }
+            }
+            """;
+
+  public static final String CUSTOMER_IDENTITY_HEADER = generateHeader(CUSTOMER_IDENTITY_JSON);
+
   static String generateHeader(String json) {
     return new String(
         Base64.getEncoder().encode(json.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);

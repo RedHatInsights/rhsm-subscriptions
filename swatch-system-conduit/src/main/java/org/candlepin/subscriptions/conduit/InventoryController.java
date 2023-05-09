@@ -116,6 +116,7 @@ public class InventoryController {
   public static final String TRUE = "True";
   public static final String NONE = "none";
   public static final Set<String> IGNORED_CONSUMER_TYPES = Set.of("candlepin", "satellite", "sam");
+  public static final long MAX_ALLOWED_SYSTEM_MEMORY_BYTES = 9007199254740991L;
 
   private InventoryService inventoryService;
   private RhsmService rhsmService;
@@ -182,9 +183,7 @@ public class InventoryController {
     facts.setCloudProvider(extractCloudProvider(rhsmFacts));
 
     List<String> productIds =
-        consumer.getInstalledProducts().stream()
-            .map(InstalledProducts::getProductId)
-            .collect(Collectors.toList());
+        consumer.getInstalledProducts().stream().map(InstalledProducts::getProductId).toList();
     facts.setRhProd(productIds);
 
     extractMarketPlaceFacts(rhsmFacts, facts);
@@ -271,6 +270,15 @@ public class InventoryController {
       facts.setCoresPerSocket(Integer.parseInt(coresPerSocket));
     }
 
+    setMemoryFacts(rhsmFacts, facts);
+
+    String architecture = rhsmFacts.get(UNAME_MACHINE);
+    if (StringUtils.hasLength(architecture)) {
+      facts.setArchitecture(architecture);
+    }
+  }
+
+  private void setMemoryFacts(Map<String, String> rhsmFacts, ConduitFacts facts) {
     String memoryTotal = rhsmFacts.get(MEMORY_MEMTOTAL);
     if (StringUtils.hasLength(memoryTotal)) {
       try {
@@ -279,15 +287,18 @@ public class InventoryController {
         long memoryGigabytes =
             memoryBytes.divide(KIBIBYTES_PER_GIBIBYTE, RoundingMode.CEILING).longValue();
         facts.setMemory(memoryGigabytes);
-        facts.setSystemMemoryBytes(memoryBytes.multiply(BYTES_PER_KIBIBYTE).longValue());
+        long systemMemoryBytes = memoryBytes.multiply(BYTES_PER_KIBIBYTE).longValue();
+        if (systemMemoryBytes > MAX_ALLOWED_SYSTEM_MEMORY_BYTES) {
+          log.warn(
+              "System memory bytes value {} greater than max allowed value of {}. Setting to null.",
+              systemMemoryBytes,
+              MAX_ALLOWED_SYSTEM_MEMORY_BYTES);
+        } else {
+          facts.setSystemMemoryBytes(systemMemoryBytes);
+        }
       } catch (NumberFormatException e) {
         log.info("Bad memory.memtotal value: {}", memoryTotal);
       }
-    }
-
-    String architecture = rhsmFacts.get(UNAME_MACHINE);
-    if (StringUtils.hasLength(architecture)) {
-      facts.setArchitecture(architecture);
     }
   }
 
@@ -396,7 +407,7 @@ public class InventoryController {
 
   protected List<String> filterCommaDelimitedList(String s, Predicate<String> predicate) {
     List<String> items = Arrays.asList(s.split(COMMA_REGEX));
-    return items.stream().filter(predicate).collect(Collectors.toList());
+    return items.stream().filter(predicate).toList();
   }
 
   private List<HbiNetworkInterface> populateNICs(Map<String, String> rhsmFacts) {
@@ -583,7 +594,7 @@ public class InventoryController {
     org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory feedPage =
         getConsumerFeed(orgId, offset);
     return inventoryService.getInventoryForOrgConsumers(
-        validateConduitFactsForOrg(feedPage).collect(Collectors.toList()));
+        validateConduitFactsForOrg(feedPage).toList());
   }
 
   private Stream<ConduitFacts> validateConduitFactsForOrg(

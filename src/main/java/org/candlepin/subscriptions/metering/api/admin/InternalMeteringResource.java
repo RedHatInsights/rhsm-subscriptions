@@ -20,14 +20,22 @@
  */
 package org.candlepin.subscriptions.metering.api.admin;
 
+import io.micrometer.core.annotation.Timed;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.Objects;
 import java.util.Optional;
+import javax.transaction.Transactional;
+import javax.validation.constraints.Min;
 import javax.ws.rs.BadRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
+import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.metering.ResourceUtil;
 import org.candlepin.subscriptions.metering.admin.api.InternalApi;
+import org.candlepin.subscriptions.metering.retention.EventRecordsRetentionProperties;
+import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -37,41 +45,80 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 public class InternalMeteringResource implements InternalApi {
-
   private final ResourceUtil util;
   private final ApplicationProperties applicationProperties;
   private final PrometheusMetricsTaskManager tasks;
   private final PrometheusMeteringController controller;
   private final AccountConfigRepository accountConfigRepository;
   private final TagProfile tagProfile;
+  private final EventRecordsRetentionProperties eventRecordsRetentionProperties;
+  private final EventRecordRepository eventRecordRepository;
+  private final MetricProperties metricProperties;
 
   public InternalMeteringResource(
       ResourceUtil util,
       ApplicationProperties applicationProperties,
+      EventRecordsRetentionProperties eventRecordsRetentionProperties,
       TagProfile tagProfile,
       PrometheusMetricsTaskManager tasks,
       PrometheusMeteringController controller,
-      AccountConfigRepository accountConfigRepository) {
+      AccountConfigRepository accountConfigRepository,
+      EventRecordRepository eventRecordRepository,
+      MetricProperties metricProperties) {
     this.util = util;
     this.applicationProperties = applicationProperties;
+    this.eventRecordsRetentionProperties = eventRecordsRetentionProperties;
     this.tagProfile = tagProfile;
     this.tasks = tasks;
     this.controller = controller;
     this.accountConfigRepository = accountConfigRepository;
+    this.eventRecordRepository = eventRecordRepository;
+    this.metricProperties = metricProperties;
+  }
+
+  @Override
+  @Transactional
+  @Timed("rhsm-subscriptions.events.purge")
+  public void purgeEventRecords() {
+    var eventRetentionDuration = eventRecordsRetentionProperties.getEventRetentionDuration();
+
+    OffsetDateTime cutoffDate =
+        OffsetDateTime.now().truncatedTo(ChronoUnit.DAYS).minus(eventRetentionDuration);
+
+    log.info("Purging event records older than {}", cutoffDate);
+    eventRecordRepository.deleteEventRecordsByTimestampBefore(cutoffDate);
+    log.info("Event record purge completed successfully");
+  }
+
+  protected void meterProductForAllAccounts(
+      String productTag, OffsetDateTime endDate, Integer rangeInMinutes) {
+    if (Objects.isNull(rangeInMinutes)) {
+      rangeInMinutes = metricProperties.getRangeInMinutes();
+    }
+    OffsetDateTime end = util.getDate(Optional.ofNullable(endDate));
+    OffsetDateTime start = util.getStartDate(end, rangeInMinutes);
+
+    log.info("Metering {} for all accounts in the past {} minutes", productTag, rangeInMinutes);
+
+    try {
+      tasks.updateMetricsForAllAccounts(productTag, start, end);
+    } catch (Exception e) {
+      log.error("Error triggering {} metering for all accounts.", productTag, e);
+    }
   }
 
   @Override
   public void meterProductForAccount(
       String productTag,
-      Integer rangeInMinutes,
       String accountNumber,
       String orgId,
       OffsetDateTime endDate,
+      @Min(0) Integer rangeInMinutes,
       Boolean xRhSwatchSynchronousRequest) {
     Object principal = ResourceUtils.getPrincipal();
 
     if (orgId == null && accountNumber == null) {
-      throw new BadRequestException("Neither orgId nor accountNumber specified");
+      meterProductForAllAccounts(productTag, endDate, rangeInMinutes);
     } else if (orgId == null) {
       orgId = accountConfigRepository.findOrgByAccountNumber(accountNumber);
       if (orgId == null) {
@@ -80,12 +127,16 @@ public class InternalMeteringResource implements InternalApi {
       }
     }
 
+    if (Objects.isNull(rangeInMinutes)) {
+      rangeInMinutes = metricProperties.getRangeInMinutes();
+    }
+    OffsetDateTime end = util.getDate(Optional.ofNullable(endDate));
+    OffsetDateTime start = util.getStartDate(end, rangeInMinutes);
+
     if (!tagProfile.tagIsPrometheusEnabled(productTag)) {
       throw new BadRequestException(String.format("Invalid product tag specified: %s", productTag));
     }
 
-    OffsetDateTime end = util.getDate(Optional.ofNullable(endDate));
-    OffsetDateTime start = util.getStartDate(end, rangeInMinutes);
     log.info(
         "{} metering for {} against range [{}, {}) triggered via API by {}",
         productTag,

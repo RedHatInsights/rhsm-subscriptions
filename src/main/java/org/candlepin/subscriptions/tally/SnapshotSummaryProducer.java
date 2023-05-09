@@ -70,7 +70,8 @@ public class SnapshotSummaryProducer {
                     summary -> {
                       if (validateTallySummary(summary)) {
                         kafkaRetryTemplate.execute(
-                            ctx -> tallySummaryKafkaTemplate.send(tallySummaryTopic, summary));
+                            ctx ->
+                                tallySummaryKafkaTemplate.send(tallySummaryTopic, orgId, summary));
                         totalTallies.getAndIncrement();
                       }
                     }));

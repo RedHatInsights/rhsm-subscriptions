@@ -14,6 +14,10 @@ parameters:
     value: latest
   - name: IMAGE_PULL_SECRET
     value: quay-cloudservices-pull
+  - name: CURL_CRON_IMAGE
+    value: quay.io/app-sre/ubi8-ubi-minimal
+  - name: CURL_CRON_IMAGE_TAG
+    value: latest
   - name: MEMORY_REQUEST
     value: 1000Mi
   - name: MEMORY_LIMIT
@@ -86,6 +90,10 @@ parameters:
     value: '2'
   - name: METERING_SCHEDULE
     value: '30 * * * *'
+  - name: PURGE_EVENTS_SCHEDULE
+    value: '30 4 * * *'
+  - name: EVENT_RECORD_RETENTION
+    value: '90d'
   - name: OPENSHIFT_METERING_RANGE
     value: '60'
   - name: HOURLY_TALLY_OFFSET
@@ -101,6 +109,12 @@ parameters:
     value: '3'
   - name: ENABLE_SYNCHRONOUS_OPERATIONS
     value: 'false'
+  - name: OTEL_SERVICE_NAME
+    value: swatch-metrics
+  - name: OTEL_JAVAAGENT_ENABLED
+    value: 'false'
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: 'http://localhost:4317'
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -280,6 +294,8 @@ objects:
                     key: psk
               - name: PROM_URL
                 value: ${PROM_URL}
+              - name: EVENT_RECORD_RETENTION
+                value: ${EVENT_RECORD_RETENTION}
               - name: OPENSHIFT_BILLING_MODEL_FILTER
                 value: ${OPENSHIFT_BILLING_MODEL_FILTER}
               - name: USER_HOST
@@ -310,6 +326,12 @@ objects:
                     key: self
               - name: ENABLE_SYNCHRONOUS_OPERATIONS
                 value: ${ENABLE_SYNCHRONOUS_OPERATIONS}
+              - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+              - name: OTEL_SERVICE_NAME
+                value: ${OTEL_SERVICE_NAME}
+              - name: OTEL_JAVAAGENT_ENABLED
+                value: ${OTEL_JAVAAGENT_ENABLED}
             livenessProbe:
               failureThreshold: 3
               httpGet:
@@ -470,6 +492,12 @@ objects:
                     key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
               - name: PROM_URL
                 value: ${PROM_URL}
+              - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+              - name: OTEL_SERVICE_NAME
+                value: ${OTEL_SERVICE_NAME}
+              - name: OTEL_JAVAAGENT_ENABLED
+                value: ${OTEL_JAVAAGENT_ENABLED}
             resources:
               requests:
                 cpu: ${CPU_REQUEST}
@@ -486,6 +514,34 @@ objects:
             sidecars:
               - name: token-refresher
                 enabled: true
+        - name: purge-events
+          disabled: true
+          suspend: true
+          schedule: ${PURGE_EVENTS_SCHEDULE}
+          activeDeadlineSeconds: 1800
+          successfulJobsHistoryLimit: 2
+          restartPolicy: Never
+          podSpec:
+            image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+            command:
+              - /usr/bin/bash
+              - -c
+              - >
+                /usr/bin/curl --fail -i -H "Origin: https://swatch-metrics-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X DELETE "http://swatch-metrics-service:8000/api/rhsm-subscriptions/v1/internal/metering/events"
+            env:
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+          resources:
+            requests:
+              cpu: ${CURL_CRON_CPU_REQUEST}
+              memory: ${CURL_CRON_MEMORY_REQUEST}
+            limits:
+              cpu: ${CURL_CRON_CPU_LIMIT}
+              memory: ${CURL_CRON_MEMORY_LIMIT}
+
 
   - apiVersion: v1
     kind: Secret

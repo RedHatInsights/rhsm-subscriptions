@@ -51,6 +51,8 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.MissingOfferingException;
+import org.candlepin.subscriptions.product.OfferingSyncController;
+import org.candlepin.subscriptions.product.SyncResult;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.subscription.api.model.ExternalReference;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
@@ -86,6 +88,8 @@ class SubscriptionSyncControllerTest {
   @MockBean ProductAllowlist allowlist;
 
   @MockBean OfferingRepository offeringRepository;
+
+  @MockBean OfferingSyncController offeringSyncController;
 
   @MockBean SubscriptionRepository subscriptionRepository;
 
@@ -689,6 +693,35 @@ class SubscriptionSyncControllerTest {
     assertEquals("newBillingProviderId", existing.getBillingProviderId());
     assertEquals("newBillingAccountId", existing.getBillingAccountId());
     assertEquals("account123", existing.getAccountNumber());
+  }
+
+  @Test
+  void testOfferingSyncedWhenMissing() {
+    Subscription incoming = createSubscription("123", "testsku", "456");
+
+    when(allowlist.productIdMatches(any())).thenReturn(true);
+    when(offeringRepository.existsById("testsku")).thenReturn(false);
+    when(offeringSyncController.syncOffering("testsku")).thenReturn(SyncResult.SKIPPED_MATCHING);
+
+    subscriptionSyncController.syncSubscription(incoming, Optional.empty());
+
+    verify(offeringSyncController).syncOffering("testsku");
+    verify(subscriptionRepository).save(incoming);
+    assertNull(incoming.getBillingAccountId());
+  }
+
+  @Test
+  void testOfferingSyncFailsAndProcessingStops() {
+    Subscription incoming = createSubscription("123", "testsku", "456");
+
+    when(allowlist.productIdMatches(any())).thenReturn(true);
+    when(offeringRepository.existsById("testsku")).thenReturn(false);
+    when(offeringSyncController.syncOffering("testsku")).thenReturn(SyncResult.FAILED);
+
+    subscriptionSyncController.syncSubscription(incoming, Optional.empty());
+
+    verify(offeringSyncController).syncOffering("testsku");
+    verify(subscriptionRepository, times(0)).save(incoming);
   }
 
   private Subscription createSubscription(String orgId, String sku, String subId) {

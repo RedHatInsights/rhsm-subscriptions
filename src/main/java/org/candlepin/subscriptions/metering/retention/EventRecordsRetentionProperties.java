@@ -18,27 +18,18 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.rbac;
+package org.candlepin.subscriptions.metering.retention;
 
-import java.util.List;
-import org.candlepin.subscriptions.rbac.model.Access;
-import org.candlepin.subscriptions.rbac.resources.AccessApi;
+import java.time.Duration;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
-/** A wrapper around the RBAC API. */
-public class RbacApiImpl implements RbacApi {
-
-  private AccessApi accessApi;
-
-  public RbacApiImpl(ApiClient client) {
-    accessApi = new AccessApi(client);
-  }
-
-  @Override
-  public List<Access> getCurrentUserAccess(String applicationName) throws RbacApiException {
-    try {
-      return accessApi.getPrincipalAccess(applicationName, null, null, null, null).getData();
-    } catch (ApiException apie) {
-      throw new RbacApiException("Unable to get current user access.", apie);
-    }
-  }
+@Getter
+@Setter
+@Component
+@ConfigurationProperties(prefix = "rhsm-subscriptions.event-retention-policy")
+public class EventRecordsRetentionProperties {
+  private Duration eventRetentionDuration = Duration.ofDays(90L);
 }

@@ -22,10 +22,8 @@ package org.candlepin.subscriptions.retention;
 
 import io.micrometer.core.annotation.Timed;
 import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
-import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.slf4j.Logger;
@@ -41,23 +39,17 @@ public class TallyRetentionController {
   private static final Logger log = LoggerFactory.getLogger(TallyRetentionController.class);
 
   private final TallySnapshotRepository tallySnapshotRepository;
-  private final EventRecordRepository eventRecordRepository;
   private final AccountConfigRepository accountConfigRepository;
   private final TallyRetentionPolicy policy;
-  private final EventRecordsRetentionProperties eventRecordsRetentionProperties;
 
   @Autowired
   public TallyRetentionController(
       TallySnapshotRepository tallySnapshotRepository,
-      EventRecordRepository eventRecordRepository,
       AccountConfigRepository accountConfigRepository,
-      TallyRetentionPolicy policy,
-      EventRecordsRetentionProperties eventRecordsRetentionProperties) {
+      TallyRetentionPolicy policy) {
     this.tallySnapshotRepository = tallySnapshotRepository;
-    this.eventRecordRepository = eventRecordRepository;
     this.accountConfigRepository = accountConfigRepository;
     this.policy = policy;
-    this.eventRecordsRetentionProperties = eventRecordsRetentionProperties;
   }
 
   @Timed("rhsm-subscriptions.snapshots.purge")
@@ -84,16 +76,5 @@ public class TallyRetentionController {
       tallySnapshotRepository.deleteAllByOrgIdAndGranularityAndSnapshotDateBefore(
           orgId, granularity, cutoffDate);
     }
-  }
-
-  public void purgeOldEventRecords() {
-    var eventRetentionDuration = eventRecordsRetentionProperties.getEventRetentionDuration();
-
-    OffsetDateTime cutoffDate =
-        OffsetDateTime.now().truncatedTo(ChronoUnit.DAYS).minus(eventRetentionDuration);
-
-    log.info("Purging event records older than Duration {}", cutoffDate);
-
-    eventRecordRepository.deleteEventRecordsByTimestampBefore(cutoffDate);
   }
 }

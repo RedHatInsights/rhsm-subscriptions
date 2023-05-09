@@ -18,31 +18,12 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.retention;
+package com.redhat.swatch.contract.security;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
+/** Exception thrown when a call to RBAC service outright fails for some reason. */
+public class RbacServiceException extends RuntimeException {
 
-@Component
-public class PurgeEventRecordsJob implements Runnable {
-
-  private static final Logger log = LoggerFactory.getLogger(PurgeEventRecordsJob.class);
-
-  private final TallyRetentionController retentionController;
-
-  public PurgeEventRecordsJob(TallyRetentionController retentionController) {
-    this.retentionController = retentionController;
-  }
-
-  @Override
-  @Scheduled(cron = "${rhsm-subscriptions.jobs.purge-snapshot-schedule}")
-  public void run() {
-    log.info("Starting PurgeEventRecordsJob job.");
-
-    retentionController.purgeOldEventRecords();
-
-    log.info("PurgeEventRecordsJob complete.");
+  public RbacServiceException(String message, Exception cause) {
+    super(message, cause);
   }
 }

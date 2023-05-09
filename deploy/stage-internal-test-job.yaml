@@ -25,7 +25,6 @@ objects:
         - name: rhsm-stage-post-deploy-tests-${IMAGE_TAG}-${UID}
           args:
           - run
-          # This is pretty ugly, envFrom and a configmap in namespace would be a lot cleaner
           env:
           - name: ENV_FOR_DYNACONF
             value: ${ENV_FOR_DYNACONF}
@@ -43,6 +42,8 @@ objects:
             value: ${IQE_REQUIREMENTS_PRIORITY}
           - name: IQE_TEST_IMPORTANCE
             value: ${IQE_TEST_IMPORTANCE}
+          - name: IQE_PARALLEL_WORKER_COUNT
+            value: ${IQE_PARALLEL_WORKER_COUNT}
           - name: DYNACONF_IQE_VAULT_LOADER_ENABLED
             value: "true"
           - name: DYNACONF_IQE_VAULT_VERIFY
@@ -78,7 +79,7 @@ objects:
           - name: DYNACONF_browsers__chrome__webdriver
             value: "Remote"
           - name: DYNACONF_browsers__chrome__command_executor
-            value: "http://10.0.148.118:4444/wd/hub"
+            value: "http://10.0.148.118:80/wd/hub"
           - name: DYNACONF_browsers__chrome__webdriver_options__desired_capabilities__chromeOptions__args
             value: "['--headless','--window-size=1920,1080']"
           image: ${IQE_IMAGE}
@@ -86,7 +87,7 @@ objects:
           resources:
             limits:
               cpu: "1"
-              memory: 2Gi
+              memory: 3Gi
             requests:
               cpu: 500m
               memory: 1Gi
@@ -106,7 +107,7 @@ parameters:
   description: "container image path for the iqe plugin"
   value: quay.io/cloudservices/iqe-tests:rhsm-subscriptions
 - name: ENV_FOR_DYNACONF
-  value: stage
+  value: stage_proxy
 - name: IQE_PLUGINS
   value: rhsm_subscriptions,curiosity
 - name: IQE_MARKER_EXPRESSION
@@ -121,3 +122,5 @@ parameters:
   value: ''
 - name: IQE_TEST_IMPORTANCE
   value: ''
+- name: IQE_PARALLEL_WORKER_COUNT
+  value: '6'

@@ -4,6 +4,17 @@ info:
   version: 1.0.0
 
 paths:
+  /internal/metering/events:
+    description: 'Purge event records'
+    delete:
+      operationId: purgeEventRecords
+      responses:
+        '200':
+          description: "Purge was successful."
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
   /internal/metering/{productTag}:
     description: 'Operations related to product metering.'
     post:
@@ -28,12 +39,12 @@ paths:
           schema:
             type: string
             format: date-time
-            description: "The end date for the metering request. (e.g. 22-05-03T10:00:00Z). Default: Top of the current hour."
+            description: "The end date for the metering request. (e.g. 2022-05-03T10:00:00Z). Default: Top of the current hour."
         - name: rangeInMinutes
           in: query
-          required: true
           schema:
             type: integer
+            minimum: 0
         - name: x-rh-swatch-synchronous-request
           in: header
           required: false

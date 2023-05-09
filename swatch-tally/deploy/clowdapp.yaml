@@ -99,8 +99,6 @@ parameters:
     value: 0 6 * * *
   - name: CAPTURE_HOURLY_SNAPSHOT_SCHEDULE
     value: '@hourly'
-  - name: EVENT_RECORD_RETENTION
-    value: '90d'
   # TODO after enable individual functionality (see ENT-4487)
   - name: DEV_MODE
     value: 'false'
@@ -182,6 +180,12 @@ parameters:
     value: 350m
   - name: CURL_CRON_CPU_LIMIT
     value: 500m
+  - name: OTEL_SERVICE_NAME
+    value: swatch-tally
+  - name: OTEL_JAVAAGENT_ENABLED
+    value: 'false'
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: 'http://localhost:4317'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -393,6 +397,12 @@ objects:
               value: ${HOST_LAST_SYNC_THRESHOLD}
             - name: SWATCH_CONTRACTS_INTERNAL_SERVICE_URL
               value: ${SWATCH_CONTRACTS_INTERNAL_SERVICE_URL}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+            - name: OTEL_SERVICE_NAME
+              value: ${OTEL_SERVICE_NAME}
+            - name: OTEL_JAVAAGENT_ENABLED
+              value: ${OTEL_JAVAAGENT_ENABLED}
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -523,6 +533,12 @@ objects:
                 secretKeyRef:
                   name: ${INVENTORY_SECRET_KEY_NAME}
                   key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+            - name: OTEL_SERVICE_NAME
+              value: ${OTEL_SERVICE_NAME}
+            - name: OTEL_JAVAAGENT_ENABLED
+              value: ${OTEL_JAVAAGENT_ENABLED}
           resources:
             requests:
               cpu: ${CPU_REQUEST}
@@ -627,6 +643,12 @@ objects:
                 secretKeyRef:
                   name: ${INVENTORY_SECRET_KEY_NAME}
                   key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+            - name: OTEL_SERVICE_NAME
+              value: ${OTEL_SERVICE_NAME}
+            - name: OTEL_JAVAAGENT_ENABLED
+              value: ${OTEL_JAVAAGENT_ENABLED}
           resources:
             requests:
               cpu: ${CPU_REQUEST}

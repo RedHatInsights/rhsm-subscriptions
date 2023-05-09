@@ -64,7 +64,7 @@ public class StubSearchApi extends SearchApi {
         .quantity(1)
         .effectiveStartDate(OffsetDateTime.parse("2011-01-01T01:02:33Z").toEpochSecond() * 1000L)
         .effectiveEndDate(OffsetDateTime.parse("2031-01-01T01:02:33Z").toEpochSecond() * 1000L)
-        .subscriptionProducts(List.of(new SubscriptionProduct().sku("sku")));
+        .subscriptionProducts(List.of(new SubscriptionProduct().sku("MW01485")));
   }
 
   private Subscription createAwsBillingProviderData() {
