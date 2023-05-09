@@ -81,6 +81,7 @@ class RhIdentityHeaderAuthenticationMechanismTest {
                     .type("Associate")
                     .samlAssertions(SamlAssertions.builder().email("test@example.com").build())
                     .build())
+            .headerValue(RhIdentityUtils.ASSOCIATE_IDENTITY_HEADER)
             .build();
     verify(identityProviderManager)
         .authenticate(new RhIdentityAuthenticationRequest(expectedIdentity));

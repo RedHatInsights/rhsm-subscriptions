@@ -22,6 +22,10 @@ project(":clients:rbac-client") {
     apply plugin: "swatch.spring-boot-rest-client-conventions"
 }
 
+project(":clients:quarkus:rbac-client") {
+    apply plugin: "swatch.quarkus-rest-client-conventions"
+}
+
 project(":clients:rhsm-client") {
     apply plugin: "swatch.spring-boot-rest-client-conventions"
 }

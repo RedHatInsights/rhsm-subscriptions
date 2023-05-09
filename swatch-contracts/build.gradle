@@ -34,6 +34,7 @@ dependencies {
     implementation project(":clients:rh-partner-gateway-client")
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-amqp'
     implementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'
+    implementation project(':clients:quarkus:rbac-client')
     annotationProcessor libraries["hibernate-jpamodelgen"]
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.quarkus:quarkus-junit5-mockito'

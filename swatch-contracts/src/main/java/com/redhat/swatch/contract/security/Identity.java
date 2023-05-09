@@ -34,6 +34,9 @@ import lombok.NoArgsConstructor;
 public class Identity {
   private String type;
 
+  @JsonbProperty("org_id")
+  private String orgId;
+
   @JsonbProperty("associate")
   private SamlAssertions samlAssertions;
 
