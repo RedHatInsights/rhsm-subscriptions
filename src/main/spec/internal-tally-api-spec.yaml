@@ -92,13 +92,243 @@ paths:
       operationId: purgeTallySnapshots
       summary: 'Purge existing tally snapshots matching the configured retention policy.'
       responses:
-        '204':
+        '200':
           description: 'The request for purging tally snapshots was successful.'
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
         '401':
           $ref: "../../../spec/error-responses.yaml#/$defs/Unauthorized"
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [internalTally]
+  /internal/rpc/tally/{org_id}:
+    description: Clear tallies, hosts, and events for a given org ID. Enabled via ENABLE_ACCOUNT_RESET environment variable.
+    delete:
+      operationId: deleteDataAssociatedWithOrg
+      parameters:
+        - in: path
+          name: org_id
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Finished deleting data associated with organization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TallyResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [internalTally]
+  /internal/rpc/tally/events/{org_id}:
+    description: Fetch events by Org
+    get:
+      operationId: fetchEventsForOrgIdInTimeRange
+      parameters:
+        - name: org_id
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: begin
+          in: query
+          schema:
+            format: date-time
+            description: Beginning of time range (inclusive)
+            type: string
+            example: 2022-01-01T00:00:00Z
+        - name: end
+          in: query
+          schema:
+           format: date-time
+           description: ""
+           type: string
+           example: 2023-03-01T00:00:00Z
+      responses:
+        '200':
+          description: Finished deleting data associated with organization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventsResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [ internalTally ]
+  /internal/rpc/tally/events:
+    description: Save a list of events. Supported only in dev-mode.
+    post:
+      operationId: saveEvents
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Save a list of events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventsResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [ internalTally ]
+  /internal/rpc/tally/events/{event_id}:
+    description: Delete an event. Supported only in dev-mode.
+    delete:
+      operationId: deleteEvent
+      parameters:
+        - in: path
+          name: event_id
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Successfully deleted Event with ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventsResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [internalTally]
+  /internal/rpc/tally/snapshots/{org_id}:
+    description: Trigger and update tally snapshot for an org.
+    put:
+      operationId: tallyOrg
+      parameters:
+        - in: path
+          name: org_id
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Updated snapshots for the org.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [ internalTally ]
+  /internal/rpc/tally/all-org-snapshots:
+    description: Trigger and update tally for all configured org.
+    put:
+      operationId: tallyConfiguredOrgs
+      responses:
+        '200':
+          description: Updated snapshots for all org.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [internalTally]
+  /internal/rpc/tally/snapshots:
+    description: Trigger hourly tally for all configured orgs for the specified range. The 'start' and "
+       'end' parameters MUST be specified as a pair to complete a range. If they are left empty, 
+       a date range is used based on NOW with the configured offsets applied (identical to if
+      the job was run).
+    put:
+      operationId: tallyAllOrgsByHourly
+      parameters:
+        - name: begin
+          in: query
+          schema:
+            description: The start date for the tally (e.g. 2022-05-03T10:00:00Z). Must be specified along with the end parameter.
+            type: string
+            example: 2022-01-01T00:00:00Z
+        - name: end
+          in: query
+          schema:
+            description: The end date for the tally (e.g. 2022-05-03T16:00:00Z). Must be specified along with the start parameter.
+            type: string
+            example: 2023-03-01T00:00:00Z
+      responses:
+        '200':
+          description: Updated snapshots for the orgs.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [ internalTally ]
+  /internal/rpc/tally/opt-in:
+    description: Create or update an opt in configuration. This operation is idempotent.
+    put:
+      operationId: createOrUpdateOptInConfig
+      parameters:
+        - name: account_number
+          in: query
+          schema:
+            description: Red Hat Account Number
+            type: string
+          required: true
+        - name: org_id
+          in: query
+          schema:
+            description: Red Hat Org ID
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Completed opt in for account and org
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OptInResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: [ internalTally ]
 components:
   requestBodies:
     UuidListBody:
@@ -125,3 +355,19 @@ components:
           properties:
             tallies_resent:
               type: integer
+    DefaultResponse:
+      properties:
+        status:
+          type: string
+    EventsResponse:
+      properties:
+        detail:
+          type: string
+    OptInResponse:
+      properties:
+        detail:
+          type: string
+    TallyResponse:
+      properties:
+        detail:
+          type: string
