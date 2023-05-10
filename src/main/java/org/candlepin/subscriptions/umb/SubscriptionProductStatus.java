@@ -20,10 +20,9 @@
  */
 package org.candlepin.subscriptions.umb;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -34,12 +33,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonNaming(PropertyNamingStrategies.UpperCamelCaseStrategy.class)
-public class SubscriptionProduct {
-  private String sku;
+public class SubscriptionProductStatus {
 
-  @JsonProperty("Status")
-  @JacksonXmlElementWrapper(useWrapping = false)
-  private SubscriptionProductStatus[] status;
-
-  private SubscriptionProduct product;
+  private String state;
+  private LocalDateTime startDate;
 }
