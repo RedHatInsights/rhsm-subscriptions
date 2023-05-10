@@ -191,17 +191,11 @@ objects:
         replicas: ${{REPLICAS}}
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          command:
-            - /bin/bash
-            - /usr/local/s2i/run
           initContainers:
             - env:
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
               inheritEnv: true
-              command:
-                - /bin/bash
-                - /usr/local/s2i/run
               resources:
                 requests:
                   cpu: ${CPU_REQUEST}
@@ -469,17 +463,11 @@ objects:
         restartPolicy: Never
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          command:
-            - /bin/bash
-            - /usr/local/s2i/run
           initContainers:
             - env:
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
               inheritEnv: true
-              command:
-                - /bin/bash
-                - /usr/local/s2i/run
               resources:
                 requests:
                   cpu: ${CPU_REQUEST}
@@ -605,17 +593,11 @@ objects:
         restartPolicy: Never
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          command:
-            - /bin/bash
-            - /usr/local/s2i/run
           initContainers:
             - env:
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
               inheritEnv: true
-              command:
-                - /bin/bash
-                - /usr/local/s2i/run
               resources:
                 requests:
                   cpu: ${CPU_REQUEST}

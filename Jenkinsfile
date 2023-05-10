@@ -9,7 +9,7 @@ pipeline {
             idleMinutes 5  // how long the pod will live after no jobs have run on it
             containerTemplate {
                 name 'openjdk17'
-                image 'registry.access.redhat.com/ubi9/openjdk-17'
+                image 'registry.access.redhat.com/ubi9/openjdk-17-runtime'
                 command 'sleep'
                 args '99d'
                 resourceRequestCpu '2'
