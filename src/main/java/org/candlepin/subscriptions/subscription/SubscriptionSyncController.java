@@ -31,6 +31,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -404,19 +405,22 @@ public class SubscriptionSyncController {
      * If a subscription is terminated, set our concept of effective end date to the termination
      * date.
      */
-    Optional<SubscriptionProductStatus> status =
-        Arrays.stream(subscription.getProductStatusState())
-            .filter(x -> "Terminated".equalsIgnoreCase(x.getState()))
-            .findFirst();
 
-    boolean isSubscriptionTerminated = status.isPresent();
+    if (Objects.nonNull(subscription.getProductStatusState())) {
+      Optional<SubscriptionProductStatus> status =
+          Arrays.stream(subscription.getProductStatusState())
+              .filter(x -> "Terminated".equalsIgnoreCase(x.getState()))
+              .findFirst();
 
-    /*
-     * Note that a status only has a "StartDate", which indicates the start of the corresponding
-     * status - this doesn't directly correlate to the StartDate of a subscription.
-     */
-    if (isSubscriptionTerminated) {
-      endDate = UmbSubscription.convertToUtc(status.get().getStartDate());
+      boolean isSubscriptionTerminated = status.isPresent();
+
+      /*
+       * Note that a status only has a "StartDate", which indicates the start of the corresponding
+       * status - this doesn't directly correlate to the StartDate of a subscription.
+       */
+      if (isSubscriptionTerminated) {
+        endDate = UmbSubscription.convertToUtc(status.get().getStartDate());
+      }
     }
     return org.candlepin.subscriptions.db.model.Subscription.builder()
         // NOTE: UMB messages don't include subscriptionId
