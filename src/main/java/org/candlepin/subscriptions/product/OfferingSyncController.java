@@ -32,7 +32,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
-import org.candlepin.subscriptions.capacity.files.ProductAllowlist;
+import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -57,7 +57,7 @@ public class OfferingSyncController {
       "{} for offeringSku=\"{}\" in offeringSyncTimeMillis={}.";
 
   private final OfferingRepository offeringRepository;
-  private final ProductAllowlist productAllowlist;
+  private final ProductDenylist productDenylist;
   private final ProductService productService;
   private final CapacityReconciliationController capacityReconciliationController;
   private final Timer syncTimer;
@@ -70,7 +70,7 @@ public class OfferingSyncController {
   @Autowired
   public OfferingSyncController(
       OfferingRepository offeringRepository,
-      ProductAllowlist productAllowlist,
+      ProductDenylist productDenylist,
       ProductService productService,
       CapacityReconciliationController capacityReconciliationController,
       MeterRegistry meterRegistry,
@@ -78,7 +78,7 @@ public class OfferingSyncController {
       ObjectMapper objectMapper,
       @Qualifier("offeringSyncTasks") TaskQueueProperties taskQueueProperties) {
     this.offeringRepository = offeringRepository;
-    this.productAllowlist = productAllowlist;
+    this.productDenylist = productDenylist;
     this.productService = productService;
     this.capacityReconciliationController = capacityReconciliationController;
     this.syncTimer = meterRegistry.timer("swatch_offering_sync");
@@ -97,8 +97,8 @@ public class OfferingSyncController {
   public SyncResult syncOffering(String sku) {
     Timer.Sample syncTime = Timer.start();
 
-    if (!productAllowlist.productIdMatches(sku)) {
-      SyncResult result = SyncResult.SKIPPED_NOT_ALLOWLISTED;
+    if (productDenylist.productIdMatches(sku)) {
+      SyncResult result = SyncResult.SKIPPED_DENYLISTED;
       Duration syncDuration = Duration.ofNanos(syncTime.stop(syncTimer));
       LOGGER.info(SYNC_LOG_TEMPLATE, result, sku, syncDuration.toMillis());
       return result;
@@ -170,7 +170,7 @@ public class OfferingSyncController {
   }
 
   /**
-   * Enqueues all offerings listed in the product allowlist to be synced with upstream.
+   * Enqueues all offerings listed not in the product denylist to be synced with upstream.
    *
    * @return number of enqueued products
    */

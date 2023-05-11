@@ -108,7 +108,7 @@ public class OfferingJmxBean {
 
   @ManagedOperation(
       description =
-          "Save offerings manually, ignoring allowlist. Supported only in dev-mode. Locally, you can insert all")
+          "Save offerings manually. Supported only in dev-mode. Locally, you can insert all")
   @ManagedOperationParameter(
       name = "offeringsJsonArray",
       description =

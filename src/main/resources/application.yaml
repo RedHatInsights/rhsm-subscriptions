@@ -50,7 +50,7 @@ rhsm-subscriptions:
     subscription-sync-schedule: ${SUBSCRIPTION_SYNC_SCHEDULE:0 0 10 * * ?}
     offering-sync-schedule: ${OFFERING_SYNC_SCHEDULE:0 0 2 * * ?}
   account-batch-size: ${ACCOUNT_BATCH_SIZE:1}
-  product-allowlist-resource-location: ${PRODUCT_ALLOWLIST_RESOURCE_LOCATION:}
+  product-denylist-resource-location: ${PRODUCT_DENYLIST_RESOURCE_LOCATION:}
   metering:
     prometheus:
       client:
