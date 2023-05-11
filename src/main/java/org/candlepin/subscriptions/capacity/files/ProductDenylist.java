@@ -36,19 +36,19 @@ import org.springframework.util.StringUtils;
 
 /** List of products to be considered for capacity calculations. */
 @Component
-public class ProductAllowlist implements ResourceLoaderAware {
+public class ProductDenylist implements ResourceLoaderAware {
 
-  private static Logger log = LoggerFactory.getLogger(ProductAllowlist.class);
+  private static Logger log = LoggerFactory.getLogger(ProductDenylist.class);
 
   private final PerLineFileSource source;
 
-  public ProductAllowlist(ApplicationProperties properties, ApplicationClock clock) {
-    if (StringUtils.hasText(properties.getProductAllowlistResourceLocation())) {
+  public ProductDenylist(ApplicationProperties properties, ApplicationClock clock) {
+    if (StringUtils.hasText(properties.getProductDenylistResourceLocation())) {
       source =
           new PerLineFileSource(
-              properties.getProductAllowlistResourceLocation(),
+              properties.getProductDenylistResourceLocation(),
               clock.getClock(),
-              properties.getProductAllowListCacheTtl());
+              properties.getProductDenyListCacheTtl());
     } else {
       source = null;
     }
@@ -56,16 +56,16 @@ public class ProductAllowlist implements ResourceLoaderAware {
 
   public boolean productIdMatches(String productId) {
     if (source == null) {
-      return true;
+      return false;
     }
     try {
-      boolean isAllowlisted = source.set().contains(productId);
-      if (!isAllowlisted && log.isDebugEnabled()) {
-        log.debug("Product ID {} not in allowlist", productId);
+      boolean isDenylisted = source.set().contains(productId);
+      if (isDenylisted && log.isDebugEnabled()) {
+        log.debug("Product ID {} in denylist", productId);
       }
-      return isAllowlisted;
+      return isDenylisted;
     } catch (Exception e) {
-      log.error("Error reading allowlist", e);
+      log.error("Error reading denylist", e);
       return false;
     }
   }
@@ -85,7 +85,7 @@ public class ProductAllowlist implements ResourceLoaderAware {
     try {
       return Collections.unmodifiableSet(source.set());
     } catch (IOException e) {
-      log.error("Error reading allowlist", e);
+      log.error("Error reading denylist", e);
       return Collections.emptySet();
     }
   }

@@ -26,7 +26,7 @@ import java.time.Duration;
 import java.util.stream.Stream;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.capacity.files.ProductAllowlist;
+import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
@@ -37,7 +37,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-/** Logic for pruning unlisted subscriptions (where the SKU is not in the allowlist). */
+/** Logic for pruning unlisted subscriptions (where the SKU is not in the denylist). */
 @Slf4j
 @Component
 public class SubscriptionPruneController {
@@ -48,7 +48,7 @@ public class SubscriptionPruneController {
   private final KafkaTemplate<String, PruneSubscriptionsTask>
       pruneSubscriptionsByOrgTaskKafkaTemplate;
   private final String pruneSubscriptionsTopic;
-  private final ProductAllowlist productAllowlist;
+  private final ProductDenylist productDenylist;
 
   @Autowired
   public SubscriptionPruneController(
@@ -57,13 +57,13 @@ public class SubscriptionPruneController {
       OrgConfigRepository orgRepository,
       MeterRegistry meterRegistry,
       KafkaTemplate<String, PruneSubscriptionsTask> pruneSubscriptionsByOrgTaskKafkaTemplate,
-      ProductAllowlist productAllowlist,
+      ProductDenylist productDenylist,
       @Qualifier("pruneSubscriptionTasks") TaskQueueProperties pruneQueueProperties) {
     this.subscriptionRepository = subscriptionRepository;
     this.subscriptionCapacityRepository = subscriptionCapacityRepository;
     this.orgRepository = orgRepository;
     this.pruneAllTimer = meterRegistry.timer("swatch_subscription_prune_enqueue_all");
-    this.productAllowlist = productAllowlist;
+    this.productDenylist = productDenylist;
     this.pruneSubscriptionsTopic = pruneQueueProperties.getTopic();
     this.pruneSubscriptionsByOrgTaskKafkaTemplate = pruneSubscriptionsByOrgTaskKafkaTemplate;
   }
@@ -82,7 +82,7 @@ public class SubscriptionPruneController {
     Stream<Subscription> subscriptions = subscriptionRepository.findByOrgId(orgId);
     subscriptions.forEach(
         subscription -> {
-          if (!productAllowlist.productIdMatches(subscription.getSku())) {
+          if (productDenylist.productIdMatches(subscription.getSku())) {
             log.info(
                 "Removing subscriptionId={} for orgId={} w/ sku={}",
                 subscription.getSubscriptionId(),
@@ -95,7 +95,7 @@ public class SubscriptionPruneController {
         subscriptionCapacityRepository.findByKeyOrgId(orgId);
     capacityRecords.forEach(
         capacityRecord -> {
-          if (!productAllowlist.productIdMatches(capacityRecord.getSku())) {
+          if (productDenylist.productIdMatches(capacityRecord.getSku())) {
             log.info(
                 "Removing capacity record for subscriptionId={} for orgId={} w/ sku={}",
                 capacityRecord.getSubscriptionId(),

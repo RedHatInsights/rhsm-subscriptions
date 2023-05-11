@@ -50,10 +50,10 @@ public class ApplicationProperties {
   private String accountListResourceLocation;
 
   /**
-   * Resource location of a file containing a list of products (SKUs) to process. If not specified,
-   * all products will be processed.
+   * Resource location of a file containing a list of products (SKUs) not to process. If not
+   * specified, all products will be processed.
    */
-  private String productAllowlistResourceLocation;
+  private String productDenylistResourceLocation;
 
   /** Resource location of a file containing the allowlisted accounts allowed to run reports. */
   private String reportingAccountAllowlistResourceLocation;
@@ -75,9 +75,9 @@ public class ApplicationProperties {
   private Duration accountListCacheTtl = Duration.ofMinutes(5);
 
   /**
-   * Amount of time to cache the product allowlist, before allowing a re-read from the filesystem.
+   * Amount of time to cache the product denylist, before allowing a re-read from the filesystem.
    */
-  private Duration productAllowListCacheTtl = Duration.ofMinutes(5);
+  private Duration productDenyListCacheTtl = Duration.ofMinutes(5);
 
   /**
    * Amount of time to cache the API access allowlist, before allowing a re-read from the

@@ -22,7 +22,7 @@ Kafka Topics
 
 ## Caching
 
-The product-allowlist is cached and the component may need to be rebooted in order to pickup new changes. To reboot you can use hawtio at `{HAWTIO_URL}/app/rhsm-capacity-ingress/hawtio/jmx/operations?nid=root-org.springframework.boot-Endpoint-Shutdown`
+The product-denylist is cached and the component may need to be rebooted in order to pickup new changes. To reboot you can use hawtio at `{HAWTIO_URL}/app/rhsm-capacity-ingress/hawtio/jmx/operations?nid=root-org.springframework.boot-Endpoint-Shutdown`
 
 
 

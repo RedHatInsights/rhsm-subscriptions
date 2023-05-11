@@ -104,8 +104,7 @@ public class TallySnapshotController {
       throw new IllegalArgumentException("A non-null orgId is required for tally operations.");
     }
 
-    String account = accountRepo.findAccountNumberByOrgId(orgId);
-    log.info("Producing snapshots for Org ID {} with Account {}.", orgId, account);
+    log.info("Producing snapshots for Org ID {} ", orgId);
 
     AccountUsageCalculation accountCalc;
     try {
@@ -115,8 +114,7 @@ public class TallySnapshotController {
         attemptCloudigradeEnrichment(accountCalc);
       }
     } catch (Exception e) {
-      log.error(
-          "Could not collect existing usage snapshots for orgId={} account={}", orgId, account, e);
+      log.error("Error collecting existing usage snapshots ", e);
       return;
     }
 

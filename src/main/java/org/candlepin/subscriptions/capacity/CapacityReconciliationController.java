@@ -33,7 +33,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.capacity.files.ProductAllowlist;
+import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
@@ -57,7 +57,7 @@ public class CapacityReconciliationController {
   private final SubscriptionRepository subscriptionRepository;
   private KafkaTemplate<String, ReconcileCapacityByOfferingTask>
       reconcileCapacityByOfferingKafkaTemplate;
-  private final ProductAllowlist productAllowlist;
+  private final ProductDenylist productDenylist;
   private final CapacityProductExtractor productExtractor;
   private final SubscriptionCapacityRepository subscriptionCapacityRepository;
 
@@ -70,7 +70,7 @@ public class CapacityReconciliationController {
   public CapacityReconciliationController(
       OfferingRepository offeringRepository,
       SubscriptionRepository subscriptionRepository,
-      ProductAllowlist productAllowlist,
+      ProductDenylist productDenylist,
       CapacityProductExtractor productExtractor,
       SubscriptionCapacityRepository subscriptionCapacityRepository,
       MeterRegistry meterRegistry,
@@ -79,7 +79,7 @@ public class CapacityReconciliationController {
       @Qualifier("reconcileCapacityTasks") TaskQueueProperties props) {
     this.offeringRepository = offeringRepository;
     this.subscriptionRepository = subscriptionRepository;
-    this.productAllowlist = productAllowlist;
+    this.productDenylist = productDenylist;
     this.productExtractor = productExtractor;
     this.subscriptionCapacityRepository = subscriptionCapacityRepository;
     this.reconcileCapacityByOfferingKafkaTemplate = reconcileCapacityByOfferingKafkaTemplate;
@@ -147,7 +147,7 @@ public class CapacityReconciliationController {
             .stream()
             .collect(Collectors.toMap(SubscriptionCapacity::getKey, Function.identity()));
 
-    if (productAllowlist.productIdMatches(sku)) {
+    if (!productDenylist.productIdMatches(sku)) {
       newCapacities.forEach(
           newCapacity -> {
             toSave.add(newCapacity);

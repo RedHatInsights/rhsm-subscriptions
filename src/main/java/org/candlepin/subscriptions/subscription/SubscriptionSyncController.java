@@ -41,7 +41,7 @@ import javax.transaction.Transactional;
 import javax.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
-import org.candlepin.subscriptions.capacity.files.ProductAllowlist;
+import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -94,7 +94,7 @@ public class SubscriptionSyncController {
   private final AccountService accountService;
   private String syncSubscriptionsTopic;
   private final ObjectMapper objectMapper;
-  private final ProductAllowlist productAllowlist;
+  private final ProductDenylist productDenylist;
 
   @Autowired
   public SubscriptionSyncController(
@@ -108,7 +108,7 @@ public class SubscriptionSyncController {
       SubscriptionServiceProperties properties,
       MeterRegistry meterRegistry,
       KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate,
-      ProductAllowlist productAllowlist,
+      ProductDenylist productDenylist,
       ObjectMapper objectMapper,
       @Qualifier("syncSubscriptionTasks") TaskQueueProperties props,
       TagProfile tagProfile,
@@ -123,7 +123,7 @@ public class SubscriptionSyncController {
     this.properties = properties;
     this.syncTimer = meterRegistry.timer("swatch_subscription_sync_page");
     this.enqueueAllTimer = meterRegistry.timer("swatch_subscription_sync_enqueue_all");
-    this.productAllowlist = productAllowlist;
+    this.productDenylist = productDenylist;
     this.objectMapper = objectMapper;
     this.syncSubscriptionsTopic = props.getTopic();
     this.syncSubscriptionsByOrgKafkaTemplate = syncSubscriptionsByOrgKafkaTemplate;
@@ -152,9 +152,9 @@ public class SubscriptionSyncController {
       Optional<org.candlepin.subscriptions.db.model.Subscription> subscriptionOptional) {
     String sku = newOrUpdated.getSku();
 
-    if (!productAllowlist.productIdMatches(sku)) {
+    if (productDenylist.productIdMatches(sku)) {
       log.debug(
-          "Sku {} not on allowlist, skipping subscription sync for subscriptionId: {} in org: {} ",
+          "Sku {} on denylist, skipping subscription sync for subscriptionId: {} in org: {} ",
           sku,
           newOrUpdated.getSubscriptionId(),
           newOrUpdated.getOrgId());

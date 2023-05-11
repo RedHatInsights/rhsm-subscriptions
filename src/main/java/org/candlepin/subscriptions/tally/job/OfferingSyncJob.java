@@ -27,7 +27,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/** A cron job to sync offerings to the latest upstream state for all allowlisted offerings. */
+/** A cron job to sync offerings to the latest upstream state for all non denylisted offerings. */
 @Component
 @Profile("offering-sync")
 public class OfferingSyncJob implements Runnable {
