@@ -274,6 +274,7 @@ paths:
           description: success
 
       security:
+        - support: []
         - test: []
       operationId: syncContractsByOrg
   /internal/rpc/syncAllContracts:
@@ -294,6 +295,7 @@ paths:
                     status: 'Success'
                     message: "All contracts Synced"
       security:
+        - support: []
         - test: []
   /internal/offerings/{sku}/product_tags:
       description: "Mapping sku to product tags."
