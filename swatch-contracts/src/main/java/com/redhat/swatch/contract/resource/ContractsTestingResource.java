@@ -100,7 +100,7 @@ public class ContractsTestingResource implements DefaultApi {
 
   @Override
   @Transactional
-  @RolesAllowed({"test"})
+  @RolesAllowed({"test", "support"})
   public StatusResponse syncAllContracts() throws ApiException, ProcessingException {
     log.info("Syncing All Contracts");
     var contracts = service.getAllContracts();
@@ -114,7 +114,7 @@ public class ContractsTestingResource implements DefaultApi {
   }
 
   @Override
-  @RolesAllowed({"test"})
+  @RolesAllowed({"test", "support"})
   public StatusResponse syncContractsByOrg(String orgId) throws ApiException, ProcessingException {
     return service.syncContractByOrgId(orgId);
   }
