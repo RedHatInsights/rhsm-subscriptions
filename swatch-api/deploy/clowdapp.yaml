@@ -54,12 +54,17 @@ parameters:
     value: '1000'
   - name: SPLUNK_HEC_TERMINATION_TIMEOUT
     value: '2000'
+  - name: OTEL_SERVICE_NAME
+    value: swatch-api
   - name: NGINX_OTEL_IMAGE_TAG
     value: '1df2c89'
   - name: OTEL_ENABLED
     value: 'off'
+  - name: OTEL_JAVAAGENT_ENABLED
+    value: 'false'
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: 'http://localhost:4317'
+
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
     kind: ClowdApp
@@ -86,9 +91,6 @@ objects:
               enabled: true
           podSpec:
             image: ${IMAGE}:${IMAGE_TAG}
-            command:
-              - /bin/bash
-              - /usr/local/s2i/run
             initContainers:
               - image: ${IMAGE}:${IMAGE_TAG}
                 env:
@@ -123,6 +125,12 @@ objects:
                       secretKeyRef:
                         name: swatch-tally-db
                         key: db.name
+                  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                    value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+                  - name: OTEL_SERVICE_NAME
+                    value: ${OTEL_SERVICE_NAME}
+                  - name: OTEL_JAVAAGENT_ENABLED
+                    value: ${OTEL_JAVAAGENT_ENABLED}
                 resources:
                   requests:
                     cpu: ${CPU_REQUEST}
@@ -216,6 +224,12 @@ objects:
                 value: ${SPLUNK_HEC_BATCH_SIZE}
               - name: SPLUNK_HEC_TERMINATION_TIMEOUT
                 value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
+              - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+              - name: OTEL_SERVICE_NAME
+                value: ${OTEL_SERVICE_NAME}
+              - name: OTEL_JAVAAGENT_ENABLED
+                value: ${OTEL_JAVAAGENT_ENABLED}
             livenessProbe:
               failureThreshold: 3
               httpGet:

@@ -79,9 +79,6 @@ objects:
               enabled: true
           podSpec:
             image: ${IMAGE}:${IMAGE_TAG}
-            command:
-              - /bin/bash
-              - /usr/local/s2i/run
             livenessProbe:
               failureThreshold: 3
               httpGet:

@@ -15,6 +15,10 @@ plugins {
     id 'jacoco'
 }
 
+configurations {
+    javaagent
+}
+
 allprojects {
     group 'com.redhat.swatch'
 }
@@ -50,6 +54,8 @@ dependencies {
     testImplementation project(':swatch-core-test')
 
     runtimeOnly "org.hsqldb:hsqldb"
+
+    javaagent  libraries["splunk-otel-agent"]
 }
 
 allprojects {
@@ -290,12 +296,24 @@ sourceSets.main.java.srcDirs += [
     "${buildDir}/generated/metering/src/gen/java"
 ]
 
+tasks.register("downloadJavaAgent", Copy) {
+    into "$buildDir/javaagent"
+    from {
+        configurations.javaagent
+    }
+    rename { filename ->
+        'splunk-otel-javaagent.jar'
+    }
+}
+
 compileJava {
     dependsOn processResources
     dependsOn(provider {
         tasks.findAll { task -> task.name.startsWith('buildApi') }
     })
 }
+
+assemble.dependsOn(tasks.downloadJavaAgent)
 
 project(":api") {
     apply plugin: "swatch.java-conventions"

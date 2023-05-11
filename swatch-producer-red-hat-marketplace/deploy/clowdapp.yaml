@@ -126,6 +126,12 @@ parameters:
     value: '3'
   - name: KAFKA_TALLY_PARTITIONS
     value: '3'
+  - name: OTEL_SERVICE_NAME
+    value: swatch-producer-red-hat-marketplace
+  - name: OTEL_JAVAAGENT_ENABLED
+    value: 'false'
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: 'http://localhost:4317'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -161,17 +167,11 @@ objects:
             enabled: true
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          command:
-            - /bin/bash
-            - /usr/local/s2i/run
           initContainers:
             - env:
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
               inheritEnv: true
-              command:
-                - /bin/bash
-                - /usr/local/s2i/run
               resources:
                 requests:
                   cpu: ${CPU_REQUEST}
@@ -355,6 +355,12 @@ objects:
               value: ${BILLING_PRODUCER_MAX_ATTEMPTS}
             - name: ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC
               value: ${ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+            - name: OTEL_SERVICE_NAME
+              value: ${OTEL_SERVICE_NAME}
+            - name: OTEL_JAVAAGENT_ENABLED
+              value: ${OTEL_JAVAAGENT_ENABLED}
           livenessProbe:
             failureThreshold: 3
             httpGet:

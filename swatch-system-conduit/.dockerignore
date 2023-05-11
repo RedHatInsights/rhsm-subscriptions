@@ -5,3 +5,5 @@
 !build/libs
 # allow the quarkus-app build folder for quarkus based builds
 !build/quarkus-app
+# allow the build libs for splunk otel java agent
+!build/javaagent

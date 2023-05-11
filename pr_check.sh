@@ -53,7 +53,7 @@ for EXTRA_COMPONENT_NAME in $COMPONENTS_W_RESOURCES; do
   export EXTRA_DEPLOY_ARGS="${EXTRA_DEPLOY_ARGS} --set-template-ref ${EXTRA_COMPONENT_NAME}=${GIT_COMMIT}"
 done
 # Deploy to an ephemeral namespace for testing
-source $CICD_ROOT/deploy_ephemeral_env.sh
+source deploy_ephemeral_env.sh
 
 # Run smoke tests with ClowdJobInvocation
  source $CICD_ROOT/cji_smoke_test.sh

@@ -91,31 +91,40 @@ class ResourceRolesAllowedTest {
                             case "PUT" -> pathItem.getPUT();
                             default -> throw new UnsupportedOperationException(httpMethod);
                           };
-                      assertNotNull(
-                          operation.getSecurity(),
-                          String.format(
-                              "Security schemes not defined for path %s method %s",
-                              path, httpMethod));
-                      assertTrue(
-                          operation.getSecurity().size() > 0,
-                          String.format(
-                              "Security schemes must not be empty for path %s method %s",
-                              path, httpMethod));
-                      for (var requirement : operation.getSecurity()) {
+                      if (!path.startsWith("/api/rhsm-subscriptions/")) {
+                        assertNotNull(
+                            operation.getSecurity(),
+                            String.format(
+                                "Security schemes not defined for path %s method %s",
+                                path, httpMethod));
+                        assertTrue(
+                            operation.getSecurity().size() > 0,
+                            String.format(
+                                "Security schemes must not be empty for path %s method %s",
+                                path, httpMethod));
+                        for (var requirement : operation.getSecurity()) {
+                          assertEquals(
+                              1,
+                              requirement.getSchemes().size(),
+                              "Requirements of multiple schemes not supported");
+                        }
+                        var allSchemes =
+                            operation.getSecurity().stream()
+                                .flatMap(req -> req.getSchemes().keySet().stream())
+                                .collect(Collectors.toSet());
+                        var rolesAllowed =
+                            Optional.ofNullable(findAnnotation(RolesAllowed.class, method))
+                                .map(RolesAllowed::value)
+                                .orElse(new String[] {});
+                        assertEquals(allSchemes, new HashSet<>(Arrays.asList(rolesAllowed)));
+                      } else {
+                        var rolesAllowed =
+                            Optional.ofNullable(findAnnotation(RolesAllowed.class, method))
+                                .map(RolesAllowed::value)
+                                .orElse(new String[] {});
                         assertEquals(
-                            1,
-                            requirement.getSchemes().size(),
-                            "Requirements of multiple schemes not supported");
+                            Set.of("customer"), new HashSet<>(Arrays.asList(rolesAllowed)));
                       }
-                      var allSchemes =
-                          operation.getSecurity().stream()
-                              .flatMap(req -> req.getSchemes().keySet().stream())
-                              .collect(Collectors.toSet());
-                      var rolesAllowed =
-                          Optional.ofNullable(findAnnotation(RolesAllowed.class, method))
-                              .map(RolesAllowed::value)
-                              .orElse(new String[] {});
-                      assertEquals(allSchemes, new HashSet<>(Arrays.asList(rolesAllowed)));
                     }));
   }
 

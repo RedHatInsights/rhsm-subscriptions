@@ -129,6 +129,12 @@ parameters:
     value: '3'
   - name: KAFKA_SUBSCRIPTIONS_PRUNE_PARTITIONS
     value: '3'
+  - name: OTEL_SERVICE_NAME
+    value: swatch-subscription-sync
+  - name: OTEL_JAVAAGENT_ENABLED
+    value: 'false'
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: 'http://localhost:4317'
 
 # allow overriding to support independent deploy with bonfire
   - name: DB_POD
@@ -185,17 +191,11 @@ objects:
         replicas: ${{REPLICAS}}
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          command:
-            - /bin/bash
-            - /usr/local/s2i/run
           initContainers:
             - env:
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
               inheritEnv: true
-              command:
-                - /bin/bash
-                - /usr/local/s2i/run
               resources:
                 requests:
                   cpu: ${CPU_REQUEST}
@@ -406,6 +406,12 @@ objects:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: metadata.namespace
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+            - name: OTEL_SERVICE_NAME
+              value: ${OTEL_SERVICE_NAME}
+            - name: OTEL_JAVAAGENT_ENABLED
+              value: ${OTEL_JAVAAGENT_ENABLED}
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -457,17 +463,11 @@ objects:
         restartPolicy: Never
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          command:
-            - /bin/bash
-            - /usr/local/s2i/run
           initContainers:
             - env:
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
               inheritEnv: true
-              command:
-                - /bin/bash
-                - /usr/local/s2i/run
               resources:
                 requests:
                   cpu: ${CPU_REQUEST}
@@ -566,6 +566,12 @@ objects:
                 secretKeyRef:
                   name: ${INVENTORY_SECRET_KEY_NAME}
                   key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+            - name: OTEL_SERVICE_NAME
+              value: ${OTEL_SERVICE_NAME}
+            - name: OTEL_JAVAAGENT_ENABLED
+              value: ${OTEL_JAVAAGENT_ENABLED}
           resources:
             requests:
               cpu: ${CPU_REQUEST}
@@ -587,17 +593,11 @@ objects:
         restartPolicy: Never
         podSpec:
           image: ${IMAGE}:${IMAGE_TAG}
-          command:
-            - /bin/bash
-            - /usr/local/s2i/run
           initContainers:
             - env:
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
               inheritEnv: true
-              command:
-                - /bin/bash
-                - /usr/local/s2i/run
               resources:
                 requests:
                   cpu: ${CPU_REQUEST}
@@ -696,6 +696,12 @@ objects:
                 secretKeyRef:
                   name: ${INVENTORY_SECRET_KEY_NAME}
                   key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+            - name: OTEL_SERVICE_NAME
+              value: ${OTEL_SERVICE_NAME}
+            - name: OTEL_JAVAAGENT_ENABLED
+              value: ${OTEL_JAVAAGENT_ENABLED}
           resources:
             requests:
               cpu: ${CPU_REQUEST}
