@@ -129,21 +129,20 @@ class ContractServiceTest extends BaseUnitTest {
     assertEquals(2, contractList.get(0).getMetrics().size());
   }
 
-  /*  @Test
-  void testUpdateContract() {
-
-    contractService.updateContract(contractDto);
-    verify(contractRepository, times(1)).findContract(actualContract1.getUuid());
-
-    //assertNotEquals(contractDto.getUuid(), null);
-  }*/
-
   @Test
-  void testDeleteContract() {
-    var uuid = UUID.randomUUID();
-    when(contractRepository.deleteById(uuid)).thenReturn(true);
-    contractService.deleteContract(uuid.toString());
-    verify(contractRepository).deleteById(uuid);
+  void testUpdateContractEndDate() {
+
+    when(contractRepository.findContract(any())).thenReturn(actualContract1);
+
+    var now = OffsetDateTime.now();
+
+    UUID uuid = actualContract1.getUuid();
+
+    var expected = now;
+    var actual = contractService.updateContractEndDate(uuid.toString(), now).get().getEndDate();
+
+    verify(contractRepository, times(1)).findContract(uuid);
+    assertEquals(expected, actual);
   }
 
   @Test
