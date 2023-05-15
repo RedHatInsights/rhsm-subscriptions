@@ -62,6 +62,7 @@ public class TagProfile {
 
   private Map<String, Set<String>> tagToEngProductsLookup;
   private Map<ProductUom, String> productUomToRhmMetricIdLookup;
+  private Map<ProductUom, String> productUomToAwsDimensionLookup;
   @Getter private Set<String> tagsWithPrometheusEnabledLookup;
   private Map<String, Set<Uom>> measurementsByTagLookup;
   private Map<String, String> offeringProductNameToTagLookup;
@@ -77,6 +78,7 @@ public class TagProfile {
   public void initLookups() {
     tagToEngProductsLookup = new HashMap<>();
     productUomToRhmMetricIdLookup = new HashMap<>();
+    productUomToAwsDimensionLookup = new HashMap<>();
     tagsWithPrometheusEnabledLookup = new HashSet<>();
     measurementsByTagLookup = new HashMap<>();
     offeringProductNameToTagLookup = new HashMap<>();
@@ -152,6 +154,13 @@ public class TagProfile {
 
     productUomToRhmMetricIdLookup.put(
         new ProductUom(tagMetric.getTag(), tagMetric.getUom().value()), tagMetric.getRhmMetricId());
+
+    if (!ObjectUtils.isEmpty(tagMetric.getAwsDimension())) {
+      productUomToAwsDimensionLookup.put(
+          new ProductUom(tagMetric.getTag(), tagMetric.getUom().value()),
+          tagMetric.getAwsDimension());
+    }
+
     measurementsByTagLookup
         .computeIfAbsent(tagMetric.getTag(), k -> new HashSet<>())
         .add(tagMetric.getUom());
@@ -196,6 +205,10 @@ public class TagProfile {
 
   public String rhmMetricIdForTagAndUom(String tag, TallyMeasurement.Uom uom) {
     return productUomToRhmMetricIdLookup.get(new ProductUom(tag, uom.value()));
+  }
+
+  public String awsDimensionForTagAndUom(String tag, TallyMeasurement.Uom uom) {
+    return productUomToAwsDimensionLookup.get(new ProductUom(tag, uom.value()));
   }
 
   public String tagForOfferingProductName(String offeringProductName) {

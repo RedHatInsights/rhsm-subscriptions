@@ -55,6 +55,7 @@ import org.candlepin.subscriptions.json.BillableUsage.Sla;
 import org.candlepin.subscriptions.json.BillableUsage.Uom;
 import org.candlepin.subscriptions.json.BillableUsage.Usage;
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.registry.BillingWindow;
 import org.candlepin.subscriptions.registry.TagMetric;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -74,6 +75,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class BillableUsageControllerTest {
 
   private static ApplicationClock CLOCK = new FixedClockConfiguration().fixedClock();
+  private static final String AWS_METRIC_ID = "aws_metric";
 
   @Mock BillingProducer producer;
   @Mock BillableUsageRemittanceRepository remittanceRepo;
@@ -538,10 +540,14 @@ class BillableUsageControllerTest {
 
     // Configure contract data, if defined
     if (isContractEnabledTest) {
+      when(tagProfile.awsDimensionForTagAndUom(
+              usage.getProductId(), TallyMeasurement.Uom.fromValue(usage.getUom().value())))
+          .thenReturn(AWS_METRIC_ID);
+
       mockContactCoverage(
           usage.getOrgId(),
           usage.getProductId(),
-          usage.getUom().value(),
+          AWS_METRIC_ID,
           usage.getVendorProductCode(),
           usage.getBillingProvider().value(),
           usage.getBillingAccountId(),
@@ -614,6 +620,10 @@ class BillableUsageControllerTest {
     when(tagProfile.isTagContractEnabled(usage.getProductId())).thenReturn(true);
     when(contractsApi.getContract(any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(List.of());
+    when(tagProfile.awsDimensionForTagAndUom(
+            usage.getProductId(), TallyMeasurement.Uom.fromValue(usage.getUom().value())))
+        .thenReturn(AWS_METRIC_ID);
+
     controller.submitBillableUsage(BillingWindow.MONTHLY, usage);
     verify(producer).produce(null);
   }

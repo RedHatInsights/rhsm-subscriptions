@@ -31,10 +31,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.json.BillableUsage;
+import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
+import org.candlepin.subscriptions.json.BillableUsage.Uom;
+import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ObjectUtils;
 
 /** Encapsulates the billing business logic for contract based billing. */
 @Component
@@ -72,13 +76,24 @@ public class ContractsController {
           usage.getProductId());
       return Optional.empty();
     }
-    log.debug("Looking up contract information for usage {}", usage);
+
+    String contractMetricId =
+        getContractMetricId(usage.getBillingProvider(), usage.getProductId(), usage.getUom());
+    if (ObjectUtils.isEmpty(contractMetricId)) {
+      throw new IllegalStateException(
+          String.format(
+              "Contract metric ID is not configured for provider=%s product=%s usage=%s",
+              usage.getBillingProvider(), usage.getProductId(), usage.getUom()));
+    }
+
+    log.debug(
+        "Looking up contract information for usage {} using metric ID {}", usage, contractMetricId);
     try {
       List<Contract> contracts =
           contractsApi.getContract(
               usage.getOrgId(),
               usage.getProductId(),
-              usage.getUom().value(),
+              contractMetricId,
               usage.getVendorProductCode(),
               usage.getBillingProvider().value(),
               usage.getBillingAccountId(),
@@ -97,7 +112,7 @@ public class ContractsController {
               .map(
                   c ->
                       c.getMetrics().stream()
-                          .filter(metric -> metric.getMetricId().equals(usage.getUom().value()))
+                          .filter(metric -> metric.getMetricId().equals(contractMetricId))
                           .map(Metric::getValue)
                           .reduce(0, Integer::sum))
               .reduce(0, Integer::sum);
@@ -109,6 +124,16 @@ public class ContractsController {
           String.format("Could not look up contract info for usage! %s", usage),
           ex);
     }
+  }
+
+  private String getContractMetricId(BillingProvider billingProvider, String productId, Uom uom) {
+    TallyMeasurement.Uom measurementUom = TallyMeasurement.Uom.fromValue(uom.toString());
+    if (BillingProvider.AWS.equals(billingProvider)) {
+      return tagProfile.awsDimensionForTagAndUom(productId, measurementUom);
+    } else if (BillingProvider.RED_HAT.equals(billingProvider)) {
+      return tagProfile.rhmMetricIdForTagAndUom(productId, measurementUom);
+    }
+    return null;
   }
 
   private boolean isValidContract(Contract contract, BillableUsage usage) {
