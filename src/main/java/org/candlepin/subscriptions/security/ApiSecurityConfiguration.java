@@ -94,8 +94,8 @@ public class ApiSecurityConfiguration {
   }
 
   // NOTE: intentionally not annotated w/ @Bean; @Bean causes an extra use as an application filter
-  public AntiCsrfFilter antiCsrfFilter(SecurityProperties secProps, ConfigurableEnvironment env) {
-    return new AntiCsrfFilter(secProps, env);
+  public AntiCsrfFilter antiCsrfFilter(SecurityProperties secProps) {
+    return new AntiCsrfFilter(secProps);
   }
 
   // NOTE: intentionally not annotated w/ @Bean; @Bean causes an extra use as an application filter
@@ -201,7 +201,7 @@ public class ApiSecurityConfiguration {
     http.addFilter(identityHeaderAuthenticationFilter(authenticationManager, mapper))
         .addFilterAfter(mdcFilter(), IdentityHeaderAuthenticationFilter.class)
         .addFilterAfter(logPrincipalFilter(), MdcFilter.class)
-        .addFilterAt(antiCsrfFilter(secProps, env), CsrfFilter.class)
+        .addFilterAt(antiCsrfFilter(secProps), CsrfFilter.class)
         .csrf(csrf -> csrf.disable()) // We use our own CSRF filter
         .exceptionHandling(
             handler -> {

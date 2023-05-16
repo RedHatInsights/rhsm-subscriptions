@@ -30,7 +30,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /** Filter that prevents CSRF by verifying for a valid Origin or Referer header. */
@@ -45,9 +44,8 @@ public class AntiCsrfFilter extends OncePerRequestFilter {
   private final String domainSuffix;
   private final String domainAndPortSuffix;
 
-  public AntiCsrfFilter(SecurityProperties props, ConfigurableEnvironment env) {
-    disabled =
-        props.isDevMode() || Arrays.asList(env.getActiveProfiles()).contains("capacity-ingress");
+  public AntiCsrfFilter(SecurityProperties props) {
+    disabled = props.isDevMode();
     port = props.getAntiCsrfPort();
     domainSuffix = props.getAntiCsrfDomainSuffix();
     domainAndPortSuffix = String.join(":", domainSuffix, Integer.toString(port));

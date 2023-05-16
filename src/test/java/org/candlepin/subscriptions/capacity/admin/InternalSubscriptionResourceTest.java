@@ -278,17 +278,20 @@ class InternalSubscriptionResourceTest {
      * if we get a 404 response, it means everything passed security-wise and we just couldn't
      * find the matching resource (because there are no matching RestControllers!).
      */
-    mvc.perform(post(SYNC_ORG_123)).andExpect(status().isNotFound());
+    mvc.perform(post(SYNC_ORG_123).header("Origin", "console.redhat.com"))
+        .andExpect(status().isNotFound());
   }
 
   @Test
   void forceSyncForOrgWorksFailsWithNoPrincipal() throws Exception {
-    mvc.perform(post(SYNC_ORG_123)).andExpect(status().isUnauthorized());
+    mvc.perform(post(SYNC_ORG_123).header("Origin", "console.redhat.com"))
+        .andExpect(status().isUnauthorized());
   }
 
   @Test
   @WithMockRedHatPrincipal("123")
   void forceSyncForOrgWorksFailsWithRhPrincipal() throws Exception {
-    mvc.perform(post(SYNC_ORG_123)).andExpect(status().isForbidden());
+    mvc.perform(post(SYNC_ORG_123).header("Origin", "console.redhat.com"))
+        .andExpect(status().isForbidden());
   }
 }

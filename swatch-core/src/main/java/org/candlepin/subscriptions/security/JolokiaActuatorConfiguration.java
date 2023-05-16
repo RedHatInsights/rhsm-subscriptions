@@ -27,7 +27,6 @@ import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointR
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -48,9 +47,8 @@ public class JolokiaActuatorConfiguration {
 
   // NOTE: intentionally *not* annotated with @Bean; @Bean causes an extra use as an application
   // filter
-  public AntiCsrfFilter getVerbIncludingAntiCsrfFilter(
-      SecurityProperties appProps, ConfigurableEnvironment env) {
-    return new GetVerbIncludingAntiCsrfFilter(appProps, env);
+  public AntiCsrfFilter getVerbIncludingAntiCsrfFilter(SecurityProperties appProps) {
+    return new GetVerbIncludingAntiCsrfFilter(appProps);
   }
 
   // NOTE: intentionally *not* annotated w/ @Bean; @Bean causes an *extra* use as an application
@@ -112,7 +110,6 @@ public class JolokiaActuatorConfiguration {
       HttpSecurity http,
       SecurityProperties secProps,
       AuthenticationManager authenticationManager,
-      ConfigurableEnvironment env,
       ObjectMapper mapper)
       throws Exception {
     // See
@@ -121,7 +118,7 @@ public class JolokiaActuatorConfiguration {
     http.requestMatcher(EndpointRequest.to("jolokia"))
         .addFilter(identityHeaderAuthenticationFilter(authenticationManager, mapper))
         .addFilterAfter(mdcFilter(), IdentityHeaderAuthenticationFilter.class)
-        .addFilterAt(getVerbIncludingAntiCsrfFilter(secProps, env), CsrfFilter.class)
+        .addFilterAt(getVerbIncludingAntiCsrfFilter(secProps), CsrfFilter.class)
         .csrf(csrf -> csrf.disable())
         .authorizeHttpRequests(requests -> requests.anyRequest().authenticated());
 

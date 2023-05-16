@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.security;
 
 import javax.servlet.http.HttpServletRequest;
-import org.springframework.core.env.ConfigurableEnvironment;
 
 /**
  * This class includes GET requests in the list of HTTP verbs that must have a matching origin or
@@ -30,8 +29,8 @@ import org.springframework.core.env.ConfigurableEnvironment;
  */
 public class GetVerbIncludingAntiCsrfFilter extends AntiCsrfFilter {
 
-  GetVerbIncludingAntiCsrfFilter(SecurityProperties props, ConfigurableEnvironment env) {
-    super(props, env);
+  GetVerbIncludingAntiCsrfFilter(SecurityProperties props) {
+    super(props);
   }
 
   @Override
