@@ -233,6 +233,7 @@ paths:
                   billing_provider: aws
                   billing_account_id: bp1
                   product_id: BASILISK
+                  vendor_product_code: VPC
                   metrics:
                     - metric_id: instance-hours
                       value: 100
