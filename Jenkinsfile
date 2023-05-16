@@ -31,12 +31,25 @@ pipeline {
                 input 'ok to test?'
             }
         }
-        stage('Build/Test/Lint') {
+
+        stage('Assemble'){
             steps {
-                // The build task includes check, test, and assemble.  Linting happens during the check
-                // task and uses the spotless gradle plugin.
                 echo "The ci value is ${env.CI}"
-                sh "./gradlew --no-daemon build"
+                sh "./gradlew --no-daemon assemble"
+            }
+        }
+
+        stage('Test'){
+            steps {
+                echo "The ci value is ${env.CI}"
+                sh "./gradlew --no-daemon test"
+            }
+        }
+
+        stage('Lint'){
+            steps {
+                echo "The ci value is ${env.CI}"
+                sh "./gradlew --no-daemon spotlessCheck"
             }
         }
 
