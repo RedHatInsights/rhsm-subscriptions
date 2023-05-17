@@ -149,10 +149,6 @@ class ContractServiceTest extends BaseUnitTest {
   void createPartnerContract_WhenNonNullEntityAndContractNotFoundInDB() {
     var contract = new PartnerEntitlementContract();
     contract.setRedHatSubscriptionNumber("12400374");
-    Dimension dimensions = new Dimension();
-    dimensions.setDimensionName("test_dim_1");
-    dimensions.setDimensionValue("5");
-    contract.setCurrentDimensions(List.of(dimensions));
 
     PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
         new PartnerEntitlementContractCloudIdentifiers();
@@ -172,10 +168,6 @@ class ContractServiceTest extends BaseUnitTest {
   void createPartnerContract_WhenNullEntityThrowError() {
     var contract = new PartnerEntitlementContract();
     contract.setRedHatSubscriptionNumber("12400374");
-    Dimension dimensions = new Dimension();
-    dimensions.setDimensionName("test_dim_1");
-    dimensions.setDimensionValue("5");
-    contract.setCurrentDimensions(List.of(dimensions));
 
     PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
         new PartnerEntitlementContractCloudIdentifiers();
@@ -195,10 +187,6 @@ class ContractServiceTest extends BaseUnitTest {
   void whenInvalidPartnerContract_DoNotPersist() {
     var contract = new PartnerEntitlementContract();
     contract.setRedHatSubscriptionNumber("12400374");
-    Dimension dimensions = new Dimension();
-    dimensions.setDimensionName("test_dim_1");
-    dimensions.setDimensionValue("5");
-    contract.setCurrentDimensions(List.of(dimensions));
 
     PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
         new PartnerEntitlementContractCloudIdentifiers();
@@ -221,10 +209,6 @@ class ContractServiceTest extends BaseUnitTest {
 
     var contract = new PartnerEntitlementContract();
     contract.setRedHatSubscriptionNumber("12400374");
-    Dimension dimensions = new Dimension();
-    dimensions.setDimensionName("test_dim_1");
-    dimensions.setDimensionValue("5");
-    contract.setCurrentDimensions(List.of(dimensions));
 
     PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
         new PartnerEntitlementContractCloudIdentifiers();
@@ -272,10 +256,6 @@ class ContractServiceTest extends BaseUnitTest {
 
     var contract = new PartnerEntitlementContract();
     contract.setRedHatSubscriptionNumber("12400374");
-    Dimension dimensions = new Dimension();
-    dimensions.setDimensionName("test_dim_1");
-    dimensions.setDimensionValue("5");
-    contract.setCurrentDimensions(List.of(dimensions));
 
     PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
         new PartnerEntitlementContractCloudIdentifiers();
@@ -299,10 +279,15 @@ class ContractServiceTest extends BaseUnitTest {
 
     ContractMetricEntity contractMetric4 = new ContractMetricEntity();
     contractMetric4.setContractUuid(uuid);
-    contractMetric4.setMetricId("test_dim_1");
-    contractMetric4.setValue(5);
+    contractMetric4.setMetricId("foobar");
+    contractMetric4.setValue(1000000);
 
-    existingContract.setMetrics(Set.of(contractMetric4));
+    ContractMetricEntity contractMetric5 = new ContractMetricEntity();
+    contractMetric5.setContractUuid(uuid);
+    contractMetric5.setMetricId("cpu-hours");
+    contractMetric5.setValue(1000000);
+
+    existingContract.setMetrics(Set.of(contractMetric4, contractMetric5));
 
     OfferingProductTags productTags = new OfferingProductTags();
     productTags.data(List.of("BASILISK123"));

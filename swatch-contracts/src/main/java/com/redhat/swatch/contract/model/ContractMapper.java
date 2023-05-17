@@ -20,17 +20,25 @@
  */
 package com.redhat.swatch.contract.model;
 
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.DimensionV1;
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.RhEntitlementV1;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.Dimension;
 import com.redhat.swatch.contract.openapi.model.Metric;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Builder;
 import org.mapstruct.CollectionMappingStrategy;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+import org.mapstruct.Named;
 
 @Mapper(
     componentModel = "cdi",
@@ -48,7 +56,6 @@ public interface ContractMapper {
   ContractMetricEntity metricDtoToMetricEntity(Metric metric);
 
   @Mapping(target = "subscriptionNumber", source = "contract.redHatSubscriptionNumber")
-  @Mapping(target = "metrics", source = "currentDimensions")
   @Mapping(target = "vendorProductCode", source = "cloudIdentifiers.productCode")
   @BeanMapping(ignoreByDefault = true)
   ContractEntity partnerContractToContractEntity(PartnerEntitlementContract contract);
@@ -58,4 +65,35 @@ public interface ContractMapper {
   @Mapping(target = "contract", ignore = true)
   @Mapping(target = "contractUuid", ignore = true)
   ContractMetricEntity dimensionToContractMetricEntity(Dimension dimension);
+
+  @Mapping(target = "orgId", source = "entitlement.rhAccountId")
+  @Mapping(
+      target = "billingAccountId",
+      source = "entitlement.partnerIdentities.customerAwsAccountId")
+  @Mapping(
+      target = "sku",
+      source = "entitlement.rhEntitlements",
+      qualifiedByName = "rhEntitlementSku")
+  @BeanMapping(ignoreByDefault = true)
+  void mapRhEntitlementsToContractEntity(
+      @MappingTarget ContractEntity contractEntity, PartnerEntitlementV1 entitlement);
+
+  @Named("rhEntitlementSku")
+  default String getRhEntitlementSku(List<RhEntitlementV1> rhEntitlements) {
+    if (Objects.nonNull(rhEntitlements)
+        && !rhEntitlements.isEmpty()
+        && Objects.nonNull(rhEntitlements.get(0))) {
+      return rhEntitlements.get(0).getSku();
+    } else {
+      return null;
+    }
+  }
+
+  Set<ContractMetricEntity> dimensionV1ToContractMetricEntity(Set<DimensionV1> dimension);
+
+  @Mapping(target = "metricId", source = "name")
+  @Mapping(target = "value", source = "value")
+  @Mapping(target = "contract", ignore = true)
+  @Mapping(target = "contractUuid", ignore = true)
+  ContractMetricEntity dimensionV1ToContractMetricEntity(DimensionV1 dimension);
 }

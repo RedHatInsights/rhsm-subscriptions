@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
@@ -316,8 +317,6 @@ public class ContractService {
 
   private boolean validPartnerEntitlementContract(PartnerEntitlementContract contract) {
     return Objects.nonNull(contract.getRedHatSubscriptionNumber())
-        && Objects.nonNull(contract.getCurrentDimensions())
-        && !contract.getCurrentDimensions().isEmpty()
         && Objects.nonNull(contract.getCloudIdentifiers())
         && Objects.nonNull(contract.getCloudIdentifiers().getAwsCustomerId())
         && Objects.nonNull(contract.getCloudIdentifiers().getProductCode());
@@ -337,7 +336,9 @@ public class ContractService {
         && Objects.nonNull(entity.getSku())
         && Objects.nonNull(entity.getBillingProvider())
         && Objects.nonNull(entity.getBillingAccountId())
-        && Objects.nonNull(entity.getProductId());
+        && Objects.nonNull(entity.getProductId())
+        && Objects.nonNull(entity.getMetrics())
+        && !entity.getMetrics().isEmpty();
   }
 
   private void persistContract(ContractEntity entity, OffsetDateTime now) {
@@ -452,26 +453,27 @@ public class ContractService {
         && !result.getContent().isEmpty()
         && Objects.nonNull(result.getContent().get(0))) {
       var entitlement = result.getContent().get(0);
-      entity.setOrgId(entitlement.getRhAccountId());
+
+      mapper.mapRhEntitlementsToContractEntity(entity, entitlement);
       entity.setBillingProvider(
           ContractSourcePartnerEnum.getByCode(entitlement.getSourcePartner().value()));
-      var partnerIdentity = entitlement.getPartnerIdentities();
-      if (Objects.nonNull(partnerIdentity)) {
-        entity.setBillingAccountId(partnerIdentity.getCustomerAwsAccountId());
-      }
-      mapRhEntitlementsToContractEntity(entity, entitlement);
+
+      var dimensionV1s =
+          entitlement.getPurchase().getContracts().stream()
+              .filter(contract -> Objects.isNull(contract.getEndDate()))
+              .flatMap(contract -> contract.getDimensions().stream())
+              .collect(Collectors.toSet());
+
+      entity.setMetrics(mapper.dimensionV1ToContractMetricEntity(dimensionV1s));
+      populateProductIdBySku(entity);
     }
   }
 
-  private void mapRhEntitlementsToContractEntity(
-      ContractEntity entity, PartnerEntitlementV1 entitlement) {
-    var rhEntitlements = entitlement.getRhEntitlements();
-    if (Objects.nonNull(rhEntitlements)
-        && !rhEntitlements.isEmpty()
-        && Objects.nonNull(rhEntitlements.get(0))) {
-      var sku = rhEntitlements.get(0).getSku();
-      entity.setSku(sku);
-      log.trace("Call swatch api to get producttags by sku {}", sku);
+  private void populateProductIdBySku(ContractEntity entity) {
+    var sku = entity.getSku();
+    log.trace("Call swatch api to get producttags by sku {}", sku);
+
+    if (Objects.nonNull(sku)) {
       try {
         OfferingProductTags productTags = syncService.getOfferingProductTags(sku);
         if (Objects.nonNull(productTags)
