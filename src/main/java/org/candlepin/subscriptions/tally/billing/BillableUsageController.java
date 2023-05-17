@@ -38,10 +38,8 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.json.BillableUsage;
-import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.registry.BillingWindow;
-import org.candlepin.subscriptions.registry.TagMetric;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.stereotype.Component;
@@ -118,54 +116,32 @@ public class BillableUsageController {
    */
   private BillableUsageCalculation calculateBillableUsage(
       double applicableUsage, BillableUsage usage, BillableUsageRemittanceEntity remittance) {
-    double tagFactor = getBillingFactor(usage);
-    double billableValue;
-    double remittedValue;
-    var currentRemittedValue = remittance.getRemittedValue();
-    var prevBillingFactor = Objects.requireNonNullElse(remittance.getBillingFactor(), 1.0);
+    Quantity<MetricUnit> totalUsage = Quantity.of(applicableUsage);
+    Quantity<RemittanceUnit> currentRemittance = Quantity.fromRemittance(remittance);
+    var billingUnit = new BillingUnit(tagProfile, usage);
+    Quantity<BillingUnit> billableValue =
+        totalUsage
+            .subtract(currentRemittance)
+            .to(billingUnit)
+            // only emit integers for billing
+            .ceil()
+            // Message could have been received out of order via another process
+            // or usage is credited, nothing to bill in either case.
+            .positiveOrZero();
 
-    // if the tag factor is different from the latest billing factor,
-    // we will calculate the difference based on the current tag metric,
-    // if not we will just calculate as usual
-    if (tagFactor != 1.0) {
-      var prevBilled = currentRemittedValue / prevBillingFactor; // previously billed
-      var unbilledAmount = adjustBillable(applicableUsage - prevBilled);
-      var updatedBill = unbilledAmount * tagFactor;
-      var prevBilledAdjusted = prevBilled * tagFactor;
-
-      billableValue = Math.ceil(updatedBill);
-      remittedValue = adjustBillable(billableValue) + prevBilledAdjusted;
-    } else {
-      double adjustedMeasuredTotal = Math.ceil(applicableUsage);
-      billableValue = adjustBillable(adjustedMeasuredTotal - currentRemittedValue);
-      remittedValue = currentRemittedValue + billableValue;
-    }
+    Quantity<BillingUnit> totalRemittance = billableValue.add(currentRemittance);
+    log.debug(
+        "Running total: {}, already remitted: {}, to be remitted: {}",
+        totalUsage,
+        currentRemittance,
+        billableValue);
 
     return BillableUsageCalculation.builder()
-        .billableValue(billableValue)
-        .remittedValue(remittedValue)
+        .billableValue(billableValue.getValue())
+        .remittedValue(totalRemittance.getValue())
         .remittanceDate(clock.now())
-        .billingFactor(tagFactor)
+        .billingFactor(billingUnit.getBillingFactor())
         .build();
-  }
-
-  private double getBillingFactor(BillableUsage usage) {
-    var tagMetricOptional =
-        tagProfile.getTagMetric(
-            usage.getProductId(), Measurement.Uom.fromValue(usage.getUom().value()));
-    return tagMetricOptional
-        .map(TagMetric::getBillingFactor)
-        .orElse(1.0); // get configured billingFactor in tag_profile yaml
-  }
-
-  private Double adjustBillable(double billableValue) {
-    if (billableValue < 0) {
-      // Message could have been received out of order via another process,
-      // or on re-tally we have already billed for this usage and using
-      // credit. There's nothing to bill in this case.
-      billableValue = 0.0;
-    }
-    return billableValue;
   }
 
   private BillableUsage produceHourlyBillable(BillableUsage usage) {
@@ -201,12 +177,13 @@ public class BillableUsageController {
         getCurrentlyMeasuredTotal(
             usage, clock.startOfMonth(usage.getSnapshotDate()), usage.getSnapshotDate());
 
-    double applicableUsage = currentlyMeasuredTotal;
-    if (contractOptional.isPresent()) {
-      double contractCoverage =
-          convertContractUnitsToMeasurementUnits(contractOptional.get(), getBillingFactor(usage));
-      applicableUsage = adjustBillable(currentlyMeasuredTotal - contractCoverage);
-    }
+    Quantity<BillingUnit> contractAmount =
+        Quantity.fromContractCoverage(tagProfile, usage, contractOptional.orElse(0.0));
+    double applicableUsage =
+        Quantity.of(currentlyMeasuredTotal)
+            .subtract(contractAmount)
+            .positiveOrZero() // ignore usage less than the contract amount
+            .getValue();
 
     BillableUsageRemittanceEntity remittance = getLatestRemittance(usage);
     BillableUsageCalculation usageCalc = calculateBillableUsage(applicableUsage, usage, remittance);
@@ -273,23 +250,5 @@ public class BillableUsageController {
         beginning,
         ending,
         measurementKey);
-  }
-
-  /**
-   * Since the contract is provided as billing units, we need to convert it to measurement units so
-   * that it can be properly deducted from the measured total from the snapshots.
-   *
-   * <p>For example, given a contract with 1 4vCPU capacity (billing factor of 0.25), and a tally
-   * measurement of 4 vCPUs, the contract units will be converted to 1/0.25 = 4
-   */
-  private double convertContractUnitsToMeasurementUnits(
-      double contractedValue, double billingFactor) {
-    double contractMeasurementUnits = contractedValue / billingFactor;
-    log.debug(
-        "Converting contract amount: {}/{}={}",
-        contractedValue,
-        billingFactor,
-        contractMeasurementUnits);
-    return contractMeasurementUnits;
   }
 }
