@@ -36,7 +36,6 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
-import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.registry.BillingWindow;
@@ -150,35 +149,45 @@ public class BillableUsageController {
   }
 
   private BillableUsage produceMonthlyBillable(BillableUsage usage) {
-    log.debug("Processing monthly billable usage {}", usage);
-
-    Optional<Double> contractOptional = Optional.empty();
-    try {
-      contractOptional = contractsController.getContractCoverage(usage);
-    } catch (ExternalServiceException ex) {
-      if (usage.getSnapshotDate().isAfter(OffsetDateTime.now().minus(30, ChronoUnit.MINUTES))) {
-        log.warn(
-            "{} - Unable to retrieve contract for usage less than {} minutes old. Usage: {}",
-            ErrorCode.CONTRACT_NOT_AVAILABLE,
-            30,
-            usage);
-        return null;
-      } else {
-        log.error(
-            "{} - Unable to retrieve contract for usage older than {} minutes old. Usage: {}",
-            ErrorCode.CONTRACT_NOT_AVAILABLE,
-            30,
-            usage);
-        return null;
-      }
-    }
+    log.info(
+        "Processing monthly billable usage for orgId={} productId={} uom={} provider={}, snapshotDate={}",
+        usage.getOrgId(),
+        usage.getProductId(),
+        usage.getUom(),
+        usage.getBillingProvider(),
+        usage.getSnapshotDate());
+    log.debug("Usage: {}", usage);
 
     Double currentlyMeasuredTotal =
         getCurrentlyMeasuredTotal(
             usage, clock.startOfMonth(usage.getSnapshotDate()), usage.getSnapshotDate());
 
+    Optional<Double> contractValue = Optional.of(0.0);
+    if (tagProfile.isTagContractEnabled(usage.getProductId())) {
+      try {
+        contractValue = Optional.of(contractsController.getContractCoverage(usage));
+        log.debug("Adjusting usage based on contracted amount of {}", contractValue);
+      } catch (ContractMissingException ex) {
+        if (usage.getSnapshotDate().isAfter(OffsetDateTime.now().minus(30, ChronoUnit.MINUTES))) {
+          log.warn(
+              "{} - Unable to retrieve contract for usage less than {} minutes old. Usage: {}",
+              ErrorCode.CONTRACT_NOT_AVAILABLE,
+              30,
+              usage);
+          return null;
+        } else {
+          log.error(
+              "{} - Unable to retrieve contract for usage older than {} minutes old. Usage: {}",
+              ErrorCode.CONTRACT_NOT_AVAILABLE,
+              30,
+              usage);
+          return null;
+        }
+      }
+    }
+
     Quantity<BillingUnit> contractAmount =
-        Quantity.fromContractCoverage(tagProfile, usage, contractOptional.orElse(0.0));
+        Quantity.fromContractCoverage(tagProfile, usage, contractValue.get());
     double applicableUsage =
         Quantity.of(currentlyMeasuredTotal)
             .subtract(contractAmount)
@@ -189,9 +198,9 @@ public class BillableUsageController {
     BillableUsageCalculation usageCalc = calculateBillableUsage(applicableUsage, usage, remittance);
 
     log.debug(
-        "Processing monthly billable usage: Usage: {}, Contracted: {}, Current total: {}, Current remittance: {}, New billable: {}",
+        "Processing monthly billable usage: Usage: {}, Applicable: {}, Current total: {}, Current remittance: {}, New billable: {}",
         usage,
-        contractOptional.isPresent() ? contractOptional.get() : "N/A",
+        applicableUsage,
         currentlyMeasuredTotal,
         remittance,
         usageCalc);
@@ -204,8 +213,14 @@ public class BillableUsageController {
       remittance.setAccountNumber(usage.getAccountNumber());
       log.debug("Updating remittance: {}", remittance);
       billableUsageRemittanceRepository.save(remittance);
-      log.info("Finished producing monthly billable");
     }
+    log.info(
+        "Finished producing monthly billable for orgId={} productId={} uom={} provider={}, snapshotDate={}",
+        usage.getOrgId(),
+        usage.getProductId(),
+        usage.getUom(),
+        usage.getBillingProvider(),
+        usage.getSnapshotDate());
     return usage;
   }
 

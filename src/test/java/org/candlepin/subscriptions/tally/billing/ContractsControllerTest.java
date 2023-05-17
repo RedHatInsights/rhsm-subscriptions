@@ -21,9 +21,7 @@
 package org.candlepin.subscriptions.tally.billing;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
@@ -36,7 +34,6 @@ import com.redhat.swatch.contracts.client.ApiException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
@@ -72,11 +69,14 @@ class ContractsControllerTest {
   }
 
   @Test
-  void testGetContractControllerReturnsNoContractValueWhenProductNotContractEnabled() {
+  void testThrowsIllegalStateExceptionWhenProductIsNotContractEnabled() throws Exception {
     BillableUsage usage = defaultUsage();
     when(tagProfile.isTagContractEnabled(usage.getProductId())).thenReturn(false);
-    Optional<Double> contractCoverage = controller.getContractCoverage(usage);
-    assertFalse(contractCoverage.isPresent());
+
+    IllegalStateException e =
+        assertThrows(IllegalStateException.class, () -> controller.getContractCoverage(usage));
+    assertEquals(
+        String.format("Product %s is not contract enabled.", usage.getProductId()), e.getMessage());
   }
 
   @Test
@@ -173,7 +173,7 @@ class ContractsControllerTest {
     BillableUsage usage = defaultUsage();
     when(tagProfile.isTagContractEnabled(any())).thenReturn(true);
     when(tagProfile.awsDimensionForTagAndUom(
-        usage.getProductId(), TallyMeasurement.Uom.fromValue(usage.getUom().toString())))
+            usage.getProductId(), TallyMeasurement.Uom.fromValue(usage.getUom().toString())))
         .thenReturn("");
 
     assertThrows(
@@ -184,7 +184,7 @@ class ContractsControllerTest {
   }
 
   @Test
-  void testGetContractCoverageIncludesMetricValuesFromAllContracts() throws ApiException {
+  void testGetContractCoverageIncludesMetricValuesFromAllContracts() throws Exception {
     BillableUsage usage = defaultUsage();
     // Set up the mocked contract data
     Contract contract1 = contractFromUsage(usage);
@@ -212,13 +212,12 @@ class ContractsControllerTest {
         .thenReturn(List.of(contract1, contract2));
 
     // Contract coverage should be the sum of all matching Cores metrics in the contracts.
-    Optional<Double> contractCoverage = controller.getContractCoverage(usage);
-    assertTrue(contractCoverage.isPresent());
-    assertEquals(140, contractCoverage.get());
+    Double contractCoverage = controller.getContractCoverage(usage);
+    assertEquals(140, contractCoverage);
   }
 
   @Test
-  void testGetContractCoverageIncludesMetricValuesFromAllMetricsOfAContract() throws ApiException {
+  void testGetContractCoverageIncludesMetricValuesFromAllMetricsOfAContract() throws Exception {
     BillableUsage usage = defaultUsage();
     // Set up the mocked contract data
     Contract contract1 = contractFromUsage(usage);
@@ -248,9 +247,8 @@ class ContractsControllerTest {
         .thenReturn(CONTRACT_METRIC_ID);
 
     // Contract coverage should be the sum of all matching Cores metrics in the contracts.
-    Optional<Double> contractCoverage = controller.getContractCoverage(usage);
-    assertTrue(contractCoverage.isPresent());
-    assertEquals(200, contractCoverage.get());
+    Double contractCoverage = controller.getContractCoverage(usage);
+    assertEquals(200, contractCoverage);
   }
 
   @Test
@@ -294,9 +292,8 @@ class ContractsControllerTest {
         .thenReturn(List.of(contract1, contract2));
 
     // Contract coverage should be the sum of all matching Cores metrics in the contracts.
-    Optional<Double> contractCoverage = controller.getContractCoverage(usage);
-    assertTrue(contractCoverage.isPresent());
-    assertEquals(125, contractCoverage.get());
+    Double contractCoverage = controller.getContractCoverage(usage);
+    assertEquals(125, contractCoverage);
   }
 
   @Test
@@ -321,19 +318,18 @@ class ContractsControllerTest {
   }
 
   @Test
-  void throwsExternalServiceExceptionWhenNoContractsFound() throws Exception {
+  void throwsContractMissingExceptionWhenNoContractsFound() throws Exception {
     BillableUsage usage = defaultUsage();
     when(tagProfile.isTagContractEnabled(usage.getProductId())).thenReturn(true);
     when(contractsApi.getContract(any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(new ArrayList<>());
     when(tagProfile.awsDimensionForTagAndUom(any(), any())).thenReturn(CONTRACT_METRIC_ID);
-    ExternalServiceException e =
+    ContractMissingException e =
         assertThrows(
-            ExternalServiceException.class,
+            ContractMissingException.class,
             () -> {
               controller.getContractCoverage(usage);
             });
-    assertEquals(ErrorCode.CONTRACTS_SERVICE_ERROR, e.getCode());
     assertEquals(String.format("No contract info found for usage! %s", usage), e.getMessage());
   }
 

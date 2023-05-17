@@ -26,7 +26,6 @@ import com.redhat.swatch.contracts.api.resources.DefaultApi;
 import com.redhat.swatch.contracts.client.ApiException;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
@@ -68,17 +67,16 @@ public class ContractsController {
               delayExpression = "#{@contractsClientProperties.getBackOffInitialInterval()}",
               maxDelayExpression = "#{@contractsClientProperties.getBackOffMaxInterval()}",
               multiplierExpression = "#{@contractsClientProperties.getBackOffMultiplier()}"))
-  public Optional<Double> getContractCoverage(BillableUsage usage) {
+  public Double getContractCoverage(BillableUsage usage) throws ContractMissingException {
+
     if (!tagProfile.isTagContractEnabled(usage.getProductId())) {
-      // Contract not enabled for product, nothing to return.
-      log.debug(
-          "Skipping contract lookup for product {} since it is not contract enabled.",
-          usage.getProductId());
-      return Optional.empty();
+      throw new IllegalStateException(
+          String.format("Product %s is not contract enabled.", usage.getProductId()));
     }
 
     String contractMetricId =
         getContractMetricId(usage.getBillingProvider(), usage.getProductId(), usage.getUom());
+
     if (ObjectUtils.isEmpty(contractMetricId)) {
       throw new IllegalStateException(
           String.format(
@@ -88,8 +86,9 @@ public class ContractsController {
 
     log.debug(
         "Looking up contract information for usage {} using metric ID {}", usage, contractMetricId);
+    List<Contract> contracts;
     try {
-      List<Contract> contracts =
+      contracts =
           contractsApi.getContract(
               usage.getOrgId(),
               usage.getProductId(),
@@ -98,32 +97,30 @@ public class ContractsController {
               usage.getBillingProvider().value(),
               usage.getBillingAccountId(),
               usage.getSnapshotDate());
-
-      if (contracts == null || contracts.isEmpty()) {
-        throw new ExternalServiceException(
-            ErrorCode.CONTRACTS_SERVICE_ERROR,
-            String.format("No contract info found for usage! %s", usage),
-            null);
-      }
-
-      Integer totalUnderContract =
-          contracts.stream()
-              .filter(contract -> isValidContract(contract, usage))
-              .map(
-                  c ->
-                      c.getMetrics().stream()
-                          .filter(metric -> metric.getMetricId().equals(contractMetricId))
-                          .map(Metric::getValue)
-                          .reduce(0, Integer::sum))
-              .reduce(0, Integer::sum);
-      log.debug("Total contract coverage is {} for usage {} ", totalUnderContract, usage);
-      return Optional.of(Double.valueOf(totalUnderContract));
     } catch (ApiException ex) {
       throw new ExternalServiceException(
           ErrorCode.CONTRACTS_SERVICE_ERROR,
           String.format("Could not look up contract info for usage! %s", usage),
           ex);
     }
+
+    if (contracts == null || contracts.isEmpty()) {
+      throw new ContractMissingException(
+          String.format("No contract info found for usage! %s", usage));
+    }
+
+    Integer totalUnderContract =
+        contracts.stream()
+            .filter(contract -> isValidContract(contract, usage))
+            .map(
+                c ->
+                    c.getMetrics().stream()
+                        .filter(metric -> metric.getMetricId().equals(contractMetricId))
+                        .map(Metric::getValue)
+                        .reduce(0, Integer::sum))
+            .reduce(0, Integer::sum);
+    log.debug("Total contract coverage is {} for usage {} ", totalUnderContract, usage);
+    return Double.valueOf(totalUnderContract);
   }
 
   private String getContractMetricId(BillingProvider billingProvider, String productId, Uom uom) {
