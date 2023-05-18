@@ -132,6 +132,9 @@ components:
         startDate:
           type: string
           format: date-time
+        endDate:
+          type: string
+          format: date-time
         dimensions:
           type: array
           items:

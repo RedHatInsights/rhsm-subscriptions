@@ -95,6 +95,20 @@ public class WireMockResource
                                         "contracts": [
                                           {
                                             "startDate": "2022-09-23T20:07:51.010445Z",
+                                            "endDate": "2023-04-20T00:09:14.192515Z",
+                                            "dimensions": [
+                                              {
+                                                "name": "foobar",
+                                                "value": "1000000"
+                                              },
+                                              {
+                                                "name": "cpu-hours",
+                                                "value": "1000000"
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "startDate": "2023-04-20T00:09:14.192515Z",
                                             "dimensions": [
                                               {
                                                 "name": "foobar",

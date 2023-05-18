@@ -61,7 +61,7 @@ class RhPartnerClientIntegrationTest {
     assertNotNull(purchase);
     assertEquals("1234567890abcdefghijklmno", purchase.getVendorProductCode());
     assertNotNull(purchase.getContracts());
-    assertEquals(1, purchase.getContracts().size());
+    assertEquals(2, purchase.getContracts().size());
     var contract = purchase.getContracts().get(0);
     assertNotNull(contract);
     assertEquals(OffsetDateTime.parse("2022-09-23T20:07:51.010445Z"), contract.getStartDate());
