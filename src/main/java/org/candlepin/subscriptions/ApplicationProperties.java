@@ -87,7 +87,7 @@ public class ApplicationProperties {
 
   /**
    * The number of days after the inventory's stale_timestamp that the record will be culled.
-   * Currently HBI is calculating this value and setting it on messages. Right now the default is:
+   * Currently, HBI is calculating this value and setting it on messages. Right now the default is:
    * stale_timestamp + 14 days. Adding this as a configuration setting since we may need to adjust
    * it at some point to match.
    */
