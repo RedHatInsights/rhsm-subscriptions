@@ -33,7 +33,7 @@ public class TallyReportDataPointAdapter implements ReportFillerAdapter<TallyRep
   @Override
   public TallyReportDataPoint createDefaultItem(
       OffsetDateTime itemDate, TallyReportDataPoint previous, boolean useRunningTotalFormat) {
-    return new TallyReportDataPoint().date(itemDate).hasData(false).value(0.0);
+    return new TallyReportDataPoint().date(itemDate).hasData(false).value(0);
   }
 
   @Override

@@ -178,7 +178,7 @@ public class TallyResource implements TallyApi {
               .collect(
                   () ->
                       new TallyReportDataPoint()
-                          .value(0.0) // set value to avoid NPE
+                          .value(0) // set value to avoid NPE
                           .hasData(false), // indicate in API there is no data
                   this::combineDataPointsForTotal,
                   this::combineDataPointsForTotal);
@@ -305,18 +305,21 @@ public class TallyResource implements TallyApi {
       Uom uom,
       ReportCategory category,
       org.candlepin.subscriptions.db.model.TallySnapshot snapshot) {
-    double value = extractValue(uom, category, snapshot);
+    int value = extractValue(uom, category, snapshot);
     return new TallyReportDataPoint().date(snapshot.getSnapshotDate()).value(value).hasData(true);
   }
 
-  private double extractValue(
+  private int extractValue(
       Uom uom,
       ReportCategory category,
       org.candlepin.subscriptions.db.model.TallySnapshot snapshot) {
     Set<HardwareMeasurementType> contributingTypes = getContributingTypes(category);
-    return contributingTypes.stream()
-        .mapToDouble(type -> Optional.ofNullable(snapshot.getMeasurement(type, uom)).orElse(0.0))
-        .sum();
+    return (int)
+        Math.ceil(
+            contributingTypes.stream()
+                .mapToDouble(
+                    type -> Optional.ofNullable(snapshot.getMeasurement(type, uom)).orElse(0.0))
+                .sum());
   }
 
   private Set<HardwareMeasurementType> getContributingTypes(ReportCategory category) {
@@ -435,13 +438,13 @@ public class TallyResource implements TallyApi {
   }
 
   private void transformToRunningTotalFormat(TallyReportData report, Uom uom) {
-    Map<Uom, Double> runningTotals = new EnumMap<>(Measurement.Uom.class);
+    Map<Uom, Integer> runningTotals = new EnumMap<>(Measurement.Uom.class);
     report
         .getData()
         .forEach(
             snapshot -> {
-              double snapshotTotal = Optional.ofNullable(snapshot.getValue()).orElse(0.0);
-              Double newValue = runningTotals.getOrDefault(uom, 0.0) + snapshotTotal;
+              int snapshotTotal = Optional.ofNullable(snapshot.getValue()).orElse(0);
+              Integer newValue = runningTotals.getOrDefault(uom, 0) + snapshotTotal;
               snapshot.setValue(newValue);
               runningTotals.put(uom, newValue);
             });
