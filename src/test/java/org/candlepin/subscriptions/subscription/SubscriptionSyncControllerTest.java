@@ -40,15 +40,18 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.OfferingRepository;
+import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.MissingOfferingException;
 import org.candlepin.subscriptions.product.OfferingSyncController;
@@ -63,6 +66,8 @@ import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTags;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -93,6 +98,8 @@ class SubscriptionSyncControllerTest {
 
   @MockBean SubscriptionRepository subscriptionRepository;
 
+  @MockBean SubscriptionCapacityRepository subscriptionCapacityRepository;
+
   @MockBean OrgConfigRepository orgConfigRepository;
 
   @MockBean CapacityReconciliationController capacityReconciliationController;
@@ -102,6 +109,10 @@ class SubscriptionSyncControllerTest {
   @MockBean KafkaTemplate<String, SyncSubscriptionsTask> subscriptionsKafkaTemplate;
 
   @MockBean private TagProfile mockProfile;
+
+  @Captor ArgumentCaptor<Iterable<Subscription>> subscriptionsCaptor;
+
+  @Captor ArgumentCaptor<SubscriptionCapacity> capacityCaptor;
 
   private OffsetDateTime rangeStart = OffsetDateTime.now().minusDays(5);
   private OffsetDateTime rangeEnd = OffsetDateTime.now().plusDays(5);
@@ -722,6 +733,73 @@ class SubscriptionSyncControllerTest {
 
     verify(offeringSyncController).syncOffering("testsku");
     verify(subscriptionRepository, times(0)).save(incoming);
+  }
+
+  @Test
+  void testShouldRemoveStaleSubscriptionsNotPresentInSubscriptionService() {
+    var subscription = createSubscription("123", "testsku", "456");
+    when(subscriptionRepository.findByOrgId(any())).thenReturn(Stream.of(subscription));
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
+    verify(subscriptionRepository).deleteAll(subscriptionsCaptor.capture());
+    assertThat(subscriptionsCaptor.getValue(), contains(subscription));
+  }
+
+  @Test
+  void testShouldRemoveStaleSubscriptionsPresentInSubscriptionServiceButDenylisted() {
+    var subscription = createSubscription("123", "testsku", "456");
+    var subServiceSub = createDto("456", 1);
+    when(subscriptionRepository.findByOrgId(any())).thenReturn(Stream.of(subscription));
+    when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
+    when(denylist.productIdMatches(any())).thenReturn(true);
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
+    verify(subscriptionRepository).deleteAll(subscriptionsCaptor.capture());
+    assertThat(subscriptionsCaptor.getValue(), contains(subscription));
+  }
+
+  @Test
+  void testShouldNotRemovePresentSub() {
+    var subscription = createSubscription("123", "testsku", "456");
+    var subServiceSub = createDto("456", 1);
+    when(subscriptionRepository.findByOrgId(any())).thenReturn(Stream.of(subscription));
+    when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
+    verify(subscriptionRepository).deleteAll(subscriptionsCaptor.capture());
+    assertFalse(subscriptionsCaptor.getValue().iterator().hasNext());
+  }
+
+  @Test
+  void testShouldRemoveStaleCapacityNotPresentInSubscriptionService() {
+    var capacity = new SubscriptionCapacity();
+    when(subscriptionCapacityRepository.findByKeyOrgId(any())).thenReturn(Stream.of(capacity));
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
+    verify(subscriptionCapacityRepository).delete(capacityCaptor.capture());
+    assertEquals(capacityCaptor.getValue(), capacity);
+  }
+
+  @Test
+  void testShouldRemoveStaleCapacityPresentInSubscriptionServiceButDenylisted() {
+    var subServiceSub = createDto("456", 1);
+    var capacity = new SubscriptionCapacity();
+    capacity.setSubscriptionId("456");
+    when(subscriptionCapacityRepository.findByKeyOrgId(any())).thenReturn(Stream.of(capacity));
+    when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
+    when(denylist.productIdMatches(any())).thenReturn(true);
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
+    verify(subscriptionCapacityRepository).delete(capacityCaptor.capture());
+    assertEquals(capacityCaptor.getValue(), capacity);
+  }
+
+  @Test
+  void testShouldNotRemovePresentCapacity() {
+    var subServiceSub = createDto("456", 1);
+    var capacity = new SubscriptionCapacity();
+    capacity.setSubscriptionId("456");
+    when(subscriptionCapacityRepository.findByKeyOrgId(any())).thenReturn(Stream.of(capacity));
+    when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
+    verify(subscriptionCapacityRepository, times(0)).delete(capacityCaptor.capture());
   }
 
   private Subscription createSubscription(String orgId, String sku, String subId) {

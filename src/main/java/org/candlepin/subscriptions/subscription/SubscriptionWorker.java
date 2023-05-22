@@ -33,6 +33,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -63,13 +64,14 @@ public class SubscriptionWorker extends SeekableKafkaConsumer {
       id = "#{__listener.groupId}",
       topics = "#{__listener.topic}",
       containerFactory = "subscriptionSyncListenerContainerFactory")
-  public void receive(SyncSubscriptionsTask syncSubscriptionsTask) {
+  public void receive(SyncSubscriptionsTask syncSubscriptionsTask, Acknowledgment acknowledgment) {
+    // NOTE(khowell): this sync can take a while when there are significant changes, but swatch is
+    // okay with eventual consistency on this operation, so we acknowledge early
+    acknowledgment.acknowledge();
     log.info(
         "Subscription Worker is syncing subs with values: {} ", syncSubscriptionsTask.toString());
-    subscriptionSyncController.syncSubscriptions(
-        syncSubscriptionsTask.getOrgId(),
-        syncSubscriptionsTask.getOffset(),
-        syncSubscriptionsTask.getLimit());
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService(
+        syncSubscriptionsTask.getOrgId());
   }
 
   @JmsListener(destination = "#{@umbProperties.subscriptionTopic}")

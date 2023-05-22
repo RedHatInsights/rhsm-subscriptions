@@ -58,6 +58,7 @@ public class StubSearchApi extends SearchApi {
 
   private Subscription createData() {
     return new Subscription()
+        .id(235251)
         .subscriptionNumber("2253591")
         .webCustomerId(123)
         .oracleAccountNumber(123)

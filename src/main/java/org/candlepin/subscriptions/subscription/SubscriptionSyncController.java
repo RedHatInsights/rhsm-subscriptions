@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.subscription;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
@@ -30,10 +31,14 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.persistence.EntityNotFoundException;
@@ -43,6 +48,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.OfferingRepository;
+import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
@@ -80,6 +86,7 @@ public class SubscriptionSyncController {
 
   private static final XmlMapper umbMessageMapper = CanonicalMessage.createMapper();
   private SubscriptionRepository subscriptionRepository;
+  private SubscriptionCapacityRepository subscriptionCapacityRepository;
   private OrgConfigRepository orgRepository;
   private OfferingRepository offeringRepository;
   private SubscriptionService subscriptionService;
@@ -99,6 +106,7 @@ public class SubscriptionSyncController {
   @Autowired
   public SubscriptionSyncController(
       SubscriptionRepository subscriptionRepository,
+      SubscriptionCapacityRepository subscriptionCapacityRepository,
       OrgConfigRepository orgRepository,
       OfferingRepository offeringRepository,
       ApplicationClock clock,
@@ -114,6 +122,7 @@ public class SubscriptionSyncController {
       TagProfile tagProfile,
       AccountService accountService) {
     this.subscriptionRepository = subscriptionRepository;
+    this.subscriptionCapacityRepository = subscriptionCapacityRepository;
     this.orgRepository = orgRepository;
     this.offeringRepository = offeringRepository;
     this.subscriptionService = subscriptionService;
@@ -287,6 +296,52 @@ public class SubscriptionSyncController {
   public void syncSubscription(String subscriptionId) {
     Subscription subscription = subscriptionService.getSubscriptionById(subscriptionId);
     syncSubscription(subscription);
+  }
+
+  @Transactional
+  @Timed("swatch_subscription_reconcile_org")
+  public void reconcileSubscriptionsWithSubscriptionService(String orgId) {
+    log.info("Syncing subscriptions for orgId={}", orgId);
+    Set<String> seenSubscriptionIds = new HashSet<>();
+    Map<String, org.candlepin.subscriptions.db.model.Subscription> swatchSubscriptions =
+        subscriptionRepository
+            .findByOrgId(orgId)
+            .collect(
+                Collectors.toMap(
+                    org.candlepin.subscriptions.db.model.Subscription::getSubscriptionId,
+                    Function.identity()));
+    subscriptionService
+        .getSubscriptionsByOrgId(orgId)
+        .forEach(
+            subscription -> {
+              if (productDenylist.productIdMatches(SubscriptionDtoUtil.extractSku(subscription))) {
+                return;
+              }
+              seenSubscriptionIds.add(subscription.getId().toString());
+              var swatchSubscription = swatchSubscriptions.remove(subscription.getId().toString());
+              syncSubscription(subscription, Optional.ofNullable(swatchSubscription));
+            });
+    if (!swatchSubscriptions.isEmpty()) {
+      log.info("Removing {} stale/incorrect subscription records", swatchSubscriptions.size());
+    }
+    // anything remaining in the map at this point is stale
+    subscriptionRepository.deleteAll(swatchSubscriptions.values());
+    removeStaleCapacityRecords(orgId, seenSubscriptionIds);
+  }
+
+  private void removeStaleCapacityRecords(String orgId, Set<String> seenSubscriptionIds) {
+    var staleCapacityCount = new AtomicInteger(0);
+    subscriptionCapacityRepository
+        .findByKeyOrgId(orgId)
+        .filter(c -> !seenSubscriptionIds.contains(c.getSubscriptionId()))
+        .forEach(
+            c -> {
+              staleCapacityCount.incrementAndGet();
+              subscriptionCapacityRepository.delete(c);
+            });
+    if (staleCapacityCount.get() > 0) {
+      log.info("Removing {} stale/incorrect capacity records", staleCapacityCount.get());
+    }
   }
 
   void syncSubscriptions(String orgId, int offset, int limit) {
