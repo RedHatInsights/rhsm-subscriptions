@@ -1263,8 +1263,8 @@ components:
           type: string
           format: date-time
         value:
-          type: number
-          format: double
+          type: integer
+          format: int32
         has_data:
           type: boolean
     TallyReport:

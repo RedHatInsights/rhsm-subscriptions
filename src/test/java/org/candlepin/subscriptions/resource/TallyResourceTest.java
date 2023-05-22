@@ -1015,7 +1015,7 @@ class TallyResourceTest {
             null,
             false);
     TallyReportDataPoint expectedTotalMonthly =
-        new TallyReportDataPoint().date(null).value(0.0).hasData(false);
+        new TallyReportDataPoint().date(null).value(0).hasData(false);
     assertEquals(expectedTotalMonthly, response.getMeta().getTotalMonthly());
   }
 
@@ -1050,7 +1050,7 @@ class TallyResourceTest {
     TallyReportDataPoint expectedTotalMonthly =
         new TallyReportDataPoint()
             .date(OffsetDateTime.parse("2021-11-03T00:00Z"))
-            .value(7.0)
+            .value(7)
             .hasData(true);
     assertEquals(expectedTotalMonthly, response.getMeta().getTotalMonthly());
   }
@@ -1088,7 +1088,7 @@ class TallyResourceTest {
     TallyReportDataPoint expectedTotalMonthly =
         new TallyReportDataPoint()
             .date(OffsetDateTime.parse("2021-11-03T00:00Z"))
-            .value(7.0)
+            .value(7)
             .hasData(true);
     assertEquals(expectedTotalMonthly, response.getMeta().getTotalMonthly());
     assertEquals(BillingProviderType.RED_HAT, response.getMeta().getBillingProvider());
@@ -1112,7 +1112,7 @@ class TallyResourceTest {
     TallyReportDataPoint expectedTotalMonthly =
         new TallyReportDataPoint()
             .date(OffsetDateTime.parse("2023-03-08T12:35Z"))
-            .value(30.0)
+            .value(30)
             .hasData(true);
 
     when(repository.findSnapshot(
@@ -1137,13 +1137,64 @@ class TallyResourceTest {
     assertEquals(31, report.getData().size());
 
     var firstSnapshot = report.getData().get(0);
-    assertEquals(2.0, firstSnapshot.getValue());
+    assertEquals(2, firstSnapshot.getValue());
 
     var secondSnapshot = report.getData().get(1);
-    assertEquals(6.0, secondSnapshot.getValue());
+    assertEquals(6, secondSnapshot.getValue());
 
     var thirdSnapshot = report.getData().get(7);
-    assertEquals(22.0, thirdSnapshot.getValue());
+    assertEquals(22, thirdSnapshot.getValue());
+
+    assertEquals(expectedTotalMonthly, report.getMeta().getTotalMonthly());
+  }
+
+  @Test
+  void testMonthlyTotalsRoundedUpToNearestInteger() {
+    List<TallySnapshot> snapshots =
+        List.of(1, 2).stream()
+            .map(
+                i -> {
+                  var snapshot = new TallySnapshot();
+                  snapshot.setSnapshotDate(
+                      OffsetDateTime.of(2023, 3, i, 12, 35, 0, 0, ZoneOffset.UTC));
+                  snapshot.setMeasurement(
+                      HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, 1.3);
+                  return snapshot;
+                })
+            .collect(Collectors.toList());
+
+    TallyReportDataPoint expectedTotalMonthly =
+        new TallyReportDataPoint()
+            .date(OffsetDateTime.parse("2023-03-02T12:35Z"))
+            .value(6)
+            .hasData(true);
+
+    when(repository.findSnapshot(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn(new PageImpl<>(snapshots));
+
+    TallyReportData report =
+        resource.getTallyReportData(
+            ProductId.OPENSHIFT_DEDICATED_METRICS,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            OffsetDateTime.parse("2023-03-01T00:00Z"),
+            OffsetDateTime.parse("2023-03-31T23:59:59.999Z"),
+            null,
+            null,
+            null,
+            BillingProviderType.RED_HAT,
+            null,
+            null,
+            null,
+            true);
+    assertEquals(31, report.getData().size());
+
+    var firstSnapshot = report.getData().get(0);
+    assertEquals(2, firstSnapshot.getValue());
+
+    var secondSnapshot = report.getData().get(1);
+    assertEquals(4, secondSnapshot.getValue());
 
     assertEquals(expectedTotalMonthly, report.getMeta().getTotalMonthly());
   }
