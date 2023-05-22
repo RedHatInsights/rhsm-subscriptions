@@ -60,6 +60,12 @@ parameters:
     value: '3'
   - name: KAFKA_BILLABLE_USAGE_PARTITIONS
     value: '3'
+  - name: OTEL_ENABLED
+    value: 'false'
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: 'http://localhost:4317'
+  - name: OTEL_SERVICE_NAME
+    value: swatch-producer-aws
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -175,6 +181,12 @@ objects:
               value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
             - name: ENABLE_AWS_DRY_RUN
               value: ${ENABLE_AWS_DRY_RUN}
+            - name: QUARKUS_OPENTELEMETRY_ENABLED
+              value: ${OTEL_ENABLED}
+            - name: QUARKUS_OPENTELEMETRY_TRACER_EXPORTER_OTLP_ENDPOINT
+              value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+            - name: QUARKUS_OPENTELEMETRY_SERVICE_NAME
+              value: ${OTEL_SERVICE_NAME}
           volumeMounts:
             - name: logs
               mountPath: /logs
