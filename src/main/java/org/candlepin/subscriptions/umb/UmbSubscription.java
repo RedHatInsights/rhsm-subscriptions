@@ -97,11 +97,19 @@ public class UmbSubscription {
     return products[0].getSku();
   }
 
+  public SubscriptionProductStatus[] getProductStatusState() {
+    if (products.length != 1) {
+      throw new IllegalStateException(
+          "Could not find top level product with a status for subscription " + this);
+    }
+    return products[0].getProduct().getStatus();
+  }
+
   public String getEbsAccountNumber() {
     return getReference("EBS", "Account", "number").orElse(null);
   }
 
-  private static OffsetDateTime convertToUtc(LocalDateTime timestamp) {
+  public static OffsetDateTime convertToUtc(LocalDateTime timestamp) {
     if (timestamp == null) {
       return null;
     }

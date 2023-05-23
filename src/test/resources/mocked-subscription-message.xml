@@ -21,6 +21,58 @@
         <effectiveEndDate>2030-01-01T00:00:00.000</effectiveEndDate>
         <Product>
           <Sku>MW01882</Sku>
+          <CreatedBy>OSUBPRODTEST3EAC72C765804E2B8D34484E7FF8D1C8</CreatedBy>
+          <CreatedDate>2023-04-24T14:11:16.809</CreatedDate>
+          <Identifiers>
+            <MasterSystem>EBS</MasterSystem>
+            <Identifier entity-name="Product"
+              qualifier="number" system="SUBSCRIPTION">37188549
+            </Identifier>
+          </Identifiers>
+          <Status>
+            <State>Active</State>
+            <StartDate>2020-01-01T12:34:56.789</StartDate>
+          </Status>
+          <Product serviceable="true">
+            <CreatedBy>OSUBPRODTEST3EAC72C765804E2B8D34484E7FF8D1C8</CreatedBy>
+            <CreatedDate>2023-04-24T14:11:16.809</CreatedDate>
+            <LastUpdatedBy>SYSADMIN</LastUpdatedBy>
+            <LastUpdatedDate>2023-04-24T14:17:02.000</LastUpdatedDate>
+            <Identifiers>
+              <MasterSystem>EBS</MasterSystem>
+              <AuthoringOperatingUnit>
+                <Number>103</Number>
+              </AuthoringOperatingUnit>
+              <Identifier entity-name="Product"
+                qualifier="number" system="SUBSCRIPTION">37188550
+              </Identifier>
+              <Reference entity-name="Contract"
+                qualifier="number" system="EBS">16612423
+              </Reference>
+              <Reference entity-name="Contract"
+                qualifier="id" system="EBS">25565753
+              </Reference>
+            </Identifiers>
+            <Status>
+              <State>Active</State>
+              <StartDate>2023-04-24T00:00:00.000</StartDate>
+              <EndDate>2026-04-23T00:00:00.000</EndDate>
+            </Status>
+            <Status>
+              <State>Signed</State>
+              <StartDate>2023-04-24T00:00:00.000</StartDate>
+            </Status>
+            <Status primary="true">
+              <State>Terminated</State>
+              <StartDate>2023-04-24T14:17:02.000</StartDate>
+            </Status>
+            <Sku>SVC2681</Sku>
+            <InventoryOperatingUnit>
+              <Number>118</Number>
+            </InventoryOperatingUnit>
+            <ContractDescription>Reg Number activation from Hock</ContractDescription>
+            <ContractHeaderStatus>Terminated</ContractHeaderStatus>
+          </Product>
         </Product>
         <!--NOTE: UMB messages have a lot more fields we don't care about, the following helps to
         test that we're properly ignoring extra elements

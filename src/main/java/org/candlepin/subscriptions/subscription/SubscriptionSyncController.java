@@ -31,6 +31,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -58,6 +59,7 @@ import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.umb.CanonicalMessage;
+import org.candlepin.subscriptions.umb.SubscriptionProductStatus;
 import org.candlepin.subscriptions.umb.UmbSubscription;
 import org.candlepin.subscriptions.user.AccountService;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -396,6 +398,30 @@ public class SubscriptionSyncController {
 
   private static org.candlepin.subscriptions.db.model.Subscription convertDto(
       UmbSubscription subscription) {
+
+    var endDate = subscription.getEffectiveEndDateInUtc();
+
+    /*
+     * If a subscription is terminated, set our concept of effective end date to the termination
+     * date.
+     */
+
+    if (Objects.nonNull(subscription.getProductStatusState())) {
+      Optional<SubscriptionProductStatus> status =
+          Arrays.stream(subscription.getProductStatusState())
+              .filter(x -> "Terminated".equalsIgnoreCase(x.getState()))
+              .findFirst();
+
+      boolean isSubscriptionTerminated = status.isPresent();
+
+      /*
+       * Note that a status only has a "StartDate", which indicates the start of the corresponding
+       * status - this doesn't directly correlate to the StartDate of a subscription.
+       */
+      if (isSubscriptionTerminated) {
+        endDate = UmbSubscription.convertToUtc(status.get().getStartDate());
+      }
+    }
     return org.candlepin.subscriptions.db.model.Subscription.builder()
         // NOTE: UMB messages don't include subscriptionId
         .subscriptionNumber(subscription.getSubscriptionNumber())
@@ -404,7 +430,7 @@ public class SubscriptionSyncController {
         .accountNumber(String.valueOf(subscription.getEbsAccountNumber()))
         .quantity(subscription.getQuantity())
         .startDate(subscription.getEffectiveStartDateInUtc())
-        .endDate(subscription.getEffectiveEndDateInUtc())
+        .endDate(endDate)
         // NOTE: UMB messages don't include PAYG identifiers
         .build();
   }

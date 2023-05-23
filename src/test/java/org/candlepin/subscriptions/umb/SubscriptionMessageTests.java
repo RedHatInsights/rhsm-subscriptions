@@ -78,7 +78,43 @@ class SubscriptionMessageTests {
                                             .build())
                                     .products(
                                         new SubscriptionProduct[] {
-                                          SubscriptionProduct.builder().sku("MW01882").build()
+                                          SubscriptionProduct.builder()
+                                              .sku("MW01882")
+                                              .status(
+                                                  new SubscriptionProductStatus[] {
+                                                    SubscriptionProductStatus.builder()
+                                                        .state("Active")
+                                                        .startDate(
+                                                            LocalDateTime.parse(
+                                                                "2020-01-01T12:34:56.789"))
+                                                        .build()
+                                                  })
+                                              .product(
+                                                  SubscriptionProduct.builder()
+                                                      .sku("SVC2681")
+                                                      .status(
+                                                          new SubscriptionProductStatus[] {
+                                                            SubscriptionProductStatus.builder()
+                                                                .state("Active")
+                                                                .startDate(
+                                                                    LocalDateTime.parse(
+                                                                        "2023-04-24T00:00:00.000"))
+                                                                .build(),
+                                                            SubscriptionProductStatus.builder()
+                                                                .state("Signed")
+                                                                .startDate(
+                                                                    LocalDateTime.parse(
+                                                                        "2023-04-24T00:00:00.000"))
+                                                                .build(),
+                                                            SubscriptionProductStatus.builder()
+                                                                .state("Terminated")
+                                                                .startDate(
+                                                                    LocalDateTime.parse(
+                                                                        "2023-04-24T14:17:02.000"))
+                                                                .build()
+                                                          })
+                                                      .build())
+                                              .build()
                                         })
                                     .effectiveStartDate(
                                         LocalDateTime.parse("2020-01-01T00:00:00.000"))
