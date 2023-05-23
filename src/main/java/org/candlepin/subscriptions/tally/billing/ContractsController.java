@@ -80,7 +80,7 @@ public class ContractsController {
     if (ObjectUtils.isEmpty(contractMetricId)) {
       throw new IllegalStateException(
           String.format(
-              "Contract metric ID is not configured for provider=%s product=%s usage=%s",
+              "Contract metric ID is not configured for billingProvider=%s product=%s uom=%s",
               usage.getBillingProvider(), usage.getProductId(), usage.getUom()));
     }
 

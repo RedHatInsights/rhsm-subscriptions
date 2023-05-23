@@ -150,11 +150,12 @@ public class BillableUsageController {
 
   private BillableUsage produceMonthlyBillable(BillableUsage usage) {
     log.info(
-        "Processing monthly billable usage for orgId={} productId={} uom={} provider={}, snapshotDate={}",
+        "Processing monthly billable usage for orgId={} productId={} uom={} provider={}, billingAccountId={} snapshotDate={}",
         usage.getOrgId(),
         usage.getProductId(),
         usage.getUom(),
         usage.getBillingProvider(),
+        usage.getBillingAccountId(),
         usage.getSnapshotDate());
     log.debug("Usage: {}", usage);
 
@@ -174,15 +175,14 @@ public class BillableUsageController {
               ErrorCode.CONTRACT_NOT_AVAILABLE,
               30,
               usage);
-          return null;
         } else {
           log.error(
               "{} - Unable to retrieve contract for usage older than {} minutes old. Usage: {}",
               ErrorCode.CONTRACT_NOT_AVAILABLE,
               30,
               usage);
-          return null;
         }
+        return null;
       }
     }
 
