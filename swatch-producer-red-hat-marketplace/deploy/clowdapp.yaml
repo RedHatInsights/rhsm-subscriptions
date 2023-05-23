@@ -76,6 +76,8 @@ parameters:
     value: '30000'
   - name: DATABASE_MAX_POOL_SIZE
     value: '25'
+  - name: PRODUCT_URL
+    value: https://product.qa.api.redhat.com/svcrest/product/v3
   - name: SUBSCRIPTION_URL
     value: https://subscription.qa.api.redhat.com/svcrest/subscription/v5
   - name: SUBSCRIPTION_MAX_CONNECTIONS
@@ -307,6 +309,8 @@ objects:
               value: /pinhead/keystore.jks
             - name: SUBSCRIPTION_URL
               value: ${SUBSCRIPTION_URL}
+            - name: PRODUCT_URL
+              value: ${PRODUCT_URL}
             - name: SUBSCRIPTION_MAX_CONNECTIONS
               value: ${SUBSCRIPTION_MAX_CONNECTIONS}
             - name: SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL
