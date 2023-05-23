@@ -455,6 +455,7 @@ public class SubscriptionSyncController {
     if (newOrUpdated.getEndDate() != null) {
       entity.setEndDate(newOrUpdated.getEndDate());
     }
+    entity.setSubscriptionNumber(newOrUpdated.getSubscriptionNumber());
     entity.setBillingProvider(newOrUpdated.getBillingProvider());
     entity.setBillingAccountId(newOrUpdated.getBillingAccountId());
     entity.setBillingProviderId(newOrUpdated.getBillingProviderId());
