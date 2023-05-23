@@ -30,6 +30,9 @@ import org.candlepin.subscriptions.subscription.api.resources.SearchApi;
 /** Stub version of the SearchApi for the Subscription service for local testing. */
 public class StubSearchApi extends SearchApi {
 
+  public static final String START_DATE = "2011-01-01T01:02:33Z";
+  public static final String END_DATE = "2031-01-01T01:02:33Z";
+
   @Override
   public Subscription getSubscriptionById(String id) throws ApiException {
     if ("789".equals(id)) {
@@ -63,8 +66,8 @@ public class StubSearchApi extends SearchApi {
         .webCustomerId(123)
         .oracleAccountNumber(123)
         .quantity(1)
-        .effectiveStartDate(OffsetDateTime.parse("2011-01-01T01:02:33Z").toEpochSecond() * 1000L)
-        .effectiveEndDate(OffsetDateTime.parse("2031-01-01T01:02:33Z").toEpochSecond() * 1000L)
+        .effectiveStartDate(OffsetDateTime.parse(START_DATE).toEpochSecond() * 1000L)
+        .effectiveEndDate(OffsetDateTime.parse(END_DATE).toEpochSecond() * 1000L)
         .subscriptionProducts(List.of(new SubscriptionProduct().sku("MW01485")));
   }
 
@@ -75,8 +78,8 @@ public class StubSearchApi extends SearchApi {
         .webCustomerId(123)
         .oracleAccountNumber(123)
         .quantity(1)
-        .effectiveStartDate(OffsetDateTime.parse("2011-01-01T01:02:33Z").toEpochSecond() * 1000L)
-        .effectiveEndDate(OffsetDateTime.parse("2031-01-01T01:02:33Z").toEpochSecond() * 1000L)
+        .effectiveStartDate(OffsetDateTime.parse(START_DATE).toEpochSecond() * 1000L)
+        .effectiveEndDate(OffsetDateTime.parse(END_DATE).toEpochSecond() * 1000L)
         .subscriptionProducts(List.of(new SubscriptionProduct().sku("RH3413336")));
   }
 
@@ -92,8 +95,8 @@ public class StubSearchApi extends SearchApi {
         .webCustomerId(123)
         .oracleAccountNumber(123)
         .subscriptionNumber("4243626")
-        .effectiveStartDate(OffsetDateTime.parse("2011-01-01T01:02:33Z").toEpochSecond() * 1000L)
-        .effectiveEndDate(OffsetDateTime.parse("2031-01-01T01:02:33Z").toEpochSecond() * 1000L)
+        .effectiveStartDate(OffsetDateTime.parse(START_DATE).toEpochSecond() * 1000L)
+        .effectiveEndDate(OffsetDateTime.parse(END_DATE).toEpochSecond() * 1000L)
         .putExternalReferencesItem("aws", awsRef)
         .subscriptionProducts(List.of(new SubscriptionProduct().sku("MW01882")));
   }
