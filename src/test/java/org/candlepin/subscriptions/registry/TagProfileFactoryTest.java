@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.registry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Optional;
@@ -73,6 +74,20 @@ class TagProfileFactoryTest {
   void testCanLookupMetricIdByTagAndUom() {
     assertNotNull(
         tagProfile.rhmMetricIdForTagAndUom(ProductId.OPENSHIFT_METRICS.toString(), Uom.CORES));
+  }
+
+  @Test
+  void testCanLookupAwsDimensionByTagAndUom() {
+    String rosaCoresAwsDimension =
+        tagProfile.awsDimensionForTagAndUom(ProductId.ROSA.toString(), Uom.CORES);
+    assertNotNull(rosaCoresAwsDimension);
+    assertEquals("four_vcpu_hour", rosaCoresAwsDimension);
+  }
+
+  @Test
+  void awsDimensionLookupReturnsNullWhenNotDefined() {
+    assertNull(
+        tagProfile.awsDimensionForTagAndUom(ProductId.OPENSHIFT_METRICS.toString(), Uom.CORES));
   }
 
   @Test
