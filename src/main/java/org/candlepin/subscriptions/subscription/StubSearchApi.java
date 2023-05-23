@@ -53,7 +53,7 @@ public class StubSearchApi extends SearchApi {
   @Override
   public List<Subscription> searchSubscriptionsByOrgId(
       String orgId, Integer index, Integer pageSize) throws ApiException {
-    return List.of(createData(), createAwsBillingProviderData());
+    return List.of(createData(), createAwsBillingProviderData(), createRhelData());
   }
 
   private Subscription createData() {
@@ -66,6 +66,18 @@ public class StubSearchApi extends SearchApi {
         .effectiveStartDate(OffsetDateTime.parse("2011-01-01T01:02:33Z").toEpochSecond() * 1000L)
         .effectiveEndDate(OffsetDateTime.parse("2031-01-01T01:02:33Z").toEpochSecond() * 1000L)
         .subscriptionProducts(List.of(new SubscriptionProduct().sku("MW01485")));
+  }
+
+  private Subscription createRhelData() {
+    return new Subscription()
+        .id(235255)
+        .subscriptionNumber("2253594")
+        .webCustomerId(123)
+        .oracleAccountNumber(123)
+        .quantity(1)
+        .effectiveStartDate(OffsetDateTime.parse("2011-01-01T01:02:33Z").toEpochSecond() * 1000L)
+        .effectiveEndDate(OffsetDateTime.parse("2031-01-01T01:02:33Z").toEpochSecond() * 1000L)
+        .subscriptionProducts(List.of(new SubscriptionProduct().sku("RH3413336")));
   }
 
   private Subscription createAwsBillingProviderData() {
