@@ -198,40 +198,6 @@ class SubscriptionSyncControllerTest {
   }
 
   @Test
-  void shouldSyncSubscriptionsWithinLimitForOrgAndQueueTaskForNext() {
-    when(denylist.productIdMatches(any())).thenReturn(false);
-    Mockito.when(offeringRepository.existsById("testsku")).thenReturn(true);
-
-    List<org.candlepin.subscriptions.subscription.api.model.Subscription> subscriptions =
-        List.of(
-            createDto(100, "456", 10),
-            createDto(100, "457", 10),
-            createDto(100, "458", 10),
-            createDto(100, "459", 10),
-            createDto(100, "500", 10));
-
-    Mockito.when(subscriptionService.getSubscriptionsByOrgId("100", 0, 3))
-        .thenReturn(List.of(subscriptions.get(0), subscriptions.get(1), subscriptions.get(2)));
-    Mockito.when(subscriptionService.getSubscriptionsByOrgId("100", 2, 3))
-        .thenReturn(List.of(subscriptions.get(2), subscriptions.get(3), subscriptions.get(4)));
-    Mockito.when(subscriptionService.getSubscriptionsByOrgId("100", 4, 3))
-        .thenReturn(List.of(subscriptions.get(4)));
-    subscriptions.forEach(
-        subscription -> {
-          Mockito.when(
-                  subscriptionRepository.findActiveSubscription(subscription.getId().toString()))
-              .thenReturn(Optional.of(convertDto(subscription)));
-        });
-
-    subscriptionSyncController.syncSubscriptions("100", 0, 2);
-    verify(subscriptionRepository, times(3)).save(any());
-    verify(subscriptionsKafkaTemplate)
-        .send(
-            "platform.rhsm-subscriptions.subscription-sync",
-            SyncSubscriptionsTask.builder().orgId("100").offset(2).limit(2).build());
-  }
-
-  @Test
   void shouldSyncSubscriptionsSyncSubIfRecent() {
     when(denylist.productIdMatches(any())).thenReturn(false);
     Mockito.when(offeringRepository.existsById(any())).thenReturn(true);
@@ -240,12 +206,11 @@ class SubscriptionSyncControllerTest {
     var dto = createDto("456", 10);
     dto.setEffectiveStartDate(toEpochMillis(NOW.minusMonths(6)));
     dto.setEffectiveEndDate(toEpochMillis(NOW.plusMonths(6)));
-    Mockito.when(subscriptionService.getSubscriptionsByOrgId(any(), anyInt(), anyInt()))
-        .thenReturn(List.of(dto));
+    Mockito.when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));
 
-    subscriptionSyncController.syncSubscriptions("100", 0, 1);
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("100");
 
-    verify(subscriptionService).getSubscriptionsByOrgId("100", 0, 2);
+    verify(subscriptionService).getSubscriptionsByOrgId("100");
     verify(subscriptionRepository).save(any());
   }
 
@@ -255,13 +220,14 @@ class SubscriptionSyncControllerTest {
     var dto = createDto("456", 10);
     dto.setEffectiveStartDate(toEpochMillis(NOW.minusMonths(14)));
     dto.setEffectiveEndDate(toEpochMillis(NOW.minusMonths(2)));
-    Mockito.when(subscriptionService.getSubscriptionsByOrgId(any(), anyInt(), anyInt()))
-        .thenReturn(List.of(dto));
+    Mockito.when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));
 
-    subscriptionSyncController.syncSubscriptions("100", 0, 1);
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("100");
 
-    verify(subscriptionService).getSubscriptionsByOrgId("100", 0, 2);
-    verifyNoInteractions(denylist, offeringRepository, subscriptionRepository);
+    verify(subscriptionService).getSubscriptionsByOrgId("100");
+    verifyNoInteractions(denylist, offeringRepository);
+    verify(subscriptionRepository, times(0)).save(any());
+    verify(subscriptionRepository, times(0)).saveAll(any());
   }
 
   @Test
@@ -272,12 +238,13 @@ class SubscriptionSyncControllerTest {
     dto.setEffectiveEndDate(toEpochMillis(NOW.plusMonths(14).plusDays(1)));
     Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
 
-    Mockito.when(subscriptionService.getSubscriptionsByOrgId(any(), anyInt(), anyInt()))
-        .thenReturn(List.of(dto));
-    subscriptionSyncController.syncSubscriptions("100", 0, 1);
+    Mockito.when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("100");
 
-    verify(subscriptionService).getSubscriptionsByOrgId("100", 0, 2);
-    verifyNoInteractions(denylist, offeringRepository, subscriptionRepository);
+    verify(subscriptionService).getSubscriptionsByOrgId("100");
+    verifyNoInteractions(denylist, offeringRepository);
+    verify(subscriptionRepository, times(0)).save(any());
+    verify(subscriptionRepository, times(0)).saveAll(any());
   }
 
   @Test
@@ -289,12 +256,13 @@ class SubscriptionSyncControllerTest {
     dto.setEffectiveEndDate(null);
     Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
 
-    Mockito.when(subscriptionService.getSubscriptionsByOrgId(any(), anyInt(), anyInt()))
-        .thenReturn(List.of(dto));
-    subscriptionSyncController.syncSubscriptions("100", 0, 1);
+    Mockito.when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("100");
 
-    verify(subscriptionService).getSubscriptionsByOrgId("100", 0, 2);
-    verifyNoInteractions(denylist, offeringRepository, subscriptionRepository);
+    verify(subscriptionService).getSubscriptionsByOrgId("100");
+    verifyNoInteractions(denylist, offeringRepository);
+    verify(subscriptionRepository, times(0)).save(any());
+    verify(subscriptionRepository, times(0)).saveAll(any());
   }
 
   @Test

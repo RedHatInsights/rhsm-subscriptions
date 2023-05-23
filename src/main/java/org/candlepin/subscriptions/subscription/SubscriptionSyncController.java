@@ -94,7 +94,6 @@ public class SubscriptionSyncController {
   private CapacityReconciliationController capacityReconciliationController;
   private OfferingSyncController offeringSyncController;
   private SubscriptionServiceProperties properties;
-  private Timer syncTimer;
   private Timer enqueueAllTimer;
   private KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate;
   private final TagProfile tagProfile;
@@ -130,7 +129,6 @@ public class SubscriptionSyncController {
     this.offeringSyncController = offeringSyncController;
     this.clock = clock;
     this.properties = properties;
-    this.syncTimer = meterRegistry.timer("swatch_subscription_sync_page");
     this.enqueueAllTimer = meterRegistry.timer("swatch_subscription_sync_enqueue_all");
     this.productDenylist = productDenylist;
     this.objectMapper = objectMapper;
@@ -310,8 +308,8 @@ public class SubscriptionSyncController {
                 Collectors.toMap(
                     org.candlepin.subscriptions.db.model.Subscription::getSubscriptionId,
                     Function.identity()));
-    subscriptionService
-        .getSubscriptionsByOrgId(orgId)
+    subscriptionService.getSubscriptionsByOrgId(orgId).stream()
+        .filter(this::shouldSyncSub)
         .forEach(
             subscription -> {
               if (productDenylist.productIdMatches(SubscriptionDtoUtil.extractSku(subscription))) {
@@ -344,38 +342,6 @@ public class SubscriptionSyncController {
     }
   }
 
-  void syncSubscriptions(String orgId, int offset, int limit) {
-    log.info(
-        "Syncing subscriptions for orgId={} with offset={} and limit={} ", orgId, offset, limit);
-    Timer.Sample syncTime = Timer.start();
-
-    int pageSize = limit + 1;
-    List<Subscription> subscriptions =
-        subscriptionService.getSubscriptionsByOrgId(orgId, offset, pageSize);
-    int numFetchedSubs = subscriptions.size();
-    boolean hasMore = numFetchedSubs >= pageSize;
-    log.info(
-        "Fetched numFetchedSubs={} for orgId={} from external service.", numFetchedSubs, orgId);
-
-    subscriptions =
-        subscriptions.stream().filter(this::shouldSyncSub).collect(Collectors.toUnmodifiableList());
-    int numKeptSubs = subscriptions.size();
-
-    subscriptions.forEach(this::syncSubscription);
-    if (hasMore) {
-      enqueueSubscriptionSync(orgId, offset + limit, limit);
-    }
-    Duration syncDuration = Duration.ofNanos(syncTime.stop(syncTimer));
-    log.info(
-        "Fetched numFetchedSubs={} and synced numSyncedSubs={} active/recent subscriptions for orgId={} offset={} limit={} in subSyncedTimeMillis={}",
-        numFetchedSubs,
-        numKeptSubs,
-        orgId,
-        offset,
-        limit,
-        syncDuration.toMillis());
-  }
-
   private boolean shouldSyncSub(Subscription sub) {
     // Reject subs expired long ago, or subs that won't be active quite yet.
     OffsetDateTime now = clock.now();
@@ -406,16 +372,10 @@ public class SubscriptionSyncController {
     return startDate < earliestAllowedFutureStartDate && endDate > latestAllowedExpiredEndDate;
   }
 
-  private void enqueueSubscriptionSync(String orgId, int offset, int limit) {
-    log.debug("Enqueuing subscription sync for orgId={} offset={} limit={}", orgId, offset, limit);
+  private void enqueueSubscriptionSync(String orgId) {
+    log.debug("Enqueuing subscription sync for orgId={}", orgId);
     syncSubscriptionsByOrgKafkaTemplate.send(
-        syncSubscriptionsTopic,
-        SyncSubscriptionsTask.builder().orgId(orgId).offset(offset).limit(limit).build());
-  }
-
-  @Transactional
-  public void syncAllSubcriptionsForOrg(String orgId) {
-    syncSubscriptions(orgId, 0, properties.getPageSize());
+        syncSubscriptionsTopic, SyncSubscriptionsTask.builder().orgId(orgId).build());
   }
 
   /**
@@ -425,9 +385,7 @@ public class SubscriptionSyncController {
   @Transactional
   public void syncAllSubscriptionsForAllOrgs() {
     Timer.Sample enqueueAllTime = Timer.start();
-    orgRepository
-        .findSyncEnabledOrgs()
-        .forEach(orgId -> enqueueSubscriptionSync(orgId, 0, properties.getPageSize()));
+    orgRepository.findSyncEnabledOrgs().forEach(this::enqueueSubscriptionSync);
     Duration enqueueAllDuration = Duration.ofNanos(enqueueAllTime.stop(enqueueAllTimer));
     log.info(
         "Enqueued orgs to sync subscriptions from upstream in enqueueTimeMillis={}",
