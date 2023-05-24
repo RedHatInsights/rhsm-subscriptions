@@ -1258,6 +1258,9 @@ objects:
         MCT3857
         MCT3857RN
         MCT3857S
+        RH00428
+        RH00581
+        RH00582
         RH00798
         RH3310120
         RH3387200
@@ -1384,6 +1387,7 @@ objects:
         SER0258US
         SER0259US
         SER0263-SI
+        SER0266
         SER0269
         SER0270
         SER0274
@@ -1403,12 +1407,18 @@ objects:
         SER0402
         SER0403
         SER0440
+        SER0610
+        SER0614
+        SER0615
         RV0130225
         RV0130225RN
         MW01618
         MW01620
         RH02427
         RH02427F3
+        RH02522
+        RH02523
+        RH02524
         MCT4149
         MCT4159
         MCT4159F3
