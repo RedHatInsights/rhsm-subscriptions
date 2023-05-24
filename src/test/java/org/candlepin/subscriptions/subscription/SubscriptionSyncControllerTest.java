@@ -40,15 +40,18 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.OfferingRepository;
+import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.MissingOfferingException;
 import org.candlepin.subscriptions.product.OfferingSyncController;
@@ -63,6 +66,8 @@ import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTags;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -93,6 +98,8 @@ class SubscriptionSyncControllerTest {
 
   @MockBean SubscriptionRepository subscriptionRepository;
 
+  @MockBean SubscriptionCapacityRepository subscriptionCapacityRepository;
+
   @MockBean OrgConfigRepository orgConfigRepository;
 
   @MockBean CapacityReconciliationController capacityReconciliationController;
@@ -102,6 +109,10 @@ class SubscriptionSyncControllerTest {
   @MockBean KafkaTemplate<String, SyncSubscriptionsTask> subscriptionsKafkaTemplate;
 
   @MockBean private TagProfile mockProfile;
+
+  @Captor ArgumentCaptor<Iterable<Subscription>> subscriptionsCaptor;
+
+  @Captor ArgumentCaptor<SubscriptionCapacity> capacityCaptor;
 
   private OffsetDateTime rangeStart = OffsetDateTime.now().minusDays(5);
   private OffsetDateTime rangeEnd = OffsetDateTime.now().plusDays(5);
@@ -187,40 +198,6 @@ class SubscriptionSyncControllerTest {
   }
 
   @Test
-  void shouldSyncSubscriptionsWithinLimitForOrgAndQueueTaskForNext() {
-    when(denylist.productIdMatches(any())).thenReturn(false);
-    Mockito.when(offeringRepository.existsById("testsku")).thenReturn(true);
-
-    List<org.candlepin.subscriptions.subscription.api.model.Subscription> subscriptions =
-        List.of(
-            createDto(100, "456", 10),
-            createDto(100, "457", 10),
-            createDto(100, "458", 10),
-            createDto(100, "459", 10),
-            createDto(100, "500", 10));
-
-    Mockito.when(subscriptionService.getSubscriptionsByOrgId("100", 0, 3))
-        .thenReturn(List.of(subscriptions.get(0), subscriptions.get(1), subscriptions.get(2)));
-    Mockito.when(subscriptionService.getSubscriptionsByOrgId("100", 2, 3))
-        .thenReturn(List.of(subscriptions.get(2), subscriptions.get(3), subscriptions.get(4)));
-    Mockito.when(subscriptionService.getSubscriptionsByOrgId("100", 4, 3))
-        .thenReturn(List.of(subscriptions.get(4)));
-    subscriptions.forEach(
-        subscription -> {
-          Mockito.when(
-                  subscriptionRepository.findActiveSubscription(subscription.getId().toString()))
-              .thenReturn(Optional.of(convertDto(subscription)));
-        });
-
-    subscriptionSyncController.syncSubscriptions("100", 0, 2);
-    verify(subscriptionRepository, times(3)).save(any());
-    verify(subscriptionsKafkaTemplate)
-        .send(
-            "platform.rhsm-subscriptions.subscription-sync",
-            SyncSubscriptionsTask.builder().orgId("100").offset(2).limit(2).build());
-  }
-
-  @Test
   void shouldSyncSubscriptionsSyncSubIfRecent() {
     when(denylist.productIdMatches(any())).thenReturn(false);
     Mockito.when(offeringRepository.existsById(any())).thenReturn(true);
@@ -229,12 +206,11 @@ class SubscriptionSyncControllerTest {
     var dto = createDto("456", 10);
     dto.setEffectiveStartDate(toEpochMillis(NOW.minusMonths(6)));
     dto.setEffectiveEndDate(toEpochMillis(NOW.plusMonths(6)));
-    Mockito.when(subscriptionService.getSubscriptionsByOrgId(any(), anyInt(), anyInt()))
-        .thenReturn(List.of(dto));
+    Mockito.when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));
 
-    subscriptionSyncController.syncSubscriptions("100", 0, 1);
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("100");
 
-    verify(subscriptionService).getSubscriptionsByOrgId("100", 0, 2);
+    verify(subscriptionService).getSubscriptionsByOrgId("100");
     verify(subscriptionRepository).save(any());
   }
 
@@ -244,13 +220,14 @@ class SubscriptionSyncControllerTest {
     var dto = createDto("456", 10);
     dto.setEffectiveStartDate(toEpochMillis(NOW.minusMonths(14)));
     dto.setEffectiveEndDate(toEpochMillis(NOW.minusMonths(2)));
-    Mockito.when(subscriptionService.getSubscriptionsByOrgId(any(), anyInt(), anyInt()))
-        .thenReturn(List.of(dto));
+    Mockito.when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));
 
-    subscriptionSyncController.syncSubscriptions("100", 0, 1);
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("100");
 
-    verify(subscriptionService).getSubscriptionsByOrgId("100", 0, 2);
-    verifyNoInteractions(denylist, offeringRepository, subscriptionRepository);
+    verify(subscriptionService).getSubscriptionsByOrgId("100");
+    verifyNoInteractions(denylist, offeringRepository);
+    verify(subscriptionRepository, times(0)).save(any());
+    verify(subscriptionRepository, times(0)).saveAll(any());
   }
 
   @Test
@@ -261,12 +238,13 @@ class SubscriptionSyncControllerTest {
     dto.setEffectiveEndDate(toEpochMillis(NOW.plusMonths(14).plusDays(1)));
     Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
 
-    Mockito.when(subscriptionService.getSubscriptionsByOrgId(any(), anyInt(), anyInt()))
-        .thenReturn(List.of(dto));
-    subscriptionSyncController.syncSubscriptions("100", 0, 1);
+    Mockito.when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("100");
 
-    verify(subscriptionService).getSubscriptionsByOrgId("100", 0, 2);
-    verifyNoInteractions(denylist, offeringRepository, subscriptionRepository);
+    verify(subscriptionService).getSubscriptionsByOrgId("100");
+    verifyNoInteractions(denylist, offeringRepository);
+    verify(subscriptionRepository, times(0)).save(any());
+    verify(subscriptionRepository, times(0)).saveAll(any());
   }
 
   @Test
@@ -278,12 +256,13 @@ class SubscriptionSyncControllerTest {
     dto.setEffectiveEndDate(null);
     Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
 
-    Mockito.when(subscriptionService.getSubscriptionsByOrgId(any(), anyInt(), anyInt()))
-        .thenReturn(List.of(dto));
-    subscriptionSyncController.syncSubscriptions("100", 0, 1);
+    Mockito.when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("100");
 
-    verify(subscriptionService).getSubscriptionsByOrgId("100", 0, 2);
-    verifyNoInteractions(denylist, offeringRepository, subscriptionRepository);
+    verify(subscriptionService).getSubscriptionsByOrgId("100");
+    verifyNoInteractions(denylist, offeringRepository);
+    verify(subscriptionRepository, times(0)).save(any());
+    verify(subscriptionRepository, times(0)).saveAll(any());
   }
 
   @Test
@@ -722,6 +701,73 @@ class SubscriptionSyncControllerTest {
 
     verify(offeringSyncController).syncOffering("testsku");
     verify(subscriptionRepository, times(0)).save(incoming);
+  }
+
+  @Test
+  void testShouldRemoveStaleSubscriptionsNotPresentInSubscriptionService() {
+    var subscription = createSubscription("123", "testsku", "456");
+    when(subscriptionRepository.findByOrgId(any())).thenReturn(Stream.of(subscription));
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
+    verify(subscriptionRepository).deleteAll(subscriptionsCaptor.capture());
+    assertThat(subscriptionsCaptor.getValue(), contains(subscription));
+  }
+
+  @Test
+  void testShouldRemoveStaleSubscriptionsPresentInSubscriptionServiceButDenylisted() {
+    var subscription = createSubscription("123", "testsku", "456");
+    var subServiceSub = createDto("456", 1);
+    when(subscriptionRepository.findByOrgId(any())).thenReturn(Stream.of(subscription));
+    when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
+    when(denylist.productIdMatches(any())).thenReturn(true);
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
+    verify(subscriptionRepository).deleteAll(subscriptionsCaptor.capture());
+    assertThat(subscriptionsCaptor.getValue(), contains(subscription));
+  }
+
+  @Test
+  void testShouldNotRemovePresentSub() {
+    var subscription = createSubscription("123", "testsku", "456");
+    var subServiceSub = createDto("456", 1);
+    when(subscriptionRepository.findByOrgId(any())).thenReturn(Stream.of(subscription));
+    when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
+    verify(subscriptionRepository).deleteAll(subscriptionsCaptor.capture());
+    assertFalse(subscriptionsCaptor.getValue().iterator().hasNext());
+  }
+
+  @Test
+  void testShouldRemoveStaleCapacityNotPresentInSubscriptionService() {
+    var capacity = new SubscriptionCapacity();
+    when(subscriptionCapacityRepository.findByKeyOrgId(any())).thenReturn(Stream.of(capacity));
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
+    verify(subscriptionCapacityRepository).delete(capacityCaptor.capture());
+    assertEquals(capacityCaptor.getValue(), capacity);
+  }
+
+  @Test
+  void testShouldRemoveStaleCapacityPresentInSubscriptionServiceButDenylisted() {
+    var subServiceSub = createDto("456", 1);
+    var capacity = new SubscriptionCapacity();
+    capacity.setSubscriptionId("456");
+    when(subscriptionCapacityRepository.findByKeyOrgId(any())).thenReturn(Stream.of(capacity));
+    when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
+    when(denylist.productIdMatches(any())).thenReturn(true);
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
+    verify(subscriptionCapacityRepository).delete(capacityCaptor.capture());
+    assertEquals(capacityCaptor.getValue(), capacity);
+  }
+
+  @Test
+  void testShouldNotRemovePresentCapacity() {
+    var subServiceSub = createDto("456", 1);
+    var capacity = new SubscriptionCapacity();
+    capacity.setSubscriptionId("456");
+    when(subscriptionCapacityRepository.findByKeyOrgId(any())).thenReturn(Stream.of(capacity));
+    when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
+    verify(subscriptionCapacityRepository, times(0)).delete(capacityCaptor.capture());
   }
 
   private Subscription createSubscription(String orgId, String sku, String subId) {

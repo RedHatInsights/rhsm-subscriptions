@@ -89,7 +89,7 @@ class SubscriptionJmxBeanTest {
   @Test
   void syncSubscriptionForOrgTest() {
     subject.syncSubscriptionsForOrg("123");
-    verify(subscriptionSyncController).syncAllSubcriptionsForOrg("123");
+    verify(subscriptionSyncController).reconcileSubscriptionsWithSubscriptionService("123");
   }
 
   @Test

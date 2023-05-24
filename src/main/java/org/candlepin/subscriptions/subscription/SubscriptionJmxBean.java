@@ -74,7 +74,7 @@ public class SubscriptionJmxBean {
   public void syncSubscriptionsForOrg(String orgId) {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Sync for org {} triggered over JMX by {}", orgId, principal);
-    subscriptionSyncController.syncAllSubcriptionsForOrg(orgId);
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService(orgId);
   }
 
   @Transactional
