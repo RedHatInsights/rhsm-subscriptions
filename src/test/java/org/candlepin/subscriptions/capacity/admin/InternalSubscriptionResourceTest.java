@@ -34,7 +34,9 @@ import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 import javax.ws.rs.NotFoundException;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilterModifyingConfigurer;
@@ -43,6 +45,7 @@ import org.candlepin.subscriptions.security.WithMockPskPrincipal;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.candlepin.subscriptions.utilization.admin.api.model.AwsUsageContext;
+import org.candlepin.subscriptions.utilization.admin.api.model.RhmUsageContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -293,5 +296,63 @@ class InternalSubscriptionResourceTest {
   void forceSyncForOrgWorksFailsWithRhPrincipal() throws Exception {
     mvc.perform(post(SYNC_ORG_123).header("Origin", "console.redhat.com"))
         .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void incrementsRhmMissingSubscriptionsCounter() {
+    SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+    InternalSubscriptionResource resource =
+        new InternalSubscriptionResource(meterRegistry, syncController, properties);
+
+    when(syncController.findSubscriptionsAndSyncIfNeeded(
+            any(), any(), any(), any(), any(), anyBoolean()))
+        .thenReturn(Collections.emptyList());
+
+    OffsetDateTime now = OffsetDateTime.now();
+    String sla = ServiceLevel.PREMIUM.toString();
+    String usage = Usage.PRODUCTION.toString();
+    assertThrows(
+        NotFoundException.class,
+        () -> {
+          resource.getRhmUsageContext("org123", now, "productId", "", sla, usage);
+        });
+
+    Counter counter = meterRegistry.counter("rhsm-subscriptions.marketplace.missing.subscription");
+    assertEquals(1.0, counter.count());
+  }
+
+  @Test
+  void incrementsRhmAmbiguousSubscriptionsCounter() {
+    SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+    InternalSubscriptionResource resource =
+        new InternalSubscriptionResource(meterRegistry, syncController, properties);
+
+    Subscription sub1 = new Subscription();
+    sub1.setBillingProviderId("account123");
+    sub1.setStartDate(OffsetDateTime.now());
+    sub1.setEndDate(sub1.getStartDate().plusMonths(1));
+
+    Subscription sub2 = new Subscription();
+    sub2.setBillingProviderId("account123");
+    sub2.setStartDate(OffsetDateTime.now());
+    sub2.setEndDate(sub2.getStartDate().plusMonths(1));
+
+    when(syncController.findSubscriptionsAndSyncIfNeeded(
+            any(), any(), any(), any(), any(), anyBoolean()))
+        .thenReturn(List.of(sub1, sub2));
+
+    RhmUsageContext rhmUsageContext =
+        resource.getRhmUsageContext(
+            "org123",
+            OffsetDateTime.now(),
+            "productId",
+            "",
+            ServiceLevel.PREMIUM.toString(),
+            Usage.PRODUCTION.toString());
+
+    Counter counter =
+        meterRegistry.counter("rhsm-subscriptions.marketplace.ambiguous.subscription");
+    assertEquals(1.0, counter.count());
+    assertEquals("account123", rhmUsageContext.getRhSubscriptionId());
   }
 }
