@@ -26,6 +26,59 @@ servers:
         default: rhsm-subscriptions
 
 paths:
+  /internal/subscriptions:
+    description: Save subscriptions manually. Supported only in dev-mode.
+    post:
+      operationId: saveSubscriptions
+      tags:
+        - internalSubscriptions
+      parameters:
+        - name: reconcileCapacity
+          in: query
+          schema:
+            type: boolean
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+      responses:
+        '200':
+          description: Save a list of subscriptions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+  /internal/rpc/subscriptions/sync:
+    description: Enqueue all sync-enabled orgs to sync their subscriptions with upstream
+    put:
+      summary: Enqueue all sync-enabled orgs to sync their subscriptions with upstream
+      operationId: syncAllSubscriptions
+      tags:
+        - internalSubscriptions
+      responses:
+        '200':
+          description: The request for syncing all subscriptions is successful.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
   /internal/subscriptions/sync/org/{org_id}:
     description: "Force sync of subscriptions for given org_id."
     parameters:
@@ -48,6 +101,28 @@ paths:
               schema:
                 type: string
                 example: Sync started.
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+  /internal/subscriptions/prune:
+    description: Remove subscription and capacity records that are in the denylist.
+    delete:
+      summary: Remove subscription and capacity records that are in the denylist.
+      operationId: pruneUnlistedSubscriptions
+      tags:
+        - internalSubscriptions
+      responses:
+        '200':
+          description: Prune of unlisted subscriptions is successful.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
         '400':
           $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
@@ -201,6 +276,84 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - internalSubscriptions
+  /internal/rpc/offerings/sync/{sku}:
+    description: Sync an offering from the upstream source.
+    parameters:
+      - name: sku
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Sync an offering from the upstream source.
+      operationId: syncOffering
+      responses:
+        '200':
+          description: Sync for offering sku
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfferingResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - internalSubscriptions
+  /internal/rpc/offerings/sync:
+    description: Syncs all offerings not listed in deny list from the upstream source.
+    put:
+      summary: Syncs all offerings not listed in deny list from the upstream source.
+      operationId: syncAllOfferings
+      tags:
+        - internalSubscriptions
+      responses:
+        '200':
+          description: Enqueued offerings to be synced.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfferingResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+  /internal/rpc/offerings/reconcile/{sku}:
+    description: Reconcile capacity for an offering from the upstream source.
+    parameters:
+      - name: sku
+        in: path
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Reconcile capacity for an offering from the upstream source.
+      operationId: forceReconcileOffering
+      responses:
+        '200':
+          description: Capacity Reconciliation for offering sku successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfferingResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - internalSubscriptions
   /internal/subscriptions/terminate/{subscription_id}:
     description: "Terminate a subscription with a given end date."
     parameters:
@@ -277,6 +430,18 @@ components:
           properties:
             termination_message:
               type: string
+    DefaultResponse:
+      properties:
+        status:
+          type: string
+    SubscriptionResponse:
+      properties:
+        detail:
+          type: string
+    OfferingResponse:
+      properties:
+        detail:
+          type: string
   securitySchemes:
     PskIdentity:
       type: apiKey
