@@ -27,11 +27,13 @@ import static org.junit.jupiter.params.ParameterizedTest.DEFAULT_DISPLAY_NAME;
 import static org.junit.jupiter.params.ParameterizedTest.DISPLAY_NAME_PLACEHOLDER;
 import static org.mockito.Mockito.*;
 
+import com.redhat.swatch.clients.internal.subscriptions.api.client.ApiException;
+import com.redhat.swatch.clients.internal.subscriptions.api.model.RhmUsageContext;
+import com.redhat.swatch.clients.internal.subscriptions.api.resources.InternalSubscriptionsApi;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.json.BillableUsage;
@@ -43,7 +45,6 @@ import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageMeasurement;
-import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.user.AccountService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,22 +52,33 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.retry.RetryCallback;
+import org.springframework.retry.RetryContext;
+import org.springframework.retry.backoff.NoBackOffPolicy;
+import org.springframework.retry.listener.RetryListenerSupport;
+import org.springframework.retry.policy.SimpleRetryPolicy;
+import org.springframework.retry.support.RetryTemplate;
 
 @ExtendWith(MockitoExtension.class)
 class RhMarketplacePayloadMapperTest {
 
   @Mock TagProfile tagProfile;
-  @Mock RhMarketplaceSubscriptionIdProvider mockProvider;
+  @Mock InternalSubscriptionsApi subscriptionsApi;
 
   @Mock AccountService accountService;
 
-  @InjectMocks RhMarketplacePayloadMapper rhMarketplacePayloadMapper;
+  RhMarketplacePayloadMapper rhMarketplacePayloadMapper;
 
   @BeforeEach
   void init() {
+    RetryTemplate retry = new RetryTemplate();
+    retry.setBackOffPolicy(new NoBackOffPolicy());
+
+    rhMarketplacePayloadMapper =
+        new RhMarketplacePayloadMapper(tagProfile, accountService, subscriptionsApi, retry);
+
     // Tell Mockito not to complain if some of these mocks aren't used in a particular test
     lenient()
         .when(
@@ -87,14 +99,17 @@ class RhMarketplacePayloadMapperTest {
   }
 
   @Test
-  void testProduceUsageEvents() {
-    when(mockProvider.findSubscriptionId(
+  void testProduceUsageEvents() throws Exception {
+    RhmUsageContext rhmUsageContext = new RhmUsageContext();
+    rhmUsageContext.setRhSubscriptionId("PLACEHOLDER");
+    when(subscriptionsApi.getRhmUsageContext(
             any(String.class),
-            any(String.class),
-            any(UsageCalculation.Key.class),
             any(OffsetDateTime.class),
-            any(OffsetDateTime.class)))
-        .thenReturn(Optional.of("PLACEHOLDER"));
+            any(String.class),
+            any(String.class),
+            any(String.class),
+            any(String.class)))
+        .thenReturn(rhmUsageContext);
 
     var snapshotDateLong = 1616100754L;
 
@@ -136,14 +151,16 @@ class RhMarketplacePayloadMapperTest {
   }
 
   @Test
-  void testProducesNullUsageRequestWhenSubscriptionIdNotFound() {
-    when(mockProvider.findSubscriptionId(
+  void testProducesNullUsageRequestWhenSubscriptionIdNotFound() throws Exception {
+    RhmUsageContext rhmUsageContext = new RhmUsageContext();
+    when(subscriptionsApi.getRhmUsageContext(
             any(String.class),
-            any(String.class),
-            any(UsageCalculation.Key.class),
             any(OffsetDateTime.class),
-            any(OffsetDateTime.class)))
-        .thenReturn(Optional.empty());
+            any(String.class),
+            any(String.class),
+            any(String.class),
+            any(String.class)))
+        .thenReturn(rhmUsageContext);
 
     var snapshotDateLong = 1616100754L;
 
@@ -244,5 +261,61 @@ class RhMarketplacePayloadMapperTest {
         notEligibleOracleBillingProvider,
         notEligibleGcpBillingProvider,
         notEligableDefaultBillableUsage);
+  }
+
+  @Test
+  void verifyLookupIsRetriedOnFailure() throws Exception {
+    int expectedMaxAttempts = 5;
+    RetryTemplate retry = new RetryTemplate();
+    retry.setBackOffPolicy(new NoBackOffPolicy());
+    retry.setRetryPolicy(new SimpleRetryPolicy(expectedMaxAttempts));
+
+    RetryTestSupport retrySupport = new RetryTestSupport();
+    retry.registerListener(retrySupport);
+
+    when(subscriptionsApi.getRhmUsageContext(
+            any(String.class),
+            any(OffsetDateTime.class),
+            any(String.class),
+            any(String.class),
+            any(String.class),
+            any(String.class)))
+        .thenThrow(ApiException.class);
+
+    RhMarketplacePayloadMapper mapper =
+        new RhMarketplacePayloadMapper(tagProfile, accountService, subscriptionsApi, retry);
+
+    BillableUsage billableUsage =
+        new BillableUsage()
+            .withOrgId("org")
+            .withSnapshotDate(OffsetDateTime.now())
+            .withAccountNumber("account")
+            .withProductId("product")
+            .withSla(Sla.PREMIUM)
+            .withUsage(Usage.PRODUCTION);
+
+    assertThrows(
+        RhmUsageContextLookupException.class, () -> mapper.lookupRhmUsageContext(billableUsage));
+
+    assertEquals(expectedMaxAttempts, retrySupport.getRetryCount());
+  }
+
+  /**
+   * A retry test support class that will increment a counter whenever an error occurs and the retry
+   * logic is run.
+   */
+  private class RetryTestSupport extends RetryListenerSupport {
+
+    private int retryCount = 0;
+
+    @Override
+    public <T, E extends Throwable> void onError(
+        RetryContext context, RetryCallback<T, E> callback, Throwable throwable) {
+      retryCount++;
+    }
+
+    public int getRetryCount() {
+      return retryCount;
+    }
   }
 }

@@ -1,0 +1,8 @@
+{
+  "modelPackage": "com.redhat.swatch.clients.internal.subscriptions.api.model",
+  "apiPackage": "com.redhat.swatch.clients.internal.subscriptions.api.resources",
+  "invokerPackage": "com.redhat.swatch.clients.internal.subscriptions.api.client",
+  "groupId": "org.candlepin",
+  "artifactId": "internal-subscription-springboot-client",
+  "java8": true
+}

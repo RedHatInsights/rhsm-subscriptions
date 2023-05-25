@@ -20,29 +20,19 @@
  */
 package org.candlepin.subscriptions.capacity.admin;
 
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import javax.persistence.EntityNotFoundException;
 import javax.ws.rs.NotFoundException;
-import javax.ws.rs.core.Response.Status;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.model.BillingProvider;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.exception.ErrorCode;
-import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.security.SecurityProperties;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
-import org.candlepin.subscriptions.tally.UsageCalculation;
-import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.utilization.admin.api.InternalApi;
 import org.candlepin.subscriptions.utilization.admin.api.model.AwsUsageContext;
 import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTags;
+import org.candlepin.subscriptions.utilization.admin.api.model.RhmUsageContext;
 import org.candlepin.subscriptions.utilization.admin.api.model.TerminationRequest;
 import org.candlepin.subscriptions.utilization.admin.api.model.TerminationRequestData;
 import org.springframework.stereotype.Component;
@@ -53,24 +43,60 @@ import org.springframework.stereotype.Component;
 public class InternalSubscriptionResource implements InternalApi {
 
   private final SubscriptionSyncController subscriptionSyncController;
-  private final Counter missingSubscriptionCounter;
-  private final Counter ambiguousSubscriptionCounter;
   private final SecurityProperties properties;
+  private final MeterRegistry meterRegistry;
+  private final UsageContextSubscriptionProvider awsSubscriptionProvider;
+  private final UsageContextSubscriptionProvider rhmSubscriptionProvider;
 
   public InternalSubscriptionResource(
       MeterRegistry meterRegistry,
       SubscriptionSyncController subscriptionSyncController,
       SecurityProperties properties) {
-    this.missingSubscriptionCounter = meterRegistry.counter("swatch_missing_aws_subscription");
-    this.ambiguousSubscriptionCounter = meterRegistry.counter("swatch_ambiguous_aws_subscription");
+    this.meterRegistry = meterRegistry;
     this.subscriptionSyncController = subscriptionSyncController;
     this.properties = properties;
+    this.awsSubscriptionProvider =
+        new UsageContextSubscriptionProvider(
+            this.subscriptionSyncController,
+            this.meterRegistry.counter("swatch_missing_aws_subscription"),
+            this.meterRegistry.counter("swatch_ambiguous_aws_subscription"),
+            BillingProvider.AWS);
+    this.rhmSubscriptionProvider =
+        new UsageContextSubscriptionProvider(
+            this.subscriptionSyncController,
+            this.meterRegistry.counter("rhsm-subscriptions.marketplace.missing.subscription"),
+            this.meterRegistry.counter("rhsm-subscriptions.marketplace.ambiguous.subscription"),
+            BillingProvider.RED_HAT);
   }
 
   @Override
   public String forceSyncSubscriptionsForOrg(String orgId) {
     subscriptionSyncController.forceSyncSubscriptionsForOrgAsync(orgId);
     return "Sync started.";
+  }
+
+  @Override
+  public RhmUsageContext getRhmUsageContext(
+      String orgId,
+      OffsetDateTime date,
+      String productId,
+      String accountNumber,
+      String sla,
+      String usage) {
+
+    // Use "_ANY" because we don't support multiple rh marketplace accounts for a single customer
+    String billingAccoutId = "_ANY";
+
+    return rhmSubscriptionProvider
+        .getSubscription(orgId, accountNumber, productId, sla, usage, billingAccoutId, date)
+        .map(this::buildRhmUsageContext)
+        .orElseThrow();
+  }
+
+  private RhmUsageContext buildRhmUsageContext(Subscription subscription) {
+    RhmUsageContext context = new RhmUsageContext();
+    context.setRhSubscriptionId(subscription.getBillingProviderId());
+    return context;
   }
 
   @Override
@@ -82,56 +108,11 @@ public class InternalSubscriptionResource implements InternalApi {
       String sla,
       String usage,
       String awsAccountId) {
-    UsageCalculation.Key usageKey =
-        new Key(
-            productId,
-            ServiceLevel.fromString(sla),
-            Usage.fromString(usage),
-            BillingProvider.AWS,
-            awsAccountId);
 
-    // Set start date one hour in past to pickup recently terminated subscriptions
-    var start = date.minusHours(1);
-    List<Subscription> subscriptions =
-        subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
-            accountNumber, Optional.ofNullable(orgId), usageKey, start, date, true);
-
-    var existsRecentlyTerminatedSubscription =
-        subscriptions.stream().anyMatch(subscription -> subscription.getEndDate().isBefore(date));
-
-    // Filter out any terminated subscriptions
-    var activeSubscriptions =
-        subscriptions.stream()
-            .filter(
-                subscription ->
-                    subscription.getEndDate().isAfter(date)
-                        || subscription.getEndDate().equals(date))
-            .collect(Collectors.toList());
-
-    if (subscriptions.isEmpty()) {
-      missingSubscriptionCounter.increment();
-      throw new NotFoundException();
-    }
-
-    if (activeSubscriptions.isEmpty() && existsRecentlyTerminatedSubscription) {
-      throw new SubscriptionsException(
-          ErrorCode.SUBSCRIPTION_RECENTLY_TERMINATED,
-          Status.NOT_FOUND,
-          "Subscription recently terminated",
-          "");
-    }
-
-    if (activeSubscriptions.size() > 1) {
-      ambiguousSubscriptionCounter.increment();
-      log.warn(
-          "Multiple subscriptions found for account {} or for org {} with key {} and product tag {}."
-              + " Selecting first result",
-          accountNumber,
-          orgId,
-          usageKey,
-          usageKey.getProductId());
-    }
-    return activeSubscriptions.stream().findFirst().map(this::buildAwsUsageContext).orElseThrow();
+    return awsSubscriptionProvider
+        .getSubscription(orgId, accountNumber, productId, sla, usage, awsAccountId, date)
+        .map(this::buildAwsUsageContext)
+        .orElseThrow();
   }
 
   private AwsUsageContext buildAwsUsageContext(Subscription subscription) {
