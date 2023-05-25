@@ -186,20 +186,6 @@ parameters:
     value: 'false'
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: 'http://localhost:4317'
-  - description: database secret name
-    name: FLOORIST_DB_SECRET_NAME
-    value: swatch-tally-db
-  - description: bucket secret name
-    name: FLOORIST_BUCKET_SECRET_NAME
-    required: true
-    value: egress-s3
-  - name: FLOORIST_LOGLEVEL
-    description: Floorist loglevel config
-    value: 'INFO'
-  - name: FLOORIST_SUSPEND
-    description: Disable Floorist cronjob execution
-    required: true
-    value: 'false'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -761,28 +747,3 @@ objects:
     name: cloudigrade-psk
   data:
     psk: ZHVtbXk=
-- apiVersion: metrics.console.redhat.com/v1alpha1
-  kind: FloorPlan
-  metadata:
-    name: swatch-tally
-  spec:
-    database:
-      secretName: ${FLOORIST_DB_SECRET_NAME}
-    objectStore:
-      secretName: ${FLOORIST_BUCKET_SECRET_NAME}
-    logLevel: ${FLOORIST_LOGLEVEL}
-    suspend: ${{FLOORIST_SUSPEND}}
-    queries:
-    - prefix: swatch/tally
-      query: >-
-        select *
-        from tally_snapshots s
-        join tally_measurements tm on s.id = tm.snapshot_id
-        where sla = '_ANY'
-        and usage = '_ANY'
-        and billing_provider = '_ANY'
-        and billing_account_id = '_ANY'
-        and product_id = 'RHEL'
-        and granularity='DAILY'
-        and uom='SOCKETS'
-        and measurement_type!='TOTAL';
