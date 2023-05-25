@@ -774,7 +774,7 @@ objects:
     logLevel: ${FLOORIST_LOGLEVEL}
     suspend: ${{FLOORIST_SUSPEND}}
     queries:
-    - prefix: insights/compliance/policies
+    - prefix: swatch/tally
       query: >-
         select *
         from tally_snapshots s
