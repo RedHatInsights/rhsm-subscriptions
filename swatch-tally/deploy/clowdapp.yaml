@@ -765,7 +765,7 @@ objects:
 - apiVersion: metrics.console.redhat.com/v1alpha1
   kind: FloorPlan
   metadata:
-    name: compliance
+    name: swatch-tally
   spec:
     database:
       secretName: ${FLOORIST_DB_SECRET_NAME}
