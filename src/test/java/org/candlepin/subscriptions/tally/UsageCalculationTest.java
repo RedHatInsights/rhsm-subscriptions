@@ -109,39 +109,6 @@ class UsageCalculationTest {
   }
 
   @Test
-  void testAwsCloudigradeTotal() {
-    UsageCalculation calculation = new UsageCalculation(createUsageKey("Product"));
-
-    calculation.addCloudigrade(HardwareMeasurementType.AWS_CLOUDIGRADE, 20);
-
-    assertHardwareMeasurementTotals(
-        calculation, HardwareMeasurementType.AWS_CLOUDIGRADE, 20, 0, 20);
-    assertHardwareMeasurementTotals(calculation, HardwareMeasurementType.TOTAL, 20, 0, 20);
-    assertNullExcept(
-        calculation, HardwareMeasurementType.TOTAL, HardwareMeasurementType.AWS_CLOUDIGRADE);
-  }
-
-  @Test
-  void testAwsWithHbiAndCloudigrade() {
-    UsageCalculation calculation = new UsageCalculation(createUsageKey("Product"));
-    IntStream.rangeClosed(0, 4)
-        .forEach(
-            i -> calculation.addCloudProvider(HardwareMeasurementType.AWS, i + 100, i + 100, i));
-
-    calculation.addCloudigrade(HardwareMeasurementType.AWS_CLOUDIGRADE, 20);
-
-    assertHardwareMeasurementTotals(
-        calculation, HardwareMeasurementType.AWS_CLOUDIGRADE, 20, 0, 20);
-    assertHardwareMeasurementTotals(calculation, HardwareMeasurementType.TOTAL, 20, 0, 20);
-    assertHardwareMeasurementTotals(calculation, HardwareMeasurementType.AWS, 510, 510, 10);
-    assertNullExcept(
-        calculation,
-        HardwareMeasurementType.TOTAL,
-        HardwareMeasurementType.AWS_CLOUDIGRADE,
-        HardwareMeasurementType.AWS);
-  }
-
-  @Test
   void invalidCloudTypeThrowsExcpection() {
     UsageCalculation calculation = new UsageCalculation(createUsageKey("Product"));
     assertThrows(

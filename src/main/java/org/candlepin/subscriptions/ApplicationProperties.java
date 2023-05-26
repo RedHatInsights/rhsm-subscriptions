@@ -93,12 +93,6 @@ public class ApplicationProperties {
    */
   private int cullingOffsetDays = 14;
 
-  /** Enable or disable cloudigrade integration. */
-  private boolean cloudigradeEnabled = false;
-
-  /** Number of times to attempt query against cloudigrade for Tally integration. */
-  private int cloudigradeMaxAttempts = 2;
-
   /**
    * Offsets the range to look at metrics to account for delay in prometheus having metrics
    * available

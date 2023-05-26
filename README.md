@@ -275,14 +275,6 @@ RHSM_RBAC_USE_STUB=true ./gradlew bootRun
 * `RHSM_RBAC_HOST`: RBAC service hostname
 * `RHSM_RBAC_PORT`: RBAC service port
 * `RHSM_RBAC_MAX_CONNECTIONS`: max concurrent connections to RBAC service
-* `CLOUDIGRADE_ENABLED`: set to `true` to query cloudigrade for RHEL usage
-* `CLOUDIGRADE_MAX_ATTEMPTS`: maximum number of attempts to query cloudigrade
-* `CLOUDIGRADE_HOST`: cloudigrade service host
-* `CLOUDIGRADE_PORT`: cloudigrade service port
-* `CLOUDIGRADE_INTERNAL_HOST`: cloudigrade internal services host
-* `CLOUDIGRADE_INTERNAL_PORT`: cloudigrade internal services port
-* `CLOUDIGRADE_MAX_CONNECTIONS`: max concurrent connections to cloudigrade service
-* `CLOUDIGRADE_PSK`: pre-shared key for cloudigrade authentication
 * `SWATCH_*_PSK`: pre-shared keys for internal service-to-service authentication
   where the `*` represents the name of an authorized service
 * `ENABLE_SYNCHRONOUS_OPERATIONS`: allow any supported APIs to bypass kafka and run the operation immediately when requested.

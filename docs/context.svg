@@ -1,39 +1,34 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="1053px" preserveAspectRatio="none" style="width:1973px;height:1053px;background:#FEFEFE;" version="1.1" viewBox="0 0 1973 1053" width="1973px" zoomAndPan="magnify"><defs/><g><text fill="#000000" font-family="sans-serif" font-size="18" lengthAdjust="spacing" textLength="424" x="768.25" y="16.708">System Context diagram for Subscription watch</text><!--MD5=[7caab35c4647cf5b8739bb77d77dd26f]
-cluster swatch--><rect fill="#FFFFFF" height="196" style="stroke:#444444;stroke-width:1.0;stroke-dasharray:7.0,7.0;" width="1701" x="7" y="567.9531"/><text fill="#444444" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="180" x="767.5" y="584.8047">Susbscription watch</text><!--MD5=[bf1b4add2ee2e1b53e65912b20fb7ef4]
-entity ui--><rect fill="#1168BD" height="87.5156" style="stroke:#3C7FC0;stroke-width:1.5;" width="218" x="260" y="642.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="194" x="272" y="667.8047">Subscription watch UI</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="371" y="684.5732"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="172" x="283" y="700.8701">Customer facing views of</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="198" x="270" y="717.167">the usage and capacity data.</text><!--MD5=[e2307af040e3f87d22824e7603ca28ec]
-entity api--><rect fill="#1168BD" height="89.8438" style="stroke:#3C7FC0;stroke-width:1.5;" width="196" x="550" y="641.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="170" x="560" y="666.8047">Subscription watch</text><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="30" x="633" y="685.4297">API</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="650" y="702.1982"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="142" x="579" y="718.4951">Customer facing API.</text><!--MD5=[23f8c008b24cac31bc4540d77ce92dba]
-entity metrics_ingress--><rect fill="#1168BD" height="103.8125" style="stroke:#3C7FC0;stroke-width:1.5;" width="219" x="1022.5" y="634.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="140" x="1062" y="659.8047">Metrics Ingress</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="1134" y="676.5732"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="125" x="1069.5" y="692.8701">Services that sync</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="183" x="1038.5" y="709.167">system/instance telemetry</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="199" x="1032.5" y="725.4639">data into Subscription watch.</text><!--MD5=[b2dcba7dbba64c6095b699991379b237]
-entity cloudigrade--><rect fill="#1168BD" height="122.4375" style="stroke:#3C7FC0;stroke-width:1.5;" width="180" x="1277" y="625.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="154" x="1287" y="650.8047">Cloudigrade (aka.</text><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="110" x="1312" y="669.4297">Cloudmeter)</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="1369" y="686.1982"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="144" x="1295" y="702.4951">Service that provides</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="154" x="1288" y="718.792">precise RHEL instance</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="87" x="1323.5" y="735.0889">lifetime data.</text><!--MD5=[7861c02b3709677986e391b8d7af3e5e]
-entity tally--><rect fill="#1168BD" height="103.8125" style="stroke:#3C7FC0;stroke-width:1.5;" width="206" x="781" y="634.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="39" x="864.5" y="659.8047">Tally</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="886" y="676.5732"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="178" x="795" y="692.8701">Service that tallies system</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="181" x="791.5" y="709.167">usage based on telemetry</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="182" x="793" y="725.4639">data from various sources.</text><!--MD5=[d34b150e8cd6513fcf7d0807ad79abac]
-entity subscription_sync--><rect fill="#1168BD" height="103.8125" style="stroke:#3C7FC0;stroke-width:1.5;" width="200" x="1492" y="634.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="158" x="1513" y="659.8047">Subscription Sync</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="1594" y="676.5732"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="125" x="1529.5" y="692.8701">Service that syncs</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="176" x="1502" y="709.167">subscription/offering data</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="136" x="1524" y="725.4639">from RH IT services.</text><!--MD5=[63e2d3eb02667c7a1945d0d1aed32404]
-entity billing_producers--><rect fill="#1168BD" height="87.5156" style="stroke:#3C7FC0;stroke-width:1.5;" width="201" x="23.5" y="642.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="148" x="50" y="667.8047">Billing Producers</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="126" y="684.5732"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="173" x="37.5" y="700.8701">Services that notify billing</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="171" x="38.5" y="717.167">services of hourly usage.</text><!--MD5=[92848cbaf65985a669855153c5362c37]
-entity customer--><rect fill="#08427B" height="86.625" style="stroke:#073B6F;stroke-width:1.5;" width="183" x="348.5" y="27.9531"/><image height="48" width="48" x="416" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAACD0lEQVR4Xu2YoU4EMRCGT+4j8Ai8AhaH4QHgAUjQuFMECUgMIUgwJAgMhgQsAYUiJCiQIBBY+EITsjfTdme6V24v4c8vyGbb+ZjOtN0bNcvjQXmkH83WvYBWto6PLm6v7p7uH1/w2fXD+PBycX1Pv2l3IdDm/vn7x+dXQiAubRzoURa7gRZWd0iGRIiJbOnhnfYBQZNJjNbuyY2eJG8fkDE3bbG4ep6MHUAsgYxmE3nVs6VsBWJSGccsOlFPmLIViMzLOB7pCVO2AtHJMohH7Fh6zqitQK7m0rJvAVYgGcEpe//PLdDz65sM4pF9N7ICcXDKIB5Nv6j7tD0NoSdM2QrU9Gg0ewE1LqBhHR3BBdvj2vapnidjHxD/q6vd7Pvhr31AwcY8eXMTXAKECZZJFXuEq27aLgQK5uLMohCenGGuGewOxSjBvYBqeG6B+Nqiblggdjnc+ZXDy+FNFpFzw76O3UBAROuXh6FoiAcf5g9eTvUgzy0nWg6I8cXHRUpg5bOVBCo+KDpFajOf23GgPme7RSQ+lacIENUgJ6gg1k6HjgOlqnLqip4tEuhv0hNEMXUD0clyXE3p6pZA0S2nnvTlXwLJEZWlb7cTQH1+USgTN4VhAenm/wea1OCAOmqo6fE1WCb9WSKBah+rbUWPWAmE2Rvk0ApiB45eOyNAzU8xcTvj8KvkKEoOaIYeHNA3ZuygAvFMUO0AAAAASUVORK5CYII=" y="37.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="163" x="358.5" y="100.8047">Red Hat Customer</text><!--MD5=[8a8edd6ad30bdf56e53341956df4f0eb]
-entity system_conduit--><rect fill="#1168BD" height="122.4375" style="stroke:#3C7FC0;stroke-width:1.5;" width="216" x="538" y="189.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="190" x="548" y="214.8047">System Conduit (aka.</text><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="125" x="583.5" y="233.4297">rhsm-conduit)</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="648" y="250.1982"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="179" x="558.5" y="266.4951">Service that syncs system</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="192" x="548" y="282.792">data from Hosted Candlepin</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="45" x="623.5" y="299.0889">to HBI.</text><!--MD5=[963dd200d5c740cb245718e53e460719]
-entity customer_system--><rect fill="#999999" height="103.8125" style="stroke:#8A8A8A;stroke-width:1.5;" width="217" x="886.5" y="198.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="159" x="915.5" y="223.8047">Customer System</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="997" y="240.5732"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="193" x="900.5" y="256.8701">Customer system or service</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="187" x="899.5" y="273.167">instance (e.g. RHEL or OSD</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="68" x="961" y="289.4639">instance).</text><!--MD5=[e3c0f9bbcd14425bcf01961b0ee2cf90]
-entity observatorium--><rect fill="#999999" height="103.8125" style="stroke:#8A8A8A;stroke-width:1.5;" width="217" x="1023.5" y="401.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="132" x="1066" y="426.8047">Observatorium</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="1134" y="443.5732"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="189" x="1037.5" y="459.8701">Prometheus/Thanos based</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="153" x="1053.5" y="476.167">service for RH product</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="69" x="1097.5" y="492.4639">telemetry.</text><!--MD5=[4b8a5b7a9602b8f761f73e441053affb]
-entity candlepin--><rect fill="#999999" height="103.8125" style="stroke:#8A8A8A;stroke-width:1.5;" width="241" x="493.5" y="401.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="154" x="537" y="426.8047">Hosted Candlepin</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="616" y="443.5732"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="167" x="530.5" y="459.8701">Entitlement/Registration</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="49" x="587.5" y="476.167">service</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="221" x="503.5" y="492.4639">(subscription.rhsm.redhat.com).</text><!--MD5=[da2096ad6c531b186fcd59aa307489d4]
-entity cloud_provider--><rect fill="#999999" height="106.1406" style="stroke:#8A8A8A;stroke-width:1.5;" width="184" x="1276" y="400.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="130" x="1300" y="425.8047">Cloud Provider</text><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="90" x="1323" y="444.4297">Telemetry</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="1370" y="461.1982"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="156" x="1290" y="477.4951">Telemetry collected by</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="110" x="1313" y="493.792">cloud providers.</text><!--MD5=[d06ba427be2a9a158a7e4ee41d3716f9]
-entity hbi--><rect fill="#999999" height="103.8125" style="stroke:#8A8A8A;stroke-width:1.5;" width="219" x="769.5" y="401.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="193" x="782.5" y="426.8047">Host Based Inventory</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="881" y="443.5732"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="195" x="783.5" y="459.8701">Central datastore for system</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="99" x="827.5" y="476.167">information for</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="142" x="808" y="492.4639">console.redhat.com.</text><!--MD5=[600d21c278eeca45fc6f6120f858365e]
-entity rhit_subscriptions--><rect fill="#999999" height="106.1406" style="stroke:#8A8A8A;stroke-width:1.5;" width="220" x="1495" y="400.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="163" x="1520.5" y="425.8047">RH IT Subscription</text><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="65" x="1572.5" y="444.4297">Service</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="1607" y="461.1982"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="196" x="1509" y="477.4951">The internal RH Subscription</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="25" x="1592.5" y="493.792">API.</text><!--MD5=[697d7f91951ba90b0223e3e00e3647d3]
-entity rhit_product--><rect fill="#999999" height="103.8125" style="stroke:#8A8A8A;stroke-width:1.5;" width="217" x="1750.5" y="401.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="195" x="1761.5" y="426.8047">RH IT Product Service</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="1861" y="443.5732"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="189" x="1764.5" y="459.8701">The internal RH Product API</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="161" x="1776.5" y="476.167">which contains Offering</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="75" x="1821.5" y="492.4639">definitions.</text><!--MD5=[02bad4c497baec1e1ca3414756d959ff]
-entity billing_services--><rect fill="#999999" height="103.8125" style="stroke:#8A8A8A;stroke-width:1.5;" width="220" x="14" y="824.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="131" x="58.5" y="849.8047">Billing Services</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="126" y="866.5732"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="165" x="41.5" y="882.8701">Services responsible for</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="200" x="24" y="899.167">billing the customer for PAYG</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="47" x="100.5" y="915.4639">usage.</text><!--MD5=[b9ea0c93728ab2bca7743318452a0d97]
-link customer to ui--><path d="M424.05,115.2031 C420.6,124.9331 417.06,135.2631 414,144.9531 C386.66,231.5231 372.11,251.9831 360,341.9531 C346.13,445.0131 355.28,566.9531 362.56,634.4531 " fill="none" id="customer-to-ui" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="363.48,642.8131,365.5766,634.5303,359.6134,635.1941,363.48,642.8131" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="35" x="361" y="361.0918">Uses</text><!--MD5=[c481ce475d29e3d7cbc90f901191b426]
-link customer to api--><path d="M434.45,115.1931 C425.88,195.8531 416.12,374.3231 476,506.9531 C499.22,558.3831 543.67,604.0231 581.57,636.3531 " fill="none" id="customer-to-api" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="588.08,641.8231,583.8888,634.3777,580.0267,638.9694,588.08,641.8231" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="35" x="439" y="361.0918">Uses</text><!--MD5=[393b9e37c8a184dfb2e992c8d7e3f708]
-link customer to customer_system--><path d="M531.65,101.7631 C626.56,132.1231 775.16,179.6431 878.39,212.6631 " fill="none" id="customer-to-customer_system" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="886.05,215.1131,879.346,209.8163,877.5162,215.5305,886.05,215.1131" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="112" x="702" y="157.0918">Provisions/Uses</text><!--MD5=[b240b6d720668d6f48a76f8efb68a4ea]
-link customer_system to candlepin--><path d="M886.42,295.3231 C857.71,308.6431 827.38,324.4631 801,341.9531 C785,352.5531 784.72,359.9331 769,370.9531 C755.61,380.3431 741.02,389.3931 726.31,397.8531 " fill="none" id="customer_system-to-candlepin" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="719.09,401.9531,727.5291,400.6187,724.5708,395.3987,719.09,401.9531" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="75" x="837" y="354.0918">Reports to</text><text fill="#666666" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="145" x="802" y="368.0605">[subscription-manager]</text><!--MD5=[97f192d3c4e6565688195c0d1a06b51f]
-link customer_system to observatorium--><path d="M1044.72,303.4231 C1055.32,315.5831 1066.02,328.8431 1075,341.9531 C1086.14,358.2131 1096.56,376.9431 1105.37,394.3331 " fill="none" id="customer_system-to-observatorium" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1109.04,401.6831,1108.1388,393.1868,1102.7744,395.8743,1109.04,401.6831" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="75" x="1097.5" y="354.0918">Reports to</text><text fill="#666666" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="84" x="1093" y="368.0605">[Prometheus]</text><!--MD5=[8c18ae11f604b9cd6f5c4391e3571a2c]
-link customer_system to hbi--><path d="M983.57,302.9631 C977.36,324.8431 968.37,350.1031 956,370.9531 C951.02,379.3531 945.05,387.5931 938.66,395.4331 " fill="none" id="customer_system-to-hbi" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="933.21,401.9031,940.6554,397.712,936.0637,393.8498,933.21,401.9031" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="75" x="981" y="354.0918">Reports to</text><text fill="#666666" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="95" x="971" y="368.0605">[insights-client]</text><!--MD5=[c8870f361541125a620d9d76591bb341]
-link system_conduit to hbi--><path d="M656.92,312.2331 C663.15,332.8631 672.88,354.7931 688,370.9531 C691.24,374.4231 724.1,388.8931 761.67,404.7331 " fill="none" id="system_conduit-to-hbi" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="769.24,407.9231,763.0245,402.0607,760.7024,407.5932,769.24,407.9231" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="75" x="689" y="361.0918">Reports to</text><!--MD5=[b67acda93f0ccc8222ca6db68ffb6925]
-link system_conduit to candlepin--><path d="M585.02,312.1731 C578.5,321.5131 572.85,331.5331 569,341.9531 C562.69,359.0331 565.96,377.4231 573,394.2231 " fill="none" id="system_conduit-to-candlepin" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="576.48,401.8231,575.878,393.3004,570.4224,395.7977,576.48,401.8231" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="77" x="570" y="361.0918">Syncs from</text><!--MD5=[57ab7889ee3ed1e7f7983b5557b53641]
-link ui to api--><path d="M478.07,686.9531 C498.98,686.9531 520.85,686.9531 541.68,686.9531 " fill="none" id="ui-to-api" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="549.91,686.9531,541.91,683.9531,541.91,689.9531,549.91,686.9531" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="35" x="496.5" y="681.0918">Uses</text><!--MD5=[c33059cc5a86bb90993456b21b1d6209]
-link customer_system to cloud_provider--><path d="M1103.59,300.6531 C1130.78,313.5231 1159.7,327.7831 1186,341.9531 C1217.07,358.6831 1250.25,378.3531 1279.65,396.4531 " fill="none" id="customer_system-to-cloud_provider" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1286.64,400.7731,1281.4038,394.0217,1278.2556,399.1294,1286.64,400.7731" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="75" x="1238" y="361.0918">Reports to</text><!--MD5=[ece4e1d7058c5fcf628092631cde8e18]
-reverse link observatorium to metrics_ingress--><path d="M1132,514.4931 C1132,551.7531 1132,599.2731 1132,634.8331 " fill="none" id="observatorium-backto-metrics_ingress" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1132,506.2231,1129,514.2231,1135,514.2231,1132,506.2231" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="77" x="1133" y="549.0918">Syncs from</text><!--MD5=[4a40c7c494c95f876c8df7f66f08a428]
-reverse link hbi to tally--><path d="M880.29,514.4931 C881.1,551.7531 882.12,599.2731 882.89,634.8331 " fill="none" id="hbi-backto-tally" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="880.11,506.2231,877.2965,514.2906,883.2949,514.1513,880.11,506.2231" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="80" x="883" y="549.0918">Reads from</text><!--MD5=[6dcdea7a4957475c5dcdd3389af981a7]
-reverse link cloud_provider to cloudigrade--><path d="M1367.74,515.1131 C1367.59,549.2231 1367.41,591.7531 1367.26,625.8531 " fill="none" id="cloud_provider-backto-cloudigrade" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1367.77,507.0831,1364.7414,515.0724,1370.7414,515.0938,1367.77,507.0831" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="80" x="1369" y="549.0918">Reads from</text><!--MD5=[229d00289d38b7a2da78abfadcb264e5]
-link tally to cloudigrade--><path d="M920.8,634.6631 C942.1,609.0531 971.35,580.8131 1005,566.9531 C1057.19,545.4631 1207.44,543.9931 1259,566.9531 C1284.18,578.1631 1305.94,598.4631 1323.21,619.2231 " fill="none" id="tally-to-cloudigrade" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1328.42,625.6731,1325.7198,617.567,1321.0555,621.3413,1328.42,625.6731" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="80" x="999" y="549.0918">Reads from</text><!--MD5=[b68e3b5e4dd988ebf89359d130aa56cf]
-reverse link rhit_subscriptions to subscription_sync--><path d="M1601.6,515.3231 C1599.51,552.4631 1596.86,599.5231 1594.88,634.8131 " fill="none" id="rhit_subscriptions-backto-subscription_sync" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1602.07,507.0831,1598.6316,514.9047,1604.6224,515.237,1602.07,507.0831" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="77" x="1601" y="549.0918">Syncs from</text><!--MD5=[40fce5d68ad5ec6af64488bbe76f8a9c]
-reverse link rhit_product to subscription_sync--><path d="M1793.69,511.4631 C1750.12,549.1531 1693.31,598.3031 1651.09,634.8331 " fill="none" id="rhit_product-backto-subscription_sync" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1799.74,506.2231,1791.7278,509.1905,1795.6546,513.7271,1799.74,506.2231" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="77" x="1758" y="549.0918">Syncs from</text><!--MD5=[7de1bda7d77bfd83e7d34b6f8c80a555]
-link billing_producers to billing_services--><path d="M124,731.0831 C124,756.4431 124,788.8631 124,816.6131 " fill="none" id="billing_producers-to-billing_services" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="124,824.6731,127,816.6731,121,816.6731,124,824.6731" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="75" x="125" y="792.0918">Reports to</text><rect fill="#FEFEFE" height="95.4844" rx="5" ry="5" style="stroke:#FEFEFE;stroke-width:1.0;" width="129" x="1822.5" y="941.7656"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="59" x="1828.5" y="961.7607">Legend</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="0" x="1891.5" y="961.7607"/><rect fill="#08427B" height="16.2969" style="stroke:none;stroke-width:1.0;" width="117" x="1828.5" y="965.0625"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="49" x="1832.5" y="978.0576">person</text><rect fill="#1168BD" height="16.2969" style="stroke:none;stroke-width:1.0;" width="117" x="1828.5" y="981.3594"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="50" x="1832.5" y="994.3545">system</text><rect fill="#686868" height="16.2969" style="stroke:none;stroke-width:1.0;" width="117" x="1828.5" y="997.6563"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="108" x="1832.5" y="1010.6514">external person</text><rect fill="#999999" height="16.2969" style="stroke:none;stroke-width:1.0;" width="117" x="1828.5" y="1013.9531"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="109" x="1832.5" y="1026.9482">external system</text><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1828.5" x2="1945.5" y1="948.7656" y2="948.7656"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1828.5" x2="1945.5" y1="965.0625" y2="965.0625"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1828.5" x2="1945.5" y1="981.3594" y2="981.3594"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1828.5" x2="1945.5" y1="997.6563" y2="997.6563"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1828.5" x2="1945.5" y1="1013.9531" y2="1013.9531"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1828.5" x2="1945.5" y1="1030.25" y2="1030.25"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1828.5" x2="1828.5" y1="948.7656" y2="1030.25"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1945.5" x2="1945.5" y1="948.7656" y2="1030.25"/><!--MD5=[a4cd48e34bf10cf37ce10b91e31b33ca]
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="1111px" preserveAspectRatio="none" style="width:1513px;height:1111px;background:#FEFEFE;" version="1.1" viewBox="0 0 1513 1111" width="1513px" zoomAndPan="magnify"><defs/><g><rect fill="#FEFEFE" height="29.0679" style="stroke:#00000000;stroke-width:1.0;" width="341.5" x="578.75" y="5"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="331.5" x="583.75" y="24.9659">System Context diagram for Subscription watch</text><!--MD5=[7caab35c4647cf5b8739bb77d77dd26f]
+cluster swatch--><g id="cluster_swatch"><rect height="174" rx="2.5" ry="2.5" style="stroke:#444444;stroke-width:1.0;fill:none;stroke-dasharray:7.0,7.0;" width="1466" x="7" y="634.0679"/><text fill="#444444" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="162" x="659" y="653.172">Susbscription watch</text></g><!--MD5=[bf1b4add2ee2e1b53e65912b20fb7ef4]
+entity ui--><g id="elem_ui"><rect fill="#1168BD" height="98.9958" rx="2.5" ry="2.5" style="stroke:#3C7FC0;stroke-width:0.5;" width="220" x="736" y="683.5679"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="176.5" x="757.75" y="710.672">Subscription watch UI</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="4" x="844" y="730.3259"> </text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="192" x="750" y="749.3938">Customer facing views of the</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="162" x="765" y="768.4617">usage and capacity data.</text></g><!--MD5=[e2307af040e3f87d22824e7603ca28ec]
+entity api--><g id="elem_api"><rect fill="#1168BD" height="79.9279" rx="2.5" ry="2.5" style="stroke:#3C7FC0;stroke-width:0.5;" width="205" x="1023.5" y="693.0679"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="185" x="1033.5" y="720.172">Subscription watch API</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="4" x="1124" y="739.8259"> </text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="138" x="1059" y="758.8938">Customer facing API.</text></g><!--MD5=[23f8c008b24cac31bc4540d77ce92dba]
+entity metrics_ingress--><g id="elem_metrics_ingress"><rect fill="#1168BD" height="118.0637" rx="2.5" ry="2.5" style="stroke:#3C7FC0;stroke-width:0.5;" width="211" x="489.5" y="674.0679"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="125" x="532.5" y="701.172">Metrics Ingress</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="4" x="593" y="720.8259"> </text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="118" x="536" y="739.8938">Services that sync</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="176" x="505" y="758.9617">system/instance telemetry</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="191" x="499.5" y="778.0296">data into Subscription watch.</text></g><!--MD5=[7861c02b3709677986e391b8d7af3e5e]
+entity tally--><g id="elem_tally"><rect fill="#1168BD" height="118.0637" rx="2.5" ry="2.5" style="stroke:#3C7FC0;stroke-width:0.5;" width="200" x="254" y="674.0679"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="40.5" x="333.75" y="701.172">Tally</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="4" x="352" y="720.8259"> </text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="172" x="268" y="739.8938">Service that tallies system</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="171" x="266.5" y="758.9617">usage based on telemetry</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="175" x="266.5" y="778.0296">data from various sources.</text></g><!--MD5=[d34b150e8cd6513fcf7d0807ad79abac]
+entity subscription_sync--><g id="elem_subscription_sync"><rect fill="#1168BD" height="118.0637" rx="2.5" ry="2.5" style="stroke:#3C7FC0;stroke-width:0.5;" width="193" x="1263.5" y="674.0679"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="142" x="1289" y="701.172">Subscription Sync</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="4" x="1358" y="720.8259"> </text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="118" x="1301" y="739.8938">Service that syncs</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="169" x="1273.5" y="758.9617">subscription/offering data</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="132" x="1294" y="778.0296">from RH IT services.</text></g><!--MD5=[63e2d3eb02667c7a1945d0d1aed32404]
+entity billing_producers--><g id="elem_billing_producers"><rect fill="#1168BD" height="98.9958" rx="2.5" ry="2.5" style="stroke:#3C7FC0;stroke-width:0.5;" width="195" x="23.5" y="683.5679"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="138" x="52" y="710.672">Billing Producers</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="4" x="119" y="730.3259"> </text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="167" x="37.5" y="749.3938">Services that notify billing</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="160" x="41" y="768.4617">services of hourly usage.</text></g><!--MD5=[92848cbaf65985a669855153c5362c37]
+entity customer--><g id="elem_customer"><rect fill="#08427B" height="89.792" rx="2.5" ry="2.5" style="stroke:#073B6F;stroke-width:0.5;" width="163" x="814.5" y="47.0679"/><image height="48" width="48" x="872" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAACD0lEQVR4Xu2YoU4EMRCGT+4j8Ai8AhaH4QHgAUjQuFMECUgMIUgwJAgMhgQsAYUiJCiQIBBY+EITsjfTdme6V24v4c8vyGbb+ZjOtN0bNcvjQXmkH83WvYBWto6PLm6v7p7uH1/w2fXD+PBycX1Pv2l3IdDm/vn7x+dXQiAubRzoURa7gRZWd0iGRIiJbOnhnfYBQZNJjNbuyY2eJG8fkDE3bbG4ep6MHUAsgYxmE3nVs6VsBWJSGccsOlFPmLIViMzLOB7pCVO2AtHJMohH7Fh6zqitQK7m0rJvAVYgGcEpe//PLdDz65sM4pF9N7ICcXDKIB5Nv6j7tD0NoSdM2QrU9Gg0ewE1LqBhHR3BBdvj2vapnidjHxD/q6vd7Pvhr31AwcY8eXMTXAKECZZJFXuEq27aLgQK5uLMohCenGGuGewOxSjBvYBqeG6B+Nqiblggdjnc+ZXDy+FNFpFzw76O3UBAROuXh6FoiAcf5g9eTvUgzy0nWg6I8cXHRUpg5bOVBCo+KDpFajOf23GgPme7RSQ+lacIENUgJ6gg1k6HjgOlqnLqip4tEuhv0hNEMXUD0clyXE3p6pZA0S2nnvTlXwLJEZWlb7cTQH1+USgTN4VhAenm/wea1OCAOmqo6fE1WCb9WSKBah+rbUWPWAmE2Rvk0ApiB45eOyNAzU8xcTvj8KvkKEoOaIYeHNA3ZuygAvFMUO0AAAAASUVORK5CYII=" y="57.0679"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="143" x="824.5" y="122.172">Red Hat Customer</text></g><!--MD5=[8a8edd6ad30bdf56e53341956df4f0eb]
+entity system_conduit--><g id="elem_system_conduit"><rect fill="#1168BD" height="139.8558" rx="2.5" ry="2.5" style="stroke:#3C7FC0;stroke-width:0.5;" width="209" x="205.5" y="215.0679"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="165" x="225.5" y="242.172">System Conduit (aka.</text><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="112.5" x="253.75" y="263.964">rhsm-conduit)</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="4" x="308" y="283.6179"> </text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="170" x="227" y="302.6859">Service that syncs system</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="185" x="215.5" y="321.7538">data from Hosted Candlepin</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="47" x="286.5" y="340.8217">to HBI.</text></g><!--MD5=[963dd200d5c740cb245718e53e460719]
+entity customer_system--><g id="elem_customer_system"><rect fill="#999999" height="118.0637" rx="2.5" ry="2.5" style="stroke:#8A8A8A;stroke-width:0.5;" width="212" x="495" y="226.0679"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="138" x="532" y="253.172">Customer System</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="4" x="599" y="272.8259"> </text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="184" x="509" y="291.8938">Customer system or service</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="176" x="511" y="310.9617">instance (e.g. RHEL or OSD</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="63" x="569.5" y="330.0296">instance).</text></g><!--MD5=[e3c0f9bbcd14425bcf01961b0ee2cf90]
+entity observatorium--><g id="elem_observatorium"><rect fill="#999999" height="118.0637" rx="2.5" ry="2.5" style="stroke:#8A8A8A;stroke-width:0.5;" width="206" x="637" y="450.5679"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="120.5" x="679.75" y="477.672">Observatorium</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="4" x="738" y="497.3259"> </text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="178" x="651" y="516.3938">Prometheus/Thanos based</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="146" x="665" y="535.4617">service for RH product</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="67" x="706.5" y="554.5296">telemetry.</text></g><!--MD5=[4b8a5b7a9602b8f761f73e441053affb]
+entity candlepin--><g id="elem_candlepin"><rect fill="#999999" height="118.0637" rx="2.5" ry="2.5" style="stroke:#8A8A8A;stroke-width:0.5;" width="225" x="376.5" y="450.5679"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="141.5" x="418.25" y="477.672">Hosted Candlepin</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="4" x="487" y="497.3259"> </text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="162" x="408" y="516.3938">Entitlement/Registration</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="45" x="464.5" y="535.4617">service</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="205" x="386.5" y="554.5296">(subscription.rhsm.redhat.com).</text></g><!--MD5=[d06ba427be2a9a158a7e4ee41d3716f9]
+entity hbi--><g id="elem_hbi"><rect fill="#999999" height="118.0637" rx="2.5" ry="2.5" style="stroke:#8A8A8A;stroke-width:0.5;" width="219" x="122.5" y="450.5679"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="171" x="146.5" y="477.672">Host Based Inventory</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="4" x="230" y="497.3259"> </text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="191" x="136.5" y="516.3938">Central datastore for system</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="100" x="180" y="535.4617">information for</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="132" x="166" y="554.5296">console.redhat.com.</text></g><!--MD5=[600d21c278eeca45fc6f6120f858365e]
+entity rhit_subscriptions--><g id="elem_rhit_subscriptions"><rect fill="#999999" height="120.7878" rx="2.5" ry="2.5" style="stroke:#8A8A8A;stroke-width:0.5;" width="213" x="1046.5" y="449.0679"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="151" x="1075.5" y="476.172">RH IT Subscription</text><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="57.5" x="1124.25" y="497.964">Service</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="4" x="1151" y="517.6179"> </text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="185" x="1060.5" y="536.6859">The internal RH Subscription</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="26" x="1140" y="555.7538">API.</text></g><!--MD5=[697d7f91951ba90b0223e3e00e3647d3]
+entity rhit_product--><g id="elem_rhit_product"><rect fill="#999999" height="118.0637" rx="2.5" ry="2.5" style="stroke:#8A8A8A;stroke-width:0.5;" width="212" x="1295" y="450.5679"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="172" x="1315" y="477.672">RH IT Product Service</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="4" x="1399" y="497.3259"> </text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="184" x="1309" y="516.3938">The internal RH Product API</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="154" x="1322" y="535.4617">which contains Offering</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="71" x="1365.5" y="554.5296">definitions.</text></g><!--MD5=[02bad4c497baec1e1ca3414756d959ff]
+entity billing_services--><g id="elem_billing_services"><rect fill="#999999" height="98.9958" rx="2.5" ry="2.5" style="stroke:#8A8A8A;stroke-width:0.5;" width="218" x="12" y="872.0679"/><text fill="#FFFFFF" font-family="sans-serif" font-size="16" font-weight="bold" lengthAdjust="spacing" textLength="123.5" x="59.25" y="899.172">Billing Services</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="4" x="119" y="918.8259"> </text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="194" x="26" y="937.8938">Services responsible for billing</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="198" x="22" y="956.9617">the customer for PAYG usage.</text></g><!--MD5=[b9ea0c93728ab2bca7743318452a0d97]
+link customer to ui--><g id="link_customer_ui"><path d="M893.05,137.1479 C887.35,221.3279 874.22,410.7679 861,570.0679 C858.09,605.0779 854.47,644.3179 851.51,675.3979 " fill="none" id="customer-to-ui" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="850.74,683.5279,854.4966,675.8541,848.5245,675.2761,850.74,683.5279" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="31.5" x="876" y="406.896">Uses</text></g><!--MD5=[c481ce475d29e3d7cbc90f901191b426]
+link customer to api--><g id="link_customer_api"><path d="M908.01,137.3879 C939.07,251.8179 1020.24,549.6779 1029,570.0679 C1046.68,611.2279 1073.13,654.6179 1093.94,686.1179 " fill="none" id="customer-to-api" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1098.56,693.0479,1096.6144,684.7284,1091.6238,688.059,1098.56,693.0479" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="31.5" x="985" y="406.896">Uses</text></g><!--MD5=[393b9e37c8a184dfb2e992c8d7e3f708]
+link customer to customer_system--><g id="link_customer_customer_system"><path d="M817.17,137.1979 C800.76,146.7879 783.69,157.0579 768,167.0679 C741.56,183.9279 713.42,203.1279 687.93,221.0279 " fill="none" id="customer-to-customer_system" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="681.16,225.7979,689.4276,223.6425,685.9718,218.7377,681.16,225.7979" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="100.625" x="769" y="180.896">Provisions/Uses</text></g><!--MD5=[b240b6d720668d6f48a76f8efb68a4ea]
+link customer_system to candlepin--><g id="link_customer_system_candlepin"><path d="M571.72,344.2379 C556.48,374.5179 537.79,411.6479 522.03,442.9479 " fill="none" id="customer_system-to-candlepin" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="518.3,450.3479,524.5795,444.5542,519.2216,441.8538,518.3,450.3479" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="64.375" x="580.3125" y="398.896">Reports to</text><text fill="#666666" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="125" x="550" y="415.2401">[subscription-manager]</text></g><!--MD5=[97f192d3c4e6565688195c0d1a06b51f]
+link customer_system to observatorium--><g id="link_customer_system_observatorium"><path d="M654.23,344.2679 C664.78,357.2079 675.28,371.2079 684,385.0679 C695.29,403.0079 705.57,423.6079 714.15,442.7779 " fill="none" id="customer_system-to-observatorium" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="717.47,450.3279,716.9901,441.7974,711.4994,444.2163,717.47,450.3279" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="64.375" x="707.3125" y="398.896">Reports to</text><text fill="#666666" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="71" x="704" y="415.2401">[Prometheus]</text></g><!--MD5=[8c18ae11f604b9cd6f5c4391e3571a2c]
+link customer_system to hbi--><g id="link_customer_system_hbi"><path d="M503.41,344.1279 C483.89,356.9179 463.9,370.8979 446,385.0679 C429,398.5279 428.68,406.5179 411,419.0679 C399.02,427.5679 375.43,440.2179 349.2,453.3479 " fill="none" id="customer_system-to-hbi" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="341.74,457.0579,350.2392,456.1839,347.5688,450.8109,341.74,457.0579" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="64.375" x="454.3125" y="398.896">Reports to</text><text fill="#666666" font-family="sans-serif" font-size="12" font-style="italic" lengthAdjust="spacing" textLength="79" x="447" y="415.2401">[insights-client]</text></g><!--MD5=[c8870f361541125a620d9d76591bb341]
+link system_conduit to hbi--><g id="link_system_conduit_hbi"><path d="M245.74,355.3379 C239.76,364.7979 234.6,374.7979 231,385.0679 C224.71,403.0379 222.9,423.4079 223.23,442.3479 " fill="none" id="system_conduit-to-hbi" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="223.49,450.3579,226.2314,442.2657,220.2345,442.4584,223.49,450.3579" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="64.375" x="232" y="406.896">Reports to</text></g><!--MD5=[b67acda93f0ccc8222ca6db68ffb6925]
+link system_conduit to candlepin--><g id="link_system_conduit_candlepin"><path d="M313.68,355.4079 C317.57,377.3479 324.81,400.6479 338,419.0679 C346.77,431.3079 357.77,442.1479 369.82,451.6879 " fill="none" id="system_conduit-to-candlepin" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="376.21,456.5579,371.6666,449.322,368.0291,454.0937,376.21,456.5579" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="67.375" x="339" y="406.896">Syncs from</text></g><!--MD5=[57ab7889ee3ed1e7f7983b5557b53641]
+link ui to api--><g id="link_ui_api"><path d="M956.26,733.0679 C975.54,733.0679 995.62,733.0679 1014.92,733.0679 " fill="none" id="ui-to-api" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1023.14,733.0679,1015.14,730.0679,1015.14,736.0679,1023.14,733.0679" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="31.5" x="974.25" y="725.896">Uses</text></g><!--MD5=[ece4e1d7058c5fcf628092631cde8e18]
+reverse link observatorium to metrics_ingress--><g id="link_observatorium_metrics_ingress"><path d="M697.35,575.7179 C676.99,606.8179 652.83,643.7279 633.09,673.8779 " fill="none" id="observatorium-backto-metrics_ingress" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="701.9,568.7679,695.0111,573.8219,700.0329,577.1054,701.9,568.7679" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="67.375" x="682" y="613.896">Syncs from</text></g><!--MD5=[4a40c7c494c95f876c8df7f66f08a428]
+reverse link hbi to tally--><g id="link_hbi_tally"><path d="M268.1,576.1079 C285.18,607.1279 305.41,643.8579 321.95,673.8779 " fill="none" id="hbi-backto-tally" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="264.05,568.7679,265.276,577.2235,270.5336,574.3324,264.05,568.7679" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="70.375" x="291" y="613.896">Reads from</text></g><!--MD5=[b68e3b5e4dd988ebf89359d130aa56cf]
+reverse link rhit_subscriptions to subscription_sync--><g id="link_rhit_subscriptions_subscription_sync"><path d="M1214.46,576.3279 C1243.39,607.2879 1277.6,643.8979 1305.59,673.8479 " fill="none" id="rhit_subscriptions-backto-subscription_sync" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1208.74,570.2179,1212.0184,578.1079,1216.398,574.0068,1208.74,570.2179" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="67.375" x="1251" y="613.896">Syncs from</text></g><!--MD5=[40fce5d68ad5ec6af64488bbe76f8a9c]
+reverse link rhit_product to subscription_sync--><g id="link_rhit_product_subscription_sync"><path d="M1388.72,576.8979 C1383.01,607.7479 1376.28,644.1079 1370.77,673.8779 " fill="none" id="rhit_product-backto-subscription_sync" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="1390.23,568.7679,1385.8215,576.0868,1391.7209,577.1808,1390.23,568.7679" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="67.375" x="1385" y="613.896">Syncs from</text></g><!--MD5=[7de1bda7d77bfd83e7d34b6f8c80a555]
+link billing_producers to billing_services--><g id="link_billing_producers_billing_services"><path d="M121,782.5779 C121,807.4179 121,837.7979 121,863.7279 " fill="none" id="billing_producers-to-billing_services" style="stroke:#666666;stroke-width:1.0;"/><polygon fill="#666666" points="121,871.9779,124,863.9779,118,863.9779,121,871.9779" style="stroke:#666666;stroke-width:1.0;"/><text fill="#666666" font-family="sans-serif" font-size="12" font-weight="bold" lengthAdjust="spacing" textLength="64.375" x="122" y="837.896">Reports to</text></g><rect fill="#FEFEFE" height="111.3396" rx="7.5" ry="7.5" style="stroke:#00000000;stroke-width:1.0;" width="125" x="1366" y="984.0637"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="50.625" x="1372" y="1007.0296">Legend</text><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="4" x="1422.625" y="1007.0296"> </text><rect fill="#08427B" height="19.0679" style="stroke:none;stroke-width:1.0;" width="113" x="1372" y="1011.1316"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="45" x="1376" y="1026.0976">person</text><rect fill="#1168BD" height="19.0679" style="stroke:none;stroke-width:1.0;" width="113" x="1372" y="1030.1995"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="48" x="1376" y="1045.1655">system</text><rect fill="#686868" height="19.0679" style="stroke:none;stroke-width:1.0;" width="113" x="1372" y="1049.2675"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="102" x="1376" y="1064.2334">external person</text><rect fill="#999999" height="19.0679" style="stroke:none;stroke-width:1.0;" width="113" x="1372" y="1068.3354"/><text fill="#FFFFFF" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="105" x="1376" y="1083.3013">external system</text><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1372" x2="1485" y1="992.0637" y2="992.0637"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1372" x2="1485" y1="1011.1316" y2="1011.1316"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1372" x2="1485" y1="1030.1995" y2="1030.1995"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1372" x2="1485" y1="1049.2675" y2="1049.2675"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1372" x2="1485" y1="1068.3354" y2="1068.3354"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1372" x2="1485" y1="1087.4033" y2="1087.4033"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1372" x2="1372" y1="992.0637" y2="1087.4033"/><line style="stroke:#FFFFFF;stroke-width:1.0;" x1="1485" x2="1485" y1="992.0637" y2="1087.4033"/><!--MD5=[38f9bf46a9b540015a3572ce11872532]
 @startuml
 !include <C4/C4_Context>
 
@@ -50,7 +45,6 @@ Boundary(swatch, "Susbscription watch") {
   System(ui, "Subscription watch UI", "Customer facing views of the usage and capacity data.")
   System(api, "Subscription watch API", "Customer facing API.")
   System(metrics_ingress, "Metrics Ingress", "Services that sync system/instance telemetry data into Subscription watch.")
-  System(cloudigrade, "Cloudigrade (aka. Cloudmeter)", "Service that provides precise RHEL instance lifetime data.")
   System(tally, "Tally", "Service that tallies system usage based on telemetry data from various sources.")
   System(subscription_sync, "Subscription Sync", "Service that syncs subscription/offering data from RH IT services.")
   System(billing_producers, "Billing Producers", "Services that notify billing services of hourly usage.")
@@ -61,7 +55,6 @@ System(system_conduit, "System Conduit (aka. rhsm-conduit)", " Service that sync
 System_Ext(customer_system, "Customer System", "Customer system or service instance (e.g. RHEL or OSD instance).")
 System_Ext(observatorium, "Observatorium", "Prometheus/Thanos based service for RH product telemetry.")
 System_Ext(candlepin, "Hosted Candlepin", "Entitlement/Registration service (subscription.rhsm.redhat.com).")
-System_Ext(cloud_provider, "Cloud Provider Telemetry", "Telemetry collected by cloud providers.")
 System_Ext(hbi, "Host Based Inventory", "Central datastore for system information for console.redhat.com.")
 System_Ext(rhit_subscriptions, "RH IT Subscription Service", "The internal RH Subscription API.")
 System_Ext(rhit_product, "RH IT Product Service", "The internal RH Product API which contains Offering definitions.")
@@ -76,11 +69,8 @@ Rel(customer_system, hbi, "Reports to", "insights-client")
 Rel(system_conduit, hbi, "Reports to")
 Rel_Neighbor(system_conduit, candlepin, "Syncs from")
 Rel_Neighbor(ui, api, "Uses")
-Rel(customer_system, cloud_provider, "Reports to")
 Rel_Back(observatorium, metrics_ingress, "Syncs from")
 Rel_Back(hbi, tally, "Reads from")
-Rel_Back(cloud_provider, cloudigrade, "Reads from")
-Rel_Neighbor(tally, cloudigrade, "Reads from")
 Rel_Back(rhit_subscriptions, subscription_sync, "Syncs from")
 Rel_Back(rhit_product, subscription_sync, "Syncs from")
 Rel(billing_producers, billing_services, "Reports to")
@@ -271,6 +261,31 @@ skinparam rectangle<<person>> {
     BackgroundColor #08427B
     BorderColor #073B6F
 }
+skinparam database<<person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+skinparam queue<<person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+skinparam actor<<person>> {
+    StereotypeFontColor #08427B
+    FontColor #08427B
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+skinparam person<<person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #08427B
+    BorderColor #073B6F
+}
+
 
 skinparam rectangle<<external_person>> {
     StereotypeFontColor #FFFFFF
@@ -278,6 +293,31 @@ skinparam rectangle<<external_person>> {
     BackgroundColor #686868
     BorderColor #8A8A8A
 }
+skinparam database<<external_person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+skinparam queue<<external_person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+skinparam actor<<external_person>> {
+    StereotypeFontColor #686868
+    FontColor #686868
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+skinparam person<<external_person>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #686868
+    BorderColor #8A8A8A
+}
+
 
 skinparam rectangle<<system>> {
     StereotypeFontColor #FFFFFF
@@ -285,6 +325,31 @@ skinparam rectangle<<system>> {
     BackgroundColor #1168BD
     BorderColor #3C7FC0
 }
+skinparam database<<system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+skinparam queue<<system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+skinparam actor<<system>> {
+    StereotypeFontColor #1168BD
+    FontColor #1168BD
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+skinparam person<<system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #1168BD
+    BorderColor #3C7FC0
+}
+
 
 skinparam rectangle<<external_system>> {
     StereotypeFontColor #FFFFFF
@@ -292,6 +357,34 @@ skinparam rectangle<<external_system>> {
     BackgroundColor #999999
     BorderColor #8A8A8A
 }
+skinparam database<<external_system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+skinparam queue<<external_system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+skinparam actor<<external_system>> {
+    StereotypeFontColor #999999
+    FontColor #999999
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+skinparam person<<external_system>> {
+    StereotypeFontColor #FFFFFF
+    FontColor #FFFFFF
+    BackgroundColor #999999
+    BorderColor #8A8A8A
+}
+
+
+
+
 
 sprite $person [48x48/16] {
 000000000000000000000000000000000000000000000000
@@ -344,6 +437,68 @@ sprite $person [48x48/16] {
 000000000000000000000000000000000000000000000000
 }
 
+sprite $person2 [48x48/16] {
+0000000000000000000049BCCA7200000000000000000000
+0000000000000000006EFFFFFFFFB3000000000000000000
+00000000000000001CFFFFFFFFFFFF700000000000000000
+0000000000000001EFFFFFFFFFFFFFF80000000000000000
+000000000000000CFFFFFFFFFFFFFFFF6000000000000000
+000000000000007FFFFFFFFFFFFFFFFFF100000000000000
+00000000000001FFFFFFFFFFFFFFFFFFF900000000000000
+00000000000006FFFFFFFFFFFFFFFFFFFF00000000000000
+0000000000000BFFFFFFFFFFFFFFFFFFFF40000000000000
+0000000000000EFFFFFFFFFFFFFFFFFFFF70000000000000
+0000000000000FFFFFFFFFFFFFFFFFFFFF80000000000000
+0000000000000FFFFFFFFFFFFFFFFFFFFF80000000000000
+0000000000000DFFFFFFFFFFFFFFFFFFFF60000000000000
+0000000000000AFFFFFFFFFFFFFFFFFFFF40000000000000
+00000000000006FFFFFFFFFFFFFFFFFFFE00000000000000
+00000000000000EFFFFFFFFFFFFFFFFFF800000000000000
+000000000000007FFFFFFFFFFFFFFFFFF100000000000000
+000000000000000BFFFFFFFFFFFFFFFF5000000000000000
+0000000000000001DFFFFFFFFFFFFFF70000000000000000
+00000000000000000BFFFFFFFFFFFF500000000000000000
+0000000000000000005DFFFFFFFFA1000000000000000000
+0000000000000000000037ABB96100000000000000000000
+000000000002578888300000000005888864100000000000
+0000000007DFFFFFFFFD9643347BFFFFFFFFFB4000000000
+00000004EFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB10000000
+0000007FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD2000000
+000006FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE100000
+00003FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB00000
+0000BFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF50000
+0003FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD0000
+0009FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF2000
+000DFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF6000
+000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF8000
+001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB000
+001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB000
+001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFB000
+001FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFA000
+000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF8000
+000DFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF6000
+0009FFFFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFFFF2000
+0003FFFFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFFFD0000
+0000BFFFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFFF50000
+00003FFFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFFB00000
+000006FFFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFFE100000
+0000007FFFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFFD2000000
+00000004EFFF8FFFFFFFFFFFFFFFFFFFFFF8FFFB10000000
+0000000007DF8FFFFFFFFFFFFFFFFFFFFFF8FB4000000000
+000000000002578888888888888888888864100000000000
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -368,28 +523,26 @@ endlegend
 
 title System Context diagram for Subscription watch
 
-rectangle "<$person>\n==Red Hat Customer" <<person>> as customer
+rectangle "<$person>\n==Red Hat Customer" <<person>> as customer 
 
 rectangle "==Susbscription watch" <<boundary>> as swatch  {
-  rectangle "==Subscription watch UI\n\n Customer facing views of the usage and capacity data." <<system>> as ui
-  rectangle "==Subscription watch API\n\n Customer facing API." <<system>> as api
-  rectangle "==Metrics Ingress\n\n Services that sync system/instance telemetry data into Subscription watch." <<system>> as metrics_ingress
-  rectangle "==Cloudigrade (aka. Cloudmeter)\n\n Service that provides precise RHEL instance lifetime data." <<system>> as cloudigrade
-  rectangle "==Tally\n\n Service that tallies system usage based on telemetry data from various sources." <<system>> as tally
-  rectangle "==Subscription Sync\n\n Service that syncs subscription/offering data from RH IT services." <<system>> as subscription_sync
-  rectangle "==Billing Producers\n\n Services that notify billing services of hourly usage." <<system>> as billing_producers
+  rectangle "==Subscription watch UI\n\n Customer facing views of the usage and capacity data." <<system>> as ui 
+  rectangle "==Subscription watch API\n\n Customer facing API." <<system>> as api 
+  rectangle "==Metrics Ingress\n\n Services that sync system/instance telemetry data into Subscription watch." <<system>> as metrics_ingress 
+  rectangle "==Tally\n\n Service that tallies system usage based on telemetry data from various sources." <<system>> as tally 
+  rectangle "==Subscription Sync\n\n Service that syncs subscription/offering data from RH IT services." <<system>> as subscription_sync 
+  rectangle "==Billing Producers\n\n Services that notify billing services of hourly usage." <<system>> as billing_producers 
 }
 
-rectangle "==System Conduit (aka. rhsm-conduit)\n\n  Service that syncs system data from Hosted Candlepin to HBI." <<system>> as system_conduit
+rectangle "==System Conduit (aka. rhsm-conduit)\n\n  Service that syncs system data from Hosted Candlepin to HBI." <<system>> as system_conduit 
 
-rectangle "==Customer System\n\n Customer system or service instance (e.g. RHEL or OSD instance)." <<external_system>> as customer_system
-rectangle "==Observatorium\n\n Prometheus/Thanos based service for RH product telemetry." <<external_system>> as observatorium
-rectangle "==Hosted Candlepin\n\n Entitlement/Registration service (subscription.rhsm.redhat.com)." <<external_system>> as candlepin
-rectangle "==Cloud Provider Telemetry\n\n Telemetry collected by cloud providers." <<external_system>> as cloud_provider
-rectangle "==Host Based Inventory\n\n Central datastore for system information for console.redhat.com." <<external_system>> as hbi
-rectangle "==RH IT Subscription Service\n\n The internal RH Subscription API." <<external_system>> as rhit_subscriptions
-rectangle "==RH IT Product Service\n\n The internal RH Product API which contains Offering definitions." <<external_system>> as rhit_product
-rectangle "==Billing Services\n\n Services responsible for billing the customer for PAYG usage." <<external_system>> as billing_services
+rectangle "==Customer System\n\n Customer system or service instance (e.g. RHEL or OSD instance)." <<external_system>> as customer_system 
+rectangle "==Observatorium\n\n Prometheus/Thanos based service for RH product telemetry." <<external_system>> as observatorium 
+rectangle "==Hosted Candlepin\n\n Entitlement/Registration service (subscription.rhsm.redhat.com)." <<external_system>> as candlepin 
+rectangle "==Host Based Inventory\n\n Central datastore for system information for console.redhat.com." <<external_system>> as hbi 
+rectangle "==RH IT Subscription Service\n\n The internal RH Subscription API." <<external_system>> as rhit_subscriptions 
+rectangle "==RH IT Product Service\n\n The internal RH Product API which contains Offering definitions." <<external_system>> as rhit_product 
+rectangle "==Billing Services\n\n Services responsible for billing the customer for PAYG usage." <<external_system>> as billing_services 
 
 customer - ->> ui : **Uses**
 customer - ->> api : **Uses**
@@ -400,17 +553,14 @@ customer_system - ->> hbi : **Reports to**\n//<size:12>[insights-client]</size>/
 system_conduit - ->> hbi : **Reports to**
 system_conduit ->> candlepin : **Syncs from**
 ui ->> api : **Uses**
-customer_system - ->> cloud_provider : **Reports to**
 observatorium <<- - metrics_ingress : **Syncs from**
 hbi <<- - tally : **Reads from**
-cloud_provider <<- - cloudigrade : **Reads from**
-tally ->> cloudigrade : **Reads from**
 rhit_subscriptions <<- - subscription_sync : **Syncs from**
 rhit_product <<- - subscription_sync : **Syncs from**
 billing_producers - ->> billing_services : **Reports to**
 @enduml
 
-PlantUML version 1.2021.00(Sun Jan 10 10:25:05 UTC 2021)
+PlantUML version 1.2022.4(Sat Apr 09 13:29:17 UTC 2022)
 (LGPL source distribution)
 Java Runtime: OpenJDK Runtime Environment
 JVM: OpenJDK 64-Bit Server VM

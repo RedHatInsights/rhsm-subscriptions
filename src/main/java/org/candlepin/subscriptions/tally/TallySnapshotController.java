@@ -31,8 +31,6 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
-import org.candlepin.subscriptions.exception.ErrorCode;
-import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.DateRange;
 import org.slf4j.Logger;
@@ -53,12 +51,10 @@ public class TallySnapshotController {
   private final ApplicationProperties props;
   private final AccountConfigRepository accountRepo;
   private final InventoryAccountUsageCollector usageCollector;
-  private final CloudigradeAccountUsageCollector cloudigradeCollector;
   private final MetricUsageCollector metricUsageCollector;
   private final MaxSeenSnapshotStrategy maxSeenSnapshotStrategy;
   private final CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy;
   private final RetryTemplate retryTemplate;
-  private final RetryTemplate cloudigradeRetryTemplate;
   private final Set<String> applicableProducts;
   private final TagProfile tagProfile;
   private final SnapshotSummaryProducer summaryProducer;
@@ -69,10 +65,8 @@ public class TallySnapshotController {
       AccountConfigRepository accountRepo,
       @Qualifier("applicableProducts") Set<String> applicableProducts,
       InventoryAccountUsageCollector usageCollector,
-      CloudigradeAccountUsageCollector cloudigradeCollector,
       MaxSeenSnapshotStrategy maxSeenSnapshotStrategy,
       @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
-      @Qualifier("cloudigradeRetryTemplate") RetryTemplate cloudigradeRetryTemplate,
       MetricUsageCollector metricUsageCollector,
       CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy,
       TagProfile tagProfile,
@@ -82,10 +76,8 @@ public class TallySnapshotController {
     this.accountRepo = accountRepo;
     this.applicableProducts = applicableProducts;
     this.usageCollector = usageCollector;
-    this.cloudigradeCollector = cloudigradeCollector;
     this.maxSeenSnapshotStrategy = maxSeenSnapshotStrategy;
     this.retryTemplate = retryTemplate;
-    this.cloudigradeRetryTemplate = cloudigradeRetryTemplate;
     this.metricUsageCollector = metricUsageCollector;
     this.combiningRollupSnapshotStrategy = combiningRollupSnapshotStrategy;
     this.tagProfile = tagProfile;
@@ -110,9 +102,6 @@ public class TallySnapshotController {
     try {
       accountCalc = performTally(orgId);
 
-      if (props.isCloudigradeEnabled()) {
-        attemptCloudigradeEnrichment(accountCalc);
-      }
     } catch (Exception e) {
       log.error("Error collecting existing usage snapshots ", e);
       return;
@@ -181,26 +170,6 @@ public class TallySnapshotController {
                     e);
               }
             });
-  }
-
-  private void attemptCloudigradeEnrichment(AccountUsageCalculation accountCalc) {
-    log.info("Adding cloudigrade reports to calculations.");
-    try {
-      cloudigradeRetryTemplate.execute(
-          context -> {
-            try {
-              cloudigradeCollector.enrichUsageWithCloudigradeData(accountCalc);
-            } catch (Exception e) {
-              throw new ExternalServiceException(
-                  ErrorCode.REQUEST_PROCESSING_ERROR,
-                  "Error during attempt to integrate cloudigrade report",
-                  e);
-            }
-            return null; // RetryCallback requires a return
-          });
-    } catch (Exception e) {
-      log.warn("Exception during cloudigrade enrichment, tally will not be enriched.", e);
-    }
   }
 
   private boolean isCombiningRollupStrategySupported(

@@ -62,8 +62,6 @@ parameters:
     value: 'false'
   - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
     value: ''
-  - name: CLOUDIGRADE_ENABLED
-    value: 'false'
   - name: PROM_URL
     value: http://localhost:8082
   - name: DATABASE_CONNECTION_TIMEOUT_MS
@@ -280,13 +278,6 @@ objects:
                   secretKeyRef:
                     name: ${INVENTORY_SECRET_KEY_NAME}
                     key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
-              - name: CLOUDIGRADE_ENABLED
-                value: ${CLOUDIGRADE_ENABLED}
-              - name: CLOUDIGRADE_PSK
-                valueFrom:
-                  secretKeyRef:
-                    name: cloudigrade-psk
-                    key: psk
               - name: PROM_URL
                 value: ${PROM_URL}
               - name: EVENT_RECORD_RETENTION
@@ -538,10 +529,3 @@ objects:
       name: swatch-psks
     data:
       self: ZHVtbXk=
-
-  - apiVersion: v1
-    kind: Secret
-    metadata:
-      name: cloudigrade-psk
-    data:
-      psk: ZHVtbXk=
