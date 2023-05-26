@@ -31,10 +31,13 @@ public class TlsProperties {
 
   /** Certificate authenticate file path */
   private Resource keystore;
+
   /** Certificate authenticate file password */
   @ToString.Exclude private char[] keystorePassword;
+
   /** Truststore file path */
   private Resource truststore;
+
   /** Truststore file password */
   @ToString.Exclude private char[] truststorePassword;
 

@@ -152,6 +152,7 @@ public abstract class LiquibaseCustomTask implements CustomTaskChange, Closeable
     PreparedStatement statement = this.prepareStatement(sql);
     return statement.executeQuery();
   }
+
   /**
    * Executes the given SQL update/insert.
    *
