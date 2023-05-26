@@ -42,21 +42,25 @@ public class TallyRetentionPolicyProperties {
    * (current & historic).
    */
   private Integer daily;
+
   /**
    * Number of full weeks of snapshot data to keep. Actual number kept will include an additional
    * week (the current incomplete week).
    */
   private Integer weekly;
+
   /**
    * Number of full months of snapshot data to keep. Actual number kept will include an additional
    * month (the current incomplete month).
    */
   private Integer monthly;
+
   /**
    * Number of full quarters of snapshot data to keep. Actual number kept will include an additional
    * quarter (the current incomplete quarter).
    */
   private Integer quarterly;
+
   /**
    * Number of full years of snapshot data to keep. Actual number kept will include an additional
    * year (the current incomplete year).

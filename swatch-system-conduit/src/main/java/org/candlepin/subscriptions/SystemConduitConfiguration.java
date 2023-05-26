@@ -54,6 +54,7 @@ public class SystemConduitConfiguration {
   public MacAddressValidator macAddressValidator() {
     return new MacAddressValidator();
   }
+
   /**
    * An instance of the ipAddressValidator that we use to detect NICs with bad IP addresses. Rather
    * than having a ConduitFacts object that fails validation, we use an instance of

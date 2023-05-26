@@ -35,8 +35,10 @@ import org.springframework.stereotype.Component;
 public class UmbProperties extends TlsProperties {
   /** Message processing enabled. */
   private boolean processingEnabled = true;
+
   /** The service account name (usually the CN from x509 cert). */
   private String serviceAccountName;
+
   /** The kubernetes namespace used to create a UMB connection. */
   private String namespace;
 
