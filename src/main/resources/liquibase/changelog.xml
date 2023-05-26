@@ -103,5 +103,6 @@
     <include file="liquibase/202302141154-add-basilisk-product.xml"/>
     <include file="/liquibase/202302151544-remove-uuid-cast-on-instance-id-in-tally-instance-view.xml"/>
     <include file="/liquibase/202305231003-update-remittance-table-for-history.xml"/>
+    <!--    <include file="/liquibase/202305261600-rollback-update-remittance-table-for-history.xml" />-->
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
