@@ -8,6 +8,16 @@
 
   <changeSet id="202305231003-1" author="kflahert">
     <comment>Update billable_usage_remittance table to track history</comment>
+    <!--
+      The remitted_value is currently being stored with the billing factor applied.
+      Convert the remitted_value to the measured value (raw) before updating the table
+      schema.
+    -->
+    <update tableName="billable_usage_remittance">
+      <column name="remitted_value" valueComputed="(remitted_value / billing_factor)" />
+      <where>billing_factor IS NOT NULL</where>
+    </update>
+
     <dropColumn tableName="billable_usage_remittance" columnName="billing_factor"/>
     <dropColumn tableName="billable_usage_remittance" columnName="version"/>
     <addColumn tableName="billable_usage_remittance">
