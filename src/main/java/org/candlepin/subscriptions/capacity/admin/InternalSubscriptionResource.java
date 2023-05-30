@@ -25,16 +25,25 @@ import java.time.OffsetDateTime;
 import javax.persistence.EntityNotFoundException;
 import javax.ws.rs.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.product.OfferingSyncController;
+import org.candlepin.subscriptions.product.SyncResult;
+import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.security.SecurityProperties;
+import org.candlepin.subscriptions.subscription.SubscriptionPruneController;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.candlepin.subscriptions.utilization.admin.api.InternalApi;
 import org.candlepin.subscriptions.utilization.admin.api.model.AwsUsageContext;
+import org.candlepin.subscriptions.utilization.admin.api.model.DefaultResponse;
 import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTags;
+import org.candlepin.subscriptions.utilization.admin.api.model.OfferingResponse;
 import org.candlepin.subscriptions.utilization.admin.api.model.RhmUsageContext;
+import org.candlepin.subscriptions.utilization.admin.api.model.SubscriptionResponse;
 import org.candlepin.subscriptions.utilization.admin.api.model.TerminationRequest;
 import org.candlepin.subscriptions.utilization.admin.api.model.TerminationRequestData;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 /** Subscriptions Table API implementation. */
@@ -43,15 +52,25 @@ import org.springframework.stereotype.Component;
 public class InternalSubscriptionResource implements InternalApi {
 
   private final SubscriptionSyncController subscriptionSyncController;
+  private final SubscriptionPruneController subscriptionPruneController;
+  private final OfferingSyncController offeringSync;
+  private final CapacityReconciliationController capacityReconciliationController;
   private final SecurityProperties properties;
   private final MeterRegistry meterRegistry;
   private final UsageContextSubscriptionProvider awsSubscriptionProvider;
   private final UsageContextSubscriptionProvider rhmSubscriptionProvider;
+  private static final String SUCCESS_STATUS = "Success";
+
+  public static final String FEATURE_NOT_ENABLED_MESSSAGE =
+      "This feature is not currently enabled.";
 
   public InternalSubscriptionResource(
       MeterRegistry meterRegistry,
       SubscriptionSyncController subscriptionSyncController,
-      SecurityProperties properties) {
+      SecurityProperties properties,
+      SubscriptionPruneController subscriptionPruneController,
+      OfferingSyncController offeringSync,
+      CapacityReconciliationController capacityReconciliationController) {
     this.meterRegistry = meterRegistry;
     this.subscriptionSyncController = subscriptionSyncController;
     this.properties = properties;
@@ -67,12 +86,60 @@ public class InternalSubscriptionResource implements InternalApi {
             this.meterRegistry.counter("rhsm-subscriptions.marketplace.missing.subscription"),
             this.meterRegistry.counter("rhsm-subscriptions.marketplace.ambiguous.subscription"),
             BillingProvider.RED_HAT);
+    this.subscriptionPruneController = subscriptionPruneController;
+    this.offeringSync = offeringSync;
+    this.capacityReconciliationController = capacityReconciliationController;
+  }
+
+  /**
+   * Save subscriptions manually. Supported only in dev-mode.
+   *
+   * @param reconcileCapacity Invoke reconciliation logic to create capacity? (hint: offering for
+   *     the SKU must be present)
+   * @param subscriptionsJson JSON array containing subscriptions to save
+   */
+  @Override
+  public SubscriptionResponse saveSubscriptions(
+      Boolean reconcileCapacity, String subscriptionsJson) {
+    var response = new SubscriptionResponse();
+    if (!properties.isDevMode() && !properties.isManualSubscriptionEditingEnabled()) {
+      response.setDetail(FEATURE_NOT_ENABLED_MESSSAGE);
+      return response;
+    }
+    try {
+      Object principal = ResourceUtils.getPrincipal();
+      log.info("Save of new subscriptions triggered over JMX by {}", principal);
+      subscriptionSyncController.saveSubscriptions(subscriptionsJson, reconcileCapacity);
+      response.setDetail(SUCCESS_STATUS);
+    } catch (Exception e) {
+      log.error("Error saving subscriptions", e);
+      response.setDetail("Error saving subscriptions.");
+    }
+    return response;
+  }
+
+  /** Enqueue all sync-enabled orgs to sync their subscriptions with upstream. */
+  @Override
+  public DefaultResponse syncAllSubscriptions() {
+    Object principal = ResourceUtils.getPrincipal();
+    log.info("Sync for all sync enabled orgs triggered by {}", principal);
+    subscriptionSyncController.syncAllSubscriptionsForAllOrgs();
+    return getDefaultResponse(SUCCESS_STATUS);
   }
 
   @Override
   public String forceSyncSubscriptionsForOrg(String orgId) {
     subscriptionSyncController.forceSyncSubscriptionsForOrgAsync(orgId);
     return "Sync started.";
+  }
+
+  /** Remove subscription and capacity records that are in the denylist */
+  @Override
+  public DefaultResponse pruneUnlistedSubscriptions() {
+    Object principal = ResourceUtils.getPrincipal();
+    log.info("Prune of unlisted subscriptions triggered by {}", principal);
+    subscriptionPruneController.pruneAllUnlistedSubscriptions();
+    return getDefaultResponse(SUCCESS_STATUS);
   }
 
   @Override
@@ -137,6 +204,65 @@ public class InternalSubscriptionResource implements InternalApi {
     return subscriptionSyncController.findProductTags(sku);
   }
 
+  /**
+   * Sync an offering from the upstream source.
+   *
+   * @param sku A marketing SKU
+   */
+  @Override
+  public OfferingResponse syncOffering(String sku) {
+    var response = new OfferingResponse();
+    try {
+      Object principal = ResourceUtils.getPrincipal();
+      log.info("Sync for offering {} triggered by {}", sku, principal);
+      SyncResult result = offeringSync.syncOffering(sku);
+
+      response.setDetail(String.format("%s for offeringSku=\"%s\".", result, sku));
+    } catch (Exception e) {
+      log.error("Error syncing offering", e);
+      response.setDetail("Error syncing offering");
+    }
+    return response;
+  }
+
+  /** Syncs all offerings not listed in deny list from the upstream source. */
+  @Override
+  public OfferingResponse syncAllOfferings() {
+    var response = new OfferingResponse();
+    try {
+      Object principal = ResourceUtils.getPrincipal();
+      log.info("Sync all offerings triggered by {}", principal);
+      int numProducts = offeringSync.syncAllOfferings();
+
+      response.setDetail(
+          String.format("Enqueued %s numProducts offerings to be synced.", numProducts));
+    } catch (RuntimeException e) {
+      log.error("Error enqueueing offerings to be synced. See log for details.", e);
+      response.setDetail("Error enqueueing offerings to be synced");
+    }
+    return response;
+  }
+
+  /**
+   * Reconcile capacity for an offering from the upstream source.
+   *
+   * @param sku A marketing SKU
+   */
+  @Override
+  public OfferingResponse forceReconcileOffering(String sku) {
+    var response = new OfferingResponse();
+    try {
+      Object principal = ResourceUtils.getPrincipal();
+      log.info("Capacity Reconciliation for sku {} triggered by {}", sku, principal);
+      capacityReconciliationController.reconcileCapacityForOffering(sku, 0, 100);
+      response.setDetail(SUCCESS_STATUS);
+    } catch (Exception e) {
+      log.error("Error reconciling offering", e);
+      response.setDetail("Error reconciling offering.");
+    }
+    return response;
+  }
+
   @Override
   public TerminationRequest terminateSubscription(String subscriptionId, OffsetDateTime timestamp) {
     if (!properties.isManualEventEditingEnabled()) {
@@ -150,5 +276,12 @@ public class InternalSubscriptionResource implements InternalApi {
       throw new NotFoundException(
           "Subscription " + subscriptionId + " either does not exist or is already terminated");
     }
+  }
+
+  @NotNull
+  private DefaultResponse getDefaultResponse(String status) {
+    var response = new DefaultResponse();
+    response.setStatus(status);
+    return response;
   }
 }
