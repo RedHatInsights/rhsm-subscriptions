@@ -34,12 +34,13 @@ import liquibase.exception.RollbackImpossibleException;
  * to subscription_measurements.
  */
 public class PopulateSubscriptionMeasurements extends LiquibaseCustomTask {
-
   public static final String CAPACITY = "subscription_capacity sc";
-  // Join against subscription to avoid FK errors.  Capacity records without a subscription will
-  // not be migrated.
+  /* Join against subscription to avoid FK errors.  Capacity records without a subscription will
+   * not be migrated.  In Stage, however, we do have capacity records with subscription IDs and
+   * start times that match subscription records but with differing org_ids.  These are dropped too.
+   */
   public static final String SUBSCRIPTION_ID_JOIN =
-      "JOIN subscription s ON sc.subscription_id = s.subscription_id";
+      " JOIN subscription s ON sc.subscription_id = s.subscription_id AND sc.org_id = s.org_id";
 
   @Override
   public void executeTask(Database database) throws DatabaseException, SQLException {
@@ -47,28 +48,28 @@ public class PopulateSubscriptionMeasurements extends LiquibaseCustomTask {
     int total = 0;
     ResultSet socketsSet =
         executeQuery(
-            "SELECT DISTINCT sc.subscription_id, begin_date, sockets FROM "
-                + CAPACITY + " "
+            "SELECT DISTINCT sc.subscription_id, s.start_date, sockets FROM "
+                + CAPACITY
                 + SUBSCRIPTION_ID_JOIN);
     total += insertRows("SOCKETS", "PHYSICAL", socketsSet);
 
     ResultSet hypervisorSocketsSet =
         executeQuery(
-            "SELECT DISTINCT sc.subscription_id, begin_date, hypervisor_sockets FROM "
-                + CAPACITY + " "
+            "SELECT DISTINCT sc.subscription_id, s.start_date, hypervisor_sockets FROM "
+                + CAPACITY
                 + SUBSCRIPTION_ID_JOIN);
     total += insertRows("SOCKETS", "HYPERVISOR", hypervisorSocketsSet);
 
     ResultSet coresSet =
         executeQuery(
-            "SELECT DISTINCT sc.subscription_id, begin_date, cores FROM "
-                + CAPACITY + " "
+            "SELECT DISTINCT sc.subscription_id, s.start_date, cores FROM "
+                + CAPACITY
                 + SUBSCRIPTION_ID_JOIN);
     total += insertRows("CORES", "PHYSICAL", coresSet);
     ResultSet hypervisorCoresSet =
         executeQuery(
-            "SELECT DISTINCT sc.subscription_id, begin_date, hypervisor_cores FROM "
-                + CAPACITY + " "
+            "SELECT DISTINCT sc.subscription_id, s.start_date, hypervisor_cores FROM "
+                + CAPACITY
                 + SUBSCRIPTION_ID_JOIN);
 
     total += insertRows("CORES", "HYPERVISOR", hypervisorCoresSet);
@@ -85,7 +86,7 @@ public class PopulateSubscriptionMeasurements extends LiquibaseCustomTask {
     try (resultSet) {
       while (resultSet.next()) {
         String subscriptionId = resultSet.getString("subscription_id");
-        Timestamp startDate = resultSet.getTimestamp("begin_date");
+        Timestamp startDate = resultSet.getTimestamp("start_date");
 
         // Helpfully in this case, if the value is NULL, 0 will be returned.  We so just
         // happen to want to ignore both zeroes and NULLs.
