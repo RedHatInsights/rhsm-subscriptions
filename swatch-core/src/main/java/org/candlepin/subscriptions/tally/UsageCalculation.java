@@ -36,15 +36,12 @@ import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The calculated usage for a key where key is (productId, sla, usage, billingProvider, and
  * billingAccountId).
  */
 public class UsageCalculation {
-  private static final Logger log = LoggerFactory.getLogger(UsageCalculation.class);
 
   private final Key key;
 

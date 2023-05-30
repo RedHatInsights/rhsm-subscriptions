@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
@@ -48,7 +47,6 @@ public class TallySnapshotController {
 
   private static final Logger log = LoggerFactory.getLogger(TallySnapshotController.class);
 
-  private final ApplicationProperties props;
   private final AccountConfigRepository accountRepo;
   private final InventoryAccountUsageCollector usageCollector;
   private final MetricUsageCollector metricUsageCollector;
@@ -61,7 +59,6 @@ public class TallySnapshotController {
 
   @Autowired
   public TallySnapshotController(
-      ApplicationProperties props,
       AccountConfigRepository accountRepo,
       @Qualifier("applicableProducts") Set<String> applicableProducts,
       InventoryAccountUsageCollector usageCollector,
@@ -72,7 +69,6 @@ public class TallySnapshotController {
       TagProfile tagProfile,
       SnapshotSummaryProducer summaryProducer) {
 
-    this.props = props;
     this.accountRepo = accountRepo;
     this.applicableProducts = applicableProducts;
     this.usageCollector = usageCollector;
