@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202305231003-1" author="kflahert">
+    <comment>Update billable_usage_remittance table to track history</comment>
+    <dropColumn tableName="billable_usage_remittance" columnName="billing_factor"/>
+    <dropColumn tableName="billable_usage_remittance" columnName="version"/>
+    <addColumn tableName="billable_usage_remittance">
+      <column name="granularity" type="VARCHAR(32)"/>
+    </addColumn>
+    <renameColumn tableName="billable_usage_remittance" oldColumnName="remittance_date" newColumnName="remittance_pending_date"/>
+    <renameColumn tableName="billable_usage_remittance" oldColumnName="remitted_value" newColumnName="remitted_pending_value"/>
+    <dropPrimaryKey tableName="billable_usage_remittance"/>
+    <addPrimaryKey constraintName="billable_usage_remittance_pkey"
+      tableName="billable_usage_remittance"
+      columnNames="org_id, product_id, metric_id, accumulation_period, sla, usage, billing_provider,
+        billing_account_id, remittance_pending_date"/>
+  </changeSet>
+</databaseChangeLog>
