@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     compileOnly platform(libraries["quarkus-bom"])
+    testCompileOnly platform(libraries["quarkus-bom"])
     implementation 'org.yaml:snakeyaml'
 }
 
