@@ -27,7 +27,7 @@ ext.plugins = [
         "org.jsonschema2pojo:jsonschema2pojo-gradle-plugin:1.2.1",
         "org.kordamp.gradle:jandex-gradle-plugin:1.1.0",
         "org.openapitools:openapi-generator-gradle-plugin:6.6.0",
-        "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:4.1.0.3113",
+        "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:4.2.0.3129",
         "org.springframework.boot:spring-boot-gradle-plugin:2.7.12",
 ]
 
