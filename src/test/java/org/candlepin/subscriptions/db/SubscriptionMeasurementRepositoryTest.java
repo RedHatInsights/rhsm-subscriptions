@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.db;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.OffsetDateTime;
@@ -111,47 +111,6 @@ class SubscriptionMeasurementRepositoryTest {
   }
 
   @Test
-  void testFiltersByOrgIdAndSubscriptionIdIn() {
-    // Same subscription ID; different start date since the Subscription PK is a composite of the
-    // ID and start date.
-    var wrongOrgId =
-        Subscription.builder()
-            .accountNumber("account123")
-            .subscriptionId("subscription123")
-            .subscriptionNumber("subscriptionNumber123")
-            .orgId("other")
-            .billingProvider(BillingProvider.RED_HAT)
-            .quantity(10)
-            .startDate(START.plusMonths(1))
-            .endDate(START.plusYears(1))
-            .build();
-
-    wrongOrgId.addSubscriptionProductId(SubscriptionProductId.builder().productId("RHEL").build());
-
-    var wrongSubscriptionId =
-        Subscription.builder()
-            .accountNumber("account123")
-            .subscriptionId("other")
-            .subscriptionNumber("subscriptionNumber123")
-            .orgId("org123")
-            .billingProvider(BillingProvider.RED_HAT)
-            .quantity(10)
-            .startDate(START.minusMonths(1))
-            .endDate(START.plusYears(1))
-            .build();
-
-    wrongSubscriptionId.addSubscriptionProductId(
-        SubscriptionProductId.builder().productId("RHEL").build());
-    subscriptionRepository.saveAndFlush(wrongOrgId);
-    subscriptionRepository.saveAndFlush(wrongSubscriptionId);
-    var result =
-        subscriptionMeasurementRepository.findBySubscriptionOrgIdAndSubscriptionSubscriptionIdIn(
-            "org123", List.of("subscription123"));
-
-    assertThat(result, contains(physicalCores));
-  }
-
-  @Test
   void testFiltersByOrgId() {
     // Same subscription ID; different start date since the Subscription PK is a composite of the
     // ID and start date.
@@ -167,53 +126,21 @@ class SubscriptionMeasurementRepositoryTest {
             .endDate(START.plusYears(1))
             .build();
 
+    var unexpectedMeasurement =
+        SubscriptionMeasurement.builder()
+            .measurementType("PHYSICAL")
+            .metricId("CORES")
+            .value(8.0)
+            .build();
     wrongOrgId.addSubscriptionProductId(SubscriptionProductId.builder().productId("RHEL").build());
+    wrongOrgId.addSubscriptionMeasurements(List.of(unexpectedMeasurement));
     subscriptionRepository.saveAndFlush(wrongOrgId);
     var result =
-        subscriptionMeasurementRepository.findBySubscriptionOrgIdAndSubscriptionSubscriptionIdIn(
-            "org123", List.of("subscription123"));
+        subscriptionMeasurementRepository.findAllBy(
+            "org123", "RHEL", null, null, null, null, START.minusYears(2), START.plusYears(2));
 
     assertThat(result, contains(physicalCores));
-  }
-
-  @Test
-  void testFiltersByOrgAndProduct() {
-    // Same subscription ID; different start date since the Subscription PK is a composite of the
-    // ID and start date.
-    var wrongOrgId =
-        Subscription.builder()
-            .accountNumber("account123")
-            .subscriptionId("subscription123")
-            .subscriptionNumber("subscriptionNumber123")
-            .orgId("other")
-            .billingProvider(BillingProvider.RED_HAT)
-            .quantity(10)
-            .startDate(START.plusMonths(1))
-            .endDate(START.plusYears(1))
-            .build();
-
-    wrongOrgId.addSubscriptionProductId(SubscriptionProductId.builder().productId("RHEL").build());
-    subscriptionRepository.saveAndFlush(wrongOrgId);
-    var wrongProduct =
-        Subscription.builder()
-            .accountNumber("account123")
-            .subscriptionId("subscription123")
-            .subscriptionNumber("subscriptionNumber123")
-            .orgId("org123")
-            .billingProvider(BillingProvider.RED_HAT)
-            .quantity(10)
-            .startDate(START)
-            .endDate(START.plusYears(1))
-            .build();
-
-    wrongProduct.addSubscriptionProductId(
-        SubscriptionProductId.builder().productId("other").build());
-    subscriptionRepository.saveAndFlush(wrongProduct);
-    var result =
-        subscriptionMeasurementRepository.findBySubscriptionOrgIdAndSubscriptionSubscriptionIdIn(
-            "org123", List.of("subscription123"));
-
-    assertThat(result, contains(physicalCores));
+    assertThat(result, not(contains(unexpectedMeasurement)));
   }
 
   @Test

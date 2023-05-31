@@ -43,11 +43,6 @@ public interface SubscriptionMeasurementRepository
     extends JpaRepository<SubscriptionMeasurement, SubscriptionMeasurementKey>,
         JpaSpecificationExecutor<SubscriptionMeasurement> {
 
-  // Yes this is a ridiculous method name, but it's how SpringData does joins.  I've just made an
-  // alias to it for public use
-  List<SubscriptionMeasurement> findBySubscriptionOrgIdAndSubscriptionSubscriptionIdIn(
-      String orgId, List<String> subscriptionIds);
-
   @SuppressWarnings("java:S107")
   default List<SubscriptionMeasurement> findAllBy(
       String orgId,
