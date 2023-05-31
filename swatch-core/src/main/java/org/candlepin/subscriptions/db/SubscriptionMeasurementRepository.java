@@ -181,7 +181,7 @@ public interface SubscriptionMeasurementRepository
           .getExpressions()
           .add(builder.isTrue(subscriptionRoot.get(Subscription_.hasUnlimitedUsage)));
 
-      var standardPredicate =
+      var physicalPredicate =
           builder.and(
               builder.equal(root.get(SubscriptionMeasurement_.measurementType), "PHYSICAL"),
               builder.equal(root.get(SubscriptionMeasurement_.metricId), attribute));
@@ -191,13 +191,10 @@ public interface SubscriptionMeasurementRepository
               builder.equal(root.get(SubscriptionMeasurement_.measurementType), "HYPERVISOR"),
               builder.equal(root.get(SubscriptionMeasurement_.metricId), attribute));
 
-      // Has no hypervisor capacity at all.
-      var nonHypervisorPredicate = builder.and(standardPredicate, builder.not(hypervisorPredicate));
-
       if (Objects.nonNull(hypervisorReportCategory)) {
         switch (hypervisorReportCategory) {
           case NON_HYPERVISOR:
-            metricPredicate.getExpressions().add(nonHypervisorPredicate);
+            metricPredicate.getExpressions().add(physicalPredicate);
             break;
           case HYPERVISOR:
             metricPredicate.getExpressions().add(hypervisorPredicate);
@@ -206,7 +203,7 @@ public interface SubscriptionMeasurementRepository
             throw new IllegalStateException("Unhandled HypervisorReportCategory value");
         }
       } else {
-        metricPredicate.getExpressions().addAll(Set.of(standardPredicate, hypervisorPredicate));
+        metricPredicate.getExpressions().addAll(Set.of(physicalPredicate, hypervisorPredicate));
       }
 
       return metricPredicate;

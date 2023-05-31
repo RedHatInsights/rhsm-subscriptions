@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.List;
 import java.util.TimeZone;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Offering;
@@ -37,6 +36,7 @@ import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurement.SubscriptionMeasurementKey;
 import org.candlepin.subscriptions.db.model.SubscriptionProductId;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,12 +86,7 @@ class SubscriptionMeasurementRepositoryTest {
             .build();
 
     subscription.addSubscriptionProductId(subscriptionProductId);
-    physicalCores =
-        SubscriptionMeasurement.builder()
-            .measurementType("PHYSICAL")
-            .metricId("CORES")
-            .value(42.0)
-            .build();
+    physicalCores = createMeasurement("PHYSICAL", MetricId.CORES, 42.0);
     subscription.addSubscriptionMeasurement(physicalCores);
     offeringRepository.saveAndFlush(offering);
     subscriptionRepository.saveAndFlush(subscription);
@@ -104,7 +99,7 @@ class SubscriptionMeasurementRepositoryTest {
     subscriptionId.setStartDate(subscription.getStartDate());
     var key = new SubscriptionMeasurementKey();
     key.setSubscription(subscriptionId);
-    key.setMetricId("CORES");
+    key.setMetricId(MetricId.CORES.toString());
     key.setMeasurementType("PHYSICAL");
     var result = subscriptionMeasurementRepository.findById(key).orElseThrow();
     assertEquals(physicalCores, result);
@@ -126,14 +121,9 @@ class SubscriptionMeasurementRepositoryTest {
             .endDate(START.plusYears(1))
             .build();
 
-    var unexpectedMeasurement =
-        SubscriptionMeasurement.builder()
-            .measurementType("PHYSICAL")
-            .metricId("CORES")
-            .value(8.0)
-            .build();
+    var unexpectedMeasurement = createMeasurement("PHYSICAL", MetricId.CORES, 8.0);
     wrongOrgId.addSubscriptionProductId(SubscriptionProductId.builder().productId("RHEL").build());
-    wrongOrgId.addSubscriptionMeasurements(List.of(unexpectedMeasurement));
+    wrongOrgId.addSubscriptionMeasurement(unexpectedMeasurement);
     subscriptionRepository.saveAndFlush(wrongOrgId);
     var result =
         subscriptionMeasurementRepository.findAllBy(
@@ -230,60 +220,48 @@ class SubscriptionMeasurementRepositoryTest {
 
   @Test
   void testMetricsCriteriaForPhysical() {
-    var hypervisorCores =
-        SubscriptionMeasurement.builder()
-            .measurementType("HYPERVISOR")
-            .metricId("CORES")
-            .value(42.0)
-            .build();
-    hypervisorCores.setSubscription(subscription);
-    subscription.getSubscriptionMeasurements().add(hypervisorCores);
+    var hypervisorCores = createMeasurement("HYPERVISOR", MetricId.CORES, 42.0);
+    subscription.addSubscriptionMeasurement(hypervisorCores);
     subscriptionRepository.saveAndFlush(subscription);
     var specification =
         SubscriptionMeasurementRepository.metricsCriteria(
-            HypervisorReportCategory.NON_HYPERVISOR, "CORES");
+            HypervisorReportCategory.NON_HYPERVISOR, MetricId.CORES.toString());
     var result = subscriptionMeasurementRepository.findAll(specification);
+    assertThat(result, not(contains(hypervisorCores)));
     assertThat(result, contains(physicalCores));
   }
 
   @Test
   void testMetricsCriteriaForHypervisor() {
-    var hypervisorCores =
-        SubscriptionMeasurement.builder()
-            .measurementType("HYPERVISOR")
-            .metricId("CORES")
-            .value(42.0)
-            .build();
-    hypervisorCores.setSubscription(subscription);
-    subscription.getSubscriptionMeasurements().add(hypervisorCores);
+    var hypervisorCores = createMeasurement("HYPERVISOR", MetricId.CORES, 42.0);
+    subscription.addSubscriptionMeasurement(hypervisorCores);
     subscriptionRepository.saveAndFlush(subscription);
     var specification =
         SubscriptionMeasurementRepository.metricsCriteria(
-            HypervisorReportCategory.HYPERVISOR, "CORES");
+            HypervisorReportCategory.HYPERVISOR, MetricId.CORES.toString());
     var result = subscriptionMeasurementRepository.findAll(specification);
     assertThat(result, contains(hypervisorCores));
+    assertThat(result, not(contains(physicalCores)));
   }
 
   @Test
-  void testMetricsCriteriaFiltersMetric() {
-    var physicalSockets =
-        SubscriptionMeasurement.builder()
-            .measurementType("HYPERVISOR")
-            .metricId("SOCKETS")
-            .value(42.0)
-            .build();
-    physicalSockets.setSubscription(subscription);
-    subscription.getSubscriptionMeasurements().add(physicalSockets);
+  void testMetricsCriteriaFiltersByCategory() {
+    var hypervisorCores = createMeasurement("HYPERVISOR", MetricId.CORES, 3.0);
+    subscription.addSubscriptionMeasurement(hypervisorCores);
     subscriptionRepository.saveAndFlush(subscription);
     var specification =
         SubscriptionMeasurementRepository.metricsCriteria(
-            HypervisorReportCategory.NON_HYPERVISOR, "CORES");
+            HypervisorReportCategory.NON_HYPERVISOR, MetricId.CORES.toString());
     var result = subscriptionMeasurementRepository.findAll(specification);
     assertThat(result, contains(physicalCores));
+    assertThat(result, not(contains(hypervisorCores)));
   }
 
-  @Test
-  void testNonHypervisorMetricsCriteriaWorks() {
-    // TODO thorough testing of the nonHypervisorPredicate in the metricsCriteria method
+  SubscriptionMeasurement createMeasurement(String type, MetricId metric, double value) {
+    return SubscriptionMeasurement.builder()
+        .measurementType(type)
+        .metricId(metric.toString())
+        .value(value)
+        .build();
   }
 }

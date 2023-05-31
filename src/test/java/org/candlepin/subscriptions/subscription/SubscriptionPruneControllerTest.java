@@ -28,7 +28,6 @@ import static org.mockito.Mockito.when;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-import java.util.List;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
@@ -86,7 +85,7 @@ class SubscriptionPruneControllerTest {
     allowedSub.setSku("allowed");
     when(subscriptionRepo.findByOrgId("up-to-date")).thenReturn(Stream.of(allowedSub));
     SubscriptionMeasurement allowedMeasurement = SubscriptionMeasurement.builder().build();
-    allowedSub.addSubscriptionMeasurements(List.of(allowedMeasurement));
+    allowedSub.addSubscriptionMeasurement(allowedMeasurement);
     controller.pruneUnlistedSubscriptions("up-to-date");
     verify(subscriptionRepo).findByOrgId("up-to-date");
     verifyNoMoreInteractions(subscriptionRepo);
