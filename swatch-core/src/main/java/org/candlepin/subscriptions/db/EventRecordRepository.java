@@ -25,6 +25,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -82,9 +83,11 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
   /**
    * Delete old event records given a cutoff date
    *
-   * @param cutoffDate Dates BEFORE this timestamp get deleted
+   * @param cutoffDate Dates before this timestamp get deleted
    */
-  void deleteEventRecordsByTimestampBefore(OffsetDateTime cutoffDate);
+  @Modifying
+  @Query("DELETE FROM EventRecord e WHERE e.timestamp<:cutoffDate")
+  void deleteInBulkEventRecordsByTimestampBefore(OffsetDateTime cutoffDate);
 
   /**
    * Check if any Events exist for the specified org and service type during the specified range.
