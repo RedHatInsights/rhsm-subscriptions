@@ -4,6 +4,9 @@ kind: Template
 metadata:
   name: swatch-tally
 parameters:
+  - name: JAVA_DEBUG
+    # Set to "true" to enable remote debugging
+    value: ''
   - name: ENV_NAME
     value: env-swatch-tally
   - name: SUBSCRIPTIONS_HAWTIO_BASE_PATH
@@ -251,6 +254,8 @@ objects:
           image: ${IMAGE}:${IMAGE_TAG}
           initContainers:
             - env:
+                - name: JAVA_DEBUG
+                  value: ${JAVA_DEBUG}
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
               inheritEnv: true
@@ -262,6 +267,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: JAVA_DEBUG
+              value: ${JAVA_DEBUG}
             - name: ENABLE_SPLUNK_HEC
               value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
@@ -462,6 +469,8 @@ objects:
           image: ${IMAGE}:${IMAGE_TAG}
           initContainers:
             - env:
+                - name: JAVA_DEBUG
+                  value: ${JAVA_DEBUG}
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
               inheritEnv: true
@@ -473,6 +482,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${JOB_MEMORY_LIMIT}
           env:
+            - name: JAVA_DEBUG
+              value: ${JAVA_DEBUG}
             - name: ENABLE_SPLUNK_HEC
               value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
@@ -566,6 +577,8 @@ objects:
           image: ${IMAGE}:${IMAGE_TAG}
           initContainers:
             - env:
+                - name: JAVA_DEBUG
+                  value: ${JAVA_DEBUG}
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
               inheritEnv: true
@@ -577,6 +590,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${JOB_MEMORY_LIMIT}
           env:
+            - name: JAVA_DEBUG
+              value: ${JAVA_DEBUG}
             - name: ENABLE_SPLUNK_HEC
               value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace

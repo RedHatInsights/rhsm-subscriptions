@@ -557,6 +557,16 @@ Cluster" page in the Cloud-dot documentation, but here are some essentials:
   oc get events --sort-by=.metadata.creationTimestamp
   ```
 
+* You can use port-forwarding to connect a debugger to EE pods, e.g. (replace
+  deployment name as needed)
+
+  ```shell
+  oc port-forward deployment/swatch-tally-service 5005:5005
+  ```
+
+  Then you can connect to localhost:5005 to attach the debugger. For IntelliJ, see the
+  [official IntelliJ tutorial](https://www.jetbrains.com/help/idea/tutorial-remote-debug.html).
+
 # Special Notes
 ## bonfire "deploy" command and namespace reservation
 If you use `bonfire deploy` without already having a namespace reserved, it will
