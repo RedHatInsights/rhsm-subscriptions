@@ -179,28 +179,7 @@ public class ContractService {
   @Transactional
   public void deleteContract(String uuid) {
 
-    updateContractEndDate(uuid, OffsetDateTime.now());
-  }
-
-  /**
-   * Look up a contract via uuid and update the record to have the given end date.
-   *
-   * @param uuid
-   * @param endDate
-   */
-  @Transactional
-  Optional<ContractEntity> updateContractEndDate(String uuid, OffsetDateTime endDate) {
-    var contract = contractRepository.findContract(UUID.fromString(uuid));
-
-    if (Objects.nonNull(contract)) {
-      log.debug("Setting end date to {} for contract {}", endDate, uuid);
-      contract.setEndDate(endDate);
-      contract.setLastUpdated(OffsetDateTime.now());
-      contractRepository.persist(contract);
-      return Optional.of(contract);
-    }
-
-    return Optional.empty();
+    contractRepository.deleteById(UUID.fromString(uuid));
   }
 
   @Transactional
