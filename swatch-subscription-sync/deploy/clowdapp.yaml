@@ -4,6 +4,9 @@ kind: Template
 metadata:
   name: swatch-subscription-sync
 parameters:
+  - name: JAVA_DEBUG
+    # Set to "true" to enable remote debugging
+    value: ''
   - name: ENV_NAME
     value: env-swatch-subscription-sync
   - name: DEV_MODE
@@ -193,6 +196,8 @@ objects:
           image: ${IMAGE}:${IMAGE_TAG}
           initContainers:
             - env:
+                - name: JAVA_DEBUG
+                  value: ${JAVA_DEBUG}
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
               inheritEnv: true
@@ -204,6 +209,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: JAVA_DEBUG
+              value: ${JAVA_DEBUG}
             - name: SPRING_LIQUIBASE_ENABLED
               value: 'false'
             - name: ENABLE_SPLUNK_HEC
@@ -465,6 +472,8 @@ objects:
           image: ${IMAGE}:${IMAGE_TAG}
           initContainers:
             - env:
+                - name: JAVA_DEBUG
+                  value: ${JAVA_DEBUG}
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
               inheritEnv: true
@@ -476,6 +485,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: JAVA_DEBUG
+              value: ${JAVA_DEBUG}
             - name: ENABLE_SPLUNK_HEC
               value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
