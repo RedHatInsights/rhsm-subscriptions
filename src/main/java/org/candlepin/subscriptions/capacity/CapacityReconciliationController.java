@@ -162,6 +162,7 @@ public class CapacityReconciliationController {
       Subscription subscription, Integer sourceValue, String measurementType, String metricId) {
     if (sourceValue != null && sourceValue > 0) {
       var measurement = new SubscriptionMeasurement();
+      // subscription set here so that comparison works as expected
       measurement.setSubscription(subscription);
       measurement.setMeasurementType(measurementType);
       measurement.setMetricId(metricId);
@@ -176,7 +177,7 @@ public class CapacityReconciliationController {
         existingMeasurement.get().setValue(measurement.getValue());
         measurementsUpdated.increment();
       } else {
-        subscription.getSubscriptionMeasurements().add(measurement);
+        subscription.addSubscriptionMeasurement(measurement);
         measurementsCreated.increment();
       }
       return Optional.of(key);
@@ -191,6 +192,7 @@ public class CapacityReconciliationController {
             .map(
                 product -> {
                   var id = new SubscriptionProductId();
+                  // subscription set here so that comparison works as expected
                   id.setSubscription(subscription);
                   id.setProductId(product);
                   return id;
@@ -201,7 +203,7 @@ public class CapacityReconciliationController {
             .filter(p -> !expectedProducts.contains(p))
             .collect(Collectors.toSet());
     subscription.getSubscriptionProductIds().removeAll(toBeRemoved);
-    subscription.getSubscriptionProductIds().addAll(expectedProducts);
+    expectedProducts.forEach(subscription::addSubscriptionProductId);
     if (!toBeRemoved.isEmpty()) {
       log.info(
           "Update for subscription ID {} removed {} products.",
