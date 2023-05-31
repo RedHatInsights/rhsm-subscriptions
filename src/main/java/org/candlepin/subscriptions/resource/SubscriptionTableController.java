@@ -398,10 +398,12 @@ public class SubscriptionTableController {
       }
     }
 
-    // TODO - Do we need this?  If it has a measurement, it shouldn't have infinite quantity
-    //  should it?
     boolean hasInfiniteQuantity =
         Optional.ofNullable(measurement.getSubscription().getHasUnlimitedUsage()).orElse(false);
+    if (hasInfiniteQuantity) {
+      log.warn(
+          "Subscription for SKU {} has both capacity and unlimited quantity", skuCapacity.getSku());
+    }
 
     skuCapacity.setTotalCapacity(skuCapacity.getCapacity() + skuCapacity.getHypervisorCapacity());
     skuCapacity.setHasInfiniteQuantity(hasInfiniteQuantity);
