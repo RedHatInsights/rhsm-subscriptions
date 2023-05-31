@@ -27,11 +27,9 @@ import java.util.stream.Stream;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
-import org.candlepin.subscriptions.db.SubscriptionMeasurementRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -43,7 +41,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class SubscriptionPruneController {
   private final SubscriptionRepository subscriptionRepository;
-  private final SubscriptionMeasurementRepository measurementRepository;
   private final OrgConfigRepository orgRepository;
   private final Timer pruneAllTimer;
   private final KafkaTemplate<String, PruneSubscriptionsTask>
@@ -54,14 +51,12 @@ public class SubscriptionPruneController {
   @Autowired
   public SubscriptionPruneController(
       SubscriptionRepository subscriptionRepository,
-      SubscriptionMeasurementRepository measurementRepository,
       OrgConfigRepository orgRepository,
       MeterRegistry meterRegistry,
       KafkaTemplate<String, PruneSubscriptionsTask> pruneSubscriptionsByOrgTaskKafkaTemplate,
       ProductDenylist productDenylist,
       @Qualifier("pruneSubscriptionTasks") TaskQueueProperties pruneQueueProperties) {
     this.subscriptionRepository = subscriptionRepository;
-    this.measurementRepository = measurementRepository;
     this.orgRepository = orgRepository;
     this.pruneAllTimer = meterRegistry.timer("swatch_subscription_prune_enqueue_all");
     this.productDenylist = productDenylist;
@@ -81,6 +76,7 @@ public class SubscriptionPruneController {
   @Transactional
   public void pruneUnlistedSubscriptions(String orgId) {
     Stream<Subscription> subscriptions = subscriptionRepository.findByOrgId(orgId);
+    // Associated subscription measurements and product IDs should be removed by cascade
     subscriptions.forEach(
         subscription -> {
           if (productDenylist.productIdMatches(subscription.getSku())) {
@@ -90,20 +86,6 @@ public class SubscriptionPruneController {
                 orgId,
                 subscription.getSku());
             subscriptionRepository.delete(subscription);
-          }
-        });
-    Stream<SubscriptionMeasurement> measurementRecords =
-        measurementRepository.findBySubscriptionOrgId(orgId);
-    measurementRecords.forEach(
-        measurement -> {
-          var sku = measurement.getSubscription().getSku();
-          if (productDenylist.productIdMatches(sku)) {
-            log.info(
-                "Removing measurement record for subscriptionId={} for orgId={} w/ sku={}",
-                measurement.getSubscription().getSubscriptionId(),
-                orgId,
-                sku);
-            measurementRepository.delete(measurement);
           }
         });
   }

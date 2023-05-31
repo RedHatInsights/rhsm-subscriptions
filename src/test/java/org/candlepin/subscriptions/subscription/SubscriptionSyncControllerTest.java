@@ -44,7 +44,6 @@ import java.util.stream.Stream;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.OfferingRepository;
-import org.candlepin.subscriptions.db.SubscriptionMeasurementRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Offering;
@@ -97,8 +96,6 @@ class SubscriptionSyncControllerTest {
   @MockBean OfferingSyncController offeringSyncController;
 
   @MockBean SubscriptionRepository subscriptionRepository;
-
-  @MockBean SubscriptionMeasurementRepository measurementRepository;
 
   @MockBean OrgConfigRepository orgConfigRepository;
 
@@ -734,35 +731,6 @@ class SubscriptionSyncControllerTest {
     subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
     verify(subscriptionRepository).deleteAll(subscriptionsCaptor.capture());
     assertFalse(subscriptionsCaptor.getValue().iterator().hasNext());
-  }
-
-  @Test
-  void testShouldRemoveStaleMeasurementPresentInSubscriptionServiceButDenylisted() {
-    var subServiceSub = createDto("456", 1);
-    var measurement = new SubscriptionMeasurement();
-    var subscription = new Subscription();
-    subscription.addSubscriptionMeasurements(List.of(measurement));
-    subscription.setSubscriptionId("456");
-    when(measurementRepository.findBySubscriptionOrgId(any())).thenReturn(Stream.of(measurement));
-    when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
-    when(denylist.productIdMatches(any())).thenReturn(true);
-    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
-    verify(measurementRepository).delete(measurementCaptor.capture());
-    assertEquals(measurementCaptor.getValue(), measurement);
-  }
-
-  @Test
-  void testShouldNotRemovePresentMeasurement() {
-    var subServiceSub = createDto("456", 1);
-    var measurement = new SubscriptionMeasurement();
-    var subscription = new Subscription();
-    subscription.addSubscriptionMeasurements(List.of(measurement));
-    subscription.setSubscriptionId("456");
-    when(measurementRepository.findBySubscriptionOrgId(any())).thenReturn(Stream.of(measurement));
-    when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
-    when(denylist.productIdMatches(any())).thenReturn(false);
-    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
-    verify(measurementRepository, times(0)).delete(measurementCaptor.capture());
   }
 
   private Subscription createSubscription(String orgId, String sku, String subId) {

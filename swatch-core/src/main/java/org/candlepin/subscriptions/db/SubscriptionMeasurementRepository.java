@@ -24,7 +24,6 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.Offering_;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -48,10 +47,6 @@ public interface SubscriptionMeasurementRepository
   // alias to it for public use
   List<SubscriptionMeasurement> findBySubscriptionOrgIdAndSubscriptionSubscriptionIdIn(
       String orgId, List<String> subscriptionIds);
-
-  Stream<SubscriptionMeasurement> findBySubscriptionOrgId(String orgId);
-
-  void deleteBySubscriptionOrgId(String orgId);
 
   @SuppressWarnings("java:S107")
   default List<SubscriptionMeasurement> findAllBy(

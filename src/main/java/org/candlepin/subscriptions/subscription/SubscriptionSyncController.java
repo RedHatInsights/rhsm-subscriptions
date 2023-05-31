@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -334,26 +333,10 @@ public class SubscriptionSyncController {
     if (!swatchSubscriptions.isEmpty()) {
       log.info("Removing {} stale/incorrect subscription records", swatchSubscriptions.size());
     }
-    // TODO - Do we really need to do this or can we just let the delete cascade?
-    // TODO - What about subscription_productid records?
-    removeStaleMeasurementRecords(orgId, seenSubscriptionIds);
-    // anything remaining in the map at this point is stale
-    subscriptionRepository.deleteAll(swatchSubscriptions.values());
-  }
 
-  private void removeStaleMeasurementRecords(String orgId, Set<String> seenSubscriptionIds) {
-    var staleCapacityCount = new AtomicInteger(0);
-    measurementRepository
-        .findBySubscriptionOrgId(orgId)
-        .filter(c -> !seenSubscriptionIds.contains(c.getSubscription().getSubscriptionId()))
-        .forEach(
-            c -> {
-              staleCapacityCount.incrementAndGet();
-              measurementRepository.delete(c);
-            });
-    if (staleCapacityCount.get() > 0) {
-      log.info("Removing {} stale/incorrect measurement records", staleCapacityCount.get());
-    }
+    // anything remaining in the map at this point is stale. Measurements and subscription product
+    // ID objects should delete in a cascade.
+    subscriptionRepository.deleteAll(swatchSubscriptions.values());
   }
 
   private boolean shouldSyncSub(Subscription sub) {
