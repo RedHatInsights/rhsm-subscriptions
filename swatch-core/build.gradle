@@ -11,6 +11,7 @@ dependencies {
     implementation project(":api") // for util methods in ResourceUtils
     implementation project(":clients:rbac-client") // for security integration w/ rbac
     implementation project(":swatch-common-resteasy")
+    implementation project(":swatch-product-configuration")
     implementation "org.hibernate.validator:hibernate-validator"
     implementation "javax.validation:validation-api"
     implementation "org.springframework.boot:spring-boot-starter"

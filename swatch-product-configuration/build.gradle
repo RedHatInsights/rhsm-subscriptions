@@ -1,0 +1,11 @@
+plugins {
+    id 'swatch.java-conventions'
+}
+
+dependencies {
+    compileOnly platform(libraries["quarkus-bom"])
+    testCompileOnly platform(libraries["quarkus-bom"])
+    implementation 'org.yaml:snakeyaml'
+}
+
+description = 'SWATCH library for product configuration'
