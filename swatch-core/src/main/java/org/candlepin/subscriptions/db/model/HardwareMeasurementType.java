@@ -30,7 +30,10 @@ public enum HardwareMeasurementType {
   VIRTUAL,
   TOTAL,
   AWS, // AWS measured by HBI data
-  AWS_CLOUDIGRADE, // AWS, measured by cloudigrade
+  // NOTE: AWS_CLOUDIGRADE kept to avoid a bug when accessing old data created with now-retired
+  // integration
+  @Deprecated
+  AWS_CLOUDIGRADE,
   GOOGLE,
   ALIBABA,
   AZURE,
@@ -50,6 +53,6 @@ public enum HardwareMeasurementType {
   }
 
   public static List<HardwareMeasurementType> getCloudProviderTypes() {
-    return Arrays.asList(AWS, AWS_CLOUDIGRADE, GOOGLE, AZURE, ALIBABA);
+    return Arrays.asList(AWS, GOOGLE, AZURE, ALIBABA);
   }
 }

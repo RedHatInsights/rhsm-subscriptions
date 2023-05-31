@@ -42,16 +42,6 @@ parameters:
     value: 350m
   - name: CPU_LIMIT
     value: 1500m
-  - name: CLOUDIGRADE_ENABLED
-    value: 'false'
-  - name: CLOUDIGRADE_HOST
-    value: 'localhost'
-  - name: CLOUDIGRADE_PORT
-    value: '8080'
-  - name: CLOUDIGRADE_INTERNAL_HOST
-    value: 'localhost'
-  - name: CLOUDIGRADE_INTERNAL_PORT
-    value: '8080'
   - name: PROM_URL
     value: http://localhost:8082
   - name: DATABASE_CONNECTION_TIMEOUT_MS
@@ -217,8 +207,6 @@ objects:
       iqePlugin: rhsm-subscriptions
     dependencies:
       - host-inventory
-    optionalDependencies:
-      - cloudigrade
 
     kafkaTopics:
       - replicas: ${{KAFKA_TALLY_REPLICAS}}
@@ -347,21 +335,6 @@ objects:
               value: ${INVENTORY_DATABASE_CONNECTION_TIMEOUT_MS}
             - name: INVENTORY_DATABASE_MAX_POOL_SIZE
               value: ${INVENTORY_DATABASE_MAX_POOL_SIZE}
-            - name: CLOUDIGRADE_ENABLED
-              value: ${CLOUDIGRADE_ENABLED}
-            - name: CLOUDIGRADE_HOST
-              value: ${CLOUDIGRADE_HOST}
-            - name: CLOUDIGRADE_PORT
-              value: ${CLOUDIGRADE_PORT}
-            - name: CLOUDIGRADE_INTERNAL_HOST
-              value: ${CLOUDIGRADE_INTERNAL_HOST}
-            - name: CLOUDIGRADE_INTERNAL_PORT
-              value: ${CLOUDIGRADE_INTERNAL_PORT}
-            - name: CLOUDIGRADE_PSK
-              valueFrom:
-                secretKeyRef:
-                  name: cloudigrade-psk
-                  key: psk
             - name: SWATCH_SELF_PSK
               valueFrom:
                 secretKeyRef:
@@ -755,13 +728,6 @@ objects:
     name: swatch-psks
   data:
     self: ZHVtbXk=
-
-- apiVersion: v1
-  kind: Secret
-  metadata:
-    name: cloudigrade-psk
-  data:
-    psk: ZHVtbXk=
 
 - apiVersion: metrics.console.redhat.com/v1alpha1
   kind: FloorPlan

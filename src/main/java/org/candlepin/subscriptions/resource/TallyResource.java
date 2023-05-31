@@ -26,7 +26,6 @@ import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -202,15 +201,6 @@ public class TallyResource implements TallyApi {
 
     // Set the count last since the report may have gotten filled.
     report.getMeta().setCount(report.getData().size());
-    report
-        .getMeta()
-        .setHasCloudigradeData(
-            snapshots.stream().anyMatch(snapshot -> hasCloudigradeData(snapshot, uom)));
-    report
-        .getMeta()
-        .setHasCloudigradeMismatch(
-            snapshots.stream().anyMatch(snapshot -> hasCloudigradeMismatch(snapshot, uom)));
-
     return report;
   }
 
@@ -226,23 +216,6 @@ public class TallyResource implements TallyApi {
     }
     result.setHasData(true);
     result.setValue(result.getValue() + newDataPoint.getValue());
-  }
-
-  @SuppressWarnings("java:S5738")
-  private boolean hasCloudigradeData(
-      org.candlepin.subscriptions.db.model.TallySnapshot tallySnapshot, Uom uom) {
-    Double measurement = tallySnapshot.getMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, uom);
-    return measurement != null && measurement > 0.0;
-  }
-
-  @SuppressWarnings("java:S5738")
-  private boolean hasCloudigradeMismatch(
-      org.candlepin.subscriptions.db.model.TallySnapshot tallySnapshot, Uom uom) {
-    Double cloudigradeMeasurement =
-        tallySnapshot.getMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, uom);
-    Double hbiMeasurement = tallySnapshot.getMeasurement(HardwareMeasurementType.AWS, uom);
-    return cloudigradeMeasurement != null
-        && !Objects.equals(cloudigradeMeasurement, hbiMeasurement);
   }
 
   /** Validate and extract report criteria */

@@ -12,13 +12,11 @@ Person_Ext(customer, "Red Hat Customer")
 
 Boundary(crc, console.redhat.com) {
   Boundary(swatch, "Subscription watch") {
-    System(cloudigrade, "Cloudigrade (aka. Cloudmeter)", "Service that provides precise RHEL instance lifetime data.")
     System_Boundary(tally, "Tally") {
       Container(tally_job, "Tally CronJob", "Java, Container", "CronJob for daily (non-PAYG) usage tallies.")
       Container(tally_purge_job, "Tally Purge CronJob", "Java, Container", "Removes old (outside retenion policy) data.")
       Container(tally_hourly_job, "Tally Hourly CronJob", "Java, Container", "CronJob for hourly (PAYG) usage tallies.")
       Container(tally_worker, "Tally Worker", "Kafka Consumer", "Summarizes usage based on telemetry sources.")
-      Container(cloudigrade, "[[https://github.com/cloudigrade/cloudigrade/ Cloudigrade]]", "Python, Container", "(aka. Cloudmeter) Provides precise accounting of RHEL system lifetimes running on cloud providers (Currently AWS).")
       ContainerQueue(tally_tasks, "platform.rhsm-subscriptions.tasks", "Kafka Topic")
     }
     ContainerDb(db, "Database", "Postgres Database", "Stores subscription and usage information.")
@@ -30,13 +28,10 @@ Boundary(crc, console.redhat.com) {
 }
 
 System_Ext(customer_system, "Customer System", "Customer system or service instance (e.g. RHEL or OSD instance).")
-System_Ext(cloud_provider, "Cloud Provider Telemetry", "Telemetry collected by cloud providers.")
 
 ' external dataflows
 Rel(customer, customer_system, "Provisions/Uses")
 Rel(customer_system, hbi, "Reports to")
-Rel(customer_system, cloud_provider, "Reports to")
-Rel_Back(cloud_provider, cloudigrade, "Reads from")
 
 ' tally process
 Rel(tally_job, tally_tasks, "Produces to")
@@ -44,7 +39,6 @@ Rel(tally_hourly_job, tally_tasks, "Produces to")
 Rel_Back(tally_tasks, tally_worker, "Consumes from")
 Rel(tally_worker, db, "Reads from and writes to", "JDBC")
 Rel(tally_worker, hbi_db, "Reads from", "JDBC")
-Rel_Neighbor(tally_worker, cloudigrade, "Read from", "JSON/HTTPS")
 Rel_Back(tally_summaries, tally_worker, "Produces to")
 Rel(tally_purge_job, db, "Reads from and writes to", "JDBC")
 @enduml

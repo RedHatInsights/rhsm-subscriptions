@@ -1229,10 +1229,6 @@ components:
               type: integer
             total_monthly:
               $ref: "#/components/schemas/TallyReportDataPoint"
-            has_cloudigrade_data:
-              type: boolean
-            has_cloudigrade_mismatch:
-              type: boolean
             product:
               $ref: '#/components/schemas/ProductId'
             metric_id:
@@ -1394,16 +1390,6 @@ components:
           default: 0
         has_data:
           type: boolean
-        has_cloudigrade_data:
-          description: "Indicates whether this tally report was enriched with data from Cloudigrade."
-          type: boolean
-          default: false
-        has_cloudigrade_mismatch:
-          description: "Indicates whether this tally report appears to have a mismatch in reporting
-            between Cloudigrade and other data sources. This may or may not indicate an issue with data
-            data sources."
-          type: boolean
-          default: false
     CapacityReport:
       deprecated: true
       properties:
