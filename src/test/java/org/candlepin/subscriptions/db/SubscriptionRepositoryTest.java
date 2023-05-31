@@ -278,6 +278,7 @@ class SubscriptionRepositoryTest {
     var result = subscriptionRepo.findUnlimited(criteria);
     System.out.println(result.get(0).equals(s1));
     assertThat(result, Matchers.containsInAnyOrder(s1, s2));
+    assertTrue(subscriptionRepo.hasUnlimited(criteria));
   }
 
   private Offering createOffering(

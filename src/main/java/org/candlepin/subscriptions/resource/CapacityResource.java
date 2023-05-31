@@ -353,7 +353,7 @@ public class CapacityResource implements CapacityApi {
             .beginning(reportBegin)
             .ending(reportEnd)
             .build();
-    return !subscriptionRepository.findUnlimited(criteria).isEmpty();
+    return !subscriptionRepository.hasUnlimited(criteria);
   }
 
   private <T> List<T> paginate(List<T> capacities, Pageable pageable) {

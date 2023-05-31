@@ -116,15 +116,22 @@ public interface SubscriptionRepository
 
   default List<Subscription> findUnlimited(DbReportCriteria dbReportCriteria) {
     Specification<Subscription> searchCriteria = buildSearchSpecification(dbReportCriteria);
-    searchCriteria =
-        searchCriteria.and(
-            (root, query, builder) ->
-                builder.equal(root.get(Subscription_.hasUnlimitedUsage), true));
+    searchCriteria = searchCriteria.and(hasUnlimitedUsage());
     return findAll(searchCriteria);
+  }
+
+  default boolean hasUnlimited(DbReportCriteria dbReportCriteria) {
+    Specification<Subscription> searchCriteria = buildSearchSpecification(dbReportCriteria);
+    searchCriteria = searchCriteria.and(hasUnlimitedUsage());
+    return exists(searchCriteria);
   }
 
   default List<Subscription> findByCriteria(DbReportCriteria dbReportCriteria, Sort sort) {
     return findAll(buildSearchSpecification(dbReportCriteria), sort);
+  }
+
+  private static Specification<Subscription> hasUnlimitedUsage() {
+    return (root, query, builder) -> builder.equal(root.get(Subscription_.hasUnlimitedUsage), true);
   }
 
   private static Specification<Subscription> hasBillingProviderId() {
