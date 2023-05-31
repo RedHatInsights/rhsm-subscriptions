@@ -85,7 +85,6 @@ public class SubscriptionSyncController {
 
   private static final XmlMapper umbMessageMapper = CanonicalMessage.createMapper();
   private SubscriptionRepository subscriptionRepository;
-  private SubscriptionMeasurementRepository measurementRepository;
   private OrgConfigRepository orgRepository;
   private OfferingRepository offeringRepository;
   private SubscriptionService subscriptionService;
@@ -120,7 +119,6 @@ public class SubscriptionSyncController {
       TagProfile tagProfile,
       AccountService accountService) {
     this.subscriptionRepository = subscriptionRepository;
-    this.measurementRepository = measurementRepository;
     this.orgRepository = orgRepository;
     this.offeringRepository = offeringRepository;
     this.subscriptionService = subscriptionService;

@@ -377,7 +377,6 @@ public class CapacityResource implements CapacityApi {
     int cores = 0;
     int physicalCores = 0;
     int hypervisorCores = 0;
-    boolean hasInfiniteQuantity = false;
 
     for (SubscriptionMeasurement measurement : matches) {
       var begin = measurement.getSubscription().getStartDate();
