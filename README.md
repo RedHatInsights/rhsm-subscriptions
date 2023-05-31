@@ -614,6 +614,35 @@ oc extract -f dashboards/grafana-dashboard-subscription-watch.configmap.yaml --c
 
 Once you extract it from the .yaml that's checked into this repo, you can import it into the stage instance of grafana by going to Create -> Import from the left nav.
 
+## APIs
+
+Links to Swagger UI and API specs:
+
+* [Customer-facing API][customer-api]
+  ([source](api/rhsm-subscriptions-api-spec.yaml))
+* [Internal Billing Producer API][billing-api]
+  ([source](src/main/spec/internal-billing-api-spec.yaml))
+* [Internal Metering API][metering-api]
+  ([source](src/main/spec/internal-metering-api-spec.yaml))
+* [Internal Subscriptions API][subscriptions-api]
+  ([source](src/main/spec/internal-subscriptions-sync-api-spec.yaml))
+* [Internal Tally API][tally-api]
+  ([source](src/main/spec/internal-tally-api-spec.yaml))
+* [Internal Contracts API][contracts-api]
+  ([source](swatch-contracts/src/main/resources/META-INF/openapi.yaml))
+* [Internal AWS Producer API][aws-api]
+  ([source](swatch-producer-aws/src/main/resources/openapi.yaml))
+* [Internal System Conduit API][conduit-api]
+  ([source](swatch-system-conduit/src/main/spec/internal-organizations-sync-api-spec.yaml))
+
+[customer-api]:       https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/api/rhsm-subscriptions-api-spec.yaml
+[billing-api]:        https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/src/main/spec/internal-billing-api-spec.yaml
+[metering-api]:       https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/src/main/spec/internal-metering-api-spec.yaml
+[subscriptions-api]:  https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/src/main/spec/internal-subscriptions-sync-api-spec.yaml
+[tally-api]:          https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/src/main/spec/internal-tally-api-spec.yaml
+[contracts-api]:      https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-contracts/src/main/resources/META-INF/openapi.yaml
+[aws-api]:            https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-producer-aws/src/main/resources/openapi.yaml
+[conduit-api]:        https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-system-conduit/src/main/spec/internal-organizations-sync-api-spec.yaml
 
 ## Kafka topics
 <details>
