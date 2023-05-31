@@ -61,14 +61,14 @@ public class SubscriptionProductId implements Serializable {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof SubscriptionProductId productId)) {
+    if (!(o instanceof SubscriptionProductId other)) {
       return false;
     }
 
-    return Objects.equals(this.productId, productId.getProductId())
+    return Objects.equals(this.productId, other.getProductId())
         && Objects.equals(
-            subscription.getSubscriptionId(), productId.getSubscription().getSubscriptionId())
-        && Objects.equals(subscription.getStartDate(), productId.getSubscription().getStartDate());
+            subscription.getSubscriptionId(), other.getSubscription().getSubscriptionId())
+        && Objects.equals(subscription.getStartDate(), other.getSubscription().getStartDate());
   }
 
   @Override
