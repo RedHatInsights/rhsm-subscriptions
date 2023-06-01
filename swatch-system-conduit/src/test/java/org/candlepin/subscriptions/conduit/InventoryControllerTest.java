@@ -562,6 +562,32 @@ class InventoryControllerTest {
   }
 
   @Test
+  void testIsMarketplaceFacts_WhenGcpLicenseCodeIsRhel() {
+    String uuid = UUID.randomUUID().toString();
+    Consumer consumer = new Consumer();
+    consumer.setUuid(uuid);
+    consumer
+        .getFacts()
+        .put(
+            InventoryController.GCP_LICENSE_CODES,
+            InventoryController.MARKETPLACE_GCP_LICENSE_CODES.stream().findFirst().orElseThrow());
+
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertTrue(conduitFacts.getIsMarketplace());
+  }
+
+  @Test
+  void testIsMarketplaceFacts_WhenGcpLicenseCodeIsNonRhel() {
+    String uuid = UUID.randomUUID().toString();
+    Consumer consumer = new Consumer();
+    consumer.setUuid(uuid);
+    consumer.getFacts().put(InventoryController.GCP_LICENSE_CODES, "non-rhel-placeholder");
+
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertNull(conduitFacts.getIsMarketplace());
+  }
+
+  @Test
   void testTruncatedIpV6AddressIsIgnoredForNics() {
     String factPrefix = "net.interface.virbr0.";
 
