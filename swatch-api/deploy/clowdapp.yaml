@@ -4,6 +4,9 @@ kind: Template
 metadata:
   name: swatch-api
 parameters:
+  - name: JAVA_DEBUG
+    # Set to "true" to enable remote debugging
+    value: ''
   - name: DEV_MODE
     value: 'false'
   - name: ENV_NAME
@@ -94,6 +97,8 @@ objects:
             initContainers:
               - image: ${IMAGE}:${IMAGE_TAG}
                 env:
+                  - name: JAVA_DEBUG
+                    value: ${JAVA_DEBUG}
                   - name: SPRING_PROFILES_ACTIVE
                     value: liquibase-only
                   - name: JAVA_MAX_MEM_RATIO
@@ -139,6 +144,8 @@ objects:
                     cpu: ${CPU_LIMIT}
                     memory: ${MEMORY_LIMIT}
             env:
+              - name: JAVA_DEBUG
+                value: ${JAVA_DEBUG}
               - name: DEV_MODE
                 value: ${DEV_MODE}
               - name: SERVER_MAX_HTTP_HEADER_SIZE

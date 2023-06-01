@@ -4,6 +4,9 @@ kind: Template
 metadata:
   name: swatch-subscription-sync
 parameters:
+  - name: JAVA_DEBUG
+    # Set to "true" to enable remote debugging
+    value: ''
   - name: ENV_NAME
     value: env-swatch-subscription-sync
   - name: DEV_MODE
@@ -193,6 +196,8 @@ objects:
           image: ${IMAGE}:${IMAGE_TAG}
           initContainers:
             - env:
+                - name: JAVA_DEBUG
+                  value: ${JAVA_DEBUG}
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
               inheritEnv: true
@@ -204,6 +209,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: JAVA_DEBUG
+              value: ${JAVA_DEBUG}
             - name: SPRING_LIQUIBASE_ENABLED
               value: 'false'
             - name: ENABLE_SPLUNK_HEC
@@ -465,6 +472,8 @@ objects:
           image: ${IMAGE}:${IMAGE_TAG}
           initContainers:
             - env:
+                - name: JAVA_DEBUG
+                  value: ${JAVA_DEBUG}
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
               inheritEnv: true
@@ -476,6 +485,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: JAVA_DEBUG
+              value: ${JAVA_DEBUG}
             - name: ENABLE_SPLUNK_HEC
               value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
@@ -972,11 +983,11 @@ objects:
         MCT0969
         MCT0973
         MCT0982
+        MCT0982-IPP
         MCT0982F2
         MCT0982F3
         MCT0982F3RN
         MCT0982F5
-        MCT0982-IPP
         MCT0982RN
         MCT0983
         MCT0983F3
@@ -1258,7 +1269,35 @@ objects:
         MCT3857
         MCT3857RN
         MCT3857S
+        MCT4149
+        MCT4159
+        MCT4159F3
+        MW00567
+        MW00567F3
+        MW00571
+        MW00571F3
+        MW00571RN
+        MW00571S
+        MW01618
+        MW01620
         RH00798
+        RH01157
+        RH02427
+        RH02427F3
+        RH02621MO
+        RH02622
+        RH02622MO
+        RH02623MO
+        RH02624
+        RH02628
+        RH02629
+        RH02630
+        RH02631
+        RH02633
+        RH02637
+        RH02640
+        RH02642
+        RH02644MO
         RH3310120
         RH3387200
         RHF0084JP
@@ -1333,19 +1372,21 @@ objects:
         RHF0347US
         RHF0348US
         RHN019
-        RHN019RW
         RHN019-SYS
         RHN019-SYSRW
+        RHN019RW
         RHN020
-        RHN020RW
         RHN020-SYS
         RHN020-SYSRW
+        RHN020RW
         RHN021
         RHN021-SYS
         RHN039
         RHN039-SYS
         RHN040
         RHN040-SYS
+        RV0130225
+        RV0130225RN
         SER0085US
         SER0086US
         SER0091US
@@ -1403,32 +1444,3 @@ objects:
         SER0402
         SER0403
         SER0440
-        RV0130225
-        RV0130225RN
-        MW01618
-        MW01620
-        RH02427
-        RH02427F3
-        MCT4149
-        MCT4159
-        MCT4159F3
-        MW00567
-        MW00567F3
-        MW00571
-        MW00571F3
-        MW00571RN
-        MW00571S
-        RH02642
-        RH02633
-        RH02640
-        RH02631
-        RH02629
-        RH02622
-        RH02624
-        RH02628
-        RH02637
-        RH02630
-        RH02644MO
-        RH02621MO
-        RH02622MO
-        RH02623MO
