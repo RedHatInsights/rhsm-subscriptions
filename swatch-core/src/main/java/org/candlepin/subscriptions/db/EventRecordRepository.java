@@ -83,6 +83,13 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
   /**
    * Delete old event records given a cutoff date
    *
+   * <p>By default, a derived delete query will return instances matching the where clause prior to
+   * deleting the entities one at a time. This was too memory intensive. Since we're not concerned
+   * with invoking any lifecycle callbacks, we can override the behavior with @query to delete all
+   * matching records in bulk. See the <a
+   * href="https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#jpa.modifying-queries.derived-delete">Spring
+   * Data documentation</a> on deletion.
+   *
    * @param cutoffDate Dates before this timestamp get deleted
    */
   @Modifying
