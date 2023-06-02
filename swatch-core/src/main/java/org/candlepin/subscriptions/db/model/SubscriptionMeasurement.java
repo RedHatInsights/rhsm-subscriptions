@@ -24,7 +24,6 @@ import java.io.Serializable;
 import java.util.Objects;
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.IdClass;
 import javax.persistence.JoinColumn;
@@ -46,7 +45,7 @@ import org.candlepin.subscriptions.db.model.SubscriptionMeasurement.Subscription
 @IdClass(SubscriptionMeasurementKey.class)
 public class SubscriptionMeasurement implements Serializable {
   @Id
-  @ManyToOne(fetch = FetchType.EAGER)
+  @ManyToOne
   @JoinColumn(name = "subscription_id", referencedColumnName = "subscription_id")
   @JoinColumn(name = "start_date", referencedColumnName = "start_date")
   private Subscription subscription;
