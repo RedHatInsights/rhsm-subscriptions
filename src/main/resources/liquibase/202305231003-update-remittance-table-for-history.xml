@@ -21,7 +21,7 @@
     <dropColumn tableName="billable_usage_remittance" columnName="billing_factor"/>
     <dropColumn tableName="billable_usage_remittance" columnName="version"/>
     <addColumn tableName="billable_usage_remittance">
-      <column name="granularity" type="VARCHAR(32)"/>
+      <column name="granularity" type="VARCHAR(32)" value="MONTHLY"/>
     </addColumn>
     <renameColumn tableName="billable_usage_remittance" oldColumnName="remittance_date" newColumnName="remittance_pending_date"/>
     <renameColumn tableName="billable_usage_remittance" oldColumnName="remitted_value" newColumnName="remitted_pending_value"/>
@@ -29,6 +29,6 @@
     <addPrimaryKey constraintName="billable_usage_remittance_pkey"
       tableName="billable_usage_remittance"
       columnNames="org_id, product_id, metric_id, accumulation_period, sla, usage, billing_provider,
-        billing_account_id, remittance_pending_date"/>
+        billing_account_id, remittance_pending_date, granularity"/>
   </changeSet>
 </databaseChangeLog>
