@@ -41,6 +41,7 @@ import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
 import org.candlepin.subscriptions.db.model.SubscriptionProductId;
 import org.candlepin.subscriptions.resource.ResourceUtils;
+import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +55,8 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles({"capacity-ingress", "test"})
 class CapacityReconciliationControllerTest {
+  private static final String SOCKETS = MetricId.SOCKETS.toString().toUpperCase();
+  private static final String CORES = MetricId.CORES.toString().toUpperCase();
 
   private static final OffsetDateTime NOW = OffsetDateTime.now();
 
@@ -110,10 +113,10 @@ class CapacityReconciliationControllerTest {
     assertThat(
         newSubscription.getSubscriptionMeasurements(),
         containsInAnyOrder(
-            createMeasurement(newSubscription, "PHYSICAL", "CORES", 420.0),
-            createMeasurement(newSubscription, "HYPERVISOR", "CORES", 430.0),
-            createMeasurement(newSubscription, "PHYSICAL", "SOCKETS", 440.0),
-            createMeasurement(newSubscription, "HYPERVISOR", "SOCKETS", 450.0)));
+            createMeasurement(newSubscription, "PHYSICAL", CORES, 420.0),
+            createMeasurement(newSubscription, "HYPERVISOR", CORES, 430.0),
+            createMeasurement(newSubscription, "PHYSICAL", SOCKETS, 440.0),
+            createMeasurement(newSubscription, "HYPERVISOR", SOCKETS, 450.0)));
     assertThat(
         newSubscription.getSubscriptionProductIds().stream()
             .map(SubscriptionProductId::getProductId)
@@ -132,10 +135,10 @@ class CapacityReconciliationControllerTest {
 
     updatedSubscription
         .getSubscriptionMeasurements()
-        .add(createMeasurement(updatedSubscription, "PHYSICAL", "SOCKETS", 15.0));
+        .add(createMeasurement(updatedSubscription, "PHYSICAL", SOCKETS, 15.0));
     updatedSubscription
         .getSubscriptionMeasurements()
-        .add(createMeasurement(updatedSubscription, "PHYSICAL", "CORES", 10.0));
+        .add(createMeasurement(updatedSubscription, "PHYSICAL", CORES, 10.0));
     SubscriptionProductId subscriptionProductId = new SubscriptionProductId();
     subscriptionProductId.setProductId("RHEL");
     updatedSubscription.addSubscriptionProductId(subscriptionProductId);
@@ -149,8 +152,8 @@ class CapacityReconciliationControllerTest {
     assertThat(
         updatedSubscription.getSubscriptionMeasurements(),
         containsInAnyOrder(
-            createMeasurement(updatedSubscription, "PHYSICAL", "CORES", 200.0),
-            createMeasurement(updatedSubscription, "PHYSICAL", "SOCKETS", 400.0)));
+            createMeasurement(updatedSubscription, "PHYSICAL", CORES, 200.0),
+            createMeasurement(updatedSubscription, "PHYSICAL", SOCKETS, 400.0)));
     assertEquals(
         updatedSubscription.getSubscriptionProductIds().stream()
             .map(SubscriptionProductId::getProductId)
@@ -169,10 +172,10 @@ class CapacityReconciliationControllerTest {
 
     updatedSubscription
         .getSubscriptionMeasurements()
-        .add(createMeasurement(updatedSubscription, "PHYSICAL", "SOCKETS", 15.0));
+        .add(createMeasurement(updatedSubscription, "PHYSICAL", SOCKETS, 15.0));
     updatedSubscription
         .getSubscriptionMeasurements()
-        .add(createMeasurement(updatedSubscription, "PHYSICAL", "CORES", 10.0));
+        .add(createMeasurement(updatedSubscription, "PHYSICAL", CORES, 10.0));
     SubscriptionProductId subscriptionProductId = new SubscriptionProductId();
     subscriptionProductId.setProductId("RHEL");
     updatedSubscription.addSubscriptionProductId(subscriptionProductId);
@@ -205,10 +208,10 @@ class CapacityReconciliationControllerTest {
 
     subscription
         .getSubscriptionMeasurements()
-        .add(createMeasurement(subscription, "PHYSICAL", "CORES", 10.0));
+        .add(createMeasurement(subscription, "PHYSICAL", CORES, 10.0));
     subscription
         .getSubscriptionMeasurements()
-        .add(createMeasurement(subscription, "PHYSICAL", "SOCKETS", 15.0));
+        .add(createMeasurement(subscription, "PHYSICAL", SOCKETS, 15.0));
 
     when(denylist.productIdMatches(any())).thenReturn(false);
     when(capacityProductExtractor.getProducts(offering)).thenReturn(productIds);
@@ -218,7 +221,7 @@ class CapacityReconciliationControllerTest {
 
     assertThat(
         subscription.getSubscriptionMeasurements(),
-        containsInAnyOrder(createMeasurement(subscription, "PHYSICAL", "CORES", 420.0)));
+        containsInAnyOrder(createMeasurement(subscription, "PHYSICAL", CORES, 420.0)));
     assertThat(
         subscription.getSubscriptionProductIds().stream()
             .map(SubscriptionProductId::getProductId)

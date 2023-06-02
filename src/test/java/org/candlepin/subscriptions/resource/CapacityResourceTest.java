@@ -110,7 +110,7 @@ class CapacityResourceTest {
   SubscriptionMeasurement createMeasurement(String type, MetricId metric, double value) {
     return SubscriptionMeasurement.builder()
         .measurementType(type)
-        .metricId(metric.toString())
+        .metricId(metric.toString().toUpperCase())
         .value(value)
         .build();
   }
@@ -118,7 +118,7 @@ class CapacityResourceTest {
   private static SubscriptionMeasurement basicMeasurement() {
     return SubscriptionMeasurement.builder()
         .measurementType("PHYSICAL")
-        .metricId("CORES")
+        .metricId(MetricId.CORES.toString().toUpperCase())
         .value(42.0)
         .build();
   }

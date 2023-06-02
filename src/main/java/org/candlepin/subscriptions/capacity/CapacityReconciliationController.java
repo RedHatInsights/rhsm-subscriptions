@@ -40,6 +40,7 @@ import org.candlepin.subscriptions.db.model.SubscriptionMeasurement.Subscription
 import org.candlepin.subscriptions.db.model.SubscriptionProductId;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
+import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
@@ -50,6 +51,8 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 public class CapacityReconciliationController {
+  private static final String SOCKETS = MetricId.SOCKETS.toString().toUpperCase();
+  private static final String CORES = MetricId.CORES.toString().toUpperCase();
 
   private final OfferingRepository offeringRepository;
   private final SubscriptionRepository subscriptionRepository;
@@ -125,13 +128,13 @@ public class CapacityReconciliationController {
         subscription.getSubscriptionMeasurements().stream()
             .map(m -> fromSubscriptionAndMeasurement(subscription, m))
             .collect(Collectors.toCollection(HashSet::new));
-    upsertMeasurement(subscription, offering.getCores(), "PHYSICAL", "CORES")
+    upsertMeasurement(subscription, offering.getCores(), "PHYSICAL", CORES)
         .ifPresent(existingKeys::remove);
-    upsertMeasurement(subscription, offering.getHypervisorCores(), "HYPERVISOR", "CORES")
+    upsertMeasurement(subscription, offering.getHypervisorCores(), "HYPERVISOR", CORES)
         .ifPresent(existingKeys::remove);
-    upsertMeasurement(subscription, offering.getSockets(), "PHYSICAL", "SOCKETS")
+    upsertMeasurement(subscription, offering.getSockets(), "PHYSICAL", SOCKETS)
         .ifPresent(existingKeys::remove);
-    upsertMeasurement(subscription, offering.getHypervisorSockets(), "HYPERVISOR", "SOCKETS")
+    upsertMeasurement(subscription, offering.getHypervisorSockets(), "HYPERVISOR", SOCKETS)
         .ifPresent(existingKeys::remove);
     // existingKeys now contains only stale SubscriptionMeasurement keys (i.e. measurements no
     // longer provided).

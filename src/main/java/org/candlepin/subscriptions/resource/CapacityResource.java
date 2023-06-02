@@ -66,6 +66,10 @@ import org.springframework.stereotype.Component;
 /** Capacity API implementation. */
 @Component
 public class CapacityResource implements CapacityApi {
+  public static final String SOCKETS = MetricId.SOCKETS.toString().toUpperCase();
+  public static final String CORES = MetricId.CORES.toString().toUpperCase();
+  public static final String PHYSICAL = HardwareMeasurementType.PHYSICAL.toString().toUpperCase();
+  public static final String HYPERVISOR = HardwareMeasurementType.HYPERVISOR.toString().toUpperCase();
 
   private final SubscriptionMeasurementRepository repository;
   private final SubscriptionRepository subscriptionRepository;
@@ -384,10 +388,10 @@ public class CapacityResource implements CapacityApi {
 
       if (begin.isBefore(date) && end.isAfter(date)) {
         var measurementType = measurement.getMeasurementType();
-        var isPhysical = HardwareMeasurementType.PHYSICAL.toString().equals(measurementType);
-        var isHypervisor = HardwareMeasurementType.HYPERVISOR.toString().equals(measurementType);
+        var isPhysical = PHYSICAL.equals(measurementType);
+        var isHypervisor = HYPERVISOR.equals(measurementType);
 
-        if (MetricId.CORES.toString().equals(measurement.getMetricId())) {
+        if (CORES.equals(measurement.getMetricId())) {
           var val = measurement.getValue().intValue();
           cores += val;
           if (isPhysical) {
@@ -395,7 +399,7 @@ public class CapacityResource implements CapacityApi {
           } else if (isHypervisor) {
             hypervisorCores += val;
           }
-        } else if (MetricId.SOCKETS.toString().equals(measurement.getMetricId())) {
+        } else if (SOCKETS.equals(measurement.getMetricId())) {
           var val = measurement.getValue().intValue();
           sockets += val;
           if (isPhysical) {
@@ -431,17 +435,15 @@ public class CapacityResource implements CapacityApi {
       var end = measurement.getSubscription().getEndDate();
       if (begin.isBefore(date) && end.isAfter(date)) {
         hasData = true;
-        if (metricId.toString().equals(measurement.getMetricId())) {
+        if (metricId.toString().toUpperCase().equals(measurement.getMetricId())) {
           if (hypervisorReportCategory.isEmpty()) {
             value += measurement.getValue().intValue();
             continue;
           }
 
           var measurementType = measurement.getMeasurementType();
-          var isNonHypervisorMeasurement =
-              HardwareMeasurementType.PHYSICAL.toString().equals(measurementType);
-          var isHypervisorMeasurement =
-              HardwareMeasurementType.HYPERVISOR.toString().equals(measurementType);
+          var isNonHypervisorMeasurement = PHYSICAL.equals(measurementType);
+          var isHypervisorMeasurement = HYPERVISOR.equals(measurementType);
 
           var category = hypervisorReportCategory.get();
           var isHypervisorCategory = category.equals(HypervisorReportCategory.HYPERVISOR);
