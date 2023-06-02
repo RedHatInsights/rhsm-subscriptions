@@ -28,12 +28,16 @@ import liquibase.database.Database;
 import liquibase.exception.CustomChangeException;
 import liquibase.exception.DatabaseException;
 import liquibase.exception.RollbackImpossibleException;
+import org.candlepin.subscriptions.utilization.api.model.MetricId;
 
 /**
  * This class is responsible for moving the various cores/sockets columns from subscription_capacity
  * to subscription_measurements.
  */
 public class PopulateSubscriptionMeasurements extends LiquibaseCustomTask {
+  private static final String SOCKETS = MetricId.SOCKETS.toString().toUpperCase();
+  private static final String CORES = MetricId.CORES.toString().toUpperCase();
+
   public static final String CAPACITY = "subscription_capacity sc";
   /* Join against subscription to avoid FK errors.  Capacity records without a subscription will
    * not be migrated.  In Stage, however, we do have capacity records with subscription IDs and
@@ -46,33 +50,34 @@ public class PopulateSubscriptionMeasurements extends LiquibaseCustomTask {
   public void executeTask(Database database) throws DatabaseException, SQLException {
 
     int total = 0;
+
     ResultSet socketsSet =
         executeQuery(
             "SELECT DISTINCT sc.subscription_id, s.start_date, sockets FROM "
                 + CAPACITY
                 + SUBSCRIPTION_ID_JOIN);
-    total += insertRows("SOCKETS", "PHYSICAL", socketsSet);
+    total += insertRows(SOCKETS, "PHYSICAL", socketsSet);
 
     ResultSet hypervisorSocketsSet =
         executeQuery(
             "SELECT DISTINCT sc.subscription_id, s.start_date, hypervisor_sockets FROM "
                 + CAPACITY
                 + SUBSCRIPTION_ID_JOIN);
-    total += insertRows("SOCKETS", "HYPERVISOR", hypervisorSocketsSet);
+    total += insertRows(SOCKETS, "HYPERVISOR", hypervisorSocketsSet);
 
     ResultSet coresSet =
         executeQuery(
             "SELECT DISTINCT sc.subscription_id, s.start_date, cores FROM "
                 + CAPACITY
                 + SUBSCRIPTION_ID_JOIN);
-    total += insertRows("CORES", "PHYSICAL", coresSet);
+    total += insertRows(CORES, "PHYSICAL", coresSet);
     ResultSet hypervisorCoresSet =
         executeQuery(
             "SELECT DISTINCT sc.subscription_id, s.start_date, hypervisor_cores FROM "
                 + CAPACITY
                 + SUBSCRIPTION_ID_JOIN);
 
-    total += insertRows("CORES", "HYPERVISOR", hypervisorCoresSet);
+    total += insertRows(CORES, "HYPERVISOR", hypervisorCoresSet);
 
     logger.info(total + " rows inserted into the subscription_measurements table");
   }

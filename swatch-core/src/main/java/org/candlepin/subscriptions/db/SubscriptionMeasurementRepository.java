@@ -43,6 +43,9 @@ public interface SubscriptionMeasurementRepository
     extends JpaRepository<SubscriptionMeasurement, SubscriptionMeasurementKey>,
         JpaSpecificationExecutor<SubscriptionMeasurement> {
 
+  String CORES = MetricId.CORES.toString().toUpperCase();
+  String SOCKETS = MetricId.SOCKETS.toString().toUpperCase();
+
   @SuppressWarnings("java:S107")
   default List<SubscriptionMeasurement> findAllBy(
       String orgId,
@@ -163,12 +166,12 @@ public interface SubscriptionMeasurementRepository
 
   static Specification<SubscriptionMeasurement> coresCriteria(
       HypervisorReportCategory hypervisorReportCategory) {
-    return metricsCriteria(hypervisorReportCategory, MetricId.CORES.toString());
+    return metricsCriteria(hypervisorReportCategory, CORES);
   }
 
   static Specification<SubscriptionMeasurement> socketsCriteria(
       HypervisorReportCategory hypervisorReportCategory) {
-    return metricsCriteria(hypervisorReportCategory, MetricId.SOCKETS.toString());
+    return metricsCriteria(hypervisorReportCategory, SOCKETS);
   }
 
   static Specification<SubscriptionMeasurement> metricsCriteria(
@@ -249,16 +252,13 @@ public interface SubscriptionMeasurementRepository
     }
 
     if (Objects.nonNull(metricId)) {
-      switch (metricId) {
-        case CORES:
-          searchCriteria = searchCriteria.and(coresCriteria(hypervisorReportCategory));
-          break;
-        case SOCKETS:
-          searchCriteria = searchCriteria.and(socketsCriteria(hypervisorReportCategory));
-          break;
-        default:
-          throw new IllegalStateException(metricId + " is not a support metricId for this query");
-      }
+      searchCriteria =
+          switch (metricId) {
+            case CORES -> searchCriteria.and(coresCriteria(hypervisorReportCategory));
+            case SOCKETS -> searchCriteria.and(socketsCriteria(hypervisorReportCategory));
+            default -> throw new IllegalStateException(
+                metricId + " is not a support metricId for this query");
+          };
     }
     return searchCriteria;
   }
