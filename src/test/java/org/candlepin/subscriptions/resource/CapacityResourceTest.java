@@ -312,7 +312,7 @@ class CapacityResourceTest {
             .beginning(min)
             .ending(max)
             .build();
-    when(subscriptionRepository.findUnlimited(criteria)).thenReturn(List.of(subscription));
+    when(subscriptionRepository.hasUnlimited(criteria)).thenReturn(true);
 
     when(repository.findAllBy("owner123456", RHEL.toString(), null, null, min, max))
         .thenReturn(subscription.getSubscriptionMeasurements());
