@@ -23,20 +23,16 @@ package org.candlepin.subscriptions.db;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import javax.persistence.criteria.From;
 import javax.persistence.criteria.Join;
 import javax.persistence.metamodel.SetAttribute;
 import javax.persistence.metamodel.SingularAttribute;
+import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.Offering_;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurement.SubscriptionMeasurementKey;
-import org.candlepin.subscriptions.db.model.SubscriptionMeasurement_;
-import org.candlepin.subscriptions.db.model.SubscriptionProductId_;
-import org.candlepin.subscriptions.db.model.Subscription_;
-import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -183,13 +179,6 @@ public interface SubscriptionMeasurementRepository
   static Specification<SubscriptionMeasurement> metricsCriteria(
       HypervisorReportCategory hypervisorReportCategory, String attribute) {
     return (root, query, builder) -> {
-      // Note this is a *disjunction* (i.e. an "or" operation)
-      var subscriptionRoot = fetchJoin(root, SubscriptionMeasurement_.subscription, "subscription");
-      var metricPredicate = builder.disjunction();
-      metricPredicate
-          .getExpressions()
-          .add(builder.isTrue(subscriptionRoot.get(Subscription_.hasUnlimitedUsage)));
-
       var physicalPredicate =
           builder.and(
               builder.equal(root.get(SubscriptionMeasurement_.measurementType), "PHYSICAL"),
@@ -201,21 +190,13 @@ public interface SubscriptionMeasurementRepository
               builder.equal(root.get(SubscriptionMeasurement_.metricId), attribute));
 
       if (Objects.nonNull(hypervisorReportCategory)) {
-        switch (hypervisorReportCategory) {
-          case NON_HYPERVISOR:
-            metricPredicate.getExpressions().add(physicalPredicate);
-            break;
-          case HYPERVISOR:
-            metricPredicate.getExpressions().add(hypervisorPredicate);
-            break;
-          default:
-            throw new IllegalStateException("Unhandled HypervisorReportCategory value");
-        }
+        return switch (hypervisorReportCategory) {
+          case NON_HYPERVISOR -> physicalPredicate;
+          case HYPERVISOR -> hypervisorPredicate;
+        };
       } else {
-        metricPredicate.getExpressions().addAll(Set.of(physicalPredicate, hypervisorPredicate));
+        return builder.equal(root.get(SubscriptionMeasurement_.metricId), attribute);
       }
-
-      return metricPredicate;
     };
   }
 
