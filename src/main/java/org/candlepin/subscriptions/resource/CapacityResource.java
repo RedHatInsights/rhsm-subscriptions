@@ -37,6 +37,7 @@ import org.candlepin.subscriptions.db.model.DbReportCriteria;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -69,7 +70,8 @@ public class CapacityResource implements CapacityApi {
   public static final String SOCKETS = MetricId.SOCKETS.toString().toUpperCase();
   public static final String CORES = MetricId.CORES.toString().toUpperCase();
   public static final String PHYSICAL = HardwareMeasurementType.PHYSICAL.toString().toUpperCase();
-  public static final String HYPERVISOR = HardwareMeasurementType.HYPERVISOR.toString().toUpperCase();
+  public static final String HYPERVISOR =
+      HardwareMeasurementType.HYPERVISOR.toString().toUpperCase();
 
   private final SubscriptionMeasurementRepository repository;
   private final SubscriptionRepository subscriptionRepository;
@@ -261,10 +263,20 @@ public class CapacityResource implements CapacityApi {
       throw new BadRequestException(e.getMessage());
     }
 
+    var dbReportCriteria =
+        DbReportCriteria.builder()
+            .orgId(orgId)
+            .productId(productId.toString())
+            .serviceLevel(sla)
+            .usage(usage)
+            .beginning(reportBegin)
+            .ending(reportEnd)
+            .build();
+
     List<SubscriptionMeasurement> matches =
         repository.findAllBy(orgId, productId.toString(), sla, usage, reportBegin, reportEnd);
-    boolean hasInfiniteQuantity =
-        subscriptionHasInfiniteQuantity(orgId, productId, sla, usage, reportBegin, reportEnd);
+    List<Subscription> unlimitedSubscriptions =
+        subscriptionRepository.findUnlimited(dbReportCriteria);
 
     SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
 
@@ -277,12 +289,22 @@ public class CapacityResource implements CapacityApi {
 
     while (next.isBefore(end) || next.isEqual(end)) {
       CapacitySnapshot capacitySnapshot = createCapacitySnapshot(next, matches);
-      capacitySnapshot.setHasInfiniteQuantity(hasInfiniteQuantity);
+      capacitySnapshot.setHasInfiniteQuantity(hasInfiniteQuantity(next, unlimitedSubscriptions));
       result.add(capacitySnapshot);
       next = timeAdjuster.adjustToPeriodStart(next.plus(offset));
     }
 
     return result;
+  }
+
+  private boolean hasInfiniteQuantity(
+      OffsetDateTime date, List<Subscription> unlimitedSubscriptions) {
+    for (Subscription subscription : unlimitedSubscriptions) {
+      if (subscription.getStartDate().isBefore(date) && subscription.getEndDate().isAfter(date)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @SuppressWarnings("java:S107")
@@ -307,6 +329,16 @@ public class CapacityResource implements CapacityApi {
       throw new BadRequestException(e.getMessage());
     }
 
+    var dbReportCriteria =
+        DbReportCriteria.builder()
+            .orgId(orgId)
+            .productId(productId.toString())
+            .serviceLevel(sla)
+            .usage(usage)
+            .beginning(reportBegin)
+            .ending(reportEnd)
+            .build();
+
     List<SubscriptionMeasurement> matches =
         repository.findAllBy(
             orgId,
@@ -317,8 +349,8 @@ public class CapacityResource implements CapacityApi {
             usage,
             reportBegin,
             reportEnd);
-    boolean hasInfiniteQuantity =
-        subscriptionHasInfiniteQuantity(orgId, productId, sla, usage, reportBegin, reportEnd);
+    List<Subscription> unlimitedSubscriptions =
+        subscriptionRepository.findUnlimited(dbReportCriteria);
 
     SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
 
@@ -333,31 +365,12 @@ public class CapacityResource implements CapacityApi {
       CapacitySnapshotByMetricId snapshot =
           createCapacitySnapshotWithMetricId(
               next, matches, metricId, Optional.ofNullable(hypervisorReportCategory));
-      snapshot.setHasInfiniteQuantity(hasInfiniteQuantity);
+      snapshot.setHasInfiniteQuantity(hasInfiniteQuantity(next, unlimitedSubscriptions));
       result.add(snapshot);
       next = timeAdjuster.adjustToPeriodStart(next.plus(offset));
     }
 
     return result;
-  }
-
-  private boolean subscriptionHasInfiniteQuantity(
-      String orgId,
-      ProductId productId,
-      ServiceLevel sla,
-      Usage usage,
-      OffsetDateTime reportBegin,
-      OffsetDateTime reportEnd) {
-    var criteria =
-        DbReportCriteria.builder()
-            .orgId(orgId)
-            .productId(productId.toString())
-            .serviceLevel(sla)
-            .usage(usage)
-            .beginning(reportBegin)
-            .ending(reportEnd)
-            .build();
-    return subscriptionRepository.hasUnlimited(criteria);
   }
 
   private <T> List<T> paginate(List<T> capacities, Pageable pageable) {
