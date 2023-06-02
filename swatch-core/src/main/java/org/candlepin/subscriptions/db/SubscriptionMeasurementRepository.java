@@ -24,6 +24,10 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import javax.persistence.criteria.From;
+import javax.persistence.criteria.Join;
+import javax.persistence.metamodel.SetAttribute;
+import javax.persistence.metamodel.SingularAttribute;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.Offering_;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -83,8 +87,10 @@ public interface SubscriptionMeasurementRepository
   static Specification<SubscriptionMeasurement> orgAndProductEquals(
       String orgId, String productId) {
     return (root, query, builder) -> {
-      var subscriptionRoot = root.join(SubscriptionMeasurement_.subscription);
-      var productIdRoot = subscriptionRoot.join(Subscription_.subscriptionProductIds);
+      var subscriptionRoot = fetchJoin(root, SubscriptionMeasurement_.subscription, "subscription");
+      var productIdRoot =
+          fetchJoin(
+              subscriptionRoot, Subscription_.subscriptionProductIds, "subscriptionProductIds");
       return builder.and(
           builder.equal(subscriptionRoot.get(Subscription_.orgId), orgId),
           builder.equal(productIdRoot.get(SubscriptionProductId_.productId), productId));
@@ -127,7 +133,7 @@ public interface SubscriptionMeasurementRepository
       OffsetDateTime reportStart, OffsetDateTime reportEnd) {
     return (root, query, builder) -> {
       var p = builder.conjunction();
-      var subscriptionRoot = root.join(SubscriptionMeasurement_.subscription);
+      var subscriptionRoot = fetchJoin(root, SubscriptionMeasurement_.subscription, "subscription");
       if (Objects.nonNull(reportEnd)) {
         p.getExpressions()
             .add(
@@ -147,7 +153,7 @@ public interface SubscriptionMeasurementRepository
   static Specification<SubscriptionMeasurement> slaEquals(ServiceLevel sla) {
     return (root, query, builder) -> {
       var offeringRoot = query.from(Offering.class);
-      var subscriptionRoot = root.join(SubscriptionMeasurement_.subscription);
+      var subscriptionRoot = fetchJoin(root, SubscriptionMeasurement_.subscription, "subscription");
       return builder.and(
           builder.equal(subscriptionRoot.get(Subscription_.sku), offeringRoot.get(Offering_.sku)),
           builder.equal(offeringRoot.get(Offering_.serviceLevel), sla));
@@ -157,7 +163,7 @@ public interface SubscriptionMeasurementRepository
   static Specification<SubscriptionMeasurement> usageEquals(Usage usage) {
     return (root, query, builder) -> {
       var offeringRoot = query.from(Offering.class);
-      var subscriptionRoot = root.join(SubscriptionMeasurement_.subscription);
+      var subscriptionRoot = fetchJoin(root, SubscriptionMeasurement_.subscription, "subscription");
       return builder.and(
           builder.equal(subscriptionRoot.get(Subscription_.sku), offeringRoot.get(Offering_.sku)),
           builder.equal(offeringRoot.get(Offering_.usage), usage));
@@ -178,7 +184,7 @@ public interface SubscriptionMeasurementRepository
       HypervisorReportCategory hypervisorReportCategory, String attribute) {
     return (root, query, builder) -> {
       // Note this is a *disjunction* (i.e. an "or" operation)
-      var subscriptionRoot = root.join(SubscriptionMeasurement_.subscription);
+      var subscriptionRoot = fetchJoin(root, SubscriptionMeasurement_.subscription, "subscription");
       var metricPredicate = builder.disjunction();
       metricPredicate
           .getExpressions()
@@ -211,6 +217,34 @@ public interface SubscriptionMeasurementRepository
 
       return metricPredicate;
     };
+  }
+
+  private static <F, T> Join<F, T> fetchJoin(
+      From<F, F> root, SingularAttribute<F, T> attribute, String alias) {
+    var existing =
+        root.getJoins().stream().filter(join -> Objects.equals(join.getAlias(), alias)).findFirst();
+    return existing
+        .map(join -> (Join<F, T>) join)
+        .orElseGet(
+            () -> {
+              var join = (Join<F, T>) root.fetch(attribute);
+              join.alias(alias);
+              return join;
+            });
+  }
+
+  private static <F, T> Join<F, T> fetchJoin(
+      From<?, F> root, SetAttribute<F, T> attribute, String alias) {
+    var existing =
+        root.getJoins().stream().filter(join -> Objects.equals(join.getAlias(), alias)).findFirst();
+    return existing
+        .map(join -> (Join<F, T>) join)
+        .orElseGet(
+            () -> {
+              var join = (Join<F, T>) root.fetch(attribute);
+              join.alias(alias);
+              return join;
+            });
   }
 
   @SuppressWarnings("java:S107")
