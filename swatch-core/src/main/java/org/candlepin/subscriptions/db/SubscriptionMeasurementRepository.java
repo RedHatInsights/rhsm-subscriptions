@@ -45,6 +45,7 @@ public interface SubscriptionMeasurementRepository
 
   String CORES = MetricId.CORES.toString().toUpperCase();
   String SOCKETS = MetricId.SOCKETS.toString().toUpperCase();
+  String SUBSCRIPTION_ALIAS = "subscription";
 
   @SuppressWarnings("java:S107")
   default List<SubscriptionMeasurement> findAllBy(
@@ -83,7 +84,8 @@ public interface SubscriptionMeasurementRepository
   static Specification<SubscriptionMeasurement> orgAndProductEquals(
       String orgId, String productId) {
     return (root, query, builder) -> {
-      var subscriptionRoot = fetchJoin(root, SubscriptionMeasurement_.subscription, "subscription");
+      var subscriptionRoot =
+          fetchJoin(root, SubscriptionMeasurement_.subscription, SUBSCRIPTION_ALIAS);
       var productIdRoot =
           fetchJoin(
               subscriptionRoot, Subscription_.subscriptionProductIds, "subscriptionProductIds");
@@ -129,7 +131,8 @@ public interface SubscriptionMeasurementRepository
       OffsetDateTime reportStart, OffsetDateTime reportEnd) {
     return (root, query, builder) -> {
       var p = builder.conjunction();
-      var subscriptionRoot = fetchJoin(root, SubscriptionMeasurement_.subscription, "subscription");
+      var subscriptionRoot =
+          fetchJoin(root, SubscriptionMeasurement_.subscription, SUBSCRIPTION_ALIAS);
       if (Objects.nonNull(reportEnd)) {
         p.getExpressions()
             .add(
@@ -149,7 +152,8 @@ public interface SubscriptionMeasurementRepository
   static Specification<SubscriptionMeasurement> slaEquals(ServiceLevel sla) {
     return (root, query, builder) -> {
       var offeringRoot = query.from(Offering.class);
-      var subscriptionRoot = fetchJoin(root, SubscriptionMeasurement_.subscription, "subscription");
+      var subscriptionRoot =
+          fetchJoin(root, SubscriptionMeasurement_.subscription, SUBSCRIPTION_ALIAS);
       return builder.and(
           builder.equal(subscriptionRoot.get(Subscription_.sku), offeringRoot.get(Offering_.sku)),
           builder.equal(offeringRoot.get(Offering_.serviceLevel), sla));
@@ -159,7 +163,8 @@ public interface SubscriptionMeasurementRepository
   static Specification<SubscriptionMeasurement> usageEquals(Usage usage) {
     return (root, query, builder) -> {
       var offeringRoot = query.from(Offering.class);
-      var subscriptionRoot = fetchJoin(root, SubscriptionMeasurement_.subscription, "subscription");
+      var subscriptionRoot =
+          fetchJoin(root, SubscriptionMeasurement_.subscription, SUBSCRIPTION_ALIAS);
       return builder.and(
           builder.equal(subscriptionRoot.get(Subscription_.sku), offeringRoot.get(Offering_.sku)),
           builder.equal(offeringRoot.get(Offering_.usage), usage));
