@@ -86,7 +86,7 @@ public class InternalMeteringResource implements InternalApi {
         OffsetDateTime.now().truncatedTo(ChronoUnit.DAYS).minus(eventRetentionDuration);
 
     log.info("Purging event records older than {}", cutoffDate);
-    eventRecordRepository.deleteEventRecordsByTimestampBefore(cutoffDate);
+    eventRecordRepository.deleteInBulkEventRecordsByTimestampBefore(cutoffDate);
     log.info("Event record purge completed successfully");
   }
 
