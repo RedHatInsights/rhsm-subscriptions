@@ -1032,19 +1032,17 @@ class HostRepositoryTest {
   @ParameterizedTest
   @CsvSource({"'',3", "banana,1", "rang,1", "an,2", "celery,0"})
   void testDisplayNameFilter(String displayNameSubstring, Integer expectedResults) {
-
-    String inventoryId = "INV";
     String acctNumber = "ACCT";
 
-    Host host0 = createHost(inventoryId, acctNumber);
+    Host host0 = createHost("INV1", acctNumber);
     host0.setDisplayName("oranges");
     addBucketToHost(host0, RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION);
 
-    Host host1 = createHost(inventoryId, acctNumber);
+    Host host1 = createHost("INV2", acctNumber);
     host1.setDisplayName("kiwi");
     addBucketToHost(host1, RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION);
 
-    Host host2 = createHost(inventoryId, acctNumber);
+    Host host2 = createHost("INV3", acctNumber);
     host2.setDisplayName("banana");
     addBucketToHost(host2, RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION);
 
