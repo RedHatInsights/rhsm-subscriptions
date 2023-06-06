@@ -259,11 +259,64 @@ class KafkaEnabledInventoryServiceTest {
         "Unexpected minor version");
   }
 
+  @ParameterizedTest
+  @MethodSource("osNullableVersions")
+  void testHandleEmptyOrNonFormatOsVersion(String version) {
+    ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<CreateUpdateHostMessage> messageCaptor =
+        ArgumentCaptor.forClass(CreateUpdateHostMessage.class);
+
+    when(producer.send(topicCaptor.capture(), messageCaptor.capture())).thenReturn(null);
+
+    ConduitFacts expectedFacts = new ConduitFacts();
+    expectedFacts.setFqdn("my_fqdn");
+    expectedFacts.setAccountNumber("my_account");
+    expectedFacts.setOrgId("my_org");
+    expectedFacts.setCpuCores(25);
+    expectedFacts.setCpuSockets(45);
+    expectedFacts.setOsName("Red Hat Enterprise Linux Workstation");
+    expectedFacts.setOsVersion(version);
+
+    InventoryServiceProperties props = new InventoryServiceProperties();
+    props.setKafkaHostIngressTopic("placeholder");
+    KafkaEnabledInventoryService service =
+        new KafkaEnabledInventoryService(props, producer, meterRegistry, retryTemplate);
+    service.sendHostUpdate(Arrays.asList(expectedFacts));
+
+    assertEquals(props.getKafkaHostIngressTopic(), topicCaptor.getValue());
+
+    CreateUpdateHostMessage message = messageCaptor.getValue();
+    assertNotNull(message);
+    assertEquals("add_host", message.getOperation());
+    assertEquals(expectedFacts.getAccountNumber(), message.getData().getAccount());
+    assertEquals(expectedFacts.getFqdn(), message.getData().getFqdn());
+
+    assertNotNull(message.getData().getFacts());
+    assertEquals(1, message.getData().getFacts().size());
+    HbiFactSet rhsm = message.getData().getFacts().get(0);
+    assertEquals("rhsm", rhsm.getNamespace());
+
+    Map<String, Object> rhsmFacts = (Map<String, Object>) rhsm.getFacts();
+    assertEquals(expectedFacts.getOrgId(), (String) rhsmFacts.get("orgId"));
+
+    OffsetDateTime syncDate = (OffsetDateTime) rhsmFacts.get("SYNC_TIMESTAMP");
+    assertNotNull(syncDate);
+    assertEquals(syncDate, message.getData().getStaleTimestamp());
+    assertEquals("rhsm-conduit", message.getData().getReporter());
+    assertEquals(version, message.getData().getSystemProfile().getOsRelease());
+    assertNull(message.getData().getSystemProfile().getOperatingSystem());
+  }
+
   static Stream<Arguments> osReleases() {
     return Stream.of(
         Arguments.of("11.54.3.4", 11, 54),
         Arguments.of("11.54.3", 11, 54),
         Arguments.of("5.14", 5, 14),
         Arguments.of("6", 6, 0));
+  }
+
+  static Stream<Arguments> osNullableVersions() {
+    return Stream.of(
+        Arguments.of(""), Arguments.of("5-0"), Arguments.of("unknown"), Arguments.of("7server"));
   }
 }
