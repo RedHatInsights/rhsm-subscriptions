@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.redhat.swatch.contract.PathUtils;
 import io.smallrye.openapi.runtime.io.Format;
 import io.smallrye.openapi.runtime.io.OpenApiParser;
 import java.io.IOException;
@@ -57,7 +58,8 @@ class ConsumerApiSpecEqualityTest {
 
   private static OpenAPI loadOpenApiDefinition(String path) {
     try {
-      return OpenApiParser.parse(Files.newInputStream(Paths.get(path)), Format.YAML);
+      return OpenApiParser.parse(
+          Files.newInputStream(Paths.get(PathUtils.PROJECT_DIRECTORY, path)), Format.YAML);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
