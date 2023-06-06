@@ -25,6 +25,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -82,9 +83,18 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
   /**
    * Delete old event records given a cutoff date
    *
-   * @param cutoffDate Dates BEFORE this timestamp get deleted
+   * <p>By default, a derived delete query will return instances matching the where clause prior to
+   * deleting the entities one at a time. This was too memory intensive. Since we're not concerned
+   * with invoking any lifecycle callbacks, we can override the behavior with @query to delete all
+   * matching records in bulk. See the <a
+   * href="https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#jpa.modifying-queries.derived-delete">Spring
+   * Data documentation</a> on deletion.
+   *
+   * @param cutoffDate Dates before this timestamp get deleted
    */
-  void deleteEventRecordsByTimestampBefore(OffsetDateTime cutoffDate);
+  @Modifying
+  @Query("DELETE FROM EventRecord e WHERE e.timestamp<:cutoffDate")
+  void deleteInBulkEventRecordsByTimestampBefore(OffsetDateTime cutoffDate);
 
   /**
    * Check if any Events exist for the specified org and service type during the specified range.

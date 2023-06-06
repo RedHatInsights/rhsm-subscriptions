@@ -296,7 +296,7 @@ public class InstancesResource implements InstancesApi {
   private static CloudProvider getCloudProviderByMeasurementType(
       HardwareMeasurementType measurementType) {
     return switch (measurementType) {
-      case AWS, AWS_CLOUDIGRADE -> CloudProvider.AWS;
+      case AWS -> CloudProvider.AWS;
       case GOOGLE -> CloudProvider.GCP;
       case ALIBABA -> CloudProvider.ALIBABA;
       case AZURE -> CloudProvider.AZURE;

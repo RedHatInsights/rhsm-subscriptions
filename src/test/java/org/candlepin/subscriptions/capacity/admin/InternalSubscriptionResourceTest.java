@@ -34,15 +34,18 @@ import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 import javax.ws.rs.NotFoundException;
+import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
+import org.candlepin.subscriptions.product.OfferingSyncController;
 import org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFilterModifyingConfigurer;
 import org.candlepin.subscriptions.security.SecurityProperties;
 import org.candlepin.subscriptions.security.WithMockPskPrincipal;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
+import org.candlepin.subscriptions.subscription.SubscriptionPruneController;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.candlepin.subscriptions.utilization.admin.api.model.AwsUsageContext;
 import org.candlepin.subscriptions.utilization.admin.api.model.RhmUsageContext;
@@ -62,6 +65,11 @@ import org.springframework.web.context.WebApplicationContext;
 @ActiveProfiles({"capacity-ingress", "test"})
 class InternalSubscriptionResourceTest {
   @MockBean SubscriptionSyncController syncController;
+  @MockBean SubscriptionPruneController subscriptionPruneController;
+
+  @MockBean OfferingSyncController offeringSync;
+
+  @MockBean CapacityReconciliationController capacityReconciliationController;
   @Autowired SecurityProperties properties;
   @Autowired WebApplicationContext context;
   @Autowired InternalSubscriptionResource resource;
@@ -91,7 +99,13 @@ class InternalSubscriptionResourceTest {
   void incrementsMissingCounter_WhenAccounNumberPresent() {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(meterRegistry, syncController, properties);
+        new InternalSubscriptionResource(
+            meterRegistry,
+            syncController,
+            properties,
+            subscriptionPruneController,
+            offeringSync,
+            capacityReconciliationController);
     when(syncController.findSubscriptionsAndSyncIfNeeded(
             any(), any(), any(), any(), any(), anyBoolean()))
         .thenReturn(Collections.emptyList());
@@ -108,7 +122,13 @@ class InternalSubscriptionResourceTest {
   void incrementsMissingCounter_WhenOrgIdPresent() {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(meterRegistry, syncController, properties);
+        new InternalSubscriptionResource(
+            meterRegistry,
+            syncController,
+            properties,
+            subscriptionPruneController,
+            offeringSync,
+            capacityReconciliationController);
     when(syncController.findSubscriptionsAndSyncIfNeeded(
             any(), any(), any(), any(), any(), anyBoolean()))
         .thenReturn(Collections.emptyList());
@@ -125,7 +145,13 @@ class InternalSubscriptionResourceTest {
   void incrementsAmbiguousCounter_WhenAccounNumberPresent() {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(meterRegistry, syncController, properties);
+        new InternalSubscriptionResource(
+            meterRegistry,
+            syncController,
+            properties,
+            subscriptionPruneController,
+            offeringSync,
+            capacityReconciliationController);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
     sub1.setEndDate(defaultEndDate);
@@ -149,7 +175,13 @@ class InternalSubscriptionResourceTest {
   void incrementsAmbiguousCounter_WhenOrgIdPresent() {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(meterRegistry, syncController, properties);
+        new InternalSubscriptionResource(
+            meterRegistry,
+            syncController,
+            properties,
+            subscriptionPruneController,
+            offeringSync,
+            capacityReconciliationController);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
     sub1.setEndDate(defaultEndDate);
@@ -173,7 +205,13 @@ class InternalSubscriptionResourceTest {
   void shouldThrowSubscriptionsExceptionForTerminatedSubscription_WhenAccounNumberPresent() {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(meterRegistry, syncController, properties);
+        new InternalSubscriptionResource(
+            meterRegistry,
+            syncController,
+            properties,
+            subscriptionPruneController,
+            offeringSync,
+            capacityReconciliationController);
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
@@ -200,7 +238,13 @@ class InternalSubscriptionResourceTest {
   void shouldThrowSubscriptionsExceptionForTerminatedSubscription_WhenOrgIdPresent() {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(meterRegistry, syncController, properties);
+        new InternalSubscriptionResource(
+            meterRegistry,
+            syncController,
+            properties,
+            subscriptionPruneController,
+            offeringSync,
+            capacityReconciliationController);
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
@@ -227,7 +271,13 @@ class InternalSubscriptionResourceTest {
   void shouldReturnActiveSubscriptionAndNotTerminated_WhenAccounNumberPresent() {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(meterRegistry, syncController, properties);
+        new InternalSubscriptionResource(
+            meterRegistry,
+            syncController,
+            properties,
+            subscriptionPruneController,
+            offeringSync,
+            capacityReconciliationController);
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
@@ -251,7 +301,13 @@ class InternalSubscriptionResourceTest {
   void shouldReturnActiveSubscriptionAndNotTerminated_WhenOrgIdPresent() {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(meterRegistry, syncController, properties);
+        new InternalSubscriptionResource(
+            meterRegistry,
+            syncController,
+            properties,
+            subscriptionPruneController,
+            offeringSync,
+            capacityReconciliationController);
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
@@ -302,7 +358,13 @@ class InternalSubscriptionResourceTest {
   void incrementsRhmMissingSubscriptionsCounter() {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(meterRegistry, syncController, properties);
+        new InternalSubscriptionResource(
+            meterRegistry,
+            syncController,
+            properties,
+            subscriptionPruneController,
+            offeringSync,
+            capacityReconciliationController);
 
     when(syncController.findSubscriptionsAndSyncIfNeeded(
             any(), any(), any(), any(), any(), anyBoolean()))
@@ -325,7 +387,13 @@ class InternalSubscriptionResourceTest {
   void incrementsRhmAmbiguousSubscriptionsCounter() {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(meterRegistry, syncController, properties);
+        new InternalSubscriptionResource(
+            meterRegistry,
+            syncController,
+            properties,
+            subscriptionPruneController,
+            offeringSync,
+            capacityReconciliationController);
 
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("account123");

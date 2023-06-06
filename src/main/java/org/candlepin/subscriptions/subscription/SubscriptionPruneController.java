@@ -64,6 +64,7 @@ public class SubscriptionPruneController {
     this.pruneSubscriptionsByOrgTaskKafkaTemplate = pruneSubscriptionsByOrgTaskKafkaTemplate;
   }
 
+  @Transactional
   public void pruneAllUnlistedSubscriptions() {
     Timer.Sample enqueueAllTime = Timer.start();
     orgRepository.findSyncEnabledOrgs().forEach(this::enqueueSubscriptionPrune);

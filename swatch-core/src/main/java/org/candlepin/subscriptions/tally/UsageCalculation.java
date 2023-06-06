@@ -36,15 +36,12 @@ import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The calculated usage for a key where key is (productId, sla, usage, billingProvider, and
  * billingAccountId).
  */
 public class UsageCalculation {
-  private static final Logger log = LoggerFactory.getLogger(UsageCalculation.class);
 
   private final Key key;
 
@@ -135,19 +132,6 @@ public class UsageCalculation {
   }
 
   public void add(HardwareMeasurementType type, Measurement.Uom uom, Double value) {
-    if (type == HardwareMeasurementType.AWS_CLOUDIGRADE
-        && mappedTotals.containsKey(HardwareMeasurementType.AWS)) {
-      if (uom == Uom.INSTANCES) {
-        double awsInstances = getTotals(HardwareMeasurementType.AWS).getMeasurement(Uom.INSTANCES);
-        if (awsInstances != value) {
-          log.warn("AWS totals differ by source; HBI: {} vs. cloudigrade: {}", awsInstances, value);
-        }
-      }
-
-      // if both HBI and cloudigrade have info about this calculation, we need to undo any
-      // contribution towards total the HBI AWS measurements had
-      addToTotal(uom, mappedTotals.get(HardwareMeasurementType.AWS).getMeasurement(uom) * -1);
-    }
     increment(type, uom, value);
     if (type != HardwareMeasurementType.TOTAL) {
       addToTotal(uom, value);
@@ -195,10 +179,6 @@ public class UsageCalculation {
           String.format("%s is not a supported cloud provider type.", cloudType));
     }
     add(cloudType, cores, sockets, instances);
-  }
-
-  public void addCloudigrade(HardwareMeasurementType cloudType, int count) {
-    add(cloudType, 0, count, count);
   }
 
   private void increment(HardwareMeasurementType type, Measurement.Uom uom, Double value) {

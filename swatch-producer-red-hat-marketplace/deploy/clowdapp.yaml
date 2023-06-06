@@ -4,6 +4,9 @@ kind: Template
 metadata:
   name: swatch-producer-red-hat-marketplace
 parameters:
+  - name: JAVA_DEBUG
+    # Set to "true" to enable remote debugging
+    value: ''
   - name: HAWTIO_BASE_PATH
     value: /app/rhsm-rh-marketplace/hawtio
   - name: SERVER_MAX_HTTP_HEADER_SIZE
@@ -173,6 +176,8 @@ objects:
           image: ${IMAGE}:${IMAGE_TAG}
           initContainers:
             - env:
+                - name: JAVA_DEBUG
+                  value: ${JAVA_DEBUG}
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
               inheritEnv: true

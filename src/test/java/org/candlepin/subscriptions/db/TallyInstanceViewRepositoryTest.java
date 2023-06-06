@@ -544,15 +544,6 @@ class TallyInstanceViewRepositoryTest {
         HardwareMeasurementType.GOOGLE,
         BillingProvider.RED_HAT);
 
-    Host host4 = createHost(UUID.randomUUID().toString(), "a1");
-    addBucketToHost(
-        host4,
-        COOL_PROD,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        HardwareMeasurementType.AWS_CLOUDIGRADE,
-        BillingProvider.RED_HAT);
-
     Host host5 = createHost(UUID.randomUUID().toString(), "a1");
     addBucketToHost(
         host5,
@@ -562,7 +553,7 @@ class TallyInstanceViewRepositoryTest {
         HardwareMeasurementType.PHYSICAL,
         BillingProvider.RED_HAT);
 
-    persistHosts(host1, host2, host3, host4, host5);
+    persistHosts(host1, host2, host3, host5);
 
     InstanceReportSort sort = InstanceReportSort.CORES;
     String sortValue = InstancesResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
@@ -583,7 +574,7 @@ class TallyInstanceViewRepositoryTest {
             "_ANY",
             HardwareMeasurementType.getCloudProviderTypes(),
             page);
-    assertEquals(4L, results.getTotalElements());
+    assertEquals(3L, results.getTotalElements());
     Map<String, TallyInstanceView> hostToBill =
         results.stream()
             .collect(
@@ -593,10 +584,7 @@ class TallyInstanceViewRepositoryTest {
             .keySet()
             .containsAll(
                 Arrays.asList(
-                    host1.getInstanceId(),
-                    host2.getInstanceId(),
-                    host3.getInstanceId(),
-                    host4.getInstanceId())));
+                    host1.getInstanceId(), host2.getInstanceId(), host3.getInstanceId())));
   }
 
   private Host createHost(String inventoryId, String account) {

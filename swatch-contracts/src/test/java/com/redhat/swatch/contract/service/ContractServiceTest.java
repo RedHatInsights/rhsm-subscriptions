@@ -130,22 +130,6 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
-  void testUpdateContractEndDate() {
-
-    when(contractRepository.findContract(any())).thenReturn(actualContract1);
-
-    var now = OffsetDateTime.now();
-
-    UUID uuid = actualContract1.getUuid();
-
-    var expected = now;
-    var actual = contractService.updateContractEndDate(uuid.toString(), now).get().getEndDate();
-
-    verify(contractRepository, times(1)).findContract(uuid);
-    assertEquals(expected, actual);
-  }
-
-  @Test
   void createPartnerContract_WhenNonNullEntityAndContractNotFoundInDB() {
     var contract = new PartnerEntitlementContract();
     contract.setRedHatSubscriptionNumber("12400374");

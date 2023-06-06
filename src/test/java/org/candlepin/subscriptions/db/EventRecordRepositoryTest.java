@@ -222,7 +222,7 @@ class EventRecordRepositoryTest {
 
     repository.saveAll(List.of(event, event2));
 
-    repository.deleteEventRecordsByTimestampBefore(now.minusDays(30L));
+    repository.deleteInBulkEventRecordsByTimestampBefore(now.minusDays(30L));
 
     var results = repository.findAll();
 

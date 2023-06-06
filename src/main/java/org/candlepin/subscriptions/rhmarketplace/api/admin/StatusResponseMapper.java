@@ -18,16 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.cloudigrade;
+package org.candlepin.subscriptions.rhmarketplace.api.admin;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import org.candlepin.subscriptions.http.HttpClientProperties;
+import org.mapstruct.Mapper;
+import org.mapstruct.ReportingPolicy;
 
-@Data
-@ToString(callSuper = true)
-@EqualsAndHashCode(callSuper = true)
-public class CloudigradeServiceProperties extends HttpClientProperties {
-  @ToString.Exclude private String presharedKey;
+// We have to ignore the mappings for two methods tht the jax-rs generator creates which the java
+// generator skips
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+public interface StatusResponseMapper {
+  org.candlepin.subscriptions.rhmarketplace.admin.api.model.StatusResponse clientToApi(
+      org.candlepin.subscriptions.rhmarketplace.api.model.StatusResponse response);
 }

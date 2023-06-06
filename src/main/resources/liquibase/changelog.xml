@@ -101,7 +101,8 @@
     <include file="liquibase/202212161446-add-derived-sku-to-offering.xml"/>
     <include file="liquibase/202301311609-update-tally-instance-view-default-num-of-guest-add-subscription_manager_id.xml"/>
     <include file="liquibase/202302141154-add-basilisk-product.xml"/>
-    <include file="liquibase/202302151544-remove-uuid-cast-on-instance-id-in-tally-instance-view.xml"/>
+    <include file="/liquibase/202302151544-remove-uuid-cast-on-instance-id-in-tally-instance-view.xml"/>
+    <include file="/liquibase/202305231247-update-host-pk-for-dup-violation.xml"/>
     <include file="liquibase/202305031403-create-subscription-measurements-table.xml"/>
     <!-- Uncomment once subscription-measurements has been verified -->
     <!-- <include file="liquibase/202305251412-drop-subscription-capacity-table.xml"/> -->

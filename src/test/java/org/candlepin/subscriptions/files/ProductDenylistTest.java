@@ -23,13 +23,20 @@ package org.candlepin.subscriptions.files;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.core.io.FileSystemResourceLoader;
 
 class ProductDenylistTest {
+
+  public static Stream<String> getSkusWithSuffixes() {
+    return ProductDenylist.getSuffixes().stream().map(suffix -> "I1" + suffix);
+  }
 
   @Test
   void testUnspecifiedLocationAllowsArbitraryProducts() throws IOException {
@@ -45,6 +52,13 @@ class ProductDenylistTest {
     assertTrue(denylist.productIdMatches("I3"));
     assertFalse(denylist.productIdMatches("I111"));
     assertFalse(denylist.productIdMatches("I112"));
+  }
+
+  @ParameterizedTest
+  @MethodSource("getSkusWithSuffixes")
+  void testConsidersAllSuffixes(String sku) {
+    ProductDenylist denylist = initProductDenylist("classpath:item_per_line.txt");
+    assertTrue(denylist.productIdMatches(sku));
   }
 
   private ProductDenylist initProductDenylist(String resourceLocation) {
