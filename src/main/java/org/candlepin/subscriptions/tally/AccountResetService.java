@@ -25,7 +25,6 @@ import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.HostRepository;
-import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +37,6 @@ public class AccountResetService {
   private final HostRepository hostRepo;
   private final TallySnapshotRepository tallySnapshotRepository;
   private final AccountServiceInventoryRepository accountServiceInventoryRepository;
-  private final SubscriptionCapacityRepository subscriptionCapacityRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final BillableUsageRemittanceRepository remittanceRepository;
 
@@ -48,27 +46,23 @@ public class AccountResetService {
       HostRepository hostRepo,
       TallySnapshotRepository tallySnapshotRepository,
       AccountServiceInventoryRepository accountServiceInventoryRepository,
-      SubscriptionCapacityRepository subscriptionCapacityRepository,
       SubscriptionRepository subscriptionRepository,
       BillableUsageRemittanceRepository remittanceRepository) {
     this.eventRecordRepo = eventRecordRepo;
     this.hostRepo = hostRepo;
     this.tallySnapshotRepository = tallySnapshotRepository;
     this.accountServiceInventoryRepository = accountServiceInventoryRepository;
-    this.subscriptionCapacityRepository = subscriptionCapacityRepository;
     this.subscriptionRepository = subscriptionRepository;
     this.remittanceRepository = remittanceRepository;
   }
 
   @Transactional
   public void deleteDataForOrg(String orgId) {
-
     accountServiceInventoryRepository.deleteByIdOrgId(orgId);
     hostRepo.deleteByOrgId(orgId);
     eventRecordRepo.deleteByOrgId(orgId);
     tallySnapshotRepository.deleteByOrgId(orgId);
     subscriptionRepository.deleteByOrgId(orgId);
-    subscriptionCapacityRepository.deleteByKeyOrgId(orgId);
     remittanceRepository.deleteByKeyOrgId(orgId);
   }
 }

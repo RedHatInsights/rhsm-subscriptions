@@ -20,28 +20,27 @@
  */
 package org.candlepin.subscriptions.capacity;
 
-import static org.candlepin.subscriptions.db.model.SubscriptionCapacity.from;
-
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.OfferingRepository;
-import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacityKey;
+import org.candlepin.subscriptions.db.model.Subscription.SubscriptionCompoundId;
+import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
+import org.candlepin.subscriptions.db.model.SubscriptionMeasurement.SubscriptionMeasurementKey;
+import org.candlepin.subscriptions.db.model.SubscriptionProductId;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
+import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
@@ -52,19 +51,20 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 public class CapacityReconciliationController {
+  private static final String SOCKETS = MetricId.SOCKETS.toString().toUpperCase();
+  private static final String CORES = MetricId.CORES.toString().toUpperCase();
 
   private final OfferingRepository offeringRepository;
   private final SubscriptionRepository subscriptionRepository;
-  private KafkaTemplate<String, ReconcileCapacityByOfferingTask>
+  private final KafkaTemplate<String, ReconcileCapacityByOfferingTask>
       reconcileCapacityByOfferingKafkaTemplate;
   private final ProductDenylist productDenylist;
   private final CapacityProductExtractor productExtractor;
-  private final SubscriptionCapacityRepository subscriptionCapacityRepository;
 
-  private final Counter capacityRecordsCreated;
-  private final Counter capacityRecordsUpdated;
-  private final Counter capacityRecordsDeleted;
-  private String reconcileCapacityTopic;
+  private final Counter measurementsCreated;
+  private final Counter measurementsUpdated;
+  private final Counter measurementsDeleted;
+  private final String reconcileCapacityTopic;
 
   @Autowired
   public CapacityReconciliationController(
@@ -72,7 +72,6 @@ public class CapacityReconciliationController {
       SubscriptionRepository subscriptionRepository,
       ProductDenylist productDenylist,
       CapacityProductExtractor productExtractor,
-      SubscriptionCapacityRepository subscriptionCapacityRepository,
       MeterRegistry meterRegistry,
       KafkaTemplate<String, ReconcileCapacityByOfferingTask>
           reconcileCapacityByOfferingKafkaTemplate,
@@ -81,28 +80,31 @@ public class CapacityReconciliationController {
     this.subscriptionRepository = subscriptionRepository;
     this.productDenylist = productDenylist;
     this.productExtractor = productExtractor;
-    this.subscriptionCapacityRepository = subscriptionCapacityRepository;
     this.reconcileCapacityByOfferingKafkaTemplate = reconcileCapacityByOfferingKafkaTemplate;
     this.reconcileCapacityTopic = props.getTopic();
-    capacityRecordsCreated = meterRegistry.counter("rhsm-subscriptions.capacity.records_created");
-    capacityRecordsUpdated = meterRegistry.counter("rhsm-subscriptions.capacity.records_updated");
-    capacityRecordsDeleted = meterRegistry.counter("rhsm-subscriptions.capacity.records_deleted");
+    measurementsCreated = meterRegistry.counter("rhsm-subscriptions.capacity.measurements_created");
+    measurementsUpdated = meterRegistry.counter("rhsm-subscriptions.capacity.measurements_updated");
+    measurementsDeleted = meterRegistry.counter("rhsm-subscriptions.capacity.measurements_deleted");
   }
 
   @Transactional
   public void reconcileCapacityForSubscription(Subscription subscription) {
-
-    Collection<SubscriptionCapacity> newCapacities = mapSubscriptionToCapacities(subscription);
-    reconcileSubscriptionCapacities(
-        newCapacities,
-        subscription.getOrgId(),
-        subscription.getSubscriptionId(),
-        subscription.getSku());
+    var optionalOffering =
+        Optional.of(subscription.getSku())
+            .filter(sku -> !productDenylist.productIdMatches(sku))
+            .flatMap(offeringRepository::findById);
+    if (optionalOffering.isEmpty()) {
+      subscription.getSubscriptionMeasurements().clear();
+      subscription.getSubscriptionProductIds().clear();
+      return;
+    }
+    reconcileSubscriptionCapacities(subscription, optionalOffering.get());
+    reconcileSubscriptionProductIds(subscription, optionalOffering.get());
+    subscriptionRepository.save(subscription);
   }
 
   @Transactional
   public void reconcileCapacityForOffering(String sku, int offset, int limit) {
-
     Page<Subscription> subscriptions =
         subscriptionRepository.findBySku(
             sku, ResourceUtils.getPageable(offset, limit, Sort.by("subscriptionId")));
@@ -121,54 +123,95 @@ public class CapacityReconciliationController {
         ReconcileCapacityByOfferingTask.builder().sku(sku).offset(0).limit(100).build());
   }
 
-  private Collection<SubscriptionCapacity> mapSubscriptionToCapacities(Subscription subscription) {
-    var optionalOffering = offeringRepository.findById(subscription.getSku());
-    if (optionalOffering.isEmpty()) {
-      return Collections.emptyList();
+  private void reconcileSubscriptionCapacities(Subscription subscription, Offering offering) {
+    var existingKeys =
+        subscription.getSubscriptionMeasurements().stream()
+            .map(m -> fromSubscriptionAndMeasurement(subscription, m))
+            .collect(Collectors.toCollection(HashSet::new));
+    upsertMeasurement(subscription, offering.getCores(), "PHYSICAL", CORES)
+        .ifPresent(existingKeys::remove);
+    upsertMeasurement(subscription, offering.getHypervisorCores(), "HYPERVISOR", CORES)
+        .ifPresent(existingKeys::remove);
+    upsertMeasurement(subscription, offering.getSockets(), "PHYSICAL", SOCKETS)
+        .ifPresent(existingKeys::remove);
+    upsertMeasurement(subscription, offering.getHypervisorSockets(), "HYPERVISOR", SOCKETS)
+        .ifPresent(existingKeys::remove);
+    // existingKeys now contains only stale SubscriptionMeasurement keys (i.e. measurements no
+    // longer provided).
+    existingKeys.forEach(
+        key ->
+            subscription
+                .getSubscriptionMeasurements()
+                .removeIf(
+                    m -> Objects.equals(fromSubscriptionAndMeasurement(subscription, m), key)));
+    if (!existingKeys.isEmpty()) {
+      measurementsDeleted.increment(existingKeys.size());
+      log.info(
+          "Update for subscription ID {} removed {} incorrect capacity measurements.",
+          subscription.getSubscriptionId(),
+          existingKeys.size());
     }
-
-    var offering = optionalOffering.get();
-    Set<String> products = productExtractor.getProducts(offering);
-    return products.stream()
-        .map(product -> from(subscription, offering, product))
-        .collect(Collectors.toList());
   }
 
-  private void reconcileSubscriptionCapacities(
-      Collection<SubscriptionCapacity> newCapacities,
-      String orgId,
-      String subscriptionId,
-      String sku) {
+  private SubscriptionMeasurementKey fromSubscriptionAndMeasurement(
+      Subscription subscription, SubscriptionMeasurement measurement) {
+    return new SubscriptionMeasurementKey(
+        new SubscriptionCompoundId(subscription.getSubscriptionId(), subscription.getStartDate()),
+        measurement.getMetricId(),
+        measurement.getMeasurementType());
+  }
 
-    Collection<SubscriptionCapacity> toSave = new ArrayList<>();
-    Map<SubscriptionCapacityKey, SubscriptionCapacity> existingCapacityMap =
-        subscriptionCapacityRepository
-            .findByKeyOrgIdAndKeySubscriptionIdIn(orgId, Collections.singletonList(subscriptionId))
-            .stream()
-            .collect(Collectors.toMap(SubscriptionCapacity::getKey, Function.identity()));
-
-    if (!productDenylist.productIdMatches(sku)) {
-      newCapacities.forEach(
-          newCapacity -> {
-            toSave.add(newCapacity);
-            SubscriptionCapacity oldVersion = existingCapacityMap.remove(newCapacity.getKey());
-            if (oldVersion != null) {
-              capacityRecordsUpdated.increment();
-            } else {
-              capacityRecordsCreated.increment();
-            }
-          });
-      subscriptionCapacityRepository.saveAll(toSave);
+  private Optional<SubscriptionMeasurementKey> upsertMeasurement(
+      Subscription subscription, Integer sourceValue, String measurementType, String metricId) {
+    if (sourceValue != null && sourceValue > 0) {
+      var measurement = new SubscriptionMeasurement();
+      // subscription set here so that comparison works as expected
+      measurement.setSubscription(subscription);
+      measurement.setMeasurementType(measurementType);
+      measurement.setMetricId(metricId);
+      measurement.setValue((double) (sourceValue * subscription.getQuantity()));
+      var key = fromSubscriptionAndMeasurement(subscription, measurement);
+      var existingMeasurement =
+          subscription.getSubscriptionMeasurements().stream()
+              .filter(m -> Objects.equals(fromSubscriptionAndMeasurement(subscription, m), key))
+              .findFirst();
+      if (existingMeasurement.isPresent()
+          && !Objects.equals(existingMeasurement.get().getValue(), measurement.getValue())) {
+        existingMeasurement.get().setValue(measurement.getValue());
+        measurementsUpdated.increment();
+      } else {
+        subscription.addSubscriptionMeasurement(measurement);
+        measurementsCreated.increment();
+      }
+      return Optional.of(key);
     }
+    return Optional.empty();
+  }
 
-    Collection<SubscriptionCapacity> toDelete = new ArrayList<>(existingCapacityMap.values());
-    subscriptionCapacityRepository.deleteAll(toDelete);
-    if (!toDelete.isEmpty()) {
+  private void reconcileSubscriptionProductIds(Subscription subscription, Offering offering) {
+    Set<String> products = productExtractor.getProducts(offering);
+    var expectedProducts =
+        products.stream()
+            .map(
+                product -> {
+                  var id = new SubscriptionProductId();
+                  // subscription set here so that comparison works as expected
+                  id.setSubscription(subscription);
+                  id.setProductId(product);
+                  return id;
+                })
+            .collect(Collectors.toSet());
+    var toBeRemoved =
+        subscription.getSubscriptionProductIds().stream()
+            .filter(p -> !expectedProducts.contains(p))
+            .collect(Collectors.toSet());
+    subscription.getSubscriptionProductIds().removeAll(toBeRemoved);
+    expectedProducts.forEach(subscription::addSubscriptionProductId);
+    if (!toBeRemoved.isEmpty()) {
       log.info(
-          "Update for subscription ID {} removed {} incorrect capacity records.",
-          subscriptionId,
-          toDelete.size());
+          "Update for subscription ID {} removed {} products.",
+          subscription.getSubscriptionId(),
+          toBeRemoved.size());
     }
-    capacityRecordsDeleted.increment(toDelete.size());
   }
 }

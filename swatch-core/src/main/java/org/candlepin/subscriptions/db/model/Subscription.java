@@ -22,21 +22,26 @@ package org.candlepin.subscriptions.db.model;
 
 import java.io.Serializable;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import javax.persistence.*;
 import lombok.*;
 
 /** Subscription entities represent data from a Candlepin Pool */
 @Entity
-@EqualsAndHashCode
 @Getter
 @Setter
+@ToString
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
 @IdClass(Subscription.SubscriptionCompoundId.class)
 @Table(name = "subscription")
-@ToString
-public class Subscription {
+public class Subscription implements Serializable {
 
   @Id
   @Column(name = "subscription_id")
@@ -73,8 +78,60 @@ public class Subscription {
   @Column(name = "billing_provider")
   private BillingProvider billingProvider;
 
+  @OneToMany(mappedBy = "subscription", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+  @Builder.Default
+  @ToString.Exclude
+  private Set<SubscriptionProductId> subscriptionProductIds = new HashSet<>();
+
+  @OneToMany(mappedBy = "subscription", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+  @Builder.Default
+  @ToString.Exclude // Excluded to prevent fetching a lazy-loaded collection
+  private List<SubscriptionMeasurement> subscriptionMeasurements = new ArrayList<>();
+
+  // Lombok would name the getter "isHasUnlimitedGuestSockets"
+  @Getter(AccessLevel.NONE)
+  @Column(name = "has_unlimited_usage")
+  private Boolean hasUnlimitedUsage;
+
+  public Boolean getHasUnlimitedUsage() {
+    return hasUnlimitedUsage;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof Subscription sub)) {
+      return false;
+    }
+
+    var ourProductIds =
+        subscriptionProductIds.stream().map(SubscriptionProductId::getProductId).toList();
+    var otherProductIds =
+        sub.getSubscriptionProductIds().stream().map(SubscriptionProductId::getProductId).toList();
+
+    return Objects.equals(subscriptionId, sub.getSubscriptionId())
+        && Objects.equals(subscriptionNumber, sub.getSubscriptionNumber())
+        && Objects.equals(sku, sub.getSku())
+        && Objects.equals(orgId, sub.getOrgId())
+        && Objects.equals(quantity, sub.getQuantity())
+        && Objects.equals(startDate, sub.getStartDate())
+        && Objects.equals(endDate, sub.getEndDate())
+        && Objects.equals(billingProviderId, sub.getBillingProviderId())
+        && Objects.equals(billingAccountId, sub.getBillingAccountId())
+        && Objects.equals(accountNumber, sub.getAccountNumber())
+        && Objects.equals(billingProvider, sub.getBillingProvider())
+        && Objects.equals(hasUnlimitedUsage, sub.getHasUnlimitedUsage())
+        && Objects.equals(ourProductIds, otherProductIds);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(subscriptionId, startDate);
+  }
+
   /** Composite ID class for Subscription entities. */
-  @EqualsAndHashCode
   @Getter
   @Setter
   public static class SubscriptionCompoundId implements Serializable {
@@ -89,6 +146,24 @@ public class Subscription {
     public SubscriptionCompoundId() {
       // default
     }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof Subscription subscription)) {
+        return false;
+      }
+
+      return Objects.equals(subscriptionId, subscription.getSubscriptionId())
+          && Objects.equals(startDate, subscription.getStartDate());
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(subscriptionId, startDate);
+    }
   }
 
   public void endSubscription() {
@@ -100,4 +175,21 @@ public class Subscription {
   }
 
   // TODO: https://issues.redhat.com/browse/ENT-4030 //NOSONAR
+
+  public void addSubscriptionProductId(SubscriptionProductId spi) {
+    spi.setSubscription(this);
+    subscriptionProductIds.add(spi);
+  }
+
+  public void addSubscriptionMeasurement(SubscriptionMeasurement sm) {
+    sm.setSubscription(this);
+    subscriptionMeasurements.add(sm);
+  }
+
+  public void addSubscriptionMeasurements(Collection<SubscriptionMeasurement> measurements) {
+    for (SubscriptionMeasurement measurement : measurements) {
+      measurement.setSubscription(this);
+      subscriptionMeasurements.add(measurement);
+    }
+  }
 }

@@ -27,7 +27,6 @@ import java.util.stream.Stream;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
-import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.Subscription;
@@ -42,7 +41,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class SubscriptionPruneController {
   private final SubscriptionRepository subscriptionRepository;
-  private final SubscriptionCapacityRepository subscriptionCapacityRepository;
   private final OrgConfigRepository orgRepository;
   private final Timer pruneAllTimer;
   private final KafkaTemplate<String, PruneSubscriptionsTask>
@@ -53,14 +51,12 @@ public class SubscriptionPruneController {
   @Autowired
   public SubscriptionPruneController(
       SubscriptionRepository subscriptionRepository,
-      SubscriptionCapacityRepository subscriptionCapacityRepository,
       OrgConfigRepository orgRepository,
       MeterRegistry meterRegistry,
       KafkaTemplate<String, PruneSubscriptionsTask> pruneSubscriptionsByOrgTaskKafkaTemplate,
       ProductDenylist productDenylist,
       @Qualifier("pruneSubscriptionTasks") TaskQueueProperties pruneQueueProperties) {
     this.subscriptionRepository = subscriptionRepository;
-    this.subscriptionCapacityRepository = subscriptionCapacityRepository;
     this.orgRepository = orgRepository;
     this.pruneAllTimer = meterRegistry.timer("swatch_subscription_prune_enqueue_all");
     this.productDenylist = productDenylist;
@@ -81,6 +77,7 @@ public class SubscriptionPruneController {
   @Transactional
   public void pruneUnlistedSubscriptions(String orgId) {
     Stream<Subscription> subscriptions = subscriptionRepository.findByOrgId(orgId);
+    // Associated subscription measurements and product IDs should be removed by cascade
     subscriptions.forEach(
         subscription -> {
           if (productDenylist.productIdMatches(subscription.getSku())) {
@@ -90,19 +87,6 @@ public class SubscriptionPruneController {
                 orgId,
                 subscription.getSku());
             subscriptionRepository.delete(subscription);
-          }
-        });
-    Stream<org.candlepin.subscriptions.db.model.SubscriptionCapacity> capacityRecords =
-        subscriptionCapacityRepository.findByKeyOrgId(orgId);
-    capacityRecords.forEach(
-        capacityRecord -> {
-          if (productDenylist.productIdMatches(capacityRecord.getSku())) {
-            log.info(
-                "Removing capacity record for subscriptionId={} for orgId={} w/ sku={}",
-                capacityRecord.getSubscriptionId(),
-                orgId,
-                capacityRecord.getSku());
-            subscriptionCapacityRepository.delete(capacityRecord);
           }
         });
   }
