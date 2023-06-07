@@ -506,8 +506,6 @@ objects:
               - name: token-refresher
                 enabled: true
         - name: purge-events
-          disabled: true
-          suspend: true
           schedule: ${PURGE_EVENTS_SCHEDULE}
           activeDeadlineSeconds: 1800
           successfulJobsHistoryLimit: 2
