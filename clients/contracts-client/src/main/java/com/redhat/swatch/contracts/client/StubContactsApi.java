@@ -66,6 +66,7 @@ public class StubContactsApi extends DefaultApi {
         .orgId(orgId)
         .productId(productId)
         .billingProvider(billingProvider)
+        .startDate(OffsetDateTime.now())
         .billingAccountId(billingAccountId)
         .vendorProductCode(vendorProductCode)
         .addMetricsItem(new Metric().metricId(metricId).value(value));

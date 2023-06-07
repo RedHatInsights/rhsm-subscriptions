@@ -64,6 +64,7 @@ rhsm-subscriptions:
     outgoing:
       topic: ${BILLABLE_USAGE_TOPIC}
     contracts:
+      use-stub: ${CONTRACT_USE_STUB:false}
       back-off-initial-interval: ${CONTRACT_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS:1000}
       back-off-max-interval: ${CONTRACT_CLIENT_BACK_OFF_MAX_INTERVAL_MILLIS:64000}
       back-off-multiplier: ${CONTRACT_CLIENT_BACK_OFF_MULTIPLIER:2}
