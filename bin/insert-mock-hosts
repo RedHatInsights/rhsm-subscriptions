@@ -28,9 +28,8 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
         host_fields = {
             'id': inventory_id,
             'account': account,
-            'org_id': org,
             'display_name': display_name or insights_id,
-            'org_id': org_id or f'org_{account}',
+            'org_id': org,
             'created_on': last_seen or '1993-03-26',
             'modified_on': last_seen or '1993-03-26',
             'facts': json.dumps({
@@ -51,7 +50,7 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
                 'number_of_sockets': sockets,
                 'cloud_provider': cloud_provider,
                 'is_marketplace': is_marketplace,
-                'host_type' : host_type
+                'host_type': host_type
             }),
             'stale_timestamp': '2030-01-01',
             'reporter': 'rhsm-conduit',
@@ -75,8 +74,8 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
             'is_unmapped_guest': is_unmapped_guest or False,
             'is_hypervisor': is_hypervisor or False,
             'cloud_provider': cloud_provider or None,
-            'billing_provider' : billing_provider or None,
-            'billing_account_id' : billing_account_id or None
+            'billing_provider': billing_provider or None,
+            'billing_account_id': billing_account_id or None
         }
 
     _generate_insert('hosts', **host_fields)
@@ -122,7 +121,7 @@ def _generate_buckets(host_id, product, sla, usage, as_hypervisor=False, measure
         'billing_account_id': billing_account_id
     }
     if as_hypervisor and measurement_type == 'PHYSICAL':
-          hypervisor_bucket_fields = {
+        hypervisor_bucket_fields = {
               'host_id': host_id,
               'product_id': product or 'RHEL',
               'as_hypervisor': 'True',

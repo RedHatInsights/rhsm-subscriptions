@@ -33,8 +33,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.OfferingRepository;
-import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
-import org.candlepin.subscriptions.db.SubscriptionCapacityViewRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Offering;
@@ -69,8 +67,6 @@ class SubscriptionTableControllerOnDemandTest {
   private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
   private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
 
-  @MockBean SubscriptionCapacityViewRepository subscriptionCapacityViewRepository;
-  @MockBean SubscriptionCapacityRepository subCapRepo;
   @MockBean SubscriptionRepository subscriptionRepository;
   @MockBean OfferingRepository offeringRepository;
   @MockBean AccountListSource accountListSource;

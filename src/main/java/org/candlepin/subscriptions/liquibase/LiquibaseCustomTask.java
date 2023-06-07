@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.UUID;
 import liquibase.Scope;
 import liquibase.change.custom.CustomTaskChange;
+import liquibase.change.custom.CustomTaskRollback;
 import liquibase.database.Database;
 import liquibase.database.jvm.JdbcConnection;
 import liquibase.exception.CustomChangeException;
@@ -44,8 +45,9 @@ import liquibase.resource.ResourceAccessor;
  * The LiquibaseCustomTask class provides some common utility functions for performing queries or
  * generating UUIDs for new objects.
  */
-public abstract class LiquibaseCustomTask implements CustomTaskChange, Closeable {
-  private JdbcConnection connection;
+public abstract class LiquibaseCustomTask
+    implements CustomTaskChange, CustomTaskRollback, Closeable {
+  protected JdbcConnection connection;
   protected Logger logger;
 
   private Map<String, PreparedStatement> preparedStatements;

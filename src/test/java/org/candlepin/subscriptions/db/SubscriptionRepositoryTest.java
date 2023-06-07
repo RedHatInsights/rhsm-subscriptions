@@ -20,11 +20,14 @@
  */
 package org.candlepin.subscriptions.db;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import javax.transaction.Transactional;
@@ -32,6 +35,7 @@ import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -94,7 +98,7 @@ class SubscriptionRepositoryTest {
     Set<String> productNames = Set.of("Test SKU 1");
     var resultList =
         subscriptionRepo.findByCriteria(
-            ReportCriteria.builder()
+            DbReportCriteria.builder()
                 .accountNumber("1000")
                 .productNames(productNames)
                 .serviceLevel(key.getSla())
@@ -137,7 +141,7 @@ class SubscriptionRepositoryTest {
     Set<String> productNames = Set.of("Other SKU 1", "Other SKU 2");
     var result =
         subscriptionRepo.findByCriteria(
-            ReportCriteria.builder()
+            DbReportCriteria.builder()
                 .accountNumber("1000")
                 .productNames(productNames)
                 .serviceLevel(key.getSla())
@@ -174,7 +178,7 @@ class SubscriptionRepositoryTest {
     Set<String> productNames = Set.of("Test SKU 1");
     var resultList =
         subscriptionRepo.findByCriteria(
-            ReportCriteria.builder()
+            DbReportCriteria.builder()
                 .accountNumber("1000")
                 .productNames(productNames)
                 .serviceLevel(key.getSla())
@@ -215,7 +219,7 @@ class SubscriptionRepositoryTest {
 
     var resultList =
         subscriptionRepo.findByCriteria(
-            ReportCriteria.builder()
+            DbReportCriteria.builder()
                 .accountNumber("1000")
                 .productNames(productNames)
                 .serviceLevel(key.getSla())
@@ -258,6 +262,24 @@ class SubscriptionRepositoryTest {
     assertEquals(5, result.stream().count());
   }
 
+  @Transactional
+  @Test
+  void findsUnlimitedSubscriptions() {
+    var s1 = createSubscription("org123", "account123", "MCT123", "sub123", "seller123");
+    var s2 = createSubscription("org123", "account123", "MCT123", "sub321", "seller123");
+    List.of(s1, s2).forEach(x -> x.setHasUnlimitedUsage(true));
+
+    var s3 = createSubscription("org123", "account123", "MCT123", "sub456", "seller123");
+    var s4 = createSubscription("org123", "account123", "MCT123", "sub678", "seller123");
+
+    subscriptionRepo.saveAllAndFlush(List.of(s1, s2, s3, s4));
+
+    var criteria = DbReportCriteria.builder().orgId("org123").build();
+    var result = subscriptionRepo.findUnlimited(criteria);
+    System.out.println(result.get(0).equals(s1));
+    assertThat(result, Matchers.containsInAnyOrder(s1, s2));
+  }
+
   private Offering createOffering(
       String sku, String productName, int productId, ServiceLevel sla, Usage usage, String role) {
     Offering o = new Offering();
@@ -272,8 +294,12 @@ class SubscriptionRepositoryTest {
 
   private Subscription createSubscription(
       String orgId, String accountNumber, String sku, String subId, String billingAccountId) {
+
+    // Truncate to avoid issues around nanosecond mismatches -- HSQLDB doesn't store timestamps
+    // at the same resolution as the JVM
+    OffsetDateTime startDate = NOW.truncatedTo(ChronoUnit.SECONDS);
     return createSubscription(
-        orgId, accountNumber, sku, subId, billingAccountId, NOW, NOW.plusDays(30));
+        orgId, accountNumber, sku, subId, billingAccountId, startDate, startDate.plusDays(30));
   }
 
   private Subscription createSubscription(

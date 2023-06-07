@@ -28,12 +28,13 @@ import lombok.Data;
 /** Common criteria that can be used to filter instances, subscriptions, and tally snapshots */
 @Data
 @Builder
-public class ReportCriteria {
+public class DbReportCriteria {
   private String accountNumber;
   private String orgId;
   private String productTag;
   // TODO: ENT-5042 should move away from using product name values here //NOSONAR
   private Set<String> productNames;
+  private String productId;
   private ServiceLevel serviceLevel;
   private Usage usage;
   private BillingProvider billingProvider;
