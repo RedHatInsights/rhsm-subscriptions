@@ -24,7 +24,6 @@ import java.util.Objects;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
-import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
 
 /** Represents the uom recorded on a remittance record */
 @Getter
@@ -33,7 +32,7 @@ import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
 public class RemittanceUnit implements Unit {
   private final double billingFactor;
 
-  public RemittanceUnit(BillableUsageRemittanceEntity entity) {
-    this.billingFactor = Objects.requireNonNullElse(entity.getBillingFactor(), 1.0);
+  public RemittanceUnit(Double billingFactor) {
+    this.billingFactor = Objects.requireNonNullElse(billingFactor, 1.0);
   }
 }

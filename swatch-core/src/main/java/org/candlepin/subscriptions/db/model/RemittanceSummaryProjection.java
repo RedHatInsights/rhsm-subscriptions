@@ -18,31 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db;
+package org.candlepin.subscriptions.db.model;
 
 import java.time.OffsetDateTime;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
-import org.candlepin.subscriptions.db.model.Granularity;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-/**
- * A filter used to find {@link org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity}
- * objects via the {@link BillableUsageRemittanceRepository}. Any filter value with a null value
- * will not be checked.
- */
 @Builder
-@Getter
-@Setter
-public class BillableUsageRemittanceFilter {
-  private String productId;
-  private String account;
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class RemittanceSummaryProjection {
+  private Double totalRemittedPendingValue;
   private String orgId;
-  private String metricId;
+  private String accountNumber;
+  private String productId;
+  private String accumulationPeriod;
+  private OffsetDateTime remittancePendingDate;
   private String billingProvider;
   private String billingAccountId;
-  private OffsetDateTime beginning;
-  private OffsetDateTime ending;
-  private String accumulationPeriod;
-  private Granularity granularity;
+  private String metricId;
 }

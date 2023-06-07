@@ -188,36 +188,13 @@ class RemittanceControllerTest {
     when(snapshotRepo.findLatestBillablesForMonth(clock.now().getMonthValue()))
         .thenReturn(snaps.stream());
 
-    BillableUsageRemittanceEntity remittance = createRemittance(snapshot, 46.0, 1.0);
+    BillableUsageRemittanceEntity remittance = createRemittance(snapshot, 46.0);
+    remittance.getKey().setRemittancePendingDate(snapshot.getSnapshotDate());
     when(remittanceRepo.existsById(remittance.getKey())).thenReturn(true);
 
     controller.syncRemittance();
     // Should not save remittance.
     verifyNoMoreInteractions(remittanceRepo);
-  }
-
-  private BillableUsageRemittanceEntity createRemittance(
-      TallySnapshot snapshot, double remittedValue, double tagFactor) {
-    return BillableUsageRemittanceEntity.builder()
-        .key(
-            BillableUsageRemittanceEntityPK.builder()
-                .orgId(snapshot.getOrgId())
-                .accumulationPeriod(
-                    BillableUsageRemittanceEntityPK.getAccumulationPeriod(
-                        snapshot.getSnapshotDate()))
-                .billingAccountId(snapshot.getBillingAccountId())
-                .billingProvider(snapshot.getBillingProvider().getValue())
-                .metricId(Uom.STORAGE_GIBIBYTE_MONTHS.value())
-                .productId(snapshot.getProductId())
-                .sla(snapshot.getServiceLevel().getValue())
-                .usage(snapshot.getUsage().getValue())
-                .build())
-        // NOTE: We are mocking the repository's sum call, so this value doesn't have to match the
-        // snapshot.
-        .remittedValue(remittedValue)
-        .billingFactor(tagFactor)
-        .remittanceDate(clock.now())
-        .build();
   }
 
   private BillableUsageRemittanceEntity createRemittance(
@@ -235,12 +212,12 @@ class RemittanceControllerTest {
                 .productId(snapshot.getProductId())
                 .sla(snapshot.getServiceLevel().getValue())
                 .usage(snapshot.getUsage().getValue())
+                .remittancePendingDate(snapshot.getSnapshotDate())
                 .build())
         // NOTE: We are mocking the repository's sum call, so this value doesn't have to match the
         // snapshot.
-        .remittedValue(remittedValue)
-        .billingFactor(1.0)
-        .remittanceDate(clock.now())
+        .remittedPendingValue(remittedValue)
+        .granularity(Granularity.HOURLY)
         .build();
   }
 
@@ -259,7 +236,7 @@ class RemittanceControllerTest {
             clock.startOfMonth(snapshot.getSnapshotDate()),
             snapshot.getSnapshotDate(),
             new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, Uom.STORAGE_GIBIBYTE_MONTHS)))
-        .thenReturn(remittance.getRemittedValue());
+        .thenReturn(remittance.getRemittedPendingValue());
 
     return remittance;
   }

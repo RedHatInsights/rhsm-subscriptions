@@ -20,13 +20,14 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import java.time.OffsetDateTime;
+import java.io.Serializable;
 import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.Table;
-import javax.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -38,26 +39,19 @@ import lombok.NoArgsConstructor;
 @Builder
 @Entity
 @Table(name = "billable_usage_remittance")
-public class BillableUsageRemittanceEntity {
+public class BillableUsageRemittanceEntity implements Serializable {
 
   @EmbeddedId private BillableUsageRemittanceEntityPK key;
 
   @Basic
-  @Column(name = "remitted_value", nullable = false, precision = 0)
-  private Double remittedValue;
-
-  @Basic
-  @Column(name = "remittance_date", nullable = false)
-  private OffsetDateTime remittanceDate;
+  @Column(name = "remitted_pending_value", nullable = false, precision = 0)
+  private Double remittedPendingValue;
 
   @Basic
   @Column(name = "account_number", nullable = true)
   private String accountNumber;
 
-  @Basic
-  @Column(name = "billing_factor")
-  private Double billingFactor;
-
-  // Version to enable optimistic locking
-  @Version @Column private Integer version;
+  @Enumerated(EnumType.STRING)
+  @Column(name = "granularity")
+  private Granularity granularity;
 }

@@ -61,6 +61,9 @@ public class BillableUsageRemittanceEntityPK implements Serializable {
   @Column(name = "billing_account_id", nullable = false, length = 255)
   private String billingAccountId;
 
+  @Column(name = "remittance_pending_date", nullable = false)
+  private OffsetDateTime remittancePendingDate;
+
   public static BillableUsageRemittanceEntityPK keyFrom(BillableUsage billableUsage) {
     return BillableUsageRemittanceEntityPK.builder()
         .usage(billableUsage.getUsage().value())
@@ -71,6 +74,7 @@ public class BillableUsageRemittanceEntityPK implements Serializable {
         .sla(billableUsage.getSla().value())
         .metricId(billableUsage.getUom().value())
         .accumulationPeriod(getAccumulationPeriod(billableUsage.getSnapshotDate()))
+        .remittancePendingDate(billableUsage.getSnapshotDate())
         .build();
   }
 

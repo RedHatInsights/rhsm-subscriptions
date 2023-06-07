@@ -27,6 +27,8 @@ import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK_;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity_;
+import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.RemittanceSummaryProjection;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -34,13 +36,53 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface BillableUsageRemittanceRepository
     extends JpaRepository<BillableUsageRemittanceEntity, BillableUsageRemittanceEntityPK>,
-        JpaSpecificationExecutor<BillableUsageRemittanceEntity> {
+        JpaSpecificationExecutor<BillableUsageRemittanceEntity>,
+        EntityManagerLookup {
 
   @Query
   void deleteByKeyOrgId(String orgId);
 
+  default boolean existsBy(BillableUsageRemittanceFilter filter) {
+    return this.exists(buildSearchSpecification(filter));
+  }
+
   default List<BillableUsageRemittanceEntity> filterBy(BillableUsageRemittanceFilter filter) {
     return this.findAll(buildSearchSpecification(filter));
+  }
+
+  default List<RemittanceSummaryProjection> getRemittanceSummaries(
+      BillableUsageRemittanceFilter filter) {
+    var entityManager = getEntityManager();
+    var criteriaBuilder = entityManager.getCriteriaBuilder();
+    var query = criteriaBuilder.createQuery(RemittanceSummaryProjection.class);
+    var root = query.from(BillableUsageRemittanceEntity.class);
+    var key = root.get(BillableUsageRemittanceEntity_.key);
+    var specification = buildSearchSpecification(filter);
+    if (specification != null) {
+      var predicate = specification.toPredicate(root, query, criteriaBuilder);
+      query.where(predicate);
+      query.groupBy(
+          key.get(BillableUsageRemittanceEntityPK_.ACCUMULATION_PERIOD),
+          root.get(BillableUsageRemittanceEntity_.ACCOUNT_NUMBER),
+          key.get(BillableUsageRemittanceEntityPK_.BILLING_PROVIDER),
+          key.get(BillableUsageRemittanceEntityPK_.BILLING_ACCOUNT_ID),
+          key.get(BillableUsageRemittanceEntityPK_.METRIC_ID),
+          key.get(BillableUsageRemittanceEntityPK_.ORG_ID),
+          key.get(BillableUsageRemittanceEntityPK_.PRODUCT_ID));
+    }
+    query.select(
+        criteriaBuilder.construct(
+            RemittanceSummaryProjection.class,
+            criteriaBuilder.sum(root.get(BillableUsageRemittanceEntity_.REMITTED_PENDING_VALUE)),
+            key.get(BillableUsageRemittanceEntityPK_.ORG_ID),
+            root.get(BillableUsageRemittanceEntity_.ACCOUNT_NUMBER),
+            key.get(BillableUsageRemittanceEntityPK_.PRODUCT_ID),
+            key.get(BillableUsageRemittanceEntityPK_.ACCUMULATION_PERIOD),
+            criteriaBuilder.max(key.get(BillableUsageRemittanceEntityPK_.REMITTANCE_PENDING_DATE)),
+            key.get(BillableUsageRemittanceEntityPK_.BILLING_PROVIDER),
+            key.get(BillableUsageRemittanceEntityPK_.BILLING_ACCOUNT_ID),
+            key.get(BillableUsageRemittanceEntityPK_.METRIC_ID)));
+    return entityManager.createQuery(query).getResultList();
   }
 
   static Specification<BillableUsageRemittanceEntity> matchingBillingProvider(
@@ -87,16 +129,35 @@ public interface BillableUsageRemittanceRepository
         builder.equal(root.get(BillableUsageRemittanceEntity_.accountNumber), account);
   }
 
-  static Specification<BillableUsageRemittanceEntity> beforeRemittanceDate(OffsetDateTime ending) {
+  static Specification<BillableUsageRemittanceEntity> matchingGranularity(Granularity granularity) {
     return (root, query, builder) ->
-        builder.lessThanOrEqualTo(root.get(BillableUsageRemittanceEntity_.remittanceDate), ending);
+        builder.equal(root.get(BillableUsageRemittanceEntity_.granularity), granularity);
+  }
+
+  static Specification<BillableUsageRemittanceEntity> beforeRemittanceDate(OffsetDateTime ending) {
+    return (root, query, builder) -> {
+      var path = root.get(BillableUsageRemittanceEntity_.key);
+      return builder.lessThanOrEqualTo(
+          path.get(BillableUsageRemittanceEntityPK_.remittancePendingDate), ending);
+    };
   }
 
   static Specification<BillableUsageRemittanceEntity> afterRemittanceDate(
       OffsetDateTime beginning) {
-    return (root, query, builder) ->
-        builder.greaterThanOrEqualTo(
-            root.get(BillableUsageRemittanceEntity_.remittanceDate), beginning);
+    return (root, query, builder) -> {
+      var path = root.get(BillableUsageRemittanceEntity_.key);
+      return builder.greaterThanOrEqualTo(
+          path.get(BillableUsageRemittanceEntityPK_.remittancePendingDate), beginning);
+    };
+  }
+
+  static Specification<BillableUsageRemittanceEntity> matchingAccumulationPeriod(
+      String accumulationPeriod) {
+    return (root, query, builder) -> {
+      var path = root.get(BillableUsageRemittanceEntity_.key);
+      return builder.equal(
+          path.get(BillableUsageRemittanceEntityPK_.ACCUMULATION_PERIOD), accumulationPeriod);
+    };
   }
 
   default Specification<BillableUsageRemittanceEntity> buildSearchSpecification(
@@ -127,7 +188,13 @@ public interface BillableUsageRemittanceRepository
     if (Objects.nonNull(filter.getEnding())) {
       searchCriteria = searchCriteria.and(beforeRemittanceDate(filter.getEnding()));
     }
-
+    if (Objects.nonNull(filter.getAccumulationPeriod())) {
+      searchCriteria =
+          searchCriteria.and(matchingAccumulationPeriod(filter.getAccumulationPeriod()));
+    }
+    if (Objects.nonNull(filter.getGranularity())) {
+      searchCriteria = searchCriteria.and(matchingGranularity(filter.getGranularity()));
+    }
     return searchCriteria;
   }
 }
