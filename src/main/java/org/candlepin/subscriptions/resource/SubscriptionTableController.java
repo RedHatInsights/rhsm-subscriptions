@@ -361,20 +361,20 @@ public class SubscriptionTableController {
     var value = measurement.getValue();
 
     var sockets =
-        (MetricId.SOCKETS.toString().equals(metric) && "PHYSICAL".equals(type))
+        (MetricId.SOCKETS.toString().equalsIgnoreCase(metric) && "PHYSICAL".equals(type))
             ? value.intValue()
             : 0;
     var cores =
-        (MetricId.CORES.toString().equals(metric) && "PHYSICAL".equals(type))
+        (MetricId.CORES.toString().equalsIgnoreCase(metric) && "PHYSICAL".equals(type))
             ? value.intValue()
             : 0;
 
     var hypervisorSockets =
-        (MetricId.SOCKETS.toString().equals(metric) && "HYPERVISOR".equals(type))
+        (MetricId.SOCKETS.toString().equalsIgnoreCase(metric) && "HYPERVISOR".equals(type))
             ? value.intValue()
             : 0;
     var hypervisorCores =
-        (MetricId.CORES.toString().equals(metric) && "HYPERVISOR".equals(type))
+        (MetricId.CORES.toString().equalsIgnoreCase(metric) && "HYPERVISOR".equals(type))
             ? value.intValue()
             : 0;
 
