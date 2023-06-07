@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.cloudigrade.CloudigradeClientConfiguration;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
@@ -79,7 +78,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
   BillingProducerConfiguration.class,
   InventoryDataSourceConfiguration.class,
   ProductConfiguration.class,
-  CloudigradeClientConfiguration.class,
   JmxBeansConfiguration.class
 })
 @ComponentScan(
@@ -127,20 +125,6 @@ public class TallyWorkerConfiguration {
             properties.getBackOffMultiplier(),
             properties.getBackOffMaxInterval().toMillis())
         .build();
-  }
-
-  @Bean(name = "cloudigradeRetryTemplate")
-  public RetryTemplate cloudigradeRetryTemplate(ApplicationProperties applicationProperties) {
-    SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
-    retryPolicy.setMaxAttempts(applicationProperties.getCloudigradeMaxAttempts());
-
-    FixedBackOffPolicy backOffPolicy = new FixedBackOffPolicy();
-    backOffPolicy.setBackOffPeriod(2000L);
-
-    RetryTemplate retryTemplate = new RetryTemplate();
-    retryTemplate.setRetryPolicy(retryPolicy);
-    retryTemplate.setBackOffPolicy(backOffPolicy);
-    return retryTemplate;
   }
 
   @Bean(name = "applicableProducts")

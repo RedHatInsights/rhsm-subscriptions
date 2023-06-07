@@ -39,15 +39,7 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.HostTallyBucketRepository;
-import org.candlepin.subscriptions.db.model.AccountBucketTally;
-import org.candlepin.subscriptions.db.model.AccountServiceInventory;
-import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
-import org.candlepin.subscriptions.db.model.BillingProvider;
-import org.candlepin.subscriptions.db.model.Host;
-import org.candlepin.subscriptions.db.model.HostBucketKey;
-import org.candlepin.subscriptions.db.model.HostTallyBucket;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.inventory.db.InventoryDatabaseOperations;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.json.Measurement;
@@ -436,7 +428,6 @@ public class InventoryAccountUsageCollector {
     } else {
       NormalizedFacts normalizedFacts = factNormalizer.normalize(hbiSystem, orgHostsData);
       Set<Key> usageKeys = createHostUsageKeys(applicableProducts, normalizedFacts);
-
       if (swatchSystem != null) {
         log.debug("Updating system w/ inventoryId={}", hbiSystem.getInventoryId());
         updateSwatchSystem(hbiSystem, normalizedFacts, swatchSystem, usageKeys);

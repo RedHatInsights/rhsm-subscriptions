@@ -18,27 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db.model;
+package org.candlepin.subscriptions.rhmarketplace.api.admin;
 
-import java.time.OffsetDateTime;
-import java.util.Set;
-import lombok.Builder;
-import lombok.Data;
+import org.mapstruct.Mapper;
+import org.mapstruct.ReportingPolicy;
 
-/** Common criteria that can be used to filter instances, subscriptions, and tally snapshots */
-@Data
-@Builder
-public class ReportCriteria {
-  private String accountNumber;
-  private String orgId;
-  private String productTag;
-  // TODO: ENT-5042 should move away from using product name values here //NOSONAR
-  private Set<String> productNames;
-  private ServiceLevel serviceLevel;
-  private Usage usage;
-  private BillingProvider billingProvider;
-  private String billingAccountId;
-  private boolean payg;
-  private OffsetDateTime beginning;
-  private OffsetDateTime ending;
+// We have to ignore the mappings for two methods tht the jax-rs generator creates which the java
+// generator skips
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+public interface StatusResponseMapper {
+  org.candlepin.subscriptions.rhmarketplace.admin.api.model.StatusResponse clientToApi(
+      org.candlepin.subscriptions.rhmarketplace.api.model.StatusResponse response);
 }

@@ -22,23 +22,33 @@ package org.candlepin.subscriptions.capacity.files;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 import javax.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.files.PerLineFileSource;
 import org.candlepin.subscriptions.util.ApplicationClock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.ResourceLoaderAware;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-/** List of products to be considered for capacity calculations. */
+/** List of products to be skipped for capacity calculations. */
+@Slf4j
 @Component
 public class ProductDenylist implements ResourceLoaderAware {
+  private static final List<String> suffixes =
+      Stream.of("F2", "F3", "F3RN", "F4", "F5", "HR", "MO", "RN", "S")
+          // sort the suffixes by length descending, so that e.g. F3RN is found before RN.
+          .sorted(Comparator.comparing(s -> -s.length()))
+          .toList();
 
-  private static Logger log = LoggerFactory.getLogger(ProductDenylist.class);
+  public static List<String> getSuffixes() {
+    return suffixes;
+  }
 
   private final PerLineFileSource source;
 
@@ -59,7 +69,8 @@ public class ProductDenylist implements ResourceLoaderAware {
       return false;
     }
     try {
-      boolean isDenylisted = source.set().contains(productId);
+      var normalizedSku = removeSuffix(productId);
+      boolean isDenylisted = source.set().contains(normalizedSku);
       if (isDenylisted && log.isDebugEnabled()) {
         log.debug("Product ID {} in denylist", productId);
       }
@@ -68,6 +79,15 @@ public class ProductDenylist implements ResourceLoaderAware {
       log.error("Error reading denylist", e);
       return false;
     }
+  }
+
+  private String removeSuffix(String productId) {
+    for (String suffix : suffixes) {
+      if (productId.endsWith(suffix)) {
+        return productId.substring(0, productId.length() - suffix.length());
+      }
+    }
+    return productId;
   }
 
   /**

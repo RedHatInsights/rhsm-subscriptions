@@ -30,6 +30,7 @@ dependencies {
     implementation libraries["splunk-library-javalogging"]
     implementation project(":clients:swatch-internal-subscription-client")
     implementation project(":swatch-common-resteasy")
+    implementation project(":swatch-product-configuration")
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.quarkus:quarkus-junit5-mockito'
     testImplementation 'io.rest-assured:rest-assured'

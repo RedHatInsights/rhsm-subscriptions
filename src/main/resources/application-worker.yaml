@@ -1,7 +1,3 @@
-CLOUDIGRADE_HOST: ${clowder.endpoints[?(@.app == 'cloudigrade')].hostname:localhost}
-CLOUDIGRADE_PORT: ${clowder.endpoints[?(@.app == 'cloudigrade')].port:8080}
-CLOUDIGRADE_INTERNAL_HOST: ${CLOUDIGRADE_HOST}
-CLOUDIGRADE_INTERNAL_PORT: ${CLOUDIGRADE_PORT}
 TASKS_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.tasks')].name:platform.rhsm-subscriptions.tasks}
 TALLY_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.tally')].name:platform.rhsm-subscriptions.tally}
 BILLABLE_USAGE_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.billable-usage')].name:platform.rhsm-subscriptions.billable-usage}
@@ -36,15 +32,6 @@ rhsm-subscriptions:
     # Four year's worth
     quarterly: ${TALLY_RETENTION_QUARTERLY:16}
     yearly: ${TALLY_RETENTION_YEARLY:5}
-  cloudigrade-enabled: ${CLOUDIGRADE_ENABLED:false}
-  cloudigrade-max-attempts: ${CLOUDIGRADE_MAX_ATTEMPTS:2}
-  cloudigrade:
-    url: http://${CLOUDIGRADE_HOST}:${CLOUDIGRADE_PORT}/api/cloudigrade/v2
-    maxConnections: ${CLOUDIGRADE_MAX_CONNECTIONS:100}
-    presharedKey: ${CLOUDIGRADE_PSK:}
-    internal:
-      url: http://${CLOUDIGRADE_INTERNAL_HOST}:${CLOUDIGRADE_INTERNAL_PORT}/internal/api/cloudigrade/v1
-      presharedKey: ${CLOUDIGRADE_PSK:}
   tally-summary-producer:
     back-off-initial-interval: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_INITIAL_INTERVAL:1s}
     back-off-max-interval: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_MAX_INTERVAL:1m}

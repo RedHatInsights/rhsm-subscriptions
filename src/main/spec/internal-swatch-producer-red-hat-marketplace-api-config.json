@@ -1,0 +1,6 @@
+{
+  "invokerPackage": "org.candlepin.subscriptions.rhmarketplace.admin",
+  "apiPackage": "org.candlepin.subscriptions.rhmarketplace.admin.api",
+  "modelPackage": "org.candlepin.subscriptions.rhmarketplace.admin.api.model",
+  "groupId": "org.candlepin"
+}

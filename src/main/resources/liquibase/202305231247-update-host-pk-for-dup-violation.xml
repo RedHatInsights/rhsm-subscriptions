@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202305231247-1" author="ksynvrit">
+    <comment>
+      delete the duplicate host data that was found in our databases that will need to
+      be cleaned up.
+    </comment>
+    <delete tableName="hosts">
+      <where> id='0a6ad2cd-0042-49b5-beda-c5db0212cf9f'</where>
+    </delete>
+  </changeSet>
+
+  <changeSet id="202305231247-2" author="ksynvrit">
+    <comment>Add unique constraint on tuple of id columns in hosts table</comment>
+
+    <addUniqueConstraint tableName="hosts"
+                         columnNames="hypervisor_uuid, subscription_manager_id, inventory_id"
+                         constraintName="hosts_columns_id_unq"/>
+  </changeSet>
+
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->

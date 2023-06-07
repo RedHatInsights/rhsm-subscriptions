@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.conduit.inventory;
 
 import java.time.OffsetDateTime;
 import java.util.*;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiFactSet;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiHost;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiSystemProfile;
@@ -30,6 +31,7 @@ import org.candlepin.subscriptions.utilization.api.model.ConsumerInventory;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
 /**
  * Defines operations against the inventory service. This service allows batching host fact updates.
@@ -176,8 +178,15 @@ public abstract class InventoryService {
 
   private HbiSystemProfileOperatingSystem operatingSystem(ConduitFacts facts) {
     var operatingSystem = operatingSystemName(facts.getOsName());
+    var operationVersion = facts.getOsVersion();
+    if (!StringUtils.hasText(operationVersion)
+        || !NumberUtils.isParsable(operationVersion) && operationVersion.split("\\.").length == 1) {
+      // In cases where Os Version isn't populated correctly than assign Operating system to null.
+      // the spilt is to stop catching longer decimals such as (11.34.1.4)
+      operatingSystem = null;
+    }
     if (operatingSystem != null) { // we set operatingSystem null with non-RHEL
-      setOperatingSystemVersion(operatingSystem, facts.getOsVersion());
+      setOperatingSystemVersion(operatingSystem, operationVersion);
     }
     return operatingSystem;
   }

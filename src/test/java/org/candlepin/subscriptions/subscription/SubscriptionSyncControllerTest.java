@@ -44,14 +44,13 @@ import java.util.stream.Stream;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.OfferingRepository;
-import org.candlepin.subscriptions.db.SubscriptionCapacityRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.SubscriptionCapacity;
+import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.MissingOfferingException;
 import org.candlepin.subscriptions.product.OfferingSyncController;
@@ -98,8 +97,6 @@ class SubscriptionSyncControllerTest {
 
   @MockBean SubscriptionRepository subscriptionRepository;
 
-  @MockBean SubscriptionCapacityRepository subscriptionCapacityRepository;
-
   @MockBean OrgConfigRepository orgConfigRepository;
 
   @MockBean CapacityReconciliationController capacityReconciliationController;
@@ -112,7 +109,7 @@ class SubscriptionSyncControllerTest {
 
   @Captor ArgumentCaptor<Iterable<Subscription>> subscriptionsCaptor;
 
-  @Captor ArgumentCaptor<SubscriptionCapacity> capacityCaptor;
+  @Captor ArgumentCaptor<SubscriptionMeasurement> measurementCaptor;
 
   private OffsetDateTime rangeStart = OffsetDateTime.now().minusDays(5);
   private OffsetDateTime rangeEnd = OffsetDateTime.now().plusDays(5);
@@ -734,40 +731,6 @@ class SubscriptionSyncControllerTest {
     subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
     verify(subscriptionRepository).deleteAll(subscriptionsCaptor.capture());
     assertFalse(subscriptionsCaptor.getValue().iterator().hasNext());
-  }
-
-  @Test
-  void testShouldRemoveStaleCapacityNotPresentInSubscriptionService() {
-    var capacity = new SubscriptionCapacity();
-    when(subscriptionCapacityRepository.findByKeyOrgId(any())).thenReturn(Stream.of(capacity));
-    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
-    verify(subscriptionCapacityRepository).delete(capacityCaptor.capture());
-    assertEquals(capacityCaptor.getValue(), capacity);
-  }
-
-  @Test
-  void testShouldRemoveStaleCapacityPresentInSubscriptionServiceButDenylisted() {
-    var subServiceSub = createDto("456", 1);
-    var capacity = new SubscriptionCapacity();
-    capacity.setSubscriptionId("456");
-    when(subscriptionCapacityRepository.findByKeyOrgId(any())).thenReturn(Stream.of(capacity));
-    when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
-    when(denylist.productIdMatches(any())).thenReturn(true);
-    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
-    verify(subscriptionCapacityRepository).delete(capacityCaptor.capture());
-    assertEquals(capacityCaptor.getValue(), capacity);
-  }
-
-  @Test
-  void testShouldNotRemovePresentCapacity() {
-    var subServiceSub = createDto("456", 1);
-    var capacity = new SubscriptionCapacity();
-    capacity.setSubscriptionId("456");
-    when(subscriptionCapacityRepository.findByKeyOrgId(any())).thenReturn(Stream.of(capacity));
-    when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
-    when(denylist.productIdMatches(any())).thenReturn(false);
-    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
-    verify(subscriptionCapacityRepository, times(0)).delete(capacityCaptor.capture());
   }
 
   private Subscription createSubscription(String orgId, String sku, String subId) {

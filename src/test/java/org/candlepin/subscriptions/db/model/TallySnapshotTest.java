@@ -21,77 +21,11 @@
 package org.candlepin.subscriptions.db.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.junit.jupiter.api.Test;
 
 class TallySnapshotTest {
-
-  @Test
-  void testShouldIgnoreHbiAwsWhenCloudigradeAwsPresent() {
-    TallySnapshot snapshot = new TallySnapshot();
-    snapshot.setMeasurement(HardwareMeasurementType.AWS, Uom.SOCKETS, 3.0);
-    snapshot.setMeasurement(HardwareMeasurementType.AWS, Uom.INSTANCES, 3.0);
-    snapshot.setMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, Uom.SOCKETS, 7.0);
-    snapshot.setMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, Uom.INSTANCES, 7.0);
-
-    org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot =
-        snapshot.asApiSnapshot();
-
-    assertEquals(7, apiSnapshot.getCloudInstanceCount().intValue());
-    assertEquals(7, apiSnapshot.getCloudSockets().intValue());
-    assertTrue(apiSnapshot.getHasCloudigradeData());
-    assertTrue(apiSnapshot.getHasCloudigradeMismatch());
-  }
-
-  @Test
-  void testShouldNotFlagCloudigradeDataIfNotPresent() {
-    TallySnapshot snapshot = new TallySnapshot();
-    snapshot.setMeasurement(HardwareMeasurementType.AWS, Uom.SOCKETS, 3.0);
-    snapshot.setMeasurement(HardwareMeasurementType.AWS, Uom.INSTANCES, 3.0);
-
-    org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot =
-        snapshot.asApiSnapshot();
-
-    assertEquals(3, apiSnapshot.getCloudInstanceCount().intValue());
-    assertEquals(3, apiSnapshot.getCloudSockets().intValue());
-    assertFalse(apiSnapshot.getHasCloudigradeData());
-    assertFalse(apiSnapshot.getHasCloudigradeMismatch());
-  }
-
-  @Test
-  void testShouldNotFlagCloudigradeMismatchIfMatching() {
-    TallySnapshot snapshot = new TallySnapshot();
-    snapshot.setMeasurement(HardwareMeasurementType.AWS, Uom.SOCKETS, 7.0);
-    snapshot.setMeasurement(HardwareMeasurementType.AWS, Uom.INSTANCES, 7.0);
-    snapshot.setMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, Uom.SOCKETS, 7.0);
-    snapshot.setMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, Uom.INSTANCES, 7.0);
-
-    org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot =
-        snapshot.asApiSnapshot();
-
-    assertEquals(7, apiSnapshot.getCloudInstanceCount().intValue());
-    assertEquals(7, apiSnapshot.getCloudSockets().intValue());
-    assertTrue(apiSnapshot.getHasCloudigradeData());
-    assertFalse(apiSnapshot.getHasCloudigradeMismatch());
-  }
-
-  @Test
-  void testShouldTolerateAccountWithOnlyCloudigrade() {
-    TallySnapshot snapshot = new TallySnapshot();
-    snapshot.setMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, Uom.SOCKETS, 7.0);
-    snapshot.setMeasurement(HardwareMeasurementType.AWS_CLOUDIGRADE, Uom.INSTANCES, 7.0);
-
-    org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot =
-        snapshot.asApiSnapshot();
-
-    assertEquals(7, apiSnapshot.getCloudInstanceCount().intValue());
-    assertEquals(7, apiSnapshot.getCloudSockets().intValue());
-    assertTrue(apiSnapshot.getHasCloudigradeData());
-    assertFalse(apiSnapshot.getHasCloudigradeMismatch());
-  }
 
   @Test
   void testShouldAddHypervisorAndVirtual() {

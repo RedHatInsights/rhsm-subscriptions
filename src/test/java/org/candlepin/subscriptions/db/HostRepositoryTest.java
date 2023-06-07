@@ -1032,19 +1032,17 @@ class HostRepositoryTest {
   @ParameterizedTest
   @CsvSource({"'',3", "banana,1", "rang,1", "an,2", "celery,0"})
   void testDisplayNameFilter(String displayNameSubstring, Integer expectedResults) {
-
-    String inventoryId = "INV";
     String acctNumber = "ACCT";
 
-    Host host0 = createHost(inventoryId, acctNumber);
+    Host host0 = createHost("INV1", acctNumber);
     host0.setDisplayName("oranges");
     addBucketToHost(host0, RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION);
 
-    Host host1 = createHost(inventoryId, acctNumber);
+    Host host1 = createHost("INV2", acctNumber);
     host1.setDisplayName("kiwi");
     addBucketToHost(host1, RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION);
 
-    Host host2 = createHost(inventoryId, acctNumber);
+    Host host2 = createHost("INV3", acctNumber);
     host2.setDisplayName("banana");
     addBucketToHost(host2, RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION);
 
@@ -1188,15 +1186,6 @@ class HostRepositoryTest {
         HardwareMeasurementType.GOOGLE,
         BillingProvider.RED_HAT);
 
-    Host host4 = createHost("i4", "a1");
-    addBucketToHost(
-        host4,
-        COOL_PROD,
-        ServiceLevel.PREMIUM,
-        Usage.PRODUCTION,
-        HardwareMeasurementType.AWS_CLOUDIGRADE,
-        BillingProvider.RED_HAT);
-
     Host host5 = createHost("i5", "a1");
     addBucketToHost(
         host5,
@@ -1206,7 +1195,7 @@ class HostRepositoryTest {
         HardwareMeasurementType.PHYSICAL,
         BillingProvider.RED_HAT);
 
-    persistHosts(host1, host2, host3, host4, host5);
+    persistHosts(host1, host2, host3, host5);
 
     HostReportSort sort = HostReportSort.CORES;
     String sortValue = HostsResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
@@ -1227,11 +1216,11 @@ class HostRepositoryTest {
             "_ANY",
             HardwareMeasurementType.getCloudProviderTypes(),
             page);
-    assertEquals(4L, results.getTotalElements());
+    assertEquals(3L, results.getTotalElements());
     Map<String, HostApiProjection> hostToBill =
         results.stream()
             .collect(Collectors.toMap(HostApiProjection::getInventoryId, Function.identity()));
-    assertTrue(hostToBill.keySet().containsAll(Arrays.asList("i1", "i2", "i3", "i4")));
+    assertTrue(hostToBill.keySet().containsAll(Arrays.asList("i1", "i2", "i3")));
   }
 
   private Host createHost(String inventoryId, String account) {

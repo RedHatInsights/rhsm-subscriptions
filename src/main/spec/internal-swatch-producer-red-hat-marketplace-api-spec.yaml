@@ -1,0 +1,27 @@
+openapi: "3.0.2"
+info:
+  title: "swatch-producer-red-hat-marketplace internal API"
+  version: 1.0.0
+
+paths:
+  /internal/rhm/status/{batch_id}:
+    parameters:
+      - name: batch_id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: "Fetch a usage event status for a given batch"
+      operationId: getUsageEventStatus
+      responses:
+        '200':
+          description: "Found a batch matching the id and was able to retrieve it's status"
+          content:
+            application/json:
+              schema:
+                $ref: "../../../clients/rh-marketplace-client/rh-marketplace-api-spec.yaml#/components/schemas/StatusResponse"
+  /internal-swatch-producer-red-hat-marketplace-openapi.json:
+    $ref: "../../../spec/openapi-paths.yaml#/openapi-json"
+  /internal-swatch-producer-red-hat-marketplace-openapi.yaml:
+    $ref: "../../../spec/openapi-paths.yaml#/openapi-yaml"

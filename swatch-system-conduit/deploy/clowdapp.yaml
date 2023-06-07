@@ -4,6 +4,9 @@ kind: Template
 metadata:
   name: swatch-system-conduit
 parameters:
+  - name: JAVA_DEBUG
+    # Set to "true" to enable remote debugging
+    value: ''
   - name: TOLERATE_MISSING_ACCOUNT_NUMBER
     value: 'false'
   - name: CONDUIT_HAWTIO_BASE_PATH
@@ -150,6 +153,8 @@ objects:
           initContainers:
             - image: ${IMAGE}:${IMAGE_TAG}
               env:
+                - name: JAVA_DEBUG
+                  value: ${JAVA_DEBUG}
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
               inheritEnv: true
@@ -161,6 +166,8 @@ objects:
                   cpu: ${CPU_LIMIT}
                   memory: ${MEMORY_LIMIT}
           env:
+            - name: JAVA_DEBUG
+              value: ${JAVA_DEBUG}
             - name: SPRING_LIQUIBASE_ENABLED
               value: 'false'
             - name: ENABLE_SPLUNK_HEC

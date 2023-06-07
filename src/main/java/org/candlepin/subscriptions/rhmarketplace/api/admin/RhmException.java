@@ -18,16 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.cloudigrade;
+package org.candlepin.subscriptions.rhmarketplace.api.admin;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import org.candlepin.subscriptions.http.HttpClientProperties;
+import org.candlepin.subscriptions.rhmarketplace.ApiException;
 
+/** Exception that captures an underlying Marketplace API call failure */
 @Data
-@ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true)
-public class CloudigradeServiceProperties extends HttpClientProperties {
-  @ToString.Exclude private String presharedKey;
+public class RhmException extends RuntimeException {
+  private final ApiException cause;
 }

@@ -275,14 +275,6 @@ RHSM_RBAC_USE_STUB=true ./gradlew bootRun
 * `RHSM_RBAC_HOST`: RBAC service hostname
 * `RHSM_RBAC_PORT`: RBAC service port
 * `RHSM_RBAC_MAX_CONNECTIONS`: max concurrent connections to RBAC service
-* `CLOUDIGRADE_ENABLED`: set to `true` to query cloudigrade for RHEL usage
-* `CLOUDIGRADE_MAX_ATTEMPTS`: maximum number of attempts to query cloudigrade
-* `CLOUDIGRADE_HOST`: cloudigrade service host
-* `CLOUDIGRADE_PORT`: cloudigrade service port
-* `CLOUDIGRADE_INTERNAL_HOST`: cloudigrade internal services host
-* `CLOUDIGRADE_INTERNAL_PORT`: cloudigrade internal services port
-* `CLOUDIGRADE_MAX_CONNECTIONS`: max concurrent connections to cloudigrade service
-* `CLOUDIGRADE_PSK`: pre-shared key for cloudigrade authentication
 * `SWATCH_*_PSK`: pre-shared keys for internal service-to-service authentication
   where the `*` represents the name of an authorized service
 * `ENABLE_SYNCHRONOUS_OPERATIONS`: allow any supported APIs to bypass kafka and run the operation immediately when requested.
@@ -557,6 +549,16 @@ Cluster" page in the Cloud-dot documentation, but here are some essentials:
   oc get events --sort-by=.metadata.creationTimestamp
   ```
 
+* You can use port-forwarding to connect a debugger to EE pods, e.g. (replace
+  deployment name as needed)
+
+  ```shell
+  oc port-forward deployment/swatch-tally-service 5005:5005
+  ```
+
+  Then you can connect to localhost:5005 to attach the debugger. For IntelliJ, see the
+  [official IntelliJ tutorial](https://www.jetbrains.com/help/idea/tutorial-remote-debug.html).
+
 # Special Notes
 ## bonfire "deploy" command and namespace reservation
 If you use `bonfire deploy` without already having a namespace reserved, it will
@@ -622,6 +624,35 @@ oc extract -f dashboards/grafana-dashboard-subscription-watch.configmap.yaml --c
 
 Once you extract it from the .yaml that's checked into this repo, you can import it into the stage instance of grafana by going to Create -> Import from the left nav.
 
+## APIs
+
+Links to Swagger UI and API specs:
+
+* [Customer-facing API][customer-api]
+  ([source](api/rhsm-subscriptions-api-spec.yaml))
+* [Internal Billing Producer API][billing-api]
+  ([source](src/main/spec/internal-billing-api-spec.yaml))
+* [Internal Metering API][metering-api]
+  ([source](src/main/spec/internal-metering-api-spec.yaml))
+* [Internal Subscriptions API][subscriptions-api]
+  ([source](src/main/spec/internal-subscriptions-sync-api-spec.yaml))
+* [Internal Tally API][tally-api]
+  ([source](src/main/spec/internal-tally-api-spec.yaml))
+* [Internal Contracts API][contracts-api]
+  ([source](swatch-contracts/src/main/resources/META-INF/openapi.yaml))
+* [Internal AWS Producer API][aws-api]
+  ([source](swatch-producer-aws/src/main/resources/openapi.yaml))
+* [Internal System Conduit API][conduit-api]
+  ([source](swatch-system-conduit/src/main/spec/internal-organizations-sync-api-spec.yaml))
+
+[customer-api]:       https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/api/rhsm-subscriptions-api-spec.yaml
+[billing-api]:        https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/src/main/spec/internal-billing-api-spec.yaml
+[metering-api]:       https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/src/main/spec/internal-metering-api-spec.yaml
+[subscriptions-api]:  https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/src/main/spec/internal-subscriptions-sync-api-spec.yaml
+[tally-api]:          https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/src/main/spec/internal-tally-api-spec.yaml
+[contracts-api]:      https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-contracts/src/main/resources/META-INF/openapi.yaml
+[aws-api]:            https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-producer-aws/src/main/resources/openapi.yaml
+[conduit-api]:        https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-system-conduit/src/main/spec/internal-organizations-sync-api-spec.yaml
 
 ## Kafka topics
 <details>
