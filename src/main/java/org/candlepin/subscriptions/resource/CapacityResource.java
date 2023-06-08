@@ -30,6 +30,7 @@ import javax.validation.constraints.NotNull;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.HypervisorReportCategory;
 import org.candlepin.subscriptions.db.SubscriptionMeasurementRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
@@ -66,6 +67,7 @@ import org.springframework.stereotype.Component;
 
 /** Capacity API implementation. */
 @Component
+@Slf4j
 public class CapacityResource implements CapacityApi {
   public static final String SOCKETS = MetricId.SOCKETS.toString().toUpperCase();
   public static final String CORES = MetricId.CORES.toString().toUpperCase();
@@ -180,6 +182,13 @@ public class CapacityResource implements CapacityApi {
       ServiceLevelType sla,
       UsageType usage) {
 
+    log.debug(
+        "Get capacity report for product {} by metric {} in range [{}, {}] for category {}",
+        productId,
+        metricId,
+        beginning,
+        ending,
+        reportCategory);
     HypervisorReportCategory hypervisorReportCategory =
         HypervisorReportCategory.mapCategory(reportCategory);
 
