@@ -725,7 +725,24 @@ class SubscriptionSyncControllerTest {
   void testShouldNotRemovePresentSub() {
     var subscription = createSubscription("123", "testsku", "456");
     var subServiceSub = createDto("456", 1);
+    subscription.setStartDate(clock.dateFromMilliseconds(subServiceSub.getEffectiveStartDate()));
     when(subscriptionRepository.findByOrgId(any())).thenReturn(Stream.of(subscription));
+    when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
+    verify(subscriptionRepository).deleteAll(subscriptionsCaptor.capture());
+    assertFalse(subscriptionsCaptor.getValue().iterator().hasNext());
+  }
+
+  @Test
+  void testShouldKeepRecordsWithSameIdAndDifferentStartDates() {
+    var subscription1 = createSubscription("123", "testsku", "456");
+    var subscription2 = createSubscription("123", "testsku", "456");
+    subscription2.setEndDate(subscription1.getEndDate().plusDays(2));
+    var subServiceSub = createDto("456", 1);
+    subscription2.setStartDate(clock.dateFromMilliseconds(subServiceSub.getEffectiveStartDate()));
+    when(subscriptionRepository.findByOrgId(any()))
+        .thenReturn(Stream.of(subscription1, subscription2));
     when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
     when(denylist.productIdMatches(any())).thenReturn(false);
     subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");

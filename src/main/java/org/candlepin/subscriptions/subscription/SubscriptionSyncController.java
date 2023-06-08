@@ -53,6 +53,7 @@ import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.DbReportCriteria;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Subscription.SubscriptionCompoundId;
 import org.candlepin.subscriptions.db.model.Subscription_;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
@@ -310,13 +311,15 @@ public class SubscriptionSyncController {
   public void reconcileSubscriptionsWithSubscriptionService(String orgId) {
     log.info("Syncing subscriptions for orgId={}", orgId);
     Set<String> seenSubscriptionIds = new HashSet<>();
-    Map<String, org.candlepin.subscriptions.db.model.Subscription> swatchSubscriptions =
-        subscriptionRepository
-            .findByOrgId(orgId)
-            .collect(
-                Collectors.toMap(
-                    org.candlepin.subscriptions.db.model.Subscription::getSubscriptionId,
-                    Function.identity()));
+    Map<SubscriptionCompoundId, org.candlepin.subscriptions.db.model.Subscription>
+        swatchSubscriptions =
+            subscriptionRepository
+                .findByOrgId(orgId)
+                .collect(
+                    Collectors.toMap(
+                        sub ->
+                            new SubscriptionCompoundId(sub.getSubscriptionId(), sub.getStartDate()),
+                        Function.identity()));
     subscriptionService.getSubscriptionsByOrgId(orgId).stream()
         .filter(this::shouldSyncSub)
         .forEach(
@@ -325,16 +328,26 @@ public class SubscriptionSyncController {
                 return;
               }
               seenSubscriptionIds.add(subscription.getId().toString());
-              var swatchSubscription = swatchSubscriptions.remove(subscription.getId().toString());
+              var swatchSubscription =
+                  swatchSubscriptions.remove(
+                      new SubscriptionCompoundId(
+                          subscription.getId().toString(),
+                          clock.dateFromMilliseconds(subscription.getEffectiveStartDate())));
               syncSubscription(subscription, Optional.ofNullable(swatchSubscription));
             });
-    if (!swatchSubscriptions.isEmpty()) {
-      log.info("Removing {} stale/incorrect subscription records", swatchSubscriptions.size());
+
+    var recordsToDelete =
+        swatchSubscriptions.values().stream()
+            .filter(sub -> !seenSubscriptionIds.contains(sub.getSubscriptionId()))
+            .toList();
+
+    if (!recordsToDelete.isEmpty()) {
+      log.info("Removing {} stale/incorrect subscription records", recordsToDelete.size());
     }
 
     // anything remaining in the map at this point is stale. Measurements and subscription product
     // ID objects should delete in a cascade.
-    subscriptionRepository.deleteAll(swatchSubscriptions.values());
+    subscriptionRepository.deleteAll(recordsToDelete);
   }
 
   private boolean shouldSyncSub(Subscription sub) {
