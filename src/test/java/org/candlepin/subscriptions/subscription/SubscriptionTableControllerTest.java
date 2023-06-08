@@ -1034,7 +1034,7 @@ class SubscriptionTableControllerTest {
 
       return SubscriptionMeasurement.builder()
           .measurementType(type)
-          .metricId(metric.toString())
+          .metricId(metric.toString().toUpperCase())
           .value(value)
           .build();
     }
