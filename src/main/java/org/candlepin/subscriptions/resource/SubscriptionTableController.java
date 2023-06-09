@@ -272,7 +272,7 @@ public class SubscriptionTableController {
             .findById(sku)
             .orElseThrow(() -> new IllegalStateException("No offering" + " found for sku " + sku));
     inv.setSku(sku);
-    inv.setProductName(offering.getProductName());
+    inv.setProductName(offering.getDescription());
     inv.setServiceLevel(
         Optional.ofNullable(offering.getServiceLevel()).orElse(ServiceLevel.EMPTY).asOpenApiEnum());
     inv.setUsage(Optional.ofNullable(offering.getUsage()).orElse(Usage.EMPTY).asOpenApiEnum());
