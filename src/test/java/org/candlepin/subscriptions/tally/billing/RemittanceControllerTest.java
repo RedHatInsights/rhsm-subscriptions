@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.tally.billing;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -35,6 +36,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
@@ -132,6 +134,16 @@ class RemittanceControllerTest {
     when(snapshotRepo.findLatestBillablesForMonth(clock.now().getMonthValue()))
         .thenReturn(snaps.stream());
 
+    BillableUsageRemittanceEntity expectedDailyRemittance =
+        createRemittanceAndMockMeasurementValue(expectedSnapshot2, 46);
+    expectedDailyRemittance.getKey().setGranularity(Granularity.DAILY);
+    expectedDailyRemittance
+        .getKey()
+        .setRemittancePendingDate(
+            clock.startOfDay(expectedDailyRemittance.getKey().getRemittancePendingDate()));
+
+    when(remittanceRepo.findById(any())).thenReturn(Optional.of(expectedDailyRemittance));
+
     BillableUsageRemittanceEntity expectedRemittance1 =
         createRemittanceAndMockMeasurementValue(expectedSnapshot1, 46.0);
     BillableUsageRemittanceEntity expectedRemittance2 =
@@ -140,10 +152,15 @@ class RemittanceControllerTest {
     ArgumentCaptor<BillableUsageRemittanceEntity> savedRemittance =
         ArgumentCaptor.forClass(BillableUsageRemittanceEntity.class);
     controller.syncRemittance();
-    verify(remittanceRepo, times(2)).save(savedRemittance.capture());
+    verify(remittanceRepo, times(4)).save(savedRemittance.capture());
+    var list = savedRemittance.getAllValues();
     assertThat(
         savedRemittance.getAllValues(),
-        containsInAnyOrder(expectedRemittance1, expectedRemittance2));
+        containsInAnyOrder(
+            expectedRemittance1,
+            expectedRemittance2,
+            expectedDailyRemittance,
+            expectedDailyRemittance));
   }
 
   @Test
@@ -213,11 +230,11 @@ class RemittanceControllerTest {
                 .sla(snapshot.getServiceLevel().getValue())
                 .usage(snapshot.getUsage().getValue())
                 .remittancePendingDate(snapshot.getSnapshotDate())
+                .granularity(Granularity.HOURLY)
                 .build())
         // NOTE: We are mocking the repository's sum call, so this value doesn't have to match the
         // snapshot.
         .remittedPendingValue(remittedValue)
-        .granularity(Granularity.HOURLY)
         .build();
   }
 

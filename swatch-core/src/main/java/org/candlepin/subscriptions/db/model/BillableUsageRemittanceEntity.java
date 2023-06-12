@@ -25,8 +25,6 @@ import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
 import javax.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -50,8 +48,4 @@ public class BillableUsageRemittanceEntity implements Serializable {
   @Basic
   @Column(name = "account_number", nullable = true)
   private String accountNumber;
-
-  @Enumerated(EnumType.STRING)
-  @Column(name = "granularity")
-  private Granularity granularity;
 }

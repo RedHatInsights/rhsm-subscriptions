@@ -130,8 +130,10 @@ public interface BillableUsageRemittanceRepository
   }
 
   static Specification<BillableUsageRemittanceEntity> matchingGranularity(Granularity granularity) {
-    return (root, query, builder) ->
-        builder.equal(root.get(BillableUsageRemittanceEntity_.granularity), granularity);
+    return (root, query, builder) -> {
+      var path = root.get(BillableUsageRemittanceEntity_.key);
+      return builder.equal(path.get(BillableUsageRemittanceEntityPK_.granularity), granularity);
+    };
   }
 
   static Specification<BillableUsageRemittanceEntity> beforeRemittanceDate(OffsetDateTime ending) {

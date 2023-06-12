@@ -20,9 +20,12 @@
  */
 package org.candlepin.subscriptions.tally.billing;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -561,6 +564,7 @@ class BillableUsageControllerTest {
         .metricId(billableUsage.getUom().value())
         .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(billableUsage.getSnapshotDate()))
         .remittancePendingDate(remittedDate)
+        .granularity(Granularity.HOURLY)
         .build();
   }
 
@@ -590,7 +594,6 @@ class BillableUsageControllerTest {
         .key(remKey)
         .remittedPendingValue(value)
         .accountNumber(usage.getAccountNumber())
-        .granularity(Granularity.HOURLY)
         .build();
   }
 
@@ -647,11 +650,16 @@ class BillableUsageControllerTest {
     // NOTE: Using argument captors make errors caught by mocks a little easier to debug.
     BillableUsageRemittanceEntity expectedRemittance =
         remittance(usage, usage.getSnapshotDate(), expectedRemitted);
+
+    BillableUsageRemittanceEntity expectedDailyRemittance =
+        remittance(usage, CLOCK.startOfDay(usage.getSnapshotDate()), expectedRemitted);
+    expectedDailyRemittance.getKey().setGranularity(Granularity.DAILY);
+
     ArgumentCaptor<BillableUsageRemittanceEntity> remitted =
         ArgumentCaptor.forClass(BillableUsageRemittanceEntity.class);
-    verify(remittanceRepo).save(remitted.capture());
-    BillableUsageRemittanceEntity saved = remitted.getValue();
-    assertEquals(expectedRemittance, saved);
+    verify(remittanceRepo, times(2)).save(remitted.capture());
+    assertThat(
+        remitted.getAllValues(), containsInAnyOrder(expectedRemittance, expectedDailyRemittance));
 
     BillableUsage expectedUsage = billable(usage.getSnapshotDate(), expectedBilledValue);
     expectedUsage.setId(usage.getId());
@@ -708,5 +716,66 @@ class BillableUsageControllerTest {
 
     controller.submitBillableUsage(BillingWindow.MONTHLY, usage);
     verify(producer).produce(null);
+  }
+
+  @Test
+  void dailyRemittanceCreatedForFirstUsageOfDay() {
+    BillableUsage usage = billable(CLOCK.startOfCurrentMonth(), 2.3);
+    List<RemittanceSummaryProjection> summaries = new ArrayList<>();
+    summaries.add(RemittanceSummaryProjection.builder().totalRemittedPendingValue(3.0).build());
+
+    when(remittanceRepo.getRemittanceSummaries(any())).thenReturn(summaries);
+
+    mockCurrentSnapshotMeasurementTotal(usage, 4.4);
+    controller.submitBillableUsage(BillingWindow.MONTHLY, usage);
+
+    BillableUsageRemittanceEntity expectedRemittance =
+        remittance(usage, usage.getSnapshotDate(), 2.0);
+    BillableUsageRemittanceEntity expectedDailyRemittance =
+        remittance(usage, CLOCK.startOfDay(usage.getSnapshotDate()), 2.0);
+    expectedDailyRemittance.getKey().setGranularity(Granularity.DAILY);
+    BillableUsage expectedUsage = billable(usage.getSnapshotDate(), 2.0);
+    expectedUsage.setId(usage.getId()); // Id will be regenerated above.
+    ArgumentCaptor<BillableUsageRemittanceEntity> remitted =
+        ArgumentCaptor.forClass(BillableUsageRemittanceEntity.class);
+    verify(remittanceRepo).save(expectedRemittance);
+    verify(remittanceRepo, times(2)).save(remitted.capture());
+    assertThat(
+        remitted.getAllValues(), containsInAnyOrder(expectedRemittance, expectedDailyRemittance));
+    verify(producer).produce(expectedUsage);
+  }
+
+  @Test
+  void dailyRemittanceUpdated() {
+    BillableUsage usage = billable(CLOCK.startOfCurrentMonth(), 7.0);
+    List<RemittanceSummaryProjection> summaries = new ArrayList<>();
+    summaries.add(RemittanceSummaryProjection.builder().totalRemittedPendingValue(3.0).build());
+
+    when(remittanceRepo.getRemittanceSummaries(any())).thenReturn(summaries);
+
+    BillableUsageRemittanceEntity currentDailyRemittance =
+        remittance(usage, CLOCK.startOfDay(usage.getSnapshotDate()), 1.0);
+    currentDailyRemittance.getKey().setGranularity(Granularity.DAILY);
+
+    when(remittanceRepo.findById(currentDailyRemittance.getKey()))
+        .thenReturn(Optional.of(currentDailyRemittance));
+
+    mockCurrentSnapshotMeasurementTotal(usage, 10.0);
+    controller.submitBillableUsage(BillingWindow.MONTHLY, usage);
+
+    BillableUsageRemittanceEntity expectedRemittance =
+        remittance(usage, usage.getSnapshotDate(), 7.0);
+    BillableUsageRemittanceEntity expectedDailyRemittance =
+        remittance(usage, CLOCK.startOfDay(usage.getSnapshotDate()), 8.0);
+    expectedDailyRemittance.getKey().setGranularity(Granularity.DAILY);
+    BillableUsage expectedUsage = billable(usage.getSnapshotDate(), 7.0);
+    expectedUsage.setId(usage.getId()); // Id will be regenerated above.
+    ArgumentCaptor<BillableUsageRemittanceEntity> remitted =
+        ArgumentCaptor.forClass(BillableUsageRemittanceEntity.class);
+    verify(remittanceRepo).save(expectedRemittance);
+    verify(remittanceRepo, times(2)).save(remitted.capture());
+    assertThat(
+        remitted.getAllValues(), containsInAnyOrder(expectedRemittance, expectedDailyRemittance));
+    verify(producer).produce(expectedUsage);
   }
 }

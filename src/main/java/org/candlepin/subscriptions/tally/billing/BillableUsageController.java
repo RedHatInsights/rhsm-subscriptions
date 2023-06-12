@@ -274,10 +274,33 @@ public class BillableUsageController {
     // Remitted value should be set to usages metric_value rather than billing_value
     newRemittance.setRemittedPendingValue(usageCalc.getRemittedValue());
     newRemittance.getKey().setRemittancePendingDate(usageCalc.getRemittanceDate());
+    newRemittance.getKey().setGranularity(Granularity.HOURLY);
     newRemittance.setAccountNumber(usage.getAccountNumber());
-    newRemittance.setGranularity(Granularity.HOURLY);
     log.debug("Creating new remittance for update: {}", newRemittance);
     billableUsageRemittanceRepository.save(newRemittance);
+    updateDailyRemittance(usage, newRemittance);
+  }
+
+  private void updateDailyRemittance(
+      BillableUsage usage, BillableUsageRemittanceEntity hourlyRemittance) {
+    var dailyRemittance = getDailyRemittance(usage);
+    var totalDailyRemittedValue =
+        dailyRemittance.getRemittedPendingValue() + hourlyRemittance.getRemittedPendingValue();
+    dailyRemittance.setRemittedPendingValue(totalDailyRemittedValue);
+    billableUsageRemittanceRepository.save(dailyRemittance);
+  }
+
+  private BillableUsageRemittanceEntity getDailyRemittance(BillableUsage usage) {
+    var key = BillableUsageRemittanceEntityPK.keyFrom(usage, Granularity.DAILY);
+    key.setRemittancePendingDate(clock.startOfDay(usage.getSnapshotDate()));
+    return billableUsageRemittanceRepository
+        .findById(key)
+        .orElse(
+            BillableUsageRemittanceEntity.builder()
+                .key(key)
+                .accountNumber(usage.getAccountNumber())
+                .remittedPendingValue(0.0)
+                .build());
   }
 
   private Double getCurrentlyMeasuredTotal(
