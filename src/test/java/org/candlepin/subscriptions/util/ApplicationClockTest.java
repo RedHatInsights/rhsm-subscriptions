@@ -31,7 +31,6 @@ import static org.candlepin.subscriptions.FixedClockConfiguration.WINTER_TIME_UT
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -263,8 +262,8 @@ class ApplicationClockTest {
   }
 
   private void assertEndOfDay(int year, int month, int day, OffsetDateTime date) {
-    OffsetDateTime max = OffsetDateTime.of(LocalDateTime.MAX, ZoneOffset.UTC)
-        .truncatedTo(ChronoUnit.MICROS);
+    OffsetDateTime max =
+        OffsetDateTime.of(LocalDateTime.MAX, ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
 
     assertDate(
         year, month, day, max.getHour(), max.getMinute(), max.getSecond(), max.getNano(), date);

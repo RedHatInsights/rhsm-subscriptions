@@ -90,6 +90,21 @@ public class BillableUsageRemittanceEntityPK implements Serializable {
     return keyFrom(billableUsage, Granularity.HOURLY);
   }
 
+  public static BillableUsageRemittanceEntityPK clone(BillableUsageRemittanceEntityPK target) {
+    return BillableUsageRemittanceEntityPK.builder()
+        .usage(target.getUsage())
+        .orgId(target.getOrgId())
+        .billingProvider(target.getBillingProvider())
+        .billingAccountId(target.getBillingAccountId())
+        .productId(target.getProductId())
+        .sla(target.getSla())
+        .metricId(target.getMetricId())
+        .accumulationPeriod(target.getAccumulationPeriod())
+        .remittancePendingDate(target.getRemittancePendingDate())
+        .granularity(target.getGranularity())
+        .build();
+  }
+
   public static String getAccumulationPeriod(OffsetDateTime reference) {
     return InstanceMonthlyTotalKey.formatMonthId(reference);
   }
