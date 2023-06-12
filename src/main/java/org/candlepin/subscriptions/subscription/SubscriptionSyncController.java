@@ -60,6 +60,7 @@ import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.MissingOfferingException;
 import org.candlepin.subscriptions.product.OfferingSyncController;
 import org.candlepin.subscriptions.product.SyncResult;
+import org.candlepin.subscriptions.registry.TagMetric;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
@@ -679,5 +680,11 @@ public class SubscriptionSyncController {
           null);
     }
     return productTags;
+  }
+
+  public List<TagMetric> getMetricsForTag(String tag) {
+    return tagProfile.getTagMetrics().stream()
+        .filter(tagMetric -> Objects.equals(tagMetric.getTag(), tag))
+        .toList();
   }
 }

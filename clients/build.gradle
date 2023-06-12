@@ -26,6 +26,10 @@ project(":clients:subscription-client") {
     apply plugin: "swatch.spring-boot-rest-client-conventions"
 }
 
+project(":clients:quarkus:subscription-client") {
+    apply plugin: "swatch.quarkus-rest-client-conventions"
+}
+
 project(":clients:user-client") {
     apply plugin: "swatch.spring-boot-rest-client-conventions"
 }

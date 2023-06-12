@@ -26,9 +26,13 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlement
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
+import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
+import com.redhat.swatch.contract.exception.ContractsException;
 import com.redhat.swatch.contract.exception.CreateContractException;
+import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.model.ContractMapper;
 import com.redhat.swatch.contract.model.ContractSourcePartnerEnum;
+import com.redhat.swatch.contract.model.MeasurementMetricIdTransformer;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
@@ -36,6 +40,8 @@ import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractRepository;
 import com.redhat.swatch.contract.repository.Specification;
+import com.redhat.swatch.contract.repository.SubscriptionEntity;
+import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -57,16 +63,23 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 public class ContractService {
 
   private final ContractRepository contractRepository;
+  private final SubscriptionRepository subscriptionRepository;
   private final ContractMapper mapper;
+  private final MeasurementMetricIdTransformer measurementMetricIdTransformer;
   private final SubscriptionSyncService syncService;
   @Inject @RestClient PartnerApi partnerApi;
+  @Inject @RestClient SearchApi subscriptionApi;
 
   ContractService(
       ContractRepository contractRepository,
+      SubscriptionRepository subscriptionRepository,
       ContractMapper mapper,
+      MeasurementMetricIdTransformer measurementMetricIdTransformer,
       SubscriptionSyncService syncService) {
     this.contractRepository = contractRepository;
+    this.subscriptionRepository = subscriptionRepository;
     this.mapper = mapper;
+    this.measurementMetricIdTransformer = measurementMetricIdTransformer;
     this.syncService = syncService;
   }
 
@@ -105,7 +118,10 @@ public class ContractService {
     }
     entity.setEndDate(null);
 
+    var subscription = createSubscriptionForContract(entity, false);
+    subscription.setSubscriptionId(contract.getUuid());
     contractRepository.persist(entity);
+    subscriptionRepository.persist(subscription);
 
     return contract;
   }
@@ -174,7 +190,19 @@ public class ContractService {
   @Transactional
   public void deleteContract(String uuid) {
 
-    contractRepository.deleteById(UUID.fromString(uuid));
+    var contract = contractRepository.findContract(UUID.fromString(uuid));
+    var subscription =
+        subscriptionRepository
+            .find(SubscriptionEntity.class, SubscriptionEntity.forContract(contract))
+            .stream()
+            .findFirst()
+            .orElse(null);
+    if (contract != null) {
+      contractRepository.delete(contract);
+    }
+    if (subscription != null) {
+      subscriptionRepository.delete(subscription);
+    }
   }
 
   @Transactional
@@ -220,6 +248,7 @@ public class ContractService {
       } else {
         // Record found in contract table but, the contract has changed
         var now = OffsetDateTime.now();
+        persistExistingSubscription(existingContract, now); // end current subscription
         persistExistingContract(existingContract, now); // Persist previous contract
 
         persistContract(entity, now); // Persist new contract
@@ -229,11 +258,46 @@ public class ContractService {
     } else {
       // New contract
       var now = OffsetDateTime.now();
+      persistSubscription(createSubscriptionForContract(entity, true), now);
       persistContract(entity, now);
       statusResponse.setMessage("New contract created");
     }
 
     return statusResponse;
+  }
+
+  private void persistExistingSubscription(ContractEntity contract, OffsetDateTime now) {
+    var subscription =
+        subscriptionRepository
+            .findOne(SubscriptionEntity.class, SubscriptionEntity.forContract(contract))
+            .orElseGet(() -> createSubscriptionForContract(contract, true));
+    subscription.setEndDate(now);
+    subscriptionRepository.persist(subscription);
+  }
+
+  private SubscriptionEntity createSubscriptionForContract(
+      ContractEntity contract, boolean lookupSubscriptionId) {
+    var subscription = new SubscriptionEntity();
+    mapper.mapContractEntityToSubscriptionEntity(subscription, contract);
+    measurementMetricIdTransformer.translateContractMetricIdsToSubscriptionMetricIds(subscription);
+    if (lookupSubscriptionId) {
+      subscription.setSubscriptionId(lookupSubscriptionId(contract.getSubscriptionNumber()));
+    }
+    return subscription;
+  }
+
+  private String lookupSubscriptionId(String subscriptionNumber) {
+    try {
+      return subscriptionApi.getSubscriptionBySubscriptionNumber(subscriptionNumber).stream()
+          .findFirst()
+          .orElseThrow()
+          .getId()
+          .toString();
+    } catch (Exception e) {
+      log.error("Error fetching subscription ID for contract", e);
+      throw new ContractsException(
+          ErrorCode.CONTRACT_DOES_NOT_EXIST, "Unable to lookup subscription for contract");
+    }
   }
 
   @Transactional
@@ -266,7 +330,9 @@ public class ContractService {
           if (Objects.nonNull(entitlementEntity)) {
             log.info("Syncing new Contract for {}", contractOrgSync);
             statusResponse.setStatus(successMsg);
-            persistContract(entitlementEntity, OffsetDateTime.now());
+            var now = OffsetDateTime.now();
+            persistSubscription(createSubscriptionForContract(entitlementEntity, true), now);
+            persistContract(entitlementEntity, now);
           } else {
             statusResponse.setStatus(failureMessage);
             statusResponse.setMessage("Entitlement Cannot be found for " + contractOrgSync);
@@ -313,6 +379,11 @@ public class ContractService {
         && Objects.nonNull(entity.getProductId())
         && Objects.nonNull(entity.getMetrics())
         && !entity.getMetrics().isEmpty();
+  }
+
+  private void persistSubscription(SubscriptionEntity subscription, OffsetDateTime now) {
+    subscription.setStartDate(now);
+    subscriptionRepository.persist(subscription);
   }
 
   private void persistContract(ContractEntity entity, OffsetDateTime now) {

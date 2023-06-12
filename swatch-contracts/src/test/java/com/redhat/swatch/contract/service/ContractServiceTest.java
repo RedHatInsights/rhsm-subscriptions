@@ -22,21 +22,29 @@ package com.redhat.swatch.contract.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.clients.subscription.api.model.Subscription;
+import com.redhat.swatch.clients.subscription.api.resources.ApiException;
+import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
 import com.redhat.swatch.contract.BaseUnitTest;
+import com.redhat.swatch.contract.model.MeasurementMetricIdTransformer;
 import com.redhat.swatch.contract.openapi.model.*;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import com.redhat.swatch.contract.repository.ContractRepository;
+import com.redhat.swatch.contract.repository.SubscriptionEntity;
+import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import java.time.OffsetDateTime;
 import java.util.*;
 import javax.inject.Inject;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -48,8 +56,12 @@ import org.mockito.Captor;
 class ContractServiceTest extends BaseUnitTest {
   @Inject ContractService contractService;
   @InjectMock ContractRepository contractRepository;
+  @InjectMock SubscriptionRepository subscriptionRepository;
 
   @InjectMock SubscriptionSyncService syncService;
+
+  @InjectMock @RestClient SearchApi subscriptionApi;
+  @InjectMock MeasurementMetricIdTransformer measurementMetricIdTransformer;
   ContractEntity actualContract1;
 
   Contract contractDto;
@@ -130,7 +142,7 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
-  void createPartnerContract_WhenNonNullEntityAndContractNotFoundInDB() {
+  void createPartnerContract_WhenNonNullEntityAndContractNotFoundInDB() throws ApiException {
     var contract = new PartnerEntitlementContract();
     contract.setRedHatSubscriptionNumber("12400374");
 
@@ -144,6 +156,7 @@ class ContractServiceTest extends BaseUnitTest {
     OfferingProductTags productTags = new OfferingProductTags();
     productTags.data(List.of("MH123"));
     when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
+    mockSubscriptionServiceSubscription();
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("New contract created", statusResponse.getMessage());
   }
@@ -186,7 +199,7 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
-  void createPartnerContract_NotDuplicateContractThenPersist() {
+  void createPartnerContract_NotDuplicateContractThenPersist() throws ApiException {
     ContractEntity incomingContract = new ContractEntity();
     var uuid = UUID.randomUUID();
     OffsetDateTime offsetDateTime = OffsetDateTime.now();
@@ -227,13 +240,22 @@ class ContractServiceTest extends BaseUnitTest {
 
     when(contractRepository.getContracts(any())).thenReturn(List.of(existingContract));
 
+    mockSubscriptionServiceSubscription();
+
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals(
         "Previous contract archived and new contract created", statusResponse.getMessage());
   }
 
+  private void mockSubscriptionServiceSubscription() throws ApiException {
+    Subscription subscription = new Subscription();
+    subscription.setId(42);
+    when(subscriptionApi.getSubscriptionBySubscriptionNumber(any()))
+        .thenReturn(List.of(subscription));
+  }
+
   @Test
-  void createPartnerContract_DuplicateContractThenDoNotPersist() {
+  void createPartnerContract_DuplicateContractThenDoNotPersist() throws ApiException {
     ContractEntity incomingContract = new ContractEntity();
     var uuid = UUID.randomUUID();
     OffsetDateTime offsetDateTime = OffsetDateTime.now();
@@ -276,7 +298,7 @@ class ContractServiceTest extends BaseUnitTest {
     OfferingProductTags productTags = new OfferingProductTags();
     productTags.data(List.of("BASILISK123"));
     when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
-
+    mockSubscriptionServiceSubscription();
     when(contractRepository.getContracts(any())).thenReturn(List.of(existingContract));
 
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
@@ -284,7 +306,7 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
-  void syncContractWIthExistingAndNewContracts() {
+  void syncContractWIthExistingAndNewContracts() throws ApiException {
     var updateContract = new ContractEntity();
     updateContract.setUuid(UUID.randomUUID());
     updateContract.setOrgId("org123");
@@ -303,6 +325,7 @@ class ContractServiceTest extends BaseUnitTest {
     OfferingProductTags productTags = new OfferingProductTags();
     productTags.data(List.of("BASILISK123"));
     when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
+    mockSubscriptionServiceSubscription();
 
     StatusResponse statusResponse = contractService.syncContractByOrgId(updateContract.getOrgId());
     assertEquals("Contracts Synced for " + updateContract.getOrgId(), statusResponse.getMessage());
@@ -331,5 +354,87 @@ class ContractServiceTest extends BaseUnitTest {
 
     StatusResponse statusResponse = contractService.syncContractByOrgId(updateContract.getOrgId());
     assertEquals(updateContract.getOrgId() + " not found in table", statusResponse.getMessage());
+  }
+
+  @Test
+  void testCreateContractCreatesSubscription() {
+    contractService.createContract(contractDto);
+    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
+    verify(measurementMetricIdTransformer).translateContractMetricIdsToSubscriptionMetricIds(any());
+  }
+
+  @Test
+  void testCreatePartnerContractCreatesSubscription() throws ApiException {
+    var contract = new PartnerEntitlementContract();
+    contract.setRedHatSubscriptionNumber("subnum");
+    contract.setCurrentDimensions(
+        List.of(new Dimension().dimensionName("name").dimensionValue("value")));
+    contract.setCloudIdentifiers(
+        new PartnerEntitlementContractCloudIdentifiers()
+            .awsCustomerAccountId("foo")
+            .awsCustomerId("bar")
+            .productCode("foobar"));
+    mockSubscriptionServiceSubscription();
+    OfferingProductTags productTags = new OfferingProductTags();
+    productTags.data(List.of("MH123"));
+    when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
+
+    contractService.createPartnerContract(contract);
+
+    verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
+    verify(measurementMetricIdTransformer).translateContractMetricIdsToSubscriptionMetricIds(any());
+  }
+
+  @Test
+  void testDeleteContractDeletesSubscription() {
+    UUID uuid = UUID.randomUUID();
+    ContractEntity contract = new ContractEntity();
+    when(contractRepository.findContract(uuid)).thenReturn(contract);
+    SubscriptionEntity subscription = new SubscriptionEntity();
+    when(subscriptionRepository.find(eq(SubscriptionEntity.class), any()))
+        .thenReturn(List.of(subscription));
+    contractService.deleteContract(uuid.toString());
+    verify(subscriptionRepository).delete(subscription);
+    verify(contractRepository).delete(contract);
+  }
+
+  @Test
+  void testDeleteContractNoopWhenMissing() {
+    UUID uuid = UUID.randomUUID();
+    when(contractRepository.findContract(uuid)).thenReturn(null);
+    when(subscriptionRepository.find(eq(SubscriptionEntity.class), any())).thenReturn(List.of());
+    contractService.deleteContract(uuid.toString());
+    verify(subscriptionRepository, times(0)).delete(any());
+    verify(contractRepository, times(0)).delete(any());
+  }
+
+  @Test
+  void testSyncContractByOrgIdCreatesSubscriptions() throws ApiException {
+    var updateContract = new ContractEntity();
+    updateContract.setUuid(UUID.randomUUID());
+    updateContract.setOrgId("org123");
+    updateContract.setSubscriptionNumber("123456");
+    updateContract.setBillingProvider("redhat_fake");
+    updateContract.setBillingAccountId("896801664647");
+    updateContract.setStartDate(OffsetDateTime.now().minusDays(2));
+    updateContract.setEndDate(OffsetDateTime.now());
+    updateContract.setProductId("BASILISK123");
+    updateContract.setSku("MW01484");
+    when(contractRepository.getContracts(any()))
+        .thenReturn(List.of(actualContract1, updateContract));
+    when(contractRepository.findContract(any())).thenReturn(updateContract);
+
+    // mock sync call for updating contracts
+    OfferingProductTags productTags = new OfferingProductTags();
+    productTags.data(List.of("BASILISK123"));
+    when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
+    mockSubscriptionServiceSubscription();
+
+    contractService.syncContractByOrgId("org123");
+    // 2 instances of subscription are created, one for the original contract, and one for the
+    // update
+    verify(subscriptionRepository, times(2)).persist(any(SubscriptionEntity.class));
+    verify(measurementMetricIdTransformer, times(2))
+        .translateContractMetricIdsToSubscriptionMetricIds(any());
   }
 }

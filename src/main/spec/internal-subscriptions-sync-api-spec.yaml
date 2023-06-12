@@ -276,6 +276,44 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - internalSubscriptions
+  /internal/tags/{tag}/metrics:
+    description: "Mapping sku to product tags."
+    parameters:
+      - name: tag
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: "Lookup metrics tags by tag"
+      operationId: getTagMetrics
+      responses:
+        '200':
+          description: "The request to get product tags by sku ."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TagMetric'
+              example:
+                data:
+                  - metric_id: foo
+                    aws_dimension: foo1
+                    billing_factor: 0.25
+                  - metric_id: bar
+                    aws_dimension: bar1
+                    billing_factor: 1.0
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - internalSubscriptions
   /internal/rpc/offerings/sync/{sku}:
     description: Sync an offering from the upstream source.
     parameters:
@@ -423,6 +461,15 @@ components:
           type: array
           items:
             type: string
+    TagMetric:
+      properties:
+        metric_id:
+          type: string
+        aws_dimension:
+          type: string
+        billing_factor:
+          type: number
+          format: double
     TerminationRequest:
       properties:
         data:

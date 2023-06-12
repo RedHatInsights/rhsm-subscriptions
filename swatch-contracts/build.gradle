@@ -27,6 +27,7 @@ dependencies {
     implementation 'io.quarkus:quarkus-smallrye-health'
     implementation 'io.quarkus:quarkus-smallrye-openapi'
     implementation project(':clients:swatch-internal-subscription-client')
+    implementation project(':clients:quarkus:subscription-client')
     implementation project(':swatch-common-config-workaround')
     implementation project(':swatch-common-resteasy')
     implementation libraries["clowder-quarkus-config-source"]
@@ -91,3 +92,9 @@ tasks.register('configureQuarkusBuild') {
 
 quarkusDev.dependsOn(configureQuarkusBuild)
 quarkusBuild.dependsOn(configureQuarkusBuild)
+
+tasks.register("wiremock", JavaExec) {
+    description = "Run mock REST services for this service"
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.redhat.swatch.contract.resource.WireMockResource"
+}

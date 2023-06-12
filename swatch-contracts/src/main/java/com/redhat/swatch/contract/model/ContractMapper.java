@@ -27,8 +27,12 @@ import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.Dimension;
 import com.redhat.swatch.contract.openapi.model.Metric;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
+import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
+import com.redhat.swatch.contract.repository.SubscriptionEntity;
+import com.redhat.swatch.contract.repository.SubscriptionMeasurementEntity;
+import com.redhat.swatch.contract.repository.SubscriptionProductIdEntity;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -59,6 +63,29 @@ public interface ContractMapper {
   @Mapping(target = "vendorProductCode", source = "cloudIdentifiers.productCode")
   @BeanMapping(ignoreByDefault = true)
   ContractEntity partnerContractToContractEntity(PartnerEntitlementContract contract);
+
+  @Mapping(target = "subscriptionId", ignore = true)
+  @Mapping(target = "accountNumber", ignore = true)
+  @Mapping(target = "billingProviderId", ignore = true)
+  @Mapping(target = "quantity", constant = "1L")
+  @Mapping(target = "hasUnlimitedUsage", constant = "false")
+  @Mapping(target = "subscriptionProductIds", source = ".")
+  @Mapping(target = "subscriptionMeasurements", source = "metrics")
+  void mapContractEntityToSubscriptionEntity(
+      @MappingTarget SubscriptionEntity subscription, ContractEntity contract);
+
+  @Mapping(target = "subscription", ignore = true)
+  @Mapping(target = "productId", source = "productId")
+  SubscriptionProductIdEntity contractEntityToSubscriptionProductIdEntity(ContractEntity contract);
+
+  @Mapping(target = "subscription", ignore = true)
+  @Mapping(target = "measurementType", constant = "PHYSICAL")
+  SubscriptionMeasurementEntity contractMetricEntityToSubscriptionMeasurementEntity(
+      ContractMetricEntity contractMetric);
+
+  default BillingProvider billingProviderFromString(String value) {
+    return BillingProvider.fromString(value);
+  }
 
   @Mapping(target = "metricId", source = "dimension.dimensionName")
   @Mapping(target = "value", source = "dimension.dimensionValue")

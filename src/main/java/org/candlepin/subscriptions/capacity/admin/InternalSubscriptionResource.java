@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.capacity.admin;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.OffsetDateTime;
+import java.util.List;
 import javax.persistence.EntityNotFoundException;
 import javax.ws.rs.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -41,9 +42,11 @@ import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTa
 import org.candlepin.subscriptions.utilization.admin.api.model.OfferingResponse;
 import org.candlepin.subscriptions.utilization.admin.api.model.RhmUsageContext;
 import org.candlepin.subscriptions.utilization.admin.api.model.SubscriptionResponse;
+import org.candlepin.subscriptions.utilization.admin.api.model.TagMetric;
 import org.candlepin.subscriptions.utilization.admin.api.model.TerminationRequest;
 import org.candlepin.subscriptions.utilization.admin.api.model.TerminationRequestData;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /** Subscriptions Table API implementation. */
@@ -59,18 +62,21 @@ public class InternalSubscriptionResource implements InternalApi {
   private final MeterRegistry meterRegistry;
   private final UsageContextSubscriptionProvider awsSubscriptionProvider;
   private final UsageContextSubscriptionProvider rhmSubscriptionProvider;
+  private final TagMetricMapper tagMetricMapper;
   private static final String SUCCESS_STATUS = "Success";
 
   public static final String FEATURE_NOT_ENABLED_MESSSAGE =
       "This feature is not currently enabled.";
 
+  @Autowired
   public InternalSubscriptionResource(
       MeterRegistry meterRegistry,
       SubscriptionSyncController subscriptionSyncController,
       SecurityProperties properties,
       SubscriptionPruneController subscriptionPruneController,
       OfferingSyncController offeringSync,
-      CapacityReconciliationController capacityReconciliationController) {
+      CapacityReconciliationController capacityReconciliationController,
+      TagMetricMapper tagMetricMapper) {
     this.meterRegistry = meterRegistry;
     this.subscriptionSyncController = subscriptionSyncController;
     this.properties = properties;
@@ -89,6 +95,7 @@ public class InternalSubscriptionResource implements InternalApi {
     this.subscriptionPruneController = subscriptionPruneController;
     this.offeringSync = offeringSync;
     this.capacityReconciliationController = capacityReconciliationController;
+    this.tagMetricMapper = tagMetricMapper;
   }
 
   /**
@@ -180,6 +187,11 @@ public class InternalSubscriptionResource implements InternalApi {
         .getSubscription(orgId, accountNumber, productId, sla, usage, awsAccountId, date)
         .map(this::buildAwsUsageContext)
         .orElseThrow();
+  }
+
+  @Override
+  public List<TagMetric> getTagMetrics(String tag) {
+    return tagMetricMapper.mapTagMetrics(subscriptionSyncController.getMetricsForTag(tag));
   }
 
   private AwsUsageContext buildAwsUsageContext(Subscription subscription) {
