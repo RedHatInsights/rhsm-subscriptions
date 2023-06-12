@@ -34,6 +34,8 @@ public interface OfferingRepository extends JpaRepository<Offering, String> {
 
   List<Offering> findByProductName(String productName);
 
+  List<Offering> findBySkuIn(Set<String> skus);
+
   @Query(value = "select sku from Offering where :sku member of childSkus")
   Stream<String> findSkusForChildSku(@Param("sku") String sku);
 
