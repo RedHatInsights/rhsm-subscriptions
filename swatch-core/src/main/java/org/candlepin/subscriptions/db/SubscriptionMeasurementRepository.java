@@ -43,8 +43,6 @@ public interface SubscriptionMeasurementRepository
     extends JpaRepository<SubscriptionMeasurement, SubscriptionMeasurementKey>,
         JpaSpecificationExecutor<SubscriptionMeasurement> {
 
-  String CORES = MetricId.CORES.toString().toUpperCase();
-  String SOCKETS = MetricId.SOCKETS.toString().toUpperCase();
   String SUBSCRIPTION_ALIAS = "subscription";
 
   @SuppressWarnings("java:S107")
@@ -171,16 +169,6 @@ public interface SubscriptionMeasurementRepository
     };
   }
 
-  static Specification<SubscriptionMeasurement> coresCriteria(
-      HypervisorReportCategory hypervisorReportCategory) {
-    return metricsCriteria(hypervisorReportCategory, CORES);
-  }
-
-  static Specification<SubscriptionMeasurement> socketsCriteria(
-      HypervisorReportCategory hypervisorReportCategory) {
-    return metricsCriteria(hypervisorReportCategory, SOCKETS);
-  }
-
   static Specification<SubscriptionMeasurement> metricsCriteria(
       HypervisorReportCategory hypervisorReportCategory, String attribute) {
     return (root, query, builder) -> {
@@ -273,12 +261,8 @@ public interface SubscriptionMeasurementRepository
 
     if (Objects.nonNull(metricId)) {
       searchCriteria =
-          switch (metricId) {
-            case CORES -> searchCriteria.and(coresCriteria(hypervisorReportCategory));
-            case SOCKETS -> searchCriteria.and(socketsCriteria(hypervisorReportCategory));
-            default -> throw new IllegalStateException(
-                metricId + " is not a support metricId for this query");
-          };
+          searchCriteria.and(
+              metricsCriteria(hypervisorReportCategory, metricId.toString().toUpperCase()));
     }
     return searchCriteria;
   }
