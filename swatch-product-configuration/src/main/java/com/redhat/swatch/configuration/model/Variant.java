@@ -21,12 +21,15 @@
 package com.redhat.swatch.configuration.model;
 
 import java.util.List;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 import lombok.*;
 
 @Data
 @Builder
 public class Variant {
-  private String tag; // required
+
+  @NotNull @NotEmpty private String tag; // required
   private List<String> roles;
   private List<String> engineeringIds;
   private List<String> productNames;

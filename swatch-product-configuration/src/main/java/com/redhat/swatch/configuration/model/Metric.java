@@ -20,12 +20,15 @@
  */
 package com.redhat.swatch.configuration.model;
 
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 import lombok.*;
 
 @Data
 @Builder
 public class Metric {
-  private String id; // required
+
+  @NotNull @NotEmpty private String id; // required
   private String rhmMetricId;
   private String awsDimension;
   private PrometheusMetric prometheusMetric;

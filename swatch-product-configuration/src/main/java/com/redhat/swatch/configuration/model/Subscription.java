@@ -21,13 +21,18 @@
 package com.redhat.swatch.configuration.model;
 
 import java.util.List;
-import lombok.*;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
+import lombok.Builder;
+import lombok.Data;
 
 @Data
 @Builder
 public class Subscription {
-  private String platform; // required
-  private String id; // required
+
+  @NotNull @NotEmpty private String platform; // required
+
+  @NotNull @NotEmpty private String id; // required
 
   private List<String> requiredSubscriptions;
   private List<String> includedSubscriptions;

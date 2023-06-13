@@ -6,6 +6,8 @@ dependencies {
     compileOnly platform(libraries["quarkus-bom"])
     testCompileOnly platform(libraries["quarkus-bom"])
     implementation 'org.yaml:snakeyaml'
+    implementation 'javax.validation:validation-api:2.0.1.Final'
+    implementation 'org.hibernate.validator:hibernate-validator:6.2.0.Final'
 }
 
 description = 'SWATCH library for product configuration'
