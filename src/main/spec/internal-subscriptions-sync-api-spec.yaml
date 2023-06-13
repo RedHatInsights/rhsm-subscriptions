@@ -289,7 +289,7 @@ paths:
       operationId: getTagMetrics
       responses:
         '200':
-          description: "The request to get product tags by sku ."
+          description: Matching tag metrics
           content:
             application/json:
               schema:
