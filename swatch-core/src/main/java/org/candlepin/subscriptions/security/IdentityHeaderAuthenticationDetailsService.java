@@ -85,7 +85,7 @@ public class IdentityHeaderAuthenticationDetailsService
     if (principal instanceof InsightsUserPrincipal) {
       userRoles = getUserRoles();
     } else {
-      userRoles = Collections.singleton("RH_INTERNAL");
+      userRoles = Collections.singleton("INTERNAL");
     }
     Collection<? extends GrantedAuthority> userGAs = authMapper.getGrantedAuthorities(userRoles);
 

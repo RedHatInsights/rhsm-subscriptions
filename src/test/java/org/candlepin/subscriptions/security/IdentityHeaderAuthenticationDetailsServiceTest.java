@@ -76,7 +76,7 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
     Authentication auth = new PreAuthenticatedAuthenticationToken(new RhAssociatePrincipal(), null);
     UserDetails userDetails = detailsService.loadUserDetails(auth);
     assertEquals(
-        Collections.singleton(new SimpleGrantedAuthority("ROLE_RH_INTERNAL")),
+        Collections.singleton(new SimpleGrantedAuthority("ROLE_INTERNAL")),
         userDetails.getAuthorities());
     verifyNoInteractions(rbacApi);
   }
@@ -86,7 +86,7 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
     Authentication auth = new PreAuthenticatedAuthenticationToken(new X509Principal(), null);
     UserDetails userDetails = detailsService.loadUserDetails(auth);
     assertEquals(
-        Collections.singleton(new SimpleGrantedAuthority("ROLE_RH_INTERNAL")),
+        Collections.singleton(new SimpleGrantedAuthority("ROLE_INTERNAL")),
         userDetails.getAuthorities());
     verifyNoInteractions(rbacApi);
   }
