@@ -574,14 +574,15 @@ public class SubscriptionSyncController {
         getActiveSubscriptionsForOrg(orgId)
             .collect(
                 Collectors.toMap(
-                    org.candlepin.subscriptions.db.model.Subscription::getSubscriptionId,
-                    sub -> sub));
+                    sub -> new SubscriptionCompoundId(sub.getSubscriptionId(), sub.getStartDate()),
+                    Function.identity()));
 
-    subscriptions.forEach(
-        subscription ->
-            syncSubscription(
-                subscription,
-                Optional.ofNullable(subscriptionMap.get(String.valueOf(subscription.getId())))));
+    for (Subscription subscription : subscriptions) {
+      var startDate = clock.dateFromMilliseconds(subscription.getEffectiveStartDate());
+      var id = String.valueOf(subscription.getId());
+      var compoundId = new SubscriptionCompoundId(id, startDate);
+      syncSubscription(subscription, Optional.ofNullable(subscriptionMap.get(compoundId)));
+    }
 
     log.info("Finished force sync for orgId: {}", orgId);
   }
