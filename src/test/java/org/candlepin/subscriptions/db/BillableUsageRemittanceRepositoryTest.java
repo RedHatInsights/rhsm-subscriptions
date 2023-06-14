@@ -137,12 +137,9 @@ class BillableUsageRemittanceRepositoryTest {
             .metricId(Uom.CORES.value())
             .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(remittanceDate))
             .remittancePendingDate(remittanceDate)
+            .granularity(Granularity.HOURLY)
             .build();
-    return BillableUsageRemittanceEntity.builder()
-        .key(key)
-        .remittedPendingValue(value)
-        .granularity(Granularity.HOURLY)
-        .build();
+    return BillableUsageRemittanceEntity.builder().key(key).remittedPendingValue(value).build();
   }
 
   @Test
