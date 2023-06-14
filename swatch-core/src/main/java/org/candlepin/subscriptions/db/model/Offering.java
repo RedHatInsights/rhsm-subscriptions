@@ -31,8 +31,6 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.Table;
 import lombok.*;
-import org.hibernate.annotations.LazyCollection;
-import org.hibernate.annotations.LazyCollectionOption;
 
 /**
  * Represents a product Offering that can be provided by a Subscription.
@@ -89,7 +87,6 @@ public class Offering implements Serializable {
   /** Internal identifiers for products that compose an Offering. */
   @Builder.Default
   @ElementCollection
-  @LazyCollection(LazyCollectionOption.FALSE)
   @CollectionTable(name = "sku_child_sku", joinColumns = @JoinColumn(name = "sku"))
   @Column(name = "child_sku")
   private Set<String> childSkus = new HashSet<>();
@@ -106,7 +103,6 @@ public class Offering implements Serializable {
    */
   @Builder.Default
   @ElementCollection
-  @LazyCollection(LazyCollectionOption.FALSE)
   @CollectionTable(name = "sku_oid", joinColumns = @JoinColumn(name = "sku"))
   @Column(name = "oid")
   private Set<Integer> productIds = new HashSet<>();
