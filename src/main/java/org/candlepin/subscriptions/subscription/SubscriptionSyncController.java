@@ -312,14 +312,14 @@ public class SubscriptionSyncController {
     log.info("Syncing subscriptions for orgId={}", orgId);
     Set<String> seenSubscriptionIds = new HashSet<>();
     Map<SubscriptionCompoundId, org.candlepin.subscriptions.db.model.Subscription>
-        swatchSubscriptions =
-            subscriptionRepository
-                .findByOrgId(orgId)
-                .collect(
-                    Collectors.toMap(
-                        sub ->
-                            new SubscriptionCompoundId(sub.getSubscriptionId(), sub.getStartDate()),
-                        Function.identity()));
+        swatchSubscriptions;
+    try (var subs = subscriptionRepository.findByOrgId(orgId)) {
+      swatchSubscriptions =
+          subs.collect(
+              Collectors.toMap(
+                  sub -> new SubscriptionCompoundId(sub.getSubscriptionId(), sub.getStartDate()),
+                  Function.identity()));
+    }
     subscriptionService.getSubscriptionsByOrgId(orgId).stream()
         .filter(this::shouldSyncSub)
         .forEach(
