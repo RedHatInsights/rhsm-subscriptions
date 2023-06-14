@@ -84,15 +84,13 @@ public class ContractsController {
               usage.getBillingProvider(), usage.getProductId(), usage.getUom()));
     }
 
-    log.debug(
-        "Looking up contract information for usage {} using metric ID {}", usage, contractMetricId);
+    log.debug("Looking up contract information for usage {}", usage);
     List<Contract> contracts;
     try {
       contracts =
           contractsApi.getContract(
               usage.getOrgId(),
               usage.getProductId(),
-              contractMetricId,
               usage.getVendorProductCode(),
               usage.getBillingProvider().value(),
               usage.getBillingAccountId(),

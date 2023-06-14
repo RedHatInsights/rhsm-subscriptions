@@ -70,7 +70,6 @@ public class ContractsTestingResource implements DefaultApi {
    *
    * @param orgId
    * @param productId
-   * @param metricId
    * @param billingProvider
    * @param billingAccountId
    * @return List<Contract> dtos
@@ -82,20 +81,13 @@ public class ContractsTestingResource implements DefaultApi {
   public List<Contract> getContract(
       String orgId,
       String productId,
-      String metricId,
       String vendorProductCode,
       String billingProvider,
       String billingAccountId,
       OffsetDateTime timestamp)
       throws ApiException, ProcessingException {
     return service.getContracts(
-        orgId,
-        productId,
-        metricId,
-        billingProvider,
-        billingAccountId,
-        vendorProductCode,
-        timestamp);
+        orgId, productId, billingProvider, billingAccountId, vendorProductCode, timestamp);
   }
 
   @Override

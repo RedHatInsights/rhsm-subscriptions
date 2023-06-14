@@ -96,7 +96,6 @@ class ContractsControllerTest {
     when(contractsApi.getContract(
             usage.getOrgId(),
             usage.getProductId(),
-            CONTRACT_METRIC_ID,
             usage.getVendorProductCode(),
             usage.getBillingProvider().value(),
             usage.getBillingAccountId(),
@@ -109,7 +108,6 @@ class ContractsControllerTest {
         .getContract(
             usage.getOrgId(),
             usage.getProductId(),
-            CONTRACT_METRIC_ID,
             usage.getVendorProductCode(),
             usage.getBillingProvider().toString(),
             usage.getBillingAccountId(),
@@ -133,7 +131,6 @@ class ContractsControllerTest {
     when(contractsApi.getContract(
             usage.getOrgId(),
             usage.getProductId(),
-            CONTRACT_METRIC_ID,
             usage.getVendorProductCode(),
             usage.getBillingProvider().value(),
             usage.getBillingAccountId(),
@@ -146,7 +143,6 @@ class ContractsControllerTest {
         .getContract(
             usage.getOrgId(),
             usage.getProductId(),
-            CONTRACT_METRIC_ID,
             usage.getVendorProductCode(),
             usage.getBillingProvider().toString(),
             usage.getBillingAccountId(),
@@ -204,7 +200,6 @@ class ContractsControllerTest {
     when(contractsApi.getContract(
             usage.getOrgId(),
             usage.getProductId(),
-            CONTRACT_METRIC_ID,
             usage.getVendorProductCode(),
             usage.getBillingProvider().value(),
             usage.getBillingAccountId(),
@@ -233,7 +228,6 @@ class ContractsControllerTest {
     when(contractsApi.getContract(
             usage.getOrgId(),
             usage.getProductId(),
-            CONTRACT_METRIC_ID,
             usage.getVendorProductCode(),
             usage.getBillingProvider().value(),
             usage.getBillingAccountId(),
@@ -284,7 +278,6 @@ class ContractsControllerTest {
     when(contractsApi.getContract(
             usage.getOrgId(),
             usage.getProductId(),
-            CONTRACT_METRIC_ID,
             usage.getVendorProductCode(),
             usage.getBillingProvider().value(),
             usage.getBillingAccountId(),
@@ -305,7 +298,7 @@ class ContractsControllerTest {
         .thenReturn(CONTRACT_METRIC_ID);
     doThrow(ApiException.class)
         .when(contractsApi)
-        .getContract(any(), any(), any(), any(), any(), any(), any());
+        .getContract(any(), any(), any(), any(), any(), any());
     ExternalServiceException e =
         assertThrows(
             ExternalServiceException.class,
@@ -321,7 +314,7 @@ class ContractsControllerTest {
   void throwsContractMissingExceptionWhenNoContractsFound() throws Exception {
     BillableUsage usage = defaultUsage();
     when(tagProfile.isTagContractEnabled(usage.getProductId())).thenReturn(true);
-    when(contractsApi.getContract(any(), any(), any(), any(), any(), any(), any()))
+    when(contractsApi.getContract(any(), any(), any(), any(), any(), any()))
         .thenReturn(new ArrayList<>());
     when(tagProfile.awsDimensionForTagAndUom(any(), any())).thenReturn(CONTRACT_METRIC_ID);
     ContractMissingException e =
