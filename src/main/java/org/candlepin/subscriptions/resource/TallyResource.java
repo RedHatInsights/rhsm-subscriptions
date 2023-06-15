@@ -37,6 +37,7 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
@@ -120,6 +121,7 @@ public class TallyResource implements TallyApi {
             usageType,
             billingProviderType,
             billingAcctId,
+            billingCategory,
             offset,
             limit);
 
@@ -136,8 +138,7 @@ public class TallyResource implements TallyApi {
             reportCriteria.getEnding(),
             reportCriteria.getPageable());
 
-    List<BillableUsageRemittanceEntity> remittances =
-        getRemittances(reportCriteria, billingCategory, billingAcctId);
+    List<BillableUsageRemittanceEntity> remittances = getRemittances(reportCriteria);
     Map<OffsetDateTime, Double> remittanceValuesByDate =
         remittances.stream()
             .collect(
@@ -257,6 +258,7 @@ public class TallyResource implements TallyApi {
       UsageType usageType,
       BillingProviderType billingProviderType,
       String billingAccountId,
+      BillingCategory billingCategory,
       Integer offset,
       Integer limit) {
     // When limit and offset are not specified, we will fill the report with placeholder
@@ -294,6 +296,7 @@ public class TallyResource implements TallyApi {
         .usage(effectiveUsage)
         .billingProvider(providerType)
         .billingAccountId(sanitizedBillingAcctId)
+        .billingCategory(billingCategory)
         .pageable(pageable)
         .beginning(beginning)
         .ending(ending)
@@ -339,14 +342,17 @@ public class TallyResource implements TallyApi {
     return contributingTypes;
   }
 
-  private List<BillableUsageRemittanceEntity> getRemittances(
-      ReportCriteria reportCriteria, BillingCategory billingCategory, String billingAcctId) {
+  private List<BillableUsageRemittanceEntity> getRemittances(ReportCriteria reportCriteria) {
     List<BillableUsageRemittanceEntity> remittances = new ArrayList<>();
-    if (Objects.nonNull(billingCategory)) {
+    if (Objects.nonNull(reportCriteria.getBillingCategory())) {
       var billingProvider = reportCriteria.getBillingProvider().toString();
       if (BillingProvider._ANY.getValue().equals(billingProvider)
           || BillingProvider.EMPTY.getValue().equals(billingProvider)) {
         billingProvider = null;
+      }
+      var billingAcctId = reportCriteria.getBillingAccountId();
+      if (StringUtils.isBlank(billingAcctId) || billingAcctId.equals(ResourceUtils._ANY)) {
+        billingAcctId = null;
       }
       var remittanceFilter =
           BillableUsageRemittanceFilter.builder()
@@ -387,6 +393,7 @@ public class TallyResource implements TallyApi {
             null,
             sla,
             usageType,
+            null,
             null,
             null,
             offset,
