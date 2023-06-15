@@ -351,7 +351,7 @@ public class TallyResource implements TallyApi {
         billingProvider = null;
       }
       var billingAcctId = reportCriteria.getBillingAccountId();
-      if (StringUtils.isBlank(billingAcctId) || billingAcctId.equals(ResourceUtils._ANY)) {
+      if (StringUtils.isBlank(billingAcctId) || billingAcctId.equals(ResourceUtils.ANY)) {
         billingAcctId = null;
       }
       var remittanceFilter =

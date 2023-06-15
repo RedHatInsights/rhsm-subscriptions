@@ -43,7 +43,7 @@ public class ResourceUtils {
 
   private static final Integer DEFAULT_LIMIT = 50;
 
-  public static final String _ANY = "_ANY";
+  public static final String ANY = "_ANY";
 
   private ResourceUtils() {
     throw new IllegalStateException("Utility class; should never be instantiated!");
@@ -162,7 +162,7 @@ public class ResourceUtils {
 
   public static String sanitizeBillingAccountId(String billingAccountId) {
 
-    return Objects.isNull(billingAccountId) || billingAccountId.isBlank() ? _ANY : billingAccountId;
+    return Objects.isNull(billingAccountId) || billingAccountId.isBlank() ? ANY : billingAccountId;
   }
 
   /**
