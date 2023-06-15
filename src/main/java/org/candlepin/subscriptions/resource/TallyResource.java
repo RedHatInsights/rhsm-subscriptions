@@ -22,10 +22,12 @@ package org.candlepin.subscriptions.resource;
 
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -35,6 +37,8 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
+import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.json.Measurement;
@@ -69,6 +73,7 @@ public class TallyResource implements TallyApi {
   private final PageLinkCreator pageLinkCreator;
   private final ApplicationClock clock;
   private final TagProfile tagProfile;
+  private final BillableUsageRemittanceRepository remittanceRepository;
 
   @Context private UriInfo uriInfo;
 
@@ -77,11 +82,13 @@ public class TallyResource implements TallyApi {
       TallySnapshotRepository repository,
       PageLinkCreator pageLinkCreator,
       ApplicationClock clock,
-      TagProfile tagProfile) {
+      TagProfile tagProfile,
+      BillableUsageRemittanceRepository remittanceRepository) {
     this.repository = repository;
     this.pageLinkCreator = pageLinkCreator;
     this.clock = clock;
     this.tagProfile = tagProfile;
+    this.remittanceRepository = remittanceRepository;
   }
 
   @Override
@@ -99,7 +106,8 @@ public class TallyResource implements TallyApi {
       String billingAcctId,
       Integer offset,
       Integer limit,
-      Boolean useRunningTotalsFormat) {
+      Boolean useRunningTotalsFormat,
+      BillingCategory billingCategory) {
     ReportCriteria reportCriteria =
         extractReportCriteria(
             productId,
@@ -128,6 +136,15 @@ public class TallyResource implements TallyApi {
             reportCriteria.getEnding(),
             reportCriteria.getPageable());
 
+    List<BillableUsageRemittanceEntity> remittances =
+        getRemittances(reportCriteria, billingCategory, billingAcctId);
+    Map<OffsetDateTime, Double> remittanceValuesByDate =
+        remittances.stream()
+            .collect(
+                Collectors.toMap(
+                    remittance -> remittance.getKey().getRemittancePendingDate(),
+                    BillableUsageRemittanceEntity::getRemittedPendingValue));
+
     Uom uom = Uom.fromValue(metricId.toString());
 
     List<org.candlepin.subscriptions.db.model.TallySnapshot> snapshots =
@@ -135,7 +152,16 @@ public class TallyResource implements TallyApi {
 
     List<TallyReportDataPoint> snaps =
         snapshots.stream()
-            .map(snapshot -> dataPointFromSnapshot(uom, category, snapshot))
+            .map(
+                snapshot -> {
+                  var remittedValue =
+                      Optional.ofNullable(
+                              remittanceValuesByDate.get(
+                                  clock.startOfDay(snapshot.getSnapshotDate())))
+                          .orElse(0.0);
+                  return dataPointFromSnapshot(
+                      uom, category, billingCategory, snapshot, remittedValue);
+                })
             .collect(Collectors.toList());
 
     TallyReportData report = new TallyReportData();
@@ -277,8 +303,16 @@ public class TallyResource implements TallyApi {
   private TallyReportDataPoint dataPointFromSnapshot(
       Uom uom,
       ReportCategory category,
-      org.candlepin.subscriptions.db.model.TallySnapshot snapshot) {
+      BillingCategory billingCategory,
+      org.candlepin.subscriptions.db.model.TallySnapshot snapshot,
+      double remittedValue) {
     int value = extractValue(uom, category, snapshot);
+    if (BillingCategory.PREPAID.equals(billingCategory)) {
+      value = value - (int) Math.ceil(remittedValue);
+      value = value < 0 ? 0 : value;
+    } else if (BillingCategory.ON_DEMAND.equals(billingCategory)) {
+      value = (int) Math.ceil(remittedValue);
+    }
     return new TallyReportDataPoint().date(snapshot.getSnapshotDate()).value(value).hasData(true);
   }
 
@@ -303,6 +337,31 @@ public class TallyResource implements TallyApi {
       contributingTypes = CATEGORY_MAP.get(category);
     }
     return contributingTypes;
+  }
+
+  private List<BillableUsageRemittanceEntity> getRemittances(
+      ReportCriteria reportCriteria, BillingCategory billingCategory, String billingAcctId) {
+    List<BillableUsageRemittanceEntity> remittances = new ArrayList<>();
+    if (Objects.nonNull(billingCategory)) {
+      var billingProvider = reportCriteria.getBillingProvider().toString();
+      if (BillingProvider._ANY.getValue().equals(billingProvider)
+          || BillingProvider.EMPTY.getValue().equals(billingProvider)) {
+        billingProvider = null;
+      }
+      var remittanceFilter =
+          BillableUsageRemittanceFilter.builder()
+              .orgId(reportCriteria.getOrgId())
+              .beginning(clock.startOfDay(reportCriteria.getBeginning()))
+              .ending(reportCriteria.getEnding())
+              .productId(reportCriteria.getProductId())
+              .billingAccountId(billingAcctId)
+              .metricId(reportCriteria.getMetricId())
+              .granularity(Granularity.DAILY)
+              .billingProvider(billingProvider)
+              .build();
+      remittances = remittanceRepository.filterBy(remittanceFilter);
+    }
+    return remittances;
   }
 
   @SuppressWarnings("linelength")

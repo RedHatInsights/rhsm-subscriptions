@@ -24,6 +24,7 @@ import com.redhat.swatch.contracts.api.model.Contract;
 import com.redhat.swatch.contracts.api.model.Metric;
 import com.redhat.swatch.contracts.api.resources.DefaultApi;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 
@@ -66,7 +67,7 @@ public class StubContactsApi extends DefaultApi {
         .orgId(orgId)
         .productId(productId)
         .billingProvider(billingProvider)
-        .startDate(OffsetDateTime.now())
+        .startDate(OffsetDateTime.of(2022, 1, 1, 1, 0, 0, 0, ZoneOffset.UTC))
         .billingAccountId(billingAccountId)
         .vendorProductCode(vendorProductCode)
         .addMetricsItem(new Metric().metricId(metricId).value(value));

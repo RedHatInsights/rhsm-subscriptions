@@ -209,6 +209,11 @@ paths:
           default:
             false
         description: "Defines the end of the report period. Defaults to the current time. Dates should be provided in UTC."
+      - name: billing_category
+        in: query
+        schema:
+          $ref: '#/components/schemas/BillingCategory'
+        description: "Include only report data matching the specified billing_category."
     get:
       summary: "Fetch tally report data for an account and product. "
       description: "If page header parameters are omitted, any dates missing data will have an entry with null as the value."
@@ -1118,6 +1123,11 @@ components:
       enum:
         - cores
         - sockets
+    BillingCategory:
+      type: string
+      enum:
+        - prepaid
+        - on-demand
     SortDirection:
       type: string
       enum:
