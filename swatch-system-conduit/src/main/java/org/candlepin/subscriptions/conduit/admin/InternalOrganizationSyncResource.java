@@ -84,8 +84,12 @@ public class InternalOrganizationSyncResource implements InternalOrganizationsAp
   }
 
   @Override
-  public OrgInventory getInventoryForOrg(String orgId, Integer offset, Integer limit) {
-    throw new UnsupportedOperationException();
+  public OrgInventory getInventoryForOrg(String orgId, Integer limit, Integer offset) {
+    try {
+      return controller.getInventoryForOrg(orgId, offset == null ? null : offset.toString());
+    } catch (MissingAccountNumberException ex) {
+      throw new InternalServerErrorException(ex.getMessage());
+    }
   }
 
   @Override

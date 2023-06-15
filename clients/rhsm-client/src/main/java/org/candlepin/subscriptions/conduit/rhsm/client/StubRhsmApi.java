@@ -37,6 +37,7 @@ public class StubRhsmApi extends RhsmApi {
   private static Logger log = LoggerFactory.getLogger(StubRhsmApi.class);
 
   private static final String MAX_ALLOWED_MEMORY_ORG_ID = "maxAllowedMemoryOrg";
+  private static final String GCP_ORG_ID = "gcpOrg";
 
   @Override
   public OrgInventory getConsumersForOrg(
@@ -106,6 +107,10 @@ public class StubRhsmApi extends RhsmApi {
   private void applyOrgIdUpdates(String orgId, Consumer consumer) {
     if (orgId.equals(MAX_ALLOWED_MEMORY_ORG_ID)) {
       consumer.getFacts().put("memory.memtotal", "8830587505648");
+    }
+    if (orgId.equals(GCP_ORG_ID)) {
+      consumer.getFacts().remove("azure_offer");
+      consumer.getFacts().put("gcp_license_codes", "7883559014960410759");
     }
   }
 }
