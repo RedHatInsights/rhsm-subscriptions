@@ -27,6 +27,7 @@ import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.utilization.api.model.BillingCategory;
 import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.springframework.data.domain.Pageable;
 
@@ -42,6 +43,7 @@ public class ReportCriteria {
   private Usage usage;
   private BillingProvider billingProvider;
   private String billingAccountId;
+  private BillingCategory billingCategory;
   private OffsetDateTime beginning;
   private OffsetDateTime ending;
   private Pageable pageable;
