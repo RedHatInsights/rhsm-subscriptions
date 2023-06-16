@@ -312,14 +312,14 @@ public class SubscriptionSyncController {
     log.info("Syncing subscriptions for orgId={}", orgId);
     Set<String> seenSubscriptionIds = new HashSet<>();
     Map<SubscriptionCompoundId, org.candlepin.subscriptions.db.model.Subscription>
-        swatchSubscriptions =
-            subscriptionRepository
-                .findByOrgId(orgId)
-                .collect(
-                    Collectors.toMap(
-                        sub ->
-                            new SubscriptionCompoundId(sub.getSubscriptionId(), sub.getStartDate()),
-                        Function.identity()));
+        swatchSubscriptions;
+    try (var subs = subscriptionRepository.findByOrgId(orgId)) {
+      swatchSubscriptions =
+          subs.collect(
+              Collectors.toMap(
+                  sub -> new SubscriptionCompoundId(sub.getSubscriptionId(), sub.getStartDate()),
+                  Function.identity()));
+    }
     subscriptionService.getSubscriptionsByOrgId(orgId).stream()
         .filter(this::shouldSyncSub)
         .forEach(
@@ -574,14 +574,15 @@ public class SubscriptionSyncController {
         getActiveSubscriptionsForOrg(orgId)
             .collect(
                 Collectors.toMap(
-                    org.candlepin.subscriptions.db.model.Subscription::getSubscriptionId,
-                    sub -> sub));
+                    sub -> new SubscriptionCompoundId(sub.getSubscriptionId(), sub.getStartDate()),
+                    Function.identity()));
 
-    subscriptions.forEach(
-        subscription ->
-            syncSubscription(
-                subscription,
-                Optional.ofNullable(subscriptionMap.get(String.valueOf(subscription.getId())))));
+    for (Subscription subscription : subscriptions) {
+      var startDate = clock.dateFromMilliseconds(subscription.getEffectiveStartDate());
+      var id = String.valueOf(subscription.getId());
+      var compoundId = new SubscriptionCompoundId(id, startDate);
+      syncSubscription(subscription, Optional.ofNullable(subscriptionMap.get(compoundId)));
+    }
 
     log.info("Finished force sync for orgId: {}", orgId);
   }
