@@ -310,6 +310,26 @@ class SubscriptionSyncControllerTest {
   }
 
   @Test
+  void shouldForceSubscriptionSyncForOrgWithSameIdButDifferentStartDates() {
+    var dto1 = createDto("234", 3);
+    var dto2 = createDto("234", 3);
+    dto2.setEffectiveStartDate(dto1.getEffectiveStartDate() - (24 * 60 * 60 * 1000));
+
+    var dtoList = Arrays.asList(dto1, dto2);
+    var subList = dtoList.stream().map(this::convertDto).toList();
+    subList.forEach(
+        x -> x.setQuantity(9999L)); // Change the quantity so the sync will actually do something
+
+    when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(dtoList);
+    when(subscriptionRepository.findByOrgIdAndEndDateAfter(anyString(), any(OffsetDateTime.class)))
+        .thenReturn(subList);
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    when(offeringRepository.existsById(any())).thenReturn(true);
+    subscriptionSyncController.forceSyncSubscriptionsForOrg("123", false);
+    verify(subscriptionRepository, times(2)).save(any());
+  }
+
+  @Test
   void shouldForcePAYGSubscriptionsOnlySyncForOrg() {
     var dto1 = createDto("234", 3);
     var dto2 = createDto("345", 3);
@@ -725,7 +745,24 @@ class SubscriptionSyncControllerTest {
   void testShouldNotRemovePresentSub() {
     var subscription = createSubscription("123", "testsku", "456");
     var subServiceSub = createDto("456", 1);
+    subscription.setStartDate(clock.dateFromMilliseconds(subServiceSub.getEffectiveStartDate()));
     when(subscriptionRepository.findByOrgId(any())).thenReturn(Stream.of(subscription));
+    when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
+    verify(subscriptionRepository).deleteAll(subscriptionsCaptor.capture());
+    assertFalse(subscriptionsCaptor.getValue().iterator().hasNext());
+  }
+
+  @Test
+  void testShouldKeepRecordsWithSameIdAndDifferentStartDates() {
+    var subscription1 = createSubscription("123", "testsku", "456");
+    var subscription2 = createSubscription("123", "testsku", "456");
+    subscription2.setEndDate(subscription1.getEndDate().plusDays(2));
+    var subServiceSub = createDto("456", 1);
+    subscription2.setStartDate(clock.dateFromMilliseconds(subServiceSub.getEffectiveStartDate()));
+    when(subscriptionRepository.findByOrgId(any()))
+        .thenReturn(Stream.of(subscription1, subscription2));
     when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
     when(denylist.productIdMatches(any())).thenReturn(false);
     subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");

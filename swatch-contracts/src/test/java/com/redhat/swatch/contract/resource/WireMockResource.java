@@ -28,13 +28,16 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import com.redhat.swatch.contract.PathUtils;
 import io.quarkus.test.common.QuarkusTestResourceConfigurableLifecycleManager;
+import java.nio.file.Paths;
 import java.util.Map;
 
 public class WireMockResource
     implements QuarkusTestResourceConfigurableLifecycleManager<WireMockTest> {
 
-  private static final String BASE_KEYSTORE_PATH = "../clients-core/src/test/resources";
+  private static final String BASE_KEYSTORE_PATH =
+      Paths.get(PathUtils.PROJECT_DIRECTORY, "../clients-core/src/test/resources").toString();
   private static final String SERVER_KEYSTORE_PATH =
       String.format("%s/server.jks", BASE_KEYSTORE_PATH);
   private static final String CLIENT_KEYSTORE_PATH =

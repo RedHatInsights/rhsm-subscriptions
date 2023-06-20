@@ -164,14 +164,6 @@ paths:
             type: string
           in: query
         - examples:
-            metric_id:
-              value: Instance-hours
-          name: metric_id
-          description: ""
-          schema:
-            type: string
-          in: query
-        - examples:
             vendor_product_code:
               value: 6n58d3s3qpvk22dgew2gal7w3
           name: vendor_product_code

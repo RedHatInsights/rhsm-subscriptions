@@ -498,7 +498,7 @@ class UpstreamProductData {
   private String putIfNoConflict(Attr key, String val) {
     String old = attrs.putIfAbsent(key, val);
 
-    if (old != null && !val.equals(old)) {
+    if (Objects.nonNull(old) && !Objects.equals(old, val)) {
       var msg = String.format(MSG_TEMPLATE, sku, key, old, val);
       conflicts.add(msg);
     }

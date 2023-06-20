@@ -34,11 +34,12 @@ import java.util.List;
  */
 public class StubContactsApi extends DefaultApi {
 
+  private static final String CONTRACT_METRIC_ID = "four_vcpu_hour";
+
   @Override
   public List<Contract> getContract(
       String orgId,
       String productId,
-      String metricId,
       String vendorProductCode,
       String billingProvider,
       String billingAccountId,
@@ -50,9 +51,21 @@ public class StubContactsApi extends DefaultApi {
 
     return List.of(
         createContract(
-            orgId, productId, metricId, vendorProductCode, billingProvider, billingAccountId, 5),
+            orgId,
+            productId,
+            CONTRACT_METRIC_ID,
+            vendorProductCode,
+            billingProvider,
+            billingAccountId,
+            5),
         createContract(
-            orgId, productId, metricId, vendorProductCode, billingProvider, billingAccountId, 10));
+            orgId,
+            productId,
+            CONTRACT_METRIC_ID,
+            vendorProductCode,
+            billingProvider,
+            billingAccountId,
+            10));
   }
 
   private Contract createContract(

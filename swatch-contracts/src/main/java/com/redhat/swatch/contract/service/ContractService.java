@@ -129,7 +129,6 @@ public class ContractService {
    *
    * @param orgId
    * @param productId
-   * @param metricId
    * @param billingProvider
    * @param billingAccountId
    * @param vendorProductCode
@@ -138,7 +137,6 @@ public class ContractService {
   public List<Contract> getContracts(
       String orgId,
       String productId,
-      String metricId,
       String billingProvider,
       String billingAccountId,
       String vendorProductCode,
@@ -148,9 +146,6 @@ public class ContractService {
 
     if (productId != null) {
       specification = specification.and(ContractEntity.productIdEquals(productId));
-    }
-    if (metricId != null) {
-      specification = specification.and(ContractEntity.metricIdEquals(metricId));
     }
     if (billingProvider != null) {
       specification = specification.and(ContractEntity.billingProviderEquals(billingProvider));

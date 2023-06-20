@@ -28,11 +28,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.ws.rs.core.Response;
@@ -169,11 +165,15 @@ class SubscriptionTableControllerTest {
   }
 
   private void mockOfferings(MeasurementSpec... specs) {
+    Set<String> skus = new HashSet<>();
+    List<Offering> offerings = new ArrayList<>();
     Arrays.stream(specs)
         .forEach(
-            x ->
-                when(offeringRepository.findById(x.sku))
-                    .thenReturn(Optional.of(x.createOffering())));
+            x -> {
+              skus.add(x.sku);
+              offerings.add(x.createOffering());
+            });
+    when(offeringRepository.findBySkuIn(skus)).thenReturn(offerings);
   }
 
   @Test
@@ -564,13 +564,14 @@ class SubscriptionTableControllerTest {
     var expectedNewerSub = stubSubscription("1234", "1235", 4, 5, 7);
     var expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
     var expectedMuchOlderSub = stubSubscription("1238", "1237", 5, 24, 6);
+
     var coresSpec1 = RH0180193_CORES.withSub(expectedNewerSub);
     var coresSpec2 = RH0180194_SOCKETS_AND_CORES.withSub(expectedMuchOlderSub);
+    mockOfferings(coresSpec1, coresSpec2);
 
     var socketsSpec1 = RH0180192_SOCKETS.withSub(expectedOlderSub);
     var socketsSpec2 = RH0180194_SOCKETS_AND_CORES.withSub(expectedMuchOlderSub);
-
-    mockOfferings(coresSpec1, coresSpec2, socketsSpec1, socketsSpec2);
+    mockOfferings(socketsSpec1, socketsSpec2);
 
     var capacitiesWithCores = givenCapacities(Org.STANDARD, productId, coresSpec1, coresSpec2);
     var capacitiesWithSockets =
@@ -1034,7 +1035,7 @@ class SubscriptionTableControllerTest {
 
       return SubscriptionMeasurement.builder()
           .measurementType(type)
-          .metricId(metric.toString())
+          .metricId(metric.toString().toUpperCase())
           .value(value)
           .build();
     }

@@ -136,17 +136,6 @@ public class SubscriptionTableController {
             reportStart,
             reportEnd);
 
-    Map<String, SkuCapacity> inventories = new HashMap<>();
-    for (SubscriptionMeasurement measurement : measurements) {
-      String sku = measurement.getSubscription().getSku();
-      var subscription = measurement.getSubscription();
-      final SkuCapacity inventory =
-          inventories.computeIfAbsent(sku, key -> initializeDefaultSkuCapacity(subscription, uom));
-      calculateNextEvent(subscription, inventory, reportEnd);
-      addSubscriptionInformation(subscription, inventory);
-      addTotalCapacity(measurement, inventory);
-    }
-
     var reportCriteria =
         DbReportCriteria.builder()
             .orgId(orgId)
@@ -156,7 +145,28 @@ public class SubscriptionTableController {
             .beginning(reportStart)
             .ending(reportEnd)
             .build();
-    handleUnlimitedSubs(inventories, uom, reportCriteria);
+    List<Subscription> unlimitedSubs = subscriptionRepository.findUnlimited(reportCriteria);
+
+    var skus =
+        measurements.stream().map(x -> x.getSubscription().getSku()).collect(Collectors.toSet());
+    skus.addAll(unlimitedSubs.stream().map(Subscription::getSku).collect(Collectors.toSet()));
+
+    Map<String, SkuCapacity> inventories = initializeDefaultSkuCapacities(skus, uom);
+
+    for (SubscriptionMeasurement measurement : measurements) {
+      Subscription subscription = measurement.getSubscription();
+      SkuCapacity inventory = inventories.get(subscription.getSku());
+      calculateNextEvent(subscription, inventory, reportEnd);
+      addSubscriptionInformation(subscription, inventory);
+      addTotalCapacity(measurement, inventory);
+    }
+
+    for (Subscription subscription : unlimitedSubs) {
+      SkuCapacity inventory = inventories.get(subscription.getSku());
+      inventory.setHasInfiniteQuantity(true);
+      calculateNextEvent(subscription, inventory, reportCriteria.getEnding());
+      addSubscriptionInformation(subscription, inventory);
+    }
 
     List<SkuCapacity> reportItems = new ArrayList<>(inventories.values());
 
@@ -197,16 +207,33 @@ public class SubscriptionTableController {
                 .product(productId));
   }
 
-  private void handleUnlimitedSubs(
-      Map<String, SkuCapacity> inventories, Uom uom, DbReportCriteria reportCriteria) {
-    var unlimitedSubs = subscriptionRepository.findUnlimited(reportCriteria);
-    for (Subscription s : unlimitedSubs) {
-      SkuCapacity capacity =
-          inventories.computeIfAbsent(s.getSku(), key -> initializeDefaultSkuCapacity(s, uom));
-      capacity.setHasInfiniteQuantity(true);
-      calculateNextEvent(s, capacity, reportCriteria.getEnding());
-      addSubscriptionInformation(s, capacity);
+  private Map<String, SkuCapacity> initializeDefaultSkuCapacities(Set<String> skus, Uom uom) {
+    Map<String, SkuCapacity> capacityTemplates = new HashMap<>();
+    for (Offering offering : offeringRepository.findBySkuIn(skus)) {
+      // No information specific to an engineering product within an offering is added.
+      var inventory = new SkuCapacity();
+      inventory.setSku(offering.getSku());
+      inventory.setProductName(offering.getDescription());
+      inventory.setServiceLevel(
+          Optional.ofNullable(offering.getServiceLevel())
+              .orElse(ServiceLevel.EMPTY)
+              .asOpenApiEnum());
+      inventory.setUsage(
+          Optional.ofNullable(offering.getUsage()).orElse(Usage.EMPTY).asOpenApiEnum());
+
+      // When uom param is set, force all inventories to report capacities for that UoM
+      // (Some products have both sockets and cores)
+      if (uom != null) {
+        inventory.setUom(uom);
+      }
+      inventory.setQuantity(0);
+      inventory.setCapacity(0);
+      inventory.setHypervisorCapacity(0);
+      inventory.setTotalCapacity(0);
+      inventory.setSubscriptions(new ArrayList<>());
+      capacityTemplates.put(offering.getSku(), inventory);
     }
+    return capacityTemplates;
   }
 
   private List<SkuCapacity> paginate(List<SkuCapacity> capacities, Pageable pageable) {
@@ -259,35 +286,6 @@ public class SubscriptionTableController {
           addOnDemandSubscriptionInformation(sub, inventory);
         });
     return inventories.values();
-  }
-
-  public SkuCapacity initializeDefaultSkuCapacity(Subscription subscription, Uom uom) {
-    // If no inventory is associated with the SKU key, then initialize a new inventory
-    // with offering-specific data and default values. No information specific to an
-    // engineering product within an offering is added.
-    var inv = new SkuCapacity();
-    String sku = subscription.getSku();
-    Offering offering =
-        offeringRepository
-            .findById(sku)
-            .orElseThrow(() -> new IllegalStateException("No offering" + " found for sku " + sku));
-    inv.setSku(sku);
-    inv.setProductName(offering.getProductName());
-    inv.setServiceLevel(
-        Optional.ofNullable(offering.getServiceLevel()).orElse(ServiceLevel.EMPTY).asOpenApiEnum());
-    inv.setUsage(Optional.ofNullable(offering.getUsage()).orElse(Usage.EMPTY).asOpenApiEnum());
-
-    // When uom param is set, force all inventories to report capacities for that UoM
-    // (Some products have both sockets and cores)
-    if (uom != null) {
-      inv.setUom(uom);
-    }
-    inv.setQuantity(0);
-    inv.setCapacity(0);
-    inv.setHypervisorCapacity(0);
-    inv.setTotalCapacity(0);
-    inv.setSubscriptions(new ArrayList<>());
-    return inv;
   }
 
   public SkuCapacity initializeOnDemandSkuCapacity(Subscription subscription, Offering offering) {
@@ -361,20 +359,20 @@ public class SubscriptionTableController {
     var value = measurement.getValue();
 
     var sockets =
-        (MetricId.SOCKETS.toString().equals(metric) && "PHYSICAL".equals(type))
+        (MetricId.SOCKETS.toString().equalsIgnoreCase(metric) && "PHYSICAL".equals(type))
             ? value.intValue()
             : 0;
     var cores =
-        (MetricId.CORES.toString().equals(metric) && "PHYSICAL".equals(type))
+        (MetricId.CORES.toString().equalsIgnoreCase(metric) && "PHYSICAL".equals(type))
             ? value.intValue()
             : 0;
 
     var hypervisorSockets =
-        (MetricId.SOCKETS.toString().equals(metric) && "HYPERVISOR".equals(type))
+        (MetricId.SOCKETS.toString().equalsIgnoreCase(metric) && "HYPERVISOR".equals(type))
             ? value.intValue()
             : 0;
     var hypervisorCores =
-        (MetricId.CORES.toString().equals(metric) && "HYPERVISOR".equals(type))
+        (MetricId.CORES.toString().equalsIgnoreCase(metric) && "HYPERVISOR".equals(type))
             ? value.intValue()
             : 0;
 

@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.14-2.1681917142
+FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.15-1
 USER root
 
 COPY build/libs/ /deployments/

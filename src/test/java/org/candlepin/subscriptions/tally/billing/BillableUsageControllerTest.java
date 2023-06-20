@@ -692,13 +692,7 @@ class BillableUsageControllerTest {
 
     log.info("Second: {}", updatedContract);
     when(contractsApi.getContract(
-            orgId,
-            productId,
-            metric,
-            vendorProductCode,
-            billingProvider,
-            billingAccountId,
-            startDate))
+            orgId, productId, vendorProductCode, billingProvider, billingAccountId, startDate))
         .thenReturn(List.of(contract1, updatedContract));
   }
 
@@ -708,8 +702,7 @@ class BillableUsageControllerTest {
     usage.setSnapshotDate(OffsetDateTime.now());
     usage.setUom(Uom.CORES);
     when(tagProfile.isTagContractEnabled(usage.getProductId())).thenReturn(true);
-    when(contractsApi.getContract(any(), any(), any(), any(), any(), any(), any()))
-        .thenReturn(List.of());
+    when(contractsApi.getContract(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
     when(tagProfile.awsDimensionForTagAndUom(
             usage.getProductId(), TallyMeasurement.Uom.fromValue(usage.getUom().value())))
         .thenReturn(AWS_METRIC_ID);
