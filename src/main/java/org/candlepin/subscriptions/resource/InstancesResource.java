@@ -44,9 +44,11 @@ import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
+import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
 import org.candlepin.subscriptions.utilization.api.model.CloudProvider;
 import org.candlepin.subscriptions.utilization.api.model.InstanceData;
+import org.candlepin.subscriptions.utilization.api.model.InstanceGuestReport;
 import org.candlepin.subscriptions.utilization.api.model.InstanceMeta;
 import org.candlepin.subscriptions.utilization.api.model.InstanceReportSort;
 import org.candlepin.subscriptions.utilization.api.model.InstanceResponse;
@@ -102,6 +104,13 @@ public class InstancesResource implements InstancesApi {
     this.repository = tallyInstanceViewRepository;
     this.pageLinkCreator = pageLinkCreator;
     this.tagProfile = tagProfile;
+  }
+
+  @Override
+  @ReportingAccessRequired
+  public InstanceGuestReport getInstanceGuests(String instanceId, Integer offset, Integer limit) {
+    // Implementation left for future card
+    return null;
   }
 
   @Override
