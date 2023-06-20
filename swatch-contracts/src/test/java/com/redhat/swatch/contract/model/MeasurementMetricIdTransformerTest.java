@@ -68,8 +68,8 @@ class MeasurementMetricIdTransformerTest {
     when(internalSubscriptionsApi.getTagMetrics("hello"))
         .thenReturn(
             List.of(
-                new TagMetric().metricId("foo1").awsDimension("foo").billingFactor(0.25),
-                new TagMetric().metricId("bar2").awsDimension("bar").billingFactor(1.0)));
+                new TagMetric().uom("foo1").awsDimension("foo").billingFactor(0.25),
+                new TagMetric().uom("bar2").awsDimension("bar").billingFactor(1.0)));
     transformer.translateContractMetricIdsToSubscriptionMetricIds(subscription);
     assertEquals(
         List.of("bar2", "foo1"),

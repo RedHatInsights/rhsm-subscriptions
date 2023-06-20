@@ -224,12 +224,12 @@ public class WireMockResource
                         [
                           {
                             "aws_dimension": "cpu-hours",
-                            "metric_id": "redhat.com:BASILISK:cluster_hour",
+                            "uom": "CORES",
                             "billing_factor": "1.0"
                           },
                           {
                             "aws_dimension": "foobar",
-                            "metric_id": "redhat.com:BASILISK:cpu_hour",
+                            "uom": "INSTANCE_HOURS",
                             "billing_factor": "0.25"
                           }
                         ]

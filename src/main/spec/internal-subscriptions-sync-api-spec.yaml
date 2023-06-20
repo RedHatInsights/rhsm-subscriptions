@@ -463,7 +463,7 @@ components:
             type: string
     TagMetric:
       properties:
-        metric_id:
+        uom:
           type: string
         aws_dimension:
           type: string

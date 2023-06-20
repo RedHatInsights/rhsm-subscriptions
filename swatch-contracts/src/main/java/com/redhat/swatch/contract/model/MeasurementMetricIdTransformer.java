@@ -63,7 +63,7 @@ public class MeasurementMetricIdTransformer {
                                 measurement.setValue(
                                     measurement.getValue() / metric.getBillingFactor());
                               }
-                              measurement.setMetricId(metric.getMetricId());
+                              measurement.setMetricId(metric.getUom());
                             }));
       }
     } catch (ApiException e) {
