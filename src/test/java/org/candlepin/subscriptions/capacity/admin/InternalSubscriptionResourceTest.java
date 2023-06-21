@@ -148,16 +148,6 @@ class InternalSubscriptionResourceTest {
 
   @Test
   void incrementsAmbiguousCounter_WhenAccounNumberPresent() {
-    SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
-    InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(
-            meterRegistry,
-            syncController,
-            properties,
-            subscriptionPruneController,
-            offeringSync,
-            capacityReconciliationController,
-            tagMetricMapper);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
     sub1.setEndDate(defaultEndDate);
@@ -179,16 +169,6 @@ class InternalSubscriptionResourceTest {
 
   @Test
   void incrementsAmbiguousCounter_WhenOrgIdPresent() {
-    SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
-    InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(
-            meterRegistry,
-            syncController,
-            properties,
-            subscriptionPruneController,
-            offeringSync,
-            capacityReconciliationController,
-            tagMetricMapper);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
     sub1.setEndDate(defaultEndDate);
@@ -327,17 +307,6 @@ class InternalSubscriptionResourceTest {
 
   @Test
   void incrementsRhmMissingSubscriptionsCounter() {
-    SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
-    InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(
-            meterRegistry,
-            syncController,
-            properties,
-            subscriptionPruneController,
-            offeringSync,
-            capacityReconciliationController,
-            tagMetricMapper);
-
     when(syncController.findSubscriptionsAndSyncIfNeeded(
             any(), any(), any(), any(), any(), anyBoolean()))
         .thenReturn(Collections.emptyList());
@@ -357,17 +326,6 @@ class InternalSubscriptionResourceTest {
 
   @Test
   void incrementsRhmAmbiguousSubscriptionsCounter() {
-    SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
-    InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(
-            meterRegistry,
-            syncController,
-            properties,
-            subscriptionPruneController,
-            offeringSync,
-            capacityReconciliationController,
-            tagMetricMapper);
-
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("account123");
     sub1.setStartDate(OffsetDateTime.now());
