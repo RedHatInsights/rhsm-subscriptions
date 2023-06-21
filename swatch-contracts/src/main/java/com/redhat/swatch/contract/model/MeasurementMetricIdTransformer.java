@@ -38,6 +38,13 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 public class MeasurementMetricIdTransformer {
   @RestClient @Inject InternalSubscriptionsApi internalSubscriptionsApi;
 
+  /**
+   * Maps all incoming metrics from cloud provider-specific formats/UOMs into the swatch UOM value.
+   *
+   * <p>For example, 100 four_vcpu_hours (AWS dimension) will be transformed into 400 CORES.
+   *
+   * @param subscription subscription w/ measurements in the cloud-provider units
+   */
   public void translateContractMetricIdsToSubscriptionMetricIds(SubscriptionEntity subscription) {
     try {
       if (subscription.getBillingProvider() == BillingProvider.AWS) {
