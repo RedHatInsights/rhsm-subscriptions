@@ -94,6 +94,7 @@ public class OfferingSyncController {
    *
    * @param sku the identifier of the marketing operational product
    */
+  @Transactional
   public SyncResult syncOffering(String sku) {
     Timer.Sample syncTime = Timer.start();
 
@@ -193,7 +194,13 @@ public class OfferingSyncController {
   // If there is an existing offering in the DB, and it exactly matches the latest upstream
   // version then return true. False means we should sync with the latest upstream version.
   private boolean alreadySynced(Optional<Offering> persisted, Offering latest) {
-    return persisted.isPresent() && Objects.equals(persisted.get(), latest);
+    return persisted
+        .map(
+            offering ->
+                Objects.equals(offering, latest)
+                    && Objects.equals(offering.getProductIds(), latest.getProductIds())
+                    && Objects.equals(offering.getChildSkus(), latest.getChildSkus()))
+        .orElse(false);
   }
 
   private void enqueueOfferingSyncTask(String sku) {
