@@ -21,15 +21,21 @@
 package org.candlepin.subscriptions.db.model;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import javax.persistence.CascadeType;
 import javax.persistence.CollectionTable;
 import javax.persistence.Column;
 import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -96,6 +102,15 @@ public class Offering implements Serializable {
   @CollectionTable(name = "sku_child_sku", joinColumns = @JoinColumn(name = "sku"))
   @Column(name = "child_sku")
   private Set<String> childSkus = new HashSet<>();
+
+  @Builder.Default
+  @ToString.Exclude
+  @OneToMany(
+      mappedBy = "offering",
+      cascade = CascadeType.ALL,
+      orphanRemoval = true,
+      fetch = FetchType.LAZY)
+  private List<Subscription> subscriptions = new ArrayList<>();
 
   /**
    * Numeric identifiers for Engineering Products provided by the offering.
@@ -193,5 +208,22 @@ public class Offering implements Serializable {
         usage,
         hasUnlimitedUsage,
         derivedSku);
+  }
+
+  public void addSubscription(Subscription s) {
+    subscriptions.add(s);
+    s.setOffering(this);
+  }
+
+  public void addSubscriptions(Collection<Subscription> subscriptionCollection) {
+    for (Subscription s : subscriptionCollection) {
+      subscriptions.add(s);
+      s.setOffering(this);
+    }
+  }
+
+  public void removeSubscription(Subscription s) {
+    subscriptions.remove(s);
+    s.setOffering(null);
   }
 }

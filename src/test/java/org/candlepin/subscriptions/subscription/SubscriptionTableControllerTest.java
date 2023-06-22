@@ -1045,8 +1045,9 @@ class SubscriptionTableControllerTest {
         subscription = stubSubscription("sub123", "number123", 1);
       }
 
-      subscription.setSku(sku);
-      subscription.setHasUnlimitedUsage(hasUnlimitedUsage);
+      var offering = Offering.builder().sku(sku).hasUnlimitedUsage(hasUnlimitedUsage).build();
+
+      offering.addSubscription(subscription);
       subscription.setOrgId(org.orgId);
       subscription.setAccountNumber(org.accountNumber);
 

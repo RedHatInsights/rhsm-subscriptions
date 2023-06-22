@@ -149,15 +149,15 @@ public class SubscriptionSyncController {
       Subscription subscription,
       Optional<org.candlepin.subscriptions.db.model.Subscription> subscriptionOptional) {
     final org.candlepin.subscriptions.db.model.Subscription newOrUpdated = convertDto(subscription);
-    syncSubscription(newOrUpdated, subscriptionOptional);
+    var dtoSku = SubscriptionDtoUtil.extractSku(subscription);
+    syncSubscription(dtoSku, newOrUpdated, subscriptionOptional);
   }
 
   @Transactional
   public void syncSubscription(
+      String sku,
       org.candlepin.subscriptions.db.model.Subscription newOrUpdated,
       Optional<org.candlepin.subscriptions.db.model.Subscription> subscriptionOptional) {
-    String sku = newOrUpdated.getSku();
-
     if (productDenylist.productIdMatches(sku)) {
       log.debug(
           "Sku {} on denylist, skipping subscription sync for subscriptionId: {} in org: {} ",
@@ -181,6 +181,10 @@ public class SubscriptionSyncController {
       }
     }
 
+    subscriptionOptional.ifPresentOrElse(
+        subscription -> subscription.getOffering().addSubscription(newOrUpdated),
+        () -> offeringRepository.findById(sku).orElseThrow().addSubscription(newOrUpdated));
+
     log.debug("Syncing subscription from external service={}", newOrUpdated);
 
     // UMB doesn't provide all the fields, so if we have an existing DB record, we'll populate from
@@ -196,7 +200,6 @@ public class SubscriptionSyncController {
     }
     log.debug("New subscription that will need to be saved={}", newOrUpdated);
 
-    enrichUnlimitedUsageFromOffering(newOrUpdated);
     checkForMissingBillingProvider(newOrUpdated);
 
     if (subscriptionOptional.isPresent()) {
@@ -212,10 +215,9 @@ public class SubscriptionSyncController {
         final org.candlepin.subscriptions.db.model.Subscription newSub =
             org.candlepin.subscriptions.db.model.Subscription.builder()
                 .subscriptionId(existingSubscription.getSubscriptionId())
-                .sku(existingSubscription.getSku())
+                .offering(existingSubscription.getOffering())
                 .orgId(existingSubscription.getOrgId())
                 .accountNumber(existingSubscription.getAccountNumber())
-                .hasUnlimitedUsage(existingSubscription.getHasUnlimitedUsage())
                 .quantity(newOrUpdated.getQuantity())
                 .startDate(OffsetDateTime.now())
                 .endDate(newOrUpdated.getEndDate())
@@ -236,28 +238,16 @@ public class SubscriptionSyncController {
     }
   }
 
-  private void enrichUnlimitedUsageFromOffering(
-      org.candlepin.subscriptions.db.model.Subscription newOrUpdated) {
-    var offering =
-        offeringRepository
-            .findById(newOrUpdated.getSku())
-            .orElseThrow(() -> new IllegalStateException("Offering failed to sync"));
-    newOrUpdated.setHasUnlimitedUsage(offering.getHasUnlimitedUsage());
-  }
-
   private void checkForMissingBillingProvider(
       org.candlepin.subscriptions.db.model.Subscription subscription) {
     if (subscription.getBillingProvider() == null
         || subscription.getBillingProvider().equals(BillingProvider.EMPTY)) {
-      var offeringOptional = offeringRepository.findById(subscription.getSku());
-      if (offeringOptional.isPresent()) {
-        var productTag =
-            tagProfile.tagForOfferingProductName(offeringOptional.get().getProductName());
-        if (tagProfile.isProductPAYGEligible(productTag)) {
-          log.warn(
-              "PAYG eligible subscription with subscriptionId:{} has no billing provider.",
-              subscription.getSubscriptionId());
-        }
+      var productTag =
+          tagProfile.tagForOfferingProductName(subscription.getOffering().getProductName());
+      if (tagProfile.isProductPAYGEligible(productTag)) {
+        log.warn(
+            "PAYG eligible subscription with subscriptionId:{} has no billing provider.",
+            subscription.getSubscriptionId());
       }
     }
   }
@@ -402,11 +392,10 @@ public class SubscriptionSyncController {
   }
 
   private org.candlepin.subscriptions.db.model.Subscription convertDto(Subscription subscription) {
-
+    // Note that we are **not** setting the offering yet!
     return org.candlepin.subscriptions.db.model.Subscription.builder()
         .subscriptionId(String.valueOf(subscription.getId()))
         .subscriptionNumber(subscription.getSubscriptionNumber())
-        .sku(SubscriptionDtoUtil.extractSku(subscription))
         .orgId(subscription.getWebCustomerId().toString())
         .accountNumber(String.valueOf(subscription.getOracleAccountNumber()))
         .quantity(subscription.getQuantity())
@@ -418,7 +407,7 @@ public class SubscriptionSyncController {
         .build();
   }
 
-  private static org.candlepin.subscriptions.db.model.Subscription convertDto(
+  private org.candlepin.subscriptions.db.model.Subscription convertDto(
       UmbSubscription subscription) {
 
     var endDate = subscription.getEffectiveEndDateInUtc();
@@ -444,10 +433,11 @@ public class SubscriptionSyncController {
         endDate = UmbSubscription.convertToUtc(status.get().getStartDate());
       }
     }
+
+    // NOTE: we are not setting the offering yet
     return org.candlepin.subscriptions.db.model.Subscription.builder()
         // NOTE: UMB messages don't include subscriptionId
         .subscriptionNumber(subscription.getSubscriptionNumber())
-        .sku(subscription.getSku())
         .orgId(subscription.getWebCustomerId())
         .accountNumber(String.valueOf(subscription.getEbsAccountNumber()))
         .quantity(subscription.getQuantity())
@@ -504,6 +494,7 @@ public class SubscriptionSyncController {
   public void saveUmbSubscription(UmbSubscription umbSubscription) {
     org.candlepin.subscriptions.db.model.Subscription subscription = convertDto(umbSubscription);
     syncSubscription(
+        umbSubscription.getSku(),
         subscription,
         subscriptionRepository.findBySubscriptionNumber(subscription.getSubscriptionNumber()));
   }
@@ -519,11 +510,6 @@ public class SubscriptionSyncController {
             .findActiveSubscription(subscriptionId)
             .orElseThrow(EntityNotFoundException::new);
 
-    var offering =
-        offeringRepository
-            .findById(subscription.getSku())
-            .orElseThrow(EntityNotFoundException::new);
-
     // Wait until after we are sure there's an offering for this subscription before setting the
     // end date.  We want validation to occur before we start mutating data.
     subscription.setEndDate(terminationDate);
@@ -533,7 +519,8 @@ public class SubscriptionSyncController {
     // between the two temporals. For example, the amount in hours between the times 11:30 and
     // 12:29 will zero hours as it is one minute short of an hour.
     var delta = Math.abs(ChronoUnit.HOURS.between(terminationDate, now));
-    var productTag = tagProfile.tagForOfferingProductName(offering.getProductName());
+    var productTag =
+        tagProfile.tagForOfferingProductName(subscription.getOffering().getProductName());
     if (tagProfile.isProductPAYGEligible(productTag) && delta > 0) {
       var msg =
           String.format(
@@ -657,7 +644,7 @@ public class SubscriptionSyncController {
   }
 
   /**
-   * This will allow any service to lookup the swatch product(s) associated with a given SKU. (This
+   * This will allow any service to look up the swatch product(s) associated with a given SKU. (This
    * lookup will use the offering information already stored in the database) and map the
    * `product_name` to a swatch `product_tag` via info in `tag_profile.yaml` If the offering does
    * not exist then return 404. If it does exist, then return an empty list if there are no tags

@@ -63,12 +63,19 @@ class SubscriptionMeasurementRepositoryTest {
   @BeforeEach
   void setUp() {
     TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
+    var offering =
+        Offering.builder()
+            .sku("premiumproduction")
+            .serviceLevel(ServiceLevel.PREMIUM)
+            .usage(Usage.PRODUCTION)
+            .build();
+
     subscription =
         Subscription.builder()
             .accountNumber("account123")
             .subscriptionId("subscription123")
             .subscriptionNumber("subscriptionNumber123")
-            .sku("premiumproduction")
+            .offering(offering)
             .orgId("org123")
             .billingProvider(BillingProvider.RED_HAT)
             .quantity(10)
@@ -78,18 +85,12 @@ class SubscriptionMeasurementRepositoryTest {
 
     subscriptionProductId = SubscriptionProductId.builder().productId("RHEL").build();
 
-    var offering =
-        Offering.builder()
-            .sku("premiumproduction")
-            .serviceLevel(ServiceLevel.PREMIUM)
-            .usage(Usage.PRODUCTION)
-            .build();
-
     subscription.addSubscriptionProductId(subscriptionProductId);
     physicalCores = createMeasurement("PHYSICAL", MetricId.CORES, 42.0);
     subscription.addSubscriptionMeasurement(physicalCores);
+    offering.addSubscription(subscription);
+
     offeringRepository.saveAndFlush(offering);
-    subscriptionRepository.saveAndFlush(subscription);
   }
 
   @Test

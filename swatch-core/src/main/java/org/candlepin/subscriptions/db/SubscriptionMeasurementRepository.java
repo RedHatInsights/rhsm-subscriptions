@@ -20,15 +20,12 @@
  */
 package org.candlepin.subscriptions.db;
 
+import static org.candlepin.subscriptions.db.SpringDataUtil.*;
+
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
-import javax.persistence.criteria.From;
-import javax.persistence.criteria.Join;
-import javax.persistence.metamodel.SetAttribute;
-import javax.persistence.metamodel.SingularAttribute;
 import org.candlepin.subscriptions.db.model.*;
-import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.Offering_;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
@@ -44,6 +41,7 @@ public interface SubscriptionMeasurementRepository
         JpaSpecificationExecutor<SubscriptionMeasurement> {
 
   String SUBSCRIPTION_ALIAS = "subscription";
+  String OFFERING_ALIAS = "offering";
 
   @SuppressWarnings("java:S107")
   default List<SubscriptionMeasurement> findAllBy(
@@ -149,23 +147,19 @@ public interface SubscriptionMeasurementRepository
 
   static Specification<SubscriptionMeasurement> slaEquals(ServiceLevel sla) {
     return (root, query, builder) -> {
-      var offeringRoot = query.from(Offering.class);
       var subscriptionRoot =
           fetchJoin(root, SubscriptionMeasurement_.subscription, SUBSCRIPTION_ALIAS);
-      return builder.and(
-          builder.equal(subscriptionRoot.get(Subscription_.sku), offeringRoot.get(Offering_.sku)),
-          builder.equal(offeringRoot.get(Offering_.serviceLevel), sla));
+      var offeringRoot = fetchJoin(subscriptionRoot, Subscription_.offering, OFFERING_ALIAS);
+      return builder.equal(offeringRoot.get(Offering_.serviceLevel), sla);
     };
   }
 
   static Specification<SubscriptionMeasurement> usageEquals(Usage usage) {
     return (root, query, builder) -> {
-      var offeringRoot = query.from(Offering.class);
       var subscriptionRoot =
           fetchJoin(root, SubscriptionMeasurement_.subscription, SUBSCRIPTION_ALIAS);
-      return builder.and(
-          builder.equal(subscriptionRoot.get(Subscription_.sku), offeringRoot.get(Offering_.sku)),
-          builder.equal(offeringRoot.get(Offering_.usage), usage));
+      var offeringRoot = fetchJoin(subscriptionRoot, Subscription_.offering, OFFERING_ALIAS);
+      return builder.equal(offeringRoot.get(Offering_.usage), usage);
     };
   }
 
@@ -191,34 +185,6 @@ public interface SubscriptionMeasurementRepository
         return builder.equal(root.get(SubscriptionMeasurement_.metricId), attribute);
       }
     };
-  }
-
-  private static <F, T> Join<F, T> fetchJoin(
-      From<F, F> root, SingularAttribute<F, T> attribute, String alias) {
-    var existing =
-        root.getJoins().stream().filter(join -> Objects.equals(join.getAlias(), alias)).findFirst();
-    return existing
-        .map(join -> (Join<F, T>) join)
-        .orElseGet(
-            () -> {
-              var join = (Join<F, T>) root.fetch(attribute);
-              join.alias(alias);
-              return join;
-            });
-  }
-
-  private static <F, T> Join<F, T> fetchJoin(
-      From<?, F> root, SetAttribute<F, T> attribute, String alias) {
-    var existing =
-        root.getJoins().stream().filter(join -> Objects.equals(join.getAlias(), alias)).findFirst();
-    return existing
-        .map(join -> (Join<F, T>) join)
-        .orElseGet(
-            () -> {
-              var join = (Join<F, T>) root.fetch(attribute);
-              join.alias(alias);
-              return join;
-            });
   }
 
   @SuppressWarnings("java:S107")

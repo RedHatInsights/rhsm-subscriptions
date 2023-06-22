@@ -30,7 +30,6 @@ import java.util.stream.Collectors;
 import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
-import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.Subscription;
@@ -54,7 +53,6 @@ public class CapacityReconciliationController {
   private static final String SOCKETS = MetricId.SOCKETS.toString().toUpperCase();
   private static final String CORES = MetricId.CORES.toString().toUpperCase();
 
-  private final OfferingRepository offeringRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final KafkaTemplate<String, ReconcileCapacityByOfferingTask>
       reconcileCapacityByOfferingKafkaTemplate;
@@ -68,7 +66,6 @@ public class CapacityReconciliationController {
 
   @Autowired
   public CapacityReconciliationController(
-      OfferingRepository offeringRepository,
       SubscriptionRepository subscriptionRepository,
       ProductDenylist productDenylist,
       CapacityProductExtractor productExtractor,
@@ -76,7 +73,6 @@ public class CapacityReconciliationController {
       KafkaTemplate<String, ReconcileCapacityByOfferingTask>
           reconcileCapacityByOfferingKafkaTemplate,
       @Qualifier("reconcileCapacityTasks") TaskQueueProperties props) {
-    this.offeringRepository = offeringRepository;
     this.subscriptionRepository = subscriptionRepository;
     this.productDenylist = productDenylist;
     this.productExtractor = productExtractor;
@@ -89,24 +85,21 @@ public class CapacityReconciliationController {
 
   @Transactional
   public void reconcileCapacityForSubscription(Subscription subscription) {
-    var optionalOffering =
-        Optional.of(subscription.getSku())
-            .filter(sku -> !productDenylist.productIdMatches(sku))
-            .flatMap(offeringRepository::findById);
-    if (optionalOffering.isEmpty()) {
+    if (productDenylist.productIdMatches(subscription.getOffering().getSku())) {
       subscription.getSubscriptionMeasurements().clear();
       subscription.getSubscriptionProductIds().clear();
       return;
     }
-    reconcileSubscriptionCapacities(subscription, optionalOffering.get());
-    reconcileSubscriptionProductIds(subscription, optionalOffering.get());
+
+    reconcileSubscriptionCapacities(subscription);
+    reconcileSubscriptionProductIds(subscription);
     subscriptionRepository.save(subscription);
   }
 
   @Transactional
   public void reconcileCapacityForOffering(String sku, int offset, int limit) {
     Page<Subscription> subscriptions =
-        subscriptionRepository.findBySku(
+        subscriptionRepository.findByOfferingSku(
             sku, ResourceUtils.getPageable(offset, limit, Sort.by("subscriptionId")));
     subscriptions.forEach(this::reconcileCapacityForSubscription);
     if (subscriptions.hasNext()) {
@@ -123,7 +116,8 @@ public class CapacityReconciliationController {
         ReconcileCapacityByOfferingTask.builder().sku(sku).offset(0).limit(100).build());
   }
 
-  private void reconcileSubscriptionCapacities(Subscription subscription, Offering offering) {
+  private void reconcileSubscriptionCapacities(Subscription subscription) {
+    Offering offering = subscription.getOffering();
     var existingKeys =
         subscription.getSubscriptionMeasurements().stream()
             .map(m -> fromSubscriptionAndMeasurement(subscription, m))
@@ -188,7 +182,8 @@ public class CapacityReconciliationController {
     return Optional.empty();
   }
 
-  private void reconcileSubscriptionProductIds(Subscription subscription, Offering offering) {
+  private void reconcileSubscriptionProductIds(Subscription subscription) {
+    Offering offering = subscription.getOffering();
     Set<String> products = productExtractor.getProducts(offering);
     var expectedProducts =
         products.stream()
