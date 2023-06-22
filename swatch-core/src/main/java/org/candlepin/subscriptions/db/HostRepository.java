@@ -510,6 +510,14 @@ public interface HostRepository
   Page<Host> getHostsByHypervisor(
       @Param("orgId") String orgId, @Param("hypervisor_id") String hypervisorId, Pageable pageable);
 
+  @Query(
+      "select distinct h1 from Host h1 where "
+          + "h1.orgId = :orgId and "
+          + "h1.hypervisorUuid in (select h2.subscriptionManagerId from Host h2 where "
+          + "h2.instanceId = :instanceId)")
+  Page<Host> getGuestHostsByHypervisorInstanceId(
+      @Param("orgId") String orgId, @Param("instanceId") String instanceId, Pageable pageable);
+
   List<Host> findByAccountNumber(String accountNumber);
 
   Optional<Host> findById(UUID id);
