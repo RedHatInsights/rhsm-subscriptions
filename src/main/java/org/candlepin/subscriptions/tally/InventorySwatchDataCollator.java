@@ -22,18 +22,22 @@ package org.candlepin.subscriptions.tally;
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
+import java.util.Comparator;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Stream;
+import lombok.Builder;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 /** Coordinates processing of HBI and swatch data in a streaming, collated fashion. */
 @Slf4j
@@ -107,17 +111,17 @@ public class InventorySwatchDataCollator {
       InventoryHostFacts nextHbiSystem = peekOrNull(inventoryDataIterator);
       Host nextSwatchHost = peekOrNull(swatchDataIterator);
 
-      String activeInventoryId = minInventoryId(nextHbiSystem, nextSwatchHost);
+      SortKey activeSortKey = minSortKey(nextHbiSystem, nextSwatchHost);
 
       // limit further operation to "active" records - those that should be processed in this
       // iteration
       InventoryHostFacts activeHbiSystem =
           Optional.ofNullable(nextHbiSystem)
-              .filter(host -> Objects.equals(host.getInventoryId().toString(), activeInventoryId))
+              .filter(host -> Objects.equals(SortKey.fromHbiSystem(host), activeSortKey))
               .orElse(null);
       Host activeSwatchSystem =
           Optional.ofNullable(nextSwatchHost)
-              .filter(host -> Objects.equals(host.getInventoryId(), activeInventoryId))
+              .filter(host -> Objects.equals(SortKey.fromSwatchSystem(host), activeSortKey))
               .orElse(null);
 
       if (activeHbiSystem != null) {
@@ -146,15 +150,12 @@ public class InventorySwatchDataCollator {
     return iterator.hasNext() ? iterator.peek() : null;
   }
 
-  private String minInventoryId(InventoryHostFacts inventoryHost, Host swatchHost) {
+  private SortKey minSortKey(InventoryHostFacts inventoryHost, Host swatchHost) {
     return Stream.of(
-            Optional.ofNullable(inventoryHost)
-                .map(InventoryHostFacts::getInventoryId)
-                .map(UUID::toString)
-                .orElse(null),
-            Optional.ofNullable(swatchHost).map(Host::getInventoryId).orElse(null))
+            Optional.ofNullable(inventoryHost).map(SortKey::fromHbiSystem).orElse(null),
+            Optional.ofNullable(swatchHost).map(SortKey::fromSwatchSystem).orElse(null))
         .filter(Objects::nonNull)
-        .min(String::compareTo)
+        .min(SortKey::compareTo)
         .orElseThrow();
   }
 
@@ -185,5 +186,67 @@ public class InventorySwatchDataCollator {
       orgHostsData.addHostMapping(hypervisorUuid, hypervisorUuid);
     }
     return orgHostsData;
+  }
+
+  @Data
+  @Builder
+  public static class SortKey implements Comparable<SortKey> {
+    private String hardwareSubmanId;
+    private String hypervisorUuid;
+    private String inventoryId;
+
+    public static SortKey fromSwatchSystem(Host system) {
+      String hardwareSubmanId;
+      if (StringUtils.hasText(system.getHypervisorUuid())) {
+        hardwareSubmanId = system.getHypervisorUuid();
+      } else {
+        hardwareSubmanId = system.getSubscriptionManagerId();
+      }
+      return SortKey.builder()
+          .hardwareSubmanId(hardwareSubmanId)
+          .inventoryId(system.getInventoryId())
+          .hypervisorUuid(system.getHypervisorUuid())
+          .build();
+    }
+
+    public static SortKey fromHbiSystem(InventoryHostFacts system) {
+      String hardwareSubmanId;
+      String hypervisorUuid;
+      if (StringUtils.hasText(system.getHypervisorUuid())) {
+        hardwareSubmanId = hypervisorUuid = system.getHypervisorUuid();
+      } else if (StringUtils.hasText(system.getSatelliteHypervisorUuid())) {
+        hardwareSubmanId = hypervisorUuid = system.getSatelliteHypervisorUuid();
+      } else {
+        hypervisorUuid = null;
+        hardwareSubmanId = system.getSubscriptionManagerId();
+      }
+      return SortKey.builder()
+          .hardwareSubmanId(hardwareSubmanId)
+          .hypervisorUuid(hypervisorUuid)
+          .inventoryId(system.getInventoryId().toString())
+          .build();
+    }
+
+    @Override
+    public int compareTo(@NotNull SortKey other) {
+      var hardwareSubmanIdResult =
+          Objects.compare(
+              hardwareSubmanId,
+              other.getHardwareSubmanId(),
+              Comparator.nullsFirst(Comparator.naturalOrder()));
+      if (hardwareSubmanIdResult != 0) {
+        return hardwareSubmanIdResult;
+      }
+      var hypervisorUuidResult =
+          Objects.compare(
+              hypervisorUuid,
+              other.getHypervisorUuid(),
+              Comparator.nullsFirst(Comparator.naturalOrder()));
+      if (hypervisorUuidResult != 0) {
+        return hypervisorUuidResult;
+      }
+      return Objects.compare(
+          inventoryId, other.getInventoryId(), Comparator.nullsFirst(Comparator.naturalOrder()));
+    }
   }
 }
