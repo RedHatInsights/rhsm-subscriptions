@@ -104,6 +104,7 @@
     <include file="/liquibase/202302151544-remove-uuid-cast-on-instance-id-in-tally-instance-view.xml"/>
     <include file="/liquibase/202305231247-update-host-pk-for-dup-violation.xml"/>
     <include file="liquibase/202305031403-create-subscription-measurements-table.xml"/>
+    <include file="liquibase/202306201611-add-subscription-id-index-for-measurements.xml"/>
     <!-- Uncomment once subscription-measurements has been verified -->
     <!-- <include file="liquibase/202305251412-drop-subscription-capacity-table.xml"/> -->
 </databaseChangeLog>

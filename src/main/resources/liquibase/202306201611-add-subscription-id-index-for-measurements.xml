@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202306201611-1" author="karshah">
+        <comment>Add an index on subscription_id column in the subscription_measurements table</comment>
+        <createIndex indexName="subscription_id_idx" tableName="subscription_measurements"
+                     unique="false">
+            <column name="subscription_id"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->
