@@ -27,7 +27,9 @@ import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.Metric;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
+import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import java.time.OffsetDateTime;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -158,5 +160,39 @@ class ContractMapperTest {
   @Test
   void testDtoToEntity_WhenContractNull() {
     assertNull(mapper.dtoToContractEntity(null));
+  }
+
+  @Test
+  void testMapContractEntityToSubscriptionEntity() {
+    var subscription = new SubscriptionEntity();
+    var metric = new ContractMetricEntity();
+    metric.setMetricId("Cores");
+    metric.setValue(42.0);
+    var contract = new ContractEntity();
+    contract.setSku("sku");
+    contract.setMetrics(Set.of(metric));
+    contract.setStartDate(OffsetDateTime.parse("2000-01-01T00:00Z"));
+    contract.setEndDate(OffsetDateTime.parse("2020-01-01T00:00Z"));
+    contract.setSubscriptionNumber("subscriptionNumber");
+    contract.setBillingProvider("aws");
+    contract.setBillingAccountId("12345678");
+    contract.setOrgId("org123");
+    contract.setProductId("rosa");
+    mapper.mapContractEntityToSubscriptionEntity(subscription, contract);
+    assertEquals(contract.getSubscriptionNumber(), subscription.getSubscriptionNumber());
+    assertEquals(1, subscription.getSubscriptionMeasurements().size());
+    assertEquals(contract.getSku(), subscription.getSku());
+    assertEquals(contract.getStartDate(), subscription.getStartDate());
+    assertEquals(contract.getEndDate(), subscription.getEndDate());
+    assertEquals(contract.getBillingProvider(), subscription.getBillingProvider().getValue());
+    assertEquals(contract.getBillingAccountId(), subscription.getBillingAccountId());
+    assertEquals(contract.getOrgId(), subscription.getOrgId());
+    assertEquals(1, subscription.getSubscriptionProductIds().size());
+    var productId = subscription.getSubscriptionProductIds().stream().findFirst().orElseThrow();
+    assertEquals(contract.getProductId(), productId.getProductId());
+    var measurement = subscription.getSubscriptionMeasurements().get(0);
+    assertEquals(metric.getMetricId(), measurement.getMetricId());
+    assertEquals(metric.getValue(), measurement.getValue());
+    assertEquals("PHYSICAL", measurement.getMeasurementType());
   }
 }

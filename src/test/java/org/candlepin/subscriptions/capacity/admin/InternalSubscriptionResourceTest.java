@@ -28,6 +28,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -70,9 +71,11 @@ class InternalSubscriptionResourceTest {
   @MockBean OfferingSyncController offeringSync;
 
   @MockBean CapacityReconciliationController capacityReconciliationController;
+  @MockBean TagMetricMapper tagMetricMapper;
   @Autowired SecurityProperties properties;
   @Autowired WebApplicationContext context;
   @Autowired InternalSubscriptionResource resource;
+  @Autowired MeterRegistry meterRegistry;
 
   private MockMvc mvc;
   private static final String SYNC_ORG_123 = "/internal/subscriptions/sync/org/123";
@@ -105,7 +108,8 @@ class InternalSubscriptionResourceTest {
             properties,
             subscriptionPruneController,
             offeringSync,
-            capacityReconciliationController);
+            capacityReconciliationController,
+            tagMetricMapper);
     when(syncController.findSubscriptionsAndSyncIfNeeded(
             any(), any(), any(), any(), any(), anyBoolean()))
         .thenReturn(Collections.emptyList());
@@ -128,7 +132,8 @@ class InternalSubscriptionResourceTest {
             properties,
             subscriptionPruneController,
             offeringSync,
-            capacityReconciliationController);
+            capacityReconciliationController,
+            tagMetricMapper);
     when(syncController.findSubscriptionsAndSyncIfNeeded(
             any(), any(), any(), any(), any(), anyBoolean()))
         .thenReturn(Collections.emptyList());
@@ -151,7 +156,8 @@ class InternalSubscriptionResourceTest {
             properties,
             subscriptionPruneController,
             offeringSync,
-            capacityReconciliationController);
+            capacityReconciliationController,
+            tagMetricMapper);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
     sub1.setEndDate(defaultEndDate);
@@ -181,7 +187,8 @@ class InternalSubscriptionResourceTest {
             properties,
             subscriptionPruneController,
             offeringSync,
-            capacityReconciliationController);
+            capacityReconciliationController,
+            tagMetricMapper);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
     sub1.setEndDate(defaultEndDate);
@@ -203,15 +210,6 @@ class InternalSubscriptionResourceTest {
 
   @Test
   void shouldThrowSubscriptionsExceptionForTerminatedSubscription_WhenAccounNumberPresent() {
-    SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
-    InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(
-            meterRegistry,
-            syncController,
-            properties,
-            subscriptionPruneController,
-            offeringSync,
-            capacityReconciliationController);
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
@@ -236,15 +234,6 @@ class InternalSubscriptionResourceTest {
 
   @Test
   void shouldThrowSubscriptionsExceptionForTerminatedSubscription_WhenOrgIdPresent() {
-    SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
-    InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(
-            meterRegistry,
-            syncController,
-            properties,
-            subscriptionPruneController,
-            offeringSync,
-            capacityReconciliationController);
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
@@ -269,15 +258,6 @@ class InternalSubscriptionResourceTest {
 
   @Test
   void shouldReturnActiveSubscriptionAndNotTerminated_WhenAccounNumberPresent() {
-    SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
-    InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(
-            meterRegistry,
-            syncController,
-            properties,
-            subscriptionPruneController,
-            offeringSync,
-            capacityReconciliationController);
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
@@ -299,15 +279,6 @@ class InternalSubscriptionResourceTest {
 
   @Test
   void shouldReturnActiveSubscriptionAndNotTerminated_WhenOrgIdPresent() {
-    SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
-    InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(
-            meterRegistry,
-            syncController,
-            properties,
-            subscriptionPruneController,
-            offeringSync,
-            capacityReconciliationController);
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
@@ -364,7 +335,8 @@ class InternalSubscriptionResourceTest {
             properties,
             subscriptionPruneController,
             offeringSync,
-            capacityReconciliationController);
+            capacityReconciliationController,
+            tagMetricMapper);
 
     when(syncController.findSubscriptionsAndSyncIfNeeded(
             any(), any(), any(), any(), any(), anyBoolean()))
@@ -393,7 +365,8 @@ class InternalSubscriptionResourceTest {
             properties,
             subscriptionPruneController,
             offeringSync,
-            capacityReconciliationController);
+            capacityReconciliationController,
+            tagMetricMapper);
 
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("account123");
