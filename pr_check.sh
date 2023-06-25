@@ -17,7 +17,7 @@ export IQE_IMAGE_TAG="rhsm-subscriptions"
 # NOTE: workaround for frontend deployment not being ready yet below
 export IQE_LOG_LEVEL="debug"
 export IQE_IBUTSU_SOURCE="rhsm-ephemeral"
-export IQE_RP_ARGS=""
+export IQE_RP_ARGS="true"
 
 
 # Install bonfire repo/initialize
