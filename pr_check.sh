@@ -18,6 +18,7 @@ export IQE_IMAGE_TAG="rhsm-subscriptions"
 export IQE_LOG_LEVEL="debug"
 export IQE_IBUTSU_SOURCE="rhsm-ephemeral"
 export IQE_RP_ARGS="true"
+export IQE_PARALLEL_ENABLED="false"
 
 
 # Install bonfire repo/initialize
