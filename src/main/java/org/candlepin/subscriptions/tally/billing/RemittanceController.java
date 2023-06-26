@@ -20,9 +20,13 @@
  */
 package org.candlepin.subscriptions.tally.billing;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
@@ -47,7 +51,6 @@ import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 @Slf4j
 @Component
@@ -203,34 +206,27 @@ public class RemittanceController {
   }
 
   private OffsetDateTime dateFromAccumulationPeriod(String accumulationPeriod) {
-    if (!StringUtils.hasText(accumulationPeriod)) {
+    var format = new SimpleDateFormat("yyyy-MM");
+    format.setTimeZone(TimeZone.getTimeZone(ZoneOffset.UTC));
+    try {
+      return format.parse(accumulationPeriod).toInstant().atOffset(ZoneOffset.UTC);
+    } catch (ParseException e) {
       throw new IllegalArgumentException("Invalid accumulation period: " + accumulationPeriod);
     }
-
-    String[] parts = accumulationPeriod.split("-");
-    if (parts.length < 2) {
-      throw new IllegalArgumentException("Invalid accumulation period: " + accumulationPeriod);
-    }
-
-    return clock
-        .startOfCurrentMonth()
-        .withYear(Integer.parseInt(parts[0]))
-        .withMonth(Integer.parseInt(parts[1]));
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void replaceMonthlyRemittance(
       BillableUsageRemittanceEntity toConvert, OffsetDateTime hourlyDate) {
-    BillableUsageRemittanceEntityPK hourlyKey =
-        BillableUsageRemittanceEntityPK.clone(toConvert.getKey());
+
+    BillableUsageRemittanceEntityPK hourlyKey = toConvert.getKey().toBuilder().build();
     hourlyKey.setRemittancePendingDate(clock.startOfHour(hourlyDate));
     hourlyKey.setGranularity(Granularity.HOURLY);
     remittanceRepository.save(
         new BillableUsageRemittanceEntity(
             hourlyKey, toConvert.getRemittedPendingValue(), toConvert.getAccountNumber()));
 
-    BillableUsageRemittanceEntityPK dailyKey =
-        BillableUsageRemittanceEntityPK.clone(toConvert.getKey());
+    BillableUsageRemittanceEntityPK dailyKey = toConvert.getKey().toBuilder().build();
     dailyKey.setRemittancePendingDate(clock.startOfDay(hourlyDate));
     dailyKey.setGranularity(Granularity.DAILY);
     remittanceRepository.save(

@@ -36,7 +36,7 @@ import org.candlepin.subscriptions.json.BillableUsage;
 @Embeddable
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@Builder(toBuilder = true)
 public class BillableUsageRemittanceEntityPK implements Serializable {
 
   @Column(name = "org_id", nullable = false, length = 32)
@@ -88,21 +88,6 @@ public class BillableUsageRemittanceEntityPK implements Serializable {
 
   public static BillableUsageRemittanceEntityPK keyFrom(BillableUsage billableUsage) {
     return keyFrom(billableUsage, Granularity.HOURLY);
-  }
-
-  public static BillableUsageRemittanceEntityPK clone(BillableUsageRemittanceEntityPK target) {
-    return BillableUsageRemittanceEntityPK.builder()
-        .usage(target.getUsage())
-        .orgId(target.getOrgId())
-        .billingProvider(target.getBillingProvider())
-        .billingAccountId(target.getBillingAccountId())
-        .productId(target.getProductId())
-        .sla(target.getSla())
-        .metricId(target.getMetricId())
-        .accumulationPeriod(target.getAccumulationPeriod())
-        .remittancePendingDate(target.getRemittancePendingDate())
-        .granularity(target.getGranularity())
-        .build();
   }
 
   public static String getAccumulationPeriod(OffsetDateTime reference) {
