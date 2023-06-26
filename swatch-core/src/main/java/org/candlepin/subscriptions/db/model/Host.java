@@ -269,7 +269,7 @@ public class Host implements Serializable {
         .sockets(
             Optional.ofNullable(getMeasurement(Uom.SOCKETS)).map(Double::intValue).orElse(null))
         .displayName(displayName)
-        .hardwareType(hardwareType.toString())
+        .hardwareType(hardwareType == null ? null : hardwareType.toString())
         .insightsId(insightsId)
         .inventoryId(inventoryId)
         .subscriptionManagerId(subscriptionManagerId)

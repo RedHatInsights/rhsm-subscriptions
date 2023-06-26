@@ -469,6 +469,40 @@ class HostRepositoryTest {
 
   @Transactional
   @Test
+  void testReturnsGuestsOfHypervisorByInstanceId() {
+    String account = "hostGuestTest";
+    String uuid = UUID.randomUUID().toString();
+    String instanceId = "hypervisorInstanceIdTest";
+
+    Host hypervisor = createHost("hypervisor", account);
+    hypervisor.setSubscriptionManagerId(uuid);
+    hypervisor.setInstanceId(instanceId);
+    addBucketToHost(hypervisor, "RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION);
+
+    Host guest = createHost("guest", account);
+    guest.setGuest(true);
+    guest.setHypervisorUuid(uuid);
+    addBucketToHost(guest, "RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION);
+
+    Host unmappedGuest = createHost("unmappedGuest", account);
+    unmappedGuest.setGuest(true);
+    addBucketToHost(unmappedGuest, "RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION);
+
+    List<Host> toSave = Arrays.asList(hypervisor, guest, unmappedGuest);
+    toSave.forEach(x -> x.setDisplayName(DEFAULT_DISPLAY_NAME));
+    persistHosts(toSave.toArray(new Host[] {}));
+
+    Page<Host> guests =
+        repo.getGuestHostsByHypervisorInstanceId(
+            "ORG_" + account, instanceId, PageRequest.of(0, 10));
+    assertEquals(1, guests.getTotalElements());
+    assertEquals(uuid, guests.getContent().get(0).getHypervisorUuid());
+    assertEquals("guest", guests.getContent().get(0).getInventoryId());
+    assertEquals("INSIGHTS_guest", guests.getContent().get(0).getInsightsId());
+  }
+
+  @Transactional
+  @Test
   void testCanSortByIdForImplicitSort() {
     Page<TallyHostView> hosts =
         repo.getTallyHostViews(
