@@ -301,7 +301,7 @@ class CapacityResourceTest {
     OffsetDateTime begin = min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
     var subscription = datedSubscription(begin, max);
     var offering = Offering.builder().sku("testsku").hasUnlimitedUsage(true).build();
-    offering.addSubscription(subscription);
+    subscription.setOffering(offering);
 
     DbReportCriteria criteria =
         DbReportCriteria.builder()
@@ -792,14 +792,14 @@ class CapacityResourceTest {
     var unlimited = datedSubscription(begin, max);
     unlimited.setSubscriptionId("unlimited123");
     var unlimitedOffering = Offering.builder().sku("unlimitedsku").hasUnlimitedUsage(true).build();
-    unlimitedOffering.addSubscription(unlimited);
+    unlimited.setOffering(unlimitedOffering);
 
     var limited = datedSubscription(begin, max);
     limited.setSubscriptionId("limited123");
     limited.addSubscriptionMeasurements(
         List.of(createMeasurement("PHYSICAL", MetricId.CORES, 4.0)));
     var limitedOffering = Offering.builder().sku("limitedsku").hasUnlimitedUsage(false).build();
-    limitedOffering.addSubscription(limited);
+    limited.setOffering(limitedOffering);
 
     when(repository.findAllBy(
             "owner123456", RHEL.toString(), MetricId.CORES, null, null, null, min, max))

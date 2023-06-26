@@ -174,7 +174,7 @@ class SubscriptionSyncControllerTest {
   void shouldSyncSubscriptionFromServiceForASubscriptionID() {
     Offering offering = Offering.builder().sku("testSku").build();
     Subscription s = createSubscription("123", "testsku", "456");
-    offering.addSubscription(s);
+    s.setOffering(offering);
     Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
         .thenReturn(Optional.of(s));
     var dto = createDto("456", 10);
@@ -360,9 +360,11 @@ class SubscriptionSyncControllerTest {
     var subList = Arrays.asList(dto1, dto2);
 
     var dao1 = convertDto(dto1);
-    Offering.builder().sku(SubscriptionDtoUtil.extractSku(dto1)).build().addSubscription(dao1);
+    var offering1 = Offering.builder().sku(SubscriptionDtoUtil.extractSku(dto1)).build();
+    dao1.setOffering(offering1);
     var dao2 = convertDto(dto2);
-    Offering.builder().sku(SubscriptionDtoUtil.extractSku(dto2)).build().addSubscription(dao2);
+    var offering2 = Offering.builder().sku(SubscriptionDtoUtil.extractSku(dto2)).build();
+    dao2.setOffering(offering2);
 
     when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(subList);
     when(subscriptionRepository.findByOrgIdAndEndDateAfter(eq("123"), any()))
@@ -564,7 +566,7 @@ class SubscriptionSyncControllerTest {
   void lateTerminateActivePAYGSubscriptionTest() {
     Subscription s = createSubscription("123", "testsku", "456");
     Offering offering = Offering.builder().productName(PAYG_PRODUCT_NAME).build();
-    offering.addSubscription(s);
+    s.setOffering(offering);
     when(offeringRepository.findById("testsku")).thenReturn(Optional.of(offering));
     when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
     when(mockProfile.tagForOfferingProductName(PAYG_PRODUCT_NAME))

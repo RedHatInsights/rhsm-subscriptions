@@ -88,9 +88,10 @@ class SubscriptionMeasurementRepositoryTest {
     subscription.addSubscriptionProductId(subscriptionProductId);
     physicalCores = createMeasurement("PHYSICAL", MetricId.CORES, 42.0);
     subscription.addSubscriptionMeasurement(physicalCores);
-    offering.addSubscription(subscription);
+    subscription.setOffering(offering);
 
     offeringRepository.saveAndFlush(offering);
+    subscriptionRepository.saveAndFlush(subscription);
   }
 
   @Test

@@ -1047,7 +1047,7 @@ class SubscriptionTableControllerTest {
 
       var offering = Offering.builder().sku(sku).hasUnlimitedUsage(hasUnlimitedUsage).build();
 
-      offering.addSubscription(subscription);
+      subscription.setOffering(offering);
       subscription.setOrgId(org.orgId);
       subscription.setAccountNumber(org.accountNumber);
 

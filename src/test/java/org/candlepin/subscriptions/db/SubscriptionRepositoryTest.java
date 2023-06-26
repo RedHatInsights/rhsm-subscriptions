@@ -56,8 +56,9 @@ class SubscriptionRepositoryTest {
   void canInsertAndRetrieveSubscriptions() {
     Subscription subscription = createSubscription("1", "1000", "123", "sellerAcctId");
     Offering offering = createOffering("testSku", "Test SKU", 1066, null, null, null);
-    offering.addSubscription(subscription);
-    offeringRepo.saveAndFlush(offering);
+    subscription.setOffering(offering);
+    offeringRepo.save(offering);
+    subscriptionRepo.saveAndFlush(subscription);
 
     Subscription retrieved = subscriptionRepo.findActiveSubscription("123").orElse(null);
 
@@ -81,8 +82,9 @@ class SubscriptionRepositoryTest {
     Subscription subscription = createSubscription("1", "1000", "123", "sellerAcctId");
     Offering o1 =
         createOffering("testSku1", "Test SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
-    o1.addSubscription(subscription);
+    subscription.setOffering(o1);
     offeringRepo.save(o1);
+    subscriptionRepo.save(subscription);
 
     Offering o2 =
         createOffering("testSku2", "Test SKU 2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
@@ -112,10 +114,12 @@ class SubscriptionRepositoryTest {
   @Transactional
   @Test
   void doesNotMatchMismatchedSkusOfferings() {
-    Subscription subscription = createSubscription("1", "1000", "123", "sellerAcctId");
     Offering offering = createOffering("testSku", "Test SKU", 1066, null, null, null);
-    offering.addSubscription(subscription);
-    offeringRepo.saveAndFlush(offering);
+    offeringRepo.save(offering);
+
+    Subscription subscription = createSubscription("1", "1000", "123", "sellerAcctId");
+    subscription.setOffering(offering);
+    subscriptionRepo.saveAndFlush(subscription);
 
     Offering o1 =
         createOffering(
@@ -146,10 +150,12 @@ class SubscriptionRepositoryTest {
   @Transactional
   @Test
   void doesNotMatchMismatchedBillingAccountId() {
-    Subscription subscription = createSubscription("1", "1000", "123", "sellerAcctId");
     Offering offering = createOffering("testSku", "Test SKU", 1066, null, null, null);
-    offering.addSubscription(subscription);
-    offeringRepo.saveAndFlush(offering);
+    offeringRepo.save(offering);
+
+    Subscription subscription = createSubscription("1", "1000", "123", "sellerAcctId");
+    subscription.setOffering(offering);
+    subscriptionRepo.saveAndFlush(subscription);
 
     Offering o1 =
         createOffering("testSku1", "Test SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
@@ -185,8 +191,10 @@ class SubscriptionRepositoryTest {
         createSubscription("1", "1000", "234", "sellerAcctId", NOW, NOW.plusDays(30));
     Offering offering =
         createOffering("testSku1", "Test SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
-    offering.addSubscriptions(List.of(subscription1, subscription2));
-    offeringRepo.saveAndFlush(offering);
+    List<Subscription> subscriptions = List.of(subscription1, subscription2);
+    subscriptions.forEach(x -> x.setOffering(offering));
+    offeringRepo.save(offering);
+    subscriptionRepo.saveAllAndFlush(subscriptions);
 
     Set<String> productNames = Set.of("Test SKU 1");
 
@@ -218,13 +226,14 @@ class SubscriptionRepositoryTest {
     Offering mct3718 =
         createOffering(
             "MCT3718", "MCT3718 SKU", 1066, ServiceLevel.SELF_SUPPORT, Usage.PRODUCTION, "ROLE");
+    offeringRepo.save(mct3718);
 
     for (int i = 0; i < 5; i++) {
-      Subscription subscription1 =
+      Subscription subscription =
           createSubscription("1", "1001", String.valueOf(new Random().nextInt()), "sellerAcctId");
-      mct3718.addSubscription(subscription1);
+      subscription.setOffering(mct3718);
+      subscriptionRepo.saveAndFlush(subscription);
     }
-    offeringRepo.saveAndFlush(mct3718);
     var criteria =
         DbReportCriteria.builder()
             .accountNumber("1001")
@@ -240,21 +249,22 @@ class SubscriptionRepositoryTest {
   void findsAllSubscriptionsForAGivenSku() {
     Offering mct3718 = createOffering("MCT3718", "MCT3718 SKU", 1066, null, null, null);
     Offering rh00798 = createOffering("RH00798", "RH00798 SKU", 1512, null, null, null);
+    offeringRepo.saveAllAndFlush(List.of(mct3718, rh00798));
 
     for (int i = 0; i < 5; i++) {
       Subscription subscription1 =
           createSubscription("1", "1001", String.valueOf(new Random().nextInt()), "sellerAcctId");
-      mct3718.addSubscription(subscription1);
+      subscription1.setOffering(mct3718);
 
       Subscription subscription2 =
           createSubscription("1", "1001", String.valueOf(new Random().nextInt()), "sellerAcctId");
-      rh00798.addSubscription(subscription2);
+      subscription2.setOffering(rh00798);
 
       Subscription subscription3 =
           createSubscription("2", "1002", String.valueOf(new Random().nextInt()), "sellerAcctId");
-      mct3718.addSubscription(subscription3);
+      subscription3.setOffering(mct3718);
+      subscriptionRepo.saveAll(List.of(subscription1, subscription2, subscription3));
     }
-    offeringRepo.saveAllAndFlush(List.of(mct3718, rh00798));
 
     var result = subscriptionRepo.findByOfferingSku("MCT3718", Pageable.ofSize(5));
     assertEquals(5, result.stream().count());
@@ -270,15 +280,16 @@ class SubscriptionRepositoryTest {
     var s2 = createSubscription("org123", "account123", "sub321", "seller123");
     var offering1 = createOffering("testSkuUnlimited", "TestSKUUnlimited", 1066, null, null, null);
     offering1.setHasUnlimitedUsage(true);
-    offering1.addSubscriptions(List.of(s1, s2));
+    List.of(s1, s2).forEach(x -> x.setOffering(offering1));
 
     var s3 = createSubscription("org123", "account123", "sub456", "seller123");
     var s4 = createSubscription("org123", "account123", "sub678", "seller123");
     var offering2 = createOffering("testSkuLimited", "TestSKULimited", 1066, null, null, null);
     offering2.setHasUnlimitedUsage(false);
-    offering2.addSubscriptions(List.of(s3, s4));
+    List.of(s3, s4).forEach(x -> x.setOffering(offering2));
 
-    offeringRepo.saveAllAndFlush(List.of(offering1, offering2));
+    offeringRepo.saveAll(List.of(offering1, offering2));
+    subscriptionRepo.saveAllAndFlush(List.of(s1, s2, s3, s4));
 
     var criteria = DbReportCriteria.builder().orgId("org123").build();
     var result = subscriptionRepo.findUnlimited(criteria);

@@ -101,7 +101,7 @@ class CapacityReconciliationControllerTest {
             .build();
 
     Subscription newSubscription = createSubscription("456", 10);
-    offering.addSubscription(newSubscription);
+    newSubscription.setOffering(offering);
 
     when(denylist.productIdMatches(any())).thenReturn(false);
     when(capacityProductExtractor.getProducts(offering)).thenReturn(new HashSet<>(productIds));
@@ -140,7 +140,7 @@ class CapacityReconciliationControllerTest {
     SubscriptionProductId subscriptionProductId = new SubscriptionProductId();
     subscriptionProductId.setProductId("RHEL");
     updatedSubscription.addSubscriptionProductId(subscriptionProductId);
-    updatedOffering.addSubscription(updatedSubscription);
+    updatedSubscription.setOffering(updatedOffering);
 
     when(denylist.productIdMatches(any())).thenReturn(false);
     when(capacityProductExtractor.getProducts(updatedOffering)).thenReturn(productIds);
@@ -176,7 +176,7 @@ class CapacityReconciliationControllerTest {
     SubscriptionProductId subscriptionProductId = new SubscriptionProductId();
     subscriptionProductId.setProductId("RHEL");
     updatedSubscription.addSubscriptionProductId(subscriptionProductId);
-    updatedOffering.addSubscription(updatedSubscription);
+    updatedSubscription.setOffering(updatedOffering);
 
     when(denylist.productIdMatches(any())).thenReturn(true);
     when(capacityProductExtractor.getProducts(updatedOffering)).thenReturn(productIds);
@@ -208,7 +208,7 @@ class CapacityReconciliationControllerTest {
     subscription
         .getSubscriptionMeasurements()
         .add(createMeasurement(subscription, "PHYSICAL", SOCKETS, 15.0));
-    offering.addSubscription(subscription);
+    subscription.setOffering(offering);
 
     when(denylist.productIdMatches(any())).thenReturn(false);
     when(capacityProductExtractor.getProducts(offering)).thenReturn(productIds);

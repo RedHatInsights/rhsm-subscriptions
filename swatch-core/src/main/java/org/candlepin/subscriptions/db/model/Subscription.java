@@ -145,6 +145,7 @@ public class Subscription implements Serializable {
   /** Composite ID class for Subscription entities. */
   @Getter
   @Setter
+  @ToString
   public static class SubscriptionCompoundId implements Serializable {
     private String subscriptionId;
     private OffsetDateTime startDate;

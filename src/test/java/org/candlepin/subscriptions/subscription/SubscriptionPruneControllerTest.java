@@ -84,7 +84,7 @@ class SubscriptionPruneControllerTest {
   void testPruneDoesNothingIfSkuOnNonDenylist() {
     Offering offering = Offering.builder().sku("allowed").build();
     Subscription allowedSub = new Subscription();
-    offering.addSubscription(allowedSub);
+    allowedSub.setOffering(offering);
     when(subscriptionRepo.findByOrgId("up-to-date")).thenReturn(Stream.of(allowedSub));
     SubscriptionMeasurement allowedMeasurement = SubscriptionMeasurement.builder().build();
     allowedSub.addSubscriptionMeasurement(allowedMeasurement);
@@ -97,7 +97,7 @@ class SubscriptionPruneControllerTest {
   void testPruneRemovesDelistedSubscription() {
     Offering offering = Offering.builder().sku("denied").build();
     Subscription staleSub = new Subscription();
-    offering.addSubscription(staleSub);
+    staleSub.setOffering(offering);
     when(subscriptionRepo.findByOrgId("stale-sub")).thenReturn(Stream.of(staleSub));
     controller.pruneUnlistedSubscriptions("stale-sub");
     verify(subscriptionRepo).findByOrgId("stale-sub");

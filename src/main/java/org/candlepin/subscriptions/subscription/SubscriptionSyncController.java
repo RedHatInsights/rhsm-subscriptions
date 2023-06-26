@@ -182,8 +182,10 @@ public class SubscriptionSyncController {
     }
 
     subscriptionOptional.ifPresentOrElse(
-        subscription -> subscription.getOffering().addSubscription(newOrUpdated),
-        () -> offeringRepository.findById(sku).orElseThrow().addSubscription(newOrUpdated));
+        subscription -> newOrUpdated.setOffering(subscription.getOffering()),
+        () ->
+            newOrUpdated.setOffering(
+                offeringRepository.findById(sku).orElseThrow(EntityNotFoundException::new)));
 
     log.debug("Syncing subscription from external service={}", newOrUpdated);
 
