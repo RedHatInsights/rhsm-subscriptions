@@ -25,7 +25,6 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -512,9 +511,9 @@ class RemittanceControllerTest {
     dailyRem.getKey().setGranularity(Granularity.DAILY);
 
     controller.replaceMonthlyRemittance(monthlyRemittance, snapshot.getSnapshotDate());
-    verify(remittanceRepo).save(eq(dailyRem));
-    verify(remittanceRepo).save(eq(hourlyRem));
-    verify(remittanceRepo).deleteById(eq(monthlyRemittance.getKey()));
+    verify(remittanceRepo).save(dailyRem);
+    verify(remittanceRepo).save(hourlyRem);
+    verify(remittanceRepo).deleteById(monthlyRemittance.getKey());
   }
 
   private BillableUsageRemittanceEntity createRemittance(

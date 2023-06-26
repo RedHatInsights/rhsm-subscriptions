@@ -28,9 +28,9 @@ import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
 @Getter
 public class RemittanceSyncAlignmentException extends RuntimeException {
 
-  private Double result;
-  private BillableUsageRemittanceEntity remittanceToSync;
-  private OffsetDateTime dateOfLatestSnapshot;
+  private final Double result;
+  private final BillableUsageRemittanceEntity remittanceToSync;
+  private final OffsetDateTime dateOfLatestSnapshot;
 
   public RemittanceSyncAlignmentException(
       BillableUsageRemittanceEntity remittanceToSync,
