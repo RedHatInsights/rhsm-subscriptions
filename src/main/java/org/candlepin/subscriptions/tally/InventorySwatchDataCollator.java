@@ -96,6 +96,13 @@ public class InventorySwatchDataCollator {
         inventoryRepository.streamActiveSubscriptionManagerIds(orgId, culledOffsetDays);
     Stream<Host> swatchSystemStream = hostRepository.streamHbiHostsByOrgId(orgId);
 
+    /*
+    Setup peeking iterators for each of HBI systems, HBI subman IDs, and swatch systems.
+    Peeking iterators allow us to evaluate an item without advancing the iterator, enabling us to
+    selectively iterate the streams. When the HBI system stream and swatch stream both point to the
+    same underlying system, both streams will be advanced, otherwise we'll advance the single stream
+    having the system with the minimum SortKey.
+    */
     PeekingIterator<InventoryHostFacts> inventoryDataIterator =
         Iterators.peekingIterator(inventorySystemStream.iterator());
     PeekingIterator<Host> swatchDataIterator =
@@ -103,6 +110,10 @@ public class InventorySwatchDataCollator {
     PeekingIterator<String> activeSubmanIdIterator =
         Iterators.peekingIterator(activeSubmanIdStream.iterator());
 
+    /*
+    OrgHostsData functions as a context object, allowing us to collect hypervisor data, namely guest
+    counts and tally buckets, between iterations.
+     */
     OrgHostsData orgHostsData = new OrgHostsData("placeholder"); // orgId not used
     int iterationCount = 0;
 
@@ -111,6 +122,11 @@ public class InventorySwatchDataCollator {
       InventoryHostFacts nextHbiSystem = peekOrNull(inventoryDataIterator);
       Host nextSwatchHost = peekOrNull(swatchDataIterator);
 
+      /*
+      activeSortKey determines the system record(s) to be operated against this iteration.
+      If nextSwatchHost and nextHbiSystem have different sort keys, then the minimum of the two
+      will be processed (and the other will be saved for the next iteration).
+       */
       SortKey activeSortKey = minSortKey(nextHbiSystem, nextSwatchHost);
 
       // limit further operation to "active" records - those that should be processed in this
@@ -134,6 +150,7 @@ public class InventorySwatchDataCollator {
                 .filter(Objects::nonNull)
                 .findFirst();
         if (hypervisorUuid.isPresent() && !orgHostsData.hasHypervisorUuid(hypervisorUuid.get())) {
+          // ensure that a system's hypervisor data is active if the hypervisor exists in HBI
           orgHostsData = trackActiveHypervisor(hypervisorUuid.get(), activeSubmanIdIterator);
         }
       }
@@ -188,6 +205,13 @@ public class InventorySwatchDataCollator {
     return orgHostsData;
   }
 
+  /**
+   * Key that is equivalent to the attributes used in the DB queries' order clause, and implements
+   * comparison equivalent to postgres ordering
+   *
+   * @see org.candlepin.subscriptions.inventory.db.model.InventoryHost
+   * @see HostRepository#streamHbiHostsByOrgId(String)
+   */
   @Data
   @Builder
   public static class SortKey implements Comparable<SortKey> {
