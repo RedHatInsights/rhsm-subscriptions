@@ -18,35 +18,30 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db;
+package org.candlepin.subscriptions.tally.billing;
 
 import java.time.OffsetDateTime;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.Setter;
-import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
 
-/**
- * A filter used to find {@link org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity}
- * objects via the {@link BillableUsageRemittanceRepository}. Any filter value with a null value
- * will not be checked.
- */
-@Builder
+/** An exception that tracks a remittance sync alignment issue. */
 @Getter
-@Setter
-@EqualsAndHashCode
-public class BillableUsageRemittanceFilter {
-  private String productId;
-  private String account;
-  private String orgId;
-  private String usage;
-  private String sla;
-  private String metricId;
-  private String billingProvider;
-  private String billingAccountId;
-  private OffsetDateTime beginning;
-  private OffsetDateTime ending;
-  private String accumulationPeriod;
-  private Granularity granularity;
+public class RemittanceSyncAlignmentException extends RuntimeException {
+
+  private final Double result;
+  private final BillableUsageRemittanceEntity remittanceToSync;
+  private final OffsetDateTime dateOfLatestSnapshot;
+
+  public RemittanceSyncAlignmentException(
+      BillableUsageRemittanceEntity remittanceToSync,
+      Double result,
+      OffsetDateTime dateOfLatestSnapshot) {
+    super(
+        String.format(
+            "REMITTANCE SYNC: Remittance did not align after sync! EXPECTED: %s WAS: %s -- %s",
+            remittanceToSync.getRemittedPendingValue(), result, remittanceToSync));
+    this.result = result;
+    this.remittanceToSync = remittanceToSync;
+    this.dateOfLatestSnapshot = dateOfLatestSnapshot;
+  }
 }

@@ -63,6 +63,8 @@ public interface BillableUsageRemittanceRepository
       query.where(predicate);
       query.groupBy(
           key.get(BillableUsageRemittanceEntityPK_.ACCUMULATION_PERIOD),
+          key.get(BillableUsageRemittanceEntityPK_.SLA),
+          key.get(BillableUsageRemittanceEntityPK_.USAGE),
           root.get(BillableUsageRemittanceEntity_.ACCOUNT_NUMBER),
           key.get(BillableUsageRemittanceEntityPK_.BILLING_PROVIDER),
           key.get(BillableUsageRemittanceEntityPK_.BILLING_ACCOUNT_ID),
@@ -78,6 +80,8 @@ public interface BillableUsageRemittanceRepository
             root.get(BillableUsageRemittanceEntity_.ACCOUNT_NUMBER),
             key.get(BillableUsageRemittanceEntityPK_.PRODUCT_ID),
             key.get(BillableUsageRemittanceEntityPK_.ACCUMULATION_PERIOD),
+            key.get(BillableUsageRemittanceEntityPK_.SLA),
+            key.get(BillableUsageRemittanceEntityPK_.USAGE),
             criteriaBuilder.max(key.get(BillableUsageRemittanceEntityPK_.REMITTANCE_PENDING_DATE)),
             key.get(BillableUsageRemittanceEntityPK_.BILLING_PROVIDER),
             key.get(BillableUsageRemittanceEntityPK_.BILLING_ACCOUNT_ID),
@@ -133,6 +137,20 @@ public interface BillableUsageRemittanceRepository
     return (root, query, builder) -> {
       var path = root.get(BillableUsageRemittanceEntity_.key);
       return builder.equal(path.get(BillableUsageRemittanceEntityPK_.granularity), granularity);
+    };
+  }
+
+  static Specification<BillableUsageRemittanceEntity> matchingUsage(String usage) {
+    return (root, query, builder) -> {
+      var path = root.get(BillableUsageRemittanceEntity_.key);
+      return builder.equal(path.get(BillableUsageRemittanceEntityPK_.usage), usage);
+    };
+  }
+
+  static Specification<BillableUsageRemittanceEntity> matchingSla(String sla) {
+    return (root, query, builder) -> {
+      var path = root.get(BillableUsageRemittanceEntity_.key);
+      return builder.equal(path.get(BillableUsageRemittanceEntityPK_.sla), sla);
     };
   }
 
@@ -196,6 +214,12 @@ public interface BillableUsageRemittanceRepository
     }
     if (Objects.nonNull(filter.getGranularity())) {
       searchCriteria = searchCriteria.and(matchingGranularity(filter.getGranularity()));
+    }
+    if (Objects.nonNull(filter.getUsage())) {
+      searchCriteria = searchCriteria.and(matchingUsage(filter.getUsage()));
+    }
+    if (Objects.nonNull(filter.getSla())) {
+      searchCriteria = searchCriteria.and(matchingSla(filter.getSla()));
     }
     return searchCriteria;
   }

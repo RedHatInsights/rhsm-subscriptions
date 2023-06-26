@@ -36,7 +36,7 @@ import org.candlepin.subscriptions.json.BillableUsage;
 @Embeddable
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@Builder(toBuilder = true)
 public class BillableUsageRemittanceEntityPK implements Serializable {
 
   @Column(name = "org_id", nullable = false, length = 32)

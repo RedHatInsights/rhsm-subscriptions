@@ -102,6 +102,8 @@ public class BillableUsageController {
             .accumulationPeriod(key.getAccumulationPeriod())
             .metricId(key.getMetricId())
             .productId(key.getProductId())
+            .sla(key.getSla())
+            .usage(key.getUsage())
             .granularity(Granularity.HOURLY)
             .beginning(billableUsage.getSnapshotDate())
             .build();
@@ -118,6 +120,8 @@ public class BillableUsageController {
             .accumulationPeriod(key.getAccumulationPeriod())
             .metricId(key.getMetricId())
             .productId(key.getProductId())
+            .sla(key.getSla())
+            .usage(key.getUsage())
             .granularity(Granularity.HOURLY)
             .build();
     return billableUsageRemittanceRepository.getRemittanceSummaries(filter).stream()

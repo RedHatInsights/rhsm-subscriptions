@@ -345,6 +345,8 @@ class BillableUsageRemittanceRepositoryTest {
             .remittancePendingDate(remittance2.getKey().getRemittancePendingDate())
             .metricId(remittance1.getKey().getMetricId())
             .totalRemittedPendingValue(24.0)
+            .sla(remittance1.getKey().getSla())
+            .usage(remittance1.getKey().getUsage())
             .build();
 
     var expectedSummary2 =
@@ -359,6 +361,8 @@ class BillableUsageRemittanceRepositoryTest {
             .remittancePendingDate(remittance3.getKey().getRemittancePendingDate())
             .metricId(remittance3.getKey().getMetricId())
             .totalRemittedPendingValue(15.0)
+            .sla(remittance3.getKey().getSla())
+            .usage(remittance3.getKey().getUsage())
             .build();
 
     List<RemittanceSummaryProjection> results = repository.getRemittanceSummaries(filter1);

@@ -39,12 +39,14 @@ import org.candlepin.subscriptions.tally.admin.api.model.TallyResendData;
 import org.candlepin.subscriptions.tally.admin.api.model.TallyResponse;
 import org.candlepin.subscriptions.tally.admin.api.model.UuidList;
 import org.candlepin.subscriptions.tally.billing.RemittanceController;
+import org.candlepin.subscriptions.tally.billing.RemittanceSyncAlignmentException;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 /** This resource is for exposing administrator REST endpoints for Tally. */
@@ -118,8 +120,45 @@ public class InternalTallyResource implements InternalApi {
   }
 
   @Override
+  @Transactional
   public void syncRemittance() {
-    remittanceController.syncRemittance();
+    log.info("REMITTANCE SYNC: Starting");
+
+    remittanceController
+        .findSyncableRemittance()
+        .forEach(
+            remittance -> {
+              try {
+                // Sync the remittance record in a single transaction.
+                // NOTE: syncRemittance must be called here in order to
+                // allow spring boot to roll back single remittance sync
+                // on failure.
+                remittanceController.syncRemittance(remittance);
+              } catch (RemittanceSyncAlignmentException e) {
+                log.warn(e.getMessage());
+                // We let the exception bubble up this far so that the transaction is
+                // rolled back and any remittance records created by the single remittance
+                // sync are not persisted.
+
+                handleSyncAlignmentException(e);
+              } catch (Exception e) {
+                log.error(e.getMessage());
+              }
+            });
+    log.info("REMITTANCE SYNC: Complete");
+  }
+
+  private void handleSyncAlignmentException(RemittanceSyncAlignmentException rsae) {
+    log.debug(
+        "Converting existing monthly remittance to hourly - date={} remittance={}",
+        rsae.getDateOfLatestSnapshot(),
+        rsae.getRemittanceToSync());
+    try {
+      remittanceController.replaceMonthlyRemittance(
+          rsae.getRemittanceToSync(), rsae.getDateOfLatestSnapshot());
+    } catch (Exception ex) {
+      log.error("REMITTANCE SYNC: Failed to convert remittance.", ex);
+    }
   }
 
   @Override

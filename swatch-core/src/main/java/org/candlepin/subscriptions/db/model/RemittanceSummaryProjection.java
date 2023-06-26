@@ -36,6 +36,8 @@ public class RemittanceSummaryProjection {
   private String accountNumber;
   private String productId;
   private String accumulationPeriod;
+  private String sla;
+  private String usage;
   private OffsetDateTime remittancePendingDate;
   private String billingProvider;
   private String billingAccountId;
