@@ -25,6 +25,12 @@ import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import lombok.*;
 
+/**
+ * Variant is a mutually exclusive "edition" of a subscription, having the same "technical
+ * fingerprint". Only humans familiar with the use case can distinguish between variants.
+ * Operational model may also be a distinguishing attribute (e.g. hyperscaler - AWS, Azure, etc.).
+ * Variants all have the same billing model.
+ */
 @Data
 @Builder
 public class Variant {

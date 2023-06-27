@@ -23,6 +23,13 @@ package com.redhat.swatch.configuration.model;
 import java.util.List;
 import lombok.*;
 
+/**
+ * Technical fingerprint is an identifiable capabilities provided by software packages. "A typical
+ * sysadmin can easily distinguish between technical fingerprints (e.g. RHEL for Power vs. RHEL for
+ * x86) - e.g. cat /etc/redhat-release" Typical identifiers include: (1) Engineering IDs - product
+ * content IDs used to identify use of the subscription. (2) Architectures: used to identify a
+ * specific architecture w/ a given subscription.
+ */
 @Data
 @Builder
 public class Fingerprint {
