@@ -45,7 +45,7 @@ objects:
           - name: IQE_PARALLEL_WORKER_COUNT
             value: ${IQE_PARALLEL_WORKER_COUNT}
           - name: IQE_RP_ARGS
-            value: ""
+            value: "true"
           - name: IQE_IBUTSU_SOURCE
             value: "rhsm-stage"
           - name: DYNACONF_IQE_VAULT_LOADER_ENABLED
