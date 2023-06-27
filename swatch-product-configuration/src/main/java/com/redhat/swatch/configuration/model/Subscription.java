@@ -53,6 +53,7 @@ public class Subscription {
    * perspectives.
    */
   private List<String> includedSubscriptions;
+
   private Fingerprint fingerprint;
   private List<Variant> variants;
   private BillingWindow billingWindow;
