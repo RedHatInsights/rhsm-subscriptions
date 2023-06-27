@@ -11,7 +11,7 @@ variants:
   - tag: OpenShift Container Platform
 
 defaults:
-   variant: OpenShift Container Platform
+  variant: OpenShift Container Platform
 
 metrics:
   - id: SOCKETS

@@ -1,5 +1,5 @@
 ---
-platform: Satellite
+platform: RHEL
 
 id: Satellite Server
 

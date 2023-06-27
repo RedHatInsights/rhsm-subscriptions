@@ -1,5 +1,5 @@
 ---
-platform: Satellite
+platform: RHEL
 
 id: Satellite Capsule
 
@@ -11,7 +11,7 @@ variants:
   - tag: Satellite Capsule
 
 defaults:
-   variant: Satellite Capsule
+  variant: Satellite Capsule
 
 metrics:
   - id: SOCKETS
