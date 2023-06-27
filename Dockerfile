@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.15-1
+FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.15-1.1686736681
 
 COPY build/libs/* /deployments/
 COPY build/javaagent/* /opt/
