@@ -42,7 +42,12 @@ public class Subscription {
 
   @NotNull @NotEmpty private String id; // required
 
-  private List<String> requiredSubscriptions;
+  /**
+   * Enables capability to inherit billing model information from their parent subscription Unused
+   * prior to https://issues.redhat.com/browse/BIZ-629
+   */
+  private String parentSubscription;
+
   /**
    * defines an "in-the-box" subscription. Considered included from both usage and capacity
    * perspectives.
