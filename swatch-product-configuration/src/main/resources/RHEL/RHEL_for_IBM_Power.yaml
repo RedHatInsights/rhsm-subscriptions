@@ -18,7 +18,5 @@ variants:
 defaults:
   variant: RHEL for IBM Power
 
-billingWindow: MONTHLY
-
 metrics:
   - id: SOCKETS
