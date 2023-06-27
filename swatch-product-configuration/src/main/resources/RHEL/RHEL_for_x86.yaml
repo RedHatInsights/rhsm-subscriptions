@@ -20,17 +20,17 @@ variants:
     engineering_ids:
       - 69 # Red Hat Enterprise Linux Server
     roles:
-      - RHEL Server
+      - Red Hat Enterprise Linux Server
   - tag: RHEL Workstation
     engineering_ids:
       - 71 # Red Hat Enterprise Linux Workstation
     roles:
-      - RHEL Workstation
+      - Red Hat Enterprise Linux Workstation
   - tag: RHEL Compute Node
     engineering_ids:
       - 76 # Red Hat Enterprise Linux for Scientific Computing
     roles:
-      - RHEL Compute Node
+      - Red Hat Enterprise Linux Compute Node
 
 defaults:
   variant: RHEL Server
