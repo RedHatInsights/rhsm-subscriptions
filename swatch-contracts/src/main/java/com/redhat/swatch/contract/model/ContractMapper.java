@@ -47,7 +47,8 @@ import org.mapstruct.Named;
 @Mapper(
     componentModel = "cdi",
     collectionMappingStrategy = CollectionMappingStrategy.ADDER_PREFERRED,
-    builder = @Builder(disableBuilder = true))
+    builder = @Builder(disableBuilder = true),
+    uses = {ContractOfferingMapper.class})
 public interface ContractMapper {
 
   Contract contractEntityToDto(ContractEntity contract);
@@ -68,7 +69,7 @@ public interface ContractMapper {
   @Mapping(target = "accountNumber", ignore = true)
   @Mapping(target = "billingProviderId", ignore = true)
   @Mapping(target = "quantity", constant = "1L")
-  @Mapping(target = "hasUnlimitedUsage", constant = "false")
+  @Mapping(target = "offering", source = ".")
   @Mapping(target = "subscriptionProductIds", source = ".")
   @Mapping(target = "subscriptionMeasurements", source = "metrics")
   void mapContractEntityToSubscriptionEntity(

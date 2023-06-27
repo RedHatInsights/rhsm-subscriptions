@@ -22,6 +22,7 @@ package com.redhat.swatch.contract.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
@@ -37,6 +38,8 @@ import com.redhat.swatch.contract.openapi.model.*;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import com.redhat.swatch.contract.repository.ContractRepository;
+import com.redhat.swatch.contract.repository.OfferingEntity;
+import com.redhat.swatch.contract.repository.OfferingRepository;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import io.quarkus.test.junit.QuarkusTest;
@@ -46,6 +49,7 @@ import java.util.*;
 import javax.inject.Inject;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.mockito.ArgumentCaptor;
@@ -56,6 +60,7 @@ import org.mockito.Captor;
 class ContractServiceTest extends BaseUnitTest {
   @Inject ContractService contractService;
   @InjectMock ContractRepository contractRepository;
+  @InjectMock OfferingRepository offeringRepository;
   @InjectMock SubscriptionRepository subscriptionRepository;
 
   @InjectMock SubscriptionSyncService syncService;
@@ -67,6 +72,18 @@ class ContractServiceTest extends BaseUnitTest {
   Contract contractDto;
 
   @Captor ArgumentCaptor<ContractEntity> contractArgumentCaptor;
+
+  @BeforeEach
+  public void setup() {
+    when(offeringRepository.findById(anyString()))
+        .thenAnswer(
+            invocation -> {
+              Object[] args = invocation.getArguments();
+              var offering = new OfferingEntity();
+              offering.setSku((String) args[0]);
+              return offering;
+            });
+  }
 
   @BeforeAll
   public void setupTestData() {
