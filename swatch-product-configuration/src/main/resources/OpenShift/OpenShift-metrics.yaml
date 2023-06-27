@@ -1,0 +1,28 @@
+---
+platform: OpenShift
+
+id: OpenShift-metrics
+
+variants:
+  - tag: OpenShift-metrics
+    roles:
+      - ocp
+    product_names:
+      - OpenShift Container Platform
+
+defaults:
+  variant: OpenShift-metrics
+  sla: PREMIUM
+  usage: PRODUCTION
+
+billingWindow: MONTHLY
+
+metrics:
+  - id: redhat.com:openshift_container_platform:cpu_hour
+    rhm_metric_id: redhat.com:openshift_container_platform:cpu_hour
+    prometheus:
+      queryKey: default
+      queryParams:
+        product: ocp
+        metric: cluster:usage:workload:capacity_physical_cpu_hours
+        metadata_metric: subscription_labels

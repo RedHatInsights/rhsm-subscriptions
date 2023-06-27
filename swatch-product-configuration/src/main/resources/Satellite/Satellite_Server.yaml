@@ -1,0 +1,17 @@
+---
+platform: Satellite
+
+id: Satellite Server
+
+fingerprint:
+  engineering_ids:
+    - 250 # Red Hat Satellite
+
+variants:
+  - tag: Satellite Server
+
+defaults:
+  variant: Satellite Server
+
+metrics:
+  - id: SOCKETS
