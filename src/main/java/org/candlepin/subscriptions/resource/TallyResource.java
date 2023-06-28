@@ -172,15 +172,18 @@ public class TallyResource implements TallyApi {
             .equals(reportCriteria.getEnding().truncatedTo(ChronoUnit.SECONDS))
         && reportCriteria.getPageable() == null) {
       // gather monthly totals for the month
+      OffsetDateTime latestSnapshotDate = null;
+      var totalMonthlyValueRaw = 0.0;
+      for (var snapshot : snapshots) {
+        totalMonthlyValueRaw += extractRawValue(uom, category, snapshot);
+        latestSnapshotDate = snapshot.getSnapshotDate();
+      }
+      var totalMonthlyValue = (int) Math.ceil(totalMonthlyValueRaw);
       TallyReportDataPoint totalMonthly =
-          report.getData().stream()
-              .collect(
-                  () ->
-                      new TallyReportDataPoint()
-                          .value(0) // set value to avoid NPE
-                          .hasData(false), // indicate in API there is no data
-                  this::combineDataPointsForTotal,
-                  this::combineDataPointsForTotal);
+          new TallyReportDataPoint()
+              .hasData(!snapshots.isEmpty())
+              .value(totalMonthlyValue)
+              .date(latestSnapshotDate);
       report.getMeta().setTotalMonthly(totalMonthly);
     } else {
       log.warn(
@@ -202,20 +205,6 @@ public class TallyResource implements TallyApi {
     // Set the count last since the report may have gotten filled.
     report.getMeta().setCount(report.getData().size());
     return report;
-  }
-
-  private void combineDataPointsForTotal(
-      TallyReportDataPoint result, TallyReportDataPoint newDataPoint) {
-    if (!Boolean.TRUE.equals(newDataPoint.getHasData())) {
-      return;
-    }
-    if (newDataPoint
-        .getDate()
-        .isAfter(Optional.ofNullable(result.getDate()).orElse(OffsetDateTime.MIN))) {
-      result.setDate(newDataPoint.getDate());
-    }
-    result.setHasData(true);
-    result.setValue(result.getValue() + newDataPoint.getValue());
   }
 
   /** Validate and extract report criteria */
@@ -286,13 +275,17 @@ public class TallyResource implements TallyApi {
       Uom uom,
       ReportCategory category,
       org.candlepin.subscriptions.db.model.TallySnapshot snapshot) {
+    return (int) Math.ceil(extractRawValue(uom, category, snapshot));
+  }
+
+  private Double extractRawValue(
+      Uom uom,
+      ReportCategory category,
+      org.candlepin.subscriptions.db.model.TallySnapshot snapshot) {
     Set<HardwareMeasurementType> contributingTypes = getContributingTypes(category);
-    return (int)
-        Math.ceil(
-            contributingTypes.stream()
-                .mapToDouble(
-                    type -> Optional.ofNullable(snapshot.getMeasurement(type, uom)).orElse(0.0))
-                .sum());
+    return contributingTypes.stream()
+        .mapToDouble(type -> Optional.ofNullable(snapshot.getMeasurement(type, uom)).orElse(0.0))
+        .sum();
   }
 
   private Set<HardwareMeasurementType> getContributingTypes(ReportCategory category) {
