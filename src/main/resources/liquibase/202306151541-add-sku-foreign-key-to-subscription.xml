@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202306151541-01" author="awood">
+        <addForeignKeyConstraint constraintName="subscription_sku_fkey"
+            baseTableName="subscription" baseColumnNames="sku"
+            referencedTableName="offering" referencedColumnNames="sku"/>
+    </changeSet>
+    <changeSet id="202306151541-02" author="awood">
+        <comment>This column is present in the offering table</comment>
+        <dropColumn tableName="subscription" columnName="has_unlimited_usage"/>
+    </changeSet>
+</databaseChangeLog>
+    <!-- vim: set expandtab sts=4 sw=4 ai: -->

@@ -623,7 +623,7 @@ class SubscriptionTableControllerOnDemandTest {
           .billingProvider(sub.billingProvider)
           .startDate(sub.start)
           .endDate(sub.end)
-          .sku(sku)
+          .offering(toOffering())
           .build();
     }
 

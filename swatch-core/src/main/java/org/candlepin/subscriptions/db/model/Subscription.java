@@ -50,8 +50,9 @@ public class Subscription implements Serializable {
   @Column(name = "subscription_number")
   private String subscriptionNumber;
 
-  @Column(name = "sku")
-  private String sku;
+  @ManyToOne(fetch = FetchType.EAGER)
+  @JoinColumn(name = "sku")
+  private Offering offering;
 
   @Column(name = "org_id")
   private String orgId;
@@ -78,24 +79,23 @@ public class Subscription implements Serializable {
   @Column(name = "billing_provider")
   private BillingProvider billingProvider;
 
-  @OneToMany(mappedBy = "subscription", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+  @OneToMany(
+      mappedBy = "subscription",
+      fetch = FetchType.EAGER,
+      cascade = CascadeType.ALL,
+      orphanRemoval = true)
   @Builder.Default
   @ToString.Exclude
   private Set<SubscriptionProductId> subscriptionProductIds = new HashSet<>();
 
-  @OneToMany(mappedBy = "subscription", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+  @OneToMany(
+      mappedBy = "subscription",
+      fetch = FetchType.LAZY,
+      cascade = CascadeType.ALL,
+      orphanRemoval = true)
   @Builder.Default
   @ToString.Exclude // Excluded to prevent fetching a lazy-loaded collection
   private List<SubscriptionMeasurement> subscriptionMeasurements = new ArrayList<>();
-
-  // Lombok would name the getter "isHasUnlimitedGuestSockets"
-  @Getter(AccessLevel.NONE)
-  @Column(name = "has_unlimited_usage")
-  private Boolean hasUnlimitedUsage;
-
-  public Boolean getHasUnlimitedUsage() {
-    return hasUnlimitedUsage;
-  }
 
   @Override
   public boolean equals(Object o) {
@@ -113,7 +113,6 @@ public class Subscription implements Serializable {
 
     return Objects.equals(subscriptionId, sub.getSubscriptionId())
         && Objects.equals(subscriptionNumber, sub.getSubscriptionNumber())
-        && Objects.equals(sku, sub.getSku())
         && Objects.equals(orgId, sub.getOrgId())
         && Objects.equals(quantity, sub.getQuantity())
         && Objects.equals(startDate, sub.getStartDate())
@@ -122,18 +121,31 @@ public class Subscription implements Serializable {
         && Objects.equals(billingAccountId, sub.getBillingAccountId())
         && Objects.equals(accountNumber, sub.getAccountNumber())
         && Objects.equals(billingProvider, sub.getBillingProvider())
-        && Objects.equals(hasUnlimitedUsage, sub.getHasUnlimitedUsage())
         && Objects.equals(ourProductIds, otherProductIds);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(subscriptionId, startDate);
+    var ourProductIds =
+        subscriptionProductIds.stream().map(SubscriptionProductId::getProductId).toList();
+    return Objects.hash(
+        subscriptionId,
+        subscriptionNumber,
+        orgId,
+        quantity,
+        startDate,
+        endDate,
+        billingProviderId,
+        billingAccountId,
+        accountNumber,
+        billingProvider,
+        ourProductIds);
   }
 
   /** Composite ID class for Subscription entities. */
   @Getter
   @Setter
+  @ToString
   public static class SubscriptionCompoundId implements Serializable {
     private String subscriptionId;
     private OffsetDateTime startDate;

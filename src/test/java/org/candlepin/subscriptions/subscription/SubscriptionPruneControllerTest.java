@@ -31,6 +31,7 @@ import io.micrometer.core.instrument.Timer;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
@@ -81,8 +82,9 @@ class SubscriptionPruneControllerTest {
 
   @Test
   void testPruneDoesNothingIfSkuOnNonDenylist() {
+    Offering offering = Offering.builder().sku("allowed").build();
     Subscription allowedSub = new Subscription();
-    allowedSub.setSku("allowed");
+    allowedSub.setOffering(offering);
     when(subscriptionRepo.findByOrgId("up-to-date")).thenReturn(Stream.of(allowedSub));
     SubscriptionMeasurement allowedMeasurement = SubscriptionMeasurement.builder().build();
     allowedSub.addSubscriptionMeasurement(allowedMeasurement);
@@ -93,8 +95,9 @@ class SubscriptionPruneControllerTest {
 
   @Test
   void testPruneRemovesDelistedSubscription() {
+    Offering offering = Offering.builder().sku("denied").build();
     Subscription staleSub = new Subscription();
-    staleSub.setSku("denied");
+    staleSub.setOffering(offering);
     when(subscriptionRepo.findByOrgId("stale-sub")).thenReturn(Stream.of(staleSub));
     controller.pruneUnlistedSubscriptions("stale-sub");
     verify(subscriptionRepo).findByOrgId("stale-sub");

@@ -80,12 +80,13 @@ public class SubscriptionPruneController {
     // Associated subscription measurements and product IDs should be removed by cascade
     subscriptions.forEach(
         subscription -> {
-          if (productDenylist.productIdMatches(subscription.getSku())) {
+          var sku = subscription.getOffering().getSku();
+          if (productDenylist.productIdMatches(sku)) {
             log.info(
                 "Removing subscriptionId={} for orgId={} w/ sku={}",
                 subscription.getSubscriptionId(),
                 orgId,
-                subscription.getSku());
+                sku);
             subscriptionRepository.delete(subscription);
           }
         });
