@@ -1,0 +1,44 @@
+---
+platform: OpenShift
+
+id: basilisk
+
+variants:
+  - tag: basilisk
+    roles:
+      - BASILISK
+    product_names:
+      - BASILISK
+
+defaults:
+  variant: basilisk
+  sla: PREMIUM
+  usage: PRODUCTION
+
+billingWindow: MONTHLY
+
+metrics:
+  - id: redhat.com:BASILISK:transfer_gb
+    rhm_metric_id: redhat.com:BASILISK:transfer_gb
+    aws_dimension: transfer_gb
+    prometheus:
+      queryParams:
+        product: BASILISK
+        metric: kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes
+        metadata_metric: subscription_labels
+  - id: redhat.com:BASILISK:cluster_hour
+    rhm_metric_id: redhat.com:BASILISK:cluster_hour
+    aws_dimension: cluster_hour
+    prometheus:
+      queryParams:
+        product: BASILISK
+        metric: kafka_id:strimzi_resource_state:max_over_time1h
+        metadata_metric: subscription_labels
+  - id: redhat.com:BASILISK:storage_gib_months
+    rhm_metric_id: redhat.com:BASILISK:storage_gib_months
+    aws_dimension: storage_gb
+    prometheus:
+      queryParams:
+        product: BASILISK
+        metric: kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibyte_months
+        metadata_metric: subscription_labels

@@ -1,0 +1,17 @@
+---
+platform: RHEL
+
+id: Satellite Capsule
+
+fingerprint:
+  engineering_ids:
+    - 269 # Red Hat Satellite Capsule
+
+variants:
+  - tag: Satellite Capsule
+
+defaults:
+  variant: Satellite Capsule
+
+metrics:
+  - id: SOCKETS

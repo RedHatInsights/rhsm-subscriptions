@@ -1,0 +1,18 @@
+---
+platform: OpenShift
+
+id: OpenShift Container Platform
+
+fingerprint:
+  engineering_ids:
+    - 290  # Red Hat OpenShift Container Platform
+
+variants:
+  - tag: OpenShift Container Platform
+
+defaults:
+  variant: OpenShift Container Platform
+
+metrics:
+  - id: SOCKETS
+  - id: CORES

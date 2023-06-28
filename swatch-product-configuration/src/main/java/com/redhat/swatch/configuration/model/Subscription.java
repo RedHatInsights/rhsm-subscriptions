@@ -26,16 +26,34 @@ import javax.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Data;
 
+/**
+ * Subscription is an offering with one or more variants. Defines a specific metering model. Has a
+ * single technical fingerprint. Defines a set of metrics.
+ */
 @Data
 @Builder
 public class Subscription {
 
+  /**
+   * A family of solutions that is logically related, having one or more subscriptions distinguished
+   * by unique technical fingerprints (e.g. different arches)
+   */
   @NotNull @NotEmpty private String platform; // required
 
   @NotNull @NotEmpty private String id; // required
 
-  private List<String> requiredSubscriptions;
+  /**
+   * Enables capability to inherit billing model information from their parent subscription Unused
+   * prior to https://issues.redhat.com/browse/BIZ-629
+   */
+  private String parentSubscription;
+
+  /**
+   * defines an "in-the-box" subscription. Considered included from both usage and capacity
+   * perspectives.
+   */
   private List<String> includedSubscriptions;
+
   private Fingerprint fingerprint;
   private List<Variant> variants;
   private BillingWindow billingWindow;

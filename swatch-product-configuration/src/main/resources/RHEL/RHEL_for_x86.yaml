@@ -1,0 +1,39 @@
+---
+platform: RHEL
+
+id: RHEL for x86
+
+fingerprint:
+  engineering_ids:
+    - 479 # Red Hat Enterprise Linux for x86_64 (RHEL8)
+  arches:
+    - i386
+    - x86_64
+
+variants:
+  - tag: RHEL Desktop
+    engineering_ids:
+      - 68 # Red Hat Enterprise Linux Desktop
+    roles:
+      - RHEL Desktop
+  - tag: RHEL Server
+    engineering_ids:
+      - 69 # Red Hat Enterprise Linux Server
+    roles:
+      - Red Hat Enterprise Linux Server
+  - tag: RHEL Workstation
+    engineering_ids:
+      - 71 # Red Hat Enterprise Linux Workstation
+    roles:
+      - Red Hat Enterprise Linux Workstation
+  - tag: RHEL Compute Node
+    engineering_ids:
+      - 76 # Red Hat Enterprise Linux for Scientific Computing
+    roles:
+      - Red Hat Enterprise Linux Compute Node
+
+defaults:
+  variant: RHEL Server
+
+metrics:
+  - id: SOCKETS
