@@ -768,4 +768,5 @@ objects:
         and product_id = 'RHEL'
         and granularity='DAILY'
         and uom='SOCKETS'
-        and measurement_type!='TOTAL'; 
+        and measurement_type!='TOTAL'
+        AND snapshot_date > now() - interval '2 day'; 
