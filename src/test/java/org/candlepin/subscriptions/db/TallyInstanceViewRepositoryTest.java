@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.db;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -587,7 +589,98 @@ class TallyInstanceViewRepositoryTest {
                     host1.getInstanceId(), host2.getInstanceId(), host3.getInstanceId())));
   }
 
-  private Host createHost(String inventoryId, String account) {
+  @Test
+  @Transactional
+  void testFilterByMinCoresAndSockets() {
+    Host host1 = createBaseHost("i1", "a1");
+    host1.setBillingProvider(BillingProvider.RED_HAT);
+    addBucketToHost(
+        host1,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider.RED_HAT,
+        0,
+        4);
+    host1.setMeasurement(Uom.CORES, 4.0);
+    host1.setMeasurement(Uom.SOCKETS, 0.0);
+
+    Host host2 = createBaseHost("i2", "a1");
+    host2.setBillingProvider(BillingProvider.AWS);
+    addBucketToHost(
+        host2,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider.AWS,
+        2,
+        0);
+    host2.setMeasurement(Uom.SOCKETS, 2.0);
+    host2.setMeasurement(Uom.CORES, 0.0);
+
+    Host host3 = createBaseHost("i3", "a1");
+    addBucketToHost(
+        host3,
+        COOL_PROD,
+        ServiceLevel.PREMIUM,
+        Usage.PRODUCTION,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider.EMPTY,
+        2,
+        2);
+    host3.setMeasurement(Uom.CORES, 2.0);
+    host3.setMeasurement(Uom.SOCKETS, 2.0);
+
+    persistHosts(host1, host2, host3);
+
+    InstanceReportSort sort = InstanceReportSort.CORES;
+    String sortValue = InstancesResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
+    Pageable page = PageRequest.of(0, 10, Sort.by(sortValue));
+
+    Page<TallyInstanceView> coresResults =
+        repo.findAllBy(
+            "ORG_a1",
+            COOL_PROD,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            "",
+            1,
+            0,
+            null,
+            Uom.CORES,
+            null,
+            "_ANY",
+            null,
+            page);
+    assertEquals(2L, coresResults.getTotalElements());
+    List<String> coreResultsIds =
+        coresResults.stream().map(r -> r.getKey().getInstanceId()).collect(Collectors.toList());
+    assertTrue(coreResultsIds.containsAll(List.of(host1.getInstanceId(), host3.getInstanceId())));
+
+    Page<TallyInstanceView> socketsResults =
+        repo.findAllBy(
+            "ORG_a1",
+            COOL_PROD,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            "",
+            0,
+            1,
+            null,
+            Uom.SOCKETS,
+            null,
+            "_ANY",
+            null,
+            page);
+    assertEquals(2L, socketsResults.getTotalElements());
+    List<String> socketsResultIds =
+        socketsResults.stream().map(r -> r.getKey().getInstanceId()).collect(Collectors.toList());
+    assertThat(socketsResultIds, containsInAnyOrder(host2.getInstanceId(), host3.getInstanceId()));
+  }
+
+  private Host createBaseHost(String inventoryId, String account) {
     Host host =
         new Host(
             inventoryId,
@@ -598,6 +691,11 @@ class TallyInstanceViewRepositoryTest {
     host.setBillingAccountId("_ANY");
     host.setBillingProvider(BillingProvider._ANY);
     host.setInstanceId(UUID.randomUUID().toString());
+    return host;
+  }
+
+  private Host createHost(String inventoryId, String account) {
+    Host host = createBaseHost(inventoryId, account);
     host.setMeasurement(Uom.SOCKETS, 1.0);
     host.setMeasurement(Uom.CORES, 1.0);
     return host;
@@ -614,8 +712,7 @@ class TallyInstanceViewRepositoryTest {
       ServiceLevel sla,
       Usage usage,
       HardwareMeasurementType measurementType) {
-    return addBucketToHost(
-        host, productId, sla, usage, measurementType, BillingProvider._ANY, "_ANY");
+    return addBucketToHost(host, productId, sla, usage, measurementType, BillingProvider._ANY);
   }
 
   private HostTallyBucket addBucketToHost(
@@ -625,7 +722,7 @@ class TallyInstanceViewRepositoryTest {
       Usage usage,
       HardwareMeasurementType measurementType,
       BillingProvider billingProvider) {
-    return addBucketToHost(host, productId, sla, usage, measurementType, billingProvider, "_ANY");
+    return addBucketToHost(host, productId, sla, usage, measurementType, billingProvider, 4, 2);
   }
 
   private HostTallyBucket addBucketToHost(
@@ -635,8 +732,31 @@ class TallyInstanceViewRepositoryTest {
       Usage usage,
       HardwareMeasurementType measurementType,
       BillingProvider billingProvider,
-      String billingAccountId) {
+      int sockets,
+      int cores) {
+    return addBucketToHost(
+        host, productId, sla, usage, measurementType, billingProvider, "_ANY", sockets, cores);
+  }
+
+  private HostTallyBucket addBucketToHost(
+      Host host,
+      String productId,
+      ServiceLevel sla,
+      Usage usage,
+      HardwareMeasurementType measurementType,
+      BillingProvider billingProvider,
+      String billingAccountId,
+      int sockets,
+      int cores) {
     return host.addBucket(
-        productId, sla, usage, billingProvider, billingAccountId, true, 4, 2, measurementType);
+        productId,
+        sla,
+        usage,
+        billingProvider,
+        billingAccountId,
+        true,
+        sockets,
+        cores,
+        measurementType);
   }
 }

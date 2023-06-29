@@ -456,4 +456,134 @@ class InstancesResourceTest {
 
     assertEquals(1, response.getData().size());
   }
+
+  @Test
+  void testMinCoresOneWhenUomIsCores() {
+    BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
+
+    var tallyInstanceView = new TallyInstanceView();
+    tallyInstanceView.setKey(new TallyInstanceViewKey());
+    tallyInstanceView.setDisplayName("rhv.example.com");
+    tallyInstanceView.setNumOfGuests(3);
+    tallyInstanceView.setLastSeen(OffsetDateTime.now());
+    tallyInstanceView.getKey().setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
+    tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
+    tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
+    tallyInstanceView.getKey().setProductId("RHEL");
+    tallyInstanceView.getKey().setUom(Measurement.Uom.CORES);
+
+    Mockito.when(
+            repository.findAllBy(
+                eq("owner123456"),
+                any(),
+                any(),
+                any(),
+                any(),
+                anyInt(),
+                anyInt(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any()))
+        .thenReturn(new PageImpl<>(List.of(tallyInstanceView)));
+
+    resource.getInstancesByProduct(
+        RHEL,
+        null,
+        null,
+        ServiceLevelType.PREMIUM,
+        UsageType.PRODUCTION,
+        MetricId.CORES,
+        BillingProviderType.RED_HAT,
+        null,
+        null,
+        null,
+        OffsetDateTime.now(),
+        OffsetDateTime.now(),
+        InstanceReportSort.DISPLAY_NAME,
+        null);
+
+    verify(repository)
+        .findAllBy(
+            eq("owner123456"),
+            any(),
+            any(),
+            any(),
+            any(),
+            eq(1),
+            eq(0),
+            eq(null),
+            any(),
+            any(),
+            any(),
+            any(),
+            any());
+  }
+
+  @Test
+  void testMinSocketsOneWhenUomIsSockets() {
+    BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
+
+    var tallyInstanceView = new TallyInstanceView();
+    tallyInstanceView.setKey(new TallyInstanceViewKey());
+    tallyInstanceView.setDisplayName("rhv.example.com");
+    tallyInstanceView.setNumOfGuests(3);
+    tallyInstanceView.setLastSeen(OffsetDateTime.now());
+    tallyInstanceView.getKey().setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
+    tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
+    tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
+    tallyInstanceView.getKey().setProductId("RHEL");
+    tallyInstanceView.getKey().setUom(Measurement.Uom.SOCKETS);
+
+    Mockito.when(
+            repository.findAllBy(
+                eq("owner123456"),
+                any(),
+                any(),
+                any(),
+                any(),
+                anyInt(),
+                anyInt(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any()))
+        .thenReturn(new PageImpl<>(List.of(tallyInstanceView)));
+
+    resource.getInstancesByProduct(
+        RHEL,
+        null,
+        null,
+        ServiceLevelType.PREMIUM,
+        UsageType.PRODUCTION,
+        MetricId.SOCKETS,
+        BillingProviderType.RED_HAT,
+        null,
+        null,
+        null,
+        OffsetDateTime.now(),
+        OffsetDateTime.now(),
+        InstanceReportSort.DISPLAY_NAME,
+        null);
+
+    verify(repository)
+        .findAllBy(
+            eq("owner123456"),
+            any(),
+            any(),
+            any(),
+            any(),
+            eq(0),
+            eq(1),
+            eq(null),
+            any(),
+            any(),
+            any(),
+            any(),
+            any());
+  }
 }
