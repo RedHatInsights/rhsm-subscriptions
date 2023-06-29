@@ -40,6 +40,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -56,14 +57,19 @@ public interface SubscriptionRepository
   @Query(
       "SELECT s FROM Subscription s where s.endDate > CURRENT_TIMESTAMP "
           + "AND s.subscriptionId = :subscriptionId")
+  @EntityGraph(value = "Subscription.offering")
   Optional<Subscription> findActiveSubscription(@Param("subscriptionId") String subscriptionId);
 
+  @EntityGraph(value = "Subscription.offering")
   Optional<Subscription> findBySubscriptionNumber(String subscriptionNumber);
 
+  @EntityGraph(value = "Subscription.offering")
   Page<Subscription> findByOfferingSku(String sku, Pageable pageable);
 
+  @EntityGraph(value = "Subscription.offering")
   Stream<Subscription> findByOrgId(String orgId);
 
+  @EntityGraph(value = "Subscription.offering")
   List<Subscription> findByOrgIdAndEndDateAfter(String orgId, OffsetDateTime date);
 
   void deleteBySubscriptionId(String subscriptionId);

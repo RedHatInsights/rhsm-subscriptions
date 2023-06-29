@@ -41,6 +41,7 @@ import lombok.*;
 @NoArgsConstructor
 @IdClass(Subscription.SubscriptionCompoundId.class)
 @Table(name = "subscription")
+@NamedEntityGraph(name = "Subscription.offering", attributeNodes = @NamedAttributeNode("offering"))
 public class Subscription implements Serializable {
 
   @Id
@@ -79,20 +80,12 @@ public class Subscription implements Serializable {
   @Column(name = "billing_provider")
   private BillingProvider billingProvider;
 
-  @OneToMany(
-      mappedBy = "subscription",
-      fetch = FetchType.LAZY,
-      cascade = CascadeType.ALL,
-      orphanRemoval = true)
+  @OneToMany(mappedBy = "subscription", cascade = CascadeType.ALL, orphanRemoval = true)
   @Builder.Default
   @ToString.Exclude
   private Set<SubscriptionProductId> subscriptionProductIds = new HashSet<>();
 
-  @OneToMany(
-      mappedBy = "subscription",
-      fetch = FetchType.LAZY,
-      cascade = CascadeType.ALL,
-      orphanRemoval = true)
+  @OneToMany(mappedBy = "subscription", cascade = CascadeType.ALL, orphanRemoval = true)
   @Builder.Default
   @ToString.Exclude // Excluded to prevent fetching a lazy-loaded collection
   private List<SubscriptionMeasurement> subscriptionMeasurements = new ArrayList<>();
@@ -106,11 +99,6 @@ public class Subscription implements Serializable {
       return false;
     }
 
-    var ourProductIds =
-        subscriptionProductIds.stream().map(SubscriptionProductId::getProductId).toList();
-    var otherProductIds =
-        sub.getSubscriptionProductIds().stream().map(SubscriptionProductId::getProductId).toList();
-
     return Objects.equals(subscriptionId, sub.getSubscriptionId())
         && Objects.equals(subscriptionNumber, sub.getSubscriptionNumber())
         && Objects.equals(orgId, sub.getOrgId())
@@ -120,14 +108,11 @@ public class Subscription implements Serializable {
         && Objects.equals(billingProviderId, sub.getBillingProviderId())
         && Objects.equals(billingAccountId, sub.getBillingAccountId())
         && Objects.equals(accountNumber, sub.getAccountNumber())
-        && Objects.equals(billingProvider, sub.getBillingProvider())
-        && Objects.equals(ourProductIds, otherProductIds);
+        && Objects.equals(billingProvider, sub.getBillingProvider());
   }
 
   @Override
   public int hashCode() {
-    var ourProductIds =
-        subscriptionProductIds.stream().map(SubscriptionProductId::getProductId).toList();
     return Objects.hash(
         subscriptionId,
         subscriptionNumber,
@@ -138,8 +123,7 @@ public class Subscription implements Serializable {
         billingProviderId,
         billingAccountId,
         accountNumber,
-        billingProvider,
-        ourProductIds);
+        billingProvider);
   }
 
   /** Composite ID class for Subscription entities. */

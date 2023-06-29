@@ -93,7 +93,6 @@ public class CapacityReconciliationController {
 
     reconcileSubscriptionCapacities(subscription);
     reconcileSubscriptionProductIds(subscription);
-    subscriptionRepository.save(subscription);
   }
 
   @Transactional
