@@ -136,7 +136,7 @@ class SubscriptionSyncControllerTest {
     var dto = createDto("456", 10);
     subscriptionSyncController.syncSubscription(dto);
     verify(subscriptionRepository, Mockito.times(2)).save(Mockito.any(Subscription.class));
-    verify(capacityReconciliationController)
+    verify(capacityReconciliationController, Mockito.times(2))
         .reconcileCapacityForSubscription(Mockito.any(Subscription.class));
   }
 
