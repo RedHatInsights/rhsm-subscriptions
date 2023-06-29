@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.FixedClockConfiguration;
@@ -533,6 +534,7 @@ class RemittanceControllerTest {
                 .usage(snapshot.getUsage().getValue())
                 .remittancePendingDate(snapshot.getSnapshotDate())
                 .granularity(Granularity.HOURLY)
+                .snapshotId(snapshot.getId().toString())
                 .build())
         // NOTE: We are mocking the repository's sum call, so this value doesn't have to match the
         // snapshot.
@@ -583,6 +585,7 @@ class RemittanceControllerTest {
         .usage(usage)
         .billingProvider(billingProvider)
         .billingAccountId("billing-account")
+        .id(UUID.randomUUID())
         .build();
   }
 

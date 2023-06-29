@@ -195,6 +195,7 @@ class InternalBillingControllerTest {
     BillableUsageRemittanceEntityPK key =
         BillableUsageRemittanceEntityPK.builder()
             .usage(BillableUsage.Usage.PRODUCTION.value())
+            .snapshotId("testSnapshotId")
             .orgId(orgId)
             .billingProvider(billingProvider.value())
             .billingAccountId(String.format("%s_%s_ba", orgId, productId))

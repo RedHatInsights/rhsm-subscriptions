@@ -138,6 +138,7 @@ class BillableUsageRemittanceRepositoryTest {
             .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(remittanceDate))
             .remittancePendingDate(remittanceDate)
             .granularity(Granularity.HOURLY)
+            .snapshotId("snapshotIdTest")
             .build();
     return BillableUsageRemittanceEntity.builder().key(key).remittedPendingValue(value).build();
   }

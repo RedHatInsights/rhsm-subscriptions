@@ -108,5 +108,6 @@
     <include file="liquibase/202305031403-create-subscription-measurements-table.xml"/>
     <!-- Uncomment once subscription-measurements has been verified -->
     <!-- <include file="liquibase/202305251412-drop-subscription-capacity-table.xml"/> -->
+    <include file="liquibase/202306290950-add-snapshot-id-to-billable_usage_remittance.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

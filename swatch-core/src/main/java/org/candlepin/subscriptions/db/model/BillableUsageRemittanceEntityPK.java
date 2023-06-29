@@ -39,6 +39,9 @@ import org.candlepin.subscriptions.json.BillableUsage;
 @Builder(toBuilder = true)
 public class BillableUsageRemittanceEntityPK implements Serializable {
 
+  @Column(name = "snapshot_id", nullable = false, length = 36)
+  private String snapshotId;
+
   @Column(name = "org_id", nullable = false, length = 32)
   private String orgId;
 
@@ -72,7 +75,12 @@ public class BillableUsageRemittanceEntityPK implements Serializable {
 
   public static BillableUsageRemittanceEntityPK keyFrom(
       BillableUsage billableUsage, Granularity granularity) {
+    var snapshotId = billableUsage.getId().toString();
+    if (granularity != Granularity.HOURLY) {
+      snapshotId = "NOT_APPLICABLE";
+    }
     return BillableUsageRemittanceEntityPK.builder()
+        .snapshotId(snapshotId)
         .usage(billableUsage.getUsage().value())
         .orgId(billableUsage.getOrgId())
         .billingProvider(billableUsage.getBillingProvider().value())

@@ -553,8 +553,13 @@ class BillableUsageControllerTest {
   }
 
   private BillableUsageRemittanceEntityPK keyFrom(
-      BillableUsage billableUsage, OffsetDateTime remittedDate) {
+      BillableUsage billableUsage, OffsetDateTime remittedDate, Granularity granularity) {
+    var snapshotId = billableUsage.getId().toString();
+    if (granularity != Granularity.HOURLY) {
+      snapshotId = "NOT_APPLICABLE";
+    }
     return BillableUsageRemittanceEntityPK.builder()
+        .snapshotId(snapshotId)
         .usage(billableUsage.getUsage().value())
         .orgId(billableUsage.getOrgId())
         .billingProvider(billableUsage.getBillingProvider().value())
@@ -564,7 +569,7 @@ class BillableUsageControllerTest {
         .metricId(billableUsage.getUom().value())
         .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(billableUsage.getSnapshotDate()))
         .remittancePendingDate(remittedDate)
-        .granularity(Granularity.HOURLY)
+        .granularity(granularity)
         .build();
   }
 
@@ -588,13 +593,18 @@ class BillableUsageControllerTest {
   }
 
   private BillableUsageRemittanceEntity remittance(
-      BillableUsage usage, OffsetDateTime remittedDate, Double value) {
-    BillableUsageRemittanceEntityPK remKey = keyFrom(usage, remittedDate);
+      BillableUsage usage, OffsetDateTime remittedDate, Double value, Granularity granularity) {
+    BillableUsageRemittanceEntityPK remKey = keyFrom(usage, remittedDate, granularity);
     return BillableUsageRemittanceEntity.builder()
         .key(remKey)
         .remittedPendingValue(value)
         .accountNumber(usage.getAccountNumber())
         .build();
+  }
+
+  private BillableUsageRemittanceEntity remittance(
+      BillableUsage usage, OffsetDateTime remittedDate, Double value) {
+    return remittance(usage, remittedDate, value, Granularity.HOURLY);
   }
 
   private void performRemittanceTesting(
@@ -652,8 +662,8 @@ class BillableUsageControllerTest {
         remittance(usage, usage.getSnapshotDate(), expectedRemitted);
 
     BillableUsageRemittanceEntity expectedDailyRemittance =
-        remittance(usage, CLOCK.startOfDay(usage.getSnapshotDate()), expectedRemitted);
-    expectedDailyRemittance.getKey().setGranularity(Granularity.DAILY);
+        remittance(
+            usage, CLOCK.startOfDay(usage.getSnapshotDate()), expectedRemitted, Granularity.DAILY);
 
     ArgumentCaptor<BillableUsageRemittanceEntity> remitted =
         ArgumentCaptor.forClass(BillableUsageRemittanceEntity.class);
@@ -725,8 +735,7 @@ class BillableUsageControllerTest {
     BillableUsageRemittanceEntity expectedRemittance =
         remittance(usage, usage.getSnapshotDate(), 2.0);
     BillableUsageRemittanceEntity expectedDailyRemittance =
-        remittance(usage, CLOCK.startOfDay(usage.getSnapshotDate()), 2.0);
-    expectedDailyRemittance.getKey().setGranularity(Granularity.DAILY);
+        remittance(usage, CLOCK.startOfDay(usage.getSnapshotDate()), 2.0, Granularity.DAILY);
     BillableUsage expectedUsage = billable(usage.getSnapshotDate(), 2.0);
     expectedUsage.setId(usage.getId()); // Id will be regenerated above.
     ArgumentCaptor<BillableUsageRemittanceEntity> remitted =
@@ -747,8 +756,7 @@ class BillableUsageControllerTest {
     when(remittanceRepo.getRemittanceSummaries(any())).thenReturn(summaries);
 
     BillableUsageRemittanceEntity currentDailyRemittance =
-        remittance(usage, CLOCK.startOfDay(usage.getSnapshotDate()), 1.0);
-    currentDailyRemittance.getKey().setGranularity(Granularity.DAILY);
+        remittance(usage, CLOCK.startOfDay(usage.getSnapshotDate()), 1.0, Granularity.DAILY);
 
     when(remittanceRepo.findById(currentDailyRemittance.getKey()))
         .thenReturn(Optional.of(currentDailyRemittance));
@@ -759,8 +767,7 @@ class BillableUsageControllerTest {
     BillableUsageRemittanceEntity expectedRemittance =
         remittance(usage, usage.getSnapshotDate(), 7.0);
     BillableUsageRemittanceEntity expectedDailyRemittance =
-        remittance(usage, CLOCK.startOfDay(usage.getSnapshotDate()), 8.0);
-    expectedDailyRemittance.getKey().setGranularity(Granularity.DAILY);
+        remittance(usage, CLOCK.startOfDay(usage.getSnapshotDate()), 8.0, Granularity.DAILY);
     BillableUsage expectedUsage = billable(usage.getSnapshotDate(), 7.0);
     expectedUsage.setId(usage.getId()); // Id will be regenerated above.
     ArgumentCaptor<BillableUsageRemittanceEntity> remitted =
