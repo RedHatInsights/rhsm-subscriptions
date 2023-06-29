@@ -108,5 +108,6 @@
     <!-- Uncomment once subscription-measurements has been verified -->
     <!-- <include file="liquibase/202305251412-drop-subscription-capacity-table.xml"/> -->
     <include file="liquibase/202306151541-add-sku-foreign-key-to-subscription.xml"/>
+    <include file="liquibase/202306291611-add-extra-index-for-product-ids.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

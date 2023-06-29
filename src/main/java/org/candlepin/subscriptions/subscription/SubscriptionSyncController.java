@@ -214,6 +214,7 @@ public class SubscriptionSyncController {
       if (existingSubscription.quantityHasChanged(newOrUpdated.getQuantity())) {
         existingSubscription.endSubscription();
         subscriptionRepository.save(existingSubscription);
+        capacityReconciliationController.reconcileCapacityForSubscription(existingSubscription);
         final org.candlepin.subscriptions.db.model.Subscription newSub =
             org.candlepin.subscriptions.db.model.Subscription.builder()
                 .subscriptionId(existingSubscription.getSubscriptionId())
@@ -229,11 +230,12 @@ public class SubscriptionSyncController {
                 .billingProvider(newOrUpdated.getBillingProvider())
                 .build();
         subscriptionRepository.save(newSub);
+        capacityReconciliationController.reconcileCapacityForSubscription(newSub);
       } else {
         updateSubscription(newOrUpdated, existingSubscription);
         subscriptionRepository.save(existingSubscription);
+        capacityReconciliationController.reconcileCapacityForSubscription(existingSubscription);
       }
-      capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
     } else {
       subscriptionRepository.save(newOrUpdated);
       capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
