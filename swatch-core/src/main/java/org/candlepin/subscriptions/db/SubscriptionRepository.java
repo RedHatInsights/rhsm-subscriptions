@@ -75,9 +75,16 @@ public interface SubscriptionRepository
      * specification method we call returns null (which it won't in this case, but it's good
      * practice to handle it. */
     Specification<Subscription> searchCriteria =
-        Specification.where(
-            subscriptionIsActiveBetween(
-                dbReportCriteria.getBeginning(), dbReportCriteria.getEnding()));
+        (root, query, builder) -> {
+          // fetchJoin offering always, to eliminate n+1 on offering
+          fetchJoin(root, Subscription_.offering, OFFERING_ALIAS);
+          return builder.conjunction();
+        };
+    searchCriteria =
+        searchCriteria.and(
+            Specification.where(
+                subscriptionIsActiveBetween(
+                    dbReportCriteria.getBeginning(), dbReportCriteria.getEnding())));
     if (Objects.nonNull(dbReportCriteria.getOrgId())) {
       searchCriteria = searchCriteria.and(orgIdEquals(dbReportCriteria.getOrgId()));
     } else {
@@ -128,7 +135,7 @@ public interface SubscriptionRepository
 
   private static Specification<Subscription> hasUnlimitedUsage() {
     return (root, query, builder) -> {
-      var offeringRoot = root.join(Subscription_.offering);
+      var offeringRoot = fetchJoin(root, Subscription_.offering, OFFERING_ALIAS);
       return builder.equal(offeringRoot.get(Offering_.hasUnlimitedUsage), true);
     };
   }
@@ -142,7 +149,7 @@ public interface SubscriptionRepository
 
   private static Specification<Subscription> productNameIn(Set<String> productNames) {
     return (root, query, builder) -> {
-      var offeringRoot = root.join(Subscription_.offering);
+      var offeringRoot = fetchJoin(root, Subscription_.offering, OFFERING_ALIAS);
       return offeringRoot.get(Offering_.productName).in(productNames);
     };
   }

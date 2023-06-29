@@ -81,7 +81,7 @@ public class Subscription implements Serializable {
 
   @OneToMany(
       mappedBy = "subscription",
-      fetch = FetchType.EAGER,
+      fetch = FetchType.LAZY,
       cascade = CascadeType.ALL,
       orphanRemoval = true)
   @Builder.Default
