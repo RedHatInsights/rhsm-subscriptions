@@ -33,7 +33,6 @@ dependencyManagement {
         dependency libraries["resteasy-multipart-provider"]
         dependency libraries["resteasy-validator-provider"]
         dependency libraries["resteasy-jackson2-provider"]
-        dependency libraries["hawtio-springboot"]
         dependency libraries["guava"]
         dependency libraries["splunk-library-javalogging"]
         dependency libraries["janino"]

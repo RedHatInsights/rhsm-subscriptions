@@ -31,7 +31,6 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
-import org.candlepin.subscriptions.jmx.JmxBeansConfiguration;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.product.ProductConfiguration;
 import org.candlepin.subscriptions.registry.TagProfile;
@@ -65,7 +64,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 /**
  * Configuration for the "worker" profile.
  *
- * <p>This profile acts as a worker node for Tally snapshot creation, as well as serving admin JMX
+ * <p>This profile acts as a worker node for Tally snapshot creation, as well as serving internal
  * APIs.
  */
 @EnableRetry
@@ -77,14 +76,12 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
   TaskConsumerConfiguration.class,
   BillingProducerConfiguration.class,
   InventoryDataSourceConfiguration.class,
-  ProductConfiguration.class,
-  JmxBeansConfiguration.class
+  ProductConfiguration.class
 })
 @ComponentScan(
     basePackages = {
       "org.candlepin.subscriptions.event",
       "org.candlepin.subscriptions.inventory.db",
-      "org.candlepin.subscriptions.jmx",
       "org.candlepin.subscriptions.tally",
       "org.candlepin.subscriptions.retention"
     })

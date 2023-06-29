@@ -1,4 +1,2 @@
 org.springframework.boot.env.EnvironmentPostProcessor=\
   org.candlepin.subscriptions.clowder.ClowderJsonEnvironmentPostProcessor
-org.springframework.boot.actuate.autoconfigure.web.ManagementContextConfiguration=\
-  org.candlepin.subscriptions.util.HawtioConfiguration

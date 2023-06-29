@@ -9,8 +9,6 @@ parameters:
     value: ''
   - name: TOLERATE_MISSING_ACCOUNT_NUMBER
     value: 'false'
-  - name: CONDUIT_HAWTIO_BASE_PATH
-    value: /app/rhsm-conduit/hawtio
   - name: LOGGING_LEVEL_ROOT
     value: WARN
   - name: LOGGING_LEVEL
@@ -205,11 +203,6 @@ objects:
               value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
             - name: SPRING_PROFILES_ACTIVE
               value: kafka-queue
-            # turn off built-in jolokia, so that the spring boot jolokia actuator will work
-            - name: AB_JOLOKIA_OFF
-              value: 'true'
-            - name: HAWTIO_BASE_PATH
-              value: ${CONDUIT_HAWTIO_BASE_PATH}
             - name: LOG_FILE
               value: /logs/server.log
             - name: JAVA_MAX_MEM_RATIO

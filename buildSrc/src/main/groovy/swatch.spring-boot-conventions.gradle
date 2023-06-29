@@ -22,8 +22,6 @@ dependencies {
     implementation "org.springframework.retry:spring-retry"
     implementation "org.springframework:spring-context-support"
     implementation "io.micrometer:micrometer-registry-prometheus"
-    implementation "io.hawt:hawtio-springboot"
-    runtimeOnly "org.jolokia:jolokia-core"
     runtimeOnly("org.jboss.resteasy:resteasy-validator-provider") {
         exclude group: "org.hibernate" // exclude older hibernate validator
     }

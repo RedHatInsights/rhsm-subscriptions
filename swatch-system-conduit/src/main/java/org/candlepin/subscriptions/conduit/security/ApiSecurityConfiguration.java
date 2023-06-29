@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import javax.servlet.http.HttpServletRequest;
 import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
+import org.candlepin.subscriptions.security.AntiCsrfFilter;
 import org.candlepin.subscriptions.security.AuthProperties;
 import org.candlepin.subscriptions.security.IdentityHeaderAuthenticationDetailsService;
 import org.candlepin.subscriptions.security.IdentityHeaderAuthenticationFailureHandler;
@@ -50,6 +51,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.csrf.CsrfFilter;
 
 /**
  * Configuration class for Spring Security.
@@ -89,6 +91,17 @@ public class ApiSecurityConfiguration {
       new String[] {
         "/**/*openapi.yaml", "/**/*openapi.json", "/**/version", "/api-docs/**", "/webjars/**"
       };
+
+  // NOTE: intentionally *not* annotated with @Bean; @Bean causes an extra use as an application
+  // filter
+  public AntiCsrfFilter antiCsrfFilter(SecurityProperties appProps) {
+    return new AntiCsrfFilter(appProps);
+  }
+
+  @Bean
+  AuthProperties authProperties() {
+    return new AuthProperties();
+  }
 
   // NOTE: intentionally not annotated w/ @Bean; @Bean causes an extra use as an application filter
   public IdentityHeaderAuthenticationFilter identityHeaderAuthenticationFilter(
@@ -184,6 +197,7 @@ public class ApiSecurityConfiguration {
   @Bean
   public SecurityFilterChain conduitFilterChain(
       HttpSecurity http,
+      SecurityProperties secProps,
       AuthenticationManager authenticationManager,
       AccessDeniedHandler restAccessDeniedHandler,
       AuthenticationEntryPoint restAuthenticationEntryPoint,
@@ -192,6 +206,7 @@ public class ApiSecurityConfiguration {
     http.addFilter(identityHeaderAuthenticationFilter(authenticationManager, mapper))
         .addFilterAfter(mdcFilter(), IdentityHeaderAuthenticationFilter.class)
         .addFilterAfter(logPrincipalFilter(), MdcFilter.class)
+        .addFilterAt(antiCsrfFilter(secProps), CsrfFilter.class)
         .csrf(csrf -> csrf.disable())
         .exceptionHandling(
             handler -> {
@@ -207,7 +222,7 @@ public class ApiSecurityConfiguration {
               requests.requestMatchers(this::isDummyRequest).permitAll();
 
               requests
-                  .requestMatchers(EndpointRequest.to("health", "info", "prometheus", "hawtio"))
+                  .requestMatchers(EndpointRequest.to("health", "info", "prometheus"))
                   .permitAll();
               /* Values assigned to management.path-mapping.* shouldn't have a leading slash. However, Clowder
                * only provides a path starting with a leading slash.  I have elected to set the default

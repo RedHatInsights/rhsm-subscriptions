@@ -3,9 +3,7 @@ TALLY_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscrip
 BILLABLE_USAGE_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.billable-usage')].name:platform.rhsm-subscriptions.billable-usage}
 
 rhsm-subscriptions:
-  jmx:
-    tallyBean:
-      hourlyTallyDurationLimitDays: 90d
+  hourlyTallyDurationLimitDays: 90d
   inventory-service:
     datasource:
       url: jdbc:postgresql://${INVENTORY_DATABASE_HOST:localhost}/${INVENTORY_DATABASE_DATABASE:insights}

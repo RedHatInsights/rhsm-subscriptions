@@ -21,11 +21,15 @@
 package org.candlepin.subscriptions;
 
 import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import lombok.Getter;
 import lombok.Setter;
 import org.candlepin.subscriptions.jobs.JobProperties;
 import org.candlepin.subscriptions.subscription.SubscriptionServiceProperties;
+import org.candlepin.subscriptions.tally.admin.InternalTallyResource;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.convert.DurationUnit;
 
 /**
  * POJO to hold property values via Spring's "Type-Safe Configuration Properties" pattern
@@ -133,4 +137,20 @@ public class ApplicationProperties {
    * values flush less often, but consume more memory.
    */
   private Long hbiReconciliationFlushInterval;
+
+  /**
+   * Since the two parameters sent to {@link InternalTallyResource#performHourlyTallyForOrg(String,
+   * OffsetDateTime, OffsetDateTime, Boolean)} are actually ISO 8601 timestamps we are using a
+   * Duration rather than a Period since Duration captures time and not just dates. However, the
+   * default ChronoUnit we're using is days since that's what the range is meant to be on the order
+   * of. If the value is specified in hours (which Spring will allow: e.g. 2160h) the behavior will
+   * be strict: e.g. Daylight Saving Time will not affect it.
+   *
+   * <p>From the docs: "Durations and periods differ in their treatment of daylight savings time
+   * when added to ZonedDateTime. A Duration will add an exact number of seconds, thus a duration of
+   * one day is always exactly 24 hours. By contrast, a Period will add a conceptual day, trying to
+   * maintain the local time."
+   */
+  @DurationUnit(ChronoUnit.DAYS)
+  private Duration hourlyTallyDurationLimitDays;
 }

@@ -52,37 +52,36 @@ def parse_csv(csv_path):
 
 
 def post_events(url, events, dry_run=False):
-    payload = {
-        'type': 'exec',
-        'mbean': 'org.candlepin.subscriptions.jmx:name=eventJmxBean,type=EventJmxBean',
-        'operation': 'saveEvents(java.lang.String)',
-        'arguments': [jsonpickle.encode(events, unpicklable=False)]
-    }
+    payload = jsonpickle.encode(events, unpicklable=False)
 
     if dry_run:
         print("Dry run! No request will be made!")
         return jsonpickle.encode(payload, unpicklable=False)
     else:
-        return requests.post(url, data=jsonpickle.encode(payload, unpicklable=False))
+        return requests.post(url, data=payload, headers={
+            'x-rh-swatch-psk': 'placeholder',
+            'Origin': 'console.redhat.com',
+            'Content-Type': 'application/json',
+        })
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="""Insert Events from CSV over JMX.
+    parser = argparse.ArgumentParser(description="""Insert Events from CSV over internal API.
         The CSV must have a header containing the following rows:
         event_type, account, org_id, instance, timestamp, expiration, role, sla, uom, value, service_type
     """)
-    parser.add_argument('--host', default='localhost', help='Jolokia host')
-    parser.add_argument('--port', default='9000', help='Jolokia port')
+    parser.add_argument('--host', default='localhost', help='Event endpoint host')
+    parser.add_argument('--port', default='8000', help='Event endpoint port')
     parser.add_argument('--file', help='Path to CSV file', required=True)
     parser.add_argument('--dry-run', action='store_true', help="Only collect the events from the file and do not send.")
 
     args = parser.parse_args()
-    jolokia_url = "http://{host}:{port}/hawtio/jolokia/".format(host = args.host, port = args.port)
-    resp = import_events(jolokia_url, args.file, args.dry_run)
+    events_url = "http://{host}:{port}/api/rhsm-subscriptions/v1/internal/rpc/tally/events".format(host = args.host, port = args.port)
+    resp = import_events(events_url, args.file, args.dry_run)
     if hasattr(resp, 'status_code') and resp.status_code == 200:
         resp_data = jsonpickle.decode(resp.text)
-        if 'error' in resp_data:
-            print("Error creating events! {error}".format(error=resp_data['error']))
+        if 'error' in resp_data or 'not currently enabled' in str(resp_data):
+            print("Error creating events! {error}".format(error=resp_data['detail']))
         else:
             print("Successfully created events.")
     else:

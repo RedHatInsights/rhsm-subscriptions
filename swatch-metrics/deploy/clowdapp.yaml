@@ -47,8 +47,6 @@ parameters:
     value: '1000'
   - name: SPLUNK_HEC_TERMINATION_TIMEOUT
     value: '2000'
-  - name: METRICS_WORKER_HAWTIO_BASE_PATH
-    value: /app/rhsm-metrics/hawtio
   - name: SERVER_MAX_HTTP_HEADER_SIZE
     value: '48000'
   - name: LOGGING_LEVEL_ROOT
@@ -211,13 +209,8 @@ objects:
                 value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
               - name: SPRING_PROFILES_ACTIVE
                 value: openshift-metering-worker,kafka-queue
-              # turn off built-in jolokia, so that the spring boot jolokia actuator will work
-              - name: AB_JOLOKIA_OFF
-                value: 'true'
               - name: SERVER_MAX_HTTP_HEADER_SIZE
                 value: ${SERVER_MAX_HTTP_HEADER_SIZE}
-              - name: HAWTIO_BASE_PATH
-                value: ${METRICS_WORKER_HAWTIO_BASE_PATH}
               - name: LOG_FILE
                 value: /logs/server.log
               - name: JAVA_MAX_MEM_RATIO

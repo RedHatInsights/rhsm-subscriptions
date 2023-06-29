@@ -34,7 +34,7 @@ public class CaptureMetricsSnapshotTask implements Task {
   private final TallySnapshotController snapshotController;
   private final DateRange dateRange;
 
-  @ParameterDuration("@jmxProperties.tallyBean.hourlyTallyDurationLimitDays")
+  @ParameterDuration("@applicationProperties.hourlyTallyDurationLimitDays")
   public CaptureMetricsSnapshotTask(
       TallySnapshotController snapshotController,
       String orgId,
