@@ -506,8 +506,19 @@ class BillableUsageControllerTest {
     List<RemittanceSummaryProjection> summaries = new ArrayList<>();
     summaries.add(RemittanceSummaryProjection.builder().totalRemittedPendingValue(20.0).build());
 
+    BillableUsageRemittanceEntity currentRemittance =
+        remittance(usage, usage.getSnapshotDate(), 20.0);
+
+    BillableUsageRemittanceEntity currentDailyRemittance =
+        remittance(usage, usage.getSnapshotDate(), 20.0);
+    currentDailyRemittance.getKey().setGranularity(Granularity.DAILY);
+
     when(remittanceRepo.getRemittanceSummaries(any())).thenReturn(summaries);
     when(remittanceRepo.existsBy(any())).thenReturn(true);
+    when(remittanceRepo.findById(currentDailyRemittance.getKey()))
+        .thenReturn(Optional.of(currentDailyRemittance));
+    when(remittanceRepo.findById(currentRemittance.getKey()))
+        .thenReturn(Optional.of(currentRemittance));
 
     TallyMeasurementKey measurementKey =
         new TallyMeasurementKey(
@@ -529,10 +540,17 @@ class BillableUsageControllerTest {
     controller.submitBillableUsage(BillingWindow.MONTHLY, usage);
 
     BillableUsageRemittanceEntity expectedRemittance =
-        remittance(usage, usage.getSnapshotDate(), 80.0);
+        remittance(usage, usage.getSnapshotDate(), 100.0);
+    BillableUsageRemittanceEntity expectedDailyRemittance =
+        remittance(usage, usage.getSnapshotDate(), 100.0);
+    expectedDailyRemittance.getKey().setGranularity(Granularity.DAILY);
     BillableUsage expectedUsage = billable(usage.getSnapshotDate(), 80.0);
     expectedUsage.setId(usage.getId()); // Id will be regenerated above.
-    verify(remittanceRepo).save(expectedRemittance);
+    ArgumentCaptor<BillableUsageRemittanceEntity> remitted =
+        ArgumentCaptor.forClass(BillableUsageRemittanceEntity.class);
+    verify(remittanceRepo, times(2)).save(remitted.capture());
+    assertThat(
+        remitted.getAllValues(), containsInAnyOrder(expectedRemittance, expectedDailyRemittance));
     verify(producer).produce(expectedUsage);
   }
 
