@@ -183,6 +183,12 @@ public class BillableUsageController {
               usage);
         }
         return null;
+      } catch (IllegalStateException ise) {
+        log.error(
+            "Unable to retrieve contract for usage - Usage: {} Reason: {}",
+            usage,
+            ise.getMessage());
+        return null;
       }
     }
 
