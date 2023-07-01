@@ -18,12 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.configuration.model;
+package com.redhat.swatch.configuration.registry;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
-import lombok.Builder;
 import lombok.Data;
 
 /**
@@ -31,7 +32,6 @@ import lombok.Data;
  * single technical fingerprint. Defines a set of metrics.
  */
 @Data
-@Builder
 public class Subscription {
 
   /**
@@ -60,4 +60,8 @@ public class Subscription {
   private String serviceType;
   private List<Metric> metrics;
   private Defaults defaults;
+
+  public static Optional<Subscription> findByServiceType(String serviceType) throws IOException {
+    return SubscriptionConfigRegistry.getInstance().findByServiceType(serviceType);
+  }
 }

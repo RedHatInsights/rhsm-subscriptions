@@ -8,6 +8,18 @@ dependencies {
     implementation 'org.yaml:snakeyaml'
     implementation 'javax.validation:validation-api:2.0.1.Final'
     implementation 'org.hibernate.validator:hibernate-validator:8.0.1.Final'
+    //TODO slim this down, but had snakeyaml issues wihtout it
+    implementation enforcedPlatform(libraries["quarkus-bom"])
+    testImplementation 'io.quarkus:quarkus-junit5'
+    testImplementation 'io.quarkus:quarkus-junit5-mockito'
+    testImplementation 'io.rest-assured:rest-assured'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:kafka'
+    testImplementation 'org.testcontainers:postgresql'
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation libraries["junit-jupiter"]
+    testImplementation libraries["wiremock-jre8"]
 }
 
 description = 'SWATCH library for product configuration'

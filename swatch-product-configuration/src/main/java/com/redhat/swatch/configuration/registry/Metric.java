@@ -18,25 +18,18 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.configuration.model;
+package com.redhat.swatch.configuration.registry;
 
-import java.util.List;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import lombok.*;
 
-/**
- * Variant is a mutually exclusive "edition" of a subscription, having the same "technical
- * fingerprint". Only humans familiar with the use case can distinguish between variants.
- * Operational model may also be a distinguishing attribute (e.g. hyperscaler - AWS, Azure, etc.).
- * Variants all have the same billing model.
- */
 @Data
-@Builder
-public class Variant {
+public class Metric {
 
-  @NotNull @NotEmpty private String tag; // required
-  private List<String> roles;
-  private List<String> engineeringIds;
-  private List<String> productNames;
+  @NotNull @NotEmpty private String id; // required
+  private String rhmMetricId;
+  private String awsDimension;
+  private PrometheusMetric prometheusMetric;
+  private Double billingFactor;
 }

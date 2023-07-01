@@ -18,14 +18,27 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.configuration.model;
+package com.redhat.swatch.configuration.registry;
 
-import java.util.Map;
-import lombok.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-@Data
-@Builder
-public class PrometheusMetric {
-  private String queryKey;
-  private Map<String, String> queryParams;
+import java.io.IOException;
+import org.junit.jupiter.api.Test;
+
+class SubscriptionConfigRegistryTest {
+
+  @Test
+  void sanityCheck() {
+    assertTrue(true);
+  }
+
+  @Test
+  void testLoadAllTheThings() throws IOException {
+    SubscriptionConfigRegistry subscriptionConfigRegistry = new SubscriptionConfigRegistry();
+
+    var actual = subscriptionConfigRegistry.getSubscriptions().size();
+    var expected = 14;
+
+    assertEquals(actual, expected);
+  }
 }

@@ -18,14 +18,18 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.configuration.model;
+package com.redhat.swatch.configuration.registry;
 
-import lombok.*;
+import lombok.Getter;
 
-@Data
-@Builder
-public class Defaults {
-  private String variant;
-  private Sla sla;
-  private Usage usage;
+@Getter
+public enum Sla {
+  PREMIUM("Premium"),
+  STANDARD("Standard"),
+  SELF_SUPPORT("Self-Support");
+  private final String value;
+
+  Sla(String value) {
+    this.value = value;
+  }
 }
