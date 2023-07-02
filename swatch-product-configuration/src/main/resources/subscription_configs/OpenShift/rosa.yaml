@@ -7,7 +7,7 @@ variants:
   - tag: rosa
     roles:
       - moa-hostedcontrolplane
-    product_names:
+    productNames:
       - OpenShift Dedicated
 
 defaults:

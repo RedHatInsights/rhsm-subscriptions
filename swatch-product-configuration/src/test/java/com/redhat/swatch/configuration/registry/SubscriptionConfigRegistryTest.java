@@ -23,9 +23,18 @@ package com.redhat.swatch.configuration.registry;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
+import lombok.SneakyThrows;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class SubscriptionConfigRegistryTest {
+
+  SubscriptionConfigRegistry subscriptionConfigRegistry;
+
+  @BeforeEach
+  void setUp() throws IOException {
+    subscriptionConfigRegistry = new SubscriptionConfigRegistry();
+  }
 
   @Test
   void sanityCheck() {
@@ -34,11 +43,45 @@ class SubscriptionConfigRegistryTest {
 
   @Test
   void testLoadAllTheThings() throws IOException {
-    SubscriptionConfigRegistry subscriptionConfigRegistry = new SubscriptionConfigRegistry();
 
     var actual = subscriptionConfigRegistry.getSubscriptions().size();
     var expected = 14;
 
     assertEquals(actual, expected);
+  }
+
+  @SneakyThrows
+  @Test
+  void testVariantEngIdLookup() {
+    var satelliteCapsule = subscriptionConfigRegistry.findSubscriptionByVariantEngId("269");
+
+    var expected = "Satellite Capsule";
+    var actual = satelliteCapsule.get().getId();
+
+    assertEquals(expected, actual);
+  }
+
+  @SneakyThrows
+  @Test
+  void testVariantProductNameLookup() {
+    var openshiftContainerPlatform =
+        subscriptionConfigRegistry.findSubscriptionByOfferingProductName(
+            "OpenShift Container Platform");
+
+    var expected = "OpenShift-metrics";
+    var actual = openshiftContainerPlatform.get().getId();
+
+    assertEquals(expected, actual);
+  }
+
+  @SneakyThrows
+  @Test
+  void testVariantRoleLookup() {
+    var rosa = subscriptionConfigRegistry.findSubscriptionByRole("moa-hostedcontrolplane");
+
+    var expected = "rosa";
+    var actual = rosa.get().getId();
+
+    assertEquals(expected, actual);
   }
 }

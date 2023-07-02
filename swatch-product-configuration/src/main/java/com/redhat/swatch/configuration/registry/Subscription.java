@@ -22,7 +22,9 @@ package com.redhat.swatch.configuration.registry;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import lombok.Data;
@@ -63,5 +65,34 @@ public class Subscription {
 
   public static Optional<Subscription> findByServiceType(String serviceType) throws IOException {
     return SubscriptionConfigRegistry.getInstance().findByServiceType(serviceType);
+  }
+
+  public static Optional<Subscription> findByArch(String arch) throws IOException {
+    return SubscriptionConfigRegistry.getInstance().findByArch(arch);
+  }
+
+  // Subscription.getFinestGranularity()
+  // Subscription.isPrometheusEnabled()
+  // Subscription.supportsGranularity()
+
+  public List<String> getMetricIds() {
+    return this.getMetrics().stream()
+        .map(Metric::getId)
+        .filter(Objects::nonNull)
+        .collect(Collectors.toList());
+  }
+
+  public Optional<Metric> getMetric(String metricId) {
+    return this.getMetrics().stream().filter(Objects::nonNull).findFirst();
+  }
+
+  public static Optional<Subscription> findById(String id) throws IOException {
+    return SubscriptionConfigRegistry.getInstance().getSubscriptions().stream()
+        .filter(subscription -> Objects.equals(subscription.getId(), id))
+        .findFirst();
+  }
+
+  public static List<String> getAllServiceTypes() throws IOException {
+    return SubscriptionConfigRegistry.getInstance().getAllServiceTypes();
   }
 }

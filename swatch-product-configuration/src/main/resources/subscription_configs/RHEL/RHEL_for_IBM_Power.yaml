@@ -4,7 +4,7 @@ platform: RHEL
 id: RHEL for IBM Power
 
 fingerprint:
-  engineering_ids:
+  engineeringIds:
     - 74 # Red Hat Enterprise Linux for Power, big endian
     - 279 # Red Hat Enterprise Linux for Power, little endian
     - 420 # Red Hat Enterprise Linux for Power 9

@@ -4,7 +4,7 @@ platform: RHEL
 id: Satellite Server
 
 fingerprint:
-  engineering_ids:
+  engineeringIds:
     - 250 # Red Hat Satellite
 
 variants:

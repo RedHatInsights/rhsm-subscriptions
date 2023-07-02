@@ -29,7 +29,11 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 import lombok.Getter;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.representer.Representer;
@@ -61,6 +65,8 @@ class SubscriptionConfigRegistry {
         subscriptions.add(subscriptionFromYaml);
       }
     }
+
+    // TODO assign default values for Variant and Fingerprint here?
   }
 
   private static List<String> listYamlFileNames() throws IOException {
@@ -101,10 +107,70 @@ class SubscriptionConfigRegistry {
     return yamlFiles;
   }
 
-  public Optional<Subscription> findByServiceType(String serviceType) {
+  Optional<Subscription> findByServiceType(String serviceType) {
 
     return subscriptions.stream()
-        // TODO filter
+        .filter(subscription -> Objects.nonNull(subscription.getServiceType()))
+        .filter(subscription -> Objects.equals(subscription.getServiceType(), serviceType))
         .findFirst();
   }
-}
+
+  Optional<Subscription> findByArch(String arch) {
+    return subscriptions.stream()
+        .filter(
+            subscription -> {
+              var fingerprint = subscription.getFingerprint();
+              return Objects.nonNull(fingerprint)
+                  && Objects.nonNull(fingerprint.getArches())
+                  && !fingerprint.getArches().isEmpty()
+                  && fingerprint.getArches().contains(arch);
+            })
+        .findFirst();
+  }
+
+  List<String> getAllServiceTypes() {
+    return subscriptions.stream()
+        .map(Subscription::getServiceType)
+        .filter(Objects::nonNull)
+        .collect(Collectors.toList());
+  }
+
+  //TODO need to check fingerprint next if not found in variant
+  Optional<Subscription> findSubscriptionByVariantEngId(String engProductId) {
+    return subscriptions.stream()
+        .filter(subscription -> Objects.nonNull(subscription.getVariants()) && !subscription.getVariants().isEmpty())
+        .filter(subscription -> subscription.getVariants().stream()
+            .anyMatch(variant -> Objects.nonNull(variant.getEngineeringIds()) && variant.getEngineeringIds().contains(engProductId)))
+        .findFirst();
+  }
+
+  Optional<Subscription> findSubscriptionByOfferingProductName(String name){
+    return subscriptions.stream()
+        .filter(subscription -> Objects.nonNull(subscription.getVariants()) && !subscription.getVariants().isEmpty())
+        .filter(subscription -> subscription.getVariants().stream()
+            .anyMatch(variant -> Objects.nonNull(variant.getProductNames()) && variant.getProductNames().contains(name)))
+        .findFirst();
+
+  }
+
+
+
+  //TODO need to check fingerprint next if not found in variant
+  Optional<Subscription> findSubscriptionByRole(String role){
+    return subscriptions.stream()
+        .filter(subscription -> Objects.nonNull(subscription.getVariants()) && !subscription.getVariants().isEmpty())
+        .filter(subscription -> subscription.getVariants().stream()
+            .anyMatch(variant -> Objects.nonNull(variant.getRoles()) && variant.getRoles().contains(role)))
+        .findFirst();
+
+  }
+
+  Optional<Subscription> lookupSubscriptionByVariant(@NotNull @NotEmpty String tag) {
+
+    return subscriptions.stream()
+        .filter(subscription -> Objects.nonNull(subscription.getVariants()) && !subscription.getVariants().isEmpty())
+        .filter(subscription -> subscription.getVariants().stream()
+            .anyMatch(variant -> Objects.equals(tag,variant.getTag())))
+        .findFirst();
+
+  }}

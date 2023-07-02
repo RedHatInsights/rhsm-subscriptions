@@ -30,6 +30,6 @@ public class Metric {
   @NotNull @NotEmpty private String id; // required
   private String rhmMetricId;
   private String awsDimension;
-  private PrometheusMetric prometheusMetric;
+  private PrometheusMetric prometheus;
   private Double billingFactor;
 }

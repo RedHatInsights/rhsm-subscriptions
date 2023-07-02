@@ -20,7 +20,11 @@
  */
 package com.redhat.swatch.configuration.registry;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import lombok.*;
@@ -38,4 +42,26 @@ public class Variant {
   private List<String> roles;
   private List<String> engineeringIds;
   private List<String> productNames;
+
+  public Optional<Subscription> getSubscription() throws IOException {
+    return SubscriptionConfigRegistry.getInstance().lookupSubscriptionByVariant(tag);
+  }
+
+  public static Optional<Variant> findByRole(String role) throws IOException {
+    AtomicReference<Optional<Variant>> match = new AtomicReference<>(Optional.empty());
+
+    SubscriptionConfigRegistry.getInstance()
+        .findSubscriptionByRole(role)
+        .ifPresent(
+            subscription -> {
+              match.set(
+                  subscription.getVariants().stream()
+                      .filter(Objects::nonNull)
+                      .filter(variant -> !variant.getRoles().isEmpty())
+                      .filter(variant -> variant.getRoles().contains(role))
+                      .findFirst());
+            });
+
+    return match.get();
+  }
 }

@@ -7,7 +7,7 @@ variants:
   - tag: OpenShift-dedicated-metrics
     roles:
       - osd
-    product_names:
+    productNames:
       - OpenShift Dedicated
 
 defaults:
@@ -21,7 +21,7 @@ serviceType: OpenShift Cluster
 
 metrics:
   - id: redhat.com:openshift_dedicated:4cpu_hour
-    rhm_metric_id: redhat.com:openshift_dedicated:4cpu_hour
+    rhmMetricId: redhat.com:openshift_dedicated:4cpu_hour
     billingFactor: 0.25
     prometheus:
       queryKey: default
@@ -30,7 +30,7 @@ metrics:
         metric: cluster:usage:workload:capacity_physical_cpu_hours
         metadata_metric: subscription_labels
   - id: redhat.com:openshift_dedicated:cluster_hour
-    rhm_metric_id: redhat.com:openshift_dedicated:cluster_hour
+    rhmMetricId: redhat.com:openshift_dedicated:cluster_hour
     prometheus:
       queryKey: default
       queryParams:
