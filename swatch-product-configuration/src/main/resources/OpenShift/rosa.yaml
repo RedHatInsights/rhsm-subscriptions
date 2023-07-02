@@ -17,6 +17,8 @@ defaults:
 
 billingWindow: MONTHLY
 
+serviceType: rosa Instance
+
 metrics:
   - id: redhat.com:rosa:cluster_hour
     awsDimension: control_plane

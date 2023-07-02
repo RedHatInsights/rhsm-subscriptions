@@ -16,6 +16,8 @@ defaults:
 
 billingWindow: MONTHLY
 
+serviceType: Kafka Cluster
+
 metrics:
   - id: redhat.com:rhosak:transfer_gb
     rhm_metric_id: redhat.com:rhosak:transfer_gb

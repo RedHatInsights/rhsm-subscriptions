@@ -17,6 +17,8 @@ defaults:
 
 billingWindow: MONTHLY
 
+serviceType: Rhods Cluster
+
 metrics:
   - id: redhat.com:openshift_data_science:cpu_hours
     rhm_metric_id: redhat.com:openshift_data_science:cpu_hours
