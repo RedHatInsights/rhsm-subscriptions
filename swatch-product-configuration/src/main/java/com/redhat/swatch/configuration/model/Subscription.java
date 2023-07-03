@@ -57,6 +57,7 @@ public class Subscription {
   private Fingerprint fingerprint;
   private List<Variant> variants;
   private BillingWindow billingWindow;
+  private String serviceType;
   private List<Metric> metrics;
   private Defaults defaults;
 }
