@@ -64,4 +64,7 @@ public class Variant {
 
     return match.get();
   }
+
+  // TODO how to lookup a subscription by variant information and know to return default variant, or
+  // if variants list is empty, should we return the fingerprint?
 }
