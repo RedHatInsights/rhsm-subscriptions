@@ -17,6 +17,8 @@ defaults:
 
 billingWindow: MONTHLY
 
+serviceType: OpenShift Cluster
+
 metrics:
   - id: redhat.com:openshift_container_platform:cpu_hour
     rhm_metric_id: redhat.com:openshift_container_platform:cpu_hour

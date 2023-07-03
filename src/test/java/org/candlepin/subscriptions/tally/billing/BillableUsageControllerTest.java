@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally.billing;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -619,5 +620,14 @@ class BillableUsageControllerTest {
 
     controller.submitBillableUsage(BillingWindow.MONTHLY, usage);
     verify(producer).produce(null);
+  }
+
+  @Test
+  void noUsageProcessedWhenBillingProviderNotSupportedByContractService() {
+    BillableUsage usage = billable(OffsetDateTime.now(), 1.0);
+    usage.setSnapshotDate(OffsetDateTime.now());
+    usage.setBillingProvider(BillingProvider.GCP);
+    when(tagProfile.isTagContractEnabled(usage.getProductId())).thenReturn(true);
+    assertNull(controller.processBillableUsage(BillingWindow.MONTHLY, usage));
   }
 }

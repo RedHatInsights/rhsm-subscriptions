@@ -16,6 +16,8 @@ defaults:
 
 billingWindow: MONTHLY
 
+serviceType: Rhacs Cluster
+
 metrics:
   - id: redhat.com:rhacs:cpu_hour
     rhm_metric_id: redhat.com:rhacs:cpu_hour
