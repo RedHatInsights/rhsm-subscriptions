@@ -280,7 +280,7 @@ class RemittanceControllerTest {
   }
 
   @Test
-  void syncRemittanceSkipsSnapshotWhenRemittanceExists() {
+  void syncRemittanceUpdatesRemittanceWhenRemittanceExists() {
     TallySnapshot snapshot =
         buildSnapshot(
             "org123",
@@ -299,7 +299,9 @@ class RemittanceControllerTest {
 
     BillableUsageRemittanceEntity remittance = createRemittance(snapshot, 46.0);
     remittance.getKey().setRemittancePendingDate(snapshot.getSnapshotDate());
-    when(remittanceRepo.existsById(remittance.getKey())).thenReturn(true);
+
+    when(remittanceRepo.existsBy(any())).thenReturn(true);
+    when(remittanceRepo.findById(remittance.getKey())).thenReturn(Optional.of(remittance));
 
     when(snapshotRepo.hasLatestBillables(
             snapshot.getOrgId(),

@@ -189,13 +189,9 @@ public class BillableUsageController {
         usage.getSnapshotDate());
     log.debug("Usage: {}", usage);
 
-    if (billableUsageRemittanceRepository.existsById(
-        BillableUsageRemittanceEntityPK.keyFrom(usage))) {
-      log.debug("Skipping usage since remittance already exists.");
-      return null;
-    }
-
     Double currentlyMeasuredTotal;
+
+    Optional<BillableUsageRemittanceEntity> existingRemittace = Optional.empty();
 
     // if re-tallying we need to collect total for whole month.
     if (isReTally(usage)) {
@@ -205,6 +201,9 @@ public class BillableUsageController {
               usage,
               clock.startOfMonth(usage.getSnapshotDate()),
               clock.endOfMonth(usage.getSnapshotDate()));
+      existingRemittace =
+          billableUsageRemittanceRepository.findById(
+              BillableUsageRemittanceEntityPK.keyFrom(usage, Granularity.HOURLY));
     } else {
       currentlyMeasuredTotal =
           getCurrentlyMeasuredTotal(
@@ -258,7 +257,11 @@ public class BillableUsageController {
     usage.setValue(usageCalc.getBillableValue());
     usage.setBillingFactor(usageCalc.getBillingFactor());
 
-    updateRemittance(usage, usageCalc);
+    if (existingRemittace.isPresent()) {
+      updateRemittance(usage, existingRemittace.get(), usageCalc);
+    } else {
+      createRemittance(usage, usageCalc);
+    }
 
     log.info(
         "Finished producing monthly billable for orgId={} productId={} uom={} provider={}, snapshotDate={}",
@@ -270,7 +273,7 @@ public class BillableUsageController {
     return usage;
   }
 
-  private void updateRemittance(BillableUsage usage, BillableUsageCalculation usageCalc) {
+  private void createRemittance(BillableUsage usage, BillableUsageCalculation usageCalc) {
     var newRemittance =
         BillableUsageRemittanceEntity.builder()
             .key(BillableUsageRemittanceEntityPK.keyFrom(usage))
@@ -282,14 +285,27 @@ public class BillableUsageController {
     newRemittance.setAccountNumber(usage.getAccountNumber());
     log.debug("Creating new remittance for update: {}", newRemittance);
     billableUsageRemittanceRepository.save(newRemittance);
-    updateDailyRemittance(usage, newRemittance);
+    updateDailyRemittance(usage, usageCalc);
   }
 
-  private void updateDailyRemittance(
-      BillableUsage usage, BillableUsageRemittanceEntity hourlyRemittance) {
+  private void updateRemittance(
+      BillableUsage usage,
+      BillableUsageRemittanceEntity existingRemittance,
+      BillableUsageCalculation usageCalc) {
+    if (usageCalc.getRemittedValue() > 0.0) {
+      var remittanceTotal =
+          existingRemittance.getRemittedPendingValue() + usageCalc.getRemittedValue();
+      existingRemittance.setRemittedPendingValue(remittanceTotal);
+      log.debug("Updating existing remittance: {}", existingRemittance);
+      billableUsageRemittanceRepository.save(existingRemittance);
+      updateDailyRemittance(usage, usageCalc);
+    }
+  }
+
+  private void updateDailyRemittance(BillableUsage usage, BillableUsageCalculation usageCalc) {
     var dailyRemittance = getDailyRemittance(usage);
     var totalDailyRemittedValue =
-        dailyRemittance.getRemittedPendingValue() + hourlyRemittance.getRemittedPendingValue();
+        dailyRemittance.getRemittedPendingValue() + usageCalc.getRemittedValue();
     dailyRemittance.setRemittedPendingValue(totalDailyRemittedValue);
     billableUsageRemittanceRepository.save(dailyRemittance);
   }
