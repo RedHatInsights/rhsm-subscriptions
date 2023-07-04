@@ -1219,7 +1219,7 @@ class TallyResourceTest {
     TallyReportDataPoint expectedTotalMonthly =
         new TallyReportDataPoint()
             .date(OffsetDateTime.parse("2023-03-08T12:35Z"))
-            .value(16)
+            .value(22)
             .hasData(true);
 
     TallyReportData report =
@@ -1306,7 +1306,7 @@ class TallyResourceTest {
     TallyReportDataPoint expectedTotalMonthly =
         new TallyReportDataPoint()
             .date(OffsetDateTime.parse("2023-03-08T12:35Z"))
-            .value(14)
+            .value(22)
             .hasData(true);
 
     TallyReportData report =
