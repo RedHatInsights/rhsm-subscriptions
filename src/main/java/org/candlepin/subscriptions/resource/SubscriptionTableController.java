@@ -23,7 +23,14 @@ package org.candlepin.subscriptions.resource;
 import static org.candlepin.subscriptions.resource.ResourceUtils.*;
 
 import java.time.OffsetDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.validation.constraints.Min;
 import lombok.extern.slf4j.Slf4j;
@@ -148,21 +155,24 @@ public class SubscriptionTableController {
     List<Subscription> unlimitedSubs = subscriptionRepository.findUnlimited(reportCriteria);
 
     var skus =
-        measurements.stream().map(x -> x.getSubscription().getSku()).collect(Collectors.toSet());
-    skus.addAll(unlimitedSubs.stream().map(Subscription::getSku).collect(Collectors.toSet()));
+        measurements.stream()
+            .map(x -> x.getSubscription().getOffering().getSku())
+            .collect(Collectors.toSet());
+    skus.addAll(
+        unlimitedSubs.stream().map(x -> x.getOffering().getSku()).collect(Collectors.toSet()));
 
     Map<String, SkuCapacity> inventories = initializeDefaultSkuCapacities(skus, uom);
 
     for (SubscriptionMeasurement measurement : measurements) {
       Subscription subscription = measurement.getSubscription();
-      SkuCapacity inventory = inventories.get(subscription.getSku());
+      SkuCapacity inventory = inventories.get(subscription.getOffering().getSku());
       calculateNextEvent(subscription, inventory, reportEnd);
       addSubscriptionInformation(subscription, inventory);
       addTotalCapacity(measurement, inventory);
     }
 
     for (Subscription subscription : unlimitedSubs) {
-      SkuCapacity inventory = inventories.get(subscription.getSku());
+      SkuCapacity inventory = inventories.get(subscription.getOffering().getSku());
       inventory.setHasInfiniteQuantity(true);
       calculateNextEvent(subscription, inventory, reportCriteria.getEnding());
       addSubscriptionInformation(subscription, inventory);
@@ -256,11 +266,6 @@ public class SubscriptionTableController {
       OffsetDateTime reportEnd) {
     var productNames = tagProfile.getOfferingProductNamesForTag(productId.toString());
     Map<String, SkuCapacity> inventories = new HashMap<>();
-    Map<String, Offering> skuOfferings =
-        productNames.stream()
-            .map(offeringRepository::findByProductName)
-            .flatMap(List::stream)
-            .collect(Collectors.toMap(Offering::getSku, offering -> offering));
 
     var subscriptions =
         subscriptionRepository.findByCriteria(
@@ -279,19 +284,21 @@ public class SubscriptionTableController {
 
     subscriptions.forEach(
         sub -> {
+          var sku = sub.getOffering().getSku();
           final SkuCapacity inventory =
               inventories.computeIfAbsent(
-                  String.format("%s:%s", sub.getSku(), sub.getBillingProvider()),
-                  key -> initializeOnDemandSkuCapacity(sub, skuOfferings.get(sub.getSku())));
+                  String.format("%s:%s", sku, sub.getBillingProvider()),
+                  key -> initializeOnDemandSkuCapacity(sub));
           addOnDemandSubscriptionInformation(sub, inventory);
         });
     return inventories.values();
   }
 
-  public SkuCapacity initializeOnDemandSkuCapacity(Subscription subscription, Offering offering) {
+  public SkuCapacity initializeOnDemandSkuCapacity(Subscription subscription) {
+    var offering = subscription.getOffering();
     var inv = new SkuCapacity();
     inv.setSubscriptions(new ArrayList<>());
-    inv.setSku(subscription.getSku());
+    inv.setSku(offering.getSku());
     inv.setProductName(offering.getProductName());
     inv.setServiceLevel(
         Optional.ofNullable(offering.getServiceLevel()).orElse(ServiceLevel.EMPTY).asOpenApiEnum());
@@ -397,7 +404,8 @@ public class SubscriptionTableController {
     }
 
     boolean hasInfiniteQuantity =
-        Optional.ofNullable(measurement.getSubscription().getHasUnlimitedUsage()).orElse(false);
+        Optional.ofNullable(measurement.getSubscription().getOffering().getHasUnlimitedUsage())
+            .orElse(false);
     if (hasInfiniteQuantity) {
       log.warn(
           "Subscription for SKU {} has both capacity and unlimited quantity", skuCapacity.getSku());
@@ -416,33 +424,17 @@ public class SubscriptionTableController {
           if (dir == SortDirection.DESC) {
             sortDir = -1;
           }
-          int diff = 0;
-          switch (sortField) {
-            case SKU:
-              diff = left.getSku().compareTo(right.getSku());
-              break;
-            case SERVICE_LEVEL:
-              diff = left.getServiceLevel().compareTo(right.getServiceLevel());
-              break;
-            case USAGE:
-              diff = left.getUsage().compareTo(right.getUsage());
-              break;
-            case QUANTITY:
-              diff = left.getQuantity().compareTo(right.getQuantity());
-              break;
-            case NEXT_EVENT_DATE:
-              diff = left.getNextEventDate().compareTo(right.getNextEventDate());
-              break;
-            case NEXT_EVENT_TYPE:
-              diff = left.getNextEventType().compareTo(right.getNextEventType());
-              break;
-            case TOTAL_CAPACITY:
-              diff = compareTotalCapacity(left, right);
-              break;
-            case PRODUCT_NAME:
-              diff = left.getProductName().compareTo(right.getProductName());
-              break;
-          }
+          int diff =
+              switch (sortField) {
+                case SKU -> left.getSku().compareTo(right.getSku());
+                case SERVICE_LEVEL -> left.getServiceLevel().compareTo(right.getServiceLevel());
+                case USAGE -> left.getUsage().compareTo(right.getUsage());
+                case QUANTITY -> left.getQuantity().compareTo(right.getQuantity());
+                case NEXT_EVENT_DATE -> left.getNextEventDate().compareTo(right.getNextEventDate());
+                case NEXT_EVENT_TYPE -> left.getNextEventType().compareTo(right.getNextEventType());
+                case TOTAL_CAPACITY -> compareTotalCapacity(left, right);
+                case PRODUCT_NAME -> left.getProductName().compareTo(right.getProductName());
+              };
           // If the two items are sorted by some other field than SKU and are equal, then break the
           // tie by sorting by SKU. No two SKUs in the list are equal.
           if (diff == 0 && sortField != SkuCapacityReportSort.SKU) {

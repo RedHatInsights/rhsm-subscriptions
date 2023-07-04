@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.tally.billing;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
@@ -788,5 +789,14 @@ class BillableUsageControllerTest {
     assertThat(
         remitted.getAllValues(), containsInAnyOrder(expectedRemittance, expectedDailyRemittance));
     verify(producer).produce(expectedUsage);
+  }
+
+  @Test
+  void noUsageProcessedWhenBillingProviderNotSupportedByContractService() {
+    BillableUsage usage = billable(OffsetDateTime.now(), 1.0);
+    usage.setSnapshotDate(OffsetDateTime.now());
+    usage.setBillingProvider(BillingProvider.GCP);
+    when(tagProfile.isTagContractEnabled(usage.getProductId())).thenReturn(true);
+    assertNull(controller.processBillableUsage(BillingWindow.MONTHLY, usage));
   }
 }

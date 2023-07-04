@@ -74,7 +74,7 @@ public interface HostRepository
       left join fetch h.monthlyTotals
       where h.orgId=:orgId
         and h.instanceType='HBI_HOST'
-      order by coalesce(h.hypervisorUuid, h.subscriptionManagerId), h.hypervisorUuid, h.inventoryId
+      order by coalesce(h.hypervisorUuid, h.subscriptionManagerId), h.hypervisorUuid, h.inventoryId, h.id
           """)
   @QueryHints(value = {@QueryHint(name = HINT_FETCH_SIZE, value = "1024")})
   Stream<Host> streamHbiHostsByOrgId(@Param("orgId") String orgId);
@@ -509,6 +509,14 @@ public interface HostRepository
           + "h.hypervisorUuid = :hypervisor_id")
   Page<Host> getHostsByHypervisor(
       @Param("orgId") String orgId, @Param("hypervisor_id") String hypervisorId, Pageable pageable);
+
+  @Query(
+      "select distinct h1 from Host h1 where "
+          + "h1.orgId = :orgId and "
+          + "h1.hypervisorUuid in (select h2.subscriptionManagerId from Host h2 where "
+          + "h2.instanceId = :instanceId)")
+  Page<Host> getGuestHostsByHypervisorInstanceId(
+      @Param("orgId") String orgId, @Param("instanceId") String instanceId, Pageable pageable);
 
   List<Host> findByAccountNumber(String accountNumber);
 

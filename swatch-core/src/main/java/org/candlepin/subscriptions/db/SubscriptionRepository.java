@@ -20,16 +20,16 @@
  */
 package org.candlepin.subscriptions.db;
 
+import static org.candlepin.subscriptions.db.SpringDataUtil.*;
+
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
-import javax.persistence.criteria.Root;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.DbReportCriteria;
-import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.Offering_;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
@@ -40,6 +40,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -51,17 +52,24 @@ public interface SubscriptionRepository
     extends JpaRepository<Subscription, Subscription.SubscriptionCompoundId>,
         JpaSpecificationExecutor<Subscription> {
 
+  String OFFERING_ALIAS = "offering";
+
   @Query(
       "SELECT s FROM Subscription s where s.endDate > CURRENT_TIMESTAMP "
           + "AND s.subscriptionId = :subscriptionId")
+  @EntityGraph(value = "Subscription.offering")
   Optional<Subscription> findActiveSubscription(@Param("subscriptionId") String subscriptionId);
 
+  @EntityGraph(value = "Subscription.offering")
   Optional<Subscription> findBySubscriptionNumber(String subscriptionNumber);
 
-  Page<Subscription> findBySku(String sku, Pageable pageable);
+  @EntityGraph(value = "Subscription.offering")
+  Page<Subscription> findByOfferingSku(String sku, Pageable pageable);
 
+  @EntityGraph(value = "Subscription.offering")
   Stream<Subscription> findByOrgId(String orgId);
 
+  @EntityGraph(value = "Subscription.offering")
   List<Subscription> findByOrgIdAndEndDateAfter(String orgId, OffsetDateTime date);
 
   void deleteBySubscriptionId(String subscriptionId);
@@ -73,9 +81,16 @@ public interface SubscriptionRepository
      * specification method we call returns null (which it won't in this case, but it's good
      * practice to handle it. */
     Specification<Subscription> searchCriteria =
-        Specification.where(
-            subscriptionIsActiveBetween(
-                dbReportCriteria.getBeginning(), dbReportCriteria.getEnding()));
+        (root, query, builder) -> {
+          // fetchJoin offering always, to eliminate n+1 on offering
+          fetchJoin(root, Subscription_.offering, OFFERING_ALIAS);
+          return builder.conjunction();
+        };
+    searchCriteria =
+        searchCriteria.and(
+            Specification.where(
+                subscriptionIsActiveBetween(
+                    dbReportCriteria.getBeginning(), dbReportCriteria.getEnding())));
     if (Objects.nonNull(dbReportCriteria.getOrgId())) {
       searchCriteria = searchCriteria.and(orgIdEquals(dbReportCriteria.getOrgId()));
     } else {
@@ -125,7 +140,10 @@ public interface SubscriptionRepository
   }
 
   private static Specification<Subscription> hasUnlimitedUsage() {
-    return (root, query, builder) -> builder.equal(root.get(Subscription_.hasUnlimitedUsage), true);
+    return (root, query, builder) -> {
+      var offeringRoot = fetchJoin(root, Subscription_.offering, OFFERING_ALIAS);
+      return builder.equal(offeringRoot.get(Offering_.hasUnlimitedUsage), true);
+    };
   }
 
   private static Specification<Subscription> hasBillingProviderId() {
@@ -137,10 +155,8 @@ public interface SubscriptionRepository
 
   private static Specification<Subscription> productNameIn(Set<String> productNames) {
     return (root, query, builder) -> {
-      Root<Offering> offeringRoot = query.from(Offering.class);
-      return builder.and(
-          builder.equal(root.get(Subscription_.sku), offeringRoot.get(Offering_.sku)),
-          offeringRoot.get(Offering_.productName).in(productNames));
+      var offeringRoot = fetchJoin(root, Subscription_.offering, OFFERING_ALIAS);
+      return offeringRoot.get(Offering_.productName).in(productNames);
     };
   }
 
@@ -189,19 +205,15 @@ public interface SubscriptionRepository
 
   private static Specification<Subscription> slaEquals(ServiceLevel sla) {
     return (root, query, builder) -> {
-      Root<Offering> offeringRoot = query.from(Offering.class);
-      return builder.and(
-          builder.equal(root.get(Subscription_.sku), offeringRoot.get(Offering_.sku)),
-          builder.equal(offeringRoot.get(Offering_.serviceLevel), sla));
+      var offeringRoot = fetchJoin(root, Subscription_.offering, OFFERING_ALIAS);
+      return builder.equal(offeringRoot.get(Offering_.serviceLevel), sla);
     };
   }
 
   private static Specification<Subscription> usageEquals(Usage usage) {
     return (root, query, builder) -> {
-      Root<Offering> offeringRoot = query.from(Offering.class);
-      return builder.and(
-          builder.equal(root.get(Subscription_.sku), offeringRoot.get(Offering_.sku)),
-          builder.equal(offeringRoot.get(Offering_.usage), usage));
+      var offeringRoot = fetchJoin(root, Subscription_.offering, OFFERING_ALIAS);
+      return builder.equal(offeringRoot.get(Offering_.usage), usage);
     };
   }
 

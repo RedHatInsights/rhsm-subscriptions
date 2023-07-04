@@ -1,0 +1,31 @@
+---
+platform: OpenShift
+
+id: rhods
+
+variants:
+  - tag: rhods
+    roles:
+      - addon-open-data-hub
+    product_names:
+      - OpenShift Data Science
+
+defaults:
+  variant: rhods
+  sla: PREMIUM
+  usage: PRODUCTION
+
+billingWindow: MONTHLY
+
+serviceType: Rhods Cluster
+
+metrics:
+  - id: redhat.com:openshift_data_science:cpu_hours
+    rhm_metric_id: redhat.com:openshift_data_science:cpu_hours
+    awsDimension: cluster_cpu_hour
+    prometheus:
+      queryKey: addonSamples
+      queryParams:
+        resourceName: addon-open-data-hub
+        metric: cluster:usage:workload:capacity_virtual_cpu_hours
+        metadata_metric: ocm_subscription_resource

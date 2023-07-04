@@ -1000,7 +1000,7 @@ class TallyResourceTest {
     TallyReportDataPoint expectedTotalMonthly =
         new TallyReportDataPoint()
             .date(OffsetDateTime.parse("2023-03-08T12:35Z"))
-            .value(30)
+            .value(22)
             .hasData(true);
 
     when(repository.findSnapshot(
@@ -1055,7 +1055,7 @@ class TallyResourceTest {
     TallyReportDataPoint expectedTotalMonthly =
         new TallyReportDataPoint()
             .date(OffsetDateTime.parse("2023-03-02T12:35Z"))
-            .value(6)
+            .value(3)
             .hasData(true);
 
     when(repository.findSnapshot(

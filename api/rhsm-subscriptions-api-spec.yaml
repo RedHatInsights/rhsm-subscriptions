@@ -764,6 +764,64 @@ paths:
           $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - hosts
+  /instances/{id}/guests:
+    description: 'Operations for instance-id mappings.'
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: "The instance ID we wish to query"
+      - name: offset
+        in: query
+        schema:
+          type: integer
+        description: "The number of items to skip before starting to collect the result set"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+        description: "The numbers of items to return"
+    get:
+      summary: "Fetch guests for the instance id."
+      operationId: getInstanceGuests
+      responses:
+        '200':
+          description: 'The request for a capacity report was successful.'
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/InstanceGuestReport"
+              example:
+                data:
+                  - inventory_id: d6214a0b-b344-4778-831c-d53dcacb2da3
+                    display_name: guest01.example.com
+                    subscription_manager_id: adafd9d5-5b00-42fa-a6c9-75801d45cc6d
+                    last_seen: 2020-01-01T00:00:00Z
+                  - inventory_id: 9358e312-1c9f-42f4-8910-dcef6e970852
+                    display_name: guest02.example.com
+                    subscription_manager_id: b101a72f-1859-4489-acb8-d6d31c2578c4
+                    last_seen: 2020-01-01T00:00:00Z
+                links:
+                  first: '/api/rhsm-subscriptions/v1/instances/c5mu16smf1c22rn8e730/guests?offset=0&limit=5'
+                  last: '/api/rhsm-subscriptions/v1/instances/c5mu16smf1c22rn8e730/guests?offset=5&limit=5'
+                  previous: null
+                  next: '/api/rhsm-subscriptions/v1/instances/c5mu16smf1c22rn8e730/guests?offset=5&limit=5'
+                meta:
+                  count: 10
+        '400':
+          $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags:
+        - instances
   /instances/products/{product_id}:
     parameters:
       - name: product_id
@@ -1559,6 +1617,16 @@ components:
             - count
             - product
     HypervisorGuestReport:
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Host"
+        links:
+          $ref: "#/components/schemas/PageLinks"
+        meta:
+          $ref: "#/components/schemas/MetaCount"
+    InstanceGuestReport:
       properties:
         data:
           type: array

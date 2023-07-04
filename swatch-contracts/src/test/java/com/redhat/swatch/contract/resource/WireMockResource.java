@@ -22,6 +22,7 @@ package com.redhat.swatch.contract.resource;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -32,6 +33,7 @@ import com.redhat.swatch.contract.PathUtils;
 import io.quarkus.test.common.QuarkusTestResourceConfigurableLifecycleManager;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Optional;
 
 public class WireMockResource
     implements QuarkusTestResourceConfigurableLifecycleManager<WireMockTest> {
@@ -46,6 +48,18 @@ public class WireMockResource
   public static final String STORE_PASSWORD = "password";
   private WireMockServer wireMockServer;
 
+  public static void main(String[] args) {
+    int wiremockPort =
+        Integer.parseInt(Optional.ofNullable(System.getenv("WIREMOCK_PORT")).orElse("8101"));
+    System.out.printf("Running mock services on port %d%n", wiremockPort);
+    var resource = new WireMockResource();
+    resource.wireMockServer =
+        new WireMockServer(
+            WireMockConfiguration.options().port(wiremockPort).notifier(new ConsoleNotifier(true)));
+    resource.stubApis();
+    resource.wireMockServer.start();
+  }
+
   @Override
   public Map<String, String> start() {
     wireMockServer =
@@ -59,7 +73,7 @@ public class WireMockResource
                 .trustStorePath(TRUSTSTORE_PATH)
                 .trustStorePassword(STORE_PASSWORD)
                 .notifier(new ConsoleNotifier(true)));
-    stubForRhPartnerApi(wireMockServer);
+    stubApis();
     wireMockServer.start();
     return Map.of(
         "KEYSTORE_RESOURCE", String.format("file:%s", CLIENT_KEYSTORE_PATH),
@@ -67,6 +81,28 @@ public class WireMockResource
         "TRUSTSTORE_RESOURCE", String.format("file:%s", TRUSTSTORE_PATH),
         "TRUSTSTORE_PASSWORD", STORE_PASSWORD,
         "ENTITLEMENT_GATEWAY_URL", String.format("%s/mock/partnerApi", wireMockServer.baseUrl()));
+  }
+
+  private void stubApis() {
+    stubForRhPartnerApi(wireMockServer);
+    stubForInternalSubscriptionService(wireMockServer);
+    stubForSubscriptioinService(wireMockServer);
+  }
+
+  private void stubForSubscriptioinService(WireMockServer wireMockServer) {
+    wireMockServer.stubFor(
+        any(urlMatching("/mock/subscription/search.*subscription_number.*"))
+            .willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        """
+                        [
+                          {
+                            "id": "123456"
+                          }
+                        ]
+                        """)));
   }
 
   private void stubForRhPartnerApi(WireMockServer wireMockServer) {
@@ -175,6 +211,38 @@ public class WireMockResource
                                 }
 
                                 """)));
+  }
+
+  private void stubForInternalSubscriptionService(WireMockServer wireMockServer) {
+    wireMockServer.stubFor(
+        get(urlMatching("/mock/internalSubs/internal/tags/.*/metrics"))
+            .willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        """
+                        [
+                          {
+                            "aws_dimension": "cpu-hours",
+                            "uom": "CORES",
+                            "billing_factor": "1.0"
+                          },
+                          {
+                            "aws_dimension": "foobar",
+                            "uom": "INSTANCE_HOURS",
+                            "billing_factor": "0.25"
+                          }
+                        ]
+                        """)));
+    wireMockServer.stubFor(
+        any(urlMatching("/mock/internalSubs/internal/offerings/.*/product_tags"))
+            .willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        """
+                        {"data":["BASILISK"]}
+                        """)));
   }
 
   @Override

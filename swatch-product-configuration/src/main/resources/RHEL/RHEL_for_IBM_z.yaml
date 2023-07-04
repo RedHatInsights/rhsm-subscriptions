@@ -1,0 +1,19 @@
+---
+platform: RHEL
+
+id: RHEL for IBM z
+
+fingerprint:
+  engineering_ids:
+    - 72 # Red Hat Enterprise Linux for IBM z Systems
+  arches:
+    - s390x
+
+variants:
+  - tag: RHEL for IBM z
+
+defaults:
+  variant: RHEL for IBM z
+
+metrics:
+  - id: SOCKETS

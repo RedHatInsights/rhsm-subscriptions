@@ -1,0 +1,37 @@
+---
+platform: OpenShift
+
+id: rosa
+
+variants:
+  - tag: rosa
+    roles:
+      - moa-hostedcontrolplane
+    product_names:
+      - OpenShift Dedicated
+
+defaults:
+  variant: rosa
+  sla: PREMIUM
+  usage: PRODUCTION
+
+billingWindow: MONTHLY
+
+serviceType: rosa Instance
+
+metrics:
+  - id: redhat.com:rosa:cluster_hour
+    awsDimension: control_plane
+    prometheus:
+      queryParams:
+        product: moa-hostedcontrolplane
+        metric: cluster:usage:workload:capacity_physical_instance_hours
+        metadata_metric: subscription_labels
+  - id: redhat.com:rosa:cpu_hour
+    awsDimension: four_vcpu_hour
+    billingFactor: 0.25
+    prometheus:
+      queryParams:
+        product: moa-hostedcontrolplane
+        metric: cluster:usage:workload:capacity_physical_cpu_hours
+        metadata_metric: subscription_labels

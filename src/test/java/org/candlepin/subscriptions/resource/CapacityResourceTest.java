@@ -34,6 +34,7 @@ import org.candlepin.subscriptions.db.SubscriptionMeasurementRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.DbReportCriteria;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
@@ -89,20 +90,16 @@ class CapacityResourceTest {
             .build();
 
     s.addSubscriptionProductId(SubscriptionProductId.builder().productId(RHEL.toString()).build());
-    s.addSubscriptionMeasurement(basicMeasurement());
 
     return s;
   }
 
   private static Subscription enhancedSubscription(List<SubscriptionMeasurement> measurements) {
     Subscription s =
-        Subscription.builder()
-            .startDate(min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
-            .endDate(max.truncatedTo(ChronoUnit.DAYS).minusSeconds(1))
-            .orgId("owner123456")
-            .build();
+        datedSubscription(
+            min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1),
+            max.truncatedTo(ChronoUnit.DAYS).minusSeconds(1));
 
-    s.addSubscriptionProductId(SubscriptionProductId.builder().productId(RHEL.toString()).build());
     s.addSubscriptionMeasurements(measurements);
     return s;
   }
@@ -303,7 +300,8 @@ class CapacityResourceTest {
   void testShouldCalculateCapacityWithUnlimitedUsage() {
     OffsetDateTime begin = min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
     var subscription = datedSubscription(begin, max);
-    subscription.setHasUnlimitedUsage(true);
+    var offering = Offering.builder().sku("testsku").hasUnlimitedUsage(true).build();
+    subscription.setOffering(offering);
 
     DbReportCriteria criteria =
         DbReportCriteria.builder()
@@ -788,17 +786,20 @@ class CapacityResourceTest {
     assertEquals(expected, actual.size());
   }
 
+  @Test
   void testReportByMetricIdShouldCalculateCapacityEvenWhenUnlimited() {
     var begin = min.truncatedTo(ChronoUnit.DAYS).minusSeconds(1);
     var unlimited = datedSubscription(begin, max);
-    unlimited.setHasUnlimitedUsage(true);
     unlimited.setSubscriptionId("unlimited123");
+    var unlimitedOffering = Offering.builder().sku("unlimitedsku").hasUnlimitedUsage(true).build();
+    unlimited.setOffering(unlimitedOffering);
 
     var limited = datedSubscription(begin, max);
-    limited.setHasUnlimitedUsage(false);
     limited.setSubscriptionId("limited123");
-    limited.setSubscriptionMeasurements(
+    limited.addSubscriptionMeasurements(
         List.of(createMeasurement("PHYSICAL", MetricId.CORES, 4.0)));
+    var limitedOffering = Offering.builder().sku("limitedsku").hasUnlimitedUsage(false).build();
+    limited.setOffering(limitedOffering);
 
     when(repository.findAllBy(
             "owner123456", RHEL.toString(), MetricId.CORES, null, null, null, min, max))

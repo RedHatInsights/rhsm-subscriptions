@@ -22,27 +22,33 @@ package com.redhat.swatch.contract.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.Metric;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
+import com.redhat.swatch.contract.repository.OfferingEntity;
+import com.redhat.swatch.contract.repository.OfferingRepository;
+import com.redhat.swatch.contract.repository.SubscriptionEntity;
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.mockito.InjectMock;
 import java.time.OffsetDateTime;
+import java.util.Set;
 import java.util.UUID;
+import javax.inject.Inject;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mapstruct.factory.Mappers;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
  * The fact that we are using @ExtendWith(MockitoExtension.class) prevents this test from launching
  * the entire application. Use @QuarkusTest to launch the entire application with the test if
  * required.
  */
-@ExtendWith(MockitoExtension.class)
+@QuarkusTest
 class ContractMapperTest {
 
-  private final ContractMapper mapper = Mappers.getMapper(ContractMapper.class);
+  @Inject ContractMapper mapper;
+  @InjectMock OfferingRepository offeringRepository;
 
   @Test
   void testEntityToDto() {
@@ -158,5 +164,45 @@ class ContractMapperTest {
   @Test
   void testDtoToEntity_WhenContractNull() {
     assertNull(mapper.dtoToContractEntity(null));
+  }
+
+  @Test
+  void testMapContractEntityToSubscriptionEntity() {
+    var offering = new OfferingEntity();
+    offering.setSku("MCT123");
+    when(offeringRepository.findById("MCT123")).thenReturn(offering);
+
+    var subscription = new SubscriptionEntity();
+    var metric = new ContractMetricEntity();
+    metric.setMetricId("Cores");
+    metric.setValue(42.0);
+
+    var contract = new ContractEntity();
+    contract.setSku("MCT123");
+    contract.setMetrics(Set.of(metric));
+    contract.setStartDate(OffsetDateTime.parse("2000-01-01T00:00Z"));
+    contract.setEndDate(OffsetDateTime.parse("2020-01-01T00:00Z"));
+    contract.setSubscriptionNumber("subscriptionNumber");
+    contract.setBillingProvider("aws");
+    contract.setBillingAccountId("12345678");
+    contract.setOrgId("org123");
+    contract.setProductId("rosa");
+
+    mapper.mapContractEntityToSubscriptionEntity(subscription, contract);
+    assertEquals(contract.getSubscriptionNumber(), subscription.getSubscriptionNumber());
+    assertEquals(1, subscription.getSubscriptionMeasurements().size());
+    assertEquals(contract.getSku(), subscription.getOffering().getSku());
+    assertEquals(contract.getStartDate(), subscription.getStartDate());
+    assertEquals(contract.getEndDate(), subscription.getEndDate());
+    assertEquals(contract.getBillingProvider(), subscription.getBillingProvider().getValue());
+    assertEquals(contract.getBillingAccountId(), subscription.getBillingAccountId());
+    assertEquals(contract.getOrgId(), subscription.getOrgId());
+    assertEquals(1, subscription.getSubscriptionProductIds().size());
+    var productId = subscription.getSubscriptionProductIds().stream().findFirst().orElseThrow();
+    assertEquals(contract.getProductId(), productId.getProductId());
+    var measurement = subscription.getSubscriptionMeasurements().get(0);
+    assertEquals(metric.getMetricId(), measurement.getMetricId());
+    assertEquals(metric.getValue(), measurement.getValue());
+    assertEquals("PHYSICAL", measurement.getMeasurementType());
   }
 }

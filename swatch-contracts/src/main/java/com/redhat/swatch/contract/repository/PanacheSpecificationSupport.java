@@ -23,6 +23,7 @@ package com.redhat.swatch.contract.repository;
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Page;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Mixin providing specification support to Panache-based repositories.
@@ -50,5 +51,9 @@ public interface PanacheSpecificationSupport<Entity, Id> extends PanacheReposito
 
   default List<Entity> find(Class<Entity> clazz, Specification<Entity> specification) {
     return find(clazz, specification, null);
+  }
+
+  default Optional<Entity> findOne(Class<Entity> clazz, Specification<Entity> specification) {
+    return find(clazz, specification, null).stream().findFirst();
   }
 }

@@ -33,9 +33,11 @@ import java.util.stream.Collectors;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.TallyInstanceViewRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
@@ -44,12 +46,15 @@ import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
+import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
 import org.candlepin.subscriptions.utilization.api.model.CloudProvider;
 import org.candlepin.subscriptions.utilization.api.model.InstanceData;
+import org.candlepin.subscriptions.utilization.api.model.InstanceGuestReport;
 import org.candlepin.subscriptions.utilization.api.model.InstanceMeta;
 import org.candlepin.subscriptions.utilization.api.model.InstanceReportSort;
 import org.candlepin.subscriptions.utilization.api.model.InstanceResponse;
+import org.candlepin.subscriptions.utilization.api.model.MetaCount;
 import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.candlepin.subscriptions.utilization.api.model.PageLinks;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
@@ -69,6 +74,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class InstancesResource implements InstancesApi {
 
   private final TallyInstanceViewRepository repository;
+  private final HostRepository hostRepository;
   private final PageLinkCreator pageLinkCreator;
   private final TagProfile tagProfile;
 
@@ -97,11 +103,32 @@ public class InstancesResource implements InstancesApi {
 
   public InstancesResource(
       TallyInstanceViewRepository tallyInstanceViewRepository,
+      HostRepository hostRepository,
       PageLinkCreator pageLinkCreator,
       TagProfile tagProfile) {
     this.repository = tallyInstanceViewRepository;
+    this.hostRepository = hostRepository;
     this.pageLinkCreator = pageLinkCreator;
     this.tagProfile = tagProfile;
+  }
+
+  @Override
+  @ReportingAccessRequired
+  public InstanceGuestReport getInstanceGuests(String instanceId, Integer offset, Integer limit) {
+    String orgId = ResourceUtils.getOrgId();
+    Pageable page = ResourceUtils.getPageable(offset, limit);
+    Page<Host> guests = hostRepository.getGuestHostsByHypervisorInstanceId(orgId, instanceId, page);
+    PageLinks links;
+    if (offset != null || limit != null) {
+      links = pageLinkCreator.getPaginationLinks(uriInfo, guests);
+    } else {
+      links = null;
+    }
+
+    return new InstanceGuestReport()
+        .links(links)
+        .meta(new MetaCount().count((int) guests.getTotalElements()))
+        .data(guests.getContent().stream().map(Host::asApiHost).toList());
   }
 
   @Override

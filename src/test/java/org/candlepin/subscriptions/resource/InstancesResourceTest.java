@@ -33,10 +33,13 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
 import javax.ws.rs.BadRequestException;
-import org.candlepin.subscriptions.db.AccountListSource;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
+import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.TallyInstanceViewRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.TallyInstanceViewKey;
@@ -60,13 +63,14 @@ import org.springframework.test.context.ActiveProfiles;
 class InstancesResourceTest {
 
   @MockBean TallyInstanceViewRepository repository;
+  @MockBean HostRepository hostRepository;
   @MockBean PageLinkCreator pageLinkCreator;
-  @MockBean AccountListSource accountListSource;
+  @MockBean AccountConfigRepository accountConfigRepository;
   @Autowired InstancesResource resource;
 
   @BeforeEach
   public void setup() throws AccountListSourceException {
-    when(accountListSource.containsReportingAccount("account123456")).thenReturn(true);
+    when(accountConfigRepository.existsByOrgId("owner123456")).thenReturn(true);
   }
 
   @Test
@@ -434,5 +438,22 @@ class InstancesResourceTest {
             any(),
             any(),
             any());
+  }
+
+  @Test
+  void testGetInstanceGuestsReturnInstanceData() {
+    var host = new Host();
+    host.setOrgId("owner123456");
+    host.setInstanceId("instance123");
+    host.setHardwareType(HostHardwareType.CLOUD.PHYSICAL);
+
+    Mockito.when(
+            hostRepository.getGuestHostsByHypervisorInstanceId(
+                eq(host.getOrgId()), eq(host.getInstanceId()), any()))
+        .thenReturn(new PageImpl<>(List.of(host)));
+
+    var response = resource.getInstanceGuests(host.getInstanceId(), null, null);
+
+    assertEquals(1, response.getData().size());
   }
 }

@@ -106,7 +106,10 @@
     <!--    <include file="/liquibase/202305261600-rollback-update-remittance-table-for-history.xml" />-->
     <include file="/liquibase/202305231247-update-host-pk-for-dup-violation.xml"/>
     <include file="liquibase/202305031403-create-subscription-measurements-table.xml"/>
+    <include file="liquibase/202306201611-add-subscription-id-index-for-measurements.xml"/>
     <!-- Uncomment once subscription-measurements has been verified -->
     <!-- <include file="liquibase/202305251412-drop-subscription-capacity-table.xml"/> -->
+    <include file="liquibase/202306151541-add-sku-foreign-key-to-subscription.xml"/>
+    <include file="liquibase/202306291611-add-extra-index-for-product-ids.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

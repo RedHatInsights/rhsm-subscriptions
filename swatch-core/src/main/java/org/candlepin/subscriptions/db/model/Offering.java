@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.db.model;
 
 import java.io.Serializable;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import javax.persistence.CollectionTable;
 import javax.persistence.Column;
@@ -30,7 +31,13 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.Table;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 /**
  * Represents a product Offering that can be provided by a Subscription.
@@ -38,7 +45,6 @@ import lombok.*;
  * <p>Offerings are identified by SKU.
  */
 @Entity
-@EqualsAndHashCode
 @Getter
 @Setter
 @ToString
@@ -145,5 +151,47 @@ public class Offering implements Serializable {
 
   public Boolean getHasUnlimitedUsage() {
     return hasUnlimitedUsage;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof Offering)) {
+      return false;
+    }
+    Offering offering = (Offering) o;
+    return Objects.equals(sku, offering.sku)
+        && Objects.equals(productName, offering.productName)
+        && Objects.equals(description, offering.description)
+        && Objects.equals(productFamily, offering.productFamily)
+        && Objects.equals(cores, offering.cores)
+        && Objects.equals(sockets, offering.sockets)
+        && Objects.equals(hypervisorCores, offering.hypervisorCores)
+        && Objects.equals(hypervisorSockets, offering.hypervisorSockets)
+        && Objects.equals(role, offering.role)
+        && serviceLevel == offering.serviceLevel
+        && usage == offering.usage
+        && Objects.equals(hasUnlimitedUsage, offering.hasUnlimitedUsage)
+        && Objects.equals(derivedSku, offering.derivedSku);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        sku,
+        productName,
+        description,
+        productFamily,
+        cores,
+        sockets,
+        hypervisorCores,
+        hypervisorSockets,
+        role,
+        serviceLevel,
+        usage,
+        hasUnlimitedUsage,
+        derivedSku);
   }
 }
