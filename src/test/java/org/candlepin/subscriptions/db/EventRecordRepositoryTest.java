@@ -164,10 +164,10 @@ class EventRecordRepositoryTest {
 
     List<EventRecord> found =
         repository
-            .findByOrgIdAndEventSourceAndEventTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+            .findByOrgIdAndEventSourceAndEventTypeIsInAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
                 e1.getOrgId(),
                 e1.getEventSource(),
-                e1.getEventType(),
+                List.of(e1.getEventType()),
                 OffsetDateTime.now(CLOCK).minusYears(1),
                 OffsetDateTime.now(CLOCK).plusYears(1))
             .collect(Collectors.toList());

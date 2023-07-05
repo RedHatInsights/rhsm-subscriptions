@@ -141,7 +141,7 @@ public class PrometheusMeteringController {
                 eventController.mapEventsInTimeRange(
                     orgId,
                     MeteringEventFactory.EVENT_SOURCE,
-                    MeteringEventFactory.getEventType(tagMetric.get().getMetricId()),
+                    MeteringEventFactory.getEventType(tagMetric.get()),
                     // We need to shift the start and end dates by the step, to account for the
                     // shift in the event start date when it is created. See note about eventDate
                     // below.
@@ -256,7 +256,7 @@ public class PrometheusMeteringController {
         new EventKey(
             orgId,
             MeteringEventFactory.EVENT_SOURCE,
-            MeteringEventFactory.getEventType(metricId),
+            MeteringEventFactory.getOldEventType(metricId),
             instanceId,
             measuredDate);
     Event event = existing.remove(lookupKey);

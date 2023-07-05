@@ -78,7 +78,7 @@ class MeteringEventFactoryTest {
     assertEquals(Sla.PREMIUM, event.getSla());
     assertEquals(Usage.PRODUCTION, event.getUsage());
     assertEquals(MeteringEventFactory.EVENT_SOURCE, event.getEventSource());
-    assertEquals(MeteringEventFactory.getEventType(metricId), event.getEventType());
+    assertEquals(MeteringEventFactory.getOldEventType(metricId), event.getEventType());
     assertEquals(serviceType, event.getServiceType());
     assertEquals(1, event.getMeasurements().size());
     Measurement measurement = event.getMeasurements().get(0);
@@ -343,9 +343,9 @@ class MeteringEventFactoryTest {
 
   @Test
   void testEventTypeGeneration() {
-    assertEquals("snapshot_my-metric", MeteringEventFactory.getEventType("my-metric"));
-    assertEquals("snapshot", MeteringEventFactory.getEventType(null));
-    assertEquals("snapshot", MeteringEventFactory.getEventType(""));
+    assertEquals("snapshot_my-metric", MeteringEventFactory.getOldEventType("my-metric"));
+    assertEquals("snapshot", MeteringEventFactory.getOldEventType(null));
+    assertEquals("snapshot", MeteringEventFactory.getOldEventType(""));
   }
 
   @Test

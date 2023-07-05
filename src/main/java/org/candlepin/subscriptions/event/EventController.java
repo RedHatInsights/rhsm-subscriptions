@@ -72,10 +72,10 @@ public class EventController {
   public Map<EventKey, Event> mapEventsInTimeRange(
       String orgId,
       String eventSource,
-      String eventType,
+      List<String> eventType,
       OffsetDateTime begin,
       OffsetDateTime end) {
-    return repo.findByOrgIdAndEventSourceAndEventTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+    return repo.findByOrgIdAndEventSourceAndEventTypeIsInAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
             orgId, eventSource, eventType, begin, end)
         .map(EventRecord::getEvent)
         .collect(Collectors.toMap(EventKey::fromEvent, Function.identity()));
