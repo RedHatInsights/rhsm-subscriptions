@@ -50,7 +50,6 @@ import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.MissingOfferingException;
 import org.candlepin.subscriptions.product.OfferingSyncController;
@@ -109,8 +108,6 @@ class SubscriptionSyncControllerTest {
 
   @Captor ArgumentCaptor<Iterable<Subscription>> subscriptionsCaptor;
 
-  @Captor ArgumentCaptor<SubscriptionMeasurement> measurementCaptor;
-
   private OffsetDateTime rangeStart = OffsetDateTime.now().minusDays(5);
   private OffsetDateTime rangeEnd = OffsetDateTime.now().plusDays(5);
 
@@ -120,9 +117,13 @@ class SubscriptionSyncControllerTest {
 
   @BeforeEach
   void setUp() {
-    Mockito.when(offeringRepository.findById(Mockito.anyString()))
-        .thenReturn(
-            Optional.of(Offering.builder().productIds(new HashSet<>(Arrays.asList(68))).build()));
+    var offering =
+        Offering.builder()
+            .sku("testsku")
+            .productName("RHEL")
+            .productIds(new HashSet<>(List.of(68)))
+            .build();
+    Mockito.when(offeringRepository.getReferenceById("testsku")).thenReturn(offering);
   }
 
   @Test
@@ -205,6 +206,8 @@ class SubscriptionSyncControllerTest {
   void shouldSyncSubscriptionsSyncSubIfRecent() {
     when(denylist.productIdMatches(any())).thenReturn(false);
     Mockito.when(offeringRepository.existsById(any())).thenReturn(true);
+    Mockito.when(offeringRepository.getReferenceById("testsku"))
+        .thenReturn(Offering.builder().sku("testsku").productName("RHEL").build());
 
     // When syncing an org's subs, a sub should be synced if it is within effective*Dates
     var dto = createDto("456", 10);
