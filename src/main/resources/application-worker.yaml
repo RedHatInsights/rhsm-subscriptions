@@ -1,7 +1,7 @@
 TASKS_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.tasks')].name:platform.rhsm-subscriptions.tasks}
 TALLY_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.tally')].name:platform.rhsm-subscriptions.tally}
 BILLABLE_USAGE_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.billable-usage')].name:platform.rhsm-subscriptions.billable-usage}
-
+SERVICE_INSTANCE_INGRESS_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.service-instance-ingress')].name:platform.rhsm-subscriptions.service-instance-ingress}
 rhsm-subscriptions:
   hourlyTallyDurationLimitDays: 90d
   inventory-service:
@@ -36,6 +36,13 @@ rhsm-subscriptions:
     back-off-multiplier: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_MULTIPLIER:2}
     max-attempts: ${TALLY_SUMMARY_PRODUCER_MAX_ATTEMPTS:5}
     topic: ${TALLY_TOPIC}
+  service-instance-ingress:
+    incoming:
+      topic: ${SERVICE_INSTANCE_INGRESS_TOPIC}
+      kafka-group-id: swatch-instance-ingress
+      seek-override-end: ${SERVICE_INSTANCE_INGRESS_KAFKA_SEEK_OVERRIDE_END:false}
+      seek-override-timestamp: ${SERVICE_INSTANCE_INGRESS_KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
+      max-poll-records: ${SERVICE_INSTANCE_INGRESS_KAFKA_MAX_POLL_RECORDS:500}
   billing-producer:
     back-off-initial-interval: ${BILLING_PRODUCER_BACK_OFF_INITIAL_INTERVAL:1s}
     back-off-max-interval: ${BILLING_PRODUCER_BACK_OFF_MAX_INTERVAL:1m}
