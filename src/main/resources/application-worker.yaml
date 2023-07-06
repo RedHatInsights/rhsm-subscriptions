@@ -32,6 +32,11 @@ rhsm-subscriptions:
     # Four year's worth
     quarterly: ${TALLY_RETENTION_QUARTERLY:16}
     yearly: ${TALLY_RETENTION_YEARLY:5}
+  remittance-retention-policy:
+    # 70 days worth
+    hourly: ${REMITTANCE_RETENTION_HOURLY:1680}
+    # A year and change
+    daily: ${REMITTANCE_RETENTION_DAILY:370}
   tally-summary-producer:
     back-off-initial-interval: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_INITIAL_INTERVAL:1s}
     back-off-max-interval: ${TALLY_SUMMARY_PRODUCER_BACK_OFF_MAX_INTERVAL:1m}

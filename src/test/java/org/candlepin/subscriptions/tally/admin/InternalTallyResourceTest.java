@@ -29,6 +29,7 @@ import java.time.OffsetDateTime;
 import javax.ws.rs.BadRequestException;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.retention.RemittanceRetentionController;
 import org.candlepin.subscriptions.retention.TallyRetentionController;
 import org.candlepin.subscriptions.security.SecurityProperties;
 import org.candlepin.subscriptions.tally.MarketplaceResendTallyController;
@@ -51,6 +52,7 @@ class InternalTallyResourceTest {
   @Mock private TallySnapshotController snapshotController;
   @Mock private CaptureSnapshotsTaskManager snapshotTaskManager;
   @Mock private TallyRetentionController tallyRetentionController;
+  @Mock private RemittanceRetentionController remittanceRetentionController;
   @Mock private InternalTallyDataController internalTallyDataController;
 
   private InternalTallyResource resource;
@@ -71,6 +73,7 @@ class InternalTallyResourceTest {
             snapshotController,
             snapshotTaskManager,
             tallyRetentionController,
+            remittanceRetentionController,
             internalTallyDataController,
             properties);
   }
@@ -142,5 +145,13 @@ class InternalTallyResourceTest {
     resource.performHourlyTallyForOrg("org1", start, end, false);
     verify(snapshotTaskManager).tallyOrgByHourly("org1", new DateRange(start, end));
     verifyNoInteractions(snapshotController);
+  }
+
+  @Test
+  void testPurgeRemittances() {
+    OffsetDateTime start = clock.startOfCurrentHour();
+    OffsetDateTime end = start.plusHours(1L);
+    resource.purgeRemittances();
+    verify(remittanceRetentionController).purgeRemittancesAsync();
   }
 }
