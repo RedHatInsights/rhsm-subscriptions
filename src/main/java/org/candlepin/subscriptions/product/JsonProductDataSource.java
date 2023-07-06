@@ -37,11 +37,7 @@ import org.candlepin.subscriptions.product.api.model.EngineeringProductMap;
 import org.candlepin.subscriptions.product.api.model.RESTProductTree;
 import org.candlepin.subscriptions.product.api.model.SkuEngProduct;
 
-/**
- * Data source for product data that uses static JSON.
- *
- * @see OfferingJmxBean#saveOfferings(String, String, String, boolean)
- */
+/** Data source for product data that uses static JSON. */
 class JsonProductDataSource implements ProductDataSource {
   private final Map<String, RESTProductTree> productTreeMap;
   private final Map<String, RESTProductTree> derivedProductTreeMap;

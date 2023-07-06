@@ -43,7 +43,6 @@ METRICS_PROMETHEUS_PATH: ${clowder.metricsPath:/metrics}
 METRICS_BASE_PATH: /
 METRICS_SERVER_PORT: ${clowder.metricsPort:9000}
 
-JMX_ENABLED: true
 JDBC_BATCH_SIZE: 128
 KAFKA_MESSAGE_THREADS: 1
 KAFKA_IDLE_EVENT_INTERVAL: 5s
@@ -51,12 +50,6 @@ KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS: 1800000
 KAFKA_CONSUMER_RECONNECT_BACKOFF_MS: 2000
 KAFKA_CONSUMER_RECONNECT_BACKOFF_MAX_MS: 10000
 KAFKA_API_RECONNECT_TIMEOUT_MS: 480000
-
-HAWTIO_DISABLE_PROXY: true
-HAWTIO_AUTHENTICATION_ENABLED: false
-HAWTIO_PROXY_ALLOWLIST: localhost,127.0.0.1
-HAWTIO_LOCAL_ADDRESS_PROBING: true
-HAWTIO_BASE_PATH:
 
 DEV_MODE: false
 DEVTEST_SUBSCRIPTION_EDITING_ENABLED: true
@@ -86,10 +79,8 @@ management:
     web:
       exposure:
         include:
-          - hawtio
           - health
           - info
-          - jolokia
           - prometheus
       path-mapping:
         prometheus: ${METRICS_PROMETHEUS_PATH}
@@ -107,8 +98,6 @@ management:
         enabled: true
 
 spring:
-  jmx:
-    enabled: ${JMX_ENABLED}
   # general hibernate configurations
   jpa:
     properties:
@@ -136,16 +125,6 @@ spring:
       # if no offset commit exists yet, set to earliest
       auto-offset-reset: earliest
       max-poll-records: 1
-
-# See https://hawt.io/docs/configuration/ for details on built-in hawtio config
-hawtio:
-  # disable the remote connection tab, we do not need it
-  disableProxy: ${HAWTIO_DISABLE_PROXY}
-  authenticationEnabled: ${HAWTIO_AUTHENTICATION_ENABLED}
-  proxyAllowlist: ${HAWTIO_PROXY_ALLOWLIST}
-  localAddressProbing: ${HAWTIO_LOCAL_ADDRESS_PROBING}
-  # Base path override for reverse proxy support
-  hawtio-base-path: ${HAWTIO_BASE_PATH}
 
 rhsm-subscriptions:
   security:

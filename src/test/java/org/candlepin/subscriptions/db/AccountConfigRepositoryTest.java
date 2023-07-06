@@ -57,7 +57,7 @@ class AccountConfigRepositoryTest {
     AccountConfig config = new AccountConfig();
     config.setAccountNumber(account);
     config.setOrgId("test-og");
-    config.setOptInType(OptInType.JMX);
+    config.setOptInType(OptInType.API);
     config.setCreated(creation);
     config.setUpdated(expectedUpdate);
 

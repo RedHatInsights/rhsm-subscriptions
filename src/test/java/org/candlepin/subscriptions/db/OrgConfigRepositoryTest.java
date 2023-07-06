@@ -59,7 +59,7 @@ class OrgConfigRepositoryTest {
 
     String org = "test-org";
     OrgConfig config = new OrgConfig(org);
-    config.setOptInType(OptInType.JMX);
+    config.setOptInType(OptInType.API);
     config.setCreated(creation);
     config.setUpdated(expectedUpdate);
 

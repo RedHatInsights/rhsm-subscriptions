@@ -11,8 +11,6 @@ parameters:
     value: env-swatch-subscription-sync
   - name: DEV_MODE
     value: 'false'
-  - name: CAPACITY_INGRESS_HAWTIO_BASE_PATH
-    value: /app/rhsm-capacity-ingress/hawtio
   - name: LOGGING_LEVEL_ROOT
     value: WARN
   - name: LOGGING_LEVEL
@@ -248,10 +246,6 @@ objects:
               value: capacity-ingress,kafka-queue
             - name: SUBSCRIPTION_SYNC_ENABLED
               value: ${SUBSCRIPTION_SYNC_ENABLED}
-            - name: AB_JOLOKIA_OFF
-              value: 'true'
-            - name: HAWTIO_BASE_PATH
-              value: ${CAPACITY_INGRESS_HAWTIO_BASE_PATH}
             - name: LOG_FILE
               value: /logs/server.log
             - name: JAVA_MAX_MEM_RATIO

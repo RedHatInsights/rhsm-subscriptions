@@ -215,7 +215,7 @@ public class ApiSecurityConfiguration {
               requests.antMatchers(URLS_PERMITTED_WITHOUT_AUTH).permitAll();
               requests.requestMatchers(this::isDummyRequest).permitAll();
               requests
-                  .requestMatchers(EndpointRequest.to("health", "info", "prometheus", "hawtio"))
+                  .requestMatchers(EndpointRequest.to("health", "info", "prometheus"))
                   .permitAll();
 
               /* Values assigned to management.path-mapping.* shouldn't have a leading slash. However, Clowder

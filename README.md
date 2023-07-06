@@ -61,7 +61,7 @@ Networking diagrams show how requests are routed:
 <details>
 <summary>Admin/Internal API</summary>
 
-![Networking diagram for internal APIs](docs/networking-jolokia-api.svg)
+![Networking diagram for internal APIs](docs/networking-internal-api.svg)
 </details>
 
 ## Deployment
@@ -204,8 +204,6 @@ can vary based on an environment variable given to the pod.
 These are served on port 9000. When running locally, you can access them via
 http://localhost:9000.
 
-* /jolokia - REST access to JMX beans via Jolokia
-* /hawtio - Admin UI interface to JMX beans and more
 * /health - A Spring Actuator that we use as k8s
   liveness/readiness probe.
 * /info - An actuator that reads the information from
@@ -233,8 +231,8 @@ RHSM_RBAC_USE_STUB=true ./gradlew bootRun
 ### Environment Variables
 
 * `DEV_MODE`: disable anti-CSRF, account filtering, and RBAC role check
-* `DEVTEST_SUBSCRIPTION_EDITING_ENABLED`: allow subscription/offering edits via JMX.
-* `DEVTEST_EVENT_EDITING_ENABLED`: allow event edits via JMX.
+* `DEVTEST_SUBSCRIPTION_EDITING_ENABLED`: allow subscription/offering edits via internal APIs.
+* `DEVTEST_EVENT_EDITING_ENABLED`: allow event edits via internal APIs.
 * `PRETTY_PRINT_JSON`: configure Jackson to indent outputted JSON
 * `APP_NAME`: application name for URLs (default: rhsm-subscriptions)
 * `PATH_PREFIX`: path prefix in the URLs (default: api)

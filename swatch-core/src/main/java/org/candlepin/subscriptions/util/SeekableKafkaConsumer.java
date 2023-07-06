@@ -31,17 +31,14 @@ import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jmx.export.annotation.ManagedOperation;
-import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.kafka.listener.AbstractConsumerSeekAware;
 
 /**
  * Abstract class that adds seeking functionality to a KafkaListener.
  *
- * <p>Specifically, exposes some Spring Kafka seeking methods to JMX and uses configuration to
- * optionally seek on startup to either the end of a kafka topic, or to a specific timestamp.
+ * <p>Specifically, exposes some Spring Kafka seeking methods and uses configuration to optionally
+ * seek on startup to either the end of a kafka topic, or to a specific timestamp.
  */
-@ManagedResource
 public abstract class SeekableKafkaConsumer extends AbstractConsumerSeekAware {
 
   private static final Logger log = LoggerFactory.getLogger(SeekableKafkaConsumer.class);
@@ -100,7 +97,6 @@ public abstract class SeekableKafkaConsumer extends AbstractConsumerSeekAware {
     }
   }
 
-  @ManagedOperation
   @Override
   public void seekToEnd() {
     log.info("Seeking all consumers for {} to the end", topic);
@@ -108,18 +104,10 @@ public abstract class SeekableKafkaConsumer extends AbstractConsumerSeekAware {
     needsCommit = true;
   }
 
-  @ManagedOperation
   @Override
   public void seekToBeginning() {
     log.info("Seeking all consumers for {} to the beginning", topic);
     super.seekToBeginning();
-    needsCommit = true;
-  }
-
-  @ManagedOperation
-  public void seekToTimestamp(OffsetDateTime timestamp) {
-    log.info("Seeking all consumers for {} to {}", topic, timestamp);
-    seekToTimestamp(timestamp.toInstant().toEpochMilli());
     needsCommit = true;
   }
 }

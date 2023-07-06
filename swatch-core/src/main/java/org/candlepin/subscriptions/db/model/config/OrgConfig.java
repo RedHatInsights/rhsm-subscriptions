@@ -42,14 +42,6 @@ public class OrgConfig extends BaseConfig {
     this.orgId = orgId;
   }
 
-  public static OrgConfig fromJmx(String orgId, OffsetDateTime timestamp) {
-    OrgConfig orgConfig = new OrgConfig(orgId);
-    orgConfig.setOptInType(OptInType.JMX);
-    orgConfig.setCreated(timestamp);
-    orgConfig.setUpdated(timestamp);
-    return orgConfig;
-  }
-
   public static OrgConfig fromInternalApi(String orgId, OffsetDateTime timestamp) {
     OrgConfig orgConfig = new OrgConfig(orgId);
     orgConfig.setOptInType(OptInType.INTERNAL_API);

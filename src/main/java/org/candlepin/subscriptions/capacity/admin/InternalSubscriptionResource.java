@@ -115,7 +115,7 @@ public class InternalSubscriptionResource implements InternalApi {
     }
     try {
       Object principal = ResourceUtils.getPrincipal();
-      log.info("Save of new subscriptions triggered over JMX by {}", principal);
+      log.info("Save of new subscriptions triggered over internal API by {}", principal);
       subscriptionSyncController.saveSubscriptions(subscriptionsJson, reconcileCapacity);
       response.setDetail(SUCCESS_STATUS);
     } catch (Exception e) {
