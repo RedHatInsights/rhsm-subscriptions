@@ -82,7 +82,7 @@ public class TallyInstanceView implements Serializable {
   @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(
       name = "instance_monthly_totals",
-      joinColumns = @JoinColumn(name = "instance_id", referencedColumnName = "id"))
+      joinColumns = @JoinColumn(name = "host_id", referencedColumnName = "id"))
   @Column(name = "value")
   private Map<InstanceMonthlyTotalKey, Double> monthlyTotals = new HashMap<>();
 

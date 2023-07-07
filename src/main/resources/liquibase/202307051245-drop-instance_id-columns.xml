@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202307051245-1" author="khowell" dbms="postgresql">
+        <comment>Drop instance_measurements.instance_id.</comment>
+        <dropColumn tableName="instance_measurements" columnName="instance_id"/>
+        <rollback>
+            alter table instance_measurements add column instance_id varchar generated always as (host_id) stored;
+        </rollback>
+    </changeSet>
+    <changeSet id="202307051245-2" author="khowell" dbms="postgresql">
+        <comment>Drop instance_monthly_totals.instance_id.</comment>
+        <dropColumn tableName="instance_monthly_totals" columnName="instance_id"/>
+        <rollback>
+            alter table instance_monthly_totals add column instance_id varchar generated always as (host_id) stored;
+        </rollback>
+    </changeSet>
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->

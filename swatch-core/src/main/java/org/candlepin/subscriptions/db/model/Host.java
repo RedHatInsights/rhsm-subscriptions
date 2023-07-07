@@ -93,16 +93,14 @@ public class Host implements Serializable {
   private String subscriptionManagerId;
 
   @ElementCollection(fetch = FetchType.EAGER)
-  @CollectionTable(name = "instance_measurements", joinColumns = @JoinColumn(name = "instance_id"))
+  @CollectionTable(name = "instance_measurements", joinColumns = @JoinColumn(name = "host_id"))
   @MapKeyEnumerated(EnumType.STRING)
   @MapKeyColumn(name = "uom")
   @Column(name = "value")
   private Map<Measurement.Uom, Double> measurements = new EnumMap<>(Measurement.Uom.class);
 
   @ElementCollection(fetch = FetchType.EAGER)
-  @CollectionTable(
-      name = "instance_monthly_totals",
-      joinColumns = @JoinColumn(name = "instance_id"))
+  @CollectionTable(name = "instance_monthly_totals", joinColumns = @JoinColumn(name = "host_id"))
   @Column(name = "value")
   private Map<InstanceMonthlyTotalKey, Double> monthlyTotals = new HashMap<>();
 
