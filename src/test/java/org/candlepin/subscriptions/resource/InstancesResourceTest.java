@@ -24,7 +24,6 @@ import static org.candlepin.subscriptions.utilization.api.model.ProductId.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -95,8 +94,6 @@ class InstancesResourceTest {
                 any(),
                 any(),
                 any(),
-                anyInt(),
-                anyInt(),
                 any(),
                 any(),
                 any(),
@@ -195,8 +192,6 @@ class InstancesResourceTest {
                 any(),
                 any(),
                 any(),
-                anyInt(),
-                anyInt(),
                 any(),
                 any(),
                 any(),
@@ -284,8 +279,6 @@ class InstancesResourceTest {
                 any(),
                 any(),
                 any(),
-                anyInt(),
-                anyInt(),
                 any(),
                 any(),
                 any(),
@@ -380,8 +373,6 @@ class InstancesResourceTest {
                 any(),
                 any(),
                 any(),
-                anyInt(),
-                anyInt(),
                 any(),
                 any(),
                 any(),
@@ -413,8 +404,6 @@ class InstancesResourceTest {
                 any(),
                 any(),
                 any(),
-                anyInt(),
-                anyInt(),
                 any(),
                 any(),
                 any(),
@@ -430,8 +419,6 @@ class InstancesResourceTest {
             any(),
             any(),
             any(),
-            anyInt(),
-            anyInt(),
             eq(null),
             any(),
             any(),
@@ -455,5 +442,80 @@ class InstancesResourceTest {
     var response = resource.getInstanceGuests(host.getInstanceId(), null, null);
 
     assertEquals(1, response.getData().size());
+  }
+
+  @Test
+  void testCoresAndSocketReportPopulation() {
+    BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
+
+    var tallyInstanceView = new TallyInstanceView();
+    tallyInstanceView.setKey(new TallyInstanceViewKey());
+    tallyInstanceView.setId("testHostId");
+    tallyInstanceView.setDisplayName("rhv.example.com");
+    tallyInstanceView.setCores(4);
+    tallyInstanceView.setSockets(2);
+    tallyInstanceView.setLastSeen(OffsetDateTime.now());
+    tallyInstanceView.getKey().setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
+    tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
+    tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
+    tallyInstanceView.getKey().setUom(Measurement.Uom.CORES);
+
+    Mockito.when(
+            repository.findAllBy(
+                eq("owner123456"),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any()))
+        .thenReturn(new PageImpl<>(List.of(tallyInstanceView)));
+
+    var expectUom = List.of("Cores", "Sockets");
+    List<Double> expectedMeasurement = List.of(4.0, 2.0);
+    var data = new InstanceData();
+    data.setId("testHostId");
+    data.setInstanceId(tallyInstanceView.getKey().getInstanceId().toString());
+    data.setDisplayName(tallyInstanceView.getDisplayName());
+    data.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
+    data.setLastSeen(tallyInstanceView.getLastSeen());
+    data.setMeasurements(expectedMeasurement);
+    data.setNumberOfGuests(tallyInstanceView.getNumOfGuests());
+    data.setCategory(ReportCategory.VIRTUAL);
+
+    var meta = new InstanceMeta();
+    meta.setCount(1);
+    meta.setProduct(OPENSHIFT_CONTAINER_PLATFORM);
+    meta.setServiceLevel(ServiceLevelType.PREMIUM);
+    meta.setUsage(UsageType.PRODUCTION);
+    meta.setMeasurements(expectUom);
+    meta.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
+
+    var expected = new InstanceResponse();
+    expected.setData(List.of(data));
+    expected.setMeta(meta);
+
+    InstanceResponse report =
+        resource.getInstancesByProduct(
+            OPENSHIFT_CONTAINER_PLATFORM,
+            null,
+            null,
+            ServiceLevelType.PREMIUM,
+            UsageType.PRODUCTION,
+            null,
+            expectedBillingProvider.asOpenApiEnum(),
+            null,
+            null,
+            null,
+            null,
+            null,
+            InstanceReportSort.DISPLAY_NAME,
+            null);
+
+    assertEquals(expected, report);
   }
 }

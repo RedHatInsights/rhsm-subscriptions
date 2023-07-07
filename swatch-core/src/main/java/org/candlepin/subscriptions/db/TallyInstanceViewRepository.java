@@ -61,8 +61,6 @@ public interface TallyInstanceViewRepository
    * @param usage The bucket usage to filter Hosts by (pass null to ignore).
    * @param displayNameSubstring Case-insensitive string to filter Hosts' display name by (pass null
    *     or empty string to ignore)
-   * @param minCores Filter to Hosts with at least this number of cores.
-   * @param minSockets Filter to Hosts with at least this number of sockets.
    * @param month Filter to Hosts with with monthly instance totals in provided month
    * @param referenceUom Uom used when filtering to a specific month.
    * @param pageable the current paging info for this query.
@@ -75,8 +73,6 @@ public interface TallyInstanceViewRepository
       ServiceLevel sla,
       Usage usage,
       @NotNull String displayNameSubstring,
-      int minCores,
-      int minSockets,
       String month,
       Uom referenceUom,
       BillingProvider billingProvider,
@@ -90,8 +86,6 @@ public interface TallyInstanceViewRepository
             sla,
             usage,
             displayNameSubstring,
-            minCores,
-            minSockets,
             month,
             referenceUom,
             billingProvider,
@@ -183,6 +177,10 @@ public interface TallyInstanceViewRepository
     };
   }
 
+  static Specification<TallyInstanceView> valueGreaterThanZero() {
+    return (root, query, builder) -> builder.greaterThan(root.get(TallyInstanceView_.VALUE), 0);
+  }
+
   @SuppressWarnings("java:S107")
   default Specification<TallyInstanceView> buildSearchSpecification(
       String orgId,
@@ -190,8 +188,6 @@ public interface TallyInstanceViewRepository
       ServiceLevel sla,
       Usage usage,
       String displayNameSubstring,
-      int minCores,
-      int minSockets,
       String month,
       Uom referenceUom,
       BillingProvider billingProvider,
@@ -203,7 +199,6 @@ public interface TallyInstanceViewRepository
      * first specification method we call returns null which is does because we're using the
      * Specification call to set the query to return distinct results */
     var searchCriteria = Specification.where(distinct());
-    searchCriteria = searchCriteria.and(socketsAndCoresGreaterThanOrEqualTo(minCores, minSockets));
 
     if (Objects.nonNull(orgId)) {
       searchCriteria = searchCriteria.and(orgEquals(orgId));
@@ -227,7 +222,13 @@ public interface TallyInstanceViewRepository
       searchCriteria = searchCriteria.and(displayNameContains(displayNameSubstring));
     }
     if (Objects.nonNull(effectiveUom)) {
-      searchCriteria = searchCriteria.and(uomEquals(effectiveUom));
+      searchCriteria =
+          searchCriteria
+              .and(uomEquals(effectiveUom))
+              // Instances must have a measurement value greater than zero in order to match a
+              // specific UOM
+              .and(valueGreaterThanZero());
+
       if (StringUtils.hasText(month)) {
         searchCriteria =
             searchCriteria.and(monthlyKeyEquals(new InstanceMonthlyTotalKey(month, effectiveUom)));

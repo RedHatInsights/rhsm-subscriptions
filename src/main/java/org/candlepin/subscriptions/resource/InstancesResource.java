@@ -155,9 +155,6 @@ public class InstancesResource implements InstancesApi {
     Sort.Order implicitOrder = Sort.Order.by("id");
     Sort sortValue = Sort.by(implicitOrder);
 
-    int minCores = 0;
-    int minSockets = 0;
-
     String orgId = ResourceUtils.getOrgId();
     ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
     Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
@@ -202,8 +199,6 @@ public class InstancesResource implements InstancesApi {
             sanitizedSla,
             sanitizedUsage,
             sanitizedDisplayNameSubstring,
-            minCores,
-            minSockets,
             month,
             referenceUom,
             sanitizedBillingProvider,
@@ -285,6 +280,8 @@ public class InstancesResource implements InstancesApi {
     for (String uom : measurements) {
       if (Measurement.Uom.SOCKETS.equals(Measurement.Uom.fromValue(uom))) {
         measurementList.add(Double.valueOf(tallyInstanceView.getSockets()));
+      } else if (Measurement.Uom.CORES.equals(Measurement.Uom.fromValue(uom))) {
+        measurementList.add(Double.valueOf(tallyInstanceView.getCores()));
       } else if (!isPAYG
           && tallyInstanceView.getKey().getUom().equals(Measurement.Uom.fromValue(uom))) {
         measurementList.add(Optional.ofNullable(tallyInstanceView.getValue()).orElse(0.0));

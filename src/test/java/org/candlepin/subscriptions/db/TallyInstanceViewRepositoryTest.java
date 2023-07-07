@@ -83,24 +83,28 @@ class TallyInstanceViewRepositoryTest {
     Host host8 = createHost("inventory8", "account123");
     Host host9 = createHost("inventory9", "account123");
     Host host10 = createHost("inventory10", "account123");
+    Host host11 = createHost("inventory11", "account123");
 
     for (Uom uom : Uom.values()) {
       host8.addToMonthlyTotal(
           OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC), uom, 100.0);
       host8.setMeasurement(uom, 100.0);
       host9.addToMonthlyTotal(
-          OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC), uom, 0.0);
-      host9.setMeasurement(uom, 0.0);
+          OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC), uom, 20.0);
+      host9.setMeasurement(uom, 20.0);
       host10.addToMonthlyTotal(
+          OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC), uom, 0.0);
+      host10.setMeasurement(uom, 0.0);
+      host11.addToMonthlyTotal(
           OffsetDateTime.of(LocalDateTime.of(2021, 2, 1, 0, 0, 0), ZoneOffset.UTC), uom, 50.0);
-      host10.setMeasurement(uom, 50.0);
+      host11.setMeasurement(uom, 50.0);
     }
 
     addBucketToHost(host8, RHEL, ServiceLevel._ANY, Usage._ANY, HardwareMeasurementType.PHYSICAL);
     addBucketToHost(host9, RHEL, ServiceLevel._ANY, Usage._ANY, HardwareMeasurementType.PHYSICAL);
-    addBucketToHost(host10, RHEL, ServiceLevel._ANY, Usage._ANY, HardwareMeasurementType.PHYSICAL);
+    addBucketToHost(host11, RHEL, ServiceLevel._ANY, Usage._ANY, HardwareMeasurementType.PHYSICAL);
 
-    persistHosts(host8, host9, host10).stream()
+    persistHosts(host8, host9, host10, host11).stream()
         .collect(Collectors.toMap(Host::getInventoryId, Function.identity()));
   }
 
@@ -151,8 +155,6 @@ class TallyInstanceViewRepositoryTest {
             ServiceLevel._ANY,
             Usage._ANY,
             "",
-            0,
-            0,
             "2021-01",
             referenceUom,
             BillingProvider._ANY,
@@ -164,7 +166,7 @@ class TallyInstanceViewRepositoryTest {
 
     if (sortValue.equals("monthlyTotals")) {
       List<TallyInstanceView> payload = results.toList();
-      assertEquals(0.0, payload.get(0).getMonthlyTotals().get(0));
+      assertEquals(20.0, payload.get(0).getMonthlyTotals().get(0));
       assertEquals(100.0, payload.get(1).getMonthlyTotals().get(0));
     }
   }
@@ -235,8 +237,6 @@ class TallyInstanceViewRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             "",
-            0,
-            0,
             null,
             Uom.CORES,
             BillingProvider.AWS,
@@ -253,8 +253,6 @@ class TallyInstanceViewRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             "",
-            0,
-            0,
             null,
             Uom.CORES,
             BillingProvider._ANY,
@@ -368,8 +366,6 @@ class TallyInstanceViewRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             "",
-            0,
-            0,
             null,
             Uom.CORES,
             BillingProvider._ANY,
@@ -428,8 +424,6 @@ class TallyInstanceViewRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             "",
-            0,
-            0,
             null,
             Uom.CORES,
             BillingProvider.RED_HAT,
@@ -447,8 +441,6 @@ class TallyInstanceViewRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             "",
-            0,
-            0,
             null,
             Uom.CORES,
             BillingProvider.RED_HAT,
@@ -499,8 +491,6 @@ class TallyInstanceViewRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             "",
-            0,
-            0,
             null,
             Uom.CORES,
             BillingProvider.RED_HAT,
@@ -566,8 +556,6 @@ class TallyInstanceViewRepositoryTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             "",
-            0,
-            0,
             null,
             Uom.CORES,
             BillingProvider.RED_HAT,
