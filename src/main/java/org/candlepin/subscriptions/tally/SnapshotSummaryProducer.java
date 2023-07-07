@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -62,6 +63,7 @@ public class SnapshotSummaryProducer {
     newAndUpdatedSnapshots.forEach(
         (orgId, snapshots) ->
             snapshots.stream()
+                .sorted(Comparator.comparing(TallySnapshot::getSnapshotDate))
                 .map(
                     snapshot ->
                         summaryMapper.mapSnapshots(

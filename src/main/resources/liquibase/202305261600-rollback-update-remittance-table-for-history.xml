@@ -1,0 +1,61 @@
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202305261600-1" author="mstead">
+    <addColumn tableName="billable_usage_remittance">
+      <column name="billing_factor" type="double precision" defaultValueNumeric="1.0"/>
+    </addColumn>
+    <addColumn tableName="billable_usage_remittance">
+    <column name="version" type="INT" defaultValueNumeric="1"/>
+    </addColumn>
+    <dropPrimaryKey tableName="billable_usage_remittance" />
+
+    <sql>
+    insert into billable_usage_remittance
+    select
+      account_number,
+      org_id,
+      product_id,
+      metric_id,
+      accumulation_period,
+      sla,
+      usage,
+      billing_provider,
+      billing_account_id,
+      sum(remitted_pending_value) as remitted_pending_value,
+      max(remittance_pending_date), 'MONTHLY' as granularity,
+      1 as billing_factor,
+      1 as version
+    from billable_usage_remittance
+      where granularity='HOURLY'
+    group by
+      account_number,
+      org_id,
+      product_id,
+      metric_id,
+      accumulation_period,
+      sla,
+      usage,
+      billing_provider,
+      billing_account_id;
+    </sql>
+
+    <delete tableName="billable_usage_remittance">
+      <where>granularity != 'MONTHLY'</where>
+    </delete>
+
+    <renameColumn tableName="billable_usage_remittance" oldColumnName="remittance_pending_date" newColumnName="remittance_date" />
+    <renameColumn tableName="billable_usage_remittance" oldColumnName="remitted_pending_value" newColumnName="remitted_value" />
+
+    <addPrimaryKey
+      constraintName="billable_usage_remittance_pkey"
+      tableName="billable_usage_remittance"
+      columnNames="org_id, product_id, metric_id, accumulation_period, sla, usage, billing_provider, billing_account_id" />
+
+    <dropColumn tableName="billable_usage_remittance" columnName="granularity" />
+  </changeSet>
+</databaseChangeLog>

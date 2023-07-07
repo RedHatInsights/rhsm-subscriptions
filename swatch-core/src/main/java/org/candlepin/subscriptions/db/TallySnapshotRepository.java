@@ -20,10 +20,14 @@
  */
 package org.candlepin.subscriptions.db;
 
+import static org.hibernate.jpa.QueryHints.HINT_FETCH_SIZE;
+import static org.hibernate.jpa.QueryHints.HINT_READONLY;
+
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.UUID;
 import java.util.stream.Stream;
+import javax.persistence.QueryHint;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -35,6 +39,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -134,15 +139,60 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
       @Param("ending") OffsetDateTime ending,
       @Param("measurementKey") TallyMeasurementKey measurementKey);
 
+  @SuppressWarnings("java:S107")
+  @QueryHints(
+      value = {
+        @QueryHint(name = HINT_FETCH_SIZE, value = "1024"),
+        @QueryHint(name = HINT_READONLY, value = "true")
+      })
   @Query(
-      nativeQuery = true,
+      """
+        select s from TallySnapshot s
+        left join s.tallyMeasurements m on key(m) = :measurementKey
+        where s.orgId = :orgId and
+          s.productId = :productId and
+          s.granularity = 'HOURLY' and
+          s.serviceLevel = :serviceLevel and
+          s.usage = :usage and
+          s.billingProvider = :billingProvider and
+          s.billingAccountId = :billingAcctId and
+          s.snapshotDate >= :beginning and s.snapshotDate <= :ending order by s.snapshotDate
+      """)
+  Stream<TallySnapshot> getBillableSnapshots(
+      @Param("orgId") String orgId,
+      @Param("productId") String productId,
+      @Param("serviceLevel") ServiceLevel serviceLevel,
+      @Param("usage") Usage usage,
+      @Param("billingProvider") BillingProvider billingProvider,
+      @Param("billingAcctId") String billingAccountId,
+      @Param("beginning") OffsetDateTime beginning,
+      @Param("ending") OffsetDateTime ending,
+      @Param("measurementKey") TallyMeasurementKey measurementKey);
+
+  @SuppressWarnings("java:S107")
+  @Query(
       value =
-          "select s.* from tally_snapshots s where id in "
-              + "(select distinct first_value(s.id) over "
-              + "(partition by s.account_number, s.sla, s.usage, s.billing_provider, s.billing_account_id, m.uom "
-              + "order by s.snapshot_date desc) from tally_snapshots s "
-              + "inner join tally_measurements m on s.id = m.snapshot_id where s.granularity='HOURLY' "
-              + "and extract(month from s.snapshot_date) = :month and s.sla != '_ANY' and "
-              + "s.usage != '_ANY' and s.billing_provider != '_ANY' and s.billing_account_id != '_ANY');")
-  Stream<TallySnapshot> findLatestBillablesForMonth(@Param("month") int month);
+          """
+    SELECT count(m) > 0 FROM TallySnapshot t
+    left join t.tallyMeasurements m on key(m) = :measurementKey
+    where
+      t.orgId = :orgId and
+      t.productId = :productId and
+      t.granularity = 'HOURLY' and
+      t.serviceLevel = :serviceLevel and
+      t.usage = :usage and
+      t.billingProvider = :billingProvider and
+      t.billingAccountId = :billingAcctId and
+      t.snapshotDate >= :beginning and t.snapshotDate <= :ending
+  """)
+  boolean hasLatestBillables(
+      @Param("orgId") String orgId,
+      @Param("productId") String productId,
+      @Param("serviceLevel") ServiceLevel serviceLevel,
+      @Param("usage") Usage usage,
+      @Param("billingProvider") BillingProvider billingProvider,
+      @Param("billingAcctId") String billingAccountId,
+      @Param("beginning") OffsetDateTime beginning,
+      @Param("ending") OffsetDateTime ending,
+      @Param("measurementKey") TallyMeasurementKey measurementKey);
 }

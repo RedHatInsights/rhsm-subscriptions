@@ -27,6 +27,7 @@ import javax.ws.rs.BadRequestException;
 import org.candlepin.subscriptions.billing.admin.api.InternalApi;
 import org.candlepin.subscriptions.billing.admin.api.model.MonthlyRemittance;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.springframework.stereotype.Component;
 
 /** This resource is for exposing administrator REST endpoints for Remittance. */
@@ -68,6 +69,7 @@ public class InternalBillingResource implements InternalApi {
             .billingAccountId(billingAccountId)
             .beginning(beginning)
             .ending(ending)
+            .granularity(Granularity.HOURLY)
             .build();
     return billingController.process(filter);
   }

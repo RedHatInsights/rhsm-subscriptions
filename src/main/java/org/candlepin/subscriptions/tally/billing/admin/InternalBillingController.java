@@ -27,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.billing.admin.api.model.MonthlyRemittance;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
-import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
+import org.candlepin.subscriptions.db.model.RemittanceSummaryProjection;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -53,8 +53,8 @@ public class InternalBillingController {
             .billingProvider(filter.getBillingProvider())
             .billingAccountId(filter.getBillingAccountId())
             .remittedValue(0.0);
-    var remittances = remittanceRepository.filterBy(filter);
-    List<MonthlyRemittance> accountRemittanceList = transformUsageToMonthlyRemittance(remittances);
+    var summaries = remittanceRepository.getRemittanceSummaries(filter);
+    List<MonthlyRemittance> accountRemittanceList = transformUsageToMonthlyRemittance(summaries);
     if (accountRemittanceList.isEmpty()) {
       log.debug("This Account Remittance could not be found.");
       return List.of(emptyRemittance);
@@ -67,24 +67,24 @@ public class InternalBillingController {
   }
 
   private List<MonthlyRemittance> transformUsageToMonthlyRemittance(
-      List<BillableUsageRemittanceEntity> billableUsageRemittanceEntities) {
+      List<RemittanceSummaryProjection> remittanceSummaryProjections) {
     List<MonthlyRemittance> remittances = new ArrayList<>();
-    if (billableUsageRemittanceEntities.isEmpty()) {
+    if (remittanceSummaryProjections.isEmpty()) {
       return Collections.emptyList();
     }
 
-    for (BillableUsageRemittanceEntity entity : billableUsageRemittanceEntities) {
+    for (RemittanceSummaryProjection entity : remittanceSummaryProjections) {
       MonthlyRemittance accountRemittance =
           new MonthlyRemittance()
               .accountNumber(entity.getAccountNumber())
-              .orgId(entity.getKey().getOrgId())
-              .productId(entity.getKey().getProductId())
-              .metricId(entity.getKey().getMetricId())
-              .billingProvider(entity.getKey().getBillingProvider())
-              .billingAccountId(entity.getKey().getBillingAccountId())
-              .remittedValue(entity.getRemittedValue())
-              .remittanceDate(entity.getRemittanceDate())
-              .accumulationPeriod(entity.getKey().getAccumulationPeriod());
+              .orgId(entity.getOrgId())
+              .productId(entity.getProductId())
+              .metricId(entity.getMetricId())
+              .billingProvider(entity.getBillingProvider())
+              .billingAccountId(entity.getBillingAccountId())
+              .remittedValue(entity.getTotalRemittedPendingValue())
+              .remittanceDate(entity.getRemittancePendingDate())
+              .accumulationPeriod(entity.getAccumulationPeriod());
       remittances.add(accountRemittance);
     }
     log.debug("Found {} remittances for this account", remittances.size());

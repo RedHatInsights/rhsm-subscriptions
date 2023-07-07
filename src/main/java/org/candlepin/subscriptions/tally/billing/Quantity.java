@@ -84,7 +84,8 @@ public class Quantity<U extends Unit> {
     return new Quantity<>(value, new BillingUnit(tagProfile, referenceUsage));
   }
 
-  public static Quantity<RemittanceUnit> fromRemittance(BillableUsageRemittanceEntity remittance) {
-    return new Quantity<>(remittance.getRemittedValue(), new RemittanceUnit(remittance));
+  public static Quantity<RemittanceUnit> fromRemittance(
+      BillableUsageRemittanceEntity remittance, Double billingFactor) {
+    return new Quantity<>(remittance.getRemittedPendingValue(), new RemittanceUnit(billingFactor));
   }
 }

@@ -23,17 +23,23 @@ package org.candlepin.subscriptions.db;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.TimeZone;
 import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
+import org.candlepin.subscriptions.db.model.RemittanceSummaryProjection;
 import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
 import org.candlepin.subscriptions.json.BillableUsage.Sla;
 import org.candlepin.subscriptions.json.BillableUsage.Uom;
 import org.candlepin.subscriptions.json.BillableUsage.Usage;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -49,6 +55,11 @@ class BillableUsageRemittanceRepositoryTest {
 
   @Autowired private BillableUsageRemittanceRepository repository;
   private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+
+  @BeforeEach()
+  public void setUp() {
+    TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
+  }
 
   @Test
   void saveAndFetch() {
@@ -85,10 +96,18 @@ class BillableUsageRemittanceRepositoryTest {
   void findByAccount() {
     BillableUsageRemittanceEntity remittance1 =
         remittance(
-            "org123", "product1", BillingProvider.AWS.value(), 12.0, clock.startOfCurrentMonth());
+            "org123",
+            "product1",
+            BillingProvider.AWS.value(),
+            12.0,
+            truncateDate(clock.startOfCurrentMonth()));
     BillableUsageRemittanceEntity remittance2 =
         remittance(
-            "org123", "product1", BillingProvider.AWS.value(), 12.0, clock.endOfCurrentQuarter());
+            "org123",
+            "product1",
+            BillingProvider.AWS.value(),
+            12.0,
+            truncateDate(clock.endOfCurrentQuarter()));
     var accountMonthlyList = List.of(remittance1, remittance2);
     repository.saveAllAndFlush(accountMonthlyList);
     List<BillableUsageRemittanceEntity> found =
@@ -117,13 +136,10 @@ class BillableUsageRemittanceRepositoryTest {
             .sla(Sla.PREMIUM.value())
             .metricId(Uom.CORES.value())
             .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(remittanceDate))
+            .remittancePendingDate(remittanceDate)
+            .granularity(Granularity.HOURLY)
             .build();
-    return BillableUsageRemittanceEntity.builder()
-        .key(key)
-        .billingFactor(1.0)
-        .remittanceDate(remittanceDate)
-        .remittedValue(value)
-        .build();
+    return BillableUsageRemittanceEntity.builder().key(key).remittedPendingValue(value).build();
   }
 
   @Test
@@ -148,21 +164,25 @@ class BillableUsageRemittanceRepositoryTest {
   void findByBillingProvider() {
     BillableUsageRemittanceEntity remittance1 =
         remittance(
-            "org123", "product1", BillingProvider.AWS.value(), 12.0, clock.startOfCurrentMonth());
+            "org123",
+            "product1",
+            BillingProvider.AWS.value(),
+            12.0,
+            truncateDate(clock.startOfCurrentMonth()));
     BillableUsageRemittanceEntity remittance2 =
         remittance(
             "org123",
             "product1",
             BillingProvider.RED_HAT.value(),
             12.0,
-            clock.endOfCurrentQuarter());
+            truncateDate(clock.endOfCurrentQuarter()));
     BillableUsageRemittanceEntity remittance3 =
         remittance(
             "org456",
             "product1",
             BillingProvider.RED_HAT.value(),
             12.0,
-            clock.endOfCurrentQuarter());
+            truncateDate(clock.endOfCurrentQuarter()));
     var accountMonthlyList = List.of(remittance1, remittance2, remittance3);
     repository.saveAllAndFlush(accountMonthlyList);
 
@@ -189,14 +209,18 @@ class BillableUsageRemittanceRepositoryTest {
   void findByBillingAccountId() {
     BillableUsageRemittanceEntity remittance1 =
         remittance(
-            "org123", "product1", BillingProvider.AWS.value(), 12.0, clock.startOfCurrentMonth());
+            "org123",
+            "product1",
+            BillingProvider.AWS.value(),
+            12.0,
+            truncateDate(clock.startOfCurrentMonth()));
     BillableUsageRemittanceEntity remittance2 =
         remittance(
             "org123",
             "product1",
             BillingProvider.RED_HAT.value(),
             12.0,
-            clock.endOfCurrentQuarter());
+            truncateDate(clock.endOfCurrentQuarter()));
     remittance2.getKey().setOrgId("special_org");
 
     var accountMonthlyList = List.of(remittance1, remittance2);
@@ -275,5 +299,122 @@ class BillableUsageRemittanceRepositoryTest {
     List<BillableUsageRemittanceEntity> byDateRangeAndOrgId = repository.filterBy(filter);
     assertEquals(1, byDateRangeAndOrgId.size());
     assertEquals(remittance3, byDateRangeAndOrgId.get(0));
+  }
+
+  @Test
+  void getMonthlySummary() {
+    BillableUsageRemittanceEntity remittance1 =
+        remittance(
+            "org123",
+            "product1",
+            BillingProvider.RED_HAT.value(),
+            12.0,
+            truncateDate(clock.startOfCurrentMonth()));
+    BillableUsageRemittanceEntity remittance2 =
+        remittance(
+            "org123",
+            "product1",
+            BillingProvider.RED_HAT.value(),
+            12.0,
+            truncateDate(clock.startOfCurrentMonth().plusDays(1)));
+    BillableUsageRemittanceEntity remittance3 =
+        remittance(
+            "org456",
+            "product1",
+            BillingProvider.RED_HAT.value(),
+            15.0,
+            truncateDate(clock.endOfCurrentMonth()));
+
+    var accountMonthlyList = List.of(remittance1, remittance2, remittance3);
+    repository.saveAllAndFlush(accountMonthlyList);
+
+    BillableUsageRemittanceFilter filter1 =
+        BillableUsageRemittanceFilter.builder()
+            .productId(remittance1.getKey().getProductId())
+            .build();
+
+    var expectedSummary1 =
+        RemittanceSummaryProjection.builder()
+            .accountNumber(remittance1.getAccountNumber())
+            .accumulationPeriod(
+                getAccumulationPeriod(remittance1.getKey().getRemittancePendingDate()))
+            .billingAccountId(remittance1.getKey().getBillingAccountId())
+            .billingProvider(remittance1.getKey().getBillingProvider())
+            .orgId("org123")
+            .productId(remittance1.getKey().getProductId())
+            .remittancePendingDate(remittance2.getKey().getRemittancePendingDate())
+            .metricId(remittance1.getKey().getMetricId())
+            .totalRemittedPendingValue(24.0)
+            .sla(remittance1.getKey().getSla())
+            .usage(remittance1.getKey().getUsage())
+            .build();
+
+    var expectedSummary2 =
+        RemittanceSummaryProjection.builder()
+            .accountNumber(remittance3.getAccountNumber())
+            .accumulationPeriod(
+                getAccumulationPeriod(remittance3.getKey().getRemittancePendingDate()))
+            .billingAccountId(remittance3.getKey().getBillingAccountId())
+            .billingProvider(remittance3.getKey().getBillingProvider())
+            .orgId("org456")
+            .productId(remittance3.getKey().getProductId())
+            .remittancePendingDate(remittance3.getKey().getRemittancePendingDate())
+            .metricId(remittance3.getKey().getMetricId())
+            .totalRemittedPendingValue(15.0)
+            .sla(remittance3.getKey().getSla())
+            .usage(remittance3.getKey().getUsage())
+            .build();
+
+    List<RemittanceSummaryProjection> results = repository.getRemittanceSummaries(filter1);
+    assertEquals(2, results.size());
+    assertTrue(results.containsAll(List.of(expectedSummary1, expectedSummary2)));
+  }
+
+  @Test
+  void getMonthlySummaryForSpecificMonth() {
+    BillableUsageRemittanceEntity remittance1 =
+        remittance(
+            "org123",
+            "product1",
+            BillingProvider.RED_HAT.value(),
+            12.0,
+            truncateDate(clock.startOfCurrentMonth()));
+    BillableUsageRemittanceEntity remittance2 =
+        remittance(
+            "org123",
+            "product1",
+            BillingProvider.RED_HAT.value(),
+            12.0,
+            truncateDate(clock.startOfCurrentMonth().plusDays(1)));
+    // One remittance is out of date accumulation_period and should not be counted
+    BillableUsageRemittanceEntity remittance3 =
+        remittance(
+            "org123",
+            "product1",
+            BillingProvider.RED_HAT.value(),
+            15.0,
+            truncateDate(clock.endOfCurrentMonth().plusDays(1)));
+
+    var accountMonthlyList = List.of(remittance1, remittance2, remittance3);
+    repository.saveAllAndFlush(accountMonthlyList);
+
+    BillableUsageRemittanceFilter filter1 =
+        BillableUsageRemittanceFilter.builder()
+            .accumulationPeriod(
+                getAccumulationPeriod(remittance1.getKey().getRemittancePendingDate()))
+            .build();
+
+    List<RemittanceSummaryProjection> results = repository.getRemittanceSummaries(filter1);
+    assertEquals(1, results.size());
+    assertEquals(24.0, results.get(0).getTotalRemittedPendingValue());
+  }
+
+  // In memory DB does not save same length of decimals so truncate to make sure they equal
+  OffsetDateTime truncateDate(OffsetDateTime date) {
+    return date.truncatedTo(ChronoUnit.MILLIS);
+  }
+
+  public static String getAccumulationPeriod(OffsetDateTime reference) {
+    return InstanceMonthlyTotalKey.formatMonthId(reference);
   }
 }
