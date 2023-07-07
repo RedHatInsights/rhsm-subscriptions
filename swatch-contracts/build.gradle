@@ -1,5 +1,6 @@
 plugins {
     id 'swatch.java-conventions'
+    id 'swatch.liquibase-conventions'
     id 'io.quarkus'
     id 'org.openapi.generator'
 }
