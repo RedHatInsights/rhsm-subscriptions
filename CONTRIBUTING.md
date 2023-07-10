@@ -1,5 +1,5 @@
 Preferred Package Structure
-
+---------------------------
 
 * config 
 * resource
@@ -22,3 +22,22 @@ Preferred Package Structure
     * Class names should have "Entity" suffix to differentiate them from their DTO counterparts
 * security
   * authentication, authorization, RBAC, etc.
+
+DB migrations
+-------------
+
+We use [liquibase](https://docs.liquibase.com/) to manage our DB schema.
+
+* `./gradlew :liquibaseUpdate` runs DB migrations
+* `./gradlew :liquibaseRollbackCount -PliquibaseCommandValue=1` rolls back a single DB changeset
+
+You can use a prefix to target different subprojects when they have liquibase enabled:
+
+```shell
+./gradlew swatch-contracts:liquibaseUpdate
+```
+
+There are various other tasks, see `./gradlew help tasks | grep liquibase`. Note that we don't use
+Liquibase Hub or Liquibase Pro.
+
+DB migrations should be written to roll back cleanly (exceptions should be discussed with the team).

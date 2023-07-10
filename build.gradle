@@ -13,10 +13,19 @@ plugins {
     id "com.netflix.nebula.release"
     id 'com.adarshr.test-logger'
     id 'jacoco'
+    id 'swatch.liquibase-conventions'
 }
 
 configurations {
     javaagent
+}
+
+liquibase {
+    activities {
+        main {
+            changelogFile 'liquibase/changelog.xml'
+        }
+    }
 }
 
 allprojects {

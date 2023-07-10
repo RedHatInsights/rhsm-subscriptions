@@ -1,5 +1,6 @@
 plugins {
     id 'swatch.java-conventions'
+    id 'swatch.liquibase-conventions'
     id 'io.quarkus'
     id 'org.openapi.generator'
 }
@@ -7,6 +8,15 @@ plugins {
 repositories {
     mavenCentral()
     mavenLocal()
+}
+
+liquibase {
+    activities {
+        main {
+            databaseChangeLogTableName "DATABASECHANGELOG_SWATCH_CONTRACTS"
+            databaseChangeLogLockTableName "DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"
+        }
+    }
 }
 
 dependencies {
