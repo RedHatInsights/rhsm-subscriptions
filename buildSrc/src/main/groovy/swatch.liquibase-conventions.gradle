@@ -11,6 +11,8 @@ configurations {
 }
 
 liquibase {
+    // force UTC time zone to be consistent with the app
+    jvmArgs "-Duser.timezone=UTC"
     activities {
         main {
             changelogFile 'db/changeLog.xml'
