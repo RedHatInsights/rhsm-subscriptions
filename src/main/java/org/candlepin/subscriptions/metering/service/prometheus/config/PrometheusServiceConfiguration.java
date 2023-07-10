@@ -61,7 +61,7 @@ public class PrometheusServiceConfiguration {
 
   @Bean
   EventController prometheusEventController(EventRecordRepository repo) {
-    return new EventController(repo);
+    return new EventController(repo, null);
   }
 
   @Bean

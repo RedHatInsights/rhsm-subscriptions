@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.tally.billing;
 
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
@@ -36,23 +37,25 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class ServiceInstanceMessageConsumer extends SeekableKafkaConsumer {
 
+  private final EventController eventController;
+
   @Autowired
   public ServiceInstanceMessageConsumer(
       @Qualifier("serviceInstanceTopicProperties")
           TaskQueueProperties taskServiceInstanceTopicProperties,
-      KafkaConsumerRegistry kafkaConsumerRegistry) {
+      KafkaConsumerRegistry kafkaConsumerRegistry,
+      EventController eventController) {
     super(taskServiceInstanceTopicProperties, kafkaConsumerRegistry);
+    this.eventController = eventController;
   }
 
   @KafkaListener(
       id = "#{__listener.groupId}",
       topics = "#{__listener.topic}",
       containerFactory = "kafkaServiceInstanceListenerContainerFactory")
-  @Transactional
-  public void receive(
-      @Payload
-          List<String>
-              events /*, @Header(name = KafkaHeaders.RECEIVED_MESSAGE_KEY, required = false) String kafkaMessageKey*/) {
-    log.info("Events received w/ event list size={}. Consuming events.", events.size());
+  @Transactional(noRollbackFor = RuntimeException.class)
+  public void receive(@Payload List<String> eventRecords) {
+    log.info("Events received w/ event list size={}. Consuming events.", eventRecords.size());
+    eventController.persistServiceInstances(eventRecords);
   }
 }
