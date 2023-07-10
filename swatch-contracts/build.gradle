@@ -10,6 +10,15 @@ repositories {
     mavenLocal()
 }
 
+liquibase {
+    activities {
+        main {
+            databaseChangeLogTableName "DATABASECHANGELOG_SWATCH_CONTRACTS"
+            databaseChangeLogLockTableName "DATABASECHANGELOGLOCK_SWATCH_CONTRACTS"
+        }
+    }
+}
+
 dependencies {
     compileOnly libraries["lombok"]
     implementation enforcedPlatform(libraries["quarkus-bom"])
