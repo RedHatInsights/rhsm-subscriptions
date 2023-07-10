@@ -446,4 +446,54 @@ class TallySnapshotRepositoryTest {
         Uom.CORES,
         2.0);
   }
+
+  @Test
+  void testHasLatestBillablesWhenMetricExists() {
+    TallySnapshot snap =
+        createUnpersisted(
+            "OrgAcme", "Acme Inc.", "rocket-skates", Granularity.HOURLY, 1, 2, 3, NOWISH);
+
+    snap.setMeasurement(HardwareMeasurementType.PHYSICAL, Uom.CORES, 9.0);
+    snap.setMeasurement(HardwareMeasurementType.PHYSICAL, Uom.SOCKETS, 8.0);
+    snap.setMeasurement(HardwareMeasurementType.PHYSICAL, Uom.INSTANCES, 7.0);
+
+    repository.save(snap);
+    repository.flush();
+
+    assertTrue(
+        repository.hasLatestBillables(
+            snap.getOrgId(),
+            snap.getProductId(),
+            snap.getServiceLevel(),
+            snap.getUsage(),
+            snap.getBillingProvider(),
+            snap.getBillingAccountId(),
+            NOWISH,
+            NOWISH,
+            new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, Uom.CORES)));
+  }
+
+  @Test
+  void testDoesNotHaveLatestBillablesWhenMetricDoesNotExists() {
+    TallySnapshot snap =
+        createUnpersisted(
+            "OrgAcme", "Acme Inc.", "rocket-skates", Granularity.HOURLY, 1, 2, 3, NOWISH);
+
+    snap.setMeasurement(HardwareMeasurementType.PHYSICAL, Uom.SOCKETS, 8.0);
+
+    repository.save(snap);
+    repository.flush();
+
+    assertFalse(
+        repository.hasLatestBillables(
+            snap.getOrgId(),
+            snap.getProductId(),
+            snap.getServiceLevel(),
+            snap.getUsage(),
+            snap.getBillingProvider(),
+            snap.getBillingAccountId(),
+            NOWISH,
+            NOWISH,
+            new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, Uom.CORES)));
+  }
 }

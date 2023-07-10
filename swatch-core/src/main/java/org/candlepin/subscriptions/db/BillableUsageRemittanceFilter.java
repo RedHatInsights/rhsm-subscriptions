@@ -22,8 +22,10 @@ package org.candlepin.subscriptions.db;
 
 import java.time.OffsetDateTime;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
+import org.candlepin.subscriptions.db.model.Granularity;
 
 /**
  * A filter used to find {@link org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity}
@@ -33,13 +35,18 @@ import lombok.Setter;
 @Builder
 @Getter
 @Setter
+@EqualsAndHashCode
 public class BillableUsageRemittanceFilter {
   private String productId;
   private String account;
   private String orgId;
+  private String usage;
+  private String sla;
   private String metricId;
   private String billingProvider;
   private String billingAccountId;
   private OffsetDateTime beginning;
   private OffsetDateTime ending;
+  private String accumulationPeriod;
+  private Granularity granularity;
 }

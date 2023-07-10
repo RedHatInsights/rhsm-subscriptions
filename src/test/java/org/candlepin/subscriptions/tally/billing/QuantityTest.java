@@ -111,9 +111,8 @@ class QuantityTest {
   @Test
   void testFromRemittance() {
     var remittance = new BillableUsageRemittanceEntity();
-    remittance.setBillingFactor(0.25);
-    remittance.setRemittedValue(2.5);
-    var quantity = Quantity.fromRemittance(remittance);
+    remittance.setRemittedPendingValue(2.5);
+    var quantity = Quantity.fromRemittance(remittance, 0.25);
     assertEquals(0.25, quantity.getUnit().getBillingFactor());
     assertEquals(2.5, quantity.getValue());
     assertEquals(10.0, quantity.to(new MetricUnit()).getValue());

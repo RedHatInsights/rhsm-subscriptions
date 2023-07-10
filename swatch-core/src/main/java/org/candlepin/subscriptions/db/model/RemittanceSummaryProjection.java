@@ -18,33 +18,28 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource;
+package org.candlepin.subscriptions.db.model;
 
 import java.time.OffsetDateTime;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import org.candlepin.subscriptions.db.model.BillingProvider;
-import org.candlepin.subscriptions.db.model.Granularity;
-import org.candlepin.subscriptions.db.model.ServiceLevel;
-import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.utilization.api.model.BillingCategory;
-import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
-import org.springframework.data.domain.Pageable;
+import lombok.NoArgsConstructor;
 
-@Data
 @Builder
-public class ReportCriteria {
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class RemittanceSummaryProjection {
+  private Double totalRemittedPendingValue;
   private String orgId;
+  private String accountNumber;
   private String productId;
-  private String metricId;
-  private ReportCategory reportCategory;
-  private Granularity granularity;
-  private ServiceLevel serviceLevel;
-  private Usage usage;
-  private BillingProvider billingProvider;
+  private String accumulationPeriod;
+  private String sla;
+  private String usage;
+  private OffsetDateTime remittancePendingDate;
+  private String billingProvider;
   private String billingAccountId;
-  private BillingCategory billingCategory;
-  private OffsetDateTime beginning;
-  private OffsetDateTime ending;
-  private Pageable pageable;
+  private String metricId;
 }

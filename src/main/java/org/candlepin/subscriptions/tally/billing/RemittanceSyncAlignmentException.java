@@ -20,19 +20,28 @@
  */
 package org.candlepin.subscriptions.tally.billing;
 
-import java.util.Objects;
-import lombok.EqualsAndHashCode;
+import java.time.OffsetDateTime;
 import lombok.Getter;
-import lombok.ToString;
+import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
 
-/** Represents the uom recorded on a remittance record */
+/** An exception that tracks a remittance sync alignment issue. */
 @Getter
-@ToString
-@EqualsAndHashCode
-public class RemittanceUnit implements Unit {
-  private final double billingFactor;
+public class RemittanceSyncAlignmentException extends RuntimeException {
 
-  public RemittanceUnit(Double billingFactor) {
-    this.billingFactor = Objects.requireNonNullElse(billingFactor, 1.0);
+  private final Double result;
+  private final BillableUsageRemittanceEntity remittanceToSync;
+  private final OffsetDateTime dateOfLatestSnapshot;
+
+  public RemittanceSyncAlignmentException(
+      BillableUsageRemittanceEntity remittanceToSync,
+      Double result,
+      OffsetDateTime dateOfLatestSnapshot) {
+    super(
+        String.format(
+            "REMITTANCE SYNC: Remittance did not align after sync! EXPECTED: %s WAS: %s -- %s",
+            remittanceToSync.getRemittedPendingValue(), result, remittanceToSync));
+    this.result = result;
+    this.remittanceToSync = remittanceToSync;
+    this.dateOfLatestSnapshot = dateOfLatestSnapshot;
   }
 }

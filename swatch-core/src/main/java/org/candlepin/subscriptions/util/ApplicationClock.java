@@ -80,7 +80,7 @@ public class ApplicationClock {
   }
 
   public OffsetDateTime endOfDay(OffsetDateTime anyDay) {
-    return OffsetDateTime.from(anyDay.with(LocalTime.MAX));
+    return OffsetDateTime.from(anyDay.with(LocalTime.MAX).truncatedTo(ChronoUnit.MICROS));
   }
 
   public OffsetDateTime endOfCurrentWeek() {
@@ -104,7 +104,7 @@ public class ApplicationClock {
   }
 
   public OffsetDateTime endOfMonth(OffsetDateTime anyDayOfMonth) {
-    return OffsetDateTime.from(anyDayOfMonth.with(LocalTime.MAX))
+    return OffsetDateTime.from(anyDayOfMonth.with(LocalTime.MAX).truncatedTo(ChronoUnit.MICROS))
         .with(TemporalAdjusters.lastDayOfMonth());
   }
 

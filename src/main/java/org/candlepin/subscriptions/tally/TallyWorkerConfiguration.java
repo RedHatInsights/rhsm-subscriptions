@@ -233,4 +233,16 @@ public class TallyWorkerConfiguration {
   public TaskQueueProperties serviceInstanceTopicProperties() {
     return new TaskQueueProperties();
   }
+  
+  @Bean(name = "purgeRemittancesJobExecutor")
+  public Executor getPurgeRemittancesJobExecutor() {
+    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    executor.setThreadNamePrefix("purge-remittances-");
+    // Ensure that we can only have one task running.
+    executor.setCorePoolSize(1);
+    executor.setMaxPoolSize(1);
+    executor.setQueueCapacity(0);
+    executor.initialize();
+    return executor;
+  }
 }

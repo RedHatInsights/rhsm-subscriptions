@@ -18,34 +18,28 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db.model;
+package org.candlepin.subscriptions.retention;
 
-import java.io.Serializable;
-import javax.persistence.Basic;
-import javax.persistence.Column;
-import javax.persistence.EmbeddedId;
-import javax.persistence.Entity;
-import javax.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-@Entity
-@Table(name = "billable_usage_remittance")
-public class BillableUsageRemittanceEntity implements Serializable {
+/** Retention policies for supported granularities. */
+@Component
+@Getter
+@Setter
+@ConfigurationProperties(prefix = "rhsm-subscriptions.remittance-retention-policy")
+public class RemittanceRetentionPolicyProperties {
+  /**
+   * Number of historic hourly snapshots to keep. Actual number kept will include an additional hour
+   * (current & historic).
+   */
+  private Integer hourly;
 
-  @EmbeddedId private BillableUsageRemittanceEntityPK key;
-
-  @Basic
-  @Column(name = "remitted_pending_value", nullable = false, precision = 0)
-  private Double remittedPendingValue;
-
-  @Basic
-  @Column(name = "account_number", nullable = true)
-  private String accountNumber;
+  /**
+   * Number of historic daily snapshots to keep. Actual number kept will include an additional day
+   * (current & historic).
+   */
+  private Integer daily;
 }
