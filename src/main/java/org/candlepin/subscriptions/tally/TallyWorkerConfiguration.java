@@ -233,7 +233,7 @@ public class TallyWorkerConfiguration {
   public TaskQueueProperties serviceInstanceTopicProperties() {
     return new TaskQueueProperties();
   }
-  
+
   @Bean(name = "purgeRemittancesJobExecutor")
   public Executor getPurgeRemittancesJobExecutor() {
     ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

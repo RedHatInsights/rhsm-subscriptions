@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -144,12 +145,12 @@ public class EventController {
   }
 
   @Transactional
-  public void persistServiceInstances(List<String> eventJsonList) {
+  public void persistServiceInstances(Set<String> eventJsonList) {
     Map<EventKey, Event> eventsMap = parseEventRecordsToEventsEntityMap(eventJsonList);
     saveAll(eventsMap.values());
   }
 
-  public Map<EventKey, Event> parseEventRecordsToEventsEntityMap(List<String> eventJsonList) {
+  private Map<EventKey, Event> parseEventRecordsToEventsEntityMap(Set<String> eventJsonList) {
     Map<EventKey, Event> eventsMap = new HashMap<>();
     eventJsonList.forEach(
         eventJson -> {
@@ -158,7 +159,9 @@ public class EventController {
             eventsMap.putIfAbsent(EventKey.fromEvent(event), event);
           } catch (Exception e) {
             log.warn(
-                "Issue found {} for the event json {} skipping to next", e.getMessage(), eventJson);
+                String.format(
+                    "Issue found %s for the service instance json skipping to next ",
+                    e.getCause()));
           }
         });
     return eventsMap;
