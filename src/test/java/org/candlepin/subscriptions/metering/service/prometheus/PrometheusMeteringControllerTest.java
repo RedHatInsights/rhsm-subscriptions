@@ -27,6 +27,7 @@ import static org.mockito.Mockito.*;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -39,6 +40,7 @@ import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
@@ -47,6 +49,8 @@ import org.candlepin.subscriptions.prometheus.model.QueryResultData;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.ResultType;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
+import org.candlepin.subscriptions.registry.BillingWindow;
+import org.candlepin.subscriptions.registry.TagMetric;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -106,6 +110,7 @@ class PrometheusMeteringControllerTest {
 
   private PrometheusMeteringController controller;
   private QueryHelper queries;
+  private TagMetric tagMetric;
 
   @BeforeEach
   void setupTest() {
@@ -122,6 +127,24 @@ class PrometheusMeteringControllerTest {
             tagProfile);
 
     queries = new QueryHelper(tagProfile, queryBuilder);
+
+    Map<String, String> queryParams = new HashMap<>();
+    queryParams.put("product", "ocp");
+    queryParams.put("prometheusMetric", "cluster:usage:workload:capacity_physical_cpu_hours");
+    queryParams.put("prometheusMetadataMetric", "subscription_labels");
+    tagMetric =
+        TagMetric.builder()
+            .tag("OpenShift-metrics")
+            .metricId(expectedMetricId)
+            .rhmMetricId(expectedMetricId)
+            .awsDimension(null)
+            .uom(Measurement.Uom.CORES)
+            .billingFactor(1.0)
+            .billingWindow(BillingWindow.MONTHLY)
+            .queryKey("default")
+            .accountQueryKey("default")
+            .queryParams(queryParams)
+            .build();
   }
 
   @Test
@@ -288,7 +311,8 @@ class PrometheusMeteringControllerTest {
   }
 
   @Test
-  void verifyExistingEventsAreUpdatedWhenReportedByPrometheusAndDeletedIfStale() {
+  void verifyExistingEventsAreUpdatedWhenReportedByPrometheusAndDeletedIfStale()
+      throws InterruptedException {
     BigDecimal time1 = BigDecimal.valueOf(123456.234);
     BigDecimal val1 = BigDecimal.valueOf(100L);
     BigDecimal time2 = BigDecimal.valueOf(222222.222);
@@ -391,7 +415,7 @@ class PrometheusMeteringControllerTest {
     when(eventController.mapEventsInTimeRange(
             expectedOrgId,
             MeteringEventFactory.EVENT_SOURCE,
-            MeteringEventFactory.getEventType(expectedMetricId),
+            MeteringEventFactory.getEventType(tagMetric),
             start,
             end))
         .thenReturn(
@@ -509,7 +533,7 @@ class PrometheusMeteringControllerTest {
     when(eventController.mapEventsInTimeRange(
             expectedOrgId,
             MeteringEventFactory.EVENT_SOURCE,
-            MeteringEventFactory.getEventType(expectedMetricId),
+            MeteringEventFactory.getEventType(tagMetric),
             start,
             end))
         .thenReturn(

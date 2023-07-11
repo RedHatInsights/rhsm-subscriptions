@@ -344,7 +344,6 @@ class MeteringEventFactoryTest {
   @Test
   void testEventTypeGeneration() {
     assertEquals("snapshot_my-metric", MeteringEventFactory.getEventType("my-metric"));
-    assertEquals("snapshot", MeteringEventFactory.getEventType(null));
     assertEquals("snapshot", MeteringEventFactory.getEventType(""));
   }
 
