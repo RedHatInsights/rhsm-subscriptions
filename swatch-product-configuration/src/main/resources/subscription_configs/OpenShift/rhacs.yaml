@@ -6,7 +6,7 @@ variants:
   - tag: rhacs
     roles:
       - rhacs
-    product_names:
+    productNames:
       - Advanced Cluster Security - Kubernetes
 
 defaults:
@@ -20,10 +20,10 @@ serviceType: Rhacs Cluster
 
 metrics:
   - id: redhat.com:rhacs:cpu_hour
-    rhm_metric_id: redhat.com:rhacs:cpu_hour
+    rhmMetricId: redhat.com:rhacs:cpu_hour
     awsDimension: vCPU_Hour
     prometheus:
       queryParams:
         product: rhacs
         metric: rhacs:rox_central_cluster_metrics_cpu_capacity:avg_over_time1h
-        metadata_metric: subscription_labels
+        metadataMetric: subscription_labels

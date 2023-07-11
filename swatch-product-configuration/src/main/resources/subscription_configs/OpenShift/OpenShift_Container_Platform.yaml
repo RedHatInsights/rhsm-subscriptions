@@ -1,10 +1,10 @@
 ---
 platform: OpenShift
 
-id: OpenShift Container Platform
+id: openshift-container-platform
 
 fingerprint:
-  engineering_ids:
+  engineeringIds:
     - 290  # Red Hat OpenShift Container Platform
 
 variants:

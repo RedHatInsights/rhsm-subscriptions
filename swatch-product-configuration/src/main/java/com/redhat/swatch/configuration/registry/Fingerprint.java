@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.configuration.registry;
 
+import java.util.ArrayList;
 import java.util.List;
 import lombok.*;
 
@@ -31,8 +32,7 @@ import lombok.*;
  * specific architecture w/ a given subscription.
  */
 @Data
-@Builder
 public class Fingerprint {
-  private List<String> engineeringIds;
-  private List<String> arches;
+  private List<String> engineeringIds = new ArrayList<>();
+  private List<String> arches = new ArrayList<>();
 }

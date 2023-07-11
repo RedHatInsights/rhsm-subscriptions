@@ -41,3 +41,11 @@ There are various other tasks, see `./gradlew help tasks | grep liquibase`. Note
 Liquibase Hub or Liquibase Pro.
 
 DB migrations should be written to roll back cleanly (exceptions should be discussed with the team).
+
+-------------
+
+# swatch-product-configuration
+
+Directory structure: `$Platform/$Subscription_Name.yaml` (e.g. RHEL/RHEL_for_x86.yaml).
+
+Use camel case for yaml properties that need to be serialized into the `com.redhat.swatch.configuration.registry` object definitions.

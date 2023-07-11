@@ -20,11 +20,34 @@
  */
 package com.redhat.swatch.configuration.registry;
 
-import java.util.Map;
-import lombok.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-@Data
-public class PrometheusMetric {
-  private String queryKey;
-  private Map<String, String> queryParams;
+import org.junit.jupiter.api.Test;
+
+class VariantTest {
+
+  @Test
+  void sanityCheck() {
+    assertTrue(true);
+  }
+
+  @Test
+  void testFindByRole() {
+
+    var variant = Variant.findByRole("Red Hat Enterprise Linux Server");
+
+    var expected = "RHEL Server";
+    var actual = variant.get().getTag();
+
+    assertEquals(expected, actual);
+  }
+
+  @Test
+  void testGetParentSubscription() {
+    var variant = Variant.findByRole("RHEL Desktop").get();
+    var expected = "rhel-for-x86";
+    var actual = variant.getSubscription().getId();
+
+    assertEquals(expected, actual);
+  }
 }

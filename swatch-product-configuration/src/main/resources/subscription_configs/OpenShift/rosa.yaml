@@ -7,7 +7,7 @@ variants:
   - tag: rosa
     roles:
       - moa-hostedcontrolplane
-    product_names:
+    productNames:
       - OpenShift Dedicated
 
 defaults:
@@ -26,7 +26,7 @@ metrics:
       queryParams:
         product: moa-hostedcontrolplane
         metric: cluster:usage:workload:capacity_physical_instance_hours
-        metadata_metric: subscription_labels
+        metadataMetric: subscription_labels
   - id: redhat.com:rosa:cpu_hour
     awsDimension: four_vcpu_0
     billingFactor: 0.25
@@ -34,4 +34,4 @@ metrics:
       queryParams:
         product: moa-hostedcontrolplane
         metric: cluster:usage:workload:capacity_physical_cpu_hours
-        metadata_metric: subscription_labels
+        metadataMetric: subscription_labels

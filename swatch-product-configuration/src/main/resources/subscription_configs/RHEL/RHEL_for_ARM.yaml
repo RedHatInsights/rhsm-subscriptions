@@ -1,10 +1,10 @@
 ---
 platform: RHEL
 
-id: RHEL for ARM
+id: rhel-for-arm
 
 fingerprint:
-  engineering_ids:
+  engineeringIds:
     - 419 # Red Hat Enterprise Linux for ARM 64
   arches:
     - aarch64
