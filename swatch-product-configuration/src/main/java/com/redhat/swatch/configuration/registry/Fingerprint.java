@@ -18,18 +18,21 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.configuration.model;
+package com.redhat.swatch.configuration.registry;
 
-import lombok.Getter;
+import java.util.List;
+import lombok.*;
 
-@Getter
-public enum Sla {
-  PREMIUM("Premium"),
-  STANDARD("Standard"),
-  SELF_SUPPORT("Self-Support");
-  private final String value;
-
-  Sla(String value) {
-    this.value = value;
-  }
+/**
+ * Technical fingerprint is an identifiable capabilities provided by software packages. "A typical
+ * sysadmin can easily distinguish between technical fingerprints (e.g. RHEL for Power vs. RHEL for
+ * x86) - e.g. cat /etc/redhat-release" Typical identifiers include: (1) Engineering IDs - product
+ * content IDs used to identify use of the subscription. (2) Architectures: used to identify a
+ * specific architecture w/ a given subscription.
+ */
+@Data
+@Builder
+public class Fingerprint {
+  private List<String> engineeringIds;
+  private List<String> arches;
 }

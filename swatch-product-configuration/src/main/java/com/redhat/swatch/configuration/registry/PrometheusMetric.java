@@ -18,14 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.configuration.model;
+package com.redhat.swatch.configuration.registry;
 
-public enum BillingWindow {
-  HOURLY("Hourly"),
-  MONTHLY("Monthly");
-  private final String value;
+import java.util.Map;
+import lombok.*;
 
-  BillingWindow(String value) {
-    this.value = value;
-  }
+@Data
+@Builder
+public class PrometheusMetric {
+  private String queryKey;
+  private Map<String, String> queryParams;
 }

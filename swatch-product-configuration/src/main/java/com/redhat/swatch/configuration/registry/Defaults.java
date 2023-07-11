@@ -18,18 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.configuration.model;
+package com.redhat.swatch.configuration.registry;
 
-import lombok.Getter;
+import lombok.*;
 
-@Getter
-public enum Usage {
-  PRODUCTION("Production"),
-  DEVELOPMENT_TEST("Development/Test"),
-  DISASTER_RECOVERY("Disaster Recovery");
-  private final String value;
-
-  Usage(String value) {
-    this.value = value;
-  }
+@Data
+@Builder
+public class Defaults {
+  private String variant;
+  private Sla sla;
+  private Usage usage;
 }

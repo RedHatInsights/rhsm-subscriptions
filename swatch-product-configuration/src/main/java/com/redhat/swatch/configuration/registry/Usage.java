@@ -18,19 +18,18 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.configuration.model;
+package com.redhat.swatch.configuration.registry;
 
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
-import lombok.*;
+import lombok.Getter;
 
-@Data
-@Builder
-public class Metric {
+@Getter
+public enum Usage {
+  PRODUCTION("Production"),
+  DEVELOPMENT_TEST("Development/Test"),
+  DISASTER_RECOVERY("Disaster Recovery");
+  private final String value;
 
-  @NotNull @NotEmpty private String id; // required
-  private String rhmMetricId;
-  private String awsDimension;
-  private PrometheusMetric prometheusMetric;
-  private Double billingFactor;
+  Usage(String value) {
+    this.value = value;
+  }
 }

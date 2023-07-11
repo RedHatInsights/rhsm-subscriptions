@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.configuration.model;
+package com.redhat.swatch.configuration.registry;
 
 import java.util.List;
 import javax.validation.constraints.NotEmpty;
