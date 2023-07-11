@@ -236,10 +236,10 @@ public class InventorySwatchDataCollator {
     public static SortKey fromHbiSystem(InventoryHostFacts system) {
       String hardwareSubmanId;
       String hypervisorUuid;
-      if (StringUtils.hasText(system.getHypervisorUuid())) {
-        hardwareSubmanId = hypervisorUuid = system.getHypervisorUuid();
-      } else if (StringUtils.hasText(system.getSatelliteHypervisorUuid())) {
+      if (StringUtils.hasText(system.getSatelliteHypervisorUuid())) {
         hardwareSubmanId = hypervisorUuid = system.getSatelliteHypervisorUuid();
+      } else if (StringUtils.hasText(system.getHypervisorUuid())) {
+        hardwareSubmanId = hypervisorUuid = system.getHypervisorUuid();
       } else {
         hypervisorUuid = null;
         hardwareSubmanId = system.getSubscriptionManagerId();
@@ -257,7 +257,7 @@ public class InventorySwatchDataCollator {
           Objects.compare(
               hardwareSubmanId,
               other.getHardwareSubmanId(),
-              Comparator.nullsFirst(Comparator.naturalOrder()));
+              Comparator.nullsLast(Comparator.naturalOrder()));
       if (hardwareSubmanIdResult != 0) {
         return hardwareSubmanIdResult;
       }
@@ -265,12 +265,12 @@ public class InventorySwatchDataCollator {
           Objects.compare(
               hypervisorUuid,
               other.getHypervisorUuid(),
-              Comparator.nullsFirst(Comparator.naturalOrder()));
+              Comparator.nullsLast(Comparator.naturalOrder()));
       if (hypervisorUuidResult != 0) {
         return hypervisorUuidResult;
       }
       return Objects.compare(
-          inventoryId, other.getInventoryId(), Comparator.nullsFirst(Comparator.naturalOrder()));
+          inventoryId, other.getInventoryId(), Comparator.nullsLast(Comparator.naturalOrder()));
     }
   }
 }
