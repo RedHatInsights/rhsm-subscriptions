@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.db;
 
 import java.time.OffsetDateTime;
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.EventRecord;
@@ -77,9 +77,21 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
       findByOrgIdAndEventSourceAndEventTypeIsInAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
           String orgId,
           String eventSource,
-          List<String> eventType,
+          Set<String> eventType,
           OffsetDateTime begin,
           OffsetDateTime end);
+
+  // Wrapper for
+  // findByOrgIdAndEventSourceAndEventTypeIsInAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp
+  default Stream<EventRecord> findEventRecordsByCriteria(
+      String orgId,
+      String eventSource,
+      Set<String> eventType,
+      OffsetDateTime begin,
+      OffsetDateTime end) {
+    return findByOrgIdAndEventSourceAndEventTypeIsInAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+        orgId, eventSource, eventType, begin, end);
+  }
 
   /**
    * Delete old event records given a cutoff date

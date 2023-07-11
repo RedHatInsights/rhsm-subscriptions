@@ -21,9 +21,10 @@
 package org.candlepin.subscriptions.metering;
 
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.BillingProvider;
 import org.candlepin.subscriptions.json.Event.Role;
@@ -116,7 +117,7 @@ public class MeteringEventFactory {
       Double measuredValue) {
     toUpdate
         .withEventSource(EVENT_SOURCE)
-        .withEventType(getOldEventType(metricId))
+        .withEventType(getEventType(metricId)) // NOSONAR
         .withServiceType(serviceType)
         .withAccountNumber(accountNumber)
         .withOrgId(orgId)
@@ -134,14 +135,23 @@ public class MeteringEventFactory {
   }
 
   // SWATCH-1374 Remove or update this method
-  public static String getOldEventType(String metricId) {
+  /**
+   * Use getEventType(TagMetric tagMetric) instead
+   *
+   * @deprecated (Since we are going to use uom instead of metricid. SWATCH-1374 Remove or update
+   *     this method)
+   * @param metricId
+   * @return
+   */
+  @Deprecated(since = "https://issues.redhat.com/browse/SWATCH-1373")
+  public static String getEventType(String metricId) {
     return StringUtils.hasText(metricId)
         ? String.format("%s_%s", EVENT_TYPE, metricId)
         : EVENT_TYPE;
   }
 
-  public static List<String> getEventType(TagMetric tagMetric) {
-    List<String> eventTypes = new ArrayList<>();
+  public static Set<String> getEventType(TagMetric tagMetric) {
+    Set<String> eventTypes = new HashSet<>();
     Optional.ofNullable(tagMetric.getMetricId())
         .ifPresent(metricId -> eventTypes.add(String.format("%s_%s", EVENT_TYPE, metricId)));
     Optional.ofNullable(tagMetric.getUom())

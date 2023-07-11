@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -72,11 +73,10 @@ public class EventController {
   public Map<EventKey, Event> mapEventsInTimeRange(
       String orgId,
       String eventSource,
-      List<String> eventType,
+      Set<String> eventType,
       OffsetDateTime begin,
       OffsetDateTime end) {
-    return repo.findByOrgIdAndEventSourceAndEventTypeIsInAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
-            orgId, eventSource, eventType, begin, end)
+    return repo.findEventRecordsByCriteria(orgId, eventSource, eventType, begin, end)
         .map(EventRecord::getEvent)
         .collect(Collectors.toMap(EventKey::fromEvent, Function.identity()));
   }

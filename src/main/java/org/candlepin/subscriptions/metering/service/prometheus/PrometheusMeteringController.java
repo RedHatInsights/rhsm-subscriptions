@@ -256,7 +256,7 @@ public class PrometheusMeteringController {
         new EventKey(
             orgId,
             MeteringEventFactory.EVENT_SOURCE,
-            MeteringEventFactory.getOldEventType(metricId),
+            MeteringEventFactory.getEventType(metricId), // NOSONAR
             instanceId,
             measuredDate);
     Event event = existing.remove(lookupKey);
