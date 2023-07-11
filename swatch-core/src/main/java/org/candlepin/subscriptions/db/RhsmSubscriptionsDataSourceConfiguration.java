@@ -20,7 +20,9 @@
  */
 package org.candlepin.subscriptions.db;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.zaxxer.hikari.HikariDataSource;
+import java.util.List;
 import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -28,6 +30,9 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -42,6 +47,7 @@ import org.springframework.validation.annotation.Validated;
 /** A class to hold the inventory data source configuration. */
 @Configuration
 @EnableTransactionManagement
+@EnableCaching
 @EnableJpaRepositories(
     basePackages = "org.candlepin.subscriptions.db",
     entityManagerFactoryRef = "rhsmSubscriptionsEntityManagerFactory",
@@ -90,5 +96,21 @@ public class RhsmSubscriptionsDataSourceConfiguration {
   public AccountListSource accountListSource(
       AccountConfigRepository accountConfigRepository, ApplicationClock clock) {
     return new DatabaseAccountListSource(accountConfigRepository);
+  }
+
+  @Bean
+  public Caffeine<Object, Object> caffeine(OfferingCacheProperties offeringCacheProperties) {
+    return Caffeine.newBuilder()
+        .maximumSize(offeringCacheProperties.getSize())
+        .expireAfterWrite(offeringCacheProperties.getTtl());
+  }
+
+  @Bean
+  public CacheManager offeringCacheManager(Caffeine<Object, Object> caffeine) {
+    CaffeineCacheManager caffeineCacheManager = new CaffeineCacheManager();
+    caffeineCacheManager.setCaffeine(caffeine);
+    caffeineCacheManager.setCacheNames(List.of("offeringExists"));
+
+    return caffeineCacheManager;
   }
 }

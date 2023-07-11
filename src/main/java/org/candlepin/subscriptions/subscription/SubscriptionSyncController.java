@@ -153,6 +153,14 @@ public class SubscriptionSyncController {
     syncSubscription(dtoSku, newOrUpdated, subscriptionOptional);
   }
 
+  /**
+   * Sync a subscription from the subscription service with an internally managed subscription.
+   *
+   * @param sku the SKU for the subscription
+   * @param newOrUpdated a Subscription constructed from a DTO. <strong>This object is not in the
+   *     persistence context</strong>
+   * @param subscriptionOptional optional existing Subscription. Managed in the persistence context.
+   */
   @Transactional
   public void syncSubscription(
       String sku,
@@ -183,9 +191,9 @@ public class SubscriptionSyncController {
 
     subscriptionOptional.ifPresentOrElse(
         subscription -> newOrUpdated.setOffering(subscription.getOffering()),
-        () ->
-            newOrUpdated.setOffering(
-                offeringRepository.findById(sku).orElseThrow(EntityNotFoundException::new)));
+        // Set the offering via a proxy object rather than performing a full lookup.  See
+        // https://thorben-janssen.com/jpa-getreference/
+        () -> newOrUpdated.setOffering(offeringRepository.getReferenceById(sku)));
 
     log.debug("Syncing subscription from external service={}", newOrUpdated);
 
@@ -232,7 +240,7 @@ public class SubscriptionSyncController {
         subscriptionRepository.save(newSub);
         capacityReconciliationController.reconcileCapacityForSubscription(newSub);
       } else {
-        updateSubscription(newOrUpdated, existingSubscription);
+        updateExistingSubscription(newOrUpdated, existingSubscription);
         subscriptionRepository.save(existingSubscription);
         capacityReconciliationController.reconcileCapacityForSubscription(existingSubscription);
       }
@@ -246,6 +254,8 @@ public class SubscriptionSyncController {
       org.candlepin.subscriptions.db.model.Subscription subscription) {
     if (subscription.getBillingProvider() == null
         || subscription.getBillingProvider().equals(BillingProvider.EMPTY)) {
+      // The offering here is going to be a proxy object created by getReferenceById.  Hibernate
+      // should take care of actually performing the select from the database if one is needed.
       var productTag =
           tagProfile.tagForOfferingProductName(subscription.getOffering().getProductName());
       if (tagProfile.isProductPAYGEligible(productTag)) {
@@ -451,8 +461,10 @@ public class SubscriptionSyncController {
         .build();
   }
 
-  /** Update all subscription fields that we allow to change */
-  protected void updateSubscription(
+  /**
+   * Update all subscription fields in an existing SWATCH Subscription that we are allowed to change
+   */
+  protected void updateExistingSubscription(
       org.candlepin.subscriptions.db.model.Subscription newOrUpdated,
       org.candlepin.subscriptions.db.model.Subscription entity) {
     if (newOrUpdated.getEndDate() != null) {
