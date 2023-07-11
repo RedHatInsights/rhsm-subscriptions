@@ -1,7 +1,7 @@
 plugins {
     id "swatch.java-conventions"
     id "swatch.spring-boot-dependencies-conventions"
-    id 'java'
+    id 'java-library'
     id 'jsonschema2pojo'
     id 'jacoco'
 }
@@ -11,7 +11,8 @@ dependencies {
     implementation project(":api") // for util methods in ResourceUtils
     implementation project(":clients:rbac-client") // for security integration w/ rbac
     implementation project(":swatch-common-resteasy")
-    implementation project(":swatch-product-configuration")
+    // API exports swatch-product-configuration classes to all projects that include swatch-core
+    api project(":swatch-product-configuration")
     implementation "org.hibernate.validator:hibernate-validator"
     implementation "javax.validation:validation-api"
     implementation "org.springframework.boot:spring-boot-starter"
