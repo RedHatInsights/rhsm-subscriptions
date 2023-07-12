@@ -23,11 +23,11 @@ package org.candlepin.subscriptions.db;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK_;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity_;
-import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.RemittanceSummaryProjection;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -50,6 +50,10 @@ public interface BillableUsageRemittanceRepository
 
   default List<BillableUsageRemittanceEntity> filterBy(BillableUsageRemittanceFilter filter) {
     return this.findAll(buildSearchSpecification(filter));
+  }
+
+  default Optional<BillableUsageRemittanceEntity> findOne(BillableUsageRemittanceFilter filter) {
+    return findOne(buildSearchSpecification(filter));
   }
 
   default List<RemittanceSummaryProjection> getRemittanceSummaries(
@@ -135,13 +139,6 @@ public interface BillableUsageRemittanceRepository
         builder.equal(root.get(BillableUsageRemittanceEntity_.accountNumber), account);
   }
 
-  static Specification<BillableUsageRemittanceEntity> matchingGranularity(Granularity granularity) {
-    return (root, query, builder) -> {
-      var path = root.get(BillableUsageRemittanceEntity_.key);
-      return builder.equal(path.get(BillableUsageRemittanceEntityPK_.granularity), granularity);
-    };
-  }
-
   static Specification<BillableUsageRemittanceEntity> matchingUsage(String usage) {
     return (root, query, builder) -> {
       var path = root.get(BillableUsageRemittanceEntity_.key);
@@ -214,9 +211,6 @@ public interface BillableUsageRemittanceRepository
       searchCriteria =
           searchCriteria.and(matchingAccumulationPeriod(filter.getAccumulationPeriod()));
     }
-    if (Objects.nonNull(filter.getGranularity())) {
-      searchCriteria = searchCriteria.and(matchingGranularity(filter.getGranularity()));
-    }
     if (Objects.nonNull(filter.getUsage())) {
       searchCriteria = searchCriteria.and(matchingUsage(filter.getUsage()));
     }
@@ -227,6 +221,6 @@ public interface BillableUsageRemittanceRepository
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  void deleteAllByKeyOrgIdAndKeyGranularityAndKeyRemittancePendingDateBefore(
-      String orgId, Granularity granularity, OffsetDateTime cutoffDate);
+  void deleteAllByKeyOrgIdAndKeyRemittancePendingDateBefore(
+      String orgId, OffsetDateTime cutoffDate);
 }

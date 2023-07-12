@@ -34,7 +34,6 @@ import org.candlepin.subscriptions.retention.TallyRetentionController;
 import org.candlepin.subscriptions.security.SecurityProperties;
 import org.candlepin.subscriptions.tally.MarketplaceResendTallyController;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
-import org.candlepin.subscriptions.tally.billing.RemittanceController;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
@@ -48,7 +47,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class InternalTallyResourceTest {
 
   @Mock private MarketplaceResendTallyController resendTallyController;
-  @Mock private RemittanceController remittanceController;
   @Mock private TallySnapshotController snapshotController;
   @Mock private CaptureSnapshotsTaskManager snapshotTaskManager;
   @Mock private TallyRetentionController tallyRetentionController;
@@ -69,7 +67,6 @@ class InternalTallyResourceTest {
             clock,
             appProps,
             resendTallyController,
-            remittanceController,
             snapshotController,
             snapshotTaskManager,
             tallyRetentionController,

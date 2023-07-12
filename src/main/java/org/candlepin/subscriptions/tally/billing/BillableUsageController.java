@@ -92,26 +92,9 @@ public class BillableUsageController {
     return toBill;
   }
 
-  public boolean isReTally(BillableUsage billableUsage) {
-    BillableUsageRemittanceEntityPK key = BillableUsageRemittanceEntityPK.keyFrom(billableUsage);
-    var filter =
-        BillableUsageRemittanceFilter.builder()
-            .orgId(key.getOrgId())
-            .billingAccountId(key.getBillingAccountId())
-            .billingProvider(key.getBillingProvider())
-            .accumulationPeriod(key.getAccumulationPeriod())
-            .metricId(key.getMetricId())
-            .productId(key.getProductId())
-            .sla(key.getSla())
-            .usage(key.getUsage())
-            .granularity(Granularity.HOURLY)
-            .beginning(billableUsage.getSnapshotDate())
-            .build();
-    return billableUsageRemittanceRepository.existsBy(filter);
-  }
-
   public double getTotalRemitted(BillableUsage billableUsage) {
-    BillableUsageRemittanceEntityPK key = BillableUsageRemittanceEntityPK.keyFrom(billableUsage);
+    BillableUsageRemittanceEntityPK key =
+        BillableUsageRemittanceEntityPK.keyFrom(billableUsage, clock.now());
     var filter =
         BillableUsageRemittanceFilter.builder()
             .orgId(key.getOrgId())
@@ -122,7 +105,6 @@ public class BillableUsageController {
             .productId(key.getProductId())
             .sla(key.getSla())
             .usage(key.getUsage())
-            .granularity(Granularity.HOURLY)
             .build();
     return billableUsageRemittanceRepository.getRemittanceSummaries(filter).stream()
         .findFirst()
@@ -168,7 +150,7 @@ public class BillableUsageController {
     return BillableUsageCalculation.builder()
         .billableValue(billableValue.getValue())
         .remittedValue(billableValue.to(new MetricUnit()).getValue())
-        .remittanceDate(usage.getSnapshotDate())
+        .remittanceDate(clock.now())
         .billingFactor(billingUnit.getBillingFactor())
         .build();
   }
@@ -189,26 +171,9 @@ public class BillableUsageController {
         usage.getSnapshotDate());
     log.debug("Usage: {}", usage);
 
-    Double currentlyMeasuredTotal;
-
-    Optional<BillableUsageRemittanceEntity> existingRemittace = Optional.empty();
-
-    // if re-tallying we need to collect total for whole month.
-    if (isReTally(usage)) {
-      log.debug("Re-tallying, using measured total for entire month");
-      currentlyMeasuredTotal =
-          getCurrentlyMeasuredTotal(
-              usage,
-              clock.startOfMonth(usage.getSnapshotDate()),
-              clock.endOfMonth(usage.getSnapshotDate()));
-      existingRemittace =
-          billableUsageRemittanceRepository.findById(
-              BillableUsageRemittanceEntityPK.keyFrom(usage, Granularity.HOURLY));
-    } else {
-      currentlyMeasuredTotal =
-          getCurrentlyMeasuredTotal(
-              usage, clock.startOfMonth(usage.getSnapshotDate()), usage.getSnapshotDate());
-    }
+    Double currentlyMeasuredTotal =
+        getCurrentlyMeasuredTotal(
+            usage, clock.startOfMonth(usage.getSnapshotDate()), usage.getSnapshotDate());
 
     Optional<Double> contractValue = Optional.of(0.0);
     if (tagProfile.isTagContractEnabled(usage.getProductId())) {
@@ -263,10 +228,10 @@ public class BillableUsageController {
     usage.setValue(usageCalc.getBillableValue());
     usage.setBillingFactor(usageCalc.getBillingFactor());
 
-    if (existingRemittace.isPresent()) {
-      updateRemittance(usage, existingRemittace.get(), usageCalc);
-    } else {
+    if (usageCalc.getRemittedValue() > 0) {
       createRemittance(usage, usageCalc);
+    } else {
+      log.debug("Nothing to remit. Remittance record will not be created.");
     }
 
     log.info(
@@ -282,51 +247,14 @@ public class BillableUsageController {
   private void createRemittance(BillableUsage usage, BillableUsageCalculation usageCalc) {
     var newRemittance =
         BillableUsageRemittanceEntity.builder()
-            .key(BillableUsageRemittanceEntityPK.keyFrom(usage))
+            .key(BillableUsageRemittanceEntityPK.keyFrom(usage, clock.now()))
             .build();
     // Remitted value should be set to usages metric_value rather than billing_value
     newRemittance.setRemittedPendingValue(usageCalc.getRemittedValue());
     newRemittance.getKey().setRemittancePendingDate(usageCalc.getRemittanceDate());
-    newRemittance.getKey().setGranularity(Granularity.HOURLY);
     newRemittance.setAccountNumber(usage.getAccountNumber());
     log.debug("Creating new remittance for update: {}", newRemittance);
     billableUsageRemittanceRepository.save(newRemittance);
-    updateDailyRemittance(usage, usageCalc);
-  }
-
-  private void updateRemittance(
-      BillableUsage usage,
-      BillableUsageRemittanceEntity existingRemittance,
-      BillableUsageCalculation usageCalc) {
-    if (usageCalc.getRemittedValue() > 0.0) {
-      var remittanceTotal =
-          existingRemittance.getRemittedPendingValue() + usageCalc.getRemittedValue();
-      existingRemittance.setRemittedPendingValue(remittanceTotal);
-      log.debug("Updating existing remittance: {}", existingRemittance);
-      billableUsageRemittanceRepository.save(existingRemittance);
-      updateDailyRemittance(usage, usageCalc);
-    }
-  }
-
-  private void updateDailyRemittance(BillableUsage usage, BillableUsageCalculation usageCalc) {
-    var dailyRemittance = getDailyRemittance(usage);
-    var totalDailyRemittedValue =
-        dailyRemittance.getRemittedPendingValue() + usageCalc.getRemittedValue();
-    dailyRemittance.setRemittedPendingValue(totalDailyRemittedValue);
-    billableUsageRemittanceRepository.save(dailyRemittance);
-  }
-
-  private BillableUsageRemittanceEntity getDailyRemittance(BillableUsage usage) {
-    var key = BillableUsageRemittanceEntityPK.keyFrom(usage, Granularity.DAILY);
-    key.setRemittancePendingDate(clock.startOfDay(usage.getSnapshotDate()));
-    return billableUsageRemittanceRepository
-        .findById(key)
-        .orElse(
-            BillableUsageRemittanceEntity.builder()
-                .key(key)
-                .accountNumber(usage.getAccountNumber())
-                .remittedPendingValue(0.0)
-                .build());
   }
 
   private Double getCurrentlyMeasuredTotal(
@@ -339,7 +267,6 @@ public class BillableUsageController {
     return snapshotRepository.sumMeasurementValueForPeriod(
         usage.getOrgId(),
         usage.getProductId(),
-        // Billable usage has already been filtered to HOURLY only.
         Granularity.HOURLY,
         ServiceLevel.fromString(usage.getSla().value()),
         Usage.fromString(usage.getUsage().value()),

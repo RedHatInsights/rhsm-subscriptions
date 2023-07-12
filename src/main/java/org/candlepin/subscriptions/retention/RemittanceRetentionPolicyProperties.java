@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.retention;
 
+import java.time.Duration;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -31,15 +32,7 @@ import org.springframework.stereotype.Component;
 @Setter
 @ConfigurationProperties(prefix = "rhsm-subscriptions.remittance-retention-policy")
 public class RemittanceRetentionPolicyProperties {
-  /**
-   * Number of historic hourly snapshots to keep. Actual number kept will include an additional hour
-   * (current & historic).
-   */
-  private Integer hourly;
 
-  /**
-   * Number of historic daily snapshots to keep. Actual number kept will include an additional day
-   * (current & historic).
-   */
-  private Integer daily;
+  /** Defines the max duration remittance records are retained. */
+  private Duration duration;
 }

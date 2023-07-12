@@ -24,8 +24,6 @@ import java.io.Serializable;
 import java.time.OffsetDateTime;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -66,12 +64,8 @@ public class BillableUsageRemittanceEntityPK implements Serializable {
   @Column(name = "remittance_pending_date", nullable = false)
   private OffsetDateTime remittancePendingDate;
 
-  @Enumerated(EnumType.STRING)
-  @Column(name = "granularity")
-  private Granularity granularity;
-
   public static BillableUsageRemittanceEntityPK keyFrom(
-      BillableUsage billableUsage, Granularity granularity) {
+      BillableUsage billableUsage, OffsetDateTime remittancePendingDate) {
     return BillableUsageRemittanceEntityPK.builder()
         .usage(billableUsage.getUsage().value())
         .orgId(billableUsage.getOrgId())
@@ -81,13 +75,8 @@ public class BillableUsageRemittanceEntityPK implements Serializable {
         .sla(billableUsage.getSla().value())
         .metricId(billableUsage.getUom().value())
         .accumulationPeriod(getAccumulationPeriod(billableUsage.getSnapshotDate()))
-        .remittancePendingDate(billableUsage.getSnapshotDate())
-        .granularity(granularity)
+        .remittancePendingDate(remittancePendingDate)
         .build();
-  }
-
-  public static BillableUsageRemittanceEntityPK keyFrom(BillableUsage billableUsage) {
-    return keyFrom(billableUsage, Granularity.HOURLY);
   }
 
   public static String getAccumulationPeriod(OffsetDateTime reference) {
