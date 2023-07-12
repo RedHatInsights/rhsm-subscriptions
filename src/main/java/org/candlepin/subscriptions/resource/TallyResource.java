@@ -218,14 +218,16 @@ public class TallyResource implements TallyApi {
       report.setLinks(pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage));
     }
 
+    if (Boolean.TRUE.equals(useRunningTotalsFormat)) {
+      transformToRunningTotalFormat(report, uom);
+    }
+
     // Fill the report gaps if no paging was requested.
     if (reportCriteria.getPageable() == null) {
       ReportFiller<TallyReportDataPoint> reportFiller =
           ReportFillerFactory.getDataPointReportFiller(clock, reportCriteria.getGranularity());
-      report.setData(reportFiller.fillGaps(report.getData(), beginning, ending, false));
-    }
-    if (Boolean.TRUE.equals(useRunningTotalsFormat)) {
-      transformToRunningTotalFormat(report, uom);
+      report.setData(
+          reportFiller.fillGaps(report.getData(), beginning, ending, useRunningTotalsFormat));
     }
 
     // Set the count last since the report may have gotten filled.
