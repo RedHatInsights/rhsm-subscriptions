@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.event;
 
 import java.time.OffsetDateTime;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,19 +33,24 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.persistence.EntityNotFoundException;
 import javax.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
+import org.candlepin.subscriptions.db.model.EventRecordConverter;
 import org.candlepin.subscriptions.json.Event;
 import org.springframework.stereotype.Service;
 
 /** Encapsulates interaction with event store. */
 @Service
+@Slf4j
 public class EventController {
   private final EventRecordRepository repo;
+  private final EventRecordConverter eventRecordConverter;
 
-  public EventController(EventRecordRepository repo) {
+  public EventController(EventRecordRepository repo, EventRecordConverter eventRecordConverter) {
     this.repo = repo;
+    this.eventRecordConverter = eventRecordConverter;
   }
 
   /**
@@ -135,5 +141,28 @@ public class EventController {
       String orgId, String serviceType, OffsetDateTime startDate, OffsetDateTime endDate) {
     return repo.existsByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThan(
         orgId, serviceType, startDate, endDate);
+  }
+
+  @Transactional
+  public void persistServiceInstances(Set<String> eventJsonList) {
+    Map<EventKey, Event> eventsMap = parseEventRecordsToEventsEntityMap(eventJsonList);
+    saveAll(eventsMap.values());
+  }
+
+  private Map<EventKey, Event> parseEventRecordsToEventsEntityMap(Set<String> eventJsonList) {
+    Map<EventKey, Event> eventsMap = new HashMap<>();
+    eventJsonList.forEach(
+        eventJson -> {
+          try {
+            Event event = eventRecordConverter.convertToEntityAttribute(eventJson);
+            eventsMap.putIfAbsent(EventKey.fromEvent(event), event);
+          } catch (Exception e) {
+            log.warn(
+                String.format(
+                    "Issue found %s for the service instance json skipping to next ",
+                    e.getCause()));
+          }
+        });
+    return eventsMap;
   }
 }

@@ -27,6 +27,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.event.EventController;
@@ -41,6 +43,7 @@ import org.candlepin.subscriptions.task.queue.TaskConsumer;
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskConsumerFactory;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -49,6 +52,9 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
+import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
@@ -185,6 +191,47 @@ public class TallyWorkerConfiguration {
     executor.setQueueCapacity(0);
     executor.initialize();
     return executor;
+  }
+
+  @Bean
+  @Qualifier("serviceInstanceConsumerFactory")
+  ConsumerFactory<String, String> serviceInstanceConsumerFactory(
+      KafkaProperties kafkaProperties,
+      @Qualifier("tallyTaskQueueProperties") TaskQueueProperties taskQueueProperties) {
+    var props = kafkaProperties.buildConsumerProperties();
+    props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, taskQueueProperties.getMaxPollRecords());
+    return new DefaultKafkaConsumerFactory<>(
+        props, new StringDeserializer(), new StringDeserializer());
+  }
+
+  @Bean
+  ConcurrentKafkaListenerContainerFactory<String, String>
+      kafkaServiceInstanceListenerContainerFactory(
+          @Qualifier("serviceInstanceConsumerFactory")
+              ConsumerFactory<String, String> consumerFactory,
+          KafkaProperties kafkaProperties,
+          KafkaConsumerRegistry registry) {
+
+    var factory = new ConcurrentKafkaListenerContainerFactory<String, String>();
+    factory.setConsumerFactory(consumerFactory);
+    factory.setBatchListener(true);
+    // Concurrency should be set to the number of partitions for the target topic.
+    factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
+    if (kafkaProperties.getListener().getIdleEventInterval() != null) {
+      factory
+          .getContainerProperties()
+          .setIdleEventInterval(kafkaProperties.getListener().getIdleEventInterval().toMillis());
+    }
+    // hack to track the Kafka consumers, so SeekableKafkaConsumer can commit when needed
+    factory.getContainerProperties().setConsumerRebalanceListener(registry);
+    return factory;
+  }
+
+  @Bean
+  @Qualifier("serviceInstanceTopicProperties")
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.service-instance-ingress.incoming")
+  public TaskQueueProperties serviceInstanceTopicProperties() {
+    return new TaskQueueProperties();
   }
 
   @Bean(name = "purgeRemittancesJobExecutor")

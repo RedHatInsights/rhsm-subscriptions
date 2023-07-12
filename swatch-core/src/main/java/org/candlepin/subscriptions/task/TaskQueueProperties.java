@@ -38,4 +38,7 @@ public class TaskQueueProperties {
   private boolean seekOverrideEnd = false;
 
   private boolean enabled = true;
+
+  /** Batch size number of records * */
+  private String maxPollRecords = "15";
 }

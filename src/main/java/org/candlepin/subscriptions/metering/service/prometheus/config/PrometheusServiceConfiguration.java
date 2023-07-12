@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.metering.service.prometheus.config;
 
 import org.candlepin.subscriptions.db.EventRecordRepository;
+import org.candlepin.subscriptions.db.model.EventRecordConverter;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
@@ -60,8 +61,9 @@ public class PrometheusServiceConfiguration {
   }
 
   @Bean
-  EventController prometheusEventController(EventRecordRepository repo) {
-    return new EventController(repo);
+  EventController prometheusEventController(
+      EventRecordRepository repo, EventRecordConverter eventRecordConverter) {
+    return new EventController(repo, eventRecordConverter);
   }
 
   @Bean

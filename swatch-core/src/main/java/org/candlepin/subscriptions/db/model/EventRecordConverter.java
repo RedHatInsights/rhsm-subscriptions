@@ -29,7 +29,7 @@ import org.springframework.stereotype.Component;
 
 /** JPA AttributeConverter which uses Jackson to map to/from Event JSON. */
 @Component
-class EventRecordConverter implements AttributeConverter<Event, String> {
+public class EventRecordConverter implements AttributeConverter<Event, String> {
 
   private static ObjectMapper objectMapper;
 
