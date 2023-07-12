@@ -227,7 +227,11 @@ public class TallyResource implements TallyApi {
       ReportFiller<TallyReportDataPoint> reportFiller =
           ReportFillerFactory.getDataPointReportFiller(clock, reportCriteria.getGranularity());
       report.setData(
-          reportFiller.fillGaps(report.getData(), beginning, ending, useRunningTotalsFormat));
+          reportFiller.fillGaps(
+              report.getData(),
+              beginning,
+              ending,
+              Objects.requireNonNullElse(useRunningTotalsFormat, false)));
     }
 
     // Set the count last since the report may have gotten filled.

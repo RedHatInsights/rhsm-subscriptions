@@ -35,7 +35,7 @@ public class TallyReportDataPointAdapter implements ReportFillerAdapter<TallyRep
   public TallyReportDataPoint createDefaultItem(
       OffsetDateTime itemDate, TallyReportDataPoint previous, boolean useRunningTotalFormat) {
     var point = new TallyReportDataPoint().date(itemDate).hasData(false).value(0);
-    if (useRunningTotalFormat) {
+    if (Boolean.TRUE.equals(useRunningTotalFormat)) {
       point.value(Objects.requireNonNullElse(previous.getValue(), 0));
     }
     return point;
