@@ -181,10 +181,6 @@ public class TallyResource implements TallyApi {
                 : reportCriteria.getBillingProvider().asOpenApiEnum());
     report.getMeta().setBillingAcountId(billingAcctId);
 
-    if (Boolean.TRUE.equals(useRunningTotalsFormat)) {
-      transformToRunningTotalFormat(report, uom);
-    }
-
     // NOTE: rather than keep a separate monthly rollup, in order to avoid unnecessary storage and
     // DB round-trips, deserialization, etc., simply aggregate in-memory the monthly totals here.
     // NOTE: In order to avoid incorrect aggregations, if there is not exactly a full month (e.g.
@@ -227,6 +223,9 @@ public class TallyResource implements TallyApi {
       ReportFiller<TallyReportDataPoint> reportFiller =
           ReportFillerFactory.getDataPointReportFiller(clock, reportCriteria.getGranularity());
       report.setData(reportFiller.fillGaps(report.getData(), beginning, ending, false));
+    }
+    if (Boolean.TRUE.equals(useRunningTotalsFormat)) {
+      transformToRunningTotalFormat(report, uom);
     }
 
     // Set the count last since the report may have gotten filled.
