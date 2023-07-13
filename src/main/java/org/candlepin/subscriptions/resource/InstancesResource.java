@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.TallyInstanceViewRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -71,6 +72,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /** Instance API implementation. */
 @Component
+@Slf4j
 public class InstancesResource implements InstancesApi {
 
   private final TallyInstanceViewRepository repository;
@@ -148,6 +150,11 @@ public class InstancesResource implements InstancesApi {
       OffsetDateTime ending,
       InstanceReportSort sort,
       SortDirection dir) {
+
+    String orgId = ResourceUtils.getOrgId();
+
+    log.debug("Get instances api called for org_id: {} and product: {}", orgId, productId);
+
     Sort.Direction dirValue = Sort.Direction.ASC;
     if (dir == SortDirection.DESC) {
       dirValue = Sort.Direction.DESC;
@@ -158,7 +165,6 @@ public class InstancesResource implements InstancesApi {
     int minCores = 0;
     int minSockets = 0;
 
-    String orgId = ResourceUtils.getOrgId();
     ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
     Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
     BillingProvider sanitizedBillingProvider =
