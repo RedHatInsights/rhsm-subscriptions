@@ -57,14 +57,14 @@ class RhsmApiFactoryTest {
   }
 
   @AfterEach
-  private void tearDown() {
+  void tearDown() {
     if (server != null) {
       server.stop();
     }
   }
 
   @BeforeEach
-  private void setUp() {
+  void setUp() {
     config = new RhsmApiProperties();
   }
 

@@ -56,7 +56,7 @@ class HttpClientTest {
   }
 
   @AfterEach
-  private void tearDown() {
+  void tearDown() {
     if (server != null) {
       server.stop();
     }
