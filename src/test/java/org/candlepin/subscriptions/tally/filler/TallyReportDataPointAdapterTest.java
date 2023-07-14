@@ -49,7 +49,15 @@ class TallyReportDataPointAdapterTest {
   @Test
   void createDefaultItemNullPrevious() {
     var now = OffsetDateTime.now();
-    var point = adapter.createDefaultItem(now, null, false);
+    var point = adapter.createDefaultItem(now, null, true);
+    assertEquals(0, point.getValue());
+  }
+
+  @Test
+  void createDefaultItemNullPreviousValue() {
+    var previous = new TallyReportDataPoint().value(null);
+    var now = OffsetDateTime.now();
+    var point = adapter.createDefaultItem(now, previous, true);
     assertEquals(0, point.getValue());
   }
 }
