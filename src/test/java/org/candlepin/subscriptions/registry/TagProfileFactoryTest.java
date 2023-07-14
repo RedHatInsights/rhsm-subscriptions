@@ -81,7 +81,7 @@ class TagProfileFactoryTest {
     String rosaCoresAwsDimension =
         tagProfile.awsDimensionForTagAndUom(ProductId.ROSA.toString(), Uom.CORES);
     assertNotNull(rosaCoresAwsDimension);
-    assertEquals("four_vcpu_hour", rosaCoresAwsDimension);
+    assertEquals("four_vcpu_0", rosaCoresAwsDimension);
   }
 
   @Test

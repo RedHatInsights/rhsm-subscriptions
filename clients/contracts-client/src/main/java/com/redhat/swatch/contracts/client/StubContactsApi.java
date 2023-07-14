@@ -34,7 +34,7 @@ import java.util.List;
  */
 public class StubContactsApi extends DefaultApi {
 
-  private static final String CONTRACT_METRIC_ID = "four_vcpu_hour";
+  private static final String CONTRACT_METRIC_ID = "four_vcpu_0";
 
   @Override
   public List<Contract> getContract(

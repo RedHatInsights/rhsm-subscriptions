@@ -54,7 +54,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ContractsControllerTest {
 
-  private static final String CONTRACT_METRIC_ID = "four_vcpu_hour";
+  private static final String CONTRACT_METRIC_ID = "four_vcpu_0";
+  private static final String CONTRACT_CONTROL_PLANE_METRIC_ID = "control_plane_0";
 
   @Mock DefaultApi contractsApi;
   @Mock TagProfile tagProfile;
@@ -185,11 +186,11 @@ class ContractsControllerTest {
     // Set up the mocked contract data
     Contract contract1 = contractFromUsage(usage);
     contract1.addMetricsItem(new Metric().metricId(CONTRACT_METRIC_ID).value(100));
-    contract1.addMetricsItem(new Metric().metricId("control_plane").value(20));
+    contract1.addMetricsItem(new Metric().metricId(CONTRACT_CONTROL_PLANE_METRIC_ID).value(20));
 
     Contract contract2 = contractFromUsage(usage);
     contract2.addMetricsItem(new Metric().metricId(CONTRACT_METRIC_ID).value(40));
-    contract2.addMetricsItem(new Metric().metricId("control_plane").value(20));
+    contract2.addMetricsItem(new Metric().metricId(CONTRACT_CONTROL_PLANE_METRIC_ID).value(20));
 
     // Make sure product is contract enabled.
     when(tagProfile.isTagContractEnabled(usage.getProductId())).thenReturn(true);
@@ -217,13 +218,13 @@ class ContractsControllerTest {
     // Set up the mocked contract data
     Contract contract1 = contractFromUsage(usage);
     contract1.addMetricsItem(new Metric().metricId(CONTRACT_METRIC_ID).value(100));
-    contract1.addMetricsItem(new Metric().metricId("control_plane").value(20));
+    contract1.addMetricsItem(new Metric().metricId(CONTRACT_CONTROL_PLANE_METRIC_ID).value(20));
     contract1.addMetricsItem(new Metric().metricId(CONTRACT_METRIC_ID).value(50));
 
     Contract contract2 = contractFromUsage(usage);
     contract2.addMetricsItem(new Metric().metricId(CONTRACT_METRIC_ID).value(25));
     contract2.addMetricsItem(new Metric().metricId(CONTRACT_METRIC_ID).value(25));
-    contract2.addMetricsItem(new Metric().metricId("control_plane").value(20));
+    contract2.addMetricsItem(new Metric().metricId(CONTRACT_CONTROL_PLANE_METRIC_ID).value(20));
 
     when(contractsApi.getContract(
             usage.getOrgId(),

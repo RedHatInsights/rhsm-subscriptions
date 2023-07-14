@@ -21,14 +21,14 @@ serviceType: rosa Instance
 
 metrics:
   - id: redhat.com:rosa:cluster_hour
-    awsDimension: control_plane
+    awsDimension: control_plane_0
     prometheus:
       queryParams:
         product: moa-hostedcontrolplane
         metric: cluster:usage:workload:capacity_physical_instance_hours
         metadata_metric: subscription_labels
   - id: redhat.com:rosa:cpu_hour
-    awsDimension: four_vcpu_hour
+    awsDimension: four_vcpu_0
     billingFactor: 0.25
     prometheus:
       queryParams:
