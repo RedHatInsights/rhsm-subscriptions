@@ -24,29 +24,13 @@
 
   <changeSet id="202305251412-03" author="awood" dbms="postgresql">
     <sql>
-      DROP TRIGGER subscription_insert ON subscription_capacity;
-    </sql>
-    <rollback changeSetId="202305031403-08" changeSetAuthor="awood"
-    changeSetPath="liquibase/202305031403-create-subscription-measurements-table.xml" />
-  </changeSet>
-
-  <changeSet id="202305251412-04" author="awood" dbms="postgresql">
-    <sql>
-      DROP TRIGGER subscription_update ON subscription_capacity;
-    </sql>
-    <rollback changeSetId="202305031403-09" changeSetAuthor="awood"
-    changeSetPath="liquibase/202305031403-create-subscription-measurements-table.xml" />
-  </changeSet>
-
-  <changeSet id="202305251412-05" author="awood" dbms="postgresql">
-    <sql>
       DROP TRIGGER subscription_product_id_insert ON subscription_capacity;
     </sql>
     <rollback changeSetId="202305031403-11" changeSetAuthor="awood"
     changeSetPath="liquibase/202305031403-create-subscription-measurements-table.xml" />
   </changeSet>
 
-  <changeSet id="202305251412-06" author="awood" dbms="postgresql">
+  <changeSet id="202305251412-04" author="awood" dbms="postgresql">
     <sql>
       DROP TRIGGER subscription_product_id_update ON subscription_capacity;
     </sql>
@@ -54,23 +38,15 @@
     changeSetPath="liquibase/202305031403-create-subscription-measurements-table.xml" />
   </changeSet>
 
-  <changeSet id="202305251412-07" author="awood" dbms="postgresql">
+  <changeSet id="202305251412-05" author="awood" dbms="postgresql">
     <sql>
       DROP FUNCTION copy_subscription_capacity_sockets_and_cores();
     </sql>
-    <rollback changeSetId="202305031403-03" changeSetAuthor="awood"
+    <rollback changeSetId="202305031403-04" changeSetAuthor="awood"
     changeSetPath="liquibase/202305031403-create-subscription-measurements-table.xml" />
   </changeSet>
 
-  <changeSet id="202305251412-08" author="awood" dbms="postgresql">
-    <sql>
-      DROP FUNCTION copy_subscription_capacity_has_unlimited_usage();
-    </sql>
-    <rollback changeSetId="202305031403-06" changeSetAuthor="awood"
-    changeSetPath="liquibase/202305031403-create-subscription-measurements-table.xml" />
-  </changeSet>
-
-  <changeSet id="202305251412-09" author="awood" dbms="postgresql">
+  <changeSet id="202305251412-07" author="awood" dbms="postgresql">
     <sql>
       DROP FUNCTION copy_subscription_product_id();
     </sql>
@@ -78,7 +54,7 @@
     changeSetPath="liquibase/202305031403-create-subscription-measurements-table.xml" />
   </changeSet>
 
-  <changeSet id="202305031403-25" author="awood">
+  <changeSet id="202305031403-08" author="awood">
     <dropTable tableName="subscription_capacity"/>
   </changeSet>
 </databaseChangeLog>
