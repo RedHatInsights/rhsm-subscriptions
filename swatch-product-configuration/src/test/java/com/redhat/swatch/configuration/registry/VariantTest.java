@@ -22,6 +22,7 @@ package com.redhat.swatch.configuration.registry;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class VariantTest {
@@ -49,5 +50,20 @@ class VariantTest {
     var actual = variant.getSubscription().getId();
 
     assertEquals(expected, actual);
+  }
+
+  @Test
+  void testFindByEngineeringId() {
+
+    var actual = Variant.findByEngProductId("69");
+
+    Variant expected = new Variant();
+    expected.setEngineeringIds(List.of("69"));
+    expected.setRoles(List.of("Red Hat Enterprise Linux Server"));
+    expected.setTag("RHEL Server");
+
+    assertEquals(expected, actual.get());
+
+    System.out.println(actual);
   }
 }

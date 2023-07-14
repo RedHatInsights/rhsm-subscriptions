@@ -20,7 +20,11 @@
  */
 package org.candlepin.subscriptions.capacity;
 
+import com.redhat.swatch.configuration.registry.Subscription;
+import com.redhat.swatch.configuration.registry.Variant;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -56,8 +60,7 @@ public class CapacityProductExtractor {
     return mapEngProductsToSwatchIds(offering.getProductIds().stream());
   }
 
-  private Set<String> mapEngProductsToSwatchIds(Stream<Integer> productIds) {
-
+  Set<String> mapEngProductsToSwatchIds(Stream<Integer> productIds) {
     Set<String> products =
         productIds
             .filter(Objects::nonNull)
@@ -89,6 +92,7 @@ public class CapacityProductExtractor {
    * @return true if the set is invalid for capacity calculations
    */
   public boolean setIsInvalid(Set<String> products) {
+
     return products.stream().anyMatch(matchesRhel())
         && products.stream().anyMatch(matchesRhelIncludedProduct());
   }
@@ -99,5 +103,33 @@ public class CapacityProductExtractor {
 
   private Predicate<String> matchesRhelIncludedProduct() {
     return x -> x.startsWith("Satellite") || x.startsWith("OpenShift");
+  }
+
+  Set<String> getProductTagsFrom(Stream<Integer> engProductIds) {
+    List<String> productIds = engProductIds.map(String::valueOf).toList();
+
+    Set<String> ignoredSubscriptionIds =
+        productIds.stream()
+            .flatMap(id -> Subscription.lookupSubscriptionByEngId(id).stream())
+            .flatMap(sub -> sub.getIncludedSubscriptions().stream())
+            .collect(Collectors.toSet());
+
+    Set<Variant> matches = new HashSet<>();
+
+    for (String engProductId : productIds) {
+      Variant.findByEngProductId(engProductId)
+          .filter(variant -> !ignoredSubscriptionIds.contains(variant.getSubscription().getId()))
+          .ifPresent(matches::add);
+
+      Subscription subFoundByFingerprint =
+          Subscription.lookupSubscriptionByEngId(engProductId).orElse(null);
+
+      if (subFoundByFingerprint != null
+          && !ignoredSubscriptionIds.contains(subFoundByFingerprint.getId())) {
+        Variant.findByTag(subFoundByFingerprint.getDefaults().getVariant()).ifPresent(matches::add);
+      }
+    }
+
+    return matches.stream().map(Variant::getTag).collect(Collectors.toSet());
   }
 }

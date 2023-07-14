@@ -34,7 +34,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.yaml.snakeyaml.LoaderOptions;
@@ -117,5 +121,127 @@ class SubscriptionRegistry {
       log.error("Error while listing files. {}", e.getMessage());
       throw new ConfigResourcesLoadingException(e);
     }
+  }
+
+  /**
+   * @param serviceType
+   * @return Optional<Subscription>
+   */
+  Optional<Subscription> lookupByServiceType(String serviceType) {
+
+    return subscriptions.stream()
+        .filter(subscription -> Objects.nonNull(subscription.getServiceType()))
+        .filter(subscription -> Objects.equals(subscription.getServiceType(), serviceType))
+        .findFirst();
+  }
+
+  /**
+   * @param arch
+   * @return Optional<Subscription>
+   */
+  Optional<Subscription> lookupByFingerprintArch(String arch) {
+    return subscriptions.stream()
+        .filter(
+            subscription -> {
+              var fingerprint = subscription.getFingerprint();
+              return Objects.nonNull(fingerprint)
+                  && !fingerprint.getArches().isEmpty()
+                  && fingerprint.getArches().contains(arch);
+            })
+        .findFirst();
+  }
+
+  /**
+   * @return List<String> serviceTypes
+   */
+  List<String> getAllServiceTypes() {
+    return subscriptions.stream()
+        .map(Subscription::getServiceType)
+        .filter(Objects::nonNull)
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * An engineering id can be found in either a fingerprint or variant. Check the variant first. If
+   * not found, check the fingerprint.
+   *
+   * @param engProductId
+   * @return Optional<Subscription> subscription
+   */
+  Optional<Subscription> lookupSubscriptionByEngId(String engProductId) {
+    var variantMatch = lookupSubscriptionByVariantEngId(engProductId);
+    if (variantMatch.isPresent()) {
+      return variantMatch;
+    }
+
+    return lookupSubscriptionByFingerprintEngId(engProductId);
+  }
+
+  private Optional<Subscription> lookupSubscriptionByVariantEngId(String engProductId) {
+    return subscriptions.stream()
+        .filter(subscription -> !subscription.getVariants().isEmpty())
+        .filter(
+            subscription ->
+                subscription.getVariants().stream()
+                    .anyMatch(variant -> variant.getEngineeringIds().contains(engProductId)))
+        .findFirst();
+  }
+
+  private Optional<Subscription> lookupSubscriptionByFingerprintEngId(String engProductId) {
+    return subscriptions.stream()
+        .filter(subscription -> Objects.nonNull(subscription.getFingerprint()))
+        .filter(
+            subscription ->
+                subscription.getFingerprint().getEngineeringIds().contains(engProductId))
+        .findFirst();
+  }
+
+  /**
+   * Looks for productName matching a variant
+   *
+   * @param productName
+   * @return Optional<Subscription>
+   */
+  Optional<Subscription> lookupSubscriptionByProductName(String productName) {
+    return subscriptions.stream()
+        .filter(subscription -> !subscription.getVariants().isEmpty())
+        .filter(
+            subscription ->
+                subscription.getVariants().stream()
+                    .anyMatch(variant -> variant.getProductNames().contains(productName)))
+        .findFirst();
+  }
+
+  /**
+   * Looks for role matching a variant
+   *
+   * @param role
+   * @return Optional<Subscription>
+   */
+  Optional<Subscription> lookupSubscriptionByRole(String role) {
+    return subscriptions.stream()
+        .filter(subscription -> !subscription.getVariants().isEmpty())
+        .filter(
+            subscription ->
+                subscription.getVariants().stream()
+                    .anyMatch(variant -> variant.getRoles().contains(role)))
+        .findFirst();
+  }
+
+  /**
+   * Looks for tag matching a variant
+   *
+   * @param tag
+   * @return Optional<Subscription>
+   */
+  Optional<Subscription> lookupSubscriptionByTag(@NotNull @NotEmpty String tag) {
+
+    return subscriptions.stream()
+        .filter(subscription -> !subscription.getVariants().isEmpty())
+        .filter(
+            subscription ->
+                subscription.getVariants().stream()
+                    .anyMatch(variant -> Objects.equals(tag, variant.getTag())))
+        .findFirst();
   }
 }
