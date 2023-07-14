@@ -20,10 +20,13 @@
  */
 package com.redhat.swatch.configuration.registry;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
-import lombok.Builder;
 import lombok.Data;
 
 /**
@@ -31,7 +34,6 @@ import lombok.Data;
  * single technical fingerprint. Defines a set of metrics.
  */
 @Data
-@Builder
 public class Subscription {
 
   /**
@@ -43,8 +45,8 @@ public class Subscription {
   @NotNull @NotEmpty private String id; // required
 
   /**
-   * Enables capability to inherit billing model information from their parent subscription Unused
-   * prior to https://issues.redhat.com/browse/BIZ-629
+   * Enables capability to inherit billing model information from their parent subscription. Unused
+   * prior to <a href="https://issues.redhat.com/browse/BIZ-629">BIZ-629</a>
    */
   private String parentSubscription;
 
@@ -52,12 +54,166 @@ public class Subscription {
    * defines an "in-the-box" subscription. Considered included from both usage and capacity
    * perspectives.
    */
-  private List<String> includedSubscriptions;
+  private List<String> includedSubscriptions = new ArrayList<>();
 
   private Fingerprint fingerprint;
-  private List<Variant> variants;
+  private List<Variant> variants = new ArrayList<>();
   private BillingWindow billingWindow;
   private String serviceType;
-  private List<Metric> metrics;
+  private List<Metric> metrics = new ArrayList<>();
   private Defaults defaults;
+
+  /**
+   * @param serviceType
+   * @return Optional<Subscription>
+   */
+  public static Optional<Subscription> findByServiceType(String serviceType) {
+
+    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
+        .filter(subscription -> Objects.equals(subscription.getServiceType(), serviceType))
+        .findFirst();
+  }
+
+  /**
+   * @param arch
+   * @return Optional<Subscription>
+   */
+  public static Optional<Subscription> findByArch(String arch) {
+    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
+        .filter(
+            subscription -> {
+              var fingerprint = subscription.getFingerprint();
+              return Objects.nonNull(fingerprint)
+                  && !fingerprint.getArches().isEmpty()
+                  && fingerprint.getArches().contains(arch);
+            })
+        .findFirst();
+  }
+
+  public List<String> getMetricIds() {
+    return this.getMetrics().stream()
+        .map(Metric::getId)
+        .filter(Objects::nonNull)
+        .collect(Collectors.toList());
+  }
+
+  public Optional<Metric> getMetric(String metricId) {
+    return this.getMetrics().stream().filter(x -> Objects.equals(x.getId(), metricId)).findFirst();
+  }
+
+  public static Optional<Subscription> findById(String id) {
+    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
+        .filter(subscription -> Objects.equals(subscription.getId(), id))
+        .findFirst();
+  }
+
+  /**
+   * @return List<String> serviceTypes
+   */
+  public static List<String> getAllServiceTypes() {
+    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
+        .map(Subscription::getServiceType)
+        .filter(Objects::nonNull)
+        .collect(Collectors.toList());
+  }
+
+  public boolean isPrometheusEnabled() {
+
+    return this.getMetrics().stream().anyMatch(metric -> Objects.nonNull(metric.getPrometheus()));
+  }
+
+  public String getFinestGranularity() {
+
+    return this.isPrometheusEnabled() ? "HOURLY" : "DAILY";
+  }
+
+  public List<String> getSupportedGranularity() {
+    var granularity = List.of("HOURLY", "DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY");
+
+    return isPrometheusEnabled() ? granularity : granularity.subList(1, granularity.size());
+  }
+
+  /**
+   * An engineering id can be found in either a fingerprint or variant. Check the variant first. If
+   * not found, check the fingerprint.
+   *
+   * @param engProductId
+   * @return Optional<Subscription> subscription
+   */
+  public static Optional<Subscription> lookupSubscriptionByEngId(String engProductId) {
+    var variantMatch = lookupSubscriptionByVariantEngId(engProductId);
+    if (variantMatch.isPresent()) {
+      return variantMatch;
+    }
+
+    return lookupSubscriptionByFingerprintEngId(engProductId);
+  }
+
+  private static Optional<Subscription> lookupSubscriptionByVariantEngId(String engProductId) {
+    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
+        .filter(subscription -> !subscription.getVariants().isEmpty())
+        .filter(
+            subscription ->
+                subscription.getVariants().stream()
+                    .anyMatch(variant -> variant.getEngineeringIds().contains(engProductId)))
+        .findFirst();
+  }
+
+  private static Optional<Subscription> lookupSubscriptionByFingerprintEngId(String engProductId) {
+    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
+        .filter(subscription -> Objects.nonNull(subscription.getFingerprint()))
+        .filter(
+            subscription ->
+                subscription.getFingerprint().getEngineeringIds().contains(engProductId))
+        .findFirst();
+  }
+
+  /**
+   * Looks for productName matching a variant
+   *
+   * @param productName
+   * @return Optional<Subscription>
+   */
+  public static Optional<Subscription> lookupSubscriptionByProductName(String productName) {
+    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
+        .filter(subscription -> !subscription.getVariants().isEmpty())
+        .filter(
+            subscription ->
+                subscription.getVariants().stream()
+                    .anyMatch(variant -> variant.getProductNames().contains(productName)))
+        .findFirst();
+  }
+
+  /**
+   * Looks for role matching a variant
+   *
+   * @param role
+   * @return Optional<Subscription>
+   */
+  public static Optional<Subscription> lookupSubscriptionByRole(String role) {
+    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
+        .filter(subscription -> !subscription.getVariants().isEmpty())
+        .filter(
+            subscription ->
+                subscription.getVariants().stream()
+                    .anyMatch(variant -> variant.getRoles().contains(role)))
+        .findFirst();
+  }
+
+  /**
+   * Looks for tag matching a variant
+   *
+   * @param tag
+   * @return Optional<Subscription>
+   */
+  public static Optional<Subscription> lookupSubscriptionByTag(@NotNull @NotEmpty String tag) {
+
+    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
+        .filter(subscription -> !subscription.getVariants().isEmpty())
+        .filter(
+            subscription ->
+                subscription.getVariants().stream()
+                    .anyMatch(variant -> Objects.equals(tag, variant.getTag())))
+        .findFirst();
+  }
 }

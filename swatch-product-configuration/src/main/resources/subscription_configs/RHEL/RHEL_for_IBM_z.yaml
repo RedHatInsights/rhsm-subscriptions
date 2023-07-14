@@ -1,10 +1,10 @@
 ---
 platform: RHEL
 
-id: RHEL for IBM z
+id: rhel-for-ibm-z
 
 fingerprint:
-  engineering_ids:
+  engineeringIds:
     - 72 # Red Hat Enterprise Linux for IBM z Systems
   arches:
     - s390x

@@ -18,13 +18,11 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.configuration.registry;
+package com.redhat.swatch.configuration.exception;
 
-import java.util.Map;
-import lombok.*;
+public class ConfigResourcesLoadingException extends RuntimeException {
 
-@Data
-public class PrometheusMetric {
-  private String queryKey;
-  private Map<String, String> queryParams;
+  public ConfigResourcesLoadingException(Exception e) {
+    super(e);
+  }
 }

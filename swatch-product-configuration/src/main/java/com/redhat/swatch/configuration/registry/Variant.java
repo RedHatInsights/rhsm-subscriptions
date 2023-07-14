@@ -20,7 +20,9 @@
  */
 package com.redhat.swatch.configuration.registry;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import lombok.*;
@@ -32,11 +34,24 @@ import lombok.*;
  * Variants all have the same billing model.
  */
 @Data
-@Builder
 public class Variant {
 
+  /** Convenience method to easily get the "parent" subscription for a Variant */
+  @ToString.Exclude @NotNull private Subscription subscription;
+
   @NotNull @NotEmpty private String tag; // required
-  private List<String> roles;
-  private List<String> engineeringIds;
-  private List<String> productNames;
+  private List<String> roles = new ArrayList<>();
+  private List<String> engineeringIds = new ArrayList<>();
+  private List<String> productNames = new ArrayList<>();
+
+  public static Optional<Variant> findByRole(String role) {
+    return Subscription.lookupSubscriptionByRole(role)
+        .flatMap(
+            subscription ->
+                subscription.getVariants().stream()
+                    .filter(
+                        variant ->
+                            !variant.getRoles().isEmpty() && variant.getRoles().contains(role))
+                    .findFirst());
+  }
 }

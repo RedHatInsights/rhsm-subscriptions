@@ -7,7 +7,7 @@ variants:
   - tag: OpenShift-metrics
     roles:
       - ocp
-    product_names:
+    productNames:
       - OpenShift Container Platform
 
 defaults:
@@ -21,10 +21,10 @@ serviceType: OpenShift Cluster
 
 metrics:
   - id: redhat.com:openshift_container_platform:cpu_hour
-    rhm_metric_id: redhat.com:openshift_container_platform:cpu_hour
+    rhmMetricId: redhat.com:openshift_container_platform:cpu_hour
     prometheus:
       queryKey: default
       queryParams:
         product: ocp
         metric: cluster:usage:workload:capacity_physical_cpu_hours
-        metadata_metric: subscription_labels
+        metadataMetric: subscription_labels

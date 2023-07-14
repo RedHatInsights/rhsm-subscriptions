@@ -23,7 +23,6 @@ package com.redhat.swatch.configuration.registry;
 import lombok.*;
 
 @Data
-@Builder
 public class Defaults {
   private String variant;
   private Sla sla;

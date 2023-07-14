@@ -20,11 +20,34 @@
  */
 package com.redhat.swatch.configuration.registry;
 
-import java.util.Map;
-import lombok.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-@Data
-public class PrometheusMetric {
-  private String queryKey;
-  private Map<String, String> queryParams;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
+
+@TestInstance(Lifecycle.PER_CLASS)
+class SubscriptionRegistryTest {
+
+  SubscriptionRegistry subscriptionRegistry;
+
+  @BeforeAll
+  void setup() {
+    subscriptionRegistry = new SubscriptionRegistry();
+  }
+
+  @Test
+  void sanityCheck() {
+    assertTrue(true);
+  }
+
+  @Test
+  void testLoadAllTheThings() {
+
+    var actual = subscriptionRegistry.getSubscriptions().size();
+    var expected = 14;
+
+    assertEquals(actual, expected);
+  }
 }
