@@ -3,6 +3,9 @@ platform: RHEL
 
 id: satellite-server
 
+includedSubscriptions:
+  - rhel-for-x86
+
 fingerprint:
   engineeringIds:
     - 250 # Red Hat Satellite

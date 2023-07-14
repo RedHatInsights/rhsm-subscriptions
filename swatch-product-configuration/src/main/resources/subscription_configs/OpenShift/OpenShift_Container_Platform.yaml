@@ -3,11 +3,18 @@ platform: OpenShift
 
 id: openshift-container-platform
 
+#Only needed if not coming from prometheus
+includedSubscriptions:
+  - rhel-for-x86
+  - rhel-for-ibm-z
+  - rhel-for-ibm-power
+
 fingerprint:
   engineeringIds:
     - 290  # Red Hat OpenShift Container Platform
 
 variants:
+#  Concrete identifier for what we want
   - tag: OpenShift Container Platform
 
 defaults:

@@ -3,6 +3,9 @@ platform: RHEL
 
 id: satellite-capsule
 
+includedSubscriptions:
+  - rhel-for-x86
+
 fingerprint:
   engineeringIds:
     - 269 # Red Hat Satellite Capsule
