@@ -1031,6 +1031,10 @@ class TallyResourceTest {
     var secondSnapshot = report.getData().get(1);
     assertEquals(6, secondSnapshot.getValue());
 
+    // Snapshot for day with no usage should still show running total
+    var snapshotWithNoNewUsage = report.getData().get(2);
+    assertEquals(6, snapshotWithNoNewUsage.getValue());
+
     var thirdSnapshot = report.getData().get(7);
     assertEquals(22, thirdSnapshot.getValue());
 

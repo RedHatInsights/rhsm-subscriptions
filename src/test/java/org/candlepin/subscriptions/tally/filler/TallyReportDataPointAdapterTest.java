@@ -20,29 +20,36 @@
  */
 package org.candlepin.subscriptions.tally.filler;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.time.OffsetDateTime;
-import java.util.Objects;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportDataPoint;
+import org.junit.jupiter.api.Test;
 
-public class TallyReportDataPointAdapter implements ReportFillerAdapter<TallyReportDataPoint> {
+class TallyReportDataPointAdapterTest {
 
-  @Override
-  public boolean itemIsLarger(TallyReportDataPoint oldData, TallyReportDataPoint newData) {
-    return newData.getValue() >= oldData.getValue();
+  TallyReportDataPointAdapter adapter = new TallyReportDataPointAdapter();
+
+  @Test
+  void createDefaultItemRunningTotal() {
+    var previous = new TallyReportDataPoint().value(10);
+    var now = OffsetDateTime.now();
+    var point = adapter.createDefaultItem(now, previous, true);
+    assertEquals(10, point.getValue());
   }
 
-  @Override
-  public TallyReportDataPoint createDefaultItem(
-      OffsetDateTime itemDate, TallyReportDataPoint previous, boolean useRunningTotalFormat) {
-    var point = new TallyReportDataPoint().date(itemDate).hasData(false).value(0);
-    if (Boolean.TRUE.equals(useRunningTotalFormat)) {
-      point.value(Objects.requireNonNullElse(previous.getValue(), 0));
-    }
-    return point;
+  @Test
+  void createDefaultItemNoRunningTotal() {
+    var previous = new TallyReportDataPoint().value(10);
+    var now = OffsetDateTime.now();
+    var point = adapter.createDefaultItem(now, previous, false);
+    assertEquals(0, point.getValue());
   }
 
-  @Override
-  public OffsetDateTime getDate(TallyReportDataPoint item) {
-    return item.getDate();
+  @Test
+  void createDefaultItemNullPrevious() {
+    var now = OffsetDateTime.now();
+    var point = adapter.createDefaultItem(now, null, false);
+    assertEquals(0, point.getValue());
   }
 }
