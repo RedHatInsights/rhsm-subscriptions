@@ -124,12 +124,12 @@ import lombok.Setter;
         system_profile.system_profile_product_ids,
         h.stale_timestamp,
         coalesce(
-            h.facts->'rhsm'->>'VM_HOST_UUID',
             h.facts->'satellite'->>'virtual_host_uuid',
+            h.facts->'rhsm'->>'VM_HOST_UUID',
             h.canonical_facts->>'subscription_manager_id') as hardware_subman_id,
         coalesce(
-            h.facts->'rhsm'->>'VM_HOST_UUID',
-            h.facts->'satellite'->>'virtual_host_uuid'
+            h.facts->'satellite'->>'virtual_host_uuid',
+            h.facts->'rhsm'->>'VM_HOST_UUID'
         ) as any_hypervisor_uuid
         from hosts h
         cross join lateral (
