@@ -22,8 +22,7 @@ package org.candlepin.subscriptions.db;
 
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 import java.util.Optional;
@@ -235,5 +234,111 @@ public class OfferingRepositoryCachingTest {
     repository.deleteById(SKU);
     var cacheMiss = getCachedOffering(SKU, EXISTS_CACHE, Boolean.class);
     assertTrue(cacheMiss.isEmpty());
+  }
+
+  @Test
+  @Transactional
+  void testSaveAndFlushEvictsExistenceCache() {
+    assertFalse(repository.existsById(SKU));
+    var cacheMiss = getCachedOffering(SKU, EXISTS_CACHE, Boolean.class);
+    assertFalse(
+        cacheMiss.orElseThrow(
+            () -> new AssertionFailedError("Test failed: unexpected " + "cache hit!")));
+
+    var offering =
+        Offering.builder()
+            .sku(SKU)
+            .productName("RHEL")
+            .serviceLevel(ServiceLevel.STANDARD)
+            .usage(Usage.PRODUCTION)
+            .build();
+    repository.saveAndFlush(offering);
+    assertTrue(repository.existsById(SKU));
+
+    var cacheHit = getCachedOffering(SKU, EXISTS_CACHE, Boolean.class);
+    assertTrue(cacheHit.orElseThrow(() -> new AssertionFailedError("Test failed: cache miss!")));
+  }
+
+  @Test
+  @Transactional
+  void testSaveEvictsExistenceCache() {
+    assertFalse(repository.existsById(SKU));
+    var cacheMiss = getCachedOffering(SKU, EXISTS_CACHE, Boolean.class);
+    assertFalse(
+        cacheMiss.orElseThrow(
+            () -> new AssertionFailedError("Test failed: unexpected " + "cache hit!")));
+
+    var offering =
+        Offering.builder()
+            .sku(SKU)
+            .productName("RHEL")
+            .serviceLevel(ServiceLevel.STANDARD)
+            .usage(Usage.PRODUCTION)
+            .build();
+    repository.save(offering);
+    repository.flush();
+    assertTrue(repository.existsById(SKU));
+
+    var cacheHit = getCachedOffering(SKU, EXISTS_CACHE, Boolean.class);
+    assertTrue(cacheHit.orElseThrow(() -> new AssertionFailedError("Test failed: cache miss!")));
+  }
+
+  @Test
+  @Transactional
+  void testSaveAllAndFlushEvictsExistenceCache() {
+    createOffering(SKU);
+    assertTrue(repository.existsById(SKU));
+    var skuHit = getCachedOffering(SKU, EXISTS_CACHE, Boolean.class);
+    assertTrue(skuHit.orElseThrow(() -> new AssertionFailedError("Test failed: SKU2 is missing")));
+
+    assertFalse(repository.existsById(SKU2));
+    var cacheMiss = getCachedOffering(SKU2, EXISTS_CACHE, Boolean.class);
+    assertFalse(
+        cacheMiss.orElseThrow(
+            () -> new AssertionFailedError("Test failed: unexpected cache hit for SKU2")));
+
+    var offering =
+        Offering.builder()
+            .sku(SKU2)
+            .productName("RHEL")
+            .serviceLevel(ServiceLevel.STANDARD)
+            .usage(Usage.PRODUCTION)
+            .build();
+    repository.saveAllAndFlush(List.of(offering));
+
+    for (String sku : List.of(SKU, SKU2)) {
+      cacheMiss = getCachedOffering(sku, EXISTS_CACHE, Boolean.class);
+      assertTrue(cacheMiss.isEmpty());
+    }
+  }
+
+  @Test
+  @Transactional
+  void testSaveAllEvictsExistenceCache() {
+    createOffering(SKU);
+    assertTrue(repository.existsById(SKU));
+    var skuHit = getCachedOffering(SKU, EXISTS_CACHE, Boolean.class);
+    assertTrue(skuHit.orElseThrow(() -> new AssertionFailedError("Test failed: SKU2 is missing")));
+
+    assertFalse(repository.existsById(SKU2));
+    var cacheMiss = getCachedOffering(SKU2, EXISTS_CACHE, Boolean.class);
+    assertFalse(
+        cacheMiss.orElseThrow(
+            () -> new AssertionFailedError("Test failed: unexpected cache hit for SKU2")));
+
+    var offering =
+        Offering.builder()
+            .sku(SKU2)
+            .productName("RHEL")
+            .serviceLevel(ServiceLevel.STANDARD)
+            .usage(Usage.PRODUCTION)
+            .build();
+    repository.saveAll(List.of(offering));
+    repository.flush();
+
+    for (String sku : List.of(SKU, SKU2)) {
+      cacheMiss = getCachedOffering(sku, EXISTS_CACHE, Boolean.class);
+      assertTrue(cacheMiss.isEmpty());
+    }
   }
 }

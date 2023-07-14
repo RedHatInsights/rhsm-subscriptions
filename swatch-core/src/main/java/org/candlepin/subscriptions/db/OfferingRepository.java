@@ -89,6 +89,34 @@ public interface OfferingRepository extends JpaRepository<Offering, String> {
   @CacheEvict(cacheNames = {"offeringExists"})
   void deleteById(String s);
 
+  @Override
+  @CacheEvict(
+      cacheNames = {"offeringExists"},
+      key = "#offering.sku")
+  /* Unfortunately we can't use the CachePut annotation here.  CachePut would put the entity
+   * itself into the cache and what we want to put is a boolean so that our existsById won't
+   * have to hit the database
+   */
+  <S extends Offering> S save(S offering);
+
+  @Override
+  @CacheEvict(
+      cacheNames = {"offeringExists"},
+      key = "#offering.sku")
+  <S extends Offering> S saveAndFlush(S offering);
+
+  @Override
+  @CacheEvict(
+      cacheNames = {"offeringExists"},
+      allEntries = true)
+  <S extends Offering> List<S> saveAll(Iterable<S> offerings);
+
+  @Override
+  @CacheEvict(
+      cacheNames = {"offeringExists"},
+      allEntries = true)
+  <S extends Offering> List<S> saveAllAndFlush(Iterable<S> offerings);
+
   List<Offering> findByProductName(String productName);
 
   List<Offering> findBySkuIn(Set<String> skus);
