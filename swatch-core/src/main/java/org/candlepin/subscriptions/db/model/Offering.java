@@ -22,8 +22,10 @@ package org.candlepin.subscriptions.db.model;
 
 import java.io.Serializable;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.persistence.CollectionTable;
 import javax.persistence.Column;
 import javax.persistence.ElementCollection;
@@ -151,6 +153,10 @@ public class Offering implements Serializable {
 
   public Boolean getHasUnlimitedUsage() {
     return hasUnlimitedUsage;
+  }
+
+  public List<String> getProductIdsAsStrings() {
+    return getProductIds().stream().map(String::valueOf).collect(Collectors.toList());
   }
 
   @Override
