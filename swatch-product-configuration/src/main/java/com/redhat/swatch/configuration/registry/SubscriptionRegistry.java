@@ -104,7 +104,9 @@ class SubscriptionRegistry {
                 try (InputStream inputStream = Files.newInputStream(file)) {
 
                   var subscriptionFromYaml = yaml.loadAs(inputStream, Subscription.class);
-                  subscriptionFromYaml.getVariants().forEach(variant -> variant.setSubscription(subscriptionFromYaml));
+                  subscriptionFromYaml
+                      .getVariants()
+                      .forEach(variant -> variant.setSubscription(subscriptionFromYaml));
                   subscriptions.add(subscriptionFromYaml);
 
                 } catch (IOException e) {

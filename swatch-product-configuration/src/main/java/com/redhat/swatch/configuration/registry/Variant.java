@@ -36,17 +36,13 @@ import lombok.*;
 @Data
 public class Variant {
 
-  /**
-   * Convenience method to easily get the "parent" subscription for a Variant
-   */
-  @ToString.Exclude
-  @NotNull private Subscription subscription;
+  /** Convenience method to easily get the "parent" subscription for a Variant */
+  @ToString.Exclude @NotNull private Subscription subscription;
 
   @NotNull @NotEmpty private String tag; // required
   private List<String> roles = new ArrayList<>();
   private List<String> engineeringIds = new ArrayList<>();
   private List<String> productNames = new ArrayList<>();
-
 
   public static Optional<Variant> findByRole(String role) {
     return Subscription.lookupSubscriptionByRole(role)
