@@ -14,8 +14,6 @@ defaults:
   sla: PREMIUM
   usage: PRODUCTION
 
-billingWindow: MONTHLY
-
 serviceType: Rhacs Cluster
 
 metrics:

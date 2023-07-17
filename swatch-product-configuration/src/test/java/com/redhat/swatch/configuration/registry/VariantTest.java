@@ -44,7 +44,7 @@ class VariantTest {
 
   @Test
   void testGetParentSubscription() {
-    var variant = Variant.findByRole("RHEL Desktop").get();
+    var variant = Variant.findByRole("Red Hat Enterprise Linux Compute Node").get();
     var expected = "rhel-for-x86";
     var actual = variant.getSubscription().getId();
 

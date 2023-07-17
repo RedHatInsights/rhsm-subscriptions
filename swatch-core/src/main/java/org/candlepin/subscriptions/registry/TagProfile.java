@@ -274,10 +274,6 @@ public class TagProfile {
         .collect(Collectors.toSet());
   }
 
-  public Set<String> getTagsByArch(String arch) {
-    return archToTagLookup.getOrDefault(arch, Collections.emptySet());
-  }
-
   /**
    * Find the first instance of tag metadata that matches the specified service type.
    *

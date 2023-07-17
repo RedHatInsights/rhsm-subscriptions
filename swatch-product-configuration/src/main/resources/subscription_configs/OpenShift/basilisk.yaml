@@ -15,8 +15,6 @@ defaults:
   sla: PREMIUM
   usage: PRODUCTION
 
-billingWindow: MONTHLY
-
 serviceType: BASILISK Instance
 
 metrics:

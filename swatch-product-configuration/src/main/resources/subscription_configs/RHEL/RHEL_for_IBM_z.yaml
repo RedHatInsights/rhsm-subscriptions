@@ -3,14 +3,11 @@ platform: RHEL
 
 id: rhel-for-ibm-z
 
-fingerprint:
-  engineeringIds:
-    - 72 # Red Hat Enterprise Linux for IBM z Systems
-  arches:
-    - s390x
-
 variants:
   - tag: RHEL for IBM z
+    engineeringIds:
+      - 72 # Red Hat Enterprise Linux for IBM z Systems
+
 
 defaults:
   variant: RHEL for IBM z
