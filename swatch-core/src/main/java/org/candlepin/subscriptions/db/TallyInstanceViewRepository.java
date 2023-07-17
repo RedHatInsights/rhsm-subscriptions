@@ -25,7 +25,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import javax.persistence.criteria.JoinType;
-import javax.validation.constraints.NotNull;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
@@ -74,7 +73,7 @@ public interface TallyInstanceViewRepository
       String productId,
       ServiceLevel sla,
       Usage usage,
-      @NotNull String displayNameSubstring,
+      String displayNameSubstring,
       int minCores,
       int minSockets,
       String month,
@@ -223,7 +222,7 @@ public interface TallyInstanceViewRepository
     if (Objects.nonNull(billingAccountId)) {
       searchCriteria = searchCriteria.and(billingAccountIdEquals(billingAccountId));
     }
-    if (Objects.nonNull(displayNameSubstring)) {
+    if (StringUtils.hasText(displayNameSubstring)) {
       searchCriteria = searchCriteria.and(displayNameContains(displayNameSubstring));
     }
     if (Objects.nonNull(effectiveUom)) {

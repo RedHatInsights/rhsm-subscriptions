@@ -171,9 +171,6 @@ public class InstancesResource implements InstancesApi {
         ResourceUtils.sanitizeBillingProvider(billingProviderType);
     String sanitizedBillingAccountId = ResourceUtils.sanitizeBillingAccountId(billingAccountId);
 
-    String sanitizedDisplayNameSubstring =
-        Objects.nonNull(displayNameContains) ? displayNameContains : "";
-
     List<HardwareMeasurementType> hardwareMeasurementTypes =
         getHardwareMeasurementTypesFromCategory(reportCategory);
 
@@ -207,7 +204,7 @@ public class InstancesResource implements InstancesApi {
             productId.toString(),
             sanitizedSla,
             sanitizedUsage,
-            sanitizedDisplayNameSubstring,
+            displayNameContains,
             minCores,
             minSockets,
             month,
