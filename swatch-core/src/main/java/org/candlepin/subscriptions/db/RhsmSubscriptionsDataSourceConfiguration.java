@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.db;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.zaxxer.hikari.HikariDataSource;
+import java.time.Duration;
 import java.util.List;
 import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
@@ -99,14 +100,12 @@ public class RhsmSubscriptionsDataSourceConfiguration {
   }
 
   @Bean
-  public Caffeine<Object, Object> caffeine(OfferingCacheProperties offeringCacheProperties) {
-    return Caffeine.newBuilder()
-        .maximumSize(offeringCacheProperties.getSize())
-        .expireAfterWrite(offeringCacheProperties.getTtl());
+  public Caffeine caffeine() {
+    return Caffeine.newBuilder().maximumSize(10_000).expireAfterWrite(Duration.ofMinutes(30));
   }
 
   @Bean
-  public CacheManager offeringCacheManager(Caffeine<Object, Object> caffeine) {
+  public CacheManager offeringCacheManager(Caffeine caffeine) {
     CaffeineCacheManager caffeineCacheManager = new CaffeineCacheManager();
     caffeineCacheManager.setCaffeine(caffeine);
     caffeineCacheManager.setCacheNames(List.of("offeringExists"));
