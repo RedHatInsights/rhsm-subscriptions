@@ -221,8 +221,8 @@ public class SubscriptionSyncController {
       }
       if (existingSubscription.quantityHasChanged(newOrUpdated.getQuantity())) {
         existingSubscription.endSubscription();
-        subscriptionRepository.save(existingSubscription);
         capacityReconciliationController.reconcileCapacityForSubscription(existingSubscription);
+        subscriptionRepository.save(existingSubscription);
         final org.candlepin.subscriptions.db.model.Subscription newSub =
             org.candlepin.subscriptions.db.model.Subscription.builder()
                 .subscriptionId(existingSubscription.getSubscriptionId())
@@ -237,16 +237,16 @@ public class SubscriptionSyncController {
                 .subscriptionNumber(newOrUpdated.getSubscriptionNumber())
                 .billingProvider(newOrUpdated.getBillingProvider())
                 .build();
-        subscriptionRepository.save(newSub);
         capacityReconciliationController.reconcileCapacityForSubscription(newSub);
+        subscriptionRepository.save(newSub);
       } else {
         updateExistingSubscription(newOrUpdated, existingSubscription);
-        subscriptionRepository.save(existingSubscription);
         capacityReconciliationController.reconcileCapacityForSubscription(existingSubscription);
+        subscriptionRepository.save(existingSubscription);
       }
     } else {
-      subscriptionRepository.save(newOrUpdated);
       capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
+      subscriptionRepository.save(newOrUpdated);
     }
   }
 
@@ -486,10 +486,10 @@ public class SubscriptionSyncController {
           .map(this::convertDto)
           .forEach(
               subscription -> {
-                subscriptionRepository.save(subscription);
                 if (reconcileCapacity) {
                   capacityReconciliationController.reconcileCapacityForSubscription(subscription);
                 }
+                subscriptionRepository.save(subscription);
               });
     } catch (JsonProcessingException e) {
       throw new IllegalArgumentException("Error parsing subscriptionsJson", e);
