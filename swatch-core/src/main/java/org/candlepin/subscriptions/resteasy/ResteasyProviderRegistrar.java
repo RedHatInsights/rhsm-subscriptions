@@ -37,7 +37,7 @@ import org.springframework.context.annotation.Configuration;
 public class ResteasyProviderRegistrar {
   @Bean
   public SpringBeanProcessor registerBuiltInProviders(
-      @Qualifier("ResteasyProviderFactory") BeanFactoryPostProcessor postProcessor) {
+      @Qualifier("resteasySpringBeanProcessor") BeanFactoryPostProcessor postProcessor) {
     var springBeanProcessor = (SpringBeanProcessor) postProcessor;
     RegisterBuiltin.register(springBeanProcessor.getProviderFactory());
     return springBeanProcessor;
