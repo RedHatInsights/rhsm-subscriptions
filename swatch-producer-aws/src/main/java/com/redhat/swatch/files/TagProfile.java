@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.representer.Representer;
 
@@ -39,7 +40,8 @@ public class TagProfile {
   private final Map<TagMetricLookupKey, Double> billingFactorLookup;
 
   public TagProfile() {
-    Representer representer = new Representer();
+    DumperOptions dumperOptions = new DumperOptions();
+    Representer representer = new Representer(dumperOptions);
     // ignoring missing properties lets us couple this project to a smaller set of fields in
     // tag_profile.yaml
     representer.getPropertyUtils().setSkipMissingProperties(true);
