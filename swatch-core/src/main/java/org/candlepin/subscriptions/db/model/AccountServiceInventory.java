@@ -20,10 +20,10 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import jakarta.persistence.*;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
-import javax.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 

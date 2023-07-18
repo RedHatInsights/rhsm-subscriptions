@@ -21,12 +21,12 @@
 package com.redhat.swatch.contract;
 
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.enterprise.inject.Stereotype;
+import jakarta.transaction.Transactional;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import javax.enterprise.inject.Stereotype;
-import javax.transaction.Transactional;
 
 /**
  * Where we require both @QuarkusTest and @Transactional, we can use this interface as a custom

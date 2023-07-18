@@ -20,11 +20,11 @@
  */
 package org.candlepin.subscriptions.db;
 
+import jakarta.persistence.criteria.JoinType;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import javax.persistence.criteria.JoinType;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;

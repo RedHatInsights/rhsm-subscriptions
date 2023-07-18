@@ -23,10 +23,10 @@ package com.redhat.swatch.contract.resource;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
 import com.redhat.swatch.contract.openapi.resource.OfferingsApi;
 import com.redhat.swatch.contract.service.SubscriptionSyncService;
-import javax.annotation.security.RolesAllowed;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.ws.rs.PathParam;
+import jakarta.annotation.security.RolesAllowed;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.PathParam;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

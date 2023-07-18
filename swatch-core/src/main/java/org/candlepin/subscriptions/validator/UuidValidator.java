@@ -20,9 +20,9 @@
  */
 package org.candlepin.subscriptions.validator;
 
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
 import java.util.UUID;
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
 import org.hibernate.validator.constraintvalidation.HibernateConstraintValidatorContext;
 
 /** A ConstraintValidator that ensures that a string is a valid Leach-Salz UUID */

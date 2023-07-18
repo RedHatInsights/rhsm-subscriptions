@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import javax.ws.rs.BadRequestException;
+import jakarta.ws.rs.BadRequestException;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.security.auth.SubscriptionWatchAdminOnly;

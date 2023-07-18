@@ -20,9 +20,9 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus.task;
 
+import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.stream.Stream;
-import javax.transaction.Transactional;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.json.Measurement.Uom;

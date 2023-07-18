@@ -22,16 +22,16 @@ package org.candlepin.subscriptions.db;
 
 import static org.hibernate.jpa.QueryHints.HINT_FETCH_SIZE;
 
+import jakarta.persistence.QueryHint;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.MapJoin;
+import jakarta.persistence.criteria.Root;
+import jakarta.validation.constraints.NotNull;
 import java.util.*;
 import java.util.stream.Stream;
-import javax.persistence.QueryHint;
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Join;
-import javax.persistence.criteria.JoinType;
-import javax.persistence.criteria.MapJoin;
-import javax.persistence.criteria.Root;
-import javax.validation.constraints.NotNull;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;

@@ -20,12 +20,12 @@
  */
 package com.redhat.swatch.common.resteasy;
 
+import jakarta.ws.rs.ext.ParamConverter;
+import jakarta.ws.rs.ext.ParamConverterProvider;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
-import javax.ws.rs.ext.ParamConverter;
-import javax.ws.rs.ext.ParamConverterProvider;
 
 /** ParamConverterProvider to enable use of OffsetDateTime in query parameters. */
 public class OffsetDateTimeParamConverterProvider implements ParamConverterProvider {

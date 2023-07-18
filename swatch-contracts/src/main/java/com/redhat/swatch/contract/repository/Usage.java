@@ -20,9 +20,9 @@
  */
 package com.redhat.swatch.contract.repository;
 
+import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.Converter;
 import java.util.Map;
-import javax.persistence.AttributeConverter;
-import javax.persistence.Converter;
 
 /**
  * System purpose usage

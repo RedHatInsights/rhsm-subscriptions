@@ -20,13 +20,13 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validator;
+import jakarta.validation.executable.ExecutableValidator;
 import java.lang.reflect.Constructor;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.validation.ConstraintViolation;
-import javax.validation.ConstraintViolationException;
-import javax.validation.Validator;
-import javax.validation.executable.ExecutableValidator;
 import org.candlepin.subscriptions.tally.tasks.CaptureMetricsSnapshotTask;
 import org.candlepin.subscriptions.tally.tasks.UpdateOrgSnapshotsTask;
 import org.candlepin.subscriptions.task.Task;

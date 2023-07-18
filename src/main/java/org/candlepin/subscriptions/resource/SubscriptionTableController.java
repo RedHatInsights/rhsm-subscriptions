@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.resource;
 
 import static org.candlepin.subscriptions.resource.ResourceUtils.*;
 
+import jakarta.validation.constraints.Min;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,7 +33,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.validation.constraints.Min;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.HypervisorReportCategory;
 import org.candlepin.subscriptions.db.OfferingRepository;

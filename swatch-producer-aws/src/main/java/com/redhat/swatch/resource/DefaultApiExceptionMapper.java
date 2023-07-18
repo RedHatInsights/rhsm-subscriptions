@@ -22,10 +22,10 @@ package com.redhat.swatch.resource;
 
 import com.redhat.swatch.exception.DefaultApiException;
 import com.redhat.swatch.openapi.model.Errors;
-import javax.annotation.Priority;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.Provider;
+import jakarta.annotation.Priority;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.ext.Provider;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.rest.client.ext.ResponseExceptionMapper;
 

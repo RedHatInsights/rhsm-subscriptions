@@ -24,9 +24,9 @@ import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiE
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
 import com.redhat.swatch.contract.model.ProductTagsMapper;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.ws.rs.ProcessingException;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.ProcessingException;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 @ApplicationScoped

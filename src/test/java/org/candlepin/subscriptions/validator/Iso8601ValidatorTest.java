@@ -24,9 +24,9 @@ import static org.candlepin.subscriptions.validator.Iso8601Format.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import jakarta.validation.ConstraintValidatorContext;
+import jakarta.validation.ConstraintViolation;
 import java.util.Set;
-import javax.validation.ConstraintValidatorContext;
-import javax.validation.ConstraintViolation;
 import org.hibernate.validator.constraintvalidation.HibernateConstraintValidatorContext;
 import org.hibernate.validator.internal.util.annotation.AnnotationDescriptor.Builder;
 import org.hibernate.validator.internal.util.annotation.AnnotationFactory;

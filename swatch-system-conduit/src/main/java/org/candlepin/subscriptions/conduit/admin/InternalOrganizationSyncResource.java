@@ -20,9 +20,9 @@
  */
 package org.candlepin.subscriptions.conduit.admin;
 
+import jakarta.ws.rs.NotFoundException;
 import java.util.List;
 import java.util.stream.Collectors;
-import javax.ws.rs.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.conduit.InventoryController;
 import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;

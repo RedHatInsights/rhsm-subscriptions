@@ -21,11 +21,11 @@
 package com.redhat.swatch.files;
 
 import com.redhat.swatch.exception.AwsDimensionNotConfiguredException;
+import jakarta.enterprise.context.ApplicationScoped;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import javax.enterprise.context.ApplicationScoped;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.yaml.snakeyaml.Yaml;

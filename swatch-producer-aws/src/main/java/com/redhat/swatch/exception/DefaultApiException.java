@@ -22,7 +22,7 @@ package com.redhat.swatch.exception;
 
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
 import com.redhat.swatch.openapi.model.Errors;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 
 public class DefaultApiException extends ApiException {
 

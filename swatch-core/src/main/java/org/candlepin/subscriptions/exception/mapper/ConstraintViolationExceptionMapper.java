@@ -20,9 +20,9 @@
  */
 package org.candlepin.subscriptions.exception.mapper;
 
-import javax.validation.ConstraintViolationException;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.ext.Provider;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.ws.rs.core.Response.Status;
+import jakarta.ws.rs.ext.Provider;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.utilization.api.model.Error;
 import org.springframework.stereotype.Component;

@@ -24,8 +24,8 @@ import io.smallrye.config.ConfigSourceInterceptor;
 import io.smallrye.config.ConfigSourceInterceptorContext;
 import io.smallrye.config.ConfigValue;
 import io.smallrye.config.Priorities;
+import jakarta.annotation.Priority;
 import java.util.Objects;
-import javax.annotation.Priority;
 
 /** Smallrye Config Interceptor that automatically prefixes UMB VirtualTopics as needed */
 @Priority(Priorities.APPLICATION)

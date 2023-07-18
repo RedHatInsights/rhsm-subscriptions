@@ -23,9 +23,9 @@ package com.redhat.swatch.resource;
 import com.redhat.swatch.kafka.KafkaSeekHelper;
 import com.redhat.swatch.openapi.model.KafkaSeekPosition;
 import com.redhat.swatch.openapi.resource.KafkaApi;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.ProcessingException;
 import java.time.OffsetDateTime;
-import javax.inject.Inject;
-import javax.ws.rs.ProcessingException;
 
 public class KafkaResource implements KafkaApi {
   private final KafkaSeekHelper kafkaSeekHelper;

@@ -20,9 +20,9 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.ws.rs.core.Response;
 import java.util.Objects;
-import javax.validation.constraints.NotNull;
-import javax.ws.rs.core.Response;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;

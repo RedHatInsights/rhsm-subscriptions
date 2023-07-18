@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
+import jakarta.validation.constraints.NotNull;
 import java.util.Map;
-import javax.validation.constraints.NotNull;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.candlepin.subscriptions.task.JsonTaskMessage;

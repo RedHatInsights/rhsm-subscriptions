@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.exception;
 
-import javax.ws.rs.core.Response.Status;
+import jakarta.ws.rs.core.Response.Status;
 
 /**
  * An exception that is thrown when rhsm-subscriptions encounters an exception while communicating

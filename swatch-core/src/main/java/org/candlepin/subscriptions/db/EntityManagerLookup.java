@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.db;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 public interface EntityManagerLookup {
   EntityManager getEntityManager();

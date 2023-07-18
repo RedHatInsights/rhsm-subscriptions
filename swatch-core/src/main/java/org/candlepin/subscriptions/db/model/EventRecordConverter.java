@@ -22,7 +22,7 @@ package org.candlepin.subscriptions.db.model;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import javax.persistence.AttributeConverter;
+import jakarta.persistence.AttributeConverter;
 import org.candlepin.subscriptions.json.Event;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

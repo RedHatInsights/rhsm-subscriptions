@@ -22,8 +22,8 @@ package com.redhat.swatch.processors;
 
 import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AwsUsageContext;
 import com.redhat.swatch.files.AwsCredentialsLookup;
+import jakarta.enterprise.context.ApplicationScoped;
 import java.net.URI;
-import javax.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.marketplacemetering.MarketplaceMeteringClient;

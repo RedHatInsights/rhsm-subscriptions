@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;

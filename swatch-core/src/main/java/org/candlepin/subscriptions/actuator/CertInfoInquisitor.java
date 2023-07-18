@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.actuator;
 
+import jakarta.xml.bind.DatatypeConverter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
@@ -34,7 +35,6 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import javax.xml.bind.DatatypeConverter;
 import org.springframework.core.io.Resource;
 
 /** Class to return basic information about an X509 certificate. */

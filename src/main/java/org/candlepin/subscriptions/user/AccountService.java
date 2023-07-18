@@ -20,9 +20,9 @@
  */
 package org.candlepin.subscriptions.user;
 
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 import java.util.Optional;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.user.api.model.AccountCriteria;
