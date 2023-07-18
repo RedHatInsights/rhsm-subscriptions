@@ -164,12 +164,6 @@ class TagProfileTest {
   }
 
   @Test
-  void getTagByArch() {
-    assertEquals(Set.of(RHEL_x86), tagProfile.getTagsByArch("x86_64"));
-    assertTrue(tagProfile.getTagsByArch(null).isEmpty());
-  }
-
-  @Test
   void getTagsForServiceType() {
     assertEquals(
         Set.of(OPENSHIFT_TAG, OPENSHIFT_DEDICATED_TAG),

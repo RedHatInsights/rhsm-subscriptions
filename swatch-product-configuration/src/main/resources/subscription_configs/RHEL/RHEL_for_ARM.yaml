@@ -3,15 +3,10 @@ platform: RHEL
 
 id: rhel-for-arm
 
-fingerprint:
-  engineeringIds:
-    - 419 # Red Hat Enterprise Linux for ARM 64
-  arches:
-    - aarch64
-    - arm64
-
 variants:
   - tag: RHEL for ARM
+    engineeringIds:
+      - 419
 
 defaults:
   variant: RHEL for ARM

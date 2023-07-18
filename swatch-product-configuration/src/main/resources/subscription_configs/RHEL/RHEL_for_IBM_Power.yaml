@@ -3,17 +3,12 @@ platform: RHEL
 
 id: rhel-for-ibm-power
 
-fingerprint:
-  engineeringIds:
-    - 74 # Red Hat Enterprise Linux for Power, big endian
-    - 279 # Red Hat Enterprise Linux for Power, little endian
-    - 420 # Red Hat Enterprise Linux for Power 9
-  arches:
-    - ppc64
-    - ppc64le
-
 variants:
   - tag: RHEL for IBM Power
+    engineeringIds:
+      - 74 # Red Hat Enterprise Linux for Power, big endian
+      - 279 # Red Hat Enterprise Linux for Power, little endian
+      - 420 # Red Hat Enterprise Linux for Power 9
 
 defaults:
   variant: RHEL for IBM Power

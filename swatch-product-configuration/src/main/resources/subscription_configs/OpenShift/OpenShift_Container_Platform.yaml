@@ -3,12 +3,10 @@ platform: OpenShift
 
 id: openshift-container-platform
 
-fingerprint:
-  engineeringIds:
-    - 290  # Red Hat OpenShift Container Platform
-
 variants:
   - tag: OpenShift Container Platform
+    engineeringIds:
+      - 290  # Red Hat OpenShift Container Platform
 
 defaults:
   variant: OpenShift Container Platform

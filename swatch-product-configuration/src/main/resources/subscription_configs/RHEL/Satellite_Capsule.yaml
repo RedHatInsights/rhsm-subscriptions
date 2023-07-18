@@ -3,12 +3,10 @@ platform: RHEL
 
 id: satellite-capsule
 
-fingerprint:
-  engineeringIds:
-    - 269 # Red Hat Satellite Capsule
-
 variants:
   - tag: Satellite Capsule
+    engineeringIds:
+      - 269 # Red Hat Satellite Capsule
 
 defaults:
   variant: Satellite Capsule

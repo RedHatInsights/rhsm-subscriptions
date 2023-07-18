@@ -9,12 +9,11 @@ variants:
       - rhosak
     productNames:
       - OpenShift Streams for Apache Kafka
+
 defaults:
   variant: rhosak
   sla: PREMIUM
   usage: PRODUCTION
-
-billingWindow: MONTHLY
 
 serviceType: Kafka Cluster
 

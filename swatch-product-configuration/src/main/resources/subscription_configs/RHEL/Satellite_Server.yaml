@@ -3,12 +3,10 @@ platform: RHEL
 
 id: satellite-server
 
-fingerprint:
-  engineeringIds:
-    - 250 # Red Hat Satellite
-
 variants:
   - tag: Satellite Server
+    engineeringIds:
+      - 250 # Red Hat Satellite
 
 defaults:
   variant: Satellite Server

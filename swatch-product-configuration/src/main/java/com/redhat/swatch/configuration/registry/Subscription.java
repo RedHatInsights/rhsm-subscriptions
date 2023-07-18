@@ -56,7 +56,6 @@ public class Subscription {
    */
   private List<String> includedSubscriptions = new ArrayList<>();
 
-  private Fingerprint fingerprint;
   private List<Variant> variants = new ArrayList<>();
   private BillingWindow billingWindow;
   private String serviceType;
@@ -71,22 +70,6 @@ public class Subscription {
 
     return SubscriptionRegistry.getInstance().getSubscriptions().stream()
         .filter(subscription -> Objects.equals(subscription.getServiceType(), serviceType))
-        .findFirst();
-  }
-
-  /**
-   * @param arch
-   * @return Optional<Subscription>
-   */
-  public static Optional<Subscription> findByArch(String arch) {
-    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
-        .filter(
-            subscription -> {
-              var fingerprint = subscription.getFingerprint();
-              return Objects.nonNull(fingerprint)
-                  && !fingerprint.getArches().isEmpty()
-                  && fingerprint.getArches().contains(arch);
-            })
         .findFirst();
   }
 
@@ -141,30 +124,12 @@ public class Subscription {
    * @return Optional<Subscription> subscription
    */
   public static Optional<Subscription> lookupSubscriptionByEngId(String engProductId) {
-    var variantMatch = lookupSubscriptionByVariantEngId(engProductId);
-    if (variantMatch.isPresent()) {
-      return variantMatch;
-    }
-
-    return lookupSubscriptionByFingerprintEngId(engProductId);
-  }
-
-  private static Optional<Subscription> lookupSubscriptionByVariantEngId(String engProductId) {
     return SubscriptionRegistry.getInstance().getSubscriptions().stream()
         .filter(subscription -> !subscription.getVariants().isEmpty())
         .filter(
             subscription ->
                 subscription.getVariants().stream()
                     .anyMatch(variant -> variant.getEngineeringIds().contains(engProductId)))
-        .findFirst();
-  }
-
-  private static Optional<Subscription> lookupSubscriptionByFingerprintEngId(String engProductId) {
-    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
-        .filter(subscription -> Objects.nonNull(subscription.getFingerprint()))
-        .filter(
-            subscription ->
-                subscription.getFingerprint().getEngineeringIds().contains(engProductId))
         .findFirst();
   }
 

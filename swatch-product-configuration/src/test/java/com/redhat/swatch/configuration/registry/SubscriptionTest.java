@@ -59,15 +59,6 @@ class SubscriptionTest {
   }
 
   @Test
-  void testFindByArchNoMatch() {
-
-    var expected = Optional.empty();
-    var actual = Subscription.findByArch("bananas");
-
-    assertEquals(expected, actual);
-  }
-
-  @Test
   void testGetAllServiceTypes() {
 
     var expected =
@@ -82,17 +73,6 @@ class SubscriptionTest {
     var actual = Subscription.getAllServiceTypes();
 
     assertThat(actual, Matchers.containsInAnyOrder(expected.toArray()));
-  }
-
-  @Test
-  void testFindByArchMatch() {
-
-    var rhelForIbmZSub = Subscription.findByArch("s390x").get();
-
-    var expected = "rhel-for-ibm-z";
-    var actual = rhelForIbmZSub.getId();
-
-    assertEquals(expected, actual);
   }
 
   @Test
