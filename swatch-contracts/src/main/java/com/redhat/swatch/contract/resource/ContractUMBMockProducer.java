@@ -69,7 +69,7 @@ public class ContractUMBMockProducer {
                     }
                             """;
 
-  void onStart(@Observes StartupEvent ev) {
+  void onStart(@Observes StartupEvent ev) { // NOSONAR
     if (contractProducerEnabled) {
       scheduler.scheduleWithFixedDelay(
           () -> {
@@ -82,7 +82,7 @@ public class ContractUMBMockProducer {
     }
   }
 
-  void onStop(@Observes ShutdownEvent ev) {
+  void onStop(@Observes ShutdownEvent ev) { // NOSONAR
     scheduler.shutdown();
   }
 

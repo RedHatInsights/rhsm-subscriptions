@@ -61,7 +61,7 @@ public class CountingSplunkErrorCallback implements ErrorCallback {
     delegatedCallback.error(data, ex);
   }
 
-  void onStart(@Observes StartupEvent ev) {
+  void onStart(@Observes StartupEvent ev) { // NOSONAR
     HttpEventCollectorErrorHandler.onError(this);
   }
 }

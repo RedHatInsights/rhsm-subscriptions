@@ -141,7 +141,8 @@ public class CapacityResource implements CapacityApi {
     if (offset != null || limit != null) {
       Pageable pageable = ResourceUtils.getPageable(offset, limit);
       data = paginate(capacities, pageable);
-      Page<CapacitySnapshot> snapshotPage = new PageImpl<>(data, pageable, capacities.size());
+      Page<CapacitySnapshot> snapshotPage =
+          new PageImpl<>(data, pageable, capacities.size()); // NOSONAR
       links = pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage);
     } else {
       data = capacities;
