@@ -35,6 +35,7 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -42,6 +43,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 /**
  * Configuration class for Spring Security.
@@ -212,7 +214,9 @@ public class ApiSecurityConfiguration {
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             requests -> {
-              requests.antMatchers(URLS_PERMITTED_WITHOUT_AUTH).permitAll();
+              for (String url : URLS_PERMITTED_WITHOUT_AUTH) {
+                requests.requestMatchers(new AntPathRequestMatcher(url)).permitAll();
+              }
               requests.requestMatchers(this::isDummyRequest).permitAll();
               requests
                   .requestMatchers(EndpointRequest.to("health", "info", "prometheus"))
@@ -227,23 +231,28 @@ public class ApiSecurityConfiguration {
                * applied to the defined path ("//metrics") rather than the de facto path ("/metrics").
                * Accordingly, I've put in a custom rule in the security config to allow for access to "/metrics"
                */
-              requests.antMatchers("/metrics").permitAll();
+              requests.requestMatchers(new AntPathRequestMatcher("/metrics")).permitAll();
               // Intentionally not prefixed with "ROLE_"
-              requests.antMatchers("/**/internal/**").hasRole("INTERNAL");
+              requests
+                  .requestMatchers(new AntPathRequestMatcher("/**/internal/**"))
+                  .hasRole("INTERNAL");
               /* For Spring Security 6, we can use
                * .access(
                * new WebExpressionAuthorizationManager("@optInChecker.checkAccess(authentication)")
                * )
                */
               requests
-                  .antMatchers(
-                      "/**/capacity/**", "/**/tally/**", "/**/hosts/**", "/**/instances/**")
+                  .requestMatchers(
+                      new AntPathRequestMatcher("/**/capacity/**"),
+                      new AntPathRequestMatcher("/**/tally/**"),
+                      new AntPathRequestMatcher("/**/hosts/**"),
+                      new AntPathRequestMatcher("/**/instances/**"))
                   .access(
                       (auth, req) ->
                           new AuthorizationDecision(optInChecker.checkAccess(auth.get())));
               requests.anyRequest().authenticated();
             })
-        .anonymous();
+        .anonymous(Customizer.withDefaults());
     return http.build();
   }
 }
