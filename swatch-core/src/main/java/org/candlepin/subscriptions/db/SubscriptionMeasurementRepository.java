@@ -126,22 +126,10 @@ public interface SubscriptionMeasurementRepository
   static Specification<SubscriptionMeasurement> subscriptionIsActiveBetween(
       OffsetDateTime reportStart, OffsetDateTime reportEnd) {
     return (root, query, builder) -> {
-      var p = builder.conjunction();
       var subscriptionRoot =
           fetchJoin(root, SubscriptionMeasurement_.subscription, SUBSCRIPTION_ALIAS);
-      if (Objects.nonNull(reportEnd)) {
-        p.getExpressions()
-            .add(
-                builder.lessThanOrEqualTo(
-                    subscriptionRoot.get(Subscription_.startDate), reportEnd));
-      }
-      if (Objects.nonNull(reportStart)) {
-        p.getExpressions()
-            .add(
-                builder.greaterThanOrEqualTo(
-                    subscriptionRoot.get(Subscription_.endDate), reportStart));
-      }
-      return p;
+      return SubscriptionRepository.predicateForSubscriptionIsActiveBetween(
+          subscriptionRoot, builder, reportStart, reportEnd);
     };
   }
 

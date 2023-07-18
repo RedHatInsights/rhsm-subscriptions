@@ -40,8 +40,8 @@ public interface HostTallyBucketRepository extends CrudRepository<HostTallyBucke
             b.key.productId as productId, h.accountNumber as accountNumber, b.measurementType as measurementType, b.key.usage as usage,
             b.key.sla as sla, b.key.billingProvider as billingProvider, b.key.billingAccountId as billingAccountId,
             sum(b.cores) as cores, sum(b.sockets) as sockets, count(h.id) as instances
-          from Host h inner join h.buckets b
-            where h.id = b.host.id and h.orgId=:orgId and h.instanceType=:instanceType
+          from Host h, HostTallyBucket b
+            where h = b.host and h.orgId=:orgId and h.instanceType=:instanceType
           group by b.key.productId, h.accountNumber, b.measurementType, b.key.usage, b.key.sla, b.key.billingProvider, b.key.billingAccountId
   """)
   @QueryHints(
