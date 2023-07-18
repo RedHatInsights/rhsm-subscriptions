@@ -39,6 +39,9 @@ spring:
       # if no offset commit exists yet, set to earliest
       auto-offset-reset: earliest
       max-poll-records: 1
+  jms:
+    listener:
+      auto-startup: ${UMB_ENABLED:false}
 
 rhsm-subscriptions:
   jobs:
@@ -90,3 +93,8 @@ rhsm-subscriptions:
     back-off-max-interval: ${USER_BACK_OFF_MAX_INTERVAL:1m}
     back-off-multiplier: ${USER_BACK_OFF_MULTIPLIER:2}
     max-attempts: ${USER_MAX_ATTEMPTS:1}
+management:
+  health:
+    jms:
+      # disable activemq health checks when we're not actually using UMB
+      enabled: ${UMB_ENABLED:false}
