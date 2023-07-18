@@ -76,7 +76,7 @@ public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
   @Transactional
   public void receive(
       @Payload TallySummary tallySummary,
-      @Header(name = KafkaHeaders.RECEIVED_MESSAGE_KEY, required = false) String kafkaMessageKey) {
+      @Header(name = KafkaHeaders.RECEIVED_KEY, required = false) String kafkaMessageKey) {
     log.debug("Tally Summary received w/ key={}. Producing billable usage.", kafkaMessageKey);
 
     billableUsageMapper

@@ -26,10 +26,8 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.kafka.KafkaException;
-import org.springframework.kafka.KafkaException.Level;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.listener.MessageListenerContainer;
-import org.springframework.kafka.listener.SeekUtils;
 import org.springframework.util.backoff.FixedBackOff;
 
 /**
@@ -62,14 +60,6 @@ public class KafkaTransientDataAccessErrorHandler extends DefaultErrorHandler {
       rootCause = thrownException;
     }
     log.warn("Encountered {}. Will retry.", rootCause.toString());
-    SeekUtils.seekOrRecover(
-        thrownException,
-        records,
-        consumer,
-        container,
-        isCommitRecovered(),
-        getRecoveryStrategy(records, consumer, thrownException),
-        this.logger,
-        Level.DEBUG);
+    super.handleRemaining(thrownException, records, consumer, container);
   }
 }
