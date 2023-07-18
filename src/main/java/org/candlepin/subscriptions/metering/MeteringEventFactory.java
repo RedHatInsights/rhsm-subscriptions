@@ -60,6 +60,7 @@ public class MeteringEventFactory {
    * @param measuredTime the time the measurement was taken.
    * @param expired the time the measurement had ended.
    * @param measuredValue the value that was measured./
+   * @param productTag
    * @return a populated Event instance.
    */
   @SuppressWarnings("java:S107")
@@ -77,7 +78,8 @@ public class MeteringEventFactory {
       String billingProvider,
       String billingAccountId,
       Uom measuredMetric,
-      Double measuredValue) {
+      Double measuredValue,
+      String productTag) {
     Event event = new Event();
     updateMetricEvent(
         event,
@@ -94,7 +96,8 @@ public class MeteringEventFactory {
         billingProvider,
         billingAccountId,
         measuredMetric,
-        measuredValue);
+        measuredValue,
+        productTag);
     return event;
   }
 
@@ -114,10 +117,11 @@ public class MeteringEventFactory {
       String billingProvider,
       String billingAccountId,
       Uom measuredMetric,
-      Double measuredValue) {
+      Double measuredValue,
+      String productTag) {
     toUpdate
         .withEventSource(EVENT_SOURCE)
-        .withEventType(getEventType(metricId)) // NOSONAR
+        .withEventType(MeteringEventFactory.getEventType(measuredMetric.value(), productTag))
         .withServiceType(serviceType)
         .withAccountNumber(accountNumber)
         .withOrgId(orgId)
@@ -134,23 +138,21 @@ public class MeteringEventFactory {
         .withRole(getRole(role, accountNumber, instanceId));
   }
 
-  // SWATCH-1374 Remove or update this method
-  /**
-   * Use getEventType(TagMetric tagMetric) instead
-   *
-   * @deprecated (Since we are going to use uom instead of metricid. SWATCH-1374 Remove or update
-   *     this method)
-   * @param metricId
-   * @return
-   */
-  @Deprecated(since = "https://issues.redhat.com/browse/SWATCH-1373")
-  public static String getEventType(String metricId) {
-    return StringUtils.hasText(metricId)
-        ? String.format("%s_%s", EVENT_TYPE, metricId)
+  public static String getEventType(String metricId, String productTag) {
+    return StringUtils.hasText(metricId) && StringUtils.hasText(productTag)
+        ? String.format("%s_%s_%s", EVENT_TYPE, productTag.toLowerCase(), metricId.toLowerCase())
         : EVENT_TYPE;
   }
 
-  public static Set<String> getEventType(TagMetric tagMetric) {
+  // SWATCH-1392 Remove or update this method
+  /**
+   * Use getEventType(String metricId, String productTag) instead
+   *
+   * @deprecated (Since we are going to use uom instead of metricid. SWATCH - 1392 Remove or update
+   *     this method)
+   */
+  @Deprecated(since = "https://issues.redhat.com/browse/SWATCH-1374")
+  public static Set<String> getEventTypes(TagMetric tagMetric) { // NOSONAR
     Set<String> eventTypes = new HashSet<>();
     Optional.ofNullable(tagMetric.getMetricId())
         .ifPresent(metricId -> eventTypes.add(String.format("%s_%s", EVENT_TYPE, metricId)));
