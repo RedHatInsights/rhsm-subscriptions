@@ -24,11 +24,13 @@ dependencyManagement {
     // adding a library here locks it to a specific version, and allows it to be referenced without
     // version; this section can also be used to override the spring-boot-dependencies BOM
     dependencies{
-        dependency libraries["jboss-jaxrs-api_2.1_spec"]
+        dependency libraries["jakarta-ws-rs"]
         dependency libraries["swagger-annotations"]
         dependency libraries["swagger-ui"]
         dependency libraries["webjars-locator"]
-        dependency libraries["resteasy-spring-boot-starter"]
+        dependency(libraries["resteasy-spring-boot-starter"]) {
+            exclude "org.jboss:jandex"
+        }
         dependency libraries["resteasy-client"]
         dependency libraries["resteasy-multipart-provider"]
         dependency libraries["resteasy-validator-provider"]

@@ -1,20 +1,19 @@
 plugins {
-    id "swatch.java-conventions"
+    id "swatch.java-library-conventions"
     id "swatch.spring-boot-dependencies-conventions"
-    id 'java-library'
     id 'jsonschema2pojo'
     id 'jacoco'
 }
 
 dependencies {
-    annotationProcessor "org.hibernate:hibernate-jpamodelgen"
+    annotationProcessor "org.hibernate.orm:hibernate-jpamodelgen"
     implementation project(":api") // for util methods in ResourceUtils
     implementation project(":clients:rbac-client") // for security integration w/ rbac
-    implementation project(":swatch-common-resteasy")
+    api project(":swatch-common-resteasy")
     // API exports swatch-product-configuration classes to all projects that include swatch-core
     api project(":swatch-product-configuration")
     implementation "org.hibernate.validator:hibernate-validator"
-    implementation "javax.validation:validation-api"
+    implementation "jakarta.validation:jakarta.validation-api"
     implementation "org.springframework.boot:spring-boot-starter"
     implementation "org.springframework.boot:spring-boot-actuator-autoconfigure"
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"
@@ -44,6 +43,7 @@ jsonSchema2Pojo {
     generateBuilders = true
     includeGetters = true
     includeSetters = true
+    useJakartaValidation = true
 }
 
 description = 'SWATCH Core Library'

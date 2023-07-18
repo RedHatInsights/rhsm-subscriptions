@@ -2,9 +2,8 @@
 import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
 
 plugins {
-    id "java-library"
+    id "swatch.java-library-conventions"
     id "swatch.spring-boot-dependencies-conventions"
-    id "swatch.java-conventions"
     id "org.openapi.generator"
 }
 
@@ -37,13 +36,14 @@ openApiGenerate {
             generatePom: "false",
             library: "resteasy",
             java8: "true",
-            dateLibrary: "java8"
+            dateLibrary: "java8",
+            useJakartaEe: "true",
     ]
 }
 
 dependencies {
     api project(':clients-core')
-    api "javax.annotation:javax.annotation-api"
+    api "jakarta.annotation:jakarta.annotation-api"
     api "org.jboss.resteasy:resteasy-client"
     api "org.jboss.resteasy:resteasy-multipart-provider"
 
@@ -59,6 +59,7 @@ dependencies {
 
     compileOnly 'org.springframework.boot:spring-boot'
     testImplementation libraries["wiremock-jre8"]
+    testImplementation "com.google.guava:guava"
 }
 
 sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"

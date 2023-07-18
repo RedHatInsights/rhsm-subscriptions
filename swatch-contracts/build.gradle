@@ -46,7 +46,8 @@ dependencies {
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-amqp'
     implementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'
     implementation project(':clients:quarkus:rbac-client')
-    annotationProcessor libraries["hibernate-jpamodelgen"]
+    annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
+    annotationProcessor "org.hibernate.orm:hibernate-jpamodelgen"
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.quarkus:quarkus-junit5-mockito'
     testImplementation 'io.rest-assured:rest-assured'
@@ -84,7 +85,10 @@ openApiGenerate {
                      library          : "microprofile",
                      java8            : "true",
                      dateLibrary      : "java8",
-                     useBeanValidation: "true"]
+                     useBeanValidation: "true",
+                     microprofileRestClientVersion: "3.0",
+                     useJakartaEE: "true",
+    ]
     additionalProperties = [disableMultipart: "true", // see https://github.com/OpenAPITools/openapi-generator/pull/4713#issuecomment-633906581
     ]
 }
