@@ -172,7 +172,7 @@ public class CapacityReconciliationController {
           && !Objects.equals(existingMeasurement.get().getValue(), measurement.getValue())) {
         existingMeasurement.get().setValue(measurement.getValue());
         measurementsUpdated.increment();
-      } else {
+      } else if (existingMeasurement.isEmpty()) {
         subscription.addSubscriptionMeasurement(measurement);
         measurementsCreated.increment();
       }

@@ -256,6 +256,27 @@ class CapacityReconciliationControllerTest {
     verifyNoInteractions(subscriptionRepository);
   }
 
+  @Test
+  void shouldNotAttemptToCreateDuplicateMeasurementsWhenNoChanges() {
+    Set<String> productIds = Set.of("RHEL");
+    Offering offering = Offering.builder().productIds(Set.of(45)).sku("MCT3718").cores(42).build();
+    Subscription subscription = createSubscription("456", 1);
+
+    subscription
+        .getSubscriptionMeasurements()
+        .add(createMeasurement(subscription, "PHYSICAL", CORES, 42.0));
+    subscription.setOffering(offering);
+
+    when(denylist.productIdMatches(any())).thenReturn(false);
+    when(capacityProductExtractor.getProducts(offering)).thenReturn(productIds);
+
+    capacityReconciliationController.reconcileCapacityForSubscription(subscription);
+
+    assertThat(
+        subscription.getSubscriptionMeasurements(),
+        containsInAnyOrder(createMeasurement(subscription, "PHYSICAL", CORES, 42.0)));
+  }
+
   private Subscription createSubscription(String subId, int quantity) {
     return Subscription.builder()
         .orgId("123")
