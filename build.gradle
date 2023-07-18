@@ -50,7 +50,7 @@ dependencies {
     implementation "com.fasterxml.jackson.module:jackson-module-kotlin"
     // used to deserialize subscription/product messages from UMB
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-xml"
-    implementation "com.fasterxml.jackson.module:jackson-module-jaxb-annotations"
+    implementation "com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations"
     // used to connect to umb
     implementation "org.springframework.boot:spring-boot-starter-activemq"
 
