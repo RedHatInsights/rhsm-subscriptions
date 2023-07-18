@@ -77,7 +77,9 @@ public class ClowderJsonEnvironmentPostProcessor implements EnvironmentPostProce
       ClowderJson clowderJson = loadResource(clowderResourceLocation);
       processJson(environment, clowderJson);
     } else {
-      logger.info(CLOWDER_CONFIG_LOCATION_PROPERTY + " undefined. Will not read clowder config.");
+      if (logger != null) {
+        logger.info(CLOWDER_CONFIG_LOCATION_PROPERTY + " undefined. Will not read clowder config.");
+      }
     }
   }
 
@@ -85,7 +87,9 @@ public class ClowderJsonEnvironmentPostProcessor implements EnvironmentPostProce
     try {
       ResourceLoader resourceLoader = new DefaultResourceLoader();
       Resource resource = resourceLoader.getResource(clowderResourceLocation);
-      logger.info("Reading Clowder configuration from " + resource.getURI());
+      if (logger != null) {
+        logger.info("Reading Clowder configuration from " + resource.getURI());
+      }
       return new ClowderJson(resource.getInputStream(), objectMapper);
     } catch (IOException e) {
       throw new IllegalStateException("Could not read clowder config", e);
