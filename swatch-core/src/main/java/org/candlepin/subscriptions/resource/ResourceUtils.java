@@ -37,6 +37,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 /** Functionality common to both capacity and tally resources. */
 public class ResourceUtils {
@@ -63,6 +66,7 @@ public class ResourceUtils {
     return auth != null ? auth.getPrincipal() : null;
   }
 
+  
   /**
    * Get the org ID of the authenticated user.
    *
@@ -175,4 +179,15 @@ public class ResourceUtils {
     }
     return value;
   }
+
+  public static String getCurrentIdentityHeader() {
+    RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+    if (Objects.isNull(requestAttributes)) {
+      return null;
+    }
+    return ((ServletRequestAttributes) requestAttributes)
+      .getRequest()
+      .getHeader("x-rh-identity");
+  }
+
 }
