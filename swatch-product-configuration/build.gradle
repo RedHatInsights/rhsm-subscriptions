@@ -5,7 +5,7 @@ plugins {
 
 dependencies {
     implementation 'org.yaml:snakeyaml:2.0'
-    implementation "org.slf4j:slf4j-api:1.7.36"
+    implementation "org.slf4j:slf4j-api:2.0.7"
     implementation 'javax.validation:validation-api:2.0.1.Final'
     implementation 'org.hibernate.validator:hibernate-validator:8.0.1.Final'
 
