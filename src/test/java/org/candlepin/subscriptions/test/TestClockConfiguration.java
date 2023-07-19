@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions;
+package org.candlepin.subscriptions.test;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -31,7 +31,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 
 @TestConfiguration
-public class FixedClockConfiguration {
+public class TestClockConfiguration {
   // A zoneless time
   public static final LocalDateTime SPRING_TIME = LocalDateTime.of(2019, 5, 24, 12, 35, 0, 0);
   public static final ZonedDateTime SPRING_TIME_UTC = SPRING_TIME.atZone(ZoneId.of("UTC"));
@@ -53,10 +53,23 @@ public class FixedClockConfiguration {
   // date --utc -d '2019-1-3T14:15:00 EST' +%s
   public static final Long WINTER_EPOCH_EST = 1546542900L;
 
+  /**
+   * An ApplicationClock instance based on a TestClock to allow tests to modify the underlying
+   * Instant. E.g.
+   *
+   * <pre><code>
+   * var testClock = (TestClock) applicationClock.getClock();
+   * testClock.setInstant(WINTER_TIME_UTC.toInstant());
+   * </code></pre>
+   *
+   * <p>Note that you need to perform a cast to TestClock on the call to applicationClock
+   * .getClock()
+   */
   @Bean
   @Primary
-  public ApplicationClock fixedClock() {
-    return new ApplicationClock(Clock.fixed(Instant.from(SPRING_TIME_UTC), ZoneId.of("UTC")));
+  public ApplicationClock adjustableClock() {
+    return new ApplicationClock(
+        new TestClock(SPRING_TIME_UTC.toInstant(), SPRING_TIME_UTC.getZone()));
   }
 
   @Bean(name = "ZuluWinterClock")

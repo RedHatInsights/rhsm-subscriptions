@@ -27,13 +27,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 
 import java.time.OffsetDateTime;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.task.MetricsTask;
 import org.candlepin.subscriptions.task.Task;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskType;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,8 +61,8 @@ class PrometheusMeteringTaskFactoryTest {
   }
 
   @Test
-  void testOpenshiftMetricsTaskCreation() throws Exception {
-    ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+  void testOpenshiftMetricsTaskCreation() {
+    ApplicationClock clock = new TestClockConfiguration().adjustableClock();
     OffsetDateTime end = clock.now();
     OffsetDateTime start = end.minusDays(1);
 

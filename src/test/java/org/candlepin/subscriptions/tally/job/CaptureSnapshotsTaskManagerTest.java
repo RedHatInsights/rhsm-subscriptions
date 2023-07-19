@@ -30,7 +30,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.task.TaskDescriptor;
@@ -39,6 +38,7 @@ import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskQueue;
 import org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskQueueConsumerFactory;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
 import org.junit.jupiter.api.Test;
@@ -51,7 +51,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 
 @SpringBootTest
-@ContextConfiguration(classes = FixedClockConfiguration.class)
+@ContextConfiguration(classes = TestClockConfiguration.class)
 @ActiveProfiles({"worker", "test"})
 class CaptureSnapshotsTaskManagerTest {
 

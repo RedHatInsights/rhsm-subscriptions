@@ -28,14 +28,15 @@ import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.config.AccountConfig;
 import org.candlepin.subscriptions.db.model.config.OptInType;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,10 +44,11 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @Transactional
 @ActiveProfiles("test")
+@Import(TestClockConfiguration.class)
 class AccountConfigRepositoryTest {
 
   @Autowired private AccountConfigRepository repository;
-  private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+  @Autowired private ApplicationClock clock;
 
   @Test
   void saveAndUpdate() {

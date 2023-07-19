@@ -23,10 +23,10 @@ package org.candlepin.subscriptions.metering.task;
 import static org.mockito.Mockito.*;
 
 import java.time.OffsetDateTime;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.prometheus.ApiException;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,7 +40,7 @@ class MetricsTaskTest {
 
   @Test
   void testExecute() throws ApiException {
-    ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+    ApplicationClock clock = new TestClockConfiguration().adjustableClock();
     OffsetDateTime expEnd = clock.now();
     OffsetDateTime expStart = expEnd.minusDays(1);
     String expAccount = "test-account";

@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
@@ -56,6 +55,7 @@ import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.RoleProvider;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 import org.candlepin.subscriptions.utilization.api.model.*;
@@ -78,14 +78,13 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
 @WithMockRedHatPrincipal("123456")
-@Import(FixedClockConfiguration.class)
+@Import(TestClockConfiguration.class)
 class TallyResourceTest {
 
   public static final ProductId RHEL_PRODUCT_ID = ProductId.RHEL;
   public static final String INVALID_PRODUCT_ID_VALUE = "bad_product";
   private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
   private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
-  private static ApplicationClock CLOCK = new FixedClockConfiguration().fixedClock();
 
   @MockBean TallySnapshotRepository repository;
   @MockBean BillableUsageRemittanceRepository remittanceRepository;
@@ -93,6 +92,7 @@ class TallyResourceTest {
   @MockBean AccountConfigRepository accountConfigRepository;
   @MockBean CapacityApi capacityApi;
   @Autowired TallyResource resource;
+  @Autowired ApplicationClock applicationClock;
 
   @BeforeEach
   public void setupTests() {
@@ -1394,7 +1394,7 @@ class TallyResourceTest {
           Map<OffsetDateTime, Integer> values) {
     SnapshotTimeAdjuster timeAdjuster =
         SnapshotTimeAdjuster.getTimeAdjuster(
-            CLOCK, Granularity.fromString(granularityType.toString()));
+            applicationClock, Granularity.fromString(granularityType.toString()));
 
     OffsetDateTime start = timeAdjuster.adjustToPeriodStart(reportStart);
     OffsetDateTime end = timeAdjuster.adjustToPeriodEnd(reportEnd);
