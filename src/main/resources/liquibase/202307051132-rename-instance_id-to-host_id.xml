@@ -19,6 +19,7 @@
             <renameColumn tableName="instance_measurements" oldColumnName="host_id" newColumnName="instance_id"/>
         </rollback>
     </changeSet>
+    <!-- NOTE: below changeset is the hsql alternative (only run for unit tests) -->
     <changeSet id="202307051132-1" author="khowell" dbms="!postgresql">
         <comment>Rename instance_measurements.instance_id to host_id.</comment>
         <dropView viewName="tally_instance_view"/>
@@ -64,6 +65,7 @@
             <renameColumn tableName="instance_monthly_totals" oldColumnName="host_id" newColumnName="instance_id"/>
         </rollback>
     </changeSet>
+    <!-- NOTE: below changeset is the hsql alternative (only run for unit tests) -->
     <changeSet id="202307051132-2" author="khowell" dbms="!postgresql">
         <comment>Rename instance_monthly_totals.instance_id to host_id.</comment>
         <renameColumn tableName="instance_monthly_totals" oldColumnName="instance_id" newColumnName="host_id"/>
