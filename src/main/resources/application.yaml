@@ -3,12 +3,6 @@
 # getting loaded.
 # See https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html#boot-features-external-config-application-property-files
 
-resteasy:
-  jaxrs:
-    app:
-      registration: property
-      classes: org.candlepin.subscriptions.resteasy.JaxrsApplication
-
 spring:
   # load the common core definitions
   config:
