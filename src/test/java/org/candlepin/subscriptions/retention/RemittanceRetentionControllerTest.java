@@ -35,7 +35,6 @@ import java.util.Arrays;
 import java.util.List;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
-import org.candlepin.subscriptions.db.model.Granularity;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -60,19 +59,17 @@ class RemittanceRetentionControllerTest {
   @Autowired private RemittanceRetentionController controller;
 
   @Test
-  void retentionControllerShouldRemoveRemittancesForGranularitiesConfigured() throws Exception {
+  void retentionControllerShouldRemoveRemittancesForGranularitiesConfigured() {
     OffsetDateTime cutoff = OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
-    when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(cutoff);
+    when(policy.getCutoffDate()).thenReturn(cutoff);
     controller.cleanStaleRemittancesForOrgId("123456");
-    verify(repository)
-        .deleteAllByKeyOrgIdAndKeyGranularityAndKeyRemittancePendingDateBefore(
-            "123456", Granularity.DAILY, cutoff);
+    verify(repository).deleteAllByKeyOrgIdAndKeyRemittancePendingDateBefore("123456", cutoff);
     verifyNoMoreInteractions(repository);
   }
 
   @Test
-  void retentionControllerShouldIgnoreGranularityWithoutCutoff() throws Exception {
-    when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(null);
+  void retentionControllerDoesNotPurgeWithoutConfiguredRetentionDuration() {
+    when(policy.getCutoffDate()).thenReturn(null);
     controller.cleanStaleRemittancesForOrgId("123456");
     verifyNoInteractions(repository);
   }
@@ -80,7 +77,7 @@ class RemittanceRetentionControllerTest {
   @Test
   void testPurgeRemittances() {
     OffsetDateTime cutoff = OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
-    when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(cutoff);
+    when(policy.getCutoffDate()).thenReturn(cutoff);
 
     List<String> testList = Arrays.asList("1", "2", "3", "4");
     when(accountConfigRepository.findSyncEnabledOrgs()).thenReturn(testList.stream());
@@ -88,7 +85,6 @@ class RemittanceRetentionControllerTest {
     controller.purgeRemittancesAsync();
 
     verify(repository, times(4))
-        .deleteAllByKeyOrgIdAndKeyGranularityAndKeyRemittancePendingDateBefore(
-            anyString(), eq(Granularity.DAILY), eq(cutoff));
+        .deleteAllByKeyOrgIdAndKeyRemittancePendingDateBefore(anyString(), eq(cutoff));
   }
 }

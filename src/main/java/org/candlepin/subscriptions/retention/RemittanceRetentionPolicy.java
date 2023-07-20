@@ -21,8 +21,7 @@
 package org.candlepin.subscriptions.retention;
 
 import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
-import org.candlepin.subscriptions.db.model.Granularity;
+import java.util.Objects;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.stereotype.Component;
 
@@ -46,30 +45,17 @@ public class RemittanceRetentionPolicy {
   }
 
   /**
-   * Get the cutoff date for the passed granularity.
+   * Get the cutoff date for {@link
+   * org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity} records to be kept.
    *
    * <p>Any remittance of this granularity older than the cutoff date should be removed.
    *
-   * @param granularity
    * @return cutoff date (i.e. dates less than this are candidates for removal), or null
    */
-  public OffsetDateTime getCutoffDate(Granularity granularity) {
-    OffsetDateTime today =
-        OffsetDateTime.now(applicationClock.getClock()).truncatedTo(ChronoUnit.DAYS);
-    switch (granularity) {
-      case HOURLY:
-        if (config.getHourly() == null) {
-          return null;
-        }
-        return applicationClock.startOfCurrentHour().minusHours(config.getHourly());
-      case DAILY:
-        if (config.getDaily() == null) {
-          return null;
-        }
-        return today.minusDays(config.getDaily());
-      default:
-        throw new IllegalArgumentException(
-            String.format("Unsupported granularity: %s", granularity));
+  public OffsetDateTime getCutoffDate() {
+    if (Objects.isNull(config.getDuration())) {
+      return null;
     }
+    return applicationClock.now().minus(config.getDuration());
   }
 }

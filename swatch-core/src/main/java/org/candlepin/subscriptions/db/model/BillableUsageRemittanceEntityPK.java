@@ -22,8 +22,6 @@ package org.candlepin.subscriptions.db.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import lombok.AllArgsConstructor;
@@ -66,12 +64,8 @@ public class BillableUsageRemittanceEntityPK implements Serializable {
   @Column(name = "remittance_pending_date", nullable = false)
   private OffsetDateTime remittancePendingDate;
 
-  @Enumerated(EnumType.STRING)
-  @Column(name = "granularity")
-  private Granularity granularity;
-
   public static BillableUsageRemittanceEntityPK keyFrom(
-      BillableUsage billableUsage, Granularity granularity) {
+      BillableUsage billableUsage, OffsetDateTime remittancePendingDate) {
     return BillableUsageRemittanceEntityPK.builder()
         .usage(billableUsage.getUsage().value())
         .orgId(billableUsage.getOrgId())
@@ -81,13 +75,8 @@ public class BillableUsageRemittanceEntityPK implements Serializable {
         .sla(billableUsage.getSla().value())
         .metricId(billableUsage.getUom().value())
         .accumulationPeriod(getAccumulationPeriod(billableUsage.getSnapshotDate()))
-        .remittancePendingDate(billableUsage.getSnapshotDate())
-        .granularity(granularity)
+        .remittancePendingDate(remittancePendingDate)
         .build();
-  }
-
-  public static BillableUsageRemittanceEntityPK keyFrom(BillableUsage billableUsage) {
-    return keyFrom(billableUsage, Granularity.HOURLY);
   }
 
   public static String getAccumulationPeriod(OffsetDateTime reference) {
