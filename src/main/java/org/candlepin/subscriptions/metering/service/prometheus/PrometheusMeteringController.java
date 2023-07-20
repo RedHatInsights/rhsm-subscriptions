@@ -141,7 +141,7 @@ public class PrometheusMeteringController {
                 eventController.mapEventsInTimeRange(
                     orgId,
                     MeteringEventFactory.EVENT_SOURCE,
-                    MeteringEventFactory.getEventType(tagMetric.get()),
+                    MeteringEventFactory.getEventTypes(tagMetric.get()), // NOSONAR
                     // We need to shift the start and end dates by the step, to account for the
                     // shift in the event start date when it is created. See note about eventDate
                     // below.
@@ -203,7 +203,8 @@ public class PrometheusMeteringController {
                         billingProvider,
                         billingAccountId,
                         tagMetric.get().getUom(),
-                        value);
+                        value,
+                        tagMetric.get().getTag());
                 events.putIfAbsent(EventKey.fromEvent(event), event);
               }
             }
@@ -251,12 +252,13 @@ public class PrometheusMeteringController {
       String billingProvider,
       String billingAccountId,
       Uom metric,
-      BigDecimal value) {
+      BigDecimal value,
+      String productTag) {
     EventKey lookupKey =
         new EventKey(
             orgId,
             MeteringEventFactory.EVENT_SOURCE,
-            MeteringEventFactory.getEventType(metricId), // NOSONAR
+            MeteringEventFactory.getEventType(metric.value(), productTag), // NOSONAR
             instanceId,
             measuredDate);
     Event event = existing.remove(lookupKey);
@@ -278,7 +280,8 @@ public class PrometheusMeteringController {
         billingProvider,
         billingAccountId,
         metric,
-        value.doubleValue());
+        value.doubleValue(),
+        productTag);
     return event;
   }
 
