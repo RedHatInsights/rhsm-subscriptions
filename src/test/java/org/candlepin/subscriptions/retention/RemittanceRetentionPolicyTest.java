@@ -22,34 +22,34 @@ package org.candlepin.subscriptions.retention;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import org.candlepin.subscriptions.FixedClockConfiguration;
-import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.Test;
 
 class RemittanceRetentionPolicyTest {
+  private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+
   public RemittanceRetentionPolicy createTestPolicy(RemittanceRetentionPolicyProperties config) {
-    ApplicationClock clock = new FixedClockConfiguration().fixedClock();
     return new RemittanceRetentionPolicy(clock, config);
   }
 
   @Test
   void testHourlyCutoff() {
     RemittanceRetentionPolicyProperties config = new RemittanceRetentionPolicyProperties();
-    config.setHourly(8);
-    OffsetDateTime cutoff = createTestPolicy(config).getCutoffDate(Granularity.HOURLY);
-    OffsetDateTime eightHoursAgo = OffsetDateTime.of(2019, 5, 24, 4, 00, 0, 0, ZoneOffset.UTC);
+    config.setDuration(Duration.ofHours(8));
+    OffsetDateTime cutoff = createTestPolicy(config).getCutoffDate();
+    OffsetDateTime eightHoursAgo = clock.now().minusHours(8);
     assertEquals(eightHoursAgo, cutoff);
   }
 
   @Test
   void testDailyCutoffDate() {
     RemittanceRetentionPolicyProperties config = new RemittanceRetentionPolicyProperties();
-    config.setDaily(15);
-    OffsetDateTime cutoff = createTestPolicy(config).getCutoffDate(Granularity.DAILY);
-    OffsetDateTime fifteenDaysAgo = OffsetDateTime.of(2019, 5, 9, 0, 0, 0, 0, ZoneOffset.UTC);
+    config.setDuration(Duration.ofDays(15));
+    OffsetDateTime cutoff = createTestPolicy(config).getCutoffDate();
+    OffsetDateTime fifteenDaysAgo = clock.now().minusDays(15);
     assertEquals(fifteenDaysAgo, cutoff);
   }
 }
