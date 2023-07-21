@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.db;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -35,6 +36,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
@@ -64,7 +66,7 @@ import org.springframework.transaction.annotation.Transactional;
 @ActiveProfiles("test")
 @TestInstance(Lifecycle.PER_CLASS)
 class HostRepositoryTest {
-
+  private static final Clock CLOCK = new FixedClockConfiguration().fixedClock().getClock();
   private final String RHEL = "RHEL";
   private final String COOL_PROD = "COOL_PROD";
   private static final String DEFAULT_DISPLAY_NAME = "REDHAT_PWNS";
@@ -161,7 +163,7 @@ class HostRepositoryTest {
   @Test
   void testTallyHostViewProjection() {
     // Ensure that the TallyHostView is properly projecting values.
-    OffsetDateTime expLastSeen = OffsetDateTime.now();
+    OffsetDateTime expLastSeen = OffsetDateTime.now(CLOCK);
     String expInventoryId = "INV";
     String expInsightsId = "INSIGHTS_ID";
     String expAccount = "ACCT";
