@@ -107,6 +107,7 @@ class PrometheusMeteringControllerTest {
   private final String expectedBillingProvider = "red hat";
   private final String expectedBillingAccountId = "mktp-account";
   private final Uom expectedUom = Uom.CORES;
+  private final String expectedProductTag = "OpenShift-metrics";
 
   private PrometheusMeteringController controller;
   private QueryHelper queries;
@@ -272,7 +273,8 @@ class PrometheusMeteringControllerTest {
                 expectedBillingProvider,
                 expectedBillingAccountId,
                 expectedUom,
-                val1.doubleValue()),
+                val1.doubleValue(),
+                expectedProductTag),
             MeteringEventFactory.createMetricEvent(
                 expectedAccount,
                 expectedOrgId,
@@ -287,7 +289,8 @@ class PrometheusMeteringControllerTest {
                 expectedBillingProvider,
                 expectedBillingAccountId,
                 expectedUom,
-                val2.doubleValue()));
+                val2.doubleValue(),
+                expectedProductTag));
 
     controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedOrgId, start, end);
 
@@ -354,7 +357,8 @@ class PrometheusMeteringControllerTest {
             expectedBillingProvider,
             expectedBillingAccountId,
             expectedUom,
-            val1.doubleValue());
+            val1.doubleValue(),
+            expectedProductTag);
 
     List<Event> expectedEvents =
         List.of(
@@ -373,7 +377,8 @@ class PrometheusMeteringControllerTest {
                 expectedBillingProvider,
                 expectedBillingAccountId,
                 expectedUom,
-                val2.doubleValue()));
+                val2.doubleValue(),
+                expectedProductTag));
 
     Event purgedEvent =
         MeteringEventFactory.createMetricEvent(
@@ -390,7 +395,8 @@ class PrometheusMeteringControllerTest {
             expectedBillingProvider,
             expectedBillingAccountId,
             expectedUom,
-            val1.doubleValue());
+            val1.doubleValue(),
+            expectedProductTag);
 
     List<Event> existingEvents =
         List.of(
@@ -409,13 +415,14 @@ class PrometheusMeteringControllerTest {
                 expectedBillingProvider,
                 expectedBillingAccountId,
                 expectedUom,
-                144.4),
+                144.4,
+                expectedProductTag),
             // This event should get purged because prometheus did not report this cluster.
             purgedEvent);
     when(eventController.mapEventsInTimeRange(
             expectedOrgId,
             MeteringEventFactory.EVENT_SOURCE,
-            MeteringEventFactory.getEventType(tagMetric),
+            MeteringEventFactory.getEventTypes(tagMetric),
             start,
             end))
         .thenReturn(
@@ -502,7 +509,8 @@ class PrometheusMeteringControllerTest {
             expectedBillingProvider,
             expectedBillingAccountId,
             expectedUom,
-            4.0);
+            4.0,
+            expectedProductTag);
 
     var eventId = UUID.randomUUID();
     updatedEvent.setEventId(eventId);
@@ -524,7 +532,8 @@ class PrometheusMeteringControllerTest {
             expectedBillingProvider,
             expectedBillingAccountId,
             expectedUom,
-            144.4);
+            144.4,
+            expectedProductTag);
     existingEvent.setEventId(eventId);
     List<Event> existingEvents =
         List.of(
@@ -533,7 +542,7 @@ class PrometheusMeteringControllerTest {
     when(eventController.mapEventsInTimeRange(
             expectedOrgId,
             MeteringEventFactory.EVENT_SOURCE,
-            MeteringEventFactory.getEventType(tagMetric),
+            MeteringEventFactory.getEventTypes(tagMetric),
             start,
             end))
         .thenReturn(
