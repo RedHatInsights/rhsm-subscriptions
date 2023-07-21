@@ -207,6 +207,8 @@ public class SubscriptionSyncController {
           newOrUpdated.getOrgId());
       return;
     }
+    // enrich product IDs and measurements onto the incoming subscription record from the offering
+    capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
     log.debug("New subscription that will need to be saved={}", newOrUpdated);
 
     checkForMissingBillingProvider(newOrUpdated);
@@ -220,7 +222,6 @@ public class SubscriptionSyncController {
       }
       if (existingSubscription.quantityHasChanged(newOrUpdated.getQuantity())) {
         existingSubscription.endSubscription();
-        capacityReconciliationController.reconcileCapacityForSubscription(existingSubscription);
         subscriptionRepository.save(existingSubscription);
         final org.candlepin.subscriptions.db.model.Subscription newSub =
             org.candlepin.subscriptions.db.model.Subscription.builder()
@@ -240,11 +241,9 @@ public class SubscriptionSyncController {
         subscriptionRepository.save(newSub);
       } else {
         updateExistingSubscription(newOrUpdated, existingSubscription);
-        capacityReconciliationController.reconcileCapacityForSubscription(existingSubscription);
         subscriptionRepository.save(existingSubscription);
       }
     } else {
-      capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
       subscriptionRepository.save(newOrUpdated);
     }
   }
@@ -491,6 +490,8 @@ public class SubscriptionSyncController {
     entity.setBillingProviderId(newOrUpdated.getBillingProviderId());
     entity.setAccountNumber(newOrUpdated.getAccountNumber());
     entity.setOrgId(newOrUpdated.getOrgId());
+    // recalculate the subscription measurements and product IDs in case those have changed
+    capacityReconciliationController.reconcileCapacityForSubscription(entity);
   }
 
   public void saveSubscriptions(String subscriptionsJson, boolean reconcileCapacity) {
