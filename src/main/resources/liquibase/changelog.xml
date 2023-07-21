@@ -113,6 +113,7 @@
     <include file="liquibase/202306291611-add-extra-index-for-product-ids.xml"/>
     <include file="liquibase/202307131511-drop-trigger-on-subscription.xml"/>
     <include file="liquibase/202307171013-add-indexes-for-tally-instance-view-queries.xml"/>
+    <include file="/liquibase/202307131456-remove-granularity-from-billable-usage-remittance.xml"/>
     <include file="liquibase/202307051132-rename-instance_id-to-host_id.xml"/>
     <!-- Uncomment once the above changeset has landed in prod -->
     <!-- <include file="liquibase/202307051245-drop-instance_id-columns.xml"/> -->

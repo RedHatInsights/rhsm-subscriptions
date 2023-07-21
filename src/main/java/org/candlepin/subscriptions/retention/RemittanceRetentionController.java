@@ -21,11 +21,9 @@
 package org.candlepin.subscriptions.retention;
 
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
-import org.candlepin.subscriptions.db.model.Granularity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,9 +39,6 @@ public class RemittanceRetentionController {
   private final BillableUsageRemittanceRepository remittanceRepository;
   private final AccountConfigRepository accountConfigRepository;
   private final RemittanceRetentionPolicy policy;
-
-  private final List<Granularity> granulartiesToPurge =
-      List.of(Granularity.DAILY, Granularity.HOURLY);
 
   @Autowired
   public RemittanceRetentionController(
@@ -70,13 +65,10 @@ public class RemittanceRetentionController {
   }
 
   public void cleanStaleRemittancesForOrgId(String orgId) {
-    for (Granularity granularity : granulartiesToPurge) {
-      OffsetDateTime cutoffDate = policy.getCutoffDate(granularity);
-      if (cutoffDate == null) {
-        continue;
-      }
-      remittanceRepository.deleteAllByKeyOrgIdAndKeyGranularityAndKeyRemittancePendingDateBefore(
-          orgId, granularity, cutoffDate);
+    OffsetDateTime cutoffDate = policy.getCutoffDate();
+    if (cutoffDate == null) {
+      return;
     }
+    remittanceRepository.deleteAllByKeyOrgIdAndKeyRemittancePendingDateBefore(orgId, cutoffDate);
   }
 }

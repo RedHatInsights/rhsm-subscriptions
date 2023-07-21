@@ -30,7 +30,6 @@ import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK;
-import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
@@ -203,7 +202,6 @@ class InternalBillingControllerTest {
             .metricId(BillableUsage.Uom.INSTANCE_HOURS.value())
             .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(remittanceDate))
             .remittancePendingDate(remittanceDate)
-            .granularity(Granularity.HOURLY)
             .build();
     return BillableUsageRemittanceEntity.builder().key(key).remittedPendingValue(value).build();
   }

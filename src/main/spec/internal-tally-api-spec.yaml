@@ -26,20 +26,6 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - internalTally
-  /internal/tally/sync-remittance:
-    description: 'Operations to sync remittance with existing tally snapshots.'
-    post:
-      operationId: syncRemittance
-      summary: "Sync remittance with existing tally snapshots for all metrics configured with MONTHLY billing window."
-      responses:
-        '200':
-          description: "The request for syncing remittance was successful."
-        '400':
-          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
-        '403':
-          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
-        '500':
-          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
   /internal/rpc/tally/remittance/purge:
     description: 'Operations to purge existing tally snapshots matching the configured retention policy.'
     post:

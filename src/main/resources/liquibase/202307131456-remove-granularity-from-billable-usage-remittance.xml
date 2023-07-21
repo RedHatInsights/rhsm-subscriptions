@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+  <changeSet id="202307131456-1" author="mstead">
+    <comment>
+      Clean up any rolled up DAILY remittance data as it is no longer needed,
+      remove the granularity column and update the primary key. If the remittance
+      sync has already been done, only DAILY remittance will need to be deleted as
+      there will be no MONTHLY remaining after the sync. If it hasn't been run,
+      all remittance will be initially tagged with MONTHLY and will be considered
+      the existing remittance that has been applied.
+    </comment>
+    <delete tableName="billable_usage_remittance">
+      <where>granularity in ('DAILY')</where>
+    </delete>
+
+    <dropPrimaryKey tableName="billable_usage_remittance"/>
+
+    <dropColumn tableName="billable_usage_remittance">
+      <column name="granularity" />
+    </dropColumn>
+
+    <addPrimaryKey constraintName="billable_usage_remittance_pkey"
+      tableName="billable_usage_remittance"
+      columnNames="org_id, product_id, metric_id, accumulation_period, sla, usage, billing_provider,
+        billing_account_id, remittance_pending_date"/>
+  </changeSet>
+</databaseChangeLog>

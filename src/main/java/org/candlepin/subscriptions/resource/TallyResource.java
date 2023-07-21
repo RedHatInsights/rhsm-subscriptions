@@ -24,6 +24,7 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -139,12 +140,14 @@ public class TallyResource implements TallyApi {
             reportCriteria.getPageable());
 
     List<BillableUsageRemittanceEntity> remittances = getRemittances(reportCriteria);
-    Map<OffsetDateTime, Double> remittanceValuesByDate =
-        remittances.stream()
-            .collect(
-                Collectors.toMap(
-                    remittance -> remittance.getKey().getRemittancePendingDate(),
-                    BillableUsageRemittanceEntity::getRemittedPendingValue));
+    // NOTE: This should be removed once changes are made to the API to fetch
+    //       values via the capacity API (https://issues.redhat.com/browse/SWATCH-1509).
+    Map<OffsetDateTime, Double> remittanceValuesByDate = new HashMap<>();
+    for (BillableUsageRemittanceEntity remittance : remittances) {
+      OffsetDateTime day = clock.startOfDay(remittance.getKey().getRemittancePendingDate());
+      Double currentValue = remittanceValuesByDate.getOrDefault(day, 0.0);
+      remittanceValuesByDate.put(day, currentValue + remittance.getRemittedPendingValue());
+    }
 
     Uom uom = Uom.fromValue(metricId.toString());
 
@@ -360,7 +363,6 @@ public class TallyResource implements TallyApi {
               .productId(reportCriteria.getProductId())
               .billingAccountId(billingAcctId)
               .metricId(reportCriteria.getMetricId())
-              .granularity(Granularity.DAILY)
               .billingProvider(billingProvider)
               .build();
       remittances = remittanceRepository.filterBy(remittanceFilter);
