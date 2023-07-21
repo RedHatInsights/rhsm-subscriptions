@@ -50,4 +50,4 @@ Directory structure: `$Platform/$Subscription_Name.yaml` (e.g. RHEL/RHEL_for_x86
 
 Use camel case for yaml properties that need to be serialized into the `com.redhat.swatch.configuration.registry` object definitions.
 
-The `includedSubscriptions` property only applies to metrics that aren't sourced from prometheus.
+The `includedSubscriptions` property only applies to metrics that aren't sourced from prometheus.  It's used to prevent double counting capacity.
