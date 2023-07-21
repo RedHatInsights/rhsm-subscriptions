@@ -149,7 +149,6 @@ class SubscriptionDefinitionTest {
   void testGetFinestGranularity(
       String subscriptionDefinitionId, SubscriptionDefinitionGranularity expected) {
     var subscription = SubscriptionDefinition.findById(subscriptionDefinitionId).get();
-
     assertEquals(subscription.getFinestGranularity(), expected);
   }
 
