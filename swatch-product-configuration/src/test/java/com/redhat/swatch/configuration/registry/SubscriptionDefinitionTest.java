@@ -26,10 +26,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class SubscriptionDefinitionTest {
   @Test
@@ -146,11 +149,18 @@ class SubscriptionDefinitionTest {
   }
 
   @ParameterizedTest
-  @CsvSource({"basilisk-test,HOURLY", "rhel-for-arm,DAILY"})
-  void testGetFinestGranularity(String input, String expected) {
-    var subscription = SubscriptionDefinition.findById(input).get();
+  @MethodSource("generateFinestGranularityCases")
+  void testGetFinestGranularity(
+      String subscriptionDefinitionId, SubscriptionDefinitionGranularity expected) {
+    var subscription = SubscriptionDefinition.findById(subscriptionDefinitionId).get();
 
     assertEquals(subscription.getFinestGranularity(), expected);
+  }
+
+  private static Stream<Arguments> generateFinestGranularityCases() {
+    return Stream.of(
+        Arguments.of("basilisk-test", SubscriptionDefinitionGranularity.HOURLY),
+        Arguments.of("rhel-for-arm", SubscriptionDefinitionGranularity.DAILY));
   }
 
   @Test
@@ -158,9 +168,16 @@ class SubscriptionDefinitionTest {
     var basiliskSub = SubscriptionDefinition.findById("basilisk-test").get();
 
     var actual = basiliskSub.getSupportedGranularity();
-    var expected = List.of("HOURLY", "DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY");
+    var expected =
+        List.of(
+            SubscriptionDefinitionGranularity.HOURLY,
+            SubscriptionDefinitionGranularity.DAILY,
+            SubscriptionDefinitionGranularity.WEEKLY,
+            SubscriptionDefinitionGranularity.MONTHLY,
+            SubscriptionDefinitionGranularity.QUARTERLY,
+            SubscriptionDefinitionGranularity.YEARLY);
 
-    assertEquals(expected, actual);
+    assertThat(actual, Matchers.containsInAnyOrder(expected.toArray()));
   }
 
   @Test
@@ -168,9 +185,15 @@ class SubscriptionDefinitionTest {
     var rhelForArmSub = SubscriptionDefinition.findById("rhel-for-arm").get();
 
     var actual = rhelForArmSub.getSupportedGranularity();
-    var expected = List.of("DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY");
+    var expected =
+        List.of(
+            SubscriptionDefinitionGranularity.DAILY,
+            SubscriptionDefinitionGranularity.WEEKLY,
+            SubscriptionDefinitionGranularity.MONTHLY,
+            SubscriptionDefinitionGranularity.QUARTERLY,
+            SubscriptionDefinitionGranularity.YEARLY);
 
-    assertEquals(expected, actual);
+    assertThat(actual, Matchers.containsInAnyOrder(expected.toArray()));
   }
 
   @Test

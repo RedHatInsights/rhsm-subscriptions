@@ -105,15 +105,23 @@ public class SubscriptionDefinition {
     return this.getMetrics().stream().anyMatch(metric -> Objects.nonNull(metric.getPrometheus()));
   }
 
-  public String getFinestGranularity() {
+  public SubscriptionDefinitionGranularity getFinestGranularity() {
 
-    return this.isPrometheusEnabled() ? "HOURLY" : "DAILY";
+    return this.isPrometheusEnabled()
+        ? SubscriptionDefinitionGranularity.HOURLY
+        : SubscriptionDefinitionGranularity.DAILY;
   }
 
-  public List<String> getSupportedGranularity() {
-    var granularity = List.of("HOURLY", "DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY");
+  public List<SubscriptionDefinitionGranularity> getSupportedGranularity() {
 
-    return isPrometheusEnabled() ? granularity : granularity.subList(1, granularity.size());
+    List<SubscriptionDefinitionGranularity> granularity =
+        new ArrayList<>(List.of(SubscriptionDefinitionGranularity.values()));
+
+    if (!isPrometheusEnabled()) {
+      granularity.remove(SubscriptionDefinitionGranularity.HOURLY);
+    }
+
+    return granularity;
   }
 
   /**
