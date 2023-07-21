@@ -73,9 +73,6 @@ public interface SubscriptionRepository
   @EntityGraph(value = "Subscription.offering")
   Stream<Subscription> findByOrgId(String orgId);
 
-  @EntityGraph(value = "Subscription.offering")
-  List<Subscription> findByOrgIdAndEndDateAfter(String orgId, OffsetDateTime date);
-
   void deleteBySubscriptionId(String subscriptionId);
 
   void deleteByOrgId(String orgId);

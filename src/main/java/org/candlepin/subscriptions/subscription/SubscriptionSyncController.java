@@ -42,7 +42,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
@@ -313,11 +312,21 @@ public class SubscriptionSyncController {
 
   @Transactional
   @Timed("swatch_subscription_reconcile_org")
-  public void reconcileSubscriptionsWithSubscriptionService(String orgId) {
+  public void reconcileSubscriptionsWithSubscriptionService(String orgId, boolean paygOnly) {
     log.info("Syncing subscriptions for orgId={}", orgId);
     Set<String> seenSubscriptionIds = new HashSet<>();
     Map<SubscriptionCompoundId, org.candlepin.subscriptions.db.model.Subscription>
         swatchSubscriptions;
+
+    var subscriptions = subscriptionService.getSubscriptionsByOrgId(orgId).stream();
+    // Filter out non PAYG subscriptions for faster processing when they are not needed.
+    // Slow processing was causing: https://issues.redhat.com/browse/ENT-5083
+    if (paygOnly) {
+      subscriptions =
+          subscriptions.filter(
+              subscription -> SubscriptionDtoUtil.extractBillingProviderId(subscription) != null);
+    }
+
     try (var subs = subscriptionRepository.findByOrgId(orgId)) {
       swatchSubscriptions =
           subs.collect(
@@ -325,7 +334,7 @@ public class SubscriptionSyncController {
                   sub -> new SubscriptionCompoundId(sub.getSubscriptionId(), sub.getStartDate()),
                   Function.identity()));
     }
-    subscriptionService.getSubscriptionsByOrgId(orgId).stream()
+    subscriptions
         .filter(this::shouldSyncSub)
         .forEach(
             subscription -> {
@@ -340,6 +349,12 @@ public class SubscriptionSyncController {
                           clock.dateFromMilliseconds(subscription.getEffectiveStartDate())));
               syncSubscription(subscription, Optional.ofNullable(swatchSubscription));
             });
+
+    if (paygOnly) {
+      // don't clean up stale subs, because PAYG-only sync discards/ignores too much data to
+      // determine what to delete at this point
+      return;
+    }
 
     var recordsToDelete =
         swatchSubscriptions.values().stream()
@@ -561,39 +576,8 @@ public class SubscriptionSyncController {
       return;
     }
     log.info("Starting force sync for orgId: {}", orgId);
-    var subscriptions = subscriptionService.getSubscriptionsByOrgId(orgId);
-
-    // Filter out non PAYG subscriptions for faster processing when they are not needed.
-    // Slow processing was causing: https://issues.redhat.com/browse/ENT-5083
-    if (paygOnly) {
-      subscriptions =
-          subscriptions.stream()
-              .filter(
-                  subscription ->
-                      SubscriptionDtoUtil.extractBillingProviderId(subscription) != null)
-              .collect(Collectors.toList());
-    }
-
-    var subscriptionMap =
-        getActiveSubscriptionsForOrg(orgId)
-            .collect(
-                Collectors.toMap(
-                    sub -> new SubscriptionCompoundId(sub.getSubscriptionId(), sub.getStartDate()),
-                    Function.identity()));
-
-    for (Subscription subscription : subscriptions) {
-      var startDate = clock.dateFromMilliseconds(subscription.getEffectiveStartDate());
-      var id = String.valueOf(subscription.getId());
-      var compoundId = new SubscriptionCompoundId(id, startDate);
-      syncSubscription(subscription, Optional.ofNullable(subscriptionMap.get(compoundId)));
-    }
-
+    reconcileSubscriptionsWithSubscriptionService(orgId, paygOnly);
     log.info("Finished force sync for orgId: {}", orgId);
-  }
-
-  private Stream<org.candlepin.subscriptions.db.model.Subscription> getActiveSubscriptionsForOrg(
-      String orgId) {
-    return subscriptionRepository.findByOrgIdAndEndDateAfter(orgId, OffsetDateTime.now()).stream();
   }
 
   @Transactional

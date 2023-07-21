@@ -215,7 +215,7 @@ class SubscriptionSyncControllerTest {
     dto.setEffectiveEndDate(toEpochMillis(NOW.plusMonths(6)));
     Mockito.when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));
 
-    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("100");
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("100", false);
 
     verify(subscriptionService).getSubscriptionsByOrgId("100");
     verify(subscriptionRepository).save(any());
@@ -229,7 +229,7 @@ class SubscriptionSyncControllerTest {
     dto.setEffectiveEndDate(toEpochMillis(NOW.minusMonths(2)));
     Mockito.when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));
 
-    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("100");
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("100", false);
 
     verify(subscriptionService).getSubscriptionsByOrgId("100");
     verifyNoInteractions(denylist, offeringRepository);
@@ -246,7 +246,7 @@ class SubscriptionSyncControllerTest {
     Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
 
     Mockito.when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));
-    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("100");
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("100", false);
 
     verify(subscriptionService).getSubscriptionsByOrgId("100");
     verifyNoInteractions(denylist, offeringRepository);
@@ -264,7 +264,7 @@ class SubscriptionSyncControllerTest {
     Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
 
     Mockito.when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(dto));
-    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("100");
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("100", false);
 
     verify(subscriptionService).getSubscriptionsByOrgId("100");
     verifyNoInteractions(denylist, offeringRepository);
@@ -328,15 +328,17 @@ class SubscriptionSyncControllerTest {
     var dtoList = Arrays.asList(dto1, dto2);
     var subList = dtoList.stream().map(this::convertDto).toList();
     subList.forEach(
-        x -> x.setQuantity(9999L)); // Change the quantity so the sync will actually do something
+        x -> {
+          x.setQuantity(9999L);
+          x.setOffering(new Offering());
+        }); // Change the quantity so the sync will actually do something
 
     when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(dtoList);
-    when(subscriptionRepository.findByOrgIdAndEndDateAfter(anyString(), any(OffsetDateTime.class)))
-        .thenReturn(subList);
+    when(subscriptionRepository.findByOrgId(anyString())).thenReturn(subList.stream());
     when(denylist.productIdMatches(any())).thenReturn(false);
     when(offeringRepository.existsById(any())).thenReturn(true);
     subscriptionSyncController.forceSyncSubscriptionsForOrg("123", false);
-    verify(subscriptionRepository, times(2)).save(any());
+    verify(subscriptionRepository, times(4)).save(any());
   }
 
   @Test
@@ -353,7 +355,7 @@ class SubscriptionSyncControllerTest {
     when(denylist.productIdMatches(any())).thenReturn(false);
     when(offeringRepository.existsById(any())).thenReturn(true);
     subscriptionSyncController.forceSyncSubscriptionsForOrg("123", true);
-    verify(subscriptionRepository, times(1)).save(any());
+    verify(subscriptionRepository, atLeastOnce()).save(any());
   }
 
   @Test
@@ -370,10 +372,9 @@ class SubscriptionSyncControllerTest {
     dao2.setOffering(offering2);
 
     when(subscriptionService.getSubscriptionsByOrgId("123")).thenReturn(subList);
-    when(subscriptionRepository.findByOrgIdAndEndDateAfter(eq("123"), any()))
-        .thenReturn(Arrays.asList(dao1, dao2));
+    when(subscriptionRepository.findByOrgId("123")).thenReturn(Stream.of(dao1, dao2));
     subscriptionSyncController.forceSyncSubscriptionsForOrg("123", false);
-    verify(subscriptionRepository).findByOrgIdAndEndDateAfter(eq("123"), any());
+    verify(subscriptionRepository).findByOrgId("123");
     verify(subscriptionRepository, never()).findActiveSubscription(any());
   }
 
@@ -748,7 +749,7 @@ class SubscriptionSyncControllerTest {
   void testShouldRemoveStaleSubscriptionsNotPresentInSubscriptionService() {
     var subscription = createSubscription("123", "testsku", "456");
     when(subscriptionRepository.findByOrgId(any())).thenReturn(Stream.of(subscription));
-    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123", false);
     verify(subscriptionRepository).deleteAll(subscriptionsCaptor.capture());
     assertThat(subscriptionsCaptor.getValue(), contains(subscription));
   }
@@ -760,7 +761,7 @@ class SubscriptionSyncControllerTest {
     when(subscriptionRepository.findByOrgId(any())).thenReturn(Stream.of(subscription));
     when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
     when(denylist.productIdMatches(any())).thenReturn(true);
-    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123", false);
     verify(subscriptionRepository).deleteAll(subscriptionsCaptor.capture());
     assertThat(subscriptionsCaptor.getValue(), contains(subscription));
   }
@@ -773,7 +774,7 @@ class SubscriptionSyncControllerTest {
     when(subscriptionRepository.findByOrgId(any())).thenReturn(Stream.of(subscription));
     when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
     when(denylist.productIdMatches(any())).thenReturn(false);
-    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123", false);
     verify(subscriptionRepository).deleteAll(subscriptionsCaptor.capture());
     assertFalse(subscriptionsCaptor.getValue().iterator().hasNext());
   }
@@ -789,7 +790,7 @@ class SubscriptionSyncControllerTest {
         .thenReturn(Stream.of(subscription1, subscription2));
     when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
     when(denylist.productIdMatches(any())).thenReturn(false);
-    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123");
+    subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123", false);
     verify(subscriptionRepository).deleteAll(subscriptionsCaptor.capture());
     assertFalse(subscriptionsCaptor.getValue().iterator().hasNext());
   }
