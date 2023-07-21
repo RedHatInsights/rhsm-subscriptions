@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202307051132-1" author="khowell" dbms="postgresql">
+        <comment>Rename instance_measurements.instance_id to host_id and support both.</comment>
+        <renameColumn tableName="instance_measurements" oldColumnName="instance_id" newColumnName="host_id"/>
+        <sql>
+            alter table instance_measurements add column instance_id uuid generated always as (host_id) stored
+        </sql>
+        <rollback>
+            <sql>
+                alter table instance_measurements drop column instance_id
+            </sql>
+            <renameColumn tableName="instance_measurements" oldColumnName="host_id" newColumnName="instance_id"/>
+        </rollback>
+    </changeSet>
+    <!-- NOTE: below changeset is the hsql alternative (only run for unit tests) -->
+    <changeSet id="202307051132-1" author="khowell" dbms="!postgresql">
+        <comment>Rename instance_measurements.instance_id to host_id.</comment>
+        <dropView viewName="tally_instance_view"/>
+        <renameColumn tableName="instance_measurements" oldColumnName="instance_id" newColumnName="host_id"/>
+        <createView
+          replaceIfExists="true"
+          viewName="tally_instance_view">
+            select
+                distinct org_id,
+                         h.id,
+                         h.instance_id as instance_id,
+                         h.display_name,
+                         h.billing_provider as host_billing_provider,
+                         h.billing_account_id as host_billing_account_id,
+                         b.billing_provider as bucket_billing_provider,
+                         b.billing_account_id as bucket_billing_account_id,
+                         h.last_seen,
+                         coalesce(h.num_of_guests, 0) AS num_of_guests,
+                         b.product_id,
+                         b.sla,
+                         b.usage,
+                         coalesce(b.measurement_type, 'EMPTY') AS measurement_type,
+                         m.uom,
+                         m.value,
+                         b.sockets,
+                         b.cores,
+                         h.subscription_manager_id
+            from hosts h
+                     join host_tally_buckets b on h.id = b.host_id
+                     left outer join instance_measurements m on h.id = m.host_id;
+        </createView>
+    </changeSet>
+    <changeSet id="202307051132-2" author="khowell" dbms="postgresql">
+        <comment>Rename instance_monthly_totals.instance_id to host_id and support both.</comment>
+        <renameColumn tableName="instance_monthly_totals" oldColumnName="instance_id" newColumnName="host_id"/>
+        <sql>
+            alter table instance_monthly_totals add column instance_id uuid generated always as (host_id) stored
+        </sql>
+        <rollback>
+            <sql>
+                alter table instance_monthly_totals drop column instance_id
+            </sql>
+            <renameColumn tableName="instance_monthly_totals" oldColumnName="host_id" newColumnName="instance_id"/>
+        </rollback>
+    </changeSet>
+    <!-- NOTE: below changeset is the hsql alternative (only run for unit tests) -->
+    <changeSet id="202307051132-2" author="khowell" dbms="!postgresql">
+        <comment>Rename instance_monthly_totals.instance_id to host_id.</comment>
+        <renameColumn tableName="instance_monthly_totals" oldColumnName="instance_id" newColumnName="host_id"/>
+    </changeSet>
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->
