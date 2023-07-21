@@ -347,7 +347,7 @@ objects:
             - /usr/bin/bash
             - -c
             - >
-              /usr/bin/curl --fail -H "Origin: https://console.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://swatch-system-conduit-service:8000/api/rhsm-subscriptions/v1/internal/rpc/syncAllOrgs"
+              /usr/bin/curl --fail -H "Origin: https://swatch-system-conduit-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://swatch-system-conduit-service:8000/api/rhsm-subscriptions/v1/internal/rpc/syncAllOrgs"
           env:
             - name: SWATCH_SELF_PSK
               valueFrom:
