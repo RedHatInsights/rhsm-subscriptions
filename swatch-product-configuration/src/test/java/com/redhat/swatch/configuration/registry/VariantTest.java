@@ -50,4 +50,12 @@ class VariantTest {
 
     assertEquals(expected, actual);
   }
+
+  @Test
+  void testFindByEngineeringId() {
+
+    var actual = Variant.findByEngProductId("69");
+
+    assertEquals("RHEL Server", actual.get().getTag());
+  }
 }

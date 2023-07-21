@@ -164,21 +164,4 @@ public class Subscription {
                     .anyMatch(variant -> variant.getRoles().contains(role)))
         .findFirst();
   }
-
-  /**
-   * Looks for tag matching a variant
-   *
-   * @param tag
-   * @return Optional<Subscription>
-   */
-  public static Optional<Subscription> lookupSubscriptionByTag(@NotNull @NotEmpty String tag) {
-
-    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
-        .filter(subscription -> !subscription.getVariants().isEmpty())
-        .filter(
-            subscription ->
-                subscription.getVariants().stream()
-                    .anyMatch(variant -> Objects.equals(tag, variant.getTag())))
-        .findFirst();
-  }
 }

@@ -20,17 +20,12 @@
  */
 package org.candlepin.subscriptions.capacity;
 
+import com.redhat.swatch.configuration.registry.Subscription;
+import com.redhat.swatch.configuration.registry.Variant;
 import java.util.Collection;
-import java.util.Map;
-import java.util.Objects;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import org.candlepin.subscriptions.db.model.Offering;
-import org.candlepin.subscriptions.registry.TagProfile;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -40,64 +35,22 @@ import org.springframework.stereotype.Component;
 @Component
 public class CapacityProductExtractor {
 
-  private static final Logger log = LoggerFactory.getLogger(CapacityProductExtractor.class);
-  private final Map<Integer, Set<String>> engProductIdToSwatchProductIdsMap;
+  public Set<String> getProducts(Collection<String> engProductIds) {
 
-  public CapacityProductExtractor(TagProfile tagProfile) {
-    this.engProductIdToSwatchProductIdsMap = tagProfile.getEngProductIdToSwatchProductIdsMap();
-  }
-
-  public Set<String> getProducts(Collection<String> productIds) {
-    return mapEngProductsToSwatchIds(
-        productIds.stream().map(CapacityProductExtractor::parseIntSkipUnparseable));
-  }
-
-  public Set<String> getProducts(Offering offering) {
-    return mapEngProductsToSwatchIds(offering.getProductIds().stream());
-  }
-
-  private Set<String> mapEngProductsToSwatchIds(Stream<Integer> productIds) {
-
-    Set<String> products =
-        productIds
-            .filter(Objects::nonNull)
-            .map(engProductIdToSwatchProductIdsMap::get)
-            .filter(Objects::nonNull)
-            .flatMap(Set::stream)
+    Set<String> ignoredSubscriptionIds =
+        engProductIds.stream()
+            .flatMap(id -> Subscription.lookupSubscriptionByEngId(id).stream())
+            .flatMap(sub -> sub.getIncludedSubscriptions().stream())
             .collect(Collectors.toSet());
 
-    if (setIsInvalid(products)) {
-      // Kick out the RHEL products since it's implicit with the RHEL-included product being there.
-      products = products.stream().filter(matchesRhel().negate()).collect(Collectors.toSet());
+    Set<Variant> matches = new HashSet<>();
+
+    for (String engProductId : engProductIds) {
+      Variant.findByEngProductId(engProductId)
+          .filter(variant -> !ignoredSubscriptionIds.contains(variant.getSubscription().getId()))
+          .ifPresent(matches::add);
     }
-    return products;
-  }
 
-  private static Integer parseIntSkipUnparseable(String s) {
-    try {
-      return Integer.parseInt(s);
-    } catch (NumberFormatException e) {
-      log.debug("Skipping non-numeric product ID: {}", s);
-    }
-    return null;
-  }
-
-  /**
-   * Return whether this set of products should be considered for capacity calculations.
-   *
-   * @param products a set of product names
-   * @return true if the set is invalid for capacity calculations
-   */
-  public boolean setIsInvalid(Set<String> products) {
-    return products.stream().anyMatch(matchesRhel())
-        && products.stream().anyMatch(matchesRhelIncludedProduct());
-  }
-
-  private Predicate<String> matchesRhel() {
-    return x -> x.startsWith("RHEL");
-  }
-
-  private Predicate<String> matchesRhelIncludedProduct() {
-    return x -> x.startsWith("Satellite") || x.startsWith("OpenShift");
+    return matches.stream().map(Variant::getTag).collect(Collectors.toSet());
   }
 }

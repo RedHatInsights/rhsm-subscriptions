@@ -20,85 +20,63 @@
  */
 package org.candlepin.subscriptions.capacity;
 
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
-import org.candlepin.subscriptions.registry.TagProfile;
-import org.hamcrest.Matchers;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.springframework.core.io.DefaultResourceLoader;
-import org.springframework.core.io.ResourceLoader;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CapacityProductExtractorTest {
 
+  public static final String RHEL_LINUX_ID = "69";
+  public static final String SATELLITE_SERVER_ID = "250";
+  public static final String RHEL_x86_ID = "479";
+  public static final String RHEL_WORKSTATION_ID = "71";
+  public static final String OPENSHIFT_CONTAINER_PLATFORM_ID = "290";
+  public static final String RHEL_SERVER = "RHEL Server";
+  public static final String SATELLITE_SERVER = "Satellite Server";
+  public static final String OPEN_SHIFT_CONTAINER_PLATFORM = "OpenShift Container Platform";
   private CapacityProductExtractor extractor;
 
   @BeforeAll
-  void setup() throws IOException {
-    ResourceLoader resourceLoader = new DefaultResourceLoader();
-    Yaml parser = new Yaml(new Constructor(TagProfile.class));
-    TagProfile tagProfile =
-        parser.load(resourceLoader.getResource("classpath:test_tag_profile.yaml").getInputStream());
-    extractor = new CapacityProductExtractor(tagProfile);
+  void setup() {
+    extractor = new CapacityProductExtractor();
   }
 
-  @Test
-  void productExtractorReturnsExpectedProducts() {
-    Set<String> products = extractor.getProducts(Arrays.asList("6", "9", "10"));
-    assertThat(
-        products,
-        Matchers.containsInAnyOrder("RHEL", "NOT RHEL", "RHEL Workstation", "RHEL Server"));
+  @ParameterizedTest
+  @MethodSource("generateProductIdMappings")
+  void testSwatchSubscriptionProductIdsMappings(List<String> engProductId, Set<String> tagNames) {
+
+    var actual = extractor.getProducts(engProductId);
+
+    assertEquals(tagNames, actual);
   }
 
-  @Test
-  void productExtractorReturnsNoProductsIfNoProductIdsMatch() {
-    Set<String> products = extractor.getProducts(Collections.singletonList("42"));
-    assertThat(products, Matchers.empty());
-  }
-
-  @Test
-  void productSetIsInvalid() {
-    Set<String> products = new HashSet<>();
-    products.add("RHEL Workstation");
-    products.add("Satellite");
-    assertThat(extractor.setIsInvalid(products), Matchers.is(true));
-  }
-
-  @Test
-  void productSetIsInvalidWithOpenShift() {
-    Set<String> products = new HashSet<>();
-    products.add("RHEL Workstation");
-    products.add("OpenShift Container Platform");
-    assertThat(extractor.setIsInvalid(products), Matchers.is(true));
-  }
-
-  @Test
-  void productSetIsValid() {
-    Set<String> products = new HashSet<>();
-    products.add("RHEL Workstation");
-    products.add("RHEL");
-    products.add("RHEL for x86");
-    assertThat(extractor.setIsInvalid(products), Matchers.is(false));
-  }
-
-  @Test
-  void productExtractorReturnsExpectedProductsWhenSatellitePresent() {
-    Set<String> products = extractor.getProducts(Arrays.asList("1", "269"));
-    assertThat(products, Matchers.containsInAnyOrder("Satellite", "Satellite Capsule"));
-  }
-
-  @Test
-  void productExtractorReturnsExpectedProductsWhenOpenShiftPresent() {
-    Set<String> products = extractor.getProducts(Arrays.asList("1", "13"));
-    assertThat(products, Matchers.containsInAnyOrder("OpenShift Container Platform"));
+  static Stream<Arguments> generateProductIdMappings() {
+    return Stream.of(
+        Arguments.of(List.of(), Set.of()),
+        Arguments.of(List.of("123"), Set.of()),
+        Arguments.of(List.of("123", RHEL_LINUX_ID), Set.of(RHEL_SERVER)),
+        Arguments.of(List.of(RHEL_LINUX_ID), Set.of(RHEL_SERVER)),
+        Arguments.of(List.of(RHEL_LINUX_ID, SATELLITE_SERVER_ID), Set.of(SATELLITE_SERVER)),
+        Arguments.of(List.of(RHEL_x86_ID, SATELLITE_SERVER_ID), Set.of(SATELLITE_SERVER)),
+        Arguments.of(List.of(RHEL_LINUX_ID, SATELLITE_SERVER_ID), Set.of(SATELLITE_SERVER)),
+        Arguments.of(List.of(RHEL_x86_ID), Set.of(RHEL_SERVER)),
+        Arguments.of(List.of(RHEL_WORKSTATION_ID, SATELLITE_SERVER_ID), Set.of(SATELLITE_SERVER)),
+        Arguments.of(
+            List.of(OPENSHIFT_CONTAINER_PLATFORM_ID, RHEL_x86_ID),
+            Set.of(OPEN_SHIFT_CONTAINER_PLATFORM)),
+        Arguments.of(
+            List.of(RHEL_LINUX_ID, OPENSHIFT_CONTAINER_PLATFORM_ID),
+            Set.of(OPEN_SHIFT_CONTAINER_PLATFORM)),
+        Arguments.of(
+            List.of(OPENSHIFT_CONTAINER_PLATFORM_ID, SATELLITE_SERVER_ID),
+            Set.of(OPEN_SHIFT_CONTAINER_PLATFORM, SATELLITE_SERVER)));
   }
 }
