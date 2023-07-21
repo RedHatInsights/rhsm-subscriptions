@@ -3,6 +3,11 @@ platform: OpenShift
 
 id: openshift-container-platform
 
+includedSubscriptions:
+  - rhel-for-x86
+  - rhel-for-ibm-z
+  - rhel-for-ibm-power
+
 variants:
   - tag: OpenShift Container Platform
     engineeringIds:

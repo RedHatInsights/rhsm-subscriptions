@@ -3,6 +3,9 @@ platform: RHEL
 
 id: satellite-capsule
 
+includedSubscriptions:
+  - rhel-for-x86
+
 variants:
   - tag: Satellite Capsule
     engineeringIds:

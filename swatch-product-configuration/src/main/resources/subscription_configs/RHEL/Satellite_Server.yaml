@@ -3,6 +3,9 @@ platform: RHEL
 
 id: satellite-server
 
+includedSubscriptions:
+  - rhel-for-x86
+
 variants:
   - tag: Satellite Server
     engineeringIds:
