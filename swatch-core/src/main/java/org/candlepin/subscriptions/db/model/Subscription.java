@@ -130,6 +130,7 @@ public class Subscription implements Serializable {
   @Getter
   @Setter
   @ToString
+  @EqualsAndHashCode
   public static class SubscriptionCompoundId implements Serializable {
     private String subscriptionId;
     private OffsetDateTime startDate;
@@ -141,24 +142,6 @@ public class Subscription implements Serializable {
 
     public SubscriptionCompoundId() {
       // default
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (!(o instanceof Subscription subscription)) {
-        return false;
-      }
-
-      return Objects.equals(subscriptionId, subscription.getSubscriptionId())
-          && Objects.equals(startDate, subscription.getStartDate());
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(subscriptionId, startDate);
     }
   }
 
