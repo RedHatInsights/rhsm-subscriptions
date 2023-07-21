@@ -22,7 +22,11 @@ package org.candlepin.subscriptions.db;
 
 import static org.candlepin.subscriptions.db.SpringDataUtil.*;
 
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Path;
+import jakarta.persistence.criteria.Predicate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -187,20 +191,25 @@ public interface SubscriptionRepository
    * @param reportEnd the date the reporting period ends
    * @return A Specification that determines if a subscription is active during the given period.
    */
-  private Specification<Subscription> subscriptionIsActiveBetween(
+  static Specification<Subscription> subscriptionIsActiveBetween(
       OffsetDateTime reportStart, OffsetDateTime reportEnd) {
-    return (root, query, builder) -> {
-      var p = builder.conjunction();
-      if (Objects.nonNull(reportEnd)) {
-        p.getExpressions()
-            .add(builder.lessThanOrEqualTo(root.get(Subscription_.startDate), reportEnd));
-      }
-      if (Objects.nonNull(reportStart)) {
-        p.getExpressions()
-            .add(builder.greaterThanOrEqualTo(root.get(Subscription_.endDate), reportStart));
-      }
-      return p;
-    };
+    return (root, query, builder) ->
+        predicateForSubscriptionIsActiveBetween(root, builder, reportStart, reportEnd);
+  }
+
+  static Predicate predicateForSubscriptionIsActiveBetween(
+      Path<Subscription> path,
+      CriteriaBuilder builder,
+      OffsetDateTime reportStart,
+      OffsetDateTime reportEnd) {
+    var predicates = new ArrayList<Predicate>();
+    if (Objects.nonNull(reportEnd)) {
+      predicates.add(builder.lessThanOrEqualTo(path.get(Subscription_.startDate), reportEnd));
+    }
+    if (Objects.nonNull(reportStart)) {
+      predicates.add(builder.greaterThanOrEqualTo(path.get(Subscription_.endDate), reportStart));
+    }
+    return builder.and(predicates.toArray(Predicate[]::new));
   }
 
   private static Specification<Subscription> slaEquals(ServiceLevel sla) {

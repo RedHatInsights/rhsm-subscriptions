@@ -23,10 +23,10 @@ package org.candlepin.subscriptions.security;
 import static org.candlepin.subscriptions.security.SecurityConfiguration.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.Base64;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.Response;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.slf4j.Logger;

@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.exception.mapper;
 
-import javax.ws.rs.ext.Provider;
+import jakarta.ws.rs.ext.Provider;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.utilization.api.model.Error;
 import org.springframework.stereotype.Component;

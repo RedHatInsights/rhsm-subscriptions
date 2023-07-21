@@ -22,9 +22,9 @@ package org.candlepin.subscriptions.subscription;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import jakarta.transaction.Transactional;
 import java.time.Duration;
 import java.util.stream.Stream;
-import javax.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.SubscriptionRepository;

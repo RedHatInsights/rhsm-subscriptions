@@ -50,11 +50,13 @@ dependencies {
     implementation "com.fasterxml.jackson.module:jackson-module-kotlin"
     // used to deserialize subscription/product messages from UMB
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-xml"
+    implementation "com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations"
     // used to connect to umb
     implementation "org.springframework.boot:spring-boot-starter-activemq"
 
     implementation "org.liquibase:liquibase-core"
     implementation "org.postgresql:postgresql"
+    implementation "com.google.guava:guava"
 
     implementation libraries["mapstruct"]
     annotationProcessor libraries["mapstruct-processor"]
@@ -156,6 +158,7 @@ tasks.register("buildApiTally", GenerateTask) {
         interfaceOnly: "true",
         generatePom: "false",
         dateLibrary: "java8",
+        useJakartaEe: "true",
     ]
 }
 
@@ -168,6 +171,7 @@ tasks.register("buildApiSubSync", GenerateTask) {
             interfaceOnly: "true",
             generatePom: "false",
             dateLibrary: "java8",
+            useJakartaEe: "true",
     ]
 }
 
@@ -180,6 +184,7 @@ tasks.register("buildApiBilling", GenerateTask) {
             interfaceOnly: "true",
             generatePom: "false",
             dateLibrary: "java8",
+            useJakartaEe: "true",
     ]
 }
 
@@ -192,6 +197,7 @@ tasks.register("buildApiMetering", GenerateTask) {
             interfaceOnly: "true",
             generatePom: "false",
             dateLibrary: "java8",
+            useJakartaEe: "true",
     ]
 }
 
@@ -204,6 +210,7 @@ tasks.register("buildApiProducerRHM", GenerateTask) {
             interfaceOnly: "true",
             generatePom: "false",
             dateLibrary: "java8",
+            useJakartaEe: "true",
     ]
 }
 
@@ -274,7 +281,8 @@ tasks.register("generateOpenApiJsonTally", GenerateTask) {
     generateModelTests = false
     generateApiTests = false
     configOptions = [
-        outputFileName: "internal-tally-openapi.json"
+        outputFileName: "internal-tally-openapi.json",
+        useJakartaEe: "true",
     ]
 }
 
@@ -285,7 +293,8 @@ tasks.register("generateOpenApiJsonSubSync", GenerateTask) {
     generateModelTests = false
     generateApiTests = false
     configOptions = [
-        outputFileName: "internal-subscription-sync-openapi.json"
+        outputFileName: "internal-subscription-sync-openapi.json",
+        useJakartaEe: "true",
     ]
 }
 
@@ -296,7 +305,8 @@ tasks.register("generateOpenApiJsonBilling", GenerateTask) {
     generateModelTests = false
     generateApiTests = false
     configOptions = [
-            outputFileName: "internal-billing-openapi.json"
+            outputFileName: "internal-billing-openapi.json",
+            useJakartaEe: "true",
     ]
 }
 
@@ -307,7 +317,8 @@ tasks.register("generateOpenApiJsonMetering", GenerateTask) {
     generateModelTests = false
     generateApiTests = false
     configOptions = [
-            outputFileName: "internal-metering-openapi.json"
+            outputFileName: "internal-metering-openapi.json",
+            useJakartaEe: "true",
     ]
 }
 
@@ -318,7 +329,8 @@ tasks.register("generateOpenApiJsonProducerRhM", GenerateTask) {
     generateModelTests = false
     generateApiTests = false
     configOptions = [
-            outputFileName: "internal-swatch-producer-red-hat-marketplace-openapi.json"
+            outputFileName: "internal-swatch-producer-red-hat-marketplace-openapi.json",
+            useJakartaEe: "true",
     ]
 }
 
@@ -373,6 +385,7 @@ project(":api") {
             interfaceOnly: "true",
             generatePom: "false",
             dateLibrary: "java8",
+            useJakartaEe: "true",
         ]
     }
 
@@ -402,10 +415,10 @@ project(":api") {
     }
 
     dependencies {
-        implementation "javax.annotation:javax.annotation-api"
+        implementation "jakarta.annotation:jakarta.annotation-api"
         implementation "com.fasterxml.jackson.core:jackson-annotations"
-        implementation "javax.validation:validation-api"
-        implementation "org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec"
+        implementation "jakarta.validation:jakarta.validation-api"
+        implementation "jakarta.ws.rs:jakarta.ws.rs-api"
         implementation "io.swagger:swagger-annotations"
         implementation libraries["jsr305"]
         implementation libraries["jackson-databind-nullable"]

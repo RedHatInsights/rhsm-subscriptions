@@ -2,10 +2,8 @@
 import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
 
 plugins {
-    id "java-library"
-    id "org.kordamp.gradle.jandex"
+    id "swatch.java-library-conventions"
     id "org.openapi.generator"
-    id "swatch.java-conventions"
 }
 
 ext {
@@ -38,6 +36,8 @@ openApiGenerate {
     ]
     additionalProperties = [
             disableMultipart: "true", // see https://github.com/OpenAPITools/openapi-generator/pull/4713#issuecomment-633906581
+            // microprofile doesn't support the standard useJakartaEE=true
+            rootJavaEEPackage: "jakarta",
     ]
 }
 

@@ -20,10 +20,10 @@
  */
 package org.candlepin.subscriptions.tally.billing.admin;
 
+import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
-import javax.ws.rs.BadRequestException;
 import org.candlepin.subscriptions.billing.admin.api.InternalApi;
 import org.candlepin.subscriptions.billing.admin.api.model.MonthlyRemittance;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;

@@ -20,13 +20,13 @@
  */
 package org.candlepin.subscriptions.db.model.config;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.MappedSuperclass;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.Objects;
-import javax.persistence.Column;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.MappedSuperclass;
 
 /** Base class for configuration DB objects. */
 @MappedSuperclass

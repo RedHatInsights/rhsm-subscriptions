@@ -25,6 +25,7 @@ import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.env.EnvironmentPostProcessor;
+import org.springframework.boot.logging.DeferredLogFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.io.DefaultResourceLoader;
@@ -58,9 +59,8 @@ public class ClowderJsonEnvironmentPostProcessor implements EnvironmentPostProce
     this.order = order;
   }
 
-  public ClowderJsonEnvironmentPostProcessor(Log logger) {
-    this.logger = logger;
-
+  public ClowderJsonEnvironmentPostProcessor(DeferredLogFactory logFactory) {
+    this.logger = logFactory.getLog(ClowderJsonEnvironmentPostProcessor.class);
     /* If at some point we need to configure this objectMapper, it is possible by having the
      * ClowderJsonEnvironmentPostProcessor accept a ConfigurableBootstrapContext parameter. We
      * can then configure the ObjectMapper in the BootstrapContext.

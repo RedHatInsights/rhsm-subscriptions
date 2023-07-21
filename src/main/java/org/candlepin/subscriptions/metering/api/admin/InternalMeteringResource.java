@@ -21,13 +21,13 @@
 package org.candlepin.subscriptions.metering.api.admin;
 
 import io.micrometer.core.annotation.Timed;
+import jakarta.transaction.Transactional;
+import jakarta.validation.constraints.Min;
+import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.Optional;
-import javax.transaction.Transactional;
-import javax.validation.constraints.Min;
-import javax.ws.rs.BadRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountConfigRepository;

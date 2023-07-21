@@ -20,11 +20,13 @@
  */
 package org.candlepin.subscriptions.resteasy;
 
-import javax.ws.rs.core.Application;
+import jakarta.ws.rs.ApplicationPath;
+import jakarta.ws.rs.core.Application;
 import org.springframework.stereotype.Component;
 
 /** Bootstrapper for RESTEasy. */
 @Component
+@ApplicationPath("/api/rhsm-subscriptions/v1")
 public class JaxrsApplication extends Application {
   /* Intentionally left empty */
 }

@@ -23,9 +23,9 @@ package com.redhat.swatch.contract.config;
 import io.smallrye.common.annotation.Identifier;
 import io.vertx.amqp.AmqpClientOptions;
 import io.vertx.core.net.PfxOptions;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
 import java.util.Optional;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 

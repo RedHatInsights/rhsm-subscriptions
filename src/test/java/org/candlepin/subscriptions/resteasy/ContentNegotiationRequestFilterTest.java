@@ -23,15 +23,15 @@ package org.candlepin.subscriptions.resteasy;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import jakarta.ws.rs.NotAcceptableException;
+import jakarta.ws.rs.NotSupportedException;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import javax.ws.rs.NotAcceptableException;
-import javax.ws.rs.NotSupportedException;
-import javax.ws.rs.container.ContainerRequestContext;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
 import org.jboss.resteasy.util.MediaTypeHelper;
 import org.junit.jupiter.api.Test;
 

@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.tally.tasks;
 
+import jakarta.validation.constraints.Size;
 import java.util.List;
-import javax.validation.constraints.Size;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.task.Task;
 import org.slf4j.Logger;

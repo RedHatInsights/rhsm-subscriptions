@@ -26,8 +26,8 @@ import com.splunk.logging.HttpEventCollectorEventInfo;
 import com.splunk.logging.util.StandardErrorCallback;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.annotation.PostConstruct;
 import java.util.List;
-import javax.annotation.PostConstruct;
 import org.springframework.stereotype.Component;
 
 /**

@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.conduit.resteasy;
 
-import javax.ws.rs.core.Application;
+import jakarta.ws.rs.core.Application;
 import org.springframework.stereotype.Component;
 
 /** Bootstrapper for RESTEasy. */

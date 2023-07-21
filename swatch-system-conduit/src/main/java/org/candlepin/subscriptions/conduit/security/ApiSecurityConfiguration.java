@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.conduit.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import org.candlepin.subscriptions.rbac.RbacProperties;
 import org.candlepin.subscriptions.rbac.RbacService;
 import org.candlepin.subscriptions.security.AntiCsrfFilter;
@@ -45,6 +45,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -52,6 +53,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 /**
  * Configuration class for Spring Security.
@@ -218,7 +220,9 @@ public class ApiSecurityConfiguration {
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             requests -> {
-              requests.antMatchers(URLS_PERMITTED_WITHOUT_AUTH).permitAll();
+              for (String url : URLS_PERMITTED_WITHOUT_AUTH) {
+                requests.requestMatchers(new AntPathRequestMatcher(url)).permitAll();
+              }
               requests.requestMatchers(this::isDummyRequest).permitAll();
 
               requests
@@ -233,12 +237,15 @@ public class ApiSecurityConfiguration {
                * applied to the defined path ("//metrics") rather than the de facto path ("/metrics").
                * Accordingly, I've put in a custom rule in the security config to allow for access to "/metrics"
                */
-              requests.antMatchers("/metrics").permitAll();
+              requests.requestMatchers(new AntPathRequestMatcher("/metrics")).permitAll();
               // Intentionally not prefixed with "ROLE_"
-              requests.antMatchers("/**/internal/**").hasRole("INTERNAL");
+              requests
+                  .requestMatchers(new AntPathRequestMatcher("/**/internal/**"))
+                  .hasRole("INTERNAL");
               requests.anyRequest().authenticated();
             })
-        .anonymous(); // Creates an anonymous user if no header is present at all. Prevents NPEs
+        // Creates an anonymous user if no header is present at all. Prevents NPEs
+        .anonymous(Customizer.withDefaults());
     return http.build();
   }
 }

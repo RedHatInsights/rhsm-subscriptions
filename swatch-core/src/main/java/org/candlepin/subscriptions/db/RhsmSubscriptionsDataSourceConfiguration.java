@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.db;
 
 import com.zaxxer.hikari.HikariDataSource;
-import javax.persistence.EntityManagerFactory;
+import jakarta.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Qualifier;

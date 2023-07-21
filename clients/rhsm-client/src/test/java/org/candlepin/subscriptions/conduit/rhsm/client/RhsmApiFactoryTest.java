@@ -31,11 +31,11 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.google.common.io.Resources;
+import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.core.GenericType;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import javax.ws.rs.ProcessingException;
-import javax.ws.rs.core.GenericType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,14 +57,14 @@ class RhsmApiFactoryTest {
   }
 
   @AfterEach
-  private void tearDown() {
+  void tearDown() {
     if (server != null) {
       server.stop();
     }
   }
 
   @BeforeEach
-  private void setUp() {
+  void setUp() {
     config = new RhsmApiProperties();
   }
 

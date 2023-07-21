@@ -20,10 +20,10 @@
  */
 package org.candlepin.subscriptions.resteasy;
 
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriInfo;
 import java.net.URI;
 import java.net.URISyntaxException;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.utilization.api.model.PageLinks;

@@ -60,6 +60,8 @@ openApiGenerate {
             library: "microprofile",
             java8: "true",
             dateLibrary: "java8",
+            microprofileRestClientVersion: "3.0",
+            useJakartaEE: "true",
     ]
     additionalProperties = [
             disableMultipart: "true", // see https://github.com/OpenAPITools/openapi-generator/pull/4713#issuecomment-633906581

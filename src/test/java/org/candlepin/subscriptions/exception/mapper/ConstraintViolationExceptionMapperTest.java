@@ -24,10 +24,10 @@ import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+import jakarta.validation.ConstraintViolationException;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 import java.util.HashSet;
-import javax.validation.ConstraintViolationException;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 import org.candlepin.subscriptions.utilization.api.model.Error;
 import org.candlepin.subscriptions.utilization.api.model.Errors;
 import org.junit.jupiter.api.Test;

@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.subscription;
 
-import javax.ws.rs.core.Response.Status;
+import jakarta.ws.rs.core.Response.Status;
 import lombok.Getter;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.SubscriptionsException;

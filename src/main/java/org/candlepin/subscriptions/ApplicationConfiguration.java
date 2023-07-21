@@ -28,10 +28,10 @@ import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 import com.fasterxml.jackson.databind.util.StdDateFormat;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
+import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationModule;
 import io.micrometer.core.aop.TimedAspect;
 import io.micrometer.core.instrument.MeterRegistry;
-import javax.validation.Validator;
+import jakarta.validation.Validator;
 import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationWorkerConfiguration;
 import org.candlepin.subscriptions.clowder.KafkaJaasBeanPostProcessor;
@@ -146,7 +146,7 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
     // Explicitly load the modules we need rather than use ObjectMapper.findAndRegisterModules in
     // order to avoid com.fasterxml.jackson.module.scala.DefaultScalaModule, which was causing
     // deserialization to ignore @JsonProperty on OpenApi classes.
-    objectMapper.registerModule(new JaxbAnnotationModule());
+    objectMapper.registerModule(new JakartaXmlBindAnnotationModule());
     objectMapper.registerModule(new JavaTimeModule());
     objectMapper.registerModule(new Jdk8Module());
 

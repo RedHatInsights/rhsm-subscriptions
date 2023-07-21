@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.exception.mapper;
 
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.ext.Provider;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.ext.Provider;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.utilization.api.model.Error;
 import org.springframework.stereotype.Component;

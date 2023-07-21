@@ -26,9 +26,9 @@ import com.splunk.logging.HttpEventCollectorEventInfo;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.runtime.StartupEvent;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import java.util.List;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -61,7 +61,7 @@ public class CountingSplunkErrorCallback implements ErrorCallback {
     delegatedCallback.error(data, ex);
   }
 
-  void onStart(@Observes StartupEvent ev) {
+  void onStart(@Observes StartupEvent ev) { // NOSONAR
     HttpEventCollectorErrorHandler.onError(this);
   }
 }

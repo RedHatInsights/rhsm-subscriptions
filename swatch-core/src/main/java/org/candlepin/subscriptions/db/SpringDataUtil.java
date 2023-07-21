@@ -20,11 +20,11 @@
  */
 package org.candlepin.subscriptions.db;
 
+import jakarta.persistence.criteria.From;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.metamodel.SetAttribute;
+import jakarta.persistence.metamodel.SingularAttribute;
 import java.util.Objects;
-import javax.persistence.criteria.From;
-import javax.persistence.criteria.Join;
-import javax.persistence.metamodel.SetAttribute;
-import javax.persistence.metamodel.SingularAttribute;
 
 public class SpringDataUtil {
   private SpringDataUtil() {

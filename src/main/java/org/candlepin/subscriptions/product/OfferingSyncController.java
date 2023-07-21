@@ -234,7 +234,7 @@ public class OfferingSyncController {
    * @param productXml UMB message for product
    * @return result describing results of sync (for testing purposes)
    */
-  @javax.transaction.Transactional
+  @jakarta.transaction.Transactional
   public SyncResult syncUmbProductFromXml(String productXml) throws JsonProcessingException {
     return syncUmbProduct(
         umbMessageMapper

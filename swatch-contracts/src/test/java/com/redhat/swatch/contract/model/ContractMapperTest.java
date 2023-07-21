@@ -33,10 +33,10 @@ import com.redhat.swatch.contract.repository.OfferingRepository;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
+import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
 import java.util.Set;
 import java.util.UUID;
-import javax.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 /**

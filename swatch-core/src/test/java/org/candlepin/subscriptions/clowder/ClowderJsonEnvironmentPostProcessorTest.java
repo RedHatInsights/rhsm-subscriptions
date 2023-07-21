@@ -40,9 +40,7 @@ class ClowderJsonEnvironmentPostProcessorTest {
 
   @BeforeEach
   public void setUp() {
-    postProcessor =
-        new ClowderJsonEnvironmentPostProcessor(
-            logFactory.getLog(ClowderJsonEnvironmentPostProcessor.class));
+    postProcessor = new ClowderJsonEnvironmentPostProcessor(logFactory);
   }
 
   @Test

@@ -1,0 +1,9 @@
+// Plugin: swatch.java-library-conventions
+// gradle config common to all swatch java library projects
+plugins {
+    id "swatch.java-conventions"
+    id "java-library"
+    // apply the jandex plugin so that CDI can work with libraries
+    // see https://quarkus.io/guides/cdi-reference#bean_discovery
+    id "org.kordamp.gradle.jandex"
+}

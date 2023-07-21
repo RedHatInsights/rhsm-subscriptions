@@ -23,10 +23,10 @@ package org.candlepin.subscriptions.inventory.db;
 import static org.hibernate.jpa.QueryHints.HINT_FETCH_SIZE;
 import static org.hibernate.jpa.QueryHints.HINT_READONLY;
 
+import jakarta.persistence.QueryHint;
 import java.util.Collection;
 import java.util.UUID;
 import java.util.stream.Stream;
-import javax.persistence.QueryHint;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHost;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.springframework.data.jpa.repository.Query;

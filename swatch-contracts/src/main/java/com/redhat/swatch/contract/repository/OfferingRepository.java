@@ -20,7 +20,7 @@
  */
 package com.redhat.swatch.contract.repository;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
 public class OfferingRepository implements PanacheSpecificationSupport<OfferingEntity, String> {

@@ -22,9 +22,9 @@ package org.candlepin.subscriptions.resteasy;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import jakarta.ws.rs.core.UriInfo;
 import java.util.Arrays;
 import java.util.Collections;
-import javax.ws.rs.core.UriInfo;
 import org.candlepin.subscriptions.utilization.api.model.PageLinks;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
 import org.jboss.resteasy.specimpl.ResteasyUriBuilderImpl;

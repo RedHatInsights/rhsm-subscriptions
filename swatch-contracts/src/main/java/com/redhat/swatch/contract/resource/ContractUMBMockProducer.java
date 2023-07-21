@@ -22,12 +22,12 @@ package com.redhat.swatch.contract.resource;
 
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+import jakarta.inject.Inject;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
-import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Channel;
@@ -69,7 +69,7 @@ public class ContractUMBMockProducer {
                     }
                             """;
 
-  void onStart(@Observes StartupEvent ev) {
+  void onStart(@Observes StartupEvent ev) { // NOSONAR
     if (contractProducerEnabled) {
       scheduler.scheduleWithFixedDelay(
           () -> {
@@ -82,7 +82,7 @@ public class ContractUMBMockProducer {
     }
   }
 
-  void onStop(@Observes ShutdownEvent ev) {
+  void onStop(@Observes ShutdownEvent ev) { // NOSONAR
     scheduler.shutdown();
   }
 

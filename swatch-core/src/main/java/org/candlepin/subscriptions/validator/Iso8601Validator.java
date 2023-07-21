@@ -20,10 +20,10 @@
  */
 package org.candlepin.subscriptions.validator;
 
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
 import org.hibernate.validator.constraintvalidation.HibernateConstraintValidatorContext;
 
 /** A ConstraintValidator to ensure Strings are in ISO 8601 format. */

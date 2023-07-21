@@ -112,7 +112,17 @@ public class KafkaEnabledInventoryService extends InventoryService {
   private void sendToKafka(OffsetDateTime now, ConduitFacts factSet) {
     CreateUpdateHostMessage message = new CreateUpdateHostMessage(createHost(factSet, now));
     message.setMetadata("request_id", UUID.randomUUID().toString());
-    producer.send(hostIngressTopic, message).addCallback(this::recordSuccess, this::recordFailure);
+    producer.send(hostIngressTopic, message).handle(this::handleResult);
+  }
+
+  private SendResult<String, CreateUpdateHostMessage> handleResult(
+      SendResult<String, CreateUpdateHostMessage> result, Throwable throwable) {
+    if (throwable != null) {
+      recordFailure(throwable);
+    } else {
+      recordSuccess(result);
+    }
+    return result;
   }
 
   private void recordFailure(Throwable throwable) {

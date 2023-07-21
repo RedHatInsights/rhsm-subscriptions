@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.exception.mapper;
 import static org.hamcrest.MatcherAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 import org.candlepin.subscriptions.utilization.api.model.Error;
 import org.candlepin.subscriptions.utilization.api.model.Errors;
 import org.hamcrest.Matchers;

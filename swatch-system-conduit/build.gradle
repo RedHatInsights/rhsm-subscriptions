@@ -23,7 +23,8 @@ openApiGenerate {
         interfaceOnly: "true",
         generatePom: "false",
         dateLibrary: "java8",
-        useTags: "true"
+        useTags: "true",
+        useJakartaEe: "true",
     ]
 }
 
@@ -94,6 +95,7 @@ jsonSchema2Pojo {
     includeGetters = true
     includeSetters = true
     inclusionLevel = 'USE_DEFAULTS'
+    useJakartaValidation = true
 }
 
 jacocoTestReport {

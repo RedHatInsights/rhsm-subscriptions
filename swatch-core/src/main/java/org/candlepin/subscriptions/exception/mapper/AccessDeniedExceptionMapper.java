@@ -20,9 +20,9 @@
  */
 package org.candlepin.subscriptions.exception.mapper;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.ext.Provider;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.ws.rs.ext.Provider;
 import org.candlepin.subscriptions.security.RestAccessDeniedHandler;
 import org.candlepin.subscriptions.utilization.api.model.Error;
 import org.springframework.security.access.AccessDeniedException;

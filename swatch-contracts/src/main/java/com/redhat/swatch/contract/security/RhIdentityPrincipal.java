@@ -20,13 +20,13 @@
  */
 package com.redhat.swatch.contract.security;
 
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import jakarta.json.bind.annotation.JsonbTransient;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.security.Principal;
 import java.util.Base64;
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
-import javax.json.bind.annotation.JsonbTransient;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

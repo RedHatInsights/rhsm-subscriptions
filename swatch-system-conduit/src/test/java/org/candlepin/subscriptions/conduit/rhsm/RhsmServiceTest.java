@@ -26,8 +26,8 @@ import static org.mockito.Mockito.*;
 
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
 import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
+import jakarta.validation.ConstraintViolationException;
 import java.util.Collections;
-import javax.validation.ConstraintViolationException;
 import org.candlepin.subscriptions.conduit.inventory.InventoryServiceProperties;
 import org.candlepin.subscriptions.conduit.rhsm.client.ApiException;
 import org.candlepin.subscriptions.conduit.rhsm.client.RhsmApiProperties;

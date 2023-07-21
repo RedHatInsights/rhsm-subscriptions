@@ -21,9 +21,9 @@
 package com.redhat.swatch.rest;
 
 import io.quarkus.arc.Unremovable;
-import javax.enterprise.context.ApplicationScoped;
-import javax.ws.rs.client.ClientRequestContext;
-import javax.ws.rs.client.ClientRequestFilter;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.client.ClientRequestContext;
+import jakarta.ws.rs.client.ClientRequestFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 

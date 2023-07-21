@@ -20,12 +20,12 @@
  */
 package com.redhat.swatch.contract.repository;
 
+import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.Converter;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.persistence.AttributeConverter;
-import javax.persistence.Converter;
 
 /** Billing provider associated with a host. */
 public enum BillingProvider {

@@ -21,7 +21,7 @@
 package com.redhat.swatch.processors;
 
 import com.redhat.swatch.openapi.model.BillableUsage;
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
