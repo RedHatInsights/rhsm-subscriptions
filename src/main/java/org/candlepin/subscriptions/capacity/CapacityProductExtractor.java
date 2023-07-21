@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.capacity;
 
-import com.redhat.swatch.configuration.registry.Subscription;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import java.util.Collection;
 import java.util.HashSet;
@@ -39,7 +39,7 @@ public class CapacityProductExtractor {
 
     Set<String> ignoredSubscriptionIds =
         engProductIds.stream()
-            .flatMap(id -> Subscription.lookupSubscriptionByEngId(id).stream())
+            .flatMap(id -> SubscriptionDefinition.lookupSubscriptionByEngId(id).stream())
             .flatMap(sub -> sub.getIncludedSubscriptions().stream())
             .collect(Collectors.toSet());
 

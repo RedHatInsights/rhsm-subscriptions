@@ -46,22 +46,22 @@ import org.yaml.snakeyaml.constructor.Constructor;
  * lookup methods for that list.
  */
 @Slf4j
-class SubscriptionRegistry {
+class SubscriptionDefinitionRegistry {
 
-  private static SubscriptionRegistry instance = null;
+  private static SubscriptionDefinitionRegistry instance = null;
 
-  @Getter private final List<Subscription> subscriptions;
+  @Getter private final List<SubscriptionDefinition> subscriptions;
 
-  public static synchronized SubscriptionRegistry getInstance() {
+  public static synchronized SubscriptionDefinitionRegistry getInstance() {
     if (instance == null) {
-      instance = new SubscriptionRegistry();
+      instance = new SubscriptionDefinitionRegistry();
     }
     return instance;
   }
 
-  SubscriptionRegistry() {
+  SubscriptionDefinitionRegistry() {
     subscriptions = new ArrayList<>();
-    Constructor constructor = new Constructor(Subscription.class, new LoaderOptions());
+    Constructor constructor = new Constructor(SubscriptionDefinition.class, new LoaderOptions());
     constructor.getPropertyUtils().setSkipMissingProperties(true);
 
     Yaml yaml = new Yaml(constructor);
@@ -103,7 +103,7 @@ class SubscriptionRegistry {
               file -> {
                 try (InputStream inputStream = Files.newInputStream(file)) {
 
-                  var subscriptionFromYaml = yaml.loadAs(inputStream, Subscription.class);
+                  var subscriptionFromYaml = yaml.loadAs(inputStream, SubscriptionDefinition.class);
                   subscriptionFromYaml
                       .getVariants()
                       .forEach(variant -> variant.setSubscription(subscriptionFromYaml));

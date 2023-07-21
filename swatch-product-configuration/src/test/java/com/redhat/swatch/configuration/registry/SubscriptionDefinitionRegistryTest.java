@@ -28,13 +28,13 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 
 @TestInstance(Lifecycle.PER_CLASS)
-class SubscriptionRegistryTest {
+class SubscriptionDefinitionRegistryTest {
 
-  SubscriptionRegistry subscriptionRegistry;
+  SubscriptionDefinitionRegistry subscriptionDefinitionRegistry;
 
   @BeforeAll
   void setup() {
-    subscriptionRegistry = new SubscriptionRegistry();
+    subscriptionDefinitionRegistry = new SubscriptionDefinitionRegistry();
   }
 
   @Test
@@ -45,7 +45,7 @@ class SubscriptionRegistryTest {
   @Test
   void testLoadAllTheThings() {
 
-    var actual = subscriptionRegistry.getSubscriptions().size();
+    var actual = subscriptionDefinitionRegistry.getSubscriptions().size();
     var expected = 14;
 
     assertEquals(actual, expected);

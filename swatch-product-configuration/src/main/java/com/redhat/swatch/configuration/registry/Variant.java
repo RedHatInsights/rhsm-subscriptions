@@ -38,7 +38,7 @@ import lombok.*;
 public class Variant {
 
   /** Convenience method to easily get the "parent" subscription for a Variant */
-  @ToString.Exclude @EqualsAndHashCode.Exclude @NotNull private Subscription subscription;
+  @ToString.Exclude @EqualsAndHashCode.Exclude @NotNull private SubscriptionDefinition subscription;
 
   @NotNull @NotEmpty private String tag; // required
   private List<String> roles = new ArrayList<>();
@@ -46,7 +46,7 @@ public class Variant {
   private List<String> productNames = new ArrayList<>();
 
   public static Optional<Variant> findByRole(String role) {
-    return Subscription.lookupSubscriptionByRole(role)
+    return SubscriptionDefinition.lookupSubscriptionByRole(role)
         .flatMap(
             subscription ->
                 subscription.getVariants().stream()
@@ -65,14 +65,14 @@ public class Variant {
    * @return Optional<Variant>
    */
   public static Optional<Variant> findByEngProductId(String engProductId) {
-    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .flatMap(subscription -> subscription.getVariants().stream())
         .filter(variant -> variant.getEngineeringIds().contains(engProductId))
         .findFirst();
   }
 
   public static Optional<Variant> findByTag(String defaultVariantTag) {
-    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .filter(subscription -> !subscription.getVariants().isEmpty())
         .flatMap(subscription -> subscription.getVariants().stream())
         .filter(variant -> Objects.equals(variant.getTag(), defaultVariantTag))
