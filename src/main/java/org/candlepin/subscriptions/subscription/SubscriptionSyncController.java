@@ -376,27 +376,24 @@ public class SubscriptionSyncController {
     Long startDate = sub.getEffectiveStartDate();
     Long endDate = sub.getEffectiveEndDate();
 
-    // Consider any sub with a null effective date as invalid, it could be an upstream data issue.
-    // Log this sub's info and skip it.
-    if (startDate == null || endDate == null) {
+    // Consider any sub with a null effective start date as invalid, it could be an upstream data
+    // issue. Log this sub's info and skip it.
+    if (startDate == null) {
       log.warn(
-          "subscriptionId={} subscriptionNumber={} for orgId={} has effectiveStartDate={} and "
-              + "effectiveEndDate={} (neither should be null). Subscription data will need fixing "
-              + "in upstream service. Skipping sync.",
+          "subscriptionId={} subscriptionNumber={} for orgId={} has effectiveStartDate null (should not be null). Subscription data will need fixing in upstream service. Skipping sync.",
           sub.getId(),
           sub.getSubscriptionNumber(),
-          sub.getWebCustomerId(),
-          startDate,
-          endDate);
+          sub.getWebCustomerId());
       return false;
     }
 
     long earliestAllowedFutureStartDate =
-        now.plus(properties.getIgnoreStartingLaterThan()).toEpochSecond() * 1000;
+        now.plus(properties.getIgnoreStartingLaterThan()).toInstant().toEpochMilli();
     long latestAllowedExpiredEndDate =
-        now.minus(properties.getIgnoreExpiredOlderThan()).toEpochSecond() * 1000;
+        now.minus(properties.getIgnoreExpiredOlderThan()).toInstant().toEpochMilli();
 
-    return startDate < earliestAllowedFutureStartDate && endDate > latestAllowedExpiredEndDate;
+    return startDate < earliestAllowedFutureStartDate
+        && (endDate == null || endDate > latestAllowedExpiredEndDate);
   }
 
   private void enqueueSubscriptionSync(String orgId) {
