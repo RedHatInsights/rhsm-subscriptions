@@ -41,7 +41,17 @@ import lombok.*;
 @NoArgsConstructor
 @IdClass(Subscription.SubscriptionCompoundId.class)
 @Table(name = "subscription")
-@NamedEntityGraph(name = "Subscription.offering", attributeNodes = @NamedAttributeNode("offering"))
+// The below graph fetches all associations needed during subscription sync to avoid n+1 queries
+@NamedEntityGraph(
+    name = "graph.SubscriptionSync",
+    attributeNodes = {
+      @NamedAttributeNode(value = "offering", subgraph = "subgraph.offering"),
+      @NamedAttributeNode("subscriptionMeasurements"),
+      @NamedAttributeNode("subscriptionProductIds")
+    },
+    subgraphs = {
+      @NamedSubgraph(name = "subgraph.offering", attributeNodes = @NamedAttributeNode("productIds"))
+    })
 public class Subscription implements Serializable {
 
   @Id
