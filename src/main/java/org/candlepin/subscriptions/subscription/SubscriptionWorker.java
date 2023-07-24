@@ -71,7 +71,7 @@ public class SubscriptionWorker extends SeekableKafkaConsumer {
     log.info(
         "Subscription Worker is syncing subs with values: {} ", syncSubscriptionsTask.toString());
     subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService(
-        syncSubscriptionsTask.getOrgId());
+        syncSubscriptionsTask.getOrgId(), false);
   }
 
   @JmsListener(destination = "#{@umbProperties.subscriptionTopic}")

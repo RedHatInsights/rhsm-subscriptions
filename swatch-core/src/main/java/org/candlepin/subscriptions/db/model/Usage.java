@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.db.model;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import java.util.Map;
+import java.util.Objects;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
 
 /**
@@ -81,7 +82,7 @@ public enum Usage implements StringValueEnum<UsageType> {
 
     @Override
     public Usage convertToEntityAttribute(String dbData) {
-      return Usage.fromString(dbData);
+      return Objects.nonNull(dbData) ? Usage.fromString(dbData) : null;
     }
   }
 }

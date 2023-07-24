@@ -41,7 +41,17 @@ import lombok.*;
 @NoArgsConstructor
 @IdClass(Subscription.SubscriptionCompoundId.class)
 @Table(name = "subscription")
-@NamedEntityGraph(name = "Subscription.offering", attributeNodes = @NamedAttributeNode("offering"))
+// The below graph fetches all associations needed during subscription sync to avoid n+1 queries
+@NamedEntityGraph(
+    name = "graph.SubscriptionSync",
+    attributeNodes = {
+      @NamedAttributeNode(value = "offering", subgraph = "subgraph.offering"),
+      @NamedAttributeNode("subscriptionMeasurements"),
+      @NamedAttributeNode("subscriptionProductIds")
+    },
+    subgraphs = {
+      @NamedSubgraph(name = "subgraph.offering", attributeNodes = @NamedAttributeNode("productIds"))
+    })
 public class Subscription implements Serializable {
 
   @Id
@@ -130,6 +140,7 @@ public class Subscription implements Serializable {
   @Getter
   @Setter
   @ToString
+  @EqualsAndHashCode
   public static class SubscriptionCompoundId implements Serializable {
     private String subscriptionId;
     private OffsetDateTime startDate;
@@ -141,24 +152,6 @@ public class Subscription implements Serializable {
 
     public SubscriptionCompoundId() {
       // default
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (!(o instanceof Subscription subscription)) {
-        return false;
-      }
-
-      return Objects.equals(subscriptionId, subscription.getSubscriptionId())
-          && Objects.equals(startDate, subscription.getStartDate());
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(subscriptionId, startDate);
     }
   }
 

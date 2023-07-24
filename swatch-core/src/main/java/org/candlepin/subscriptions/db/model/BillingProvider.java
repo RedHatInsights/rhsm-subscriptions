@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.db.model;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import java.util.Map;
+import java.util.Objects;
 import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
 
 /** Billing provider associated with a host. */
@@ -80,7 +81,7 @@ public enum BillingProvider implements StringValueEnum<BillingProviderType> {
 
     @Override
     public BillingProvider convertToEntityAttribute(String dbData) {
-      return BillingProvider.fromString(dbData);
+      return Objects.nonNull(dbData) ? BillingProvider.fromString(dbData) : null;
     }
   }
 }

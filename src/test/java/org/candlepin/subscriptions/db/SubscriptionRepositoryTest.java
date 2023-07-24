@@ -296,21 +296,6 @@ class SubscriptionRepositoryTest {
     assertThat(result, Matchers.containsInAnyOrder(s1, s2));
   }
 
-  @Transactional
-  @Test
-  void testFindByOrgIdAndEndDateAfter() {
-    var s1 = createSubscription("org123", "account123", "sub123", "seller123");
-    var s2 = createSubscription("org123", "account123", "sub321", "seller123");
-    var offering1 = createOffering("testSkuUnlimited", "TestSKUUnlimited", 1066, null, null, null);
-    List.of(s1, s2).forEach(x -> x.setOffering(offering1));
-
-    offeringRepo.save(offering1);
-    subscriptionRepo.saveAllAndFlush(List.of(s1, s2));
-
-    var result = subscriptionRepo.findByOrgIdAndEndDateAfter("org123", OffsetDateTime.now());
-    assertThat(result, Matchers.containsInAnyOrder(s1, s2));
-  }
-
   private Offering createOffering(
       String sku, String productName, int productId, ServiceLevel sla, Usage usage, String role) {
     return Offering.builder()

@@ -61,20 +61,17 @@ public interface SubscriptionRepository
   @Query(
       "SELECT s FROM Subscription s where s.endDate > CURRENT_TIMESTAMP "
           + "AND s.subscriptionId = :subscriptionId")
-  @EntityGraph(value = "Subscription.offering")
+  @EntityGraph(value = "graph.SubscriptionSync")
   Optional<Subscription> findActiveSubscription(@Param("subscriptionId") String subscriptionId);
 
-  @EntityGraph(value = "Subscription.offering")
+  @EntityGraph(value = "graph.SubscriptionSync")
   Optional<Subscription> findBySubscriptionNumber(String subscriptionNumber);
 
-  @EntityGraph(value = "Subscription.offering")
+  @EntityGraph(value = "graph.SubscriptionSync")
   Page<Subscription> findByOfferingSku(String sku, Pageable pageable);
 
-  @EntityGraph(value = "Subscription.offering")
+  @EntityGraph(value = "graph.SubscriptionSync")
   Stream<Subscription> findByOrgId(String orgId);
-
-  @EntityGraph(value = "Subscription.offering")
-  List<Subscription> findByOrgIdAndEndDateAfter(String orgId, OffsetDateTime date);
 
   void deleteBySubscriptionId(String subscriptionId);
 

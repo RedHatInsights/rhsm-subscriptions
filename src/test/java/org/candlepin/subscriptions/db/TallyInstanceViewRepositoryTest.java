@@ -319,7 +319,7 @@ class TallyInstanceViewRepositoryTest {
         BillingProvider._ANY);
 
     Host host3 = createHost("i3", "a1");
-    host3.setBillingProvider(null);
+    host3.setBillingProvider(BillingProvider.EMPTY);
     addBucketToHost(
         host3,
         COOL_PROD,
@@ -377,10 +377,10 @@ class TallyInstanceViewRepositoryTest {
             null,
             page);
     assertEquals(4L, results.getTotalElements());
-    assertEquals(BillingProvider.EMPTY, results.getContent().get(0).getHostBillingProvider());
-    assertEquals(BillingProvider.RED_HAT, results.getContent().get(1).getHostBillingProvider());
-    assertEquals(BillingProvider.ORACLE, results.getContent().get(2).getHostBillingProvider());
-    assertEquals(BillingProvider.AWS, results.getContent().get(3).getHostBillingProvider());
+    assertEquals(BillingProvider.RED_HAT, results.getContent().get(0).getHostBillingProvider());
+    assertEquals(BillingProvider.ORACLE, results.getContent().get(1).getHostBillingProvider());
+    assertEquals(BillingProvider.AWS, results.getContent().get(2).getHostBillingProvider());
+    assertEquals(BillingProvider.EMPTY, results.getContent().get(3).getHostBillingProvider());
   }
 
   @Transactional

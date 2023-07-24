@@ -42,7 +42,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
@@ -208,6 +207,8 @@ public class SubscriptionSyncController {
           newOrUpdated.getOrgId());
       return;
     }
+    // enrich product IDs and measurements onto the incoming subscription record from the offering
+    capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
     log.debug("New subscription that will need to be saved={}", newOrUpdated);
 
     checkForMissingBillingProvider(newOrUpdated);
@@ -221,7 +222,6 @@ public class SubscriptionSyncController {
       }
       if (existingSubscription.quantityHasChanged(newOrUpdated.getQuantity())) {
         existingSubscription.endSubscription();
-        capacityReconciliationController.reconcileCapacityForSubscription(existingSubscription);
         subscriptionRepository.save(existingSubscription);
         final org.candlepin.subscriptions.db.model.Subscription newSub =
             org.candlepin.subscriptions.db.model.Subscription.builder()
@@ -241,11 +241,9 @@ public class SubscriptionSyncController {
         subscriptionRepository.save(newSub);
       } else {
         updateExistingSubscription(newOrUpdated, existingSubscription);
-        capacityReconciliationController.reconcileCapacityForSubscription(existingSubscription);
         subscriptionRepository.save(existingSubscription);
       }
     } else {
-      capacityReconciliationController.reconcileCapacityForSubscription(newOrUpdated);
       subscriptionRepository.save(newOrUpdated);
     }
   }
@@ -313,11 +311,21 @@ public class SubscriptionSyncController {
 
   @Transactional
   @Timed("swatch_subscription_reconcile_org")
-  public void reconcileSubscriptionsWithSubscriptionService(String orgId) {
+  public void reconcileSubscriptionsWithSubscriptionService(String orgId, boolean paygOnly) {
     log.info("Syncing subscriptions for orgId={}", orgId);
     Set<String> seenSubscriptionIds = new HashSet<>();
     Map<SubscriptionCompoundId, org.candlepin.subscriptions.db.model.Subscription>
         swatchSubscriptions;
+
+    var subscriptions = subscriptionService.getSubscriptionsByOrgId(orgId).stream();
+    // Filter out non PAYG subscriptions for faster processing when they are not needed.
+    // Slow processing was causing: https://issues.redhat.com/browse/ENT-5083
+    if (paygOnly) {
+      subscriptions =
+          subscriptions.filter(
+              subscription -> SubscriptionDtoUtil.extractBillingProviderId(subscription) != null);
+    }
+
     try (var subs = subscriptionRepository.findByOrgId(orgId)) {
       swatchSubscriptions =
           subs.collect(
@@ -325,7 +333,7 @@ public class SubscriptionSyncController {
                   sub -> new SubscriptionCompoundId(sub.getSubscriptionId(), sub.getStartDate()),
                   Function.identity()));
     }
-    subscriptionService.getSubscriptionsByOrgId(orgId).stream()
+    subscriptions
         .filter(this::shouldSyncSub)
         .forEach(
             subscription -> {
@@ -340,6 +348,12 @@ public class SubscriptionSyncController {
                           clock.dateFromMilliseconds(subscription.getEffectiveStartDate())));
               syncSubscription(subscription, Optional.ofNullable(swatchSubscription));
             });
+
+    if (paygOnly) {
+      // don't clean up stale subs, because PAYG-only sync discards/ignores too much data to
+      // determine what to delete at this point
+      return;
+    }
 
     var recordsToDelete =
         swatchSubscriptions.values().stream()
@@ -362,27 +376,24 @@ public class SubscriptionSyncController {
     Long startDate = sub.getEffectiveStartDate();
     Long endDate = sub.getEffectiveEndDate();
 
-    // Consider any sub with a null effective date as invalid, it could be an upstream data issue.
-    // Log this sub's info and skip it.
-    if (startDate == null || endDate == null) {
+    // Consider any sub with a null effective start date as invalid, it could be an upstream data
+    // issue. Log this sub's info and skip it.
+    if (startDate == null) {
       log.warn(
-          "subscriptionId={} subscriptionNumber={} for orgId={} has effectiveStartDate={} and "
-              + "effectiveEndDate={} (neither should be null). Subscription data will need fixing "
-              + "in upstream service. Skipping sync.",
+          "subscriptionId={} subscriptionNumber={} for orgId={} has effectiveStartDate null (should not be null). Subscription data will need fixing in upstream service. Skipping sync.",
           sub.getId(),
           sub.getSubscriptionNumber(),
-          sub.getWebCustomerId(),
-          startDate,
-          endDate);
+          sub.getWebCustomerId());
       return false;
     }
 
     long earliestAllowedFutureStartDate =
-        now.plus(properties.getIgnoreStartingLaterThan()).toEpochSecond() * 1000;
+        now.plus(properties.getIgnoreStartingLaterThan()).toInstant().toEpochMilli();
     long latestAllowedExpiredEndDate =
-        now.minus(properties.getIgnoreExpiredOlderThan()).toEpochSecond() * 1000;
+        now.minus(properties.getIgnoreExpiredOlderThan()).toInstant().toEpochMilli();
 
-    return startDate < earliestAllowedFutureStartDate && endDate > latestAllowedExpiredEndDate;
+    return startDate < earliestAllowedFutureStartDate
+        && (endDate == null || endDate > latestAllowedExpiredEndDate);
   }
 
   private void enqueueSubscriptionSync(String orgId) {
@@ -476,6 +487,8 @@ public class SubscriptionSyncController {
     entity.setBillingProviderId(newOrUpdated.getBillingProviderId());
     entity.setAccountNumber(newOrUpdated.getAccountNumber());
     entity.setOrgId(newOrUpdated.getOrgId());
+    // recalculate the subscription measurements and product IDs in case those have changed
+    capacityReconciliationController.reconcileCapacityForSubscription(entity);
   }
 
   public void saveSubscriptions(String subscriptionsJson, boolean reconcileCapacity) {
@@ -561,39 +574,8 @@ public class SubscriptionSyncController {
       return;
     }
     log.info("Starting force sync for orgId: {}", orgId);
-    var subscriptions = subscriptionService.getSubscriptionsByOrgId(orgId);
-
-    // Filter out non PAYG subscriptions for faster processing when they are not needed.
-    // Slow processing was causing: https://issues.redhat.com/browse/ENT-5083
-    if (paygOnly) {
-      subscriptions =
-          subscriptions.stream()
-              .filter(
-                  subscription ->
-                      SubscriptionDtoUtil.extractBillingProviderId(subscription) != null)
-              .collect(Collectors.toList());
-    }
-
-    var subscriptionMap =
-        getActiveSubscriptionsForOrg(orgId)
-            .collect(
-                Collectors.toMap(
-                    sub -> new SubscriptionCompoundId(sub.getSubscriptionId(), sub.getStartDate()),
-                    Function.identity()));
-
-    for (Subscription subscription : subscriptions) {
-      var startDate = clock.dateFromMilliseconds(subscription.getEffectiveStartDate());
-      var id = String.valueOf(subscription.getId());
-      var compoundId = new SubscriptionCompoundId(id, startDate);
-      syncSubscription(subscription, Optional.ofNullable(subscriptionMap.get(compoundId)));
-    }
-
+    reconcileSubscriptionsWithSubscriptionService(orgId, paygOnly);
     log.info("Finished force sync for orgId: {}", orgId);
-  }
-
-  private Stream<org.candlepin.subscriptions.db.model.Subscription> getActiveSubscriptionsForOrg(
-      String orgId) {
-    return subscriptionRepository.findByOrgIdAndEndDateAfter(orgId, OffsetDateTime.now()).stream();
   }
 
   @Transactional
