@@ -91,6 +91,7 @@ properties:
             - Transfer-gibibytes
             - Storage-gibibyte-months
             - Instances
+            - vCPUs
     required: false
   cloud_provider:
     description: Identifier for the cloud provider of the subject.
