@@ -997,6 +997,7 @@ class HostRepositoryTest {
         BillingProvider._ANY);
 
     Host host3 = createHost("i3", "a1");
+    host3.setBillingProvider(BillingProvider.EMPTY);
     addBucketToHost(
         host3,
         COOL_PROD,

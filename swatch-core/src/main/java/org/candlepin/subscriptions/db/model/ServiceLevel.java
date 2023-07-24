@@ -82,7 +82,7 @@ public enum ServiceLevel implements StringValueEnum<ServiceLevelType> {
 
     @Override
     public ServiceLevel convertToEntityAttribute(String dbData) {
-      return ServiceLevel.fromString(dbData);
+      return Objects.nonNull(dbData) ? ServiceLevel.fromString(dbData) : null;
     }
   }
 }

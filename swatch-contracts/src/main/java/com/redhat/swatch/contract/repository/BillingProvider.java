@@ -24,6 +24,7 @@ import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -75,7 +76,7 @@ public enum BillingProvider {
 
     @Override
     public BillingProvider convertToEntityAttribute(String dbData) {
-      return BillingProvider.fromString(dbData);
+      return Objects.nonNull(dbData) ? BillingProvider.fromString(dbData) : null;
     }
   }
 }
