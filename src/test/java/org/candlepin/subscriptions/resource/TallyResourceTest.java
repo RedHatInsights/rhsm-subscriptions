@@ -29,6 +29,8 @@ import com.redhat.swatch.contracts.api.resources.CapacityApi;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Response;
 import java.io.IOException;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.TemporalAmount;
@@ -55,6 +57,7 @@ import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.RoleProvider;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
+import org.candlepin.subscriptions.test.TestClock;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
@@ -80,9 +83,13 @@ import org.springframework.test.context.ActiveProfiles;
 @WithMockRedHatPrincipal("123456")
 @Import(TestClockConfiguration.class)
 class TallyResourceTest {
+  public static final Instant MID_MONTH_INSTANT =
+      LocalDateTime.of(2023, 7, 15, 13, 0, 0).toInstant(ZoneOffset.UTC);
+  public static final OffsetDateTime TEST_DATE =
+      OffsetDateTime.ofInstant(MID_MONTH_INSTANT, ZoneOffset.UTC);
 
   public static final ProductId RHEL_PRODUCT_ID = ProductId.RHEL;
-  public static final String INVALID_PRODUCT_ID_VALUE = "bad_product";
+
   private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
   private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
 
@@ -97,6 +104,8 @@ class TallyResourceTest {
   @BeforeEach
   public void setupTests() {
     when(accountConfigRepository.existsByOrgId("owner123456")).thenReturn(true);
+    var testClock = (TestClock) applicationClock.getClock();
+    testClock.setInstant(MID_MONTH_INSTANT);
   }
 
   @Test
@@ -409,14 +418,112 @@ class TallyResourceTest {
   }
 
   @Test
-  void testRunningTotalFormatUsedForPaygProducts() {
+  void testTallyReportDataFillerMarksHasDataFalseAfterNowWithRunningTotal() {
+    var begin = applicationClock.startOfMonth(TEST_DATE);
+    var end = applicationClock.endOfMonth(TEST_DATE);
     List<TallySnapshot> snapshots =
         List.of(1, 2, 8).stream()
             .map(
                 i -> {
                   var snapshot = new TallySnapshot();
                   snapshot.setSnapshotDate(
-                      OffsetDateTime.of(2019, 5, i, 12, 35, 0, 0, ZoneOffset.UTC));
+                      OffsetDateTime.of(
+                          TEST_DATE.getYear(),
+                          TEST_DATE.getMonthValue(),
+                          i,
+                          12,
+                          35,
+                          0,
+                          0,
+                          ZoneOffset.UTC));
+                  snapshot.setMeasurement(
+                      HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, i * 2.0);
+                  return snapshot;
+                })
+            .collect(Collectors.toList());
+
+    Mockito.when(
+            repository.findSnapshot(
+                "owner123456",
+                ProductId.RHEL.toString(),
+                Granularity.DAILY,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider._ANY,
+                "_ANY",
+                begin,
+                end,
+                null))
+        .thenReturn(new PageImpl<>(snapshots));
+
+    TallyReportData response =
+        resource.getTallyReportData(
+            ProductId.RHEL,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            begin,
+            end,
+            null,
+            ServiceLevelType.PREMIUM,
+            UsageType.PRODUCTION,
+            null,
+            null,
+            null,
+            null,
+            true,
+            null);
+    int expected = TEST_DATE.getMonth().length(false);
+    assertEquals(expected, response.getMeta().getCount());
+    assertEquals(expected, response.getData().size());
+
+    var firstSnapshot = response.getData().get(0);
+    assertEquals(2, firstSnapshot.getValue());
+    assertTrue(firstSnapshot.getHasData());
+
+    var snapshots2Through7 = response.getData().subList(1, 7);
+    snapshots2Through7.forEach(
+        snapshot -> {
+          assertTrue(snapshot.getHasData());
+          assertEquals(6, snapshot.getValue());
+        });
+
+    var snapshots8ThroughPresent = response.getData().subList(7, TEST_DATE.getDayOfMonth());
+    snapshots8ThroughPresent.forEach(
+        snapshot -> {
+          assertTrue(snapshot.getHasData());
+          assertEquals(22, snapshot.getValue());
+        });
+
+    var snapshotsPresentToEndOfMonth =
+        response.getData().subList(TEST_DATE.getDayOfMonth(), TEST_DATE.getMonth().length(false));
+    snapshotsPresentToEndOfMonth.forEach(
+        snapshot -> {
+          assertFalse(snapshot.getHasData());
+          assertEquals(0, snapshot.getValue());
+        });
+
+    assertEquals(22, response.getMeta().getTotalMonthly().getValue());
+  }
+
+  @Test
+  void testRunningTotalFormatUsedForPaygProducts() {
+    var begin = applicationClock.startOfMonth(TEST_DATE);
+    var end = applicationClock.endOfMonth(TEST_DATE);
+    List<TallySnapshot> snapshots =
+        List.of(1, 2, 8).stream()
+            .map(
+                i -> {
+                  var snapshot = new TallySnapshot();
+                  snapshot.setSnapshotDate(
+                      OffsetDateTime.of(
+                          TEST_DATE.getYear(),
+                          TEST_DATE.getMonthValue(),
+                          i,
+                          12,
+                          35,
+                          0,
+                          0,
+                          ZoneOffset.UTC));
                   snapshot.setMeasurement(
                       HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, i * 2.0);
                   return snapshot;
@@ -432,8 +539,8 @@ class TallyResourceTest {
                 Usage.PRODUCTION,
                 BillingProvider._ANY,
                 "_ANY",
-                OffsetDateTime.parse("2019-05-01T00:00Z"),
-                OffsetDateTime.parse("2019-05-31T11:59:59.999Z"),
+                begin,
+                end,
                 null))
         .thenReturn(new PageImpl<>(snapshots));
 
@@ -441,8 +548,8 @@ class TallyResourceTest {
         resource.getTallyReport(
             ProductId.OPENSHIFT_DEDICATED_METRICS,
             GranularityType.DAILY,
-            OffsetDateTime.parse("2019-05-01T00:00Z"),
-            OffsetDateTime.parse("2019-05-31T11:59:59.999Z"),
+            begin,
+            end,
             null,
             null,
             ServiceLevelType.PREMIUM,
@@ -456,11 +563,8 @@ class TallyResourceTest {
     var snapshots2Through7 = report.getData().subList(1, 7);
     snapshots2Through7.forEach(snapshot -> assertEquals(6.0, snapshot.getCoreHours()));
 
-    var snapshots8Through24 = report.getData().subList(7, 24);
-    snapshots8Through24.forEach(snapshot -> assertEquals(22.0, snapshot.getCoreHours()));
-
-    var futureSnapshots = report.getData().subList(24, 31);
-    futureSnapshots.forEach(snapshot -> assertNull(snapshot.getCoreHours()));
+    var snapshots8ThroughEnd = report.getData().subList(7, TEST_DATE.getDayOfMonth());
+    snapshots8ThroughEnd.forEach(snapshot -> assertEquals(22.0, snapshot.getCoreHours()));
 
     assertEquals("22.0", report.getMeta().getTotalCoreHours().toString());
   }
