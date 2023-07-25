@@ -34,7 +34,7 @@ import lombok.Data;
  * single technical fingerprint. Defines a set of metrics.
  */
 @Data
-public class Subscription {
+public class SubscriptionDefinition {
 
   /**
    * A family of solutions that is logically related, having one or more subscriptions distinguished
@@ -66,9 +66,9 @@ public class Subscription {
    * @param serviceType
    * @return Optional<Subscription>
    */
-  public static Optional<Subscription> findByServiceType(String serviceType) {
+  public static Optional<SubscriptionDefinition> findByServiceType(String serviceType) {
 
-    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .filter(subscription -> Objects.equals(subscription.getServiceType(), serviceType))
         .findFirst();
   }
@@ -84,8 +84,8 @@ public class Subscription {
     return this.getMetrics().stream().filter(x -> Objects.equals(x.getId(), metricId)).findFirst();
   }
 
-  public static Optional<Subscription> findById(String id) {
-    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
+  public static Optional<SubscriptionDefinition> findById(String id) {
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .filter(subscription -> Objects.equals(subscription.getId(), id))
         .findFirst();
   }
@@ -94,8 +94,8 @@ public class Subscription {
    * @return List<String> serviceTypes
    */
   public static List<String> getAllServiceTypes() {
-    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
-        .map(Subscription::getServiceType)
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
+        .map(SubscriptionDefinition::getServiceType)
         .filter(Objects::nonNull)
         .collect(Collectors.toList());
   }
@@ -105,15 +105,23 @@ public class Subscription {
     return this.getMetrics().stream().anyMatch(metric -> Objects.nonNull(metric.getPrometheus()));
   }
 
-  public String getFinestGranularity() {
+  public SubscriptionDefinitionGranularity getFinestGranularity() {
 
-    return this.isPrometheusEnabled() ? "HOURLY" : "DAILY";
+    return this.isPrometheusEnabled()
+        ? SubscriptionDefinitionGranularity.HOURLY
+        : SubscriptionDefinitionGranularity.DAILY;
   }
 
-  public List<String> getSupportedGranularity() {
-    var granularity = List.of("HOURLY", "DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY");
+  public List<SubscriptionDefinitionGranularity> getSupportedGranularity() {
 
-    return isPrometheusEnabled() ? granularity : granularity.subList(1, granularity.size());
+    List<SubscriptionDefinitionGranularity> granularity =
+        new ArrayList<>(List.of(SubscriptionDefinitionGranularity.values()));
+
+    if (!isPrometheusEnabled()) {
+      granularity.remove(SubscriptionDefinitionGranularity.HOURLY);
+    }
+
+    return granularity;
   }
 
   /**
@@ -123,8 +131,8 @@ public class Subscription {
    * @param engProductId
    * @return Optional<Subscription> subscription
    */
-  public static Optional<Subscription> lookupSubscriptionByEngId(String engProductId) {
-    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
+  public static Optional<SubscriptionDefinition> lookupSubscriptionByEngId(String engProductId) {
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .filter(subscription -> !subscription.getVariants().isEmpty())
         .filter(
             subscription ->
@@ -139,8 +147,9 @@ public class Subscription {
    * @param productName
    * @return Optional<Subscription>
    */
-  public static Optional<Subscription> lookupSubscriptionByProductName(String productName) {
-    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
+  public static Optional<SubscriptionDefinition> lookupSubscriptionByProductName(
+      String productName) {
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .filter(subscription -> !subscription.getVariants().isEmpty())
         .filter(
             subscription ->
@@ -155,30 +164,13 @@ public class Subscription {
    * @param role
    * @return Optional<Subscription>
    */
-  public static Optional<Subscription> lookupSubscriptionByRole(String role) {
-    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
+  public static Optional<SubscriptionDefinition> lookupSubscriptionByRole(String role) {
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .filter(subscription -> !subscription.getVariants().isEmpty())
         .filter(
             subscription ->
                 subscription.getVariants().stream()
                     .anyMatch(variant -> variant.getRoles().contains(role)))
-        .findFirst();
-  }
-
-  /**
-   * Looks for tag matching a variant
-   *
-   * @param tag
-   * @return Optional<Subscription>
-   */
-  public static Optional<Subscription> lookupSubscriptionByTag(@NotNull @NotEmpty String tag) {
-
-    return SubscriptionRegistry.getInstance().getSubscriptions().stream()
-        .filter(subscription -> !subscription.getVariants().isEmpty())
-        .filter(
-            subscription ->
-                subscription.getVariants().stream()
-                    .anyMatch(variant -> Objects.equals(tag, variant.getTag())))
         .findFirst();
   }
 }

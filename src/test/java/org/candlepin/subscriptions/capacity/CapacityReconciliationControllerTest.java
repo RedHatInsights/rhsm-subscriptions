@@ -104,7 +104,8 @@ class CapacityReconciliationControllerTest {
     newSubscription.setOffering(offering);
 
     when(denylist.productIdMatches(any())).thenReturn(false);
-    when(capacityProductExtractor.getProducts(offering)).thenReturn(new HashSet<>(productIds));
+    when(capacityProductExtractor.getProducts(offering.getProductIdsAsStrings()))
+        .thenReturn(new HashSet<>(productIds));
 
     capacityReconciliationController.reconcileCapacityForSubscription(newSubscription);
 
@@ -143,7 +144,8 @@ class CapacityReconciliationControllerTest {
     updatedSubscription.setOffering(updatedOffering);
 
     when(denylist.productIdMatches(any())).thenReturn(false);
-    when(capacityProductExtractor.getProducts(updatedOffering)).thenReturn(productIds);
+    when(capacityProductExtractor.getProducts(updatedOffering.getProductIdsAsStrings()))
+        .thenReturn(productIds);
 
     capacityReconciliationController.reconcileCapacityForSubscription(updatedSubscription);
 
@@ -179,7 +181,8 @@ class CapacityReconciliationControllerTest {
     updatedSubscription.setOffering(updatedOffering);
 
     when(denylist.productIdMatches(any())).thenReturn(true);
-    when(capacityProductExtractor.getProducts(updatedOffering)).thenReturn(productIds);
+    when(capacityProductExtractor.getProducts(updatedOffering.getProductIdsAsStrings()))
+        .thenReturn(productIds);
 
     capacityReconciliationController.reconcileCapacityForSubscription(updatedSubscription);
 
@@ -211,7 +214,8 @@ class CapacityReconciliationControllerTest {
     subscription.setOffering(offering);
 
     when(denylist.productIdMatches(any())).thenReturn(false);
-    when(capacityProductExtractor.getProducts(offering)).thenReturn(productIds);
+    when(capacityProductExtractor.getProducts(offering.getProductIdsAsStrings()))
+        .thenReturn(productIds);
 
     capacityReconciliationController.reconcileCapacityForSubscription(subscription);
 
@@ -268,7 +272,8 @@ class CapacityReconciliationControllerTest {
     subscription.setOffering(offering);
 
     when(denylist.productIdMatches(any())).thenReturn(false);
-    when(capacityProductExtractor.getProducts(offering)).thenReturn(productIds);
+    when(capacityProductExtractor.getProducts(offering.getProductIdsAsStrings()))
+        .thenReturn(productIds);
 
     capacityReconciliationController.reconcileCapacityForSubscription(subscription);
 

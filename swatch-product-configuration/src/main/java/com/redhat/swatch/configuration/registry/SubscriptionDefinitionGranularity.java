@@ -20,42 +20,17 @@
  */
 package com.redhat.swatch.configuration.registry;
 
-import static org.junit.jupiter.api.Assertions.*;
+public enum SubscriptionDefinitionGranularity {
+  YEARLY("Yearly"),
+  QUARTERLY("Quarterly"),
+  MONTHLY("Monthly"),
+  WEEKLY("Weekly"),
+  DAILY("Daily"),
+  HOURLY("Hourly");
 
-import org.junit.jupiter.api.Test;
+  public final String value;
 
-class VariantTest {
-
-  @Test
-  void sanityCheck() {
-    assertTrue(true);
-  }
-
-  @Test
-  void testFindByRole() {
-
-    var variant = Variant.findByRole("Red Hat Enterprise Linux Server");
-
-    var expected = "RHEL Server";
-    var actual = variant.get().getTag();
-
-    assertEquals(expected, actual);
-  }
-
-  @Test
-  void testGetParentSubscription() {
-    var variant = Variant.findByRole("Red Hat Enterprise Linux Compute Node").get();
-    var expected = "rhel-for-x86";
-    var actual = variant.getSubscription().getId();
-
-    assertEquals(expected, actual);
-  }
-
-  @Test
-  void testFindByEngineeringId() {
-
-    var actual = Variant.findByEngProductId("69");
-
-    assertEquals("RHEL Server", actual.get().getTag());
+  SubscriptionDefinitionGranularity(String value) {
+    this.value = value;
   }
 }

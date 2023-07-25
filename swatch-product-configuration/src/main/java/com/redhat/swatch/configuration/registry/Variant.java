@@ -24,6 +24,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import lombok.*;
 
@@ -37,7 +38,7 @@ import lombok.*;
 public class Variant {
 
   /** Convenience method to easily get the "parent" subscription for a Variant */
-  @ToString.Exclude @NotNull private Subscription subscription;
+  @ToString.Exclude @EqualsAndHashCode.Exclude @NotNull private SubscriptionDefinition subscription;
 
   @NotNull @NotEmpty private String tag; // required
   private List<String> roles = new ArrayList<>();
@@ -45,7 +46,7 @@ public class Variant {
   private List<String> productNames = new ArrayList<>();
 
   public static Optional<Variant> findByRole(String role) {
-    return Subscription.lookupSubscriptionByRole(role)
+    return SubscriptionDefinition.lookupSubscriptionByRole(role)
         .flatMap(
             subscription ->
                 subscription.getVariants().stream()
@@ -53,5 +54,28 @@ public class Variant {
                         variant ->
                             !variant.getRoles().isEmpty() && variant.getRoles().contains(role))
                     .findFirst());
+  }
+
+  /**
+   * Look up a variant by an engineering product id. Engineering product IDs can be found either in
+   * a Subscription.Variant or Subscription.Fingerprint. In the event it matches a fingerprint,
+   * return the Variant that's designated to be the default in the Subscription.defaults property
+   *
+   * @param engProductId
+   * @return Optional<Variant>
+   */
+  public static Optional<Variant> findByEngProductId(String engProductId) {
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
+        .flatMap(subscription -> subscription.getVariants().stream())
+        .filter(variant -> variant.getEngineeringIds().contains(engProductId))
+        .findFirst();
+  }
+
+  public static Optional<Variant> findByTag(String defaultVariantTag) {
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
+        .filter(subscription -> !subscription.getVariants().isEmpty())
+        .flatMap(subscription -> subscription.getVariants().stream())
+        .filter(variant -> Objects.equals(variant.getTag(), defaultVariantTag))
+        .findFirst();
   }
 }

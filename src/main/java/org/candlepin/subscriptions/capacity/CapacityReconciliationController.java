@@ -183,7 +183,8 @@ public class CapacityReconciliationController {
 
   private void reconcileSubscriptionProductIds(Subscription subscription) {
     Offering offering = subscription.getOffering();
-    Set<String> products = productExtractor.getProducts(offering);
+
+    Set<String> products = productExtractor.getProducts(offering.getProductIdsAsStrings());
     var expectedProducts =
         products.stream()
             .map(
