@@ -20,16 +20,18 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import com.redhat.swatch.contracts.api.resources.CapacityApi;
+import com.redhat.swatch.contracts.client.ApiException;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.InternalServerErrorException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.UriInfo;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -38,9 +40,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
-import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.json.Measurement;
@@ -75,7 +74,7 @@ public class TallyResource implements TallyApi {
   private final PageLinkCreator pageLinkCreator;
   private final ApplicationClock clock;
   private final TagProfile tagProfile;
-  private final BillableUsageRemittanceRepository remittanceRepository;
+  private final CapacityApi capacityApi;
 
   @Context private UriInfo uriInfo;
 
@@ -85,12 +84,12 @@ public class TallyResource implements TallyApi {
       PageLinkCreator pageLinkCreator,
       ApplicationClock clock,
       TagProfile tagProfile,
-      BillableUsageRemittanceRepository remittanceRepository) {
+      CapacityApi capacityApi) {
     this.repository = repository;
     this.pageLinkCreator = pageLinkCreator;
     this.clock = clock;
     this.tagProfile = tagProfile;
-    this.remittanceRepository = remittanceRepository;
+    this.capacityApi = capacityApi;
   }
 
   @Override
@@ -126,6 +125,11 @@ public class TallyResource implements TallyApi {
             offset,
             limit);
 
+    if (Objects.nonNull(billingCategory) && !Boolean.TRUE.equals(useRunningTotalsFormat)) {
+      throw new BadRequestException(
+          "When `billing_category` is specified, `use_running_totals_format` must be `true`.");
+    }
+
     Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage =
         repository.findSnapshot(
             reportCriteria.getOrgId(),
@@ -139,15 +143,20 @@ public class TallyResource implements TallyApi {
             reportCriteria.getEnding(),
             reportCriteria.getPageable());
 
-    List<BillableUsageRemittanceEntity> remittances = getRemittances(reportCriteria);
-    // NOTE: This should be removed once changes are made to the API to fetch
-    //       values via the capacity API (https://issues.redhat.com/browse/SWATCH-1509).
-    Map<OffsetDateTime, Double> remittanceValuesByDate = new HashMap<>();
-    for (BillableUsageRemittanceEntity remittance : remittances) {
-      OffsetDateTime day = clock.startOfDay(remittance.getKey().getRemittancePendingDate());
-      Double currentValue = remittanceValuesByDate.getOrDefault(day, 0.0);
-      remittanceValuesByDate.put(day, currentValue + remittance.getRemittedPendingValue());
-    }
+    Map<OffsetDateTime, Integer> capacityByDate =
+        Objects.nonNull(billingCategory)
+            ? getCapacityReport(
+                productId,
+                metricId,
+                granularityType,
+                beginning,
+                ending,
+                offset,
+                limit,
+                category,
+                sla,
+                usageType)
+            : Collections.emptyMap();
 
     Uom uom = Uom.fromValue(metricId.toString());
 
@@ -156,16 +165,7 @@ public class TallyResource implements TallyApi {
 
     List<TallyReportDataPoint> snaps =
         snapshots.stream()
-            .map(
-                snapshot -> {
-                  var remittedValue =
-                      Optional.ofNullable(
-                              remittanceValuesByDate.get(
-                                  clock.startOfDay(snapshot.getSnapshotDate())))
-                          .orElse(0.0);
-                  return dataPointFromSnapshot(
-                      uom, category, billingCategory, snapshot, remittedValue);
-                })
+            .map(snapshot -> dataPointFromSnapshot(uom, category, snapshot))
             .collect(Collectors.toList());
 
     TallyReportData report = new TallyReportData();
@@ -222,7 +222,7 @@ public class TallyResource implements TallyApi {
     }
 
     if (Boolean.TRUE.equals(useRunningTotalsFormat)) {
-      transformToRunningTotalFormat(report, uom);
+      transformToRunningTotalFormat(report, uom, billingCategory, capacityByDate);
     }
 
     // Fill the report gaps if no paging was requested.
@@ -240,6 +240,50 @@ public class TallyResource implements TallyApi {
     // Set the count last since the report may have gotten filled.
     report.getMeta().setCount(report.getData().size());
     return report;
+  }
+
+  @SuppressWarnings("java:S107")
+  private Map<OffsetDateTime, Integer> getCapacityReport(
+      ProductId productId,
+      MetricId metricId,
+      GranularityType granularityType,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      Integer offset,
+      Integer limit,
+      ReportCategory category,
+      ServiceLevelType sla,
+      UsageType usageType) {
+
+    com.redhat.swatch.contracts.api.model.CapacityReportByMetricId capacityReportByMetricId;
+    try {
+      capacityReportByMetricId =
+          capacityApi.getCapacityReportByMetricId(
+              com.redhat.swatch.contracts.api.model.ProductId.valueOf(productId.name()),
+              com.redhat.swatch.contracts.api.model.MetricId.valueOf(metricId.name()),
+              com.redhat.swatch.contracts.api.model.GranularityType.valueOf(granularityType.name()),
+              beginning,
+              ending,
+              offset,
+              limit,
+              Optional.ofNullable(category)
+                  .map(c -> com.redhat.swatch.contracts.api.model.ReportCategory.valueOf(c.name()))
+                  .orElse(null),
+              Optional.ofNullable(sla)
+                  .map(
+                      s -> com.redhat.swatch.contracts.api.model.ServiceLevelType.valueOf(s.name()))
+                  .orElse(null),
+              Optional.ofNullable(usageType)
+                  .map(ut -> com.redhat.swatch.contracts.api.model.UsageType.valueOf(ut.name()))
+                  .orElse(null));
+      return capacityReportByMetricId.getData().stream()
+          .collect(
+              Collectors.toMap(
+                  com.redhat.swatch.contracts.api.model.CapacitySnapshotByMetricId::getDate,
+                  com.redhat.swatch.contracts.api.model.CapacitySnapshotByMetricId::getValue));
+    } catch (ApiException e) {
+      throw new InternalServerErrorException("Unable to retrieve capacity for tally report.", e);
+    }
   }
 
   /** Validate and extract report criteria */
@@ -303,17 +347,11 @@ public class TallyResource implements TallyApi {
   private TallyReportDataPoint dataPointFromSnapshot(
       Uom uom,
       ReportCategory category,
-      BillingCategory billingCategory,
-      org.candlepin.subscriptions.db.model.TallySnapshot snapshot,
-      double remittedValue) {
-    int value = extractValue(uom, category, snapshot);
-    if (BillingCategory.PREPAID.equals(billingCategory)) {
-      value = value - (int) Math.ceil(remittedValue);
-      value = value < 0 ? 0 : value;
-    } else if (BillingCategory.ON_DEMAND.equals(billingCategory)) {
-      value = (int) Math.ceil(remittedValue);
-    }
-    return new TallyReportDataPoint().date(snapshot.getSnapshotDate()).value(value).hasData(true);
+      org.candlepin.subscriptions.db.model.TallySnapshot snapshot) {
+    return new TallyReportDataPoint()
+        .date(snapshot.getSnapshotDate())
+        .value(extractValue(uom, category, snapshot))
+        .hasData(true);
   }
 
   private int extractValue(
@@ -341,33 +379,6 @@ public class TallyResource implements TallyApi {
       contributingTypes = CATEGORY_MAP.get(category);
     }
     return contributingTypes;
-  }
-
-  private List<BillableUsageRemittanceEntity> getRemittances(ReportCriteria reportCriteria) {
-    List<BillableUsageRemittanceEntity> remittances = new ArrayList<>();
-    if (Objects.nonNull(reportCriteria.getBillingCategory())) {
-      var billingProvider = reportCriteria.getBillingProvider().toString();
-      if (BillingProvider._ANY.getValue().equals(billingProvider)
-          || BillingProvider.EMPTY.getValue().equals(billingProvider)) {
-        billingProvider = null;
-      }
-      var billingAcctId = reportCriteria.getBillingAccountId();
-      if (StringUtils.isBlank(billingAcctId) || billingAcctId.equals(ResourceUtils.ANY)) {
-        billingAcctId = null;
-      }
-      var remittanceFilter =
-          BillableUsageRemittanceFilter.builder()
-              .orgId(reportCriteria.getOrgId())
-              .beginning(clock.startOfDay(reportCriteria.getBeginning()))
-              .ending(reportCriteria.getEnding())
-              .productId(reportCriteria.getProductId())
-              .billingAccountId(billingAcctId)
-              .metricId(reportCriteria.getMetricId())
-              .billingProvider(billingProvider)
-              .build();
-      remittances = remittanceRepository.filterBy(remittanceFilter);
-    }
-    return remittances;
   }
 
   @SuppressWarnings("linelength")
@@ -476,7 +487,11 @@ public class TallyResource implements TallyApi {
             });
   }
 
-  private void transformToRunningTotalFormat(TallyReportData report, Uom uom) {
+  private void transformToRunningTotalFormat(
+      TallyReportData report,
+      Uom uom,
+      BillingCategory billingCategory,
+      Map<OffsetDateTime, Integer> capacityByDate) {
     Map<Uom, Integer> runningTotals = new EnumMap<>(Measurement.Uom.class);
     report
         .getData()
@@ -484,7 +499,18 @@ public class TallyResource implements TallyApi {
             snapshot -> {
               int snapshotTotal = Optional.ofNullable(snapshot.getValue()).orElse(0);
               Integer newValue = runningTotals.getOrDefault(uom, 0) + snapshotTotal;
-              snapshot.setValue(newValue);
+
+              int snapshotValue = newValue;
+              Integer capacity =
+                  Optional.ofNullable(capacityByDate.get(clock.startOfDay(snapshot.getDate())))
+                      .orElse(0);
+              if (BillingCategory.PREPAID.equals(billingCategory)) {
+                snapshotValue = Math.min(newValue, capacity);
+              } else if (BillingCategory.ON_DEMAND.equals(billingCategory)) {
+                snapshotValue = Math.max(newValue - capacity, 0);
+              }
+
+              snapshot.setValue(snapshotValue);
               runningTotals.put(uom, newValue);
             });
   }

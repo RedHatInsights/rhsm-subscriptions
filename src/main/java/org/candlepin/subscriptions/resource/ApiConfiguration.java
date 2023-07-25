@@ -58,6 +58,7 @@ public class ApiConfiguration {
   @Bean
   CapacityApiFactory capacityApiFactory(
       @Qualifier("apiCapacityClientProperties") HttpClientProperties httpClientProperties) {
-    return new CapacityApiFactory(httpClientProperties, () -> ResourceUtils.getCurrentIdentityHeader());
+    return new CapacityApiFactory(
+        httpClientProperties, () -> ResourceUtils.getCurrentIdentityHeader());
   }
 }

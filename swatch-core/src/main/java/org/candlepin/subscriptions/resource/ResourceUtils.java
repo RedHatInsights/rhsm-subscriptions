@@ -66,7 +66,6 @@ public class ResourceUtils {
     return auth != null ? auth.getPrincipal() : null;
   }
 
-  
   /**
    * Get the org ID of the authenticated user.
    *
@@ -185,9 +184,6 @@ public class ResourceUtils {
     if (Objects.isNull(requestAttributes)) {
       return null;
     }
-    return ((ServletRequestAttributes) requestAttributes)
-      .getRequest()
-      .getHeader("x-rh-identity");
+    return ((ServletRequestAttributes) requestAttributes).getRequest().getHeader("x-rh-identity");
   }
-
 }
