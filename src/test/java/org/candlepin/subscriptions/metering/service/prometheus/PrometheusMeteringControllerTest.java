@@ -98,7 +98,7 @@ class PrometheusMeteringControllerTest {
 
   private final String expectedAccount = "my-test-account";
   private final String expectedOrgId = "my-test-org";
-  private final String expectedMetricId = "redhat.com:openshift_container_platform:cpu_hour";
+  private final String expectedMetricId = "CORES";
   private final String expectedClusterId = "C1";
   private final String expectedSla = "Premium";
   private final String expectedUsage = "Production";

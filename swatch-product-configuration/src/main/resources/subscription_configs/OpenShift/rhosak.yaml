@@ -18,7 +18,7 @@ defaults:
 serviceType: Kafka Cluster
 
 metrics:
-  - id: redhat.com:rhosak:transfer_gb
+  - id: TRANSFER_GIBIBYTES
     rhmMetricId: redhat.com:rhosak:transfer_gb
     awsDimension: transfer_gb
     prometheus:
@@ -26,7 +26,7 @@ metrics:
         product: rhosak
         metric: kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes
         metadataMetric: subscription_labels
-  - id: redhat.com:rhosak:cluster_hour
+  - id: INSTANCE_HOURS
     rhmMetricId: redhat.com:rhosak:cluster_hour
     awsDimension: cluster_hour
     prometheus:
@@ -34,7 +34,7 @@ metrics:
         product: rhosak
         metric: kafka_id:strimzi_resource_state:max_over_time1h
         metadataMetric: subscription_labels
-  - id: redhat.com:rhosak:storage_gib_months
+  - id: STORAGE_GIBIBYTE_MONTHS
     rhmMetricId: redhat.com:rhosak:storage_gib_months
     awsDimension: storage_gb
     prometheus:
@@ -42,7 +42,7 @@ metrics:
         product: rhosak
         metric: kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibyte_months
         metadataMetric: subscription_labels
-  - id: redhat.com:rhosak:storage_gb
+  - id: STORAGE_GIBIBYTES
     rhmMetricId: redhat.com:rhosak:storage_gb
     prometheus:
       queryParams:
