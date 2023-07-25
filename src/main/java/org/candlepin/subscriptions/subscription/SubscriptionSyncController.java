@@ -23,6 +23,9 @@ package org.candlepin.subscriptions.subscription;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.redhat.swatch.configuration.registry.Metric;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -59,8 +62,6 @@ import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.MissingOfferingException;
 import org.candlepin.subscriptions.product.OfferingSyncController;
 import org.candlepin.subscriptions.product.SyncResult;
-import org.candlepin.subscriptions.registry.TagMetric;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -77,7 +78,6 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 
 /** Update subscriptions from subscription service responses. */
 @Component
@@ -95,7 +95,6 @@ public class SubscriptionSyncController {
   private SubscriptionServiceProperties properties;
   private Timer enqueueAllTimer;
   private KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate;
-  private final TagProfile tagProfile;
   private final AccountService accountService;
   private String syncSubscriptionsTopic;
   private final ObjectMapper objectMapper;
@@ -117,7 +116,6 @@ public class SubscriptionSyncController {
       ProductDenylist productDenylist,
       ObjectMapper objectMapper,
       @Qualifier("syncSubscriptionTasks") TaskQueueProperties props,
-      TagProfile tagProfile,
       AccountService accountService,
       EntityManager entityManager) {
     this.subscriptionRepository = subscriptionRepository;
@@ -133,7 +131,6 @@ public class SubscriptionSyncController {
     this.objectMapper = objectMapper;
     this.syncSubscriptionsTopic = props.getTopic();
     this.syncSubscriptionsByOrgKafkaTemplate = syncSubscriptionsByOrgKafkaTemplate;
-    this.tagProfile = tagProfile;
     this.accountService = accountService;
     this.entityManager = entityManager;
   }
@@ -256,9 +253,10 @@ public class SubscriptionSyncController {
         || subscription.getBillingProvider().equals(BillingProvider.EMPTY)) {
       // The offering here is going to be a proxy object created by getReferenceById.  Hibernate
       // should take care of actually performing the select from the database if one is needed.
-      var productTag =
-          tagProfile.tagForOfferingProductName(subscription.getOffering().getProductName());
-      if (tagProfile.isProductPAYGEligible(productTag)) {
+      var subscriptionDefinition =
+          SubscriptionDefinition.lookupSubscriptionByProductName(
+              subscription.getOffering().getProductName());
+      if (subscriptionDefinition.isPresent() && subscriptionDefinition.get().isPaygEnabled()) {
         log.warn(
             "PAYG eligible subscription with subscriptionId:{} has no billing provider.",
             subscription.getSubscriptionId());
@@ -586,9 +584,10 @@ public class SubscriptionSyncController {
     // between the two temporals. For example, the amount in hours between the times 11:30 and
     // 12:29 will zero hours as it is one minute short of an hour.
     var delta = Math.abs(ChronoUnit.HOURS.between(terminationDate, now));
-    var productTag =
-        tagProfile.tagForOfferingProductName(subscription.getOffering().getProductName());
-    if (tagProfile.isProductPAYGEligible(productTag) && delta > 0) {
+    var subDefinition =
+        SubscriptionDefinition.lookupSubscriptionByProductName(
+            subscription.getOffering().getProductName());
+    if (subDefinition.isPresent() && subDefinition.get().isPaygEnabled() && delta > 0) {
       var msg =
           String.format(
               "Subscription %s terminated at %s with out of range termination date %s.",
@@ -628,7 +627,11 @@ public class SubscriptionSyncController {
     Assert.isTrue(ServiceLevel._ANY != usageKey.getSla(), "Service Level cannot be _ANY");
 
     String productId = usageKey.getProductId();
-    Set<String> productNames = tagProfile.getOfferingProductNamesForTag(productId);
+    Set<String> productNames =
+        Variant.findByTag(productId).stream()
+            .map(Variant::getProductNames)
+            .flatMap(List::stream)
+            .collect(Collectors.toSet());
     if (productNames.isEmpty()) {
       log.warn("No product names configured for tag: {}", productId);
       return Collections.emptyList();
@@ -693,8 +696,9 @@ public class SubscriptionSyncController {
     OfferingProductTags productTags = new OfferingProductTags();
     var productTag = offeringRepository.findProductNameBySku(sku);
     if (productTag.isPresent()) {
-      if (StringUtils.hasText(tagProfile.tagForOfferingProductName(productTag.get()))) {
-        return productTags.data(List.of(tagProfile.tagForOfferingProductName(productTag.get())));
+      var variant = Variant.findByProductName(productTag.get());
+      if (variant.isPresent()) {
+        return productTags.data(List.of(variant.get().getTag()));
       }
     } else {
       throw new MissingOfferingException(
@@ -706,9 +710,11 @@ public class SubscriptionSyncController {
     return productTags;
   }
 
-  public List<TagMetric> getMetricsForTag(String tag) {
-    return tagProfile.getTagMetrics().stream()
-        .filter(tagMetric -> Objects.equals(tagMetric.getTag(), tag))
+  public List<Metric> getMetricsForTag(String tag) {
+    return Variant.findByTag(tag).stream()
+        .map(Variant::getSubscription)
+        .map(SubscriptionDefinition::getMetrics)
+        .flatMap(List::stream)
         .toList();
   }
 }

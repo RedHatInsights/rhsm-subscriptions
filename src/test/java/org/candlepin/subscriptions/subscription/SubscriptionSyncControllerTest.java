@@ -38,7 +38,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
@@ -54,7 +53,6 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.MissingOfferingException;
 import org.candlepin.subscriptions.product.OfferingSyncController;
 import org.candlepin.subscriptions.product.SyncResult;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.subscription.api.model.ExternalReference;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
 import org.candlepin.subscriptions.tally.UsageCalculation;
@@ -103,8 +101,6 @@ class SubscriptionSyncControllerTest {
   @MockBean SubscriptionService subscriptionService;
 
   @MockBean KafkaTemplate<String, SyncSubscriptionsTask> subscriptionsKafkaTemplate;
-
-  @MockBean private TagProfile mockProfile;
 
   @Captor ArgumentCaptor<Iterable<Subscription>> subscriptionsCaptor;
 
@@ -412,20 +408,19 @@ class SubscriptionSyncControllerTest {
   void findsSubscriptionId_WhenBothOrgIdAndAccountNumberPresent() {
     UsageCalculation.Key key =
         new Key(
-            String.valueOf(1),
+            "OpenShift-metrics",
             ServiceLevel.STANDARD,
             Usage.PRODUCTION,
             BillingProvider.RED_HAT,
             "xyz");
-    Subscription s = new Subscription();
+    Subscription s = createSubscription("org123", "sku", "foo");
+    s.getOffering().setProductName("OpenShift Container Platform");
     s.setStartDate(OffsetDateTime.now().minusDays(7));
     s.setEndDate(OffsetDateTime.now().plusDays(7));
     s.setBillingProvider(BillingProvider.RED_HAT);
     s.setBillingProviderId("xyz");
     List<Subscription> result = Collections.singletonList(s);
 
-    Set<String> productNames = Set.of("OpenShift Container Platform");
-    when(mockProfile.getOfferingProductNamesForTag(any())).thenReturn(productNames);
     when(subscriptionRepository.findByCriteria(any(), any()))
         .thenReturn(new ArrayList<>())
         .thenReturn(result);
@@ -441,20 +436,18 @@ class SubscriptionSyncControllerTest {
   void findsSubscriptionId_WhenOrgIdPresentAndAccountNumberAbsent() {
     UsageCalculation.Key key =
         new Key(
-            String.valueOf(1),
+            "OpenShift-metrics",
             ServiceLevel.STANDARD,
             Usage.PRODUCTION,
             BillingProvider.RED_HAT,
             "xyz");
-    Subscription s = new Subscription();
-    s.setStartDate(OffsetDateTime.now().minusDays(7));
+    Subscription s = createSubscription("org123", "sku", "123");
+    s.getOffering().setProductName("OpenShift Container Platform");
     s.setEndDate(OffsetDateTime.now().plusDays(7));
     s.setBillingProvider(BillingProvider.RED_HAT);
     s.setBillingProviderId("xyz");
     List<Subscription> result = Collections.singletonList(s);
 
-    Set<String> productNames = Set.of("OpenShift Container Platform");
-    when(mockProfile.getOfferingProductNamesForTag(any())).thenReturn(productNames);
     when(subscriptionRepository.findByCriteria(any(), any()))
         .thenReturn(new ArrayList<>())
         .thenReturn(result);
@@ -470,20 +463,19 @@ class SubscriptionSyncControllerTest {
   void findsSubscriptionId_WhenAccountNumberPresentAndOrgIdAbsent() {
     UsageCalculation.Key key =
         new Key(
-            String.valueOf(1),
+            "OpenShift-metrics",
             ServiceLevel.STANDARD,
             Usage.PRODUCTION,
             BillingProvider.RED_HAT,
             "xyz");
-    Subscription s = new Subscription();
+    Subscription s = createSubscription("org123", "sku", "123");
+    s.getOffering().setProductName("OpenShift Container Platform");
     s.setStartDate(OffsetDateTime.now().minusDays(7));
     s.setEndDate(OffsetDateTime.now().plusDays(7));
     s.setBillingProvider(BillingProvider.RED_HAT);
     s.setBillingProviderId("xyz");
     List<Subscription> result = Collections.singletonList(s);
 
-    Set<String> productNames = Set.of("OpenShift Container Platform");
-    when(mockProfile.getOfferingProductNamesForTag(any())).thenReturn(productNames);
     when(subscriptionRepository.findByCriteria(any(), any()))
         .thenReturn(new ArrayList<>())
         .thenReturn(result);
@@ -497,26 +489,24 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void findProductTagsBySku_WhenSkuPresent() {
-    when(offeringRepository.findProductNameBySku("sku")).thenReturn(Optional.of("productname"));
-    when(mockProfile.tagForOfferingProductName("productname")).thenReturn("producttag");
+    when(offeringRepository.findProductNameBySku("sku"))
+        .thenReturn(Optional.of("OpenShift Container Platform"));
 
     OfferingProductTags productTags = subscriptionSyncController.findProductTags("sku");
     assertEquals(1, productTags.getData().size());
-    assertEquals("producttag", productTags.getData().get(0));
+    assertEquals("OpenShift-metrics", productTags.getData().get(0));
   }
 
   @Test
   void findProductTagsBySku_WhenSkuNotPresent() {
     when(offeringRepository.findProductNameBySku("sku")).thenReturn(Optional.empty());
-    when(mockProfile.tagForOfferingProductName("productname1")).thenReturn("producttag");
     RuntimeException e =
         assertThrows(
             MissingOfferingException.class,
             () -> subscriptionSyncController.findProductTags("sku"));
     assertEquals("Sku sku not found in Offering", e.getMessage());
 
-    when(offeringRepository.findProductNameBySku("sku")).thenReturn(Optional.of("productname"));
-    when(mockProfile.tagForOfferingProductName("productname")).thenReturn(null);
+    when(offeringRepository.findProductNameBySku("sku")).thenReturn(Optional.of("placeholder"));
     OfferingProductTags productTags2 = subscriptionSyncController.findProductTags("sku");
     assertNull(productTags2.getData());
   }
@@ -525,7 +515,7 @@ class SubscriptionSyncControllerTest {
   void memoizesSubscriptionId() {
     UsageCalculation.Key key =
         new Key(
-            String.valueOf(1),
+            "OpenShift-metrics",
             ServiceLevel.STANDARD,
             Usage.PRODUCTION,
             BillingProvider.RED_HAT,
@@ -537,8 +527,6 @@ class SubscriptionSyncControllerTest {
     s.setBillingProviderId("abc");
     List<Subscription> result = Collections.singletonList(s);
 
-    Set<String> productNames = Set.of("OpenShift Container Platform");
-    when(mockProfile.getOfferingProductNamesForTag(anyString())).thenReturn(productNames);
     when(subscriptionRepository.findByCriteria(any(), any()))
         .thenReturn(new ArrayList<>())
         .thenReturn(result);
@@ -558,7 +546,6 @@ class SubscriptionSyncControllerTest {
     o.setProductName(PAYG_PRODUCT_NAME);
     when(offeringRepository.findById("testsku")).thenReturn(Optional.of(o));
     when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
-    when(mockProfile.isProductPAYGEligible("testsku")).thenReturn(true);
 
     var termination = OffsetDateTime.now();
     var result = subscriptionSyncController.terminateSubscription("456", termination);
@@ -573,9 +560,6 @@ class SubscriptionSyncControllerTest {
     s.setOffering(offering);
     when(offeringRepository.findById("testsku")).thenReturn(Optional.of(offering));
     when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
-    when(mockProfile.tagForOfferingProductName(PAYG_PRODUCT_NAME))
-        .thenReturn("OpenShift-dedicated-metrics");
-    when(mockProfile.isProductPAYGEligible("OpenShift-dedicated-metrics")).thenReturn(true);
 
     var termination = OffsetDateTime.now().minusDays(1);
     var result = subscriptionSyncController.terminateSubscription("456", termination);
@@ -591,10 +575,6 @@ class SubscriptionSyncControllerTest {
     s.getOffering().setProductName(PAYG_PRODUCT_NAME);
     when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
 
-    when(mockProfile.tagForOfferingProductName(PAYG_PRODUCT_NAME))
-        .thenReturn("OpenShift-dedicated-metrics");
-    when(mockProfile.isProductPAYGEligible("OpenShift-dedicated-metrics")).thenReturn(true);
-
     var termination = OffsetDateTime.now().plusDays(1);
     var result = subscriptionSyncController.terminateSubscription("456", termination);
     assertThat(
@@ -608,8 +588,6 @@ class SubscriptionSyncControllerTest {
     Subscription s = createSubscription("123", "testsku", "456");
     s.getOffering().setProductName("Random Product");
     when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
-    when(mockProfile.tagForOfferingProductName("Random Product")).thenReturn("random");
-    when(mockProfile.isProductPAYGEligible("random")).thenReturn(false);
 
     var termination = OffsetDateTime.now();
     var result = subscriptionSyncController.terminateSubscription("456", termination);

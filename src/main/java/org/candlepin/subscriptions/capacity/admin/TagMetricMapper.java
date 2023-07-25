@@ -20,13 +20,17 @@
  */
 package org.candlepin.subscriptions.capacity.admin;
 
+import com.redhat.swatch.configuration.registry.Metric;
 import java.util.List;
-import org.candlepin.subscriptions.registry.TagMetric;
+import org.candlepin.subscriptions.utilization.admin.api.model.TagMetric;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface TagMetricMapper {
 
-  List<org.candlepin.subscriptions.utilization.admin.api.model.TagMetric> mapTagMetrics(
-      List<TagMetric> metricsForTag);
+  List<TagMetric> mapTagMetrics(List<Metric> metricsForTag);
+
+  @Mapping(target = "uom", source = "id")
+  TagMetric fromConfigurationMetric(Metric metric);
 }

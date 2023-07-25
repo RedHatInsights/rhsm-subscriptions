@@ -78,4 +78,12 @@ public class Variant {
         .filter(variant -> Objects.equals(variant.getTag(), defaultVariantTag))
         .findFirst();
   }
+
+  public static Optional<Variant> findByProductName(String productName) {
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
+        .map(SubscriptionDefinition::getVariants)
+        .flatMap(List::stream)
+        .filter(v -> v.getProductNames().contains(productName))
+        .findFirst();
+  }
 }
