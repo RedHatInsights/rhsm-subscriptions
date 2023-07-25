@@ -154,12 +154,10 @@ public class TallyWorkerConfiguration {
 
   @Bean
   public MetricUsageCollector metricUsageCollector(
-      TagProfile tagProfile,
       AccountServiceInventoryRepository accountServiceInventoryRepository,
       EventController eventController,
       ApplicationClock clock) {
-    return new MetricUsageCollector(
-        tagProfile, accountServiceInventoryRepository, eventController, clock);
+    return new MetricUsageCollector(accountServiceInventoryRepository, eventController, clock);
   }
 
   @Bean

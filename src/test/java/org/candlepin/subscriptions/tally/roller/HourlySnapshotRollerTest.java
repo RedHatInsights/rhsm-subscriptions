@@ -25,6 +25,7 @@ import static org.candlepin.subscriptions.db.model.Granularity.HOURLY;
 import java.io.IOException;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.registry.TagProfile;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.test.context.ActiveProfiles;
@@ -46,11 +48,10 @@ import org.yaml.snakeyaml.constructor.Constructor;
 @Transactional
 @ActiveProfiles({"api", "test"})
 @TestInstance(Lifecycle.PER_CLASS)
+@Import(TestClockConfiguration.class)
 class HourlySnapshotRollerTest {
 
   @Autowired private TallySnapshotRepository repository;
-
-  @Autowired private TagProfile testProfile;
 
   @Autowired private ApplicationClock clock;
 
@@ -73,9 +74,8 @@ class HourlySnapshotRollerTest {
   @BeforeEach
   void setupAllTests() throws Exception {
     this.tester =
-        new SnapshotRollerTester<>(
-            repository, new HourlySnapshotRoller(repository, clock, testProfile));
-    this.tester.setTestProduct("OpenShift Hourly");
+        new SnapshotRollerTester<>(repository, new HourlySnapshotRoller(repository, clock));
+    this.tester.setTestProduct("OpenShift-dedicated-metrics");
   }
 
   @Test

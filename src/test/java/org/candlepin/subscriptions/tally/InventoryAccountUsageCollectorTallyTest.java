@@ -57,7 +57,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.Stream.Builder;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
-import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.HostTallyBucketRepository;
 import org.candlepin.subscriptions.db.model.AccountBucketTally;
 import org.candlepin.subscriptions.db.model.AccountServiceInventory;
@@ -95,7 +94,6 @@ class InventoryAccountUsageCollectorTallyTest {
   public static final String ORG_ID = "org123";
 
   @MockBean private InventoryRepository inventoryRepo;
-  @MockBean private HostRepository hostRepo;
   @MockBean private HostTallyBucketRepository hostBucketRepository;
   @MockBean private AccountServiceInventoryRepository accountServiceInventoryRepository;
   @Autowired private InventoryAccountUsageCollector collector;

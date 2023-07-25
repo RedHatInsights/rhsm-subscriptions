@@ -255,7 +255,8 @@ public class SubscriptionSyncController {
       var subscriptionDefinition =
           SubscriptionDefinition.lookupSubscriptionByProductName(
               subscription.getOffering().getProductName());
-      if (subscriptionDefinition.isPresent() && subscriptionDefinition.get().isPaygEnabled()) {
+      if (!subscriptionDefinition.isEmpty()
+          && subscriptionDefinition.stream().anyMatch(SubscriptionDefinition::isPaygEligible)) {
         log.warn(
             "PAYG eligible subscription with subscriptionId:{} has no billing provider.",
             subscription.getSubscriptionId());
@@ -583,10 +584,12 @@ public class SubscriptionSyncController {
     // between the two temporals. For example, the amount in hours between the times 11:30 and
     // 12:29 will zero hours as it is one minute short of an hour.
     var delta = Math.abs(ChronoUnit.HOURS.between(terminationDate, now));
-    var subDefinition =
+    var subDefinitions =
         SubscriptionDefinition.lookupSubscriptionByProductName(
             subscription.getOffering().getProductName());
-    if (subDefinition.isPresent() && subDefinition.get().isPaygEnabled() && delta > 0) {
+    if (!subDefinitions.isEmpty()
+        && subDefinitions.stream().anyMatch(SubscriptionDefinition::isPaygEligible)
+        && delta > 0) {
       var msg =
           String.format(
               "Subscription %s terminated at %s with out of range termination date %s.",
