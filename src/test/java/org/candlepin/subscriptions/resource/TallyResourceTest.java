@@ -1107,6 +1107,8 @@ class TallyResourceTest {
 
   @Test
   void testBadRequestWhenBillingCategorySpecifiedWhenRunningTotalsParamIsNull() {
+    OffsetDateTime beginning = OffsetDateTime.parse("2021-10-01T00:00Z");
+    OffsetDateTime ending = OffsetDateTime.parse("2021-10-30T00:00Z");
     assertThrows(
         BadRequestException.class,
         () -> {
@@ -1114,8 +1116,8 @@ class TallyResourceTest {
               ProductId.RHEL,
               MetricId.CORES,
               GranularityType.DAILY,
-              OffsetDateTime.parse("2021-10-01T00:00Z"),
-              OffsetDateTime.parse("2021-10-30T00:00Z"),
+              beginning,
+              ending,
               null,
               null,
               null,
@@ -1130,6 +1132,8 @@ class TallyResourceTest {
 
   @Test
   void testBadRequestWhenBillingCategorySpecifiedWhenRunningTotalsParamIsFalse() {
+    OffsetDateTime beginning = OffsetDateTime.parse("2021-10-01T00:00Z");
+    OffsetDateTime ending = OffsetDateTime.parse("2021-10-30T00:00Z");
     assertThrows(
         BadRequestException.class,
         () -> {
@@ -1137,8 +1141,8 @@ class TallyResourceTest {
               ProductId.RHEL,
               MetricId.CORES,
               GranularityType.DAILY,
-              OffsetDateTime.parse("2021-10-01T00:00Z"),
-              OffsetDateTime.parse("2021-10-30T00:00Z"),
+              beginning,
+              ending,
               null,
               null,
               null,
