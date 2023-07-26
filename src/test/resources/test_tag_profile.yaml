@@ -136,7 +136,7 @@ tagMappings:
 tagMetrics:
   # OCP metrics
   - tag: OpenShift-metrics
-    metricId: redhat.com:openshift_container_platform:cpu_hour
+    metricId: CORES
     uom: CORES
     queryKey: default
     queryParams:
@@ -146,7 +146,7 @@ tagMetrics:
 
   # OSD metrics
   - tag: OpenShift-dedicated-metrics
-    metricId: redhat.com:openshift_dedicated:4cpu_hour
+    metricId: CORES
     uom: CORES
     billingFactor: 0.25
     billingWindow: HOURLY
@@ -156,7 +156,7 @@ tagMetrics:
       prometheusMetric: cluster:usage:workload:capacity_physical_cpu_hours
       prometheusMetadataMetric: subscription_labels
   - tag: OpenShift-dedicated-metrics
-    metricId: redhat.com:openshift_dedicated:cluster_hour
+    metricId: INSTANCE_HOURS
     uom: INSTANCE_HOURS
     billingWindow: HOURLY
     queryKey: default
@@ -167,7 +167,7 @@ tagMetrics:
 
   # RHOSAK metrics
   - tag: rhosak
-    metricId: redhat.com:rhosak:storage_gb
+    metricId: STORAGE_GIBIBYTES
     uom: STORAGE_GIBIBYTES
     billingWindow: HOURLY
     queryParams:
@@ -176,7 +176,7 @@ tagMetrics:
       prometheusMetadataMetric: subscription_labels
   - tag: rhosak
     # when we update this metricId to not mirror RHM ids, make sure GiB is reflected
-    metricId: redhat.com:rhosak:transfer_gb
+    metricId: TRANSFER_GIBIBYTES
     uom: TRANSFER_GIBIBYTES
     billingWindow: HOURLY
     queryParams:
@@ -184,7 +184,7 @@ tagMetrics:
       prometheusMetric: kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes
       prometheusMetadataMetric: subscription_labels
   - tag: rhosak
-    metricId: redhat.com:rhosak:cluster_hour
+    metricId: INSTANCE_HOURS
     uom: INSTANCE_HOURS
     billingWindow: HOURLY
     queryParams:

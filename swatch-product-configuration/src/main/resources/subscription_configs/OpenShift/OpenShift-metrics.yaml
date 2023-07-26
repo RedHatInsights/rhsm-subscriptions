@@ -18,7 +18,7 @@ defaults:
 serviceType: OpenShift Cluster
 
 metrics:
-  - id: redhat.com:openshift_container_platform:cpu_hour
+  - id: CORES
     rhmMetricId: redhat.com:openshift_container_platform:cpu_hour
     prometheus:
       queryKey: default
