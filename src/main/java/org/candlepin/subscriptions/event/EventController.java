@@ -79,7 +79,7 @@ public class EventController {
   public Map<EventKey, Event> mapEventsInTimeRange(
       String orgId,
       String eventSource,
-      Set<String> eventType,
+      String eventType,
       OffsetDateTime begin,
       OffsetDateTime end) {
     return repo.findEventRecordsByCriteria(orgId, eventSource, eventType, begin, end)

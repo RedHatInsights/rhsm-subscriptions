@@ -422,7 +422,7 @@ class PrometheusMeteringControllerTest {
     when(eventController.mapEventsInTimeRange(
             expectedOrgId,
             MeteringEventFactory.EVENT_SOURCE,
-            MeteringEventFactory.getEventTypes(tagMetric),
+            MeteringEventFactory.getEventType(tagMetric.getMetricId(), tagMetric.getTag()),
             start,
             end))
         .thenReturn(
@@ -542,7 +542,7 @@ class PrometheusMeteringControllerTest {
     when(eventController.mapEventsInTimeRange(
             expectedOrgId,
             MeteringEventFactory.EVENT_SOURCE,
-            MeteringEventFactory.getEventTypes(tagMetric),
+            MeteringEventFactory.getEventType(tagMetric.getMetricId(), tagMetric.getTag()),
             start,
             end))
         .thenReturn(

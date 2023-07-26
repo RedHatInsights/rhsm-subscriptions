@@ -21,10 +21,8 @@
 package org.candlepin.subscriptions.metering;
 
 import java.time.OffsetDateTime;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.BillingProvider;
 import org.candlepin.subscriptions.json.Event.Role;
@@ -32,7 +30,6 @@ import org.candlepin.subscriptions.json.Event.Sla;
 import org.candlepin.subscriptions.json.Event.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
-import org.candlepin.subscriptions.registry.TagMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
@@ -142,32 +139,6 @@ public class MeteringEventFactory {
     return StringUtils.hasText(metricId) && StringUtils.hasText(productTag)
         ? String.format("%s_%s_%s", EVENT_TYPE, productTag.toLowerCase(), metricId.toLowerCase())
         : EVENT_TYPE;
-  }
-
-  // SWATCH-1392 Remove or update this method
-  /**
-   * Use getEventType(String metricId, String productTag) instead
-   *
-   * @deprecated (Since we are going to use uom instead of metricid. SWATCH - 1392 Remove or update
-   *     this method)
-   */
-  @Deprecated(since = "https://issues.redhat.com/browse/SWATCH-1374")
-  public static Set<String> getEventTypes(TagMetric tagMetric) { // NOSONAR
-    Set<String> eventTypes = new HashSet<>();
-    Optional.ofNullable(tagMetric.getMetricId())
-        .ifPresent(metricId -> eventTypes.add(String.format("%s_%s", EVENT_TYPE, metricId)));
-    Optional.ofNullable(tagMetric.getUom())
-        .ifPresent(
-            uom ->
-                eventTypes.add(
-                    String.format(
-                        "%s_%s_%s",
-                        EVENT_TYPE, tagMetric.getTag().toLowerCase(), uom.value().toLowerCase())));
-
-    if (eventTypes.isEmpty()) {
-      eventTypes.add(EVENT_TYPE);
-    }
-    return eventTypes;
   }
 
   private static Sla getSla(String serviceLevel, String account, String clusterId) {
