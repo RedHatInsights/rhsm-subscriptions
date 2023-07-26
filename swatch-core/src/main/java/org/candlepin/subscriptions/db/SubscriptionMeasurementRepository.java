@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.candlepin.subscriptions.db.SpringDataUtil.*;
-
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -39,9 +37,6 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 public interface SubscriptionMeasurementRepository
     extends JpaRepository<SubscriptionMeasurement, SubscriptionMeasurementKey>,
         JpaSpecificationExecutor<SubscriptionMeasurement> {
-
-  String SUBSCRIPTION_ALIAS = "subscription";
-  String OFFERING_ALIAS = "offering";
 
   @SuppressWarnings("java:S107")
   default List<SubscriptionMeasurement> findAllBy(
@@ -80,11 +75,8 @@ public interface SubscriptionMeasurementRepository
   static Specification<SubscriptionMeasurement> orgAndProductEquals(
       String orgId, String productId) {
     return (root, query, builder) -> {
-      var subscriptionRoot =
-          fetchJoin(root, SubscriptionMeasurement_.subscription, SUBSCRIPTION_ALIAS);
-      var productIdRoot =
-          fetchJoin(
-              subscriptionRoot, Subscription_.subscriptionProductIds, "subscriptionProductIds");
+      var subscriptionRoot = root.join(SubscriptionMeasurement_.subscription);
+      var productIdRoot = subscriptionRoot.join(Subscription_.subscriptionProductIds);
       return builder.and(
           builder.equal(subscriptionRoot.get(Subscription_.orgId), orgId),
           builder.equal(productIdRoot.get(SubscriptionProductId_.productId), productId));
@@ -126,8 +118,7 @@ public interface SubscriptionMeasurementRepository
   static Specification<SubscriptionMeasurement> subscriptionIsActiveBetween(
       OffsetDateTime reportStart, OffsetDateTime reportEnd) {
     return (root, query, builder) -> {
-      var subscriptionRoot =
-          fetchJoin(root, SubscriptionMeasurement_.subscription, SUBSCRIPTION_ALIAS);
+      var subscriptionRoot = root.join(SubscriptionMeasurement_.subscription);
       return SubscriptionRepository.predicateForSubscriptionIsActiveBetween(
           subscriptionRoot, builder, reportStart, reportEnd);
     };
@@ -135,18 +126,16 @@ public interface SubscriptionMeasurementRepository
 
   static Specification<SubscriptionMeasurement> slaEquals(ServiceLevel sla) {
     return (root, query, builder) -> {
-      var subscriptionRoot =
-          fetchJoin(root, SubscriptionMeasurement_.subscription, SUBSCRIPTION_ALIAS);
-      var offeringRoot = fetchJoin(subscriptionRoot, Subscription_.offering, OFFERING_ALIAS);
+      var subscriptionRoot = root.join(SubscriptionMeasurement_.subscription);
+      var offeringRoot = subscriptionRoot.get(Subscription_.offering);
       return builder.equal(offeringRoot.get(Offering_.serviceLevel), sla);
     };
   }
 
   static Specification<SubscriptionMeasurement> usageEquals(Usage usage) {
     return (root, query, builder) -> {
-      var subscriptionRoot =
-          fetchJoin(root, SubscriptionMeasurement_.subscription, SUBSCRIPTION_ALIAS);
-      var offeringRoot = fetchJoin(subscriptionRoot, Subscription_.offering, OFFERING_ALIAS);
+      var subscriptionRoot = root.join(SubscriptionMeasurement_.subscription);
+      var offeringRoot = subscriptionRoot.get(Subscription_.offering);
       return builder.equal(offeringRoot.get(Offering_.usage), usage);
     };
   }

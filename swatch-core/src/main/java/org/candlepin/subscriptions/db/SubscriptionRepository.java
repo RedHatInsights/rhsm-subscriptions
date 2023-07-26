@@ -83,9 +83,9 @@ public interface SubscriptionRepository
      * practice to handle it. */
     Specification<Subscription> searchCriteria =
         (root, query, builder) -> {
-          // fetchJoin offering always, to eliminate n+1 on offering
-          fetchJoin(root, Subscription_.offering, OFFERING_ALIAS);
-          return builder.conjunction();
+          // fetch offering always, to eliminate n+1 on offering
+          root.fetch(Subscription_.offering);
+          return null;
         };
     searchCriteria =
         searchCriteria.and(
@@ -142,7 +142,7 @@ public interface SubscriptionRepository
 
   private static Specification<Subscription> hasUnlimitedUsage() {
     return (root, query, builder) -> {
-      var offeringRoot = fetchJoin(root, Subscription_.offering, OFFERING_ALIAS);
+      var offeringRoot = root.get(Subscription_.offering);
       return builder.equal(offeringRoot.get(Offering_.hasUnlimitedUsage), true);
     };
   }
@@ -156,7 +156,7 @@ public interface SubscriptionRepository
 
   private static Specification<Subscription> productNameIn(Set<String> productNames) {
     return (root, query, builder) -> {
-      var offeringRoot = fetchJoin(root, Subscription_.offering, OFFERING_ALIAS);
+      var offeringRoot = root.get(Subscription_.offering);
       return offeringRoot.get(Offering_.productName).in(productNames);
     };
   }
@@ -211,14 +211,14 @@ public interface SubscriptionRepository
 
   private static Specification<Subscription> slaEquals(ServiceLevel sla) {
     return (root, query, builder) -> {
-      var offeringRoot = fetchJoin(root, Subscription_.offering, OFFERING_ALIAS);
+      var offeringRoot = root.get(Subscription_.offering);
       return builder.equal(offeringRoot.get(Offering_.serviceLevel), sla);
     };
   }
 
   private static Specification<Subscription> usageEquals(Usage usage) {
     return (root, query, builder) -> {
-      var offeringRoot = fetchJoin(root, Subscription_.offering, OFFERING_ALIAS);
+      var offeringRoot = root.get(Subscription_.offering);
       return builder.equal(offeringRoot.get(Offering_.usage), usage);
     };
   }
