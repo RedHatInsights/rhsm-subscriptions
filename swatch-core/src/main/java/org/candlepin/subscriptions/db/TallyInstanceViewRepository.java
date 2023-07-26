@@ -34,6 +34,7 @@ import org.candlepin.subscriptions.db.model.TallyInstanceViewKey_;
 import org.candlepin.subscriptions.db.model.TallyInstanceView_;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement.Uom;
+import org.candlepin.subscriptions.util.UomUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -45,9 +46,7 @@ import org.springframework.util.StringUtils;
 /** Provides access to TallyInstanceView database entities. */
 @SuppressWarnings({"linelength", "indentation"})
 public interface TallyInstanceViewRepository
-    extends JpaRepository<TallyInstanceView, UUID>,
-        JpaSpecificationExecutor<TallyInstanceView>,
-        TagProfileLookup {
+    extends JpaRepository<TallyInstanceView, UUID>, JpaSpecificationExecutor<TallyInstanceView> {
 
   /**
    * Find all Hosts by bucket criteria and return a page of TallyInstanceView objects. A
@@ -240,8 +239,6 @@ public interface TallyInstanceViewRepository
   }
 
   default Uom getDefaultUomForProduct(String productId) {
-    return Optional.ofNullable(getTagProfile().uomsForTag(productId)).orElse(List.of()).stream()
-        .findFirst()
-        .orElse(null);
+    return UomUtils.getUomsFromConfigForTag(productId).findFirst().orElse(null);
   }
 }
