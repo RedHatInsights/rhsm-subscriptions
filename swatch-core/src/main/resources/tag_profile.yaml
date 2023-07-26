@@ -206,7 +206,7 @@ tagMappings:
 tagMetrics:
   # OCP metrics
   - tag: OpenShift-metrics
-    metricId: redhat.com:openshift_container_platform:cpu_hour
+    metricId: CORES
     rhmMetricId: redhat.com:openshift_container_platform:cpu_hour
     uom: CORES
     billingWindow: MONTHLY
@@ -218,7 +218,7 @@ tagMetrics:
 
   # OSD metrics
   - tag: OpenShift-dedicated-metrics
-    metricId: redhat.com:openshift_dedicated:4cpu_hour
+    metricId: CORES
     rhmMetricId: redhat.com:openshift_dedicated:4cpu_hour
     uom: CORES
     billingFactor: 0.25
@@ -229,7 +229,7 @@ tagMetrics:
       prometheusMetric:  cluster:usage:workload:capacity_physical_cpu_hours
       prometheusMetadataMetric: subscription_labels
   - tag: OpenShift-dedicated-metrics
-    metricId: redhat.com:openshift_dedicated:cluster_hour
+    metricId: INSTANCE_HOURS
     rhmMetricId: redhat.com:openshift_dedicated:cluster_hour
     uom: INSTANCE_HOURS
     billingWindow: MONTHLY
@@ -241,7 +241,7 @@ tagMetrics:
 
   # RHOSAK metrics
   - tag: rhosak
-    metricId: redhat.com:rhosak:storage_gb
+    metricId: STORAGE_GIBIBYTES
     rhmMetricId: redhat.com:rhosak:storage_gb
     uom: STORAGE_GIBIBYTES
     billingWindow: HOURLY
@@ -251,7 +251,7 @@ tagMetrics:
       prometheusMetadataMetric: subscription_labels
   - tag: rhosak
     # when we update this metricId to not mirror RHM ids, make sure GiB is reflected
-    metricId: redhat.com:rhosak:transfer_gb
+    metricId: TRANSFER_GIBIBYTES
     rhmMetricId: redhat.com:rhosak:transfer_gb
     awsDimension: transfer_gb
     uom: TRANSFER_GIBIBYTES
@@ -261,7 +261,7 @@ tagMetrics:
       prometheusMetric: kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes
       prometheusMetadataMetric: subscription_labels
   - tag: rhosak
-    metricId: redhat.com:rhosak:cluster_hour
+    metricId: INSTANCE_HOURS
     rhmMetricId: redhat.com:rhosak:cluster_hour
     awsDimension: cluster_hour
     uom: INSTANCE_HOURS
@@ -271,7 +271,7 @@ tagMetrics:
       prometheusMetric: kafka_id:strimzi_resource_state:max_over_time1h
       prometheusMetadataMetric: subscription_labels
   - tag: rhosak
-    metricId: redhat.com:rhosak:storage_gib_months
+    metricId: STORAGE_GIBIBYTE_MONTHS
     awsDimension: storage_gb
     uom: STORAGE_GIBIBYTE_MONTHS
     billingWindow: MONTHLY
@@ -282,7 +282,7 @@ tagMetrics:
 
   # RHACS metrics
   - tag: rhacs
-    metricId: redhat.com:rhacs:cpu_hour
+    metricId: CORES
     rhmMetricId: redhat.com:rhacs:cpu_hour
     awsDimension: vCPU_Hour
     uom: CORES
@@ -294,7 +294,7 @@ tagMetrics:
 
    #RHODS metrics
   - tag: rhods
-    metricId: redhat.com:openshift_data_science:cpu_hours
+    metricId: CORES
     rhmMetricId: redhat.com:openshift_data_science:cpu_hours
     awsDimension: cluster_cpu_hour
     uom: CORES
@@ -307,7 +307,7 @@ tagMetrics:
 
   # BASILISK metrics
   - tag: BASILISK
-    metricId: redhat.com:BASILISK:transfer_gb
+    metricId: TRANSFER_GIBIBYTES
     rhmMetricId: redhat.com:BASILISK:transfer_gb
     awsDimension: transfer_gb
     uom: TRANSFER_GIBIBYTES
@@ -317,7 +317,7 @@ tagMetrics:
       prometheusMetric: kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes
       prometheusMetadataMetric: subscription_labels
   - tag: BASILISK
-    metricId: redhat.com:BASILISK:cluster_hour
+    metricId: INSTANCE_HOURS
     rhmMetricId: redhat.com:BASILISK:cluster_hour
     awsDimension: cluster_hour
     uom: INSTANCE_HOURS
@@ -327,7 +327,7 @@ tagMetrics:
       prometheusMetric: kafka_id:strimzi_resource_state:max_over_time1h
       prometheusMetadataMetric: subscription_labels
   - tag: BASILISK
-    metricId: redhat.com:BASILISK:storage_gib_months
+    metricId: STORAGE_GIBIBYTE_MONTHS
     rhmMetricId: redhat.com:BASILISK:storage_gib_months
     awsDimension: storage_gb
     uom: STORAGE_GIBIBYTE_MONTHS
@@ -339,7 +339,7 @@ tagMetrics:
 
   #ROSA tag metadata
   - tag: rosa
-    metricId: redhat.com:rosa:cluster_hour
+    metricId: INSTANCE_HOURS
     rhmMetricId: redhat.com:rosa:cluster_hour
     awsDimension: control_plane_0
     uom: INSTANCE_HOURS
@@ -349,7 +349,7 @@ tagMetrics:
       prometheusMetric: cluster:usage:workload:capacity_physical_instance_hours
       prometheusMetadataMetric: subscription_labels
   - tag: rosa
-    metricId: redhat.com:rosa:cpu_hour
+    metricId: CORES
     rhmMetricId: redhat.com:rosa:cpu_hour
     awsDimension: four_vcpu_0
     uom: CORES
