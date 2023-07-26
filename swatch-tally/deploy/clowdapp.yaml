@@ -806,8 +806,6 @@ objects:
         and usage = '_ANY'
         and billing_provider = '_ANY'
         and billing_account_id = '_ANY'
-        and product_id = 'RHEL'
         and granularity='DAILY'
-        and uom='SOCKETS'
         and measurement_type!='TOTAL'
         AND snapshot_date > now() - interval '2 day'; 
