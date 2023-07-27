@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
@@ -53,6 +52,7 @@ import org.candlepin.subscriptions.registry.BillingWindow;
 import org.candlepin.subscriptions.registry.TagMetric;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.security.OptInController;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,6 +61,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.retry.backoff.NoBackOffPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.context.ActiveProfiles;
@@ -72,6 +73,7 @@ import org.springframework.test.context.ActiveProfiles;
 //
 @SpringBootTest
 @ActiveProfiles({"openshift-metering-worker", "test"})
+@Import(TestClockConfiguration.class)
 class PrometheusMeteringControllerTest {
 
   @MockBean private PrometheusService service;
@@ -94,7 +96,7 @@ class PrometheusMeteringControllerTest {
   @Qualifier("openshiftMetricRetryTemplate")
   RetryTemplate openshiftRetry;
 
-  private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+  @Autowired private ApplicationClock clock;
 
   private final String expectedAccount = "my-test-account";
   private final String expectedOrgId = "my-test-org";

@@ -26,7 +26,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import org.candlepin.subscriptions.util.TestClock;
+import org.candlepin.subscriptions.test.TestClock;
 import org.junit.jupiter.api.Test;
 
 class CacheTest {

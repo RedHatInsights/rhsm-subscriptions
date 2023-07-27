@@ -58,6 +58,6 @@ public class ReportFillerFactory {
   public static ReportFiller<TallyReportDataPoint> getDataPointReportFiller(
       ApplicationClock clock, Granularity granularity) {
     SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
-    return new ReportFiller<>(timeAdjuster, new TallyReportDataPointAdapter());
+    return new ReportFiller<>(timeAdjuster, new TallyReportDataPointAdapter(clock));
   }
 }

@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.db;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -36,12 +35,13 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.resource.HostsResource;
 import org.candlepin.subscriptions.resource.InstancesResource;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
+import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
 import org.candlepin.subscriptions.utilization.api.model.InstanceReportSort;
 import org.junit.jupiter.api.AfterAll;
@@ -54,6 +54,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -65,14 +66,15 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @ActiveProfiles("test")
 @TestInstance(Lifecycle.PER_CLASS)
+@Import(TestClockConfiguration.class)
 class HostRepositoryTest {
-  private static final Clock CLOCK = new FixedClockConfiguration().fixedClock().getClock();
   private final String RHEL = "RHEL";
   private final String COOL_PROD = "COOL_PROD";
   private static final String DEFAULT_DISPLAY_NAME = "REDHAT_PWNS";
   private static final String SANITIZED_MISSING_DISPLAY_NAME = "";
 
   @Autowired private HostRepository repo;
+  @Autowired private ApplicationClock clock;
   @Autowired private AccountServiceInventoryRepository accountServiceInventoryRepository;
 
   private Map<String, Host> existingHostsByInventoryId;
@@ -163,7 +165,7 @@ class HostRepositoryTest {
   @Test
   void testTallyHostViewProjection() {
     // Ensure that the TallyHostView is properly projecting values.
-    OffsetDateTime expLastSeen = OffsetDateTime.now(CLOCK);
+    OffsetDateTime expLastSeen = OffsetDateTime.now(clock.getClock());
     String expInventoryId = "INV";
     String expInsightsId = "INSIGHTS_ID";
     String expAccount = "ACCT";

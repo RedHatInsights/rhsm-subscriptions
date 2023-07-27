@@ -32,7 +32,6 @@ import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.util.Set;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.json.Measurement.Uom;
@@ -42,6 +41,7 @@ import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.registry.TagProfile;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,7 +71,7 @@ class InternalMeteringResourceTest {
   @BeforeEach
   void setupTest() {
     appProps = new ApplicationProperties();
-    clock = new FixedClockConfiguration().fixedClock();
+    clock = new TestClockConfiguration().adjustableClock();
     util = new ResourceUtil(clock);
     lenient().when(tagProfile.tagIsPrometheusEnabled(VALID_PRODUCT)).thenReturn(true);
     lenient()

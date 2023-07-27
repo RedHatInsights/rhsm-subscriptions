@@ -22,42 +22,57 @@ package org.candlepin.subscriptions.tally.filler;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.time.OffsetDateTime;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
+import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportDataPoint;
 import org.junit.jupiter.api.Test;
 
 class TallyReportDataPointAdapterTest {
 
-  TallyReportDataPointAdapter adapter = new TallyReportDataPointAdapter();
+  ApplicationClock clock = new TestClockConfiguration().adjustableClock();
+  TallyReportDataPointAdapter adapter = new TallyReportDataPointAdapter(clock);
 
   @Test
-  void createDefaultItemRunningTotal() {
+  void createDefaultItemRunningTotalPast() {
     var previous = new TallyReportDataPoint().value(10);
-    var now = OffsetDateTime.now();
-    var point = adapter.createDefaultItem(now, previous, true);
+    var itemDate = clock.startOfDay(clock.now());
+    var point = adapter.createDefaultItem(itemDate, previous, true);
     assertEquals(10, point.getValue());
+    assertTrue(point.getHasData());
+  }
+
+  @Test
+  void createDefaultItemRunningTotalFuture() {
+    var previous = new TallyReportDataPoint().value(10);
+    var itemDate = clock.startOfDay(clock.now().plusDays(1));
+    var point = adapter.createDefaultItem(itemDate, previous, true);
+    assertEquals(0, point.getValue());
+    assertFalse(point.getHasData());
   }
 
   @Test
   void createDefaultItemNoRunningTotal() {
     var previous = new TallyReportDataPoint().value(10);
-    var now = OffsetDateTime.now();
-    var point = adapter.createDefaultItem(now, previous, false);
+    var itemDate = clock.startOfDay(clock.now());
+    var point = adapter.createDefaultItem(itemDate, previous, false);
     assertEquals(0, point.getValue());
+    assertFalse(point.getHasData());
   }
 
   @Test
   void createDefaultItemNullPrevious() {
-    var now = OffsetDateTime.now();
-    var point = adapter.createDefaultItem(now, null, true);
+    var itemDate = clock.startOfDay(clock.now());
+    var point = adapter.createDefaultItem(itemDate, null, true);
     assertEquals(0, point.getValue());
+    assertFalse(point.getHasData());
   }
 
   @Test
   void createDefaultItemNullPreviousValue() {
     var previous = new TallyReportDataPoint().value(null);
-    var now = OffsetDateTime.now();
-    var point = adapter.createDefaultItem(now, previous, true);
+    var itemDate = clock.startOfDay(clock.now());
+    var point = adapter.createDefaultItem(itemDate, previous, true);
     assertEquals(0, point.getValue());
+    assertFalse(point.getHasData());
   }
 }

@@ -22,9 +22,16 @@ package org.candlepin.subscriptions.tally.filler;
 
 import java.time.OffsetDateTime;
 import java.util.Objects;
+import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportDataPoint;
 
 public class TallyReportDataPointAdapter implements ReportFillerAdapter<TallyReportDataPoint> {
+
+  private final ApplicationClock clock;
+
+  public TallyReportDataPointAdapter(ApplicationClock clock) {
+    this.clock = clock;
+  }
 
   @Override
   public boolean itemIsLarger(TallyReportDataPoint oldData, TallyReportDataPoint newData) {
@@ -35,12 +42,15 @@ public class TallyReportDataPointAdapter implements ReportFillerAdapter<TallyRep
   public TallyReportDataPoint createDefaultItem(
       OffsetDateTime itemDate, TallyReportDataPoint previous, boolean useRunningTotalFormat) {
     var point = new TallyReportDataPoint().date(itemDate).hasData(false).value(0);
-    if (useRunningTotalFormat) {
-      // Guard against previous being null and against a previous object with a value field equal
-      // to null
-      var prevValue = (previous == null) ? 0 : Objects.requireNonNullElse(previous.getValue(), 0);
-      point.value(prevValue);
+    // itemDate is already adjusted in ReportFiller to be at the period start.  ReportFiller is also
+    // responsible for ticking through every period contained in the requested range, so we should
+    // not see any time gaps in the finished report.
+    if (itemDate.isBefore(clock.now()) && useRunningTotalFormat && previous != null) {
+      point
+          .hasData(previous.getValue() != null)
+          .value(Objects.requireNonNullElse(previous.getValue(), 0));
     }
+
     return point;
   }
 

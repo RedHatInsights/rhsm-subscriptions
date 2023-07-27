@@ -29,7 +29,6 @@ import static org.mockito.Mockito.when;
 import java.time.OffsetDateTime;
 import java.util.Set;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
@@ -38,6 +37,7 @@ import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,7 +67,7 @@ class PrometheusMetricsTaskManagerTest {
   void setupTest() {
     when(queueProperties.getTopic()).thenReturn(TASK_TOPIC);
     when(tagProfile.getSupportedMetricsForProduct(any())).thenReturn(Set.of(Uom.CORES));
-    ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+    ApplicationClock clock = new TestClockConfiguration().adjustableClock();
     manager =
         new PrometheusMetricsTaskManager(
             queue,

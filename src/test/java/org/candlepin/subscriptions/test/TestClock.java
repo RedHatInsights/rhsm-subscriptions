@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.util;
+package org.candlepin.subscriptions.test;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -28,7 +28,7 @@ import java.time.ZoneId;
 public class TestClock extends Clock {
 
   private Instant instant;
-  private final ZoneId zone;
+  private ZoneId zone;
 
   public TestClock(Instant instant, ZoneId zone) {
     this.instant = instant;
@@ -37,6 +37,10 @@ public class TestClock extends Clock {
 
   public void setInstant(Instant instant) {
     this.instant = instant;
+  }
+
+  public void setZone(ZoneId zone) {
+    this.zone = zone;
   }
 
   @Override

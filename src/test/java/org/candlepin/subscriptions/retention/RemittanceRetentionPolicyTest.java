@@ -24,12 +24,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.Test;
 
 class RemittanceRetentionPolicyTest {
-  private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+  private ApplicationClock clock = new TestClockConfiguration().adjustableClock();
 
   public RemittanceRetentionPolicy createTestPolicy(RemittanceRetentionPolicyProperties config) {
     return new RemittanceRetentionPolicy(clock, config);

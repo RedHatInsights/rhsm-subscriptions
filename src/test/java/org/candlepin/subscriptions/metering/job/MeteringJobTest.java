@@ -28,10 +28,10 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Set;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.registry.TagProfile;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -60,7 +60,7 @@ class MeteringJobTest {
     appProps = new ApplicationProperties();
     appProps.setPrometheusLatencyDuration(Duration.ofHours(6L));
 
-    clock = new FixedClockConfiguration().fixedClock();
+    clock = new TestClockConfiguration().adjustableClock();
     job = new MeteringJob(tasks, tagProfile, metricProps, retryTemplate);
 
     when(tagProfile.getTagsWithPrometheusEnabledLookup()).thenReturn(Set.of("OpenShift-metrics"));

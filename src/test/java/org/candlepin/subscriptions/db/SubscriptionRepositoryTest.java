@@ -31,15 +31,14 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Pageable;
@@ -47,13 +46,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@Import(FixedClockConfiguration.class)
+@Import(TestClockConfiguration.class)
 @ActiveProfiles("test")
 class SubscriptionRepositoryTest {
 
-  @Autowired
-  @Qualifier("fixedClock")
-  ApplicationClock clock;
+  @Autowired ApplicationClock clock;
 
   @Autowired SubscriptionRepository subscriptionRepo;
 

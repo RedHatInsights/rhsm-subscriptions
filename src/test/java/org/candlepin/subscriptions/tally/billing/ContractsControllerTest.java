@@ -34,7 +34,6 @@ import com.redhat.swatch.contracts.client.ApiException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.json.BillableUsage;
@@ -44,6 +43,7 @@ import org.candlepin.subscriptions.json.BillableUsage.Uom;
 import org.candlepin.subscriptions.json.BillableUsage.Usage;
 import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.registry.TagProfile;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -65,7 +65,7 @@ class ContractsControllerTest {
 
   @BeforeEach
   void setupTest() {
-    clock = new FixedClockConfiguration().fixedClock();
+    clock = new TestClockConfiguration().adjustableClock();
     controller = new ContractsController(tagProfile, contractsApi, contractsClientProperties);
   }
 

@@ -208,15 +208,26 @@ paths:
           type: boolean
           default:
             false
-        description: "Defines the end of the report period. Defaults to the current time. Dates should be provided in UTC."
+        description: "Whether to report the total for each temporal unit of the report period 
+            individually or as a running total since the beginning of the report period."
       - name: billing_category
         in: query
         schema:
           $ref: '#/components/schemas/BillingCategory'
         description: "Include only report data matching the specified billing_category."
     get:
-      summary: "Fetch tally report data for an account and product. "
-      description: "If page header parameters are omitted, any dates missing data will have an entry with null as the value."
+      summary: "Fetch tally report data for an account and product."
+      description: "If the report is requested in a running total format, each temporal unit of 
+          the report period (days, hours, etc.) will give the running total since the start of the 
+          report period and set the has_data field as true, whether or not there is data that lands
+          in that specific temporal unit.  However, if the report period stretches into the 
+          future, temporal units in the future will have a value of zero and have has_data set to
+          false.
+
+          For example, if we have daily values of 0, 1, 0, 3, 0 and request a running total report 
+          ending two days from now, we'll get back '(0, true), (1, true), (1, true), (4, true), (4, 
+          true), (0, false), (0, false)'.
+      "
       operationId: getTallyReportData
       responses:
         '200':
