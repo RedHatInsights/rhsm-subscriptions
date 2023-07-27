@@ -783,7 +783,7 @@ objects:
   metadata:
     name: swatch-psks
   data:
-    self: ZHVtbXk=
+    self: cGxhY2Vob2xkZXI=
 
 - apiVersion: metrics.console.redhat.com/v1alpha1
   kind: FloorPlan
