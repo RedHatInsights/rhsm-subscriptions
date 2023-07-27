@@ -12,4 +12,21 @@ dependencies {
     testImplementation libraries["hamcrest-all"]
 }
 
+tasks.register("generateYamlIndex") {
+    outputs.file("$buildDir/index/swatch_config_index.txt")
+    doLast {
+        def sourceDir = layout.projectDirectory.dir("src/main/resources")
+        def targetDir = "$buildDir/index"
+        new File(targetDir).mkdir()
+        def index = new File("$targetDir/swatch_config_index.txt")
+        def paths = fileTree("$sourceDir/subscription_configs").files
+                .collect {"${sourceDir.asFile.toPath().toAbsolutePath().relativize(it.toPath().toAbsolutePath())}" }
+        index.write(String.join("\n", paths))
+    }
+}
+
+processResources {
+    from tasks.generateYamlIndex
+}
+
 description = 'SWATCH library for product configuration'
