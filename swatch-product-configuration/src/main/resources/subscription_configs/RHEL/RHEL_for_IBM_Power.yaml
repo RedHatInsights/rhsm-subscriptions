@@ -14,4 +14,4 @@ defaults:
   variant: RHEL for IBM Power
 
 metrics:
-  - id: SOCKETS
+  - id: Sockets

@@ -17,7 +17,7 @@ defaults:
 serviceType: Rhacs Cluster
 
 metrics:
-  - id: CORES
+  - id: Cores
     rhmMetricId: redhat.com:rhacs:cpu_hour
     awsDimension: vCPU_Hour
     prometheus:

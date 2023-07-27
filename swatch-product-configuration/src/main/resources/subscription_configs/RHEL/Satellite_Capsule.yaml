@@ -15,4 +15,4 @@ defaults:
   variant: Satellite Capsule
 
 metrics:
-  - id: SOCKETS
+  - id: Sockets

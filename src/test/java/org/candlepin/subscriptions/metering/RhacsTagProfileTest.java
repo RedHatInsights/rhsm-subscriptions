@@ -65,7 +65,7 @@ class RhacsTagProfileTest {
             Uom.CORES,
             TagMetric.builder()
                 .tag("rhacs")
-                .metricId("CORES")
+                .metricId("Cores")
                 .rhmMetricId("redhat.com:rhacs:cpu_hour")
                 .billingWindow(BillingWindow.MONTHLY)
                 .awsDimension("vCPU_Hour")

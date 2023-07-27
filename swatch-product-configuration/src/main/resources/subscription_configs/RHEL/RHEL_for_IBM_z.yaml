@@ -13,4 +13,4 @@ defaults:
   variant: RHEL for IBM z
 
 metrics:
-  - id: SOCKETS
+  - id: Sockets

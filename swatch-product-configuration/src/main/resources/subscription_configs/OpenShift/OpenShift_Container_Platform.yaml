@@ -17,5 +17,5 @@ defaults:
   variant: OpenShift Container Platform
 
 metrics:
-  - id: SOCKETS
-  - id: CORES
+  - id: Sockets
+  - id: Cores

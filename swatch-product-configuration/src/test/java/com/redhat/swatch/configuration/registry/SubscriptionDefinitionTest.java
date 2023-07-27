@@ -74,7 +74,7 @@ class SubscriptionDefinitionTest {
     var basiliskSub = SubscriptionDefinition.findById("basilisk-test").get();
 
     var actual = basiliskSub.getMetricIds();
-    var expected = List.of("TRANSFER_GIBIBYTES", "INSTANCE_HOURS", "STORAGE_GIBIBYTE_MONTHS");
+    var expected = List.of("Transfer-gibibytes", "Instance-hours", "Storage-gibibyte-months");
 
     assertThat(actual, Matchers.containsInAnyOrder(expected.toArray()));
   }
@@ -94,7 +94,7 @@ class SubscriptionDefinitionTest {
     var basiliskSub = SubscriptionDefinition.findById("basilisk-test").get();
 
     var metric = new Metric();
-    metric.setId("INSTANCE_HOURS");
+    metric.setId("Instance-hours");
     metric.setRhmMetricId("redhat.com:BASILISK:cluster_hour");
     metric.setAwsDimension("cluster_hour");
 
@@ -110,7 +110,7 @@ class SubscriptionDefinitionTest {
     metric.setPrometheus(prometheusMetric);
 
     var expected = Optional.of(metric);
-    var actual = basiliskSub.getMetric("INSTANCE_HOURS");
+    var actual = basiliskSub.getMetric("Instance-hours");
 
     assertEquals(expected, actual);
   }
@@ -120,7 +120,7 @@ class SubscriptionDefinitionTest {
     var openshiftContainerPlatformSub =
         SubscriptionDefinition.findById("openshift-container-platform").get();
 
-    var expected = List.of("SOCKETS", "CORES");
+    var expected = List.of("Sockets", "Cores");
     var actual = openshiftContainerPlatformSub.getMetricIds();
 
     assertThat(actual, Matchers.containsInAnyOrder(expected.toArray()));
