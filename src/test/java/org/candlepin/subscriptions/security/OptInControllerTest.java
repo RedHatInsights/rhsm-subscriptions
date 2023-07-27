@@ -25,12 +25,12 @@ import static org.mockito.Mockito.*;
 
 import java.time.OffsetDateTime;
 import java.util.TimeZone;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.AccountConfig;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.db.model.config.OrgConfig;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.user.AccountService;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
@@ -40,12 +40,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
 @SpringBootTest
 @ActiveProfiles("test")
+@Import(TestClockConfiguration.class)
 class OptInControllerTest {
 
   @Autowired private AccountConfigRepository accountRepo;
@@ -54,12 +56,12 @@ class OptInControllerTest {
 
   @Autowired private AccountService accountService;
 
+  @Autowired private ApplicationClock clock;
+
   private OptInController controller;
-  private ApplicationClock clock;
 
   @BeforeEach
   void setupTest() {
-    clock = new FixedClockConfiguration().fixedClock();
     TimeZone.setDefault(TimeZone.getTimeZone(clock.getClock().getZone()));
     controller = new OptInController(clock, accountRepo, orgRepo, accountService);
   }

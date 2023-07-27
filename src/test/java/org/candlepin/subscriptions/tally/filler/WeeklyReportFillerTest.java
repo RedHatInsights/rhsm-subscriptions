@@ -26,8 +26,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.TallyReport;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
@@ -39,7 +39,7 @@ class WeeklyReportFillerTest {
   private ReportFiller filler;
 
   public WeeklyReportFillerTest() {
-    clock = new FixedClockConfiguration().fixedClock();
+    clock = new TestClockConfiguration().adjustableClock();
     filler = ReportFillerFactory.getInstance(clock, Granularity.WEEKLY);
   }
 

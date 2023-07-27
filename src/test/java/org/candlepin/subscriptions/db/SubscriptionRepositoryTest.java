@@ -33,27 +33,42 @@ import java.util.Random;
 import java.util.Set;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
+import org.candlepin.subscriptions.util.ApplicationClock;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
+@Import(TestClockConfiguration.class)
 @ActiveProfiles("test")
 class SubscriptionRepositoryTest {
 
-  private static final OffsetDateTime NOW = OffsetDateTime.now();
+  @Autowired ApplicationClock clock;
 
   @Autowired SubscriptionRepository subscriptionRepo;
 
   @Autowired OfferingRepository offeringRepo;
 
+  private OffsetDateTime NOW;
+
+  @BeforeEach
+  void setup() {
+    NOW = clock.now();
+  }
+
   @Transactional
   @Test
   void canInsertAndRetrieveSubscriptions() {
+    // Because the findActiveSubscription query uses CURRENT_TIMESTAMP,
+    // reset NOW so that it is current and not fixed.
+    NOW = OffsetDateTime.now();
     Subscription subscription = createSubscription("1", "1000", "123", "sellerAcctId");
     Offering offering = createOffering("testSku", "Test SKU", 1066, null, null, null);
     subscription.setOffering(offering);
@@ -294,6 +309,55 @@ class SubscriptionRepositoryTest {
     var criteria = DbReportCriteria.builder().orgId("org123").build();
     var result = subscriptionRepo.findUnlimited(criteria);
     assertThat(result, Matchers.containsInAnyOrder(s1, s2));
+  }
+
+  @Transactional
+  @Test
+  void testSubscriptionIsActive() {
+    // Because the findActiveSubscription query uses CURRENT_TIMESTAMP,
+    // reset NOW so that it is current and not fixed.
+    NOW = OffsetDateTime.now();
+
+    var s1 = createSubscription("org123", "account123", "sub123", "seller123");
+    var s2 = createSubscription("org123", "account123", "sub321", "seller123");
+    s2.setEndDate(null);
+
+    var offering1 = createOffering("testSkuUnlimited", "TestSKUUnlimited", 1066, null, null, null);
+    List.of(s1, s2).forEach(x -> x.setOffering(offering1));
+
+    offeringRepo.save(offering1);
+    subscriptionRepo.saveAllAndFlush(List.of(s1, s2));
+
+    assertTrue(subscriptionRepo.findActiveSubscription(s1.getSubscriptionId()).isPresent());
+    assertTrue(subscriptionRepo.findActiveSubscription(s2.getSubscriptionId()).isPresent());
+  }
+
+  @Transactional
+  @Test
+  void testFindBySpecificationWhenSubscriptionEndDateIsNull() {
+    var s1 = createSubscription("org123", "account123", "sub123", "seller123");
+
+    var s2 = createSubscription("org123", "account123", "sub321", "seller123");
+    s2.setEndDate(null);
+
+    var offering1 = createOffering("testSkuUnlimited", "TestSKUUnlimited", 1066, null, null, null);
+    List.of(s1, s2).forEach(x -> x.setOffering(offering1));
+
+    offeringRepo.save(offering1);
+    subscriptionRepo.saveAllAndFlush(List.of(s1, s2));
+
+    var resultList =
+        subscriptionRepo.findByCriteria(
+            DbReportCriteria.builder()
+                .orgId("org123")
+                .beginning(NOW)
+                .ending(NOW.plusDays(1))
+                .build(),
+            Sort.by(Subscription_.START_DATE).descending());
+    assertEquals(2, resultList.size());
+    assertTrue(resultList.contains(s2));
+    assertTrue(resultList.contains(s1));
+    assertThat(resultList, Matchers.containsInAnyOrder(s1, s2));
   }
 
   private Offering createOffering(

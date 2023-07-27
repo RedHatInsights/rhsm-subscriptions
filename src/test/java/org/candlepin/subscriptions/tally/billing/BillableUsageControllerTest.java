@@ -43,7 +43,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
@@ -64,6 +63,7 @@ import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.registry.BillingWindow;
 import org.candlepin.subscriptions.registry.TagMetric;
 import org.candlepin.subscriptions.registry.TagProfile;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -79,7 +79,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class BillableUsageControllerTest {
 
-  private static ApplicationClock CLOCK = new FixedClockConfiguration().fixedClock();
+  private static ApplicationClock CLOCK = new TestClockConfiguration().adjustableClock();
   private static final String AWS_METRIC_ID = "aws_metric";
 
   @Mock BillingProducer producer;

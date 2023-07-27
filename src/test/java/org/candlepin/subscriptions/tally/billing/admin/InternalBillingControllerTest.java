@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.billing.admin.api.model.MonthlyRemittance;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
@@ -33,12 +32,14 @@ import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,11 +47,11 @@ import org.springframework.transaction.annotation.Transactional;
 @AutoConfigureTestDatabase
 @ActiveProfiles("test")
 @Transactional
+@Import(TestClockConfiguration.class)
 class InternalBillingControllerTest {
 
   @Autowired BillableUsageRemittanceRepository remittanceRepo;
-
-  private final ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+  @Autowired private ApplicationClock clock;
 
   InternalBillingController controller;
 

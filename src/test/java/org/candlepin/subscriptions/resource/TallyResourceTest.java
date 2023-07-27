@@ -25,28 +25,42 @@ import static org.junit.jupiter.params.ParameterizedTest.DEFAULT_DISPLAY_NAME;
 import static org.junit.jupiter.params.ParameterizedTest.DISPLAY_NAME_PLACEHOLDER;
 import static org.mockito.Mockito.*;
 
+import com.redhat.swatch.contracts.api.resources.CapacityApi;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Response;
 import java.io.IOException;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.TemporalAmount;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.model.*;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.RoleProvider;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
+import org.candlepin.subscriptions.test.TestClock;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 import org.candlepin.subscriptions.utilization.api.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,24 +81,31 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
 @WithMockRedHatPrincipal("123456")
-@Import(FixedClockConfiguration.class)
+@Import(TestClockConfiguration.class)
 class TallyResourceTest {
+  public static final Instant MID_MONTH_INSTANT =
+      LocalDateTime.of(2023, 7, 15, 13, 0, 0).toInstant(ZoneOffset.UTC);
+  public static final OffsetDateTime TEST_DATE =
+      OffsetDateTime.ofInstant(MID_MONTH_INSTANT, ZoneOffset.UTC);
 
   public static final ProductId RHEL_PRODUCT_ID = ProductId.RHEL;
-  public static final String INVALID_PRODUCT_ID_VALUE = "bad_product";
+
   private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
   private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
-  private static ApplicationClock CLOCK = new FixedClockConfiguration().fixedClock();
 
   @MockBean TallySnapshotRepository repository;
   @MockBean BillableUsageRemittanceRepository remittanceRepository;
   @MockBean PageLinkCreator pageLinkCreator;
   @MockBean AccountConfigRepository accountConfigRepository;
+  @MockBean CapacityApi capacityApi;
   @Autowired TallyResource resource;
+  @Autowired ApplicationClock applicationClock;
 
   @BeforeEach
   public void setupTests() {
     when(accountConfigRepository.existsByOrgId("owner123456")).thenReturn(true);
+    var testClock = (TestClock) applicationClock.getClock();
+    testClock.setInstant(MID_MONTH_INSTANT);
   }
 
   @Test
@@ -397,14 +418,112 @@ class TallyResourceTest {
   }
 
   @Test
-  void testRunningTotalFormatUsedForPaygProducts() {
+  void testTallyReportDataFillerMarksHasDataFalseAfterNowWithRunningTotal() {
+    var begin = applicationClock.startOfMonth(TEST_DATE);
+    var end = applicationClock.endOfMonth(TEST_DATE);
     List<TallySnapshot> snapshots =
         List.of(1, 2, 8).stream()
             .map(
                 i -> {
                   var snapshot = new TallySnapshot();
                   snapshot.setSnapshotDate(
-                      OffsetDateTime.of(2019, 5, i, 12, 35, 0, 0, ZoneOffset.UTC));
+                      OffsetDateTime.of(
+                          TEST_DATE.getYear(),
+                          TEST_DATE.getMonthValue(),
+                          i,
+                          12,
+                          35,
+                          0,
+                          0,
+                          ZoneOffset.UTC));
+                  snapshot.setMeasurement(
+                      HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, i * 2.0);
+                  return snapshot;
+                })
+            .collect(Collectors.toList());
+
+    Mockito.when(
+            repository.findSnapshot(
+                "owner123456",
+                ProductId.RHEL.toString(),
+                Granularity.DAILY,
+                ServiceLevel.PREMIUM,
+                Usage.PRODUCTION,
+                BillingProvider._ANY,
+                "_ANY",
+                begin,
+                end,
+                null))
+        .thenReturn(new PageImpl<>(snapshots));
+
+    TallyReportData response =
+        resource.getTallyReportData(
+            ProductId.RHEL,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            begin,
+            end,
+            null,
+            ServiceLevelType.PREMIUM,
+            UsageType.PRODUCTION,
+            null,
+            null,
+            null,
+            null,
+            true,
+            null);
+    int expected = TEST_DATE.getMonth().length(false);
+    assertEquals(expected, response.getMeta().getCount());
+    assertEquals(expected, response.getData().size());
+
+    var firstSnapshot = response.getData().get(0);
+    assertEquals(2, firstSnapshot.getValue());
+    assertTrue(firstSnapshot.getHasData());
+
+    var snapshots2Through7 = response.getData().subList(1, 7);
+    snapshots2Through7.forEach(
+        snapshot -> {
+          assertTrue(snapshot.getHasData());
+          assertEquals(6, snapshot.getValue());
+        });
+
+    var snapshots8ThroughPresent = response.getData().subList(7, TEST_DATE.getDayOfMonth());
+    snapshots8ThroughPresent.forEach(
+        snapshot -> {
+          assertTrue(snapshot.getHasData());
+          assertEquals(22, snapshot.getValue());
+        });
+
+    var snapshotsPresentToEndOfMonth =
+        response.getData().subList(TEST_DATE.getDayOfMonth(), TEST_DATE.getMonth().length(false));
+    snapshotsPresentToEndOfMonth.forEach(
+        snapshot -> {
+          assertFalse(snapshot.getHasData());
+          assertEquals(0, snapshot.getValue());
+        });
+
+    assertEquals(22, response.getMeta().getTotalMonthly().getValue());
+  }
+
+  @Test
+  void testRunningTotalFormatUsedForPaygProducts() {
+    var begin = applicationClock.startOfMonth(TEST_DATE);
+    var end = applicationClock.endOfMonth(TEST_DATE);
+    List<TallySnapshot> snapshots =
+        List.of(1, 2, 8).stream()
+            .map(
+                i -> {
+                  var snapshot = new TallySnapshot();
+                  snapshot.setSnapshotDate(
+                      OffsetDateTime.of(
+                          TEST_DATE.getYear(),
+                          TEST_DATE.getMonthValue(),
+                          i,
+                          12,
+                          35,
+                          0,
+                          0,
+                          ZoneOffset.UTC));
                   snapshot.setMeasurement(
                       HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, i * 2.0);
                   return snapshot;
@@ -420,8 +539,8 @@ class TallyResourceTest {
                 Usage.PRODUCTION,
                 BillingProvider._ANY,
                 "_ANY",
-                OffsetDateTime.parse("2019-05-01T00:00Z"),
-                OffsetDateTime.parse("2019-05-31T11:59:59.999Z"),
+                begin,
+                end,
                 null))
         .thenReturn(new PageImpl<>(snapshots));
 
@@ -429,8 +548,8 @@ class TallyResourceTest {
         resource.getTallyReport(
             ProductId.OPENSHIFT_DEDICATED_METRICS,
             GranularityType.DAILY,
-            OffsetDateTime.parse("2019-05-01T00:00Z"),
-            OffsetDateTime.parse("2019-05-31T11:59:59.999Z"),
+            begin,
+            end,
             null,
             null,
             ServiceLevelType.PREMIUM,
@@ -444,11 +563,8 @@ class TallyResourceTest {
     var snapshots2Through7 = report.getData().subList(1, 7);
     snapshots2Through7.forEach(snapshot -> assertEquals(6.0, snapshot.getCoreHours()));
 
-    var snapshots8Through24 = report.getData().subList(7, 24);
-    snapshots8Through24.forEach(snapshot -> assertEquals(22.0, snapshot.getCoreHours()));
-
-    var futureSnapshots = report.getData().subList(24, 31);
-    futureSnapshots.forEach(snapshot -> assertNull(snapshot.getCoreHours()));
+    var snapshots8ThroughEnd = report.getData().subList(7, TEST_DATE.getDayOfMonth());
+    snapshots8ThroughEnd.forEach(snapshot -> assertEquals(22.0, snapshot.getCoreHours()));
 
     assertEquals("22.0", report.getMeta().getTotalCoreHours().toString());
   }
@@ -1094,137 +1210,96 @@ class TallyResourceTest {
   }
 
   @Test
-  void testOnDemandBillingCategory() {
-    TallySnapshot snapshot = new TallySnapshot();
-    snapshot.setAccountNumber("account123");
-    snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
-    snapshot.setMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES, 4.0);
-    when(repository.findSnapshot(
-            any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
-        .thenReturn(new PageImpl<>(List.of(snapshot)));
-    BillableUsageRemittanceEntity remittance =
-        BillableUsageRemittanceEntity.builder()
-            .remittedPendingValue(3.0)
-            .key(
-                BillableUsageRemittanceEntityPK.builder()
-                    .remittancePendingDate(snapshot.getSnapshotDate())
-                    .build())
-            .build();
-    when(remittanceRepository.filterBy(any())).thenReturn(List.of(remittance));
-    TallyReportData response =
-        resource.getTallyReportData(
-            ProductId.RHEL,
-            MetricId.CORES,
-            GranularityType.DAILY,
-            OffsetDateTime.parse("2021-10-01T00:00Z"),
-            OffsetDateTime.parse("2021-10-30T00:00Z"),
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            false,
-            BillingCategory.ON_DEMAND);
-    assertEquals(
-        3.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
+  void testBadRequestWhenBillingCategorySpecifiedWhenRunningTotalsParamIsNull() {
+    OffsetDateTime beginning = OffsetDateTime.parse("2021-10-01T00:00Z");
+    OffsetDateTime ending = OffsetDateTime.parse("2021-10-30T00:00Z");
+    assertThrows(
+        BadRequestException.class,
+        () -> {
+          resource.getTallyReportData(
+              ProductId.RHEL,
+              MetricId.CORES,
+              GranularityType.DAILY,
+              beginning,
+              ending,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              BillingCategory.ON_DEMAND);
+        });
   }
 
   @Test
-  void testPrePaidBillingCategory() {
-    TallySnapshot snapshot = new TallySnapshot();
-    snapshot.setAccountNumber("account123");
-    snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
-    snapshot.setMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES, 4.0);
-    when(repository.findSnapshot(
-            any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
-        .thenReturn(new PageImpl<>(List.of(snapshot)));
-    BillableUsageRemittanceEntity remittance =
-        BillableUsageRemittanceEntity.builder()
-            .remittedPendingValue(3.0)
-            .key(
-                BillableUsageRemittanceEntityPK.builder()
-                    .remittancePendingDate(snapshot.getSnapshotDate())
-                    .build())
-            .build();
-    when(remittanceRepository.filterBy(any())).thenReturn(List.of(remittance));
-    TallyReportData response =
-        resource.getTallyReportData(
-            ProductId.RHEL,
-            MetricId.CORES,
-            GranularityType.DAILY,
-            OffsetDateTime.parse("2021-10-01T00:00Z"),
-            OffsetDateTime.parse("2021-10-30T00:00Z"),
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            false,
-            BillingCategory.PREPAID);
-    assertEquals(
-        1.0, response.getData().stream().mapToDouble(TallyReportDataPoint::getValue).sum());
+  void testBadRequestWhenBillingCategorySpecifiedWhenRunningTotalsParamIsFalse() {
+    OffsetDateTime beginning = OffsetDateTime.parse("2021-10-01T00:00Z");
+    OffsetDateTime ending = OffsetDateTime.parse("2021-10-30T00:00Z");
+    assertThrows(
+        BadRequestException.class,
+        () -> {
+          resource.getTallyReportData(
+              ProductId.RHEL,
+              MetricId.CORES,
+              GranularityType.DAILY,
+              beginning,
+              ending,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              false,
+              BillingCategory.ON_DEMAND);
+        });
   }
 
   @Test
-  void testRunningTotalForOnDemand() {
-    var snapshot1 =
-        TallySnapshot.builder()
-            .snapshotDate(OffsetDateTime.of(2023, 3, 1, 12, 35, 0, 0, ZoneOffset.UTC))
-            .build();
-    snapshot1.setMeasurement(HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, 2.0);
-    var snapshot2 =
-        TallySnapshot.builder()
-            .snapshotDate(OffsetDateTime.of(2023, 3, 2, 12, 35, 0, 0, ZoneOffset.UTC))
-            .build();
-    snapshot2.setMeasurement(HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, 4.0);
-    var snapshot3 =
-        TallySnapshot.builder()
-            .snapshotDate(OffsetDateTime.of(2023, 3, 8, 12, 35, 0, 0, ZoneOffset.UTC))
-            .build();
-    snapshot3.setMeasurement(HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, 16.0);
+  void testRunningTotalForOnDemand() throws Exception {
+    OffsetDateTime snap1Date = OffsetDateTime.of(2023, 3, 4, 0, 0, 0, 0, ZoneOffset.UTC);
+    OffsetDateTime snap2Date = OffsetDateTime.of(2023, 3, 5, 0, 0, 0, 0, ZoneOffset.UTC);
+    OffsetDateTime snap3Date = OffsetDateTime.of(2023, 3, 6, 0, 0, 0, 0, ZoneOffset.UTC);
+    OffsetDateTime snap4Date = OffsetDateTime.of(2023, 3, 7, 0, 0, 0, 0, ZoneOffset.UTC);
+    OffsetDateTime snap5Date = OffsetDateTime.of(2023, 3, 8, 0, 0, 0, 0, ZoneOffset.UTC);
+
+    List<OffsetDateTime> snapDates = List.of(snap1Date, snap2Date, snap3Date, snap4Date, snap5Date);
+    List<TallySnapshot> snapshots = new LinkedList<>();
+    for (OffsetDateTime nextDate : snapDates) {
+      TallySnapshot snap =
+          TallySnapshot.builder()
+              .productId(ProductId.OPENSHIFT_DEDICATED_METRICS.toString())
+              .snapshotDate(nextDate)
+              .build();
+      snap.setMeasurement(HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, 100.0);
+      snapshots.add(snap);
+    }
 
     when(repository.findSnapshot(
             any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
-        .thenReturn(new PageImpl<>(List.of(snapshot1, snapshot2, snapshot3)));
+        .thenReturn(new PageImpl<>(snapshots));
 
-    BillableUsageRemittanceEntity remittance1 =
-        BillableUsageRemittanceEntity.builder()
-            .remittedPendingValue(2.0)
-            .key(
-                BillableUsageRemittanceEntityPK.builder()
-                    .remittancePendingDate(CLOCK.startOfDay(snapshot1.getSnapshotDate()))
-                    .build())
-            .build();
-    when(remittanceRepository.filterBy(any())).thenReturn(List.of(remittance1));
-    BillableUsageRemittanceEntity remittance2 =
-        BillableUsageRemittanceEntity.builder()
-            .remittedPendingValue(0.0)
-            .key(
-                BillableUsageRemittanceEntityPK.builder()
-                    .remittancePendingDate(CLOCK.startOfDay(snapshot2.getSnapshotDate()))
-                    .build())
-            .build();
-    BillableUsageRemittanceEntity remittance3 =
-        BillableUsageRemittanceEntity.builder()
-            .remittedPendingValue(10.0)
-            .key(
-                BillableUsageRemittanceEntityPK.builder()
-                    .remittancePendingDate(CLOCK.startOfDay(snapshot3.getSnapshotDate()))
-                    .build())
-            .build();
-
-    when(remittanceRepository.filterBy(any()))
-        .thenReturn(List.of(remittance1, remittance2, remittance3));
+    mockCapacity(
+        ProductId.OPENSHIFT_DEDICATED_METRICS,
+        MetricId.CORES,
+        GranularityType.DAILY,
+        OffsetDateTime.parse("2023-03-01T00:00Z"),
+        OffsetDateTime.parse("2023-03-31T23:59:59.999Z"),
+        null,
+        null,
+        null,
+        Map.of(
+            snap2Date, 100,
+            snap3Date, 100,
+            snap4Date, 100,
+            snap5Date, 150));
 
     TallyReportDataPoint expectedTotalMonthly =
-        new TallyReportDataPoint()
-            .date(OffsetDateTime.parse("2023-03-08T12:35Z"))
-            .value(22)
-            .hasData(true);
+        new TallyReportDataPoint().date(snap5Date).value(500).hasData(true);
 
     TallyReportData report =
         resource.getTallyReportData(
@@ -1244,74 +1319,69 @@ class TallyResourceTest {
             BillingCategory.ON_DEMAND);
     assertEquals(31, report.getData().size());
 
-    var firstSnapshot = report.getData().get(0);
-    assertEquals(2, firstSnapshot.getValue());
+    int snapshotIndex = 2; //
+    var beforeUsage = report.getData().get(snapshotIndex);
+    assertEquals(0, beforeUsage.getValue());
 
-    var secondSnapshot = report.getData().get(1);
-    assertEquals(2, secondSnapshot.getValue());
+    var noAppliedCapacity = report.getData().get(snapshotIndex + 1);
+    assertEquals(100, noAppliedCapacity.getValue());
 
-    var thirdSnapshot = report.getData().get(7);
-    assertEquals(12, thirdSnapshot.getValue());
+    var firstSnapshot = report.getData().get(snapshotIndex + 2);
+    assertEquals(100, firstSnapshot.getValue());
+
+    var secondSnapshot = report.getData().get(snapshotIndex + 3);
+    assertEquals(200, secondSnapshot.getValue());
+
+    var thirdSnapshot = report.getData().get(snapshotIndex + 4);
+    assertEquals(300, thirdSnapshot.getValue());
+
+    var fourthSnapshot = report.getData().get(snapshotIndex + 5);
+    assertEquals(350, fourthSnapshot.getValue());
 
     assertEquals(expectedTotalMonthly, report.getMeta().getTotalMonthly());
   }
 
   @Test
-  void testRunningTotalForPrePaid() {
-    var snapshot1 =
-        TallySnapshot.builder()
-            .snapshotDate(OffsetDateTime.of(2023, 3, 1, 12, 35, 0, 0, ZoneOffset.UTC))
-            .build();
-    snapshot1.setMeasurement(HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, 2.0);
-    var snapshot2 =
-        TallySnapshot.builder()
-            .snapshotDate(OffsetDateTime.of(2023, 3, 2, 12, 35, 0, 0, ZoneOffset.UTC))
-            .build();
-    snapshot2.setMeasurement(HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, 4.0);
-    var snapshot3 =
-        TallySnapshot.builder()
-            .snapshotDate(OffsetDateTime.of(2023, 3, 8, 12, 35, 0, 0, ZoneOffset.UTC))
-            .build();
-    snapshot3.setMeasurement(HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, 16.0);
+  void testRunningTotalForPrePaid() throws Exception {
+    OffsetDateTime snap1Date = OffsetDateTime.of(2023, 3, 4, 0, 0, 0, 0, ZoneOffset.UTC);
+    OffsetDateTime snap2Date = OffsetDateTime.of(2023, 3, 5, 0, 0, 0, 0, ZoneOffset.UTC);
+    OffsetDateTime snap3Date = OffsetDateTime.of(2023, 3, 6, 0, 0, 0, 0, ZoneOffset.UTC);
+    OffsetDateTime snap4Date = OffsetDateTime.of(2023, 3, 7, 0, 0, 0, 0, ZoneOffset.UTC);
+    OffsetDateTime snap5Date = OffsetDateTime.of(2023, 3, 8, 0, 0, 0, 0, ZoneOffset.UTC);
+
+    List<OffsetDateTime> snapDates = List.of(snap1Date, snap2Date, snap3Date, snap4Date, snap5Date);
+    List<TallySnapshot> snapshots = new LinkedList<>();
+    for (OffsetDateTime nextDate : snapDates) {
+      TallySnapshot snap =
+          TallySnapshot.builder()
+              .productId(ProductId.OPENSHIFT_DEDICATED_METRICS.toString())
+              .snapshotDate(nextDate)
+              .build();
+      snap.setMeasurement(HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, 100.0);
+      snapshots.add(snap);
+    }
 
     when(repository.findSnapshot(
             any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
-        .thenReturn(new PageImpl<>(List.of(snapshot1, snapshot2, snapshot3)));
+        .thenReturn(new PageImpl<>(snapshots));
 
-    BillableUsageRemittanceEntity remittance1 =
-        BillableUsageRemittanceEntity.builder()
-            .remittedPendingValue(2.0)
-            .key(
-                BillableUsageRemittanceEntityPK.builder()
-                    .remittancePendingDate(CLOCK.startOfDay(snapshot1.getSnapshotDate()))
-                    .build())
-            .build();
-    when(remittanceRepository.filterBy(any())).thenReturn(List.of(remittance1));
-    BillableUsageRemittanceEntity remittance2 =
-        BillableUsageRemittanceEntity.builder()
-            .remittedPendingValue(0.0)
-            .key(
-                BillableUsageRemittanceEntityPK.builder()
-                    .remittancePendingDate(CLOCK.startOfDay(snapshot2.getSnapshotDate()))
-                    .build())
-            .build();
-    BillableUsageRemittanceEntity remittance3 =
-        BillableUsageRemittanceEntity.builder()
-            .remittedPendingValue(10.0)
-            .key(
-                BillableUsageRemittanceEntityPK.builder()
-                    .remittancePendingDate(CLOCK.startOfDay(snapshot3.getSnapshotDate()))
-                    .build())
-            .build();
-
-    when(remittanceRepository.filterBy(any()))
-        .thenReturn(List.of(remittance1, remittance2, remittance3));
+    mockCapacity(
+        ProductId.OPENSHIFT_DEDICATED_METRICS,
+        MetricId.CORES,
+        GranularityType.DAILY,
+        OffsetDateTime.parse("2023-03-01T00:00Z"),
+        OffsetDateTime.parse("2023-03-31T23:59:59.999Z"),
+        null,
+        null,
+        null,
+        Map.of(
+            snap2Date, 200,
+            snap3Date, 200,
+            snap4Date, 500,
+            snap5Date, 500));
 
     TallyReportDataPoint expectedTotalMonthly =
-        new TallyReportDataPoint()
-            .date(OffsetDateTime.parse("2023-03-08T12:35Z"))
-            .value(22)
-            .hasData(true);
+        new TallyReportDataPoint().date(snap5Date).value(500).hasData(true);
 
     TallyReportData report =
         resource.getTallyReportData(
@@ -1331,15 +1401,123 @@ class TallyResourceTest {
             BillingCategory.PREPAID);
     assertEquals(31, report.getData().size());
 
-    var firstSnapshot = report.getData().get(0);
-    assertEquals(0, firstSnapshot.getValue());
+    int snapshotIndex = 2; //
+    var beforeUsage = report.getData().get(snapshotIndex);
+    assertEquals(0, beforeUsage.getValue());
 
-    var secondSnapshot = report.getData().get(1);
-    assertEquals(4, secondSnapshot.getValue());
+    var noAppliedCapacity = report.getData().get(snapshotIndex + 1);
+    assertEquals(0, noAppliedCapacity.getValue());
 
-    var thirdSnapshot = report.getData().get(7);
-    assertEquals(10, thirdSnapshot.getValue());
+    var firstSnapshot = report.getData().get(snapshotIndex + 2);
+    assertEquals(200, firstSnapshot.getValue());
 
-    assertEquals(expectedTotalMonthly, report.getMeta().getTotalMonthly());
+    var secondSnapshot = report.getData().get(snapshotIndex + 3);
+    assertEquals(200, secondSnapshot.getValue());
+
+    var thirdSnapshot = report.getData().get(snapshotIndex + 4);
+    assertEquals(400, thirdSnapshot.getValue());
+
+    var fourthSnapshot = report.getData().get(snapshotIndex + 5);
+    assertEquals(500, fourthSnapshot.getValue());
+
+    var noUsage2 = report.getData().get(snapshotIndex + 5);
+    assertEquals(500, noUsage2.getValue());
+  }
+
+  private void mockCapacity(
+      ProductId productId,
+      MetricId metricId,
+      GranularityType granularityType,
+      OffsetDateTime beginning,
+      OffsetDateTime ending,
+      ReportCategory category,
+      ServiceLevelType sla,
+      UsageType usageType,
+      Map<OffsetDateTime, Integer> result)
+      throws Exception {
+    com.redhat.swatch.contracts.api.model.MetricId cMetricId =
+        com.redhat.swatch.contracts.api.model.MetricId.valueOf(metricId.name());
+    com.redhat.swatch.contracts.api.model.GranularityType cGranularity =
+        com.redhat.swatch.contracts.api.model.GranularityType.valueOf(granularityType.name());
+    com.redhat.swatch.contracts.api.model.ReportCategory cReportCategory =
+        Optional.ofNullable(category)
+            .map(c -> com.redhat.swatch.contracts.api.model.ReportCategory.valueOf(c.name()))
+            .orElse(null);
+    com.redhat.swatch.contracts.api.model.ServiceLevelType cSla =
+        Optional.ofNullable(sla)
+            .map(s -> com.redhat.swatch.contracts.api.model.ServiceLevelType.valueOf(s.name()))
+            .orElse(null);
+    com.redhat.swatch.contracts.api.model.UsageType cUsage =
+        Optional.ofNullable(usageType)
+            .map(ut -> com.redhat.swatch.contracts.api.model.UsageType.valueOf(ut.name()))
+            .orElse(null);
+
+    when(capacityApi.getCapacityReportByMetricId(
+            eq(com.redhat.swatch.contracts.api.model.ProductId.valueOf(productId.name())),
+            eq(cMetricId),
+            eq(cGranularity),
+            eq(beginning),
+            eq(ending),
+            any(),
+            any(),
+            eq(cReportCategory),
+            eq(cSla),
+            eq(cUsage)))
+        .thenReturn(
+            capacityReport(
+                beginning, ending, cMetricId, cReportCategory, cGranularity, cSla, cUsage, result));
+  }
+
+  private com.redhat.swatch.contracts.api.model.CapacityReportByMetricId capacityReport(
+      OffsetDateTime start,
+      OffsetDateTime end,
+      com.redhat.swatch.contracts.api.model.MetricId metricId,
+      com.redhat.swatch.contracts.api.model.ReportCategory category,
+      com.redhat.swatch.contracts.api.model.GranularityType granularity,
+      com.redhat.swatch.contracts.api.model.ServiceLevelType sla,
+      com.redhat.swatch.contracts.api.model.UsageType usage,
+      Map<OffsetDateTime, Integer> values) {
+    var meta =
+        new com.redhat.swatch.contracts.api.model.CapacityReportByMetricIdMeta()
+            .metricId(metricId)
+            .category(category)
+            .granularity(granularity)
+            .serviceLevel(sla)
+            .usage(usage)
+            .count(values.size());
+    return new com.redhat.swatch.contracts.api.model.CapacityReportByMetricId()
+        .meta(meta)
+        .data(createCapacitySnapshots(start, end, granularity, values));
+  }
+
+  private List<com.redhat.swatch.contracts.api.model.CapacitySnapshotByMetricId>
+      createCapacitySnapshots(
+          OffsetDateTime reportStart,
+          OffsetDateTime reportEnd,
+          com.redhat.swatch.contracts.api.model.GranularityType granularityType,
+          Map<OffsetDateTime, Integer> values) {
+    SnapshotTimeAdjuster timeAdjuster =
+        SnapshotTimeAdjuster.getTimeAdjuster(
+            applicationClock, Granularity.fromString(granularityType.toString()));
+
+    OffsetDateTime start = timeAdjuster.adjustToPeriodStart(reportStart);
+    OffsetDateTime end = timeAdjuster.adjustToPeriodEnd(reportEnd);
+    TemporalAmount offset = timeAdjuster.getSnapshotOffset();
+
+    List<com.redhat.swatch.contracts.api.model.CapacitySnapshotByMetricId> result =
+        new ArrayList<>();
+    OffsetDateTime next = OffsetDateTime.from(start);
+
+    while (next.isBefore(end) || next.isEqual(end)) {
+      Integer value = values.getOrDefault(next, 0);
+      result.add(
+          new com.redhat.swatch.contracts.api.model.CapacitySnapshotByMetricId()
+              .hasData(values.containsKey(next))
+              .date(next)
+              .hasInfiniteQuantity(false)
+              .value(value));
+      next = timeAdjuster.adjustToPeriodStart(next.plus(offset));
+    }
+    return result;
   }
 }

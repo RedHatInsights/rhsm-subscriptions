@@ -37,7 +37,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.event.EventController;
@@ -49,6 +48,7 @@ import org.candlepin.subscriptions.registry.TagMapping;
 import org.candlepin.subscriptions.registry.TagMetaData;
 import org.candlepin.subscriptions.registry.TagMetric;
 import org.candlepin.subscriptions.registry.TagProfile;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
 import org.jetbrains.annotations.NotNull;
@@ -69,7 +69,7 @@ class MetricUsageCollectorTest {
 
   @Mock EventController eventController;
 
-  ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+  ApplicationClock clock = new TestClockConfiguration().adjustableClock();
 
   static final String SERVICE_TYPE = "SERVICE TYPE";
   static final String RHEL_SERVER_SWATCH_PRODUCT_ID = "RHEL_SERVER";

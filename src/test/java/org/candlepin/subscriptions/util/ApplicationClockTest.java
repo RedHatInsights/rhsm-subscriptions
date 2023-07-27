@@ -20,21 +20,21 @@
  */
 package org.candlepin.subscriptions.util;
 
-import static org.candlepin.subscriptions.FixedClockConfiguration.SPRING_EPOCH_EDT;
-import static org.candlepin.subscriptions.FixedClockConfiguration.SPRING_EPOCH_UTC;
-import static org.candlepin.subscriptions.FixedClockConfiguration.SPRING_TIME_EDT;
-import static org.candlepin.subscriptions.FixedClockConfiguration.SPRING_TIME_UTC;
-import static org.candlepin.subscriptions.FixedClockConfiguration.WINTER_EPOCH_EST;
-import static org.candlepin.subscriptions.FixedClockConfiguration.WINTER_EPOCH_UTC;
-import static org.candlepin.subscriptions.FixedClockConfiguration.WINTER_TIME_EST;
-import static org.candlepin.subscriptions.FixedClockConfiguration.WINTER_TIME_UTC;
+import static org.candlepin.subscriptions.test.TestClockConfiguration.SPRING_EPOCH_EDT;
+import static org.candlepin.subscriptions.test.TestClockConfiguration.SPRING_EPOCH_UTC;
+import static org.candlepin.subscriptions.test.TestClockConfiguration.SPRING_TIME_EDT;
+import static org.candlepin.subscriptions.test.TestClockConfiguration.SPRING_TIME_UTC;
+import static org.candlepin.subscriptions.test.TestClockConfiguration.WINTER_EPOCH_EST;
+import static org.candlepin.subscriptions.test.TestClockConfiguration.WINTER_EPOCH_UTC;
+import static org.candlepin.subscriptions.test.TestClockConfiguration.WINTER_TIME_EST;
+import static org.candlepin.subscriptions.test.TestClockConfiguration.WINTER_TIME_UTC;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
-import org.candlepin.subscriptions.FixedClockConfiguration;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -44,7 +44,7 @@ import org.springframework.test.context.ContextConfiguration;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@ContextConfiguration(classes = FixedClockConfiguration.class)
+@ContextConfiguration(classes = TestClockConfiguration.class)
 class ApplicationClockTest {
 
   @Autowired

@@ -30,12 +30,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,8 +44,9 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @Transactional
 @ActiveProfiles("test")
+@Import(TestClockConfiguration.class)
 class EventRecordRepositoryTest {
-  private static final Clock CLOCK = new FixedClockConfiguration().fixedClock().getClock();
+  private static final Clock CLOCK = new TestClockConfiguration().adjustableClock().getClock();
 
   @Autowired private EventRecordRepository repository;
 

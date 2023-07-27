@@ -24,11 +24,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import jakarta.ws.rs.BadRequestException;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,15 +36,17 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
 @WithMockRedHatPrincipal("123456")
+@Import(TestClockConfiguration.class)
 class OptInResourceTest {
 
-  private ApplicationClock clock;
+  @Autowired private ApplicationClock clock;
 
   @MockBean AccountConfigRepository accountConfigRepository;
 
@@ -54,7 +56,6 @@ class OptInResourceTest {
 
   @BeforeEach
   public void setupTests() {
-    this.clock = new FixedClockConfiguration().fixedClock();
     when(accountConfigRepository.existsByOrgId("owner123456")).thenReturn(true);
   }
 

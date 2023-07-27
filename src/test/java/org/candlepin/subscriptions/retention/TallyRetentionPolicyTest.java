@@ -24,14 +24,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.Test;
 
 class TallyRetentionPolicyTest {
   public TallyRetentionPolicy createTestPolicy(TallyRetentionPolicyProperties config) {
-    ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+    ApplicationClock clock = new TestClockConfiguration().adjustableClock();
     return new TallyRetentionPolicy(clock, config);
   }
 

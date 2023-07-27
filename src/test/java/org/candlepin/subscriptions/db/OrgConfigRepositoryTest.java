@@ -24,10 +24,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.db.model.config.OrgConfig;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -35,6 +35,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,10 +43,11 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @Transactional
 @ActiveProfiles("test")
+@Import(TestClockConfiguration.class)
 class OrgConfigRepositoryTest {
 
   @Autowired private OrgConfigRepository repository;
-  private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+  @Autowired private ApplicationClock clock;
 
   @BeforeAll
   void cleanUpDatabase() {

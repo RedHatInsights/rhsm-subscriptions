@@ -11,3 +11,7 @@ rhsm-subscriptions:
     url: http://${RHSM_RBAC_HOST}:${RHSM_RBAC_PORT}/api/rbac/v1
     max-connections: ${RHSM_RBAC_MAX_CONNECTIONS:100}
     stub-permissions: ${RHSM_RBAC_STUB_PERMISSIONS:subscriptions:*:*}
+  api:
+    capacity:
+      client:
+        url: ${API_CAPACITY_CLIENT_URL:http://localhost:8000}

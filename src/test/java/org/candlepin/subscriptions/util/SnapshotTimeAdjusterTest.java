@@ -22,8 +22,8 @@ package org.candlepin.subscriptions.util;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.junit.jupiter.api.Test;
 
 class SnapshotTimeAdjusterTest {
@@ -31,7 +31,7 @@ class SnapshotTimeAdjusterTest {
   private ApplicationClock clock;
 
   SnapshotTimeAdjusterTest() {
-    clock = new FixedClockConfiguration().fixedClock();
+    clock = new TestClockConfiguration().adjustableClock();
   }
 
   @Test

@@ -37,7 +37,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -45,6 +44,7 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.tally.OrgHostsData;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeAll;
@@ -69,7 +69,7 @@ import org.yaml.snakeyaml.constructor.Constructor;
 @TestInstance(Lifecycle.PER_CLASS)
 @SpringBootTest
 @ActiveProfiles("test")
-@Import(FixedClockConfiguration.class)
+@Import(TestClockConfiguration.class)
 class FactNormalizerTest {
 
   private FactNormalizer normalizer;

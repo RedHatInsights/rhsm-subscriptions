@@ -27,14 +27,14 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.candlepin.subscriptions.FixedClockConfiguration;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.Test;
 
 class EventKeyTest {
 
-  private ApplicationClock clock = new FixedClockConfiguration().fixedClock();
+  private ApplicationClock clock = new TestClockConfiguration().adjustableClock();
 
   @Test
   void testLookup() {
