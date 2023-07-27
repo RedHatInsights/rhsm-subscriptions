@@ -59,8 +59,11 @@ public interface SubscriptionRepository
   String OFFERING_ALIAS = "offering";
 
   @Query(
-      "SELECT s FROM Subscription s where s.endDate > CURRENT_TIMESTAMP "
-          + "AND s.subscriptionId = :subscriptionId")
+      """
+        SELECT s FROM Subscription s
+        WHERE (s.endDate IS NULL OR s.endDate > CURRENT_TIMESTAMP)
+          AND s.subscriptionId = :subscriptionId
+      """)
   @EntityGraph(value = "graph.SubscriptionSync")
   Optional<Subscription> findActiveSubscription(@Param("subscriptionId") String subscriptionId);
 
@@ -180,9 +183,10 @@ public interface SubscriptionRepository
 
   /**
    * This method looks for subscriptions that are active between the two dates given. The logic is
-   * not intuitive: subscription_begin &lt;= report_end && subscription_end &gt;= report_begin. See
-   * {@link SubscriptionMeasurementRepository#subscriptionIsActiveBetween(OffsetDateTime,
-   * OffsetDateTime)} for a detailed explanation of how this predicate is derived.
+   * not intuitive: subscription_begin &lt;= report_end && (subscription_end &gt;= report_begin OR
+   * subscription_end IS NULL). See {@link
+   * SubscriptionMeasurementRepository#subscriptionIsActiveBetween(OffsetDateTime, OffsetDateTime)}
+   * for a detailed explanation of how this predicate is derived.
    *
    * @param reportStart the date the reporting period starts
    * @param reportEnd the date the reporting period ends
@@ -204,7 +208,10 @@ public interface SubscriptionRepository
       predicates.add(builder.lessThanOrEqualTo(path.get(Subscription_.startDate), reportEnd));
     }
     if (Objects.nonNull(reportStart)) {
-      predicates.add(builder.greaterThanOrEqualTo(path.get(Subscription_.endDate), reportStart));
+      predicates.add(
+          builder.or(
+              builder.isNull(path.get(Subscription_.endDate)),
+              builder.greaterThanOrEqualTo(path.get(Subscription_.endDate), reportStart)));
     }
     return builder.and(predicates.toArray(Predicate[]::new));
   }

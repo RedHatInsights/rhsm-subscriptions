@@ -29,6 +29,7 @@ import java.time.OffsetDateTime;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.HypervisorReportCategory;
@@ -456,7 +457,7 @@ public class CapacityResource implements CapacityApi {
     for (SubscriptionMeasurement measurement : matches) {
       var begin = measurement.getSubscription().getStartDate();
       var end = measurement.getSubscription().getEndDate();
-      if (begin.isBefore(date) && end.isAfter(date)) {
+      if (begin.isBefore(date) && (Objects.isNull(end) || end.isAfter(date))) {
         hasData = true;
         if (metricId.toString().toUpperCase().equals(measurement.getMetricId())) {
           if (hypervisorReportCategory.isEmpty()) {
