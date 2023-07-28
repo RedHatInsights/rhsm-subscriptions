@@ -15,4 +15,4 @@ defaults:
   variant: Satellite Server
 
 metrics:
-  - id: SOCKETS
+  - id: Sockets

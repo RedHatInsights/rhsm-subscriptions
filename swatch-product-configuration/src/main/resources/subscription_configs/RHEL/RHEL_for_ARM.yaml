@@ -12,4 +12,4 @@ defaults:
   variant: RHEL for ARM
 
 metrics:
-  - id: SOCKETS
+  - id: Sockets

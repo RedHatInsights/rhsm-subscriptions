@@ -27,7 +27,6 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.model.EventRecord;
@@ -170,7 +169,7 @@ class EventRecordRepositoryTest {
             .findEventRecordsByCriteria(
                 e1.getOrgId(),
                 e1.getEventSource(),
-                Set.of(e1.getEventType()),
+                e1.getEventType(),
                 OffsetDateTime.now(CLOCK).minusYears(1),
                 OffsetDateTime.now(CLOCK).plusYears(1))
             .collect(Collectors.toList());

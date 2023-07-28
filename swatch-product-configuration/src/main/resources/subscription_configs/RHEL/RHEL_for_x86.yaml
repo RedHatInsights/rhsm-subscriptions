@@ -28,4 +28,4 @@ defaults:
   variant: RHEL Server
 
 metrics:
-  - id: SOCKETS
+  - id: Sockets

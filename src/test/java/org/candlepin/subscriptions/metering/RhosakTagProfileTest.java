@@ -64,7 +64,7 @@ class RhosakTagProfileTest {
             Uom.STORAGE_GIBIBYTES,
             TagMetric.builder()
                 .tag("rhosak")
-                .metricId("STORAGE_GIBIBYTES")
+                .metricId("Storage-gibibytes")
                 .rhmMetricId("redhat.com:rhosak:storage_gb")
                 .uom(Uom.STORAGE_GIBIBYTES)
                 .billingWindow(BillingWindow.HOURLY)
@@ -82,7 +82,7 @@ class RhosakTagProfileTest {
             Uom.TRANSFER_GIBIBYTES,
             TagMetric.builder()
                 .tag("rhosak")
-                .metricId("TRANSFER_GIBIBYTES")
+                .metricId("Transfer-gibibytes")
                 .rhmMetricId("redhat.com:rhosak:transfer_gb")
                 .awsDimension("transfer_gb")
                 .uom(Uom.TRANSFER_GIBIBYTES)
@@ -103,7 +103,7 @@ class RhosakTagProfileTest {
             Uom.INSTANCE_HOURS,
             TagMetric.builder()
                 .tag("rhosak")
-                .metricId("INSTANCE_HOURS")
+                .metricId("Instance-hours")
                 .rhmMetricId("redhat.com:rhosak:cluster_hour")
                 .awsDimension("cluster_hour")
                 .uom(Uom.INSTANCE_HOURS)
@@ -121,7 +121,7 @@ class RhosakTagProfileTest {
             Uom.STORAGE_GIBIBYTE_MONTHS,
             TagMetric.builder()
                 .tag("rhosak")
-                .metricId("STORAGE_GIBIBYTE_MONTHS")
+                .metricId("Storage-gibibyte-months")
                 .awsDimension("storage_gb")
                 .uom(Uom.STORAGE_GIBIBYTE_MONTHS)
                 .billingWindow(BillingWindow.MONTHLY)
