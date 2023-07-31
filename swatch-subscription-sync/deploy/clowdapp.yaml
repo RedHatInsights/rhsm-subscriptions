@@ -735,7 +735,7 @@ objects:
     metadata:
       name: swatch-psks
     data:
-      self: ZHVtbXk=
+      self: cGxhY2Vob2xkZXI=
 
   - apiVersion: v1
     kind: ConfigMap
