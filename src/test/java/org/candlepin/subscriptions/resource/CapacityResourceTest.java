@@ -27,6 +27,7 @@ import static org.mockito.Mockito.*;
 import jakarta.ws.rs.core.Response;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.HypervisorReportCategory;
@@ -279,7 +280,7 @@ class CapacityResourceTest {
 
     when(repository.findAllBy(
             "owner123456", RHEL.toString(), ServiceLevel._ANY, Usage.PRODUCTION, begin, end))
-        .thenReturn(subscription.getSubscriptionMeasurements());
+        .thenReturn(new ArrayList<>(subscription.getSubscriptionMeasurements()));
 
     List<CapacitySnapshot> actual =
         resource.getCapacities(
@@ -313,7 +314,7 @@ class CapacityResourceTest {
     when(subscriptionRepository.findUnlimited(criteria)).thenReturn(List.of(subscription));
 
     when(repository.findAllBy("owner123456", RHEL.toString(), null, null, min, max))
-        .thenReturn(subscription.getSubscriptionMeasurements());
+        .thenReturn(new ArrayList<>(subscription.getSubscriptionMeasurements()));
 
     CapacityReport report =
         resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, null, null, null, null);
@@ -767,7 +768,7 @@ class CapacityResourceTest {
             Usage.PRODUCTION,
             min,
             max))
-        .thenReturn(s.getSubscriptionMeasurements());
+        .thenReturn(new ArrayList<>(s.getSubscriptionMeasurements()));
 
     List<CapacitySnapshotByMetricId> actual =
         resource.getCapacitiesByMetricId(
@@ -803,7 +804,7 @@ class CapacityResourceTest {
 
     when(repository.findAllBy(
             "owner123456", RHEL.toString(), MetricId.CORES, null, null, null, min, max))
-        .thenReturn(limited.getSubscriptionMeasurements());
+        .thenReturn(new ArrayList<>(limited.getSubscriptionMeasurements()));
 
     var criteria =
         DbReportCriteria.builder()
