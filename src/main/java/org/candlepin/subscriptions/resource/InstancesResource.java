@@ -164,6 +164,11 @@ public class InstancesResource implements InstancesApi {
 
     int minCores = 0;
     int minSockets = 0;
+    if (uom == MetricId.CORES) {
+      minCores = 1;
+    } else if (uom == MetricId.SOCKETS) {
+      minSockets = 1;
+    }
 
     ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
     Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
