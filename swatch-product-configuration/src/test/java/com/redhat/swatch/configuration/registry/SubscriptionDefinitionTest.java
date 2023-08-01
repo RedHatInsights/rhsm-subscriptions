@@ -106,7 +106,7 @@ class SubscriptionDefinitionTest {
             "metric",
             "kafka_id:strimzi_resource_state:max_over_time1h",
             "metadataMetric",
-            "subscription_labels"));
+            "ocm_subscription"));
     metric.setPrometheus(prometheusMetric);
 
     var expected = Optional.of(metric);

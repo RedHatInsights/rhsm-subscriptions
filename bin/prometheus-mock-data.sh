@@ -35,8 +35,8 @@ entrypoint() {
   echo "Generating mock data for _id=$CLUSTER_ID,product=$PRODUCT,metrics=$METRICS"
 
   cat <<EOF > $FILE
-# HELP subscription_labels placeholder
-# TYPE subscription_labels counter
+# HELP ocm_subscription placeholder
+# TYPE ocm_subscription counter
 EOF
 
   for METRIC in $METRICS; do
@@ -49,7 +49,7 @@ EOF
   while [ $TIME -lt $NOW ]; do
     TIME=$(($TIME + 300))
     cat <<EOF >> $FILE
-subscription_labels{_id="$CLUSTER_ID",billing_model="marketplace",ebs_account="$ACCOUNT",external_organization="$ORG_ID",support="Premium",billing_provider="$BILLING_PROVIDER",billing_marketplace_account="$MARKETPLACE_ACCOUNT",product="$PRODUCT"} 1.0 $TIME
+ocm_subscription{_id="$CLUSTER_ID",billing_model="marketplace",ebs_account="$ACCOUNT",external_organization="$ORG_ID",support="Premium",billing_provider="$BILLING_PROVIDER",billing_marketplace_account="$MARKETPLACE_ACCOUNT",product="$PRODUCT"} 1.0 $TIME
 EOF
     for METRIC in $METRICS; do
       VALUE=$(($RANDOM % 100))

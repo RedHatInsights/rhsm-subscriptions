@@ -134,7 +134,7 @@ class PrometheusMeteringControllerTest {
     Map<String, String> queryParams = new HashMap<>();
     queryParams.put("product", "ocp");
     queryParams.put("prometheusMetric", "cluster:usage:workload:capacity_physical_cpu_hours");
-    queryParams.put("prometheusMetadataMetric", "subscription_labels");
+    queryParams.put("prometheusMetadataMetric", "ocm_subscription");
     tagMetric =
         TagMetric.builder()
             .tag("OpenShift-metrics")

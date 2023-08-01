@@ -77,7 +77,7 @@ class RhacsTagProfileTest {
                         "product", "rhacs",
                         "prometheusMetric",
                             "rhacs:rox_central_cluster_metrics_cpu_capacity:avg_over_time1h",
-                        "prometheusMetadataMetric", "subscription_labels"))
+                        "prometheusMetadataMetric", "ocm_subscription"))
                 .build()));
   }
 

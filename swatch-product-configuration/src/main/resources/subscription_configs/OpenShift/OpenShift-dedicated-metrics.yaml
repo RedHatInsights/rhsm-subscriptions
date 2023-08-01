@@ -26,7 +26,7 @@ metrics:
       queryParams:
         product: osd
         metric: cluster:usage:workload:capacity_physical_cpu_hours
-        metadataMetric: subscription_labels
+        metadataMetric: ocm_subscription
   - id: Instance-hours
     rhmMetricId: redhat.com:openshift_dedicated:cluster_hour
     prometheus:
@@ -34,4 +34,4 @@ metrics:
       queryParams:
         product: osd
         metric: cluster:usage:workload:capacity_physical_instance_hours
-        metadataMetric: subscription_labels
+        metadataMetric: ocm_subscription

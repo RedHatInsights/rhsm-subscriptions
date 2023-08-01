@@ -75,7 +75,7 @@ class RhosakTagProfileTest {
                         "product", "rhosak",
                         "prometheusMetric",
                             "kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibytes",
-                        "prometheusMetadataMetric", "subscription_labels"))
+                        "prometheusMetadataMetric", "ocm_subscription"))
                 .build()),
         Arguments.of(
             "rhosak",
@@ -96,7 +96,7 @@ class RhosakTagProfileTest {
                         "prometheusMetric",
                         "kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes",
                         "prometheusMetadataMetric",
-                        "subscription_labels"))
+                        "ocm_subscription"))
                 .build()),
         Arguments.of(
             "rhosak",
@@ -114,7 +114,7 @@ class RhosakTagProfileTest {
                     Map.of(
                         "product", "rhosak",
                         "prometheusMetric", "kafka_id:strimzi_resource_state:max_over_time1h",
-                        "prometheusMetadataMetric", "subscription_labels"))
+                        "prometheusMetadataMetric", "ocm_subscription"))
                 .build()),
         Arguments.of(
             "rhosak",
@@ -134,7 +134,7 @@ class RhosakTagProfileTest {
                         "prometheusMetric",
                         "kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibyte_months",
                         "prometheusMetadataMetric",
-                        "subscription_labels"))
+                        "ocm_subscription"))
                 .build()));
   }
 
