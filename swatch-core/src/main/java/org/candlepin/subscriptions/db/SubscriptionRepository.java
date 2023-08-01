@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.candlepin.subscriptions.db.SpringDataUtil.*;
-
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
@@ -56,8 +54,6 @@ public interface SubscriptionRepository
     extends JpaRepository<Subscription, Subscription.SubscriptionCompoundId>,
         JpaSpecificationExecutor<Subscription> {
 
-  String OFFERING_ALIAS = "offering";
-
   @Query(
       """
         SELECT s FROM Subscription s
@@ -74,6 +70,7 @@ public interface SubscriptionRepository
   Page<Subscription> findByOfferingSku(String sku, Pageable pageable);
 
   @EntityGraph(value = "graph.SubscriptionSync")
+  @Query("SELECT DISTINCT s FROM Subscription s WHERE s.orgId = :orgId")
   Stream<Subscription> findByOrgId(String orgId);
 
   void deleteBySubscriptionId(String subscriptionId);

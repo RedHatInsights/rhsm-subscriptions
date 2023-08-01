@@ -163,7 +163,7 @@ class SubscriptionMeasurementRepositoryTest {
   }
 
   @Test
-  void testFindsSubStartingBeforeRangeAndEndingDuringRange() { // *
+  void testFindsSubStartingBeforeRangeAndEndingDuringRange() {
     var specification =
         SubscriptionMeasurementRepository.subscriptionIsActiveBetween(
             START.plusDays(5), END.plusDays(5));
@@ -172,7 +172,7 @@ class SubscriptionMeasurementRepositoryTest {
   }
 
   @Test
-  void testFindsSubStartingBeforeRangeAndEndingAfterRange() { // *
+  void testFindsSubStartingBeforeRangeAndEndingAfterRange() {
     var specification =
         SubscriptionMeasurementRepository.subscriptionIsActiveBetween(
             START.plusDays(5), END.minusDays(5));
@@ -181,7 +181,7 @@ class SubscriptionMeasurementRepositoryTest {
   }
 
   @Test
-  void testFindsSubStartingDuringRangeAndEndingDuringRange() { // *
+  void testFindsSubStartingDuringRangeAndEndingDuringRange() {
     var specification =
         SubscriptionMeasurementRepository.subscriptionIsActiveBetween(
             START.minusDays(5), END.plusDays(5));
@@ -190,7 +190,7 @@ class SubscriptionMeasurementRepositoryTest {
   }
 
   @Test
-  void testFindsSubStartingDuringRangeAndEndingAfterRange() { // *
+  void testFindsSubStartingDuringRangeAndEndingAfterRange() {
     var specification =
         SubscriptionMeasurementRepository.subscriptionIsActiveBetween(
             START.minusDays(5), END.minusDays(5));

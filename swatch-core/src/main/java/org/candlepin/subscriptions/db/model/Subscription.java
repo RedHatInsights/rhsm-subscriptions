@@ -23,10 +23,8 @@ package org.candlepin.subscriptions.db.model;
 import jakarta.persistence.*;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import lombok.*;
@@ -98,7 +96,7 @@ public class Subscription implements Serializable {
   @OneToMany(mappedBy = "subscription", cascade = CascadeType.ALL, orphanRemoval = true)
   @Builder.Default
   @ToString.Exclude // Excluded to prevent fetching a lazy-loaded collection
-  private List<SubscriptionMeasurement> subscriptionMeasurements = new ArrayList<>();
+  private Set<SubscriptionMeasurement> subscriptionMeasurements = new HashSet<>();
 
   @Override
   public boolean equals(Object o) {
