@@ -11,16 +11,30 @@ bin/prometheus-mock-data.sh
 ----
 
 == Testing The API
+=== WEB UI
 http://localhost:9090/graph is useful to try PromQL queries.
 
+Query:
+[source]
+kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibyte_months * on (_id) group_right min_over_time (ocm_subscription{product="rhosak", external_organization="org123", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
+
+Res:
+[source]
+`3600`
+
+Range:
+[source]
+`6h`
+
+=== CURL
 Using ``START_DATE=$(date -d yesterday +%s)`` and ``END_DATE=$(date +%s)`` (last 24 hours) and plug them into the curl commands below.
 
 [source,bash]
 ----
-curl 'http://localhost:9090/api/v1/query_range?query=kafka_id%3Akafka_broker_quota_totalstorageusedbytes%3Amax_over_time1h_gibibytes+*+on%28_id%29+group_right+min_over_time%28ocm_subscription%7Bproduct%3D%22rhosak%22%2C+ebs_account%3D%22account123%22%2C+billing_model%3D%22marketplace%22%2C+support%3D%7E%22Premium%7CStandard%7CSelf-Support%7CNone%22%7D%5B1h%5D%29&dedup=true&partial_response=false&start=${START_DATE}&end=${END_DATE}&step=3600&max_source_resolution=0s'
+curl 'http://localhost:9090/api/v1/query_range?query=kafka_id%3Akafka_broker_quota_totalstorageusedbytes%3Amax_over_time1h_gibibyte_months+*+on%28_id%29+group_right+min_over_time%28ocm_subscription%7Bproduct%3D%22rhosak%22%2C+external_organization%3D%22org123%22%2C+billing_model%3D%22marketplace%22%2C+support%3D%7E%22Premium%7CStandard%7CSelf-Support%7CNone%22%7D%5B1h%5D%29&dedup=true&partial_response=false&start=${START_DATE}&end=${END_DATE}&step=3600&max_source_resolution=0s'
 
 # Example
-curl 'http://localhost:9090/api/v1/query_range?query=kafka_id%3Akafka_broker_quota_totalstorageusedbytes%3Amax_over_time1h_gibibytes+*+on%28_id%29+group_right+min_over_time%28ocm_subscription%7Bproduct%3D%22rhosak%22%2C+ebs_account%3D%22account123%22%2C+billing_model%3D%22marketplace%22%2C+support%3D%7E%22Premium%7CStandard%7CSelf-Support%7CNone%22%7D%5B1h%5D%29&dedup=true&partial_response=false&start=1651449600&end=1651506600&step=3600&max_source_resolution=0s'
+curl 'http://localhost:9090/api/v1/query_range?query=kafka_id%3Akafka_broker_quota_totalstorageusedbytes%3Amax_over_time1h_gibibyte_months+*+on%28_id%29+group_right+min_over_time%28ocm_subscription%7Bproduct%3D%22rhosak%22%2C+external_organization%3D%22org123%22%2C+billing_model%3D%22marketplace%22%2C+support%3D%7E%22Premium%7CStandard%7CSelf-Support%7CNone%22%7D%5B1h%5D%29&dedup=true&partial_response=false&start=1651449600&end=1651506600&step=3600&max_source_resolution=0s'
 ----
 
 == Pointing Subscription Watch At The Local Prometheus
