@@ -331,7 +331,8 @@ public class SubscriptionSyncController {
           subs.collect(
               Collectors.toMap(
                   sub -> new SubscriptionCompoundId(sub.getSubscriptionId(), sub.getStartDate()),
-                  Function.identity()));
+                  Function.identity(),
+                  (s1, s2) -> s1));
     }
     subscriptions
         .filter(this::shouldSyncSub)
