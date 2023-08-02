@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import com.redhat.swatch.configuration.registry.Variant;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.BadRequestException;
@@ -42,7 +43,6 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -80,7 +80,6 @@ public class CapacityResource implements CapacityApi {
   private final SubscriptionRepository subscriptionRepository;
   private final PageLinkCreator pageLinkCreator;
   private final ApplicationClock clock;
-  private final TagProfile tagProfile;
 
   @Context UriInfo uriInfo;
 
@@ -88,13 +87,11 @@ public class CapacityResource implements CapacityApi {
       SubscriptionMeasurementRepository repository,
       SubscriptionRepository subscriptionRepository,
       PageLinkCreator pageLinkCreator,
-      ApplicationClock clock,
-      TagProfile tagProfile) {
+      ApplicationClock clock) {
     this.repository = repository;
     this.subscriptionRepository = subscriptionRepository;
     this.pageLinkCreator = pageLinkCreator;
     this.clock = clock;
-    this.tagProfile = tagProfile;
   }
 
   /**
@@ -268,11 +265,7 @@ public class CapacityResource implements CapacityApi {
      * supported by the product.  The reports created would be technically accurate, but would convey the
      * false impression that we have capacity information at that fine of a granularity.  This decision is
      * on of personal judgment and it may be appropriate to reverse it at a later date. */
-    try {
-      tagProfile.validateGranularityCompatibility(productId, granularity);
-    } catch (IllegalStateException e) {
-      throw new BadRequestException(e.getMessage());
-    }
+    validateGranularity(productId, granularity);
 
     var dbReportCriteria =
         DbReportCriteria.builder()
@@ -334,11 +327,7 @@ public class CapacityResource implements CapacityApi {
      * supported by the product.  The reports created would be technically accurate, but would convey the
      * false impression that we have capacity information at that fine of a granularity.  This decision is
      * on of personal judgment and it may be appropriate to reverse it at a later date. */
-    try {
-      tagProfile.validateGranularityCompatibility(productId, granularity);
-    } catch (IllegalStateException e) {
-      throw new BadRequestException(e.getMessage());
-    }
+    validateGranularity(productId, granularity);
 
     var dbReportCriteria =
         DbReportCriteria.builder()
@@ -482,5 +471,20 @@ public class CapacityResource implements CapacityApi {
     }
 
     return new CapacitySnapshotByMetricId().date(date).value(value).hasData(hasData);
+  }
+
+  private void validateGranularity(ProductId productId, Granularity granularity) {
+    Variant.findByTag(productId.toString()).stream()
+        .map(Variant::getSubscription)
+        .map(
+            subscriptionDefinition ->
+                subscriptionDefinition.getSupportedGranularity().contains(granularity))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new BadRequestException(
+                    String.format(
+                        "%s does not support any granularity finer than %s",
+                        productId, granularity.getValue())));
   }
 }

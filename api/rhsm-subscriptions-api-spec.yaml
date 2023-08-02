@@ -1140,7 +1140,6 @@ components:
       type: string
       enum:
         - OpenShift Container Platform
-        - RHEL
         - RHEL Compute Node
         - RHEL Desktop
         - RHEL for ARM

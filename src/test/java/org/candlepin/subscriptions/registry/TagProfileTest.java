@@ -184,7 +184,7 @@ class TagProfileTest {
 
   @Test
   void testIsProductPAYGEligibleFalse() {
-    assertFalse(tagProfile.isProductPAYGEligible(ProductId.RHEL.toString()));
+    assertFalse(tagProfile.isProductPAYGEligible(ProductId.RHEL_FOR_X86.toString()));
   }
 
   @Test

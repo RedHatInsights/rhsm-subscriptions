@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL;
 import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_SERVER;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -75,7 +74,7 @@ class SubscriptionResourceTest {
         AccessDeniedException.class,
         () ->
             subscriptionResource.getSkuCapacityReport(
-                RHEL,
+                RHEL_SERVER,
                 0,
                 10,
                 null,
