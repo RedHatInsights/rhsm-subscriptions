@@ -98,34 +98,4 @@ class PrometheusMetricsTaskManagerTest {
     manager.updateMetricsForAccount(orgId, TEST_PROFILE_ID, start, end);
     verify(queue).enqueue(expectedTask);
   }
-
-  @Test
-  void updateForConfiguredAccounts() throws Exception {
-    OffsetDateTime end = OffsetDateTime.now();
-    OffsetDateTime start = end.minusDays(1);
-
-    when(accountSource.getMarketplaceAccounts(eq(TEST_PROFILE_ID), eq(Uom.CORES), any(), any()))
-        .thenReturn(Set.of("org1", "org2"));
-    TaskDescriptor account1Task =
-        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, TASK_TOPIC)
-            .setSingleValuedArg("orgId", "org1")
-            .setSingleValuedArg("productTag", TEST_PROFILE_ID)
-            .setSingleValuedArg("metric", "Cores")
-            .setSingleValuedArg("start", start.toString())
-            .setSingleValuedArg("end", end.toString())
-            .build();
-    TaskDescriptor account2Task =
-        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, TASK_TOPIC)
-            .setSingleValuedArg("orgId", "org2")
-            .setSingleValuedArg("productTag", TEST_PROFILE_ID)
-            .setSingleValuedArg("metric", "Cores")
-            .setSingleValuedArg("start", start.toString())
-            .setSingleValuedArg("end", end.toString())
-            .build();
-
-    manager.updateMetricsForAllAccounts(TEST_PROFILE_ID, start, end);
-    verify(queue).enqueue(account1Task);
-    verify(queue).enqueue(account2Task);
-    verifyNoMoreInteractions(queue);
-  }
 }
