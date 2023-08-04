@@ -25,4 +25,4 @@ metrics:
       queryParams:
         product: ocp
         metric: cluster:usage:workload:capacity_physical_cpu_hours
-        metadataMetric: subscription_labels
+        metadataMetric: ocm_subscription

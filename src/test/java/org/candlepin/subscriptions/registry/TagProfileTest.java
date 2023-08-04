@@ -253,7 +253,7 @@ class TagProfileTest {
 
     Map<String, String> params = new HashMap<>();
     params.put("prometheusMetric", "cluster:usage:workload:capacity_physical_cpu_cores:max:5m");
-    params.put("prometheusMetadataMetric", "subscription_labels");
+    params.put("prometheusMetadataMetric", "ocm_subscription");
 
     // Mutable List for purpose of modifying during testing.
     List<TagMetric> tagMetrics = new LinkedList<>();
