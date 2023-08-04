@@ -103,14 +103,14 @@ class InternalMeteringResourceTest {
     OffsetDateTime end = clock.startOfCurrentHour();
     assertThrows(
         BadRequestException.class,
-        () -> resource.meterProductForAccount(productId, null, "org1", end, 120, false));
+        () -> resource.meterProductForOrgIdAndRange(productId, "org1", end, 120, false));
   }
 
   @Test
   void testMetersUsingDefaultRange() {
     OffsetDateTime endDate = clock.startOfCurrentHour();
     OffsetDateTime startDate = endDate.minusMinutes(60);
-    resource.meterProductForAccount(VALID_PRODUCT, null, "org1", endDate, null, false);
+    resource.meterProductForOrgIdAndRange(VALID_PRODUCT, "org1", endDate, null, false);
     verify(tasks).updateMetricsForOrgId("org1", VALID_PRODUCT, startDate, endDate);
     verifyNoInteractions(controller);
   }
@@ -124,21 +124,21 @@ class InternalMeteringResourceTest {
         assertThrows(
             IllegalArgumentException.class,
             () ->
-                resource.meterProductForAccount(VALID_PRODUCT, "account1", null, end, 120, false));
+                resource.meterProductForOrgIdAndRange(VALID_PRODUCT, null, end, 120, false));
     assertEquals("Date must start at top of the hour: 2019-05-24T12:05Z", iae1.getMessage());
-    resource.meterProductForAccount(
-        VALID_PRODUCT, null, "org1", clock.startOfHour(end), 120, false);
+    resource.meterProductForOrgIdAndRange(
+        VALID_PRODUCT,"org1", clock.startOfHour(end), 120, false);
 
     // synchronous
     IllegalArgumentException iae2 =
         assertThrows(
             IllegalArgumentException.class,
-            () -> resource.meterProductForAccount(VALID_PRODUCT, null, "org1", end, 120, true));
+            () -> resource.meterProductForOrgIdAndRange(VALID_PRODUCT, "org1", end, 120, true));
     assertEquals("Date must start at top of the hour: 2019-05-24T12:05Z", iae2.getMessage());
 
     // Avoid additional exception by enabling synchronous operations.
     appProps.setEnableSynchronousOperations(true);
-    resource.meterProductForAccount(VALID_PRODUCT, null, "org1", clock.startOfHour(end), 120, true);
+    resource.meterProductForOrgIdAndRange(VALID_PRODUCT,"org1", clock.startOfHour(end), 120, true);
   }
 
   @Test
@@ -147,7 +147,7 @@ class InternalMeteringResourceTest {
     BadRequestException bre =
         assertThrows(
             BadRequestException.class,
-            () -> resource.meterProductForAccount(VALID_PRODUCT, "account1", null, end, 120, true));
+            () -> resource.meterProductForOrgIdAndRange(VALID_PRODUCT, "org1", end, 120, true));
     assertEquals("Synchronous metering operations are not enabled.", bre.getMessage());
   }
 
@@ -155,7 +155,7 @@ class InternalMeteringResourceTest {
   void allowAsynchronousMeteringForAccountWhenSyncRequestsDisabled() {
     OffsetDateTime endDate = clock.startOfCurrentHour();
     OffsetDateTime startDate = endDate.minusMinutes(120);
-    resource.meterProductForAccount(VALID_PRODUCT, "account1", null, endDate, 120, false);
+    resource.meterProductForOrgIdAndRange(VALID_PRODUCT, "org1", endDate, 120, false);
     verify(tasks).updateMetricsForOrgId("org1", VALID_PRODUCT, startDate, endDate);
     verifyNoInteractions(controller);
   }
@@ -166,7 +166,7 @@ class InternalMeteringResourceTest {
 
     OffsetDateTime endDate = clock.startOfCurrentHour();
     OffsetDateTime startDate = endDate.minusMinutes(120);
-    resource.meterProductForAccount(VALID_PRODUCT, "account1", null, endDate, 120, true);
+    resource.meterProductForOrgIdAndRange(VALID_PRODUCT, "org1", endDate, 120, true);
     verify(controller)
         .collectMetrics(VALID_PRODUCT, Uom.INSTANCE_HOURS, "org1", startDate, endDate);
     verifyNoInteractions(tasks);
@@ -178,38 +178,8 @@ class InternalMeteringResourceTest {
 
     OffsetDateTime endDate = clock.startOfCurrentHour();
     OffsetDateTime startDate = endDate.minusMinutes(120);
-    resource.meterProductForAccount(VALID_PRODUCT, null, "org1", endDate, 120, false);
+    resource.meterProductForOrgIdAndRange(VALID_PRODUCT,"org1", endDate, 120, false);
     verify(tasks).updateMetricsForOrgId("org1", VALID_PRODUCT, startDate, endDate);
-    verifyNoInteractions(controller);
-  }
-
-  @Test
-  void meterProductForAccountLooksUpOrgIdWhenNotProvided() {
-    OffsetDateTime endDate = clock.startOfCurrentHour();
-    OffsetDateTime startDate = endDate.minusMinutes(120);
-    resource.meterProductForAccount(VALID_PRODUCT, "account1", null, endDate, 120, false);
-    verify(tasks).updateMetricsForOrgId("org1", VALID_PRODUCT, startDate, endDate);
-    verifyNoInteractions(controller);
-  }
-
-  @Test
-  void meterProductForAccountThrowExceptionWhenOrgIdCannotBeFound() {
-    OffsetDateTime endDate = clock.startOfCurrentHour();
-    BadRequestException bre =
-        assertThrows(
-            BadRequestException.class,
-            () ->
-                resource.meterProductForAccount(
-                    VALID_PRODUCT, "account2", null, endDate, 120, false));
-    assertEquals("Unable to look up orgId for accountNumber: account2", bre.getMessage());
-  }
-
-  @Test
-  void noOrgIdMetersAllOrgsInstead() {
-    OffsetDateTime endDate = clock.startOfCurrentHour();
-    OffsetDateTime startDate = endDate.minusMinutes(120);
-    resource.meterProductForAccount(VALID_PRODUCT, null, null, endDate, 120, false);
-    verify(tasks).updateMetricsForAllAccounts(VALID_PRODUCT, startDate, endDate);
     verifyNoInteractions(controller);
   }
 
@@ -219,7 +189,7 @@ class InternalMeteringResourceTest {
     IllegalArgumentException ie =
         assertThrows(
             IllegalArgumentException.class,
-            () -> resource.meterProductForAccount(VALID_PRODUCT, null, "org1", endDate, -1, false));
+            () -> resource.meterProductForOrgIdAndRange(VALID_PRODUCT,"org1", endDate, -1, false));
     assertEquals("Invalid value specified (Must be >= 0): rangeInMinutes", ie.getMessage());
   }
 
@@ -230,7 +200,7 @@ class InternalMeteringResourceTest {
         assertThrows(
             IllegalArgumentException.class,
             () ->
-                resource.meterProductForAccount(VALID_PRODUCT, null, "org1", endDate, 120, false));
+                resource.meterProductForOrgIdAndRange(VALID_PRODUCT,"org1", endDate, 120, false));
     assertEquals("Date must start at top of the hour: " + endDate, ie.getMessage());
   }
 
@@ -240,7 +210,7 @@ class InternalMeteringResourceTest {
     IllegalArgumentException ie =
         assertThrows(
             IllegalArgumentException.class,
-            () -> resource.meterProductForAccount(VALID_PRODUCT, null, "org1", endDate, 13, false));
+            () -> resource.meterProductForOrgIdAndRange(VALID_PRODUCT, "org1", endDate, 13, false));
     assertThat(ie.getMessage(), Matchers.matchesRegex(".*produces time not at top of the hour.*"));
   }
 }

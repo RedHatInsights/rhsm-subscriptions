@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.metering.api.admin;
 import io.micrometer.core.annotation.Timed;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.Min;
-import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.*;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
@@ -40,6 +40,7 @@ import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeterin
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.resource.ResourceUtils;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -90,42 +91,14 @@ public class InternalMeteringResource implements InternalApi {
     log.info("Event record purge completed successfully");
   }
 
-  protected void meterProductForAllAccounts(
-      String productTag, OffsetDateTime endDate, Integer rangeInMinutes) {
-    if (Objects.isNull(rangeInMinutes)) {
-      rangeInMinutes = metricProperties.getRangeInMinutes();
-    }
-    OffsetDateTime end = util.getDate(Optional.ofNullable(endDate));
-    OffsetDateTime start = util.getStartDate(end, rangeInMinutes);
-
-    log.info("Metering {} for all accounts in the past {} minutes", productTag, rangeInMinutes);
-
-    try {
-      tasks.updateMetricsForAllAccounts(productTag, start, end);
-    } catch (Exception e) {
-      log.error("Error triggering {} metering for all accounts.", productTag, e);
-    }
-  }
-
   @Override
-  public void meterProductForAccount(
-      String productTag,
-      String accountNumber,
-      String orgId,
-      OffsetDateTime endDate,
-      @Min(0) Integer rangeInMinutes,
-      Boolean xRhSwatchSynchronousRequest) {
+  public void meterProductForOrgIdAndRange(
+          String productTag,
+          @NotNull String orgId,
+          OffsetDateTime endDate,
+          @Min(0) Integer rangeInMinutes,
+          Boolean xRhSwatchSynchronousRequest) {
     Object principal = ResourceUtils.getPrincipal();
-
-    if (orgId == null && accountNumber == null) {
-      meterProductForAllAccounts(productTag, endDate, rangeInMinutes);
-    } else if (orgId == null) {
-      orgId = accountConfigRepository.findOrgByAccountNumber(accountNumber);
-      if (orgId == null) {
-        throw new BadRequestException(
-            String.format("Unable to look up orgId for accountNumber: %s", accountNumber));
-      }
-    }
 
     if (Objects.isNull(rangeInMinutes)) {
       rangeInMinutes = metricProperties.getRangeInMinutes();
@@ -140,7 +113,7 @@ public class InternalMeteringResource implements InternalApi {
     log.info(
         "{} metering for {} against range [{}, {}) triggered via API by {}",
         productTag,
-        accountNumber,
+        orgId,
         start,
         end,
         principal);
