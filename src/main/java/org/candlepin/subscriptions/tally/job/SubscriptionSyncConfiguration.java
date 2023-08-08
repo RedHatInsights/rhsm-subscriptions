@@ -22,10 +22,13 @@ package org.candlepin.subscriptions.tally.job;
 
 import org.candlepin.subscriptions.spring.JobRunner;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
+import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 
@@ -33,10 +36,18 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 @Profile("subscription-sync")
 @Import(TaskProducerConfiguration.class)
-@ComponentScan({
-  "org.candlepin.subscriptions.tally.job",
-  "org.candlepin.subscriptions.subscription"
-})
+@ComponentScan(
+    basePackages = {
+      "org.candlepin.subscriptions.tally.job",
+      "org.candlepin.subscriptions.subscription"
+    },
+    // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
+    excludeFilters = {
+      @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+      @ComponentScan.Filter(
+          type = FilterType.CUSTOM,
+          classes = AutoConfigurationExcludeFilter.class)
+    })
 public class SubscriptionSyncConfiguration {
   @Bean
   JobRunner jobRunner(SubscriptionSyncJob job, ApplicationContext applicationContext) {

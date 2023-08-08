@@ -21,16 +21,27 @@
 package org.candlepin.subscriptions.metering;
 
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
+import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 
 /**
  * Top level config class for metering. Beans are defined/configured on a profile basis via the
  * profile package. This class serves as an application entry point for the metering components.
  */
 @Configuration
-@ComponentScan({"org.candlepin.subscriptions.metering.profile"})
+@ComponentScan(
+    basePackages = {"org.candlepin.subscriptions.metering.profile"},
+    // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
+    excludeFilters = {
+      @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+      @ComponentScan.Filter(
+          type = FilterType.CUSTOM,
+          classes = AutoConfigurationExcludeFilter.class)
+    })
 public class MeteringConfiguration {
 
   @Bean

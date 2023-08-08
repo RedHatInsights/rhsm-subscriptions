@@ -22,9 +22,7 @@ package org.candlepin.subscriptions.tally.roller;
 
 import static org.candlepin.subscriptions.db.model.Granularity.HOURLY;
 
-import java.io.IOException;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,15 +31,9 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
 
 @SpringBootTest
 // The transactional annotation will rollback the transaction at the end of every test.
@@ -56,20 +48,6 @@ class HourlySnapshotRollerTest {
   @Autowired private ApplicationClock clock;
 
   private SnapshotRollerTester<HourlySnapshotRoller> tester;
-
-  @TestConfiguration
-  static class HourlySnapshotRollerTestConfig {
-    @Bean
-    @Primary
-    public TagProfile testTagProfile(ResourceLoader resourceLoader) throws IOException {
-      Yaml parser = new Yaml(new Constructor(TagProfile.class));
-      TagProfile tagProfile =
-          parser.load(
-              resourceLoader.getResource("classpath:test_tag_profile.yaml").getInputStream());
-      tagProfile.initLookups();
-      return tagProfile;
-    }
-  }
 
   @BeforeEach
   void setupAllTests() throws Exception {

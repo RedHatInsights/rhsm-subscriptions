@@ -29,19 +29,12 @@ import static org.candlepin.subscriptions.tally.collector.Assertions.assertHyper
 import static org.candlepin.subscriptions.tally.collector.Assertions.assertPhysicalTotalsCalculation;
 import static org.candlepin.subscriptions.tally.collector.Assertions.assertTotalsCalculation;
 import static org.candlepin.subscriptions.tally.collector.Assertions.assertVirtualTotalsCalculation;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyInt;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.EnumMap;
@@ -70,16 +63,37 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+import org.candlepin.subscriptions.registry.TagProfile;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.test.context.ActiveProfiles;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
 
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
 class InventoryAccountUsageCollectorTallyTest {
+
+  @TestConfiguration
+  static class InventoryAccountUsageTagProfileConfig {
+    @Bean
+    @Primary
+    public TagProfile testTagProfile(ResourceLoader resourceLoader) throws IOException {
+      Yaml parser = new Yaml(new Constructor(TagProfile.class));
+      TagProfile tagProfile =
+          parser.load(
+              resourceLoader.getResource("classpath:test_tag_profile.yaml").getInputStream());
+      tagProfile.initLookups();
+      return tagProfile;
+    }
+  }
 
   private static final String TEST_PRODUCT = "RHEL";
   public static final Integer TEST_PRODUCT_ID = 1;

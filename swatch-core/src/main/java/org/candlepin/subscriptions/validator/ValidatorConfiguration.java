@@ -20,12 +20,23 @@
  */
 package org.candlepin.subscriptions.validator;
 
+import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
+import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 
 /** Configuration for validators */
 @Configuration
-@ComponentScan(basePackages = {"org.candlepin.subscriptions.validator"})
+@ComponentScan(
+    basePackages = {"org.candlepin.subscriptions.validator"},
+    // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
+    excludeFilters = {
+      @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+      @ComponentScan.Filter(
+          type = FilterType.CUSTOM,
+          classes = AutoConfigurationExcludeFilter.class)
+    })
 public class ValidatorConfiguration {
   // No op
 }

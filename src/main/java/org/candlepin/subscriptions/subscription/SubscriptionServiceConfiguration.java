@@ -27,11 +27,14 @@ import org.candlepin.subscriptions.exception.UnretryableException;
 import org.candlepin.subscriptions.registry.RegistryConfiguration;
 import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
+import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.jms.annotation.EnableJms;
 import org.springframework.retry.support.RetryTemplate;
@@ -46,11 +49,19 @@ import org.springframework.retry.support.RetryTemplateBuilder;
   CapacityReconciliationConfiguration.class
 })
 @EnableJms
-@ComponentScan({
-  "org.candlepin.subscriptions.subscription",
-  "org.candlepin.subscriptions.umb",
-  "org.candlepin.subscriptions.product"
-})
+@ComponentScan(
+    basePackages = {
+      "org.candlepin.subscriptions.subscription",
+      "org.candlepin.subscriptions.umb",
+      "org.candlepin.subscriptions.product"
+    },
+    // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
+    excludeFilters = {
+      @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+      @ComponentScan.Filter(
+          type = FilterType.CUSTOM,
+          classes = AutoConfigurationExcludeFilter.class)
+    })
 public class SubscriptionServiceConfiguration {
 
   @Bean

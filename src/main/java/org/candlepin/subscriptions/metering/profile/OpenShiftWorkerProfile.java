@@ -33,9 +33,12 @@ import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
+import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 import org.springframework.retry.annotation.EnableRetry;
@@ -53,10 +56,18 @@ import org.springframework.retry.support.RetryTemplate;
   TaskProducerConfiguration.class,
   MeteringTasksConfiguration.class
 })
-@ComponentScan({
-  "org.candlepin.subscriptions.metering.api",
-  "org.candlepin.subscriptions.metering.retention"
-})
+@ComponentScan(
+    basePackages = {
+      "org.candlepin.subscriptions.metering.api",
+      "org.candlepin.subscriptions.metering.retention"
+    },
+    // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
+    excludeFilters = {
+      @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+      @ComponentScan.Filter(
+          type = FilterType.CUSTOM,
+          classes = AutoConfigurationExcludeFilter.class)
+    })
 public class OpenShiftWorkerProfile {
 
   @Bean(name = "openshiftMetricRetryTemplate")
