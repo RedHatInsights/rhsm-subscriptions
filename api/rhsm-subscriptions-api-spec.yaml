@@ -362,7 +362,7 @@ paths:
                   count: 10
                   total_core_hours: 30
                   total_instance_hours: 20
-                  product: RHEL
+                  product: RHEL Server
                   granularity: Daily
                   service_level: Premium
                   usage: Production
@@ -474,7 +474,7 @@ paths:
                   next: '/api/rhsm-subscriptions/v1/capacity/RHEL%20Server/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
                 meta:
                   count: 10
-                  product: RHEL
+                  product: RHEL Server
                   granularity: Daily
                   service_level: Premium
         '400':
@@ -585,7 +585,7 @@ paths:
                   next: '/api/rhsm-subscriptions/v1/capacity/RHEL%20Server?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
                 meta:
                   count: 10
-                  product: RHEL
+                  product: RHEL Server
                   granularity: Daily
                   service_level: Premium
         '400':
