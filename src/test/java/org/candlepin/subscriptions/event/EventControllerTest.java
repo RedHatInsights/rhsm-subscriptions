@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.event;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -31,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.candlepin.subscriptions.db.EventRecordRepository;
+import org.candlepin.subscriptions.security.OptInController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -45,6 +47,7 @@ class EventControllerTest {
   @Autowired EventController eventController;
 
   @MockBean private EventRecordRepository eventRecordRepository;
+  @MockBean private OptInController optInController;
 
   String eventRecord1;
   String eventRecord2;
@@ -169,7 +172,7 @@ class EventControllerTest {
     eventRecords.add(eventRecord2);
     eventRecords.add(eventRecord3);
     eventController.persistServiceInstances(eventRecords);
-
+    verify(optInController, times(2)).optInByOrgId(any(), any());
     when(eventRecordRepository.saveAll(any())).thenReturn(new ArrayList<>());
 
     ArgumentCaptor<Collection> eve = ArgumentCaptor.forClass(Collection.class);
@@ -188,7 +191,7 @@ class EventControllerTest {
     eventRecords.add(eventRecord4);
     eventRecords.add(eventRecord5);
     eventController.persistServiceInstances(eventRecords);
-
+    verify(optInController, times(3)).optInByOrgId(any(), any());
     when(eventRecordRepository.saveAll(any())).thenReturn(new ArrayList<>());
     ArgumentCaptor<Collection> eve = ArgumentCaptor.forClass(Collection.class);
     verify(eventRecordRepository).saveAll(eve.capture());
