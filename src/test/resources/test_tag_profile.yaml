@@ -142,7 +142,7 @@ tagMetrics:
     queryParams:
       product: ocp
       prometheusMetric: cluster:usage:workload:capacity_physical_cpu_hours
-      prometheusMetadataMetric: subscription_labels
+      prometheusMetadataMetric: ocm_subscription
 
   # OSD metrics
   - tag: OpenShift-dedicated-metrics
@@ -154,7 +154,7 @@ tagMetrics:
     queryParams:
       product: osd
       prometheusMetric: cluster:usage:workload:capacity_physical_cpu_hours
-      prometheusMetadataMetric: subscription_labels
+      prometheusMetadataMetric: ocm_subscription
   - tag: OpenShift-dedicated-metrics
     metricId: Instance-hours
     uom: INSTANCE_HOURS
@@ -163,7 +163,7 @@ tagMetrics:
     queryParams:
       product: osd
       prometheusMetric: cluster:usage:workload:capacity_physical_instance_hours
-      prometheusMetadataMetric: subscription_labels
+      prometheusMetadataMetric: ocm_subscription
 
   # RHOSAK metrics
   - tag: rhosak
@@ -173,7 +173,7 @@ tagMetrics:
     queryParams:
       product: rhosak
       prometheusMetric: kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibytes
-      prometheusMetadataMetric: subscription_labels
+      prometheusMetadataMetric: ocm_subscription
   - tag: rhosak
     # when we update this metricId to not mirror RHM ids, make sure GiB is reflected
     metricId: Transfer-gibibytes
@@ -182,7 +182,7 @@ tagMetrics:
     queryParams:
       product: rhosak
       prometheusMetric: kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes
-      prometheusMetadataMetric: subscription_labels
+      prometheusMetadataMetric: ocm_subscription
   - tag: rhosak
     metricId: Instance-hours
     uom: INSTANCE_HOURS
@@ -190,7 +190,7 @@ tagMetrics:
     queryParams:
       product: rhosak
       prometheusMetric: kafka_id:strimzi_resource_state:max_over_time1h
-      prometheusMetadataMetric: subscription_labels
+      prometheusMetadataMetric: ocm_subscription
 
 # The tagMetaData section defines additional information around how a tag is tallied.  Most notably,
 # tags need to have their finest granularity defined so that we can create accurate snapshots.  A
