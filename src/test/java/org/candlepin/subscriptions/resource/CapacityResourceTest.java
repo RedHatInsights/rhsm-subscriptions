@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_FOR_ARM;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -90,7 +90,8 @@ class CapacityResourceTest {
             .orgId("owner123456")
             .build();
 
-    s.addSubscriptionProductId(SubscriptionProductId.builder().productId(RHEL.toString()).build());
+    s.addSubscriptionProductId(
+        SubscriptionProductId.builder().productId(RHEL_FOR_ARM.toString()).build());
 
     return s;
   }
@@ -124,11 +125,12 @@ class CapacityResourceTest {
   @Test
   void testShouldUseQueryBasedOnHeaderAndParameters() {
     when(repository.findAllBy(
-            "owner123456", RHEL.toString(), ServiceLevel._ANY, Usage._ANY, min, max))
+            "owner123456", RHEL_FOR_ARM.toString(), ServiceLevel._ANY, Usage._ANY, min, max))
         .thenReturn(List.of(basicMeasurement()));
 
     CapacityReport report =
-        resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, null, null, null, null);
+        resource.getCapacityReport(
+            RHEL_FOR_ARM, GranularityType.DAILY, min, max, null, null, null, null);
 
     assertEquals(9, report.getData().size());
   }
@@ -136,12 +138,19 @@ class CapacityResourceTest {
   @Test
   void testShouldUseSlaQueryParam() {
     when(repository.findAllBy(
-            "owner123456", RHEL.toString(), ServiceLevel.PREMIUM, Usage._ANY, min, max))
+            "owner123456", RHEL_FOR_ARM.toString(), ServiceLevel.PREMIUM, Usage._ANY, min, max))
         .thenReturn(List.of(basicMeasurement()));
 
     CapacityReport report =
         resource.getCapacityReport(
-            RHEL, GranularityType.DAILY, min, max, null, null, ServiceLevelType.PREMIUM, null);
+            RHEL_FOR_ARM,
+            GranularityType.DAILY,
+            min,
+            max,
+            null,
+            null,
+            ServiceLevelType.PREMIUM,
+            null);
 
     assertEquals(9, report.getData().size());
   }
@@ -149,12 +158,12 @@ class CapacityResourceTest {
   @Test
   void testShouldUseUsageQueryParam() {
     when(repository.findAllBy(
-            "owner123456", RHEL.toString(), ServiceLevel._ANY, Usage.PRODUCTION, min, max))
+            "owner123456", RHEL_FOR_ARM.toString(), ServiceLevel._ANY, Usage.PRODUCTION, min, max))
         .thenReturn(List.of(basicMeasurement()));
 
     CapacityReport report =
         resource.getCapacityReport(
-            RHEL, GranularityType.DAILY, min, max, null, null, null, UsageType.PRODUCTION);
+            RHEL_FOR_ARM, GranularityType.DAILY, min, max, null, null, null, UsageType.PRODUCTION);
 
     assertEquals(9, report.getData().size());
   }
@@ -162,12 +171,19 @@ class CapacityResourceTest {
   @Test
   void testShouldTreatEmptySlaAsNull() {
     when(repository.findAllBy(
-            "owner123456", RHEL.toString(), ServiceLevel._ANY, Usage._ANY, min, max))
+            "owner123456", RHEL_FOR_ARM.toString(), ServiceLevel._ANY, Usage._ANY, min, max))
         .thenReturn(List.of(basicMeasurement()));
 
     CapacityReport report =
         resource.getCapacityReport(
-            RHEL, GranularityType.DAILY, min, max, null, null, ServiceLevelType.EMPTY, null);
+            RHEL_FOR_ARM,
+            GranularityType.DAILY,
+            min,
+            max,
+            null,
+            null,
+            ServiceLevelType.EMPTY,
+            null);
 
     assertEquals(9, report.getData().size());
   }
@@ -175,12 +191,12 @@ class CapacityResourceTest {
   @Test
   void testShouldTreatEmptyUsageAsNull() {
     when(repository.findAllBy(
-            "owner123456", RHEL.toString(), ServiceLevel._ANY, Usage._ANY, min, max))
+            "owner123456", RHEL_FOR_ARM.toString(), ServiceLevel._ANY, Usage._ANY, min, max))
         .thenReturn(List.of(basicMeasurement()));
 
     CapacityReport report =
         resource.getCapacityReport(
-            RHEL, GranularityType.DAILY, min, max, null, null, null, UsageType.EMPTY);
+            RHEL_FOR_ARM, GranularityType.DAILY, min, max, null, null, null, UsageType.EMPTY);
 
     assertEquals(9, report.getData().size());
   }
@@ -206,16 +222,18 @@ class CapacityResourceTest {
             .orgId("owner123456")
             .build();
 
-    s.addSubscriptionProductId(SubscriptionProductId.builder().productId(RHEL.toString()).build());
+    s.addSubscriptionProductId(
+        SubscriptionProductId.builder().productId(RHEL_FOR_ARM.toString()).build());
     List<SubscriptionMeasurement> measurements =
         List.of(sock1, sock2, cores1, cores2, hypSock1, hypSock2, hypCore1, hypCore2);
     s.addSubscriptionMeasurements(measurements);
 
-    when(repository.findAllBy("owner123456", RHEL.toString(), null, null, min, max))
+    when(repository.findAllBy("owner123456", RHEL_FOR_ARM.toString(), null, null, min, max))
         .thenReturn(measurements);
 
     CapacityReport report =
-        resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, null, null, null, null);
+        resource.getCapacityReport(
+            RHEL_FOR_ARM, GranularityType.DAILY, min, max, null, null, null, null);
 
     CapacitySnapshot capacitySnapshot = report.getData().get(0);
     assertEquals(12, capacitySnapshot.getHypervisorSockets().intValue());
@@ -230,7 +248,8 @@ class CapacityResourceTest {
         assertThrows(
             SubscriptionsException.class,
             () -> {
-              resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, 11, 10, null, null);
+              resource.getCapacityReport(
+                  RHEL_FOR_ARM, GranularityType.DAILY, min, max, 11, 10, null, null);
             });
     assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
   }
@@ -238,11 +257,11 @@ class CapacityResourceTest {
   @Test
   void testShouldRespectOffsetAndLimit() {
     when(repository.findAllBy(
-            "owner123456", RHEL.toString(), ServiceLevel._ANY, Usage._ANY, min, max))
+            "owner123456", RHEL_FOR_ARM.toString(), ServiceLevel._ANY, Usage._ANY, min, max))
         .thenReturn(List.of(basicMeasurement()));
 
     CapacityReport report =
-        resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, 1, 1, null, null);
+        resource.getCapacityReport(RHEL_FOR_ARM, GranularityType.DAILY, min, max, 1, 1, null, null);
 
     assertEquals(1, report.getData().size());
     assertEquals(
@@ -256,7 +275,8 @@ class CapacityResourceTest {
     assertThrows(
         AccessDeniedException.class,
         () -> {
-          resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, null, null, null, null);
+          resource.getCapacityReport(
+              RHEL_FOR_ARM, GranularityType.DAILY, min, max, null, null, null, null);
         });
   }
 
@@ -268,7 +288,8 @@ class CapacityResourceTest {
     assertThrows(
         AccessDeniedException.class,
         () -> {
-          resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, null, null, null, null);
+          resource.getCapacityReport(
+              RHEL_FOR_ARM, GranularityType.DAILY, min, max, null, null, null, null);
         });
   }
 
@@ -279,13 +300,18 @@ class CapacityResourceTest {
     var subscription = datedSubscription(begin, end);
 
     when(repository.findAllBy(
-            "owner123456", RHEL.toString(), ServiceLevel._ANY, Usage.PRODUCTION, begin, end))
+            "owner123456",
+            RHEL_FOR_ARM.toString(),
+            ServiceLevel._ANY,
+            Usage.PRODUCTION,
+            begin,
+            end))
         .thenReturn(new ArrayList<>(subscription.getSubscriptionMeasurements()));
 
     List<CapacitySnapshot> actual =
         resource.getCapacities(
             "owner123456",
-            RHEL,
+            RHEL_FOR_ARM,
             ServiceLevel.STANDARD,
             Usage.PRODUCTION,
             Granularity.WEEKLY,
@@ -307,17 +333,18 @@ class CapacityResourceTest {
     DbReportCriteria criteria =
         DbReportCriteria.builder()
             .orgId("owner123456")
-            .productId(RHEL.toString())
+            .productId(RHEL_FOR_ARM.toString())
             .beginning(min)
             .ending(max)
             .build();
     when(subscriptionRepository.findUnlimited(criteria)).thenReturn(List.of(subscription));
 
-    when(repository.findAllBy("owner123456", RHEL.toString(), null, null, min, max))
+    when(repository.findAllBy("owner123456", RHEL_FOR_ARM.toString(), null, null, min, max))
         .thenReturn(new ArrayList<>(subscription.getSubscriptionMeasurements()));
 
     CapacityReport report =
-        resource.getCapacityReport(RHEL, GranularityType.DAILY, min, max, null, null, null, null);
+        resource.getCapacityReport(
+            RHEL_FOR_ARM, GranularityType.DAILY, min, max, null, null, null, null);
 
     CapacitySnapshot capacitySnapshot = report.getData().get(0);
     assertTrue(capacitySnapshot.getHasInfiniteQuantity());
@@ -327,7 +354,7 @@ class CapacityResourceTest {
   void testReportByMetricIdShouldUseQueryBasedOnHeaderAndParameters() {
     when(repository.findAllBy(
             "owner123456",
-            RHEL.toString(),
+            RHEL_FOR_ARM.toString(),
             MetricId.CORES,
             HypervisorReportCategory.NON_HYPERVISOR,
             ServiceLevel._ANY,
@@ -338,7 +365,7 @@ class CapacityResourceTest {
 
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
-            RHEL,
+            RHEL_FOR_ARM,
             MetricId.CORES,
             GranularityType.DAILY,
             min,
@@ -356,7 +383,7 @@ class CapacityResourceTest {
   void testReportByMetricIdShouldUseSlaQueryParam() {
     when(repository.findAllBy(
             "owner123456",
-            RHEL.toString(),
+            RHEL_FOR_ARM.toString(),
             MetricId.CORES,
             null,
             ServiceLevel.PREMIUM,
@@ -367,7 +394,7 @@ class CapacityResourceTest {
 
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
-            RHEL,
+            RHEL_FOR_ARM,
             MetricId.CORES,
             GranularityType.DAILY,
             min,
@@ -385,7 +412,7 @@ class CapacityResourceTest {
   void testReportByMetricIdShouldUseUsageQueryParam() {
     when(repository.findAllBy(
             "owner123456",
-            RHEL.toString(),
+            RHEL_FOR_ARM.toString(),
             MetricId.CORES,
             null,
             ServiceLevel._ANY,
@@ -396,7 +423,7 @@ class CapacityResourceTest {
 
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
-            RHEL,
+            RHEL_FOR_ARM,
             MetricId.CORES,
             GranularityType.DAILY,
             min,
@@ -414,7 +441,7 @@ class CapacityResourceTest {
   void testReportByMetricIdShouldTreatEmptySlaAsNull() {
     when(repository.findAllBy(
             "owner123456",
-            RHEL.toString(),
+            RHEL_FOR_ARM.toString(),
             MetricId.CORES,
             null,
             ServiceLevel._ANY,
@@ -425,7 +452,7 @@ class CapacityResourceTest {
 
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
-            RHEL,
+            RHEL_FOR_ARM,
             MetricId.CORES,
             GranularityType.DAILY,
             min,
@@ -443,7 +470,7 @@ class CapacityResourceTest {
   void testReportByMetricIdShouldTreatEmptyUsageAsNull() {
     when(repository.findAllBy(
             "owner123456",
-            RHEL.toString(),
+            RHEL_FOR_ARM.toString(),
             MetricId.CORES,
             null,
             ServiceLevel._ANY,
@@ -454,7 +481,7 @@ class CapacityResourceTest {
 
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
-            RHEL,
+            RHEL_FOR_ARM,
             MetricId.CORES,
             GranularityType.DAILY,
             min,
@@ -487,12 +514,21 @@ class CapacityResourceTest {
     enhancedSubscription(measurements);
 
     when(repository.findAllBy(
-            "owner123456", RHEL.toString(), MetricId.CORES, null, null, null, min, max))
+            "owner123456", RHEL_FOR_ARM.toString(), MetricId.CORES, null, null, null, min, max))
         .thenReturn(measurements);
 
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
-            RHEL, MetricId.CORES, GranularityType.DAILY, min, max, null, null, null, null, null);
+            RHEL_FOR_ARM,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            min,
+            max,
+            null,
+            null,
+            null,
+            null,
+            null);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
     assertEquals(64, capacitySnapshot.getValue());
@@ -509,12 +545,21 @@ class CapacityResourceTest {
     enhancedSubscription(measurements);
 
     when(repository.findAllBy(
-            "owner123456", RHEL.toString(), MetricId.SOCKETS, null, null, null, min, max))
+            "owner123456", RHEL_FOR_ARM.toString(), MetricId.SOCKETS, null, null, null, min, max))
         .thenReturn(measurements);
 
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
-            RHEL, MetricId.SOCKETS, GranularityType.DAILY, min, max, null, null, null, null, null);
+            RHEL_FOR_ARM,
+            MetricId.SOCKETS,
+            GranularityType.DAILY,
+            min,
+            max,
+            null,
+            null,
+            null,
+            null,
+            null);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
     assertEquals(7, capacitySnapshot.getValue());
@@ -532,7 +577,7 @@ class CapacityResourceTest {
 
     when(repository.findAllBy(
             "owner123456",
-            RHEL.toString(),
+            RHEL_FOR_ARM.toString(),
             MetricId.SOCKETS,
             HypervisorReportCategory.NON_HYPERVISOR,
             null,
@@ -543,7 +588,7 @@ class CapacityResourceTest {
 
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
-            RHEL,
+            RHEL_FOR_ARM,
             MetricId.SOCKETS,
             GranularityType.DAILY,
             min,
@@ -570,7 +615,7 @@ class CapacityResourceTest {
 
     when(repository.findAllBy(
             "owner123456",
-            RHEL.toString(),
+            RHEL_FOR_ARM.toString(),
             MetricId.SOCKETS,
             HypervisorReportCategory.NON_HYPERVISOR,
             null,
@@ -581,7 +626,7 @@ class CapacityResourceTest {
 
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
-            RHEL,
+            RHEL_FOR_ARM,
             MetricId.SOCKETS,
             GranularityType.DAILY,
             min,
@@ -607,12 +652,21 @@ class CapacityResourceTest {
     enhancedSubscription(measurements);
 
     when(repository.findAllBy(
-            "owner123456", RHEL.toString(), MetricId.CORES, null, null, null, min, max))
+            "owner123456", RHEL_FOR_ARM.toString(), MetricId.CORES, null, null, null, min, max))
         .thenReturn(measurements);
 
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
-            RHEL, MetricId.CORES, GranularityType.DAILY, min, max, null, null, null, null, null);
+            RHEL_FOR_ARM,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            min,
+            max,
+            null,
+            null,
+            null,
+            null,
+            null);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
     assertEquals(28, capacitySnapshot.getValue());
@@ -630,7 +684,7 @@ class CapacityResourceTest {
 
     when(repository.findAllBy(
             "owner123456",
-            RHEL.toString(),
+            RHEL_FOR_ARM.toString(),
             MetricId.CORES,
             HypervisorReportCategory.NON_HYPERVISOR,
             null,
@@ -641,7 +695,7 @@ class CapacityResourceTest {
 
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
-            RHEL,
+            RHEL_FOR_ARM,
             MetricId.CORES,
             GranularityType.DAILY,
             min,
@@ -668,7 +722,7 @@ class CapacityResourceTest {
 
     when(repository.findAllBy(
             "owner123456",
-            RHEL.toString(),
+            RHEL_FOR_ARM.toString(),
             MetricId.CORES,
             HypervisorReportCategory.NON_HYPERVISOR,
             null,
@@ -679,7 +733,7 @@ class CapacityResourceTest {
 
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
-            RHEL,
+            RHEL_FOR_ARM,
             MetricId.CORES,
             GranularityType.DAILY,
             min,
@@ -701,7 +755,16 @@ class CapacityResourceTest {
             SubscriptionsException.class,
             () -> {
               resource.getCapacityReportByMetricId(
-                  RHEL, MetricId.CORES, GranularityType.DAILY, min, max, 11, 10, null, null, null);
+                  RHEL_FOR_ARM,
+                  MetricId.CORES,
+                  GranularityType.DAILY,
+                  min,
+                  max,
+                  11,
+                  10,
+                  null,
+                  null,
+                  null);
             });
     assertEquals(Response.Status.BAD_REQUEST, e.getStatus());
   }
@@ -710,7 +773,7 @@ class CapacityResourceTest {
   void testReportByMetricIdShouldRespectOffsetAndLimit() {
     when(repository.findAllBy(
             "owner123456",
-            RHEL.toString(),
+            RHEL_FOR_ARM.toString(),
             MetricId.CORES,
             null,
             ServiceLevel._ANY,
@@ -721,7 +784,7 @@ class CapacityResourceTest {
 
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
-            RHEL, MetricId.CORES, GranularityType.DAILY, min, max, 1, 1, null, null, null);
+            RHEL_FOR_ARM, MetricId.CORES, GranularityType.DAILY, min, max, 1, 1, null, null, null);
 
     assertEquals(1, report.getData().size());
     assertEquals(
@@ -736,7 +799,16 @@ class CapacityResourceTest {
         AccessDeniedException.class,
         () -> {
           resource.getCapacityReportByMetricId(
-              RHEL, MetricId.CORES, GranularityType.DAILY, min, max, null, null, null, null, null);
+              RHEL_FOR_ARM,
+              MetricId.CORES,
+              GranularityType.DAILY,
+              min,
+              max,
+              null,
+              null,
+              null,
+              null,
+              null);
         });
   }
 
@@ -749,7 +821,16 @@ class CapacityResourceTest {
         AccessDeniedException.class,
         () -> {
           resource.getCapacityReportByMetricId(
-              RHEL, MetricId.CORES, GranularityType.DAILY, min, max, null, null, null, null, null);
+              RHEL_FOR_ARM,
+              MetricId.CORES,
+              GranularityType.DAILY,
+              min,
+              max,
+              null,
+              null,
+              null,
+              null,
+              null);
         });
   }
 
@@ -761,7 +842,7 @@ class CapacityResourceTest {
 
     when(repository.findAllBy(
             "owner123456",
-            RHEL.toString(),
+            RHEL_FOR_ARM.toString(),
             MetricId.CORES,
             HypervisorReportCategory.HYPERVISOR,
             ServiceLevel._ANY,
@@ -773,7 +854,7 @@ class CapacityResourceTest {
     List<CapacitySnapshotByMetricId> actual =
         resource.getCapacitiesByMetricId(
             "owner123456",
-            RHEL,
+            RHEL_FOR_ARM,
             MetricId.CORES,
             HypervisorReportCategory.HYPERVISOR,
             ServiceLevel.STANDARD,
@@ -803,13 +884,13 @@ class CapacityResourceTest {
     limited.setOffering(limitedOffering);
 
     when(repository.findAllBy(
-            "owner123456", RHEL.toString(), MetricId.CORES, null, null, null, min, max))
+            "owner123456", RHEL_FOR_ARM.toString(), MetricId.CORES, null, null, null, min, max))
         .thenReturn(new ArrayList<>(limited.getSubscriptionMeasurements()));
 
     var criteria =
         DbReportCriteria.builder()
             .orgId("owner123456")
-            .productId(RHEL.toString())
+            .productId(RHEL_FOR_ARM.toString())
             .beginning(min)
             .ending(max)
             .build();
@@ -818,7 +899,16 @@ class CapacityResourceTest {
 
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
-            RHEL, MetricId.CORES, GranularityType.DAILY, min, max, null, null, null, null, null);
+            RHEL_FOR_ARM,
+            MetricId.CORES,
+            GranularityType.DAILY,
+            min,
+            max,
+            null,
+            null,
+            null,
+            null,
+            null);
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
     assertEquals(4, capacitySnapshot.getValue());

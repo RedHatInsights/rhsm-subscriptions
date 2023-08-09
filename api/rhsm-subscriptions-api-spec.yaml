@@ -354,15 +354,15 @@ paths:
                     cloud_cores: 8
                     cloud_sockets: 4
                 links:
-                  first: '/api/rhsm-subscriptions/v1/tally/products/RHEL?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=0&limit=5'
-                  last: '/api/rhsm-subscriptions/v1/tally/products/RHEL?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
+                  first: '/api/rhsm-subscriptions/v1/tally/products/RHEL%20Server?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=0&limit=5'
+                  last: '/api/rhsm-subscriptions/v1/tally/products/RHEL%20Server?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
                   previous: null
-                  next: '/api/rhsm-subscriptions/v1/tally/products/RHEL?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
+                  next: '/api/rhsm-subscriptions/v1/tally/products/RHEL%20Server?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
                 meta:
                   count: 10
                   total_core_hours: 30
                   total_instance_hours: 20
-                  product: RHEL
+                  product: RHEL Server
                   granularity: Daily
                   service_level: Premium
                   usage: Production
@@ -468,13 +468,13 @@ paths:
                     has_data: false
                     value: 0.0
                 links:
-                  first: '/api/rhsm-subscriptions/v1/capacity/RHEL/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=0&limit=5'
-                  last: '/api/rhsm-subscriptions/v1/capacity/RHEL/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
+                  first: '/api/rhsm-subscriptions/v1/capacity/RHEL%20Server/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=0&limit=5'
+                  last: '/api/rhsm-subscriptions/v1/capacity/RHEL%20Server/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
                   previous: null
-                  next: '/api/rhsm-subscriptions/v1/capacity/RHEL/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
+                  next: '/api/rhsm-subscriptions/v1/capacity/RHEL%20Server/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
                 meta:
                   count: 10
-                  product: RHEL
+                  product: RHEL Server
                   granularity: Daily
                   service_level: Premium
         '400':
@@ -579,13 +579,13 @@ paths:
                     hypervisor_sockets: 5
                     has_infinite_quantity: true
                 links:
-                  first: '/api/rhsm-subscriptions/v1/capacity/RHEL?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=0&limit=5'
-                  last: '/api/rhsm-subscriptions/v1/capacity/RHEL?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
+                  first: '/api/rhsm-subscriptions/v1/capacity/RHEL%20Server?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=0&limit=5'
+                  last: '/api/rhsm-subscriptions/v1/capacity/RHEL%20Server?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
                   previous: null
-                  next: '/api/rhsm-subscriptions/v1/capacity/RHEL?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
+                  next: '/api/rhsm-subscriptions/v1/capacity/RHEL%20Server?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
                 meta:
                   count: 10
-                  product: RHEL
+                  product: RHEL Server
                   granularity: Daily
                   service_level: Premium
         '400':
@@ -698,13 +698,13 @@ paths:
                     hardware_type: physical
                     last_seen: 2020-01-01T00:00:00Z
                 links:
-                  first: '/api/rhsm-subscriptions/v1/hosts/RHEL?sla=Premium&usage=Production&offset=0&limit=5'
-                  last: '/api/rhsm-subscriptions/v1/hosts/RHEL?sla=Premium&usage=Production&offset=5&limit=5'
+                  first: '/api/rhsm-subscriptions/v1/hosts/RHEL%20Server?sla=Premium&usage=Production&offset=0&limit=5'
+                  last: '/api/rhsm-subscriptions/v1/hosts/RHEL%20Server?sla=Premium&usage=Production&offset=5&limit=5'
                   previous: null
-                  next: '/api/rhsm-subscriptions/v1/hosts/RHEL?sla=Premium&usage=Production&offset=5&limit=5'
+                  next: '/api/rhsm-subscriptions/v1/hosts/RHEL%20Server?sla=Premium&usage=Production&offset=5&limit=5'
                 meta:
                   count: 10
-                  product: RHEL
+                  product: RHEL Server
                   service_level: Premium
                   usage: Production
         '400':
@@ -1140,7 +1140,6 @@ components:
       type: string
       enum:
         - OpenShift Container Platform
-        - RHEL
         - RHEL Compute Node
         - RHEL Desktop
         - RHEL for ARM
@@ -1732,7 +1731,7 @@ components:
             type: string
       example:
         count: 10
-        product: RHEL
+        product: RHEL Server
         service_level: Premium
         usage: Production
         measurements:

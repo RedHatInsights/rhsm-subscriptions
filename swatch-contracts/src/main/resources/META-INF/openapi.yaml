@@ -104,13 +104,13 @@ paths:
                     has_data: false
                     value: 0.0
                 links:
-                  first: '/api/rhsm-subscriptions/v1/capacity/RHEL/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=0&limit=5'
-                  last: '/api/rhsm-subscriptions/v1/capacity/RHEL/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
+                  first: '/api/rhsm-subscriptions/v1/capacity/RHEL%20Server/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=0&limit=5'
+                  last: '/api/rhsm-subscriptions/v1/capacity/RHEL%20Server/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
                   previous: null
-                  next: '/api/rhsm-subscriptions/v1/capacity/RHEL/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
+                  next: '/api/rhsm-subscriptions/v1/capacity/RHEL%20Server/Sockets?granularity=DAILY&sla=Premium&beginning=2017-08-01T17%3A32%3A28Z&ending=2017-08-31T17%3A32%3A28Z&offset=5&limit=5'
                 meta:
                   count: 10
-                  product: RHEL
+                  product: RHEL Server
                   granularity: Daily
                   service_level: Premium
         default:
@@ -524,7 +524,6 @@ components:
       type: string
       enum:
         - OpenShift Container Platform
-        - RHEL
         - RHEL Compute Node
         - RHEL Desktop
         - RHEL for ARM

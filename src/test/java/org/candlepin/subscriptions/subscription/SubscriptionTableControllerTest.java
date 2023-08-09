@@ -369,7 +369,7 @@ class SubscriptionTableControllerTest {
 
   @Test
   void testShouldUseQueryBasedOnHeaderAndParameters() {
-    var productId = RHEL;
+    var productId = RHEL_SERVER;
     var expectedNewerSub = stubSubscription("1234", "1235", 4, 5, 7);
     var expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
     var spec1 = RH0180191.withSub(expectedOlderSub);
@@ -377,7 +377,7 @@ class SubscriptionTableControllerTest {
     var givenCapacities = givenCapacities(Org.STANDARD, productId, spec1, spec2);
     when(measurementRepository.findAllBy(
             eq("owner123456"),
-            eq(RHEL.toString()),
+            eq(RHEL_SERVER.toString()),
             nullable(MetricId.class),
             nullable(HypervisorReportCategory.class),
             eq(ServiceLevel._ANY),
@@ -389,7 +389,17 @@ class SubscriptionTableControllerTest {
 
     SkuCapacityReport report =
         subscriptionTableController.capacityReportBySku(
-            RHEL, null, null, null, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
+            RHEL_SERVER,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            SkuCapacityReportSort.SKU,
+            null);
     assertEquals(1, report.getData().size());
   }
 

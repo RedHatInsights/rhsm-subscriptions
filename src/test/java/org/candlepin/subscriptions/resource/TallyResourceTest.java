@@ -88,7 +88,7 @@ class TallyResourceTest {
   public static final OffsetDateTime TEST_DATE =
       OffsetDateTime.ofInstant(MID_MONTH_INSTANT, ZoneOffset.UTC);
 
-  public static final ProductId RHEL_PRODUCT_ID = ProductId.RHEL;
+  public static final ProductId RHEL_PRODUCT_ID = ProductId.RHEL_SERVER;
 
   private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
   private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
@@ -445,7 +445,7 @@ class TallyResourceTest {
     Mockito.when(
             repository.findSnapshot(
                 "owner123456",
-                ProductId.RHEL.toString(),
+                ProductId.RHEL_SERVER.toString(),
                 Granularity.DAILY,
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
@@ -458,7 +458,7 @@ class TallyResourceTest {
 
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL,
+            ProductId.RHEL_SERVER,
             MetricId.CORES,
             GranularityType.DAILY,
             begin,
@@ -787,7 +787,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of(snapshot)));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL,
+            ProductId.RHEL_SERVER,
             MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
@@ -816,7 +816,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of(snapshot)));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL,
+            ProductId.RHEL_SERVER,
             MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
@@ -848,7 +848,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of(snapshot)));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL,
+            ProductId.RHEL_SERVER,
             MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
@@ -880,7 +880,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of(snapshot)));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL,
+            ProductId.RHEL_SERVER,
             MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
@@ -905,7 +905,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of()));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL,
+            ProductId.RHEL_SERVER,
             MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
@@ -930,7 +930,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of()));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL,
+            ProductId.RHEL_SERVER,
             MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-11-02T00:00Z"),
@@ -954,7 +954,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of()));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL,
+            ProductId.RHEL_SERVER,
             MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-11-01T00:00Z"),
@@ -978,7 +978,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of()));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL,
+            ProductId.RHEL_SERVER,
             MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-11-01T00:00Z"),
@@ -1002,7 +1002,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of()));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL,
+            ProductId.RHEL_SERVER,
             MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-11-01T00:00Z"),
@@ -1036,7 +1036,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of(snapshot1, snapshot2)));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL,
+            ProductId.RHEL_SERVER,
             MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-11-01T00:00Z"),
@@ -1075,7 +1075,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of(snapshot1, snapshot2)));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL,
+            ProductId.RHEL_SERVER,
             MetricId.CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-11-01T00:00Z"),
@@ -1217,7 +1217,7 @@ class TallyResourceTest {
         BadRequestException.class,
         () -> {
           resource.getTallyReportData(
-              ProductId.RHEL,
+              ProductId.RHEL_SERVER,
               MetricId.CORES,
               GranularityType.DAILY,
               beginning,
@@ -1242,7 +1242,7 @@ class TallyResourceTest {
         BadRequestException.class,
         () -> {
           resource.getTallyReportData(
-              ProductId.RHEL,
+              ProductId.RHEL_SERVER,
               MetricId.CORES,
               GranularityType.DAILY,
               beginning,

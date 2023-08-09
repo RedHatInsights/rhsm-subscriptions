@@ -4,7 +4,7 @@ platform: OpenShift
 id: basilisk-test
 
 variants:
-  - tag: basilisk
+  - tag: BASILISK
     roles:
       - BASILISK
     productNames:
