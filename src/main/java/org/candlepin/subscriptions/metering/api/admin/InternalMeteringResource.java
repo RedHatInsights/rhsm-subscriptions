@@ -31,7 +31,6 @@ import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.metering.ResourceUtil;
 import org.candlepin.subscriptions.metering.admin.api.InternalApi;
@@ -50,7 +49,6 @@ public class InternalMeteringResource implements InternalApi {
   private final ApplicationProperties applicationProperties;
   private final PrometheusMetricsTaskManager tasks;
   private final PrometheusMeteringController controller;
-  private final AccountConfigRepository accountConfigRepository;
   private final TagProfile tagProfile;
   private final EventRecordsRetentionProperties eventRecordsRetentionProperties;
   private final EventRecordRepository eventRecordRepository;
@@ -63,7 +61,6 @@ public class InternalMeteringResource implements InternalApi {
       TagProfile tagProfile,
       PrometheusMetricsTaskManager tasks,
       PrometheusMeteringController controller,
-      AccountConfigRepository accountConfigRepository,
       EventRecordRepository eventRecordRepository,
       MetricProperties metricProperties) {
     this.util = util;
@@ -72,7 +69,6 @@ public class InternalMeteringResource implements InternalApi {
     this.tagProfile = tagProfile;
     this.tasks = tasks;
     this.controller = controller;
-    this.accountConfigRepository = accountConfigRepository;
     this.eventRecordRepository = eventRecordRepository;
     this.metricProperties = metricProperties;
   }
