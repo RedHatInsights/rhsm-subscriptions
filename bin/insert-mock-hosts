@@ -54,6 +54,7 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
             }),
             'stale_timestamp': '2030-01-01',
             'reporter': 'rhsm-conduit',
+            'groups': '1',
         }
     else:
         _create_account_service(account, 'HBI_HOST', org)
@@ -142,7 +143,7 @@ def _generate_buckets(host_id, product, sla, usage, as_hypervisor=False, measure
 
 def _generate_measurements(host_id, uom, value):
     measurement_fields = {
-        'instance_id': host_id,
+        'host_id': host_id,
         'uom': uom,
         'value': value,
     }
