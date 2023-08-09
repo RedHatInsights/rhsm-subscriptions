@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import com.redhat.swatch.configuration.registry.SubscriptionDefinitionGranularity;
 import com.redhat.swatch.configuration.registry.Variant;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -474,17 +475,20 @@ public class CapacityResource implements CapacityApi {
   }
 
   private void validateGranularity(ProductId productId, Granularity granularity) {
-    Variant.findByTag(productId.toString()).stream()
-        .map(Variant::getSubscription)
-        .map(
-            subscriptionDefinition ->
-                subscriptionDefinition.getSupportedGranularity().contains(granularity))
-        .findFirst()
-        .orElseThrow(
-            () ->
-                new BadRequestException(
-                    String.format(
-                        "%s does not support any granularity finer than %s",
-                        productId, granularity.getValue())));
+
+    var compatible =
+        Variant.findByTag(productId.toString()).stream()
+            .map(Variant::getSubscription)
+            .anyMatch(
+                subscriptionDefinition ->
+                    subscriptionDefinition
+                        .getSupportedGranularity()
+                        .contains(SubscriptionDefinitionGranularity.valueOf(granularity.name())));
+    if (!compatible) {
+      throw new BadRequestException(
+          String.format(
+              "%s does not support any granularity finer than %s",
+              productId, granularity.getValue()));
+    }
   }
 }
