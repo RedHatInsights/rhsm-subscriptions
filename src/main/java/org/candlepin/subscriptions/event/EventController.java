@@ -38,8 +38,11 @@ import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.EventRecordConverter;
+import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.security.OptInController;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 /** Encapsulates interaction with event store. */
 @Service
@@ -47,10 +50,15 @@ import org.springframework.stereotype.Service;
 public class EventController {
   private final EventRecordRepository repo;
   private final EventRecordConverter eventRecordConverter;
+  private final OptInController optInController;
 
-  public EventController(EventRecordRepository repo, EventRecordConverter eventRecordConverter) {
+  public EventController(
+      EventRecordRepository repo,
+      EventRecordConverter eventRecordConverter,
+      OptInController optInController) {
     this.repo = repo;
     this.eventRecordConverter = eventRecordConverter;
+    this.optInController = optInController;
   }
 
   /**
@@ -155,6 +163,11 @@ public class EventController {
         eventJson -> {
           try {
             Event event = eventRecordConverter.convertToEntityAttribute(eventJson);
+            if (StringUtils.hasText(event.getOrgId())) {
+              log.debug(
+                  "Ensuring orgId={} has been set up for syncing/reporting.", event.getOrgId());
+              ensureOptIn(event.getOrgId());
+            }
             eventsMap.putIfAbsent(EventKey.fromEvent(event), event);
           } catch (Exception e) {
             log.warn(
@@ -164,5 +177,13 @@ public class EventController {
           }
         });
     return eventsMap;
+  }
+
+  private void ensureOptIn(String orgId) {
+    try {
+      optInController.optInByOrgId(orgId, OptInType.PROMETHEUS);
+    } catch (Exception e) {
+      log.error("Error while attempting to automatically opt-in for orgId={} ", orgId, e);
+    }
   }
 }

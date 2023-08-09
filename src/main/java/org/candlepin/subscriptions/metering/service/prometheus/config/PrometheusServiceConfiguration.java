@@ -30,6 +30,7 @@ import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuild
 import org.candlepin.subscriptions.prometheus.api.ApiProvider;
 import org.candlepin.subscriptions.prometheus.api.ApiProviderFactory;
 import org.candlepin.subscriptions.registry.TagProfile;
+import org.candlepin.subscriptions.security.OptInController;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -62,8 +63,10 @@ public class PrometheusServiceConfiguration {
 
   @Bean
   EventController prometheusEventController(
-      EventRecordRepository repo, EventRecordConverter eventRecordConverter) {
-    return new EventController(repo, eventRecordConverter);
+      EventRecordRepository repo,
+      EventRecordConverter eventRecordConverter,
+      OptInController optInController) {
+    return new EventController(repo, eventRecordConverter, optInController);
   }
 
   @Bean
