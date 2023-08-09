@@ -123,11 +123,10 @@ class InternalMeteringResourceTest {
     IllegalArgumentException iae1 =
         assertThrows(
             IllegalArgumentException.class,
-            () ->
-                resource.meterProductForOrgIdAndRange(VALID_PRODUCT, null, end, 120, false));
+            () -> resource.meterProductForOrgIdAndRange(VALID_PRODUCT, null, end, 120, false));
     assertEquals("Date must start at top of the hour: 2019-05-24T12:05Z", iae1.getMessage());
     resource.meterProductForOrgIdAndRange(
-        VALID_PRODUCT,"org1", clock.startOfHour(end), 120, false);
+        VALID_PRODUCT, "org1", clock.startOfHour(end), 120, false);
 
     // synchronous
     IllegalArgumentException iae2 =
@@ -138,7 +137,7 @@ class InternalMeteringResourceTest {
 
     // Avoid additional exception by enabling synchronous operations.
     appProps.setEnableSynchronousOperations(true);
-    resource.meterProductForOrgIdAndRange(VALID_PRODUCT,"org1", clock.startOfHour(end), 120, true);
+    resource.meterProductForOrgIdAndRange(VALID_PRODUCT, "org1", clock.startOfHour(end), 120, true);
   }
 
   @Test
@@ -178,7 +177,7 @@ class InternalMeteringResourceTest {
 
     OffsetDateTime endDate = clock.startOfCurrentHour();
     OffsetDateTime startDate = endDate.minusMinutes(120);
-    resource.meterProductForOrgIdAndRange(VALID_PRODUCT,"org1", endDate, 120, false);
+    resource.meterProductForOrgIdAndRange(VALID_PRODUCT, "org1", endDate, 120, false);
     verify(tasks).updateMetricsForOrgId("org1", VALID_PRODUCT, startDate, endDate);
     verifyNoInteractions(controller);
   }
@@ -189,7 +188,7 @@ class InternalMeteringResourceTest {
     IllegalArgumentException ie =
         assertThrows(
             IllegalArgumentException.class,
-            () -> resource.meterProductForOrgIdAndRange(VALID_PRODUCT,"org1", endDate, -1, false));
+            () -> resource.meterProductForOrgIdAndRange(VALID_PRODUCT, "org1", endDate, -1, false));
     assertEquals("Invalid value specified (Must be >= 0): rangeInMinutes", ie.getMessage());
   }
 
@@ -200,7 +199,7 @@ class InternalMeteringResourceTest {
         assertThrows(
             IllegalArgumentException.class,
             () ->
-                resource.meterProductForOrgIdAndRange(VALID_PRODUCT,"org1", endDate, 120, false));
+                resource.meterProductForOrgIdAndRange(VALID_PRODUCT, "org1", endDate, 120, false));
     assertEquals("Date must start at top of the hour: " + endDate, ie.getMessage());
   }
 
