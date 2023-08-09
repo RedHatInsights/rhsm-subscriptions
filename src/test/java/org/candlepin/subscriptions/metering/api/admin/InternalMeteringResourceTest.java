@@ -90,7 +90,6 @@ class InternalMeteringResourceTest {
             tagProfile,
             tasks,
             controller,
-            accountConfigRepository,
             eventRecordRepository,
             metricProps);
   }
