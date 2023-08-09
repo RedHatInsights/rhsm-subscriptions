@@ -93,11 +93,11 @@ public class InternalMeteringResource implements InternalApi {
 
   @Override
   public void meterProductForOrgIdAndRange(
-          String productTag,
-          @NotNull String orgId,
-          OffsetDateTime endDate,
-          @Min(0) Integer rangeInMinutes,
-          Boolean xRhSwatchSynchronousRequest) {
+      String productTag,
+      @NotNull String orgId,
+      OffsetDateTime endDate,
+      @Min(0) Integer rangeInMinutes,
+      Boolean xRhSwatchSynchronousRequest) {
     Object principal = ResourceUtils.getPrincipal();
 
     if (Objects.isNull(rangeInMinutes)) {
