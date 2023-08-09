@@ -54,23 +54,33 @@ public interface SubscriptionRepository
     extends JpaRepository<Subscription, Subscription.SubscriptionCompoundId>,
         JpaSpecificationExecutor<Subscription> {
 
+  // Added an order by clause to avoid Hibernate issue HHH-17040
   @Query(
       """
         SELECT s FROM Subscription s
         WHERE (s.endDate IS NULL OR s.endDate > CURRENT_TIMESTAMP)
           AND s.subscriptionId = :subscriptionId
+        ORDER BY s.subscriptionId, s.startDate
       """)
   @EntityGraph(value = "graph.SubscriptionSync")
   Optional<Subscription> findActiveSubscription(@Param("subscriptionId") String subscriptionId);
 
   @EntityGraph(value = "graph.SubscriptionSync")
+  // Added an order by clause to avoid Hibernate issue HHH-17040
+  @Query(
+      "SELECT s FROM Subscription s WHERE s.subscriptionNumber = :subscriptionNumber ORDER BY s.subscriptionId, s.startDate")
   Optional<Subscription> findBySubscriptionNumber(String subscriptionNumber);
 
   @EntityGraph(value = "graph.SubscriptionSync")
+  // Added an order by clause to avoid Hibernate issue HHH-17040
+  @Query(
+      "SELECT s FROM Subscription s LEFT JOIN FETCH s.offering o WHERE o.sku = :sku ORDER BY s.subscriptionId, s.startDate")
   Page<Subscription> findByOfferingSku(String sku, Pageable pageable);
 
   @EntityGraph(value = "graph.SubscriptionSync")
-  @Query("SELECT DISTINCT s FROM Subscription s WHERE s.orgId = :orgId")
+  // Added an order by clause to avoid Hibernate issue HHH-17040
+  @Query(
+      "SELECT s FROM Subscription s WHERE s.orgId = :orgId ORDER BY s.subscriptionId, s.startDate")
   Stream<Subscription> findByOrgId(String orgId);
 
   void deleteBySubscriptionId(String subscriptionId);
@@ -80,11 +90,15 @@ public interface SubscriptionRepository
   private Specification<Subscription> buildSearchSpecification(DbReportCriteria dbReportCriteria) {
     /* The where call allows us to build a Specification object to operate on even if the first
      * specification method we call returns null (which it won't in this case, but it's good
-     * practice to handle it. */
+     * practice to handle it). */
     Specification<Subscription> searchCriteria =
         (root, query, builder) -> {
           // fetch offering always, to eliminate n+1 on offering
           root.fetch(Subscription_.offering);
+          // Added an order by clause to avoid Hibernate issue HHH-17040
+          query.orderBy(
+              builder.asc(root.get(Subscription_.subscriptionId)),
+              builder.asc(root.get(Subscription_.startDate)));
           return null;
         };
     searchCriteria =
