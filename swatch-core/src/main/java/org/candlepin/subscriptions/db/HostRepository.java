@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.hibernate.jpa.QueryHints.HINT_FETCH_SIZE;
+import static org.hibernate.jpa.HibernateHints.HINT_FETCH_SIZE;
 
 import jakarta.persistence.QueryHint;
 import jakarta.persistence.criteria.CriteriaBuilder;

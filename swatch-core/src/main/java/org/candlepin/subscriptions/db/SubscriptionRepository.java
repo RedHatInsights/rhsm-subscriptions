@@ -21,7 +21,9 @@
 package org.candlepin.subscriptions.db;
 
 import static org.candlepin.subscriptions.db.HypervisorReportCategory.NON_HYPERVISOR;
+import static org.hibernate.jpa.HibernateHints.HINT_FETCH_SIZE;
 
+import jakarta.persistence.QueryHint;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
@@ -48,6 +50,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 import org.springframework.util.ObjectUtils;
 
@@ -73,12 +76,12 @@ public interface SubscriptionRepository
       "SELECT s FROM Subscription s WHERE s.subscriptionNumber = :subscriptionNumber ORDER BY s.subscriptionId, s.startDate")
   Optional<Subscription> findBySubscriptionNumber(String subscriptionNumber);
 
-  @EntityGraph(value = "graph.SubscriptionSync")
   // Added an order by clause to avoid Hibernate issue HHH-17040
   @Query(
       "SELECT s FROM Subscription s LEFT JOIN FETCH s.offering o WHERE o.sku = :sku ORDER BY s.subscriptionId, s.startDate")
   Page<Subscription> findByOfferingSku(String sku, Pageable pageable);
 
+  @QueryHints(value = {@QueryHint(name = HINT_FETCH_SIZE, value = "1024")})
   @EntityGraph(value = "graph.SubscriptionSync")
   // Added an order by clause to avoid Hibernate issue HHH-17040
   @Query(
