@@ -28,13 +28,14 @@ import static org.mockito.Mockito.when;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import java.util.HashMap;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
+import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -86,8 +87,11 @@ class SubscriptionPruneControllerTest {
     Subscription allowedSub = new Subscription();
     allowedSub.setOffering(offering);
     when(subscriptionRepo.findByOrgId("up-to-date")).thenReturn(Stream.of(allowedSub));
-    SubscriptionMeasurement allowedMeasurement = SubscriptionMeasurement.builder().build();
-    allowedSub.addSubscriptionMeasurement(allowedMeasurement);
+
+    var allowedMeasurement = new HashMap<>(allowedSub.getSubscriptionMeasurements());
+    allowedMeasurement.put(new SubscriptionMeasurementKey(), null);
+    allowedSub.setSubscriptionMeasurements(allowedMeasurement);
+
     controller.pruneUnlistedSubscriptions("up-to-date");
     verify(subscriptionRepo).findByOrgId("up-to-date");
     verifyNoMoreInteractions(subscriptionRepo);

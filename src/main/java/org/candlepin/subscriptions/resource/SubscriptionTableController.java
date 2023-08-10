@@ -22,11 +22,13 @@ package org.candlepin.subscriptions.resource;
 
 import static org.candlepin.subscriptions.resource.ResourceUtils.*;
 
+import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.Min;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -36,14 +38,13 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.HypervisorReportCategory;
 import org.candlepin.subscriptions.db.OfferingRepository;
-import org.candlepin.subscriptions.db.SubscriptionMeasurementRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.DbReportCriteria;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
+import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -60,22 +61,21 @@ public class SubscriptionTableController {
   private final OfferingRepository offeringRepository;
   private final ApplicationClock clock;
   private final TagProfile tagProfile;
-  private final SubscriptionMeasurementRepository measurementRepository;
 
   @Autowired
   SubscriptionTableController(
-      SubscriptionMeasurementRepository measurementRepository,
       SubscriptionRepository subscriptionRepository,
       OfferingRepository offeringRepository,
       TagProfile tagProfile,
       ApplicationClock clock) {
-    this.measurementRepository = measurementRepository;
     this.subscriptionRepository = subscriptionRepository;
     this.offeringRepository = offeringRepository;
     this.tagProfile = tagProfile;
     this.clock = clock;
   }
 
+  // Transactional annotation necessary to access lazy loaded ElementCollections for Subscription
+  @Transactional
   public SkuCapacityReport capacityReportBySku( // NOSONAR
       ProductId productId,
       @Min(0) Integer offset,
@@ -127,21 +127,10 @@ public class SubscriptionTableController {
     var metricId =
         (uom != null)
             ? switch (uom) {
-              case CORES -> MetricId.CORES;
-              case SOCKETS -> MetricId.SOCKETS;
+              case CORES -> MetricId.CORES.toString();
+              case SOCKETS -> MetricId.SOCKETS.toString();
             }
             : null;
-
-    List<SubscriptionMeasurement> measurements =
-        measurementRepository.findAllBy(
-            orgId,
-            productId.toString(),
-            metricId,
-            hypervisorReportCategory,
-            sanitizedServiceLevel,
-            sanitizedUsage,
-            reportStart,
-            reportEnd);
 
     var reportCriteria =
         DbReportCriteria.builder()
@@ -151,31 +140,68 @@ public class SubscriptionTableController {
             .usage(sanitizedUsage)
             .beginning(reportStart)
             .ending(reportEnd)
+            .metricId(metricId)
+            .hypervisorReportCategory(hypervisorReportCategory)
             .build();
+    var subscriptionSpec = SubscriptionRepository.buildSearchSpecification(reportCriteria);
+    var subscriptions = subscriptionRepository.findAll(subscriptionSpec);
     List<Subscription> unlimitedSubs = subscriptionRepository.findUnlimited(reportCriteria);
 
     var skus =
-        measurements.stream()
-            .map(x -> x.getSubscription().getOffering().getSku())
-            .collect(Collectors.toSet());
+        subscriptions.stream()
+            .filter(x -> Objects.nonNull(x.getOffering()))
+            .map(x -> x.getOffering().getSku())
+            .collect(Collectors.toCollection(HashSet::new));
     skus.addAll(
-        unlimitedSubs.stream().map(x -> x.getOffering().getSku()).collect(Collectors.toSet()));
+        unlimitedSubs.stream()
+            .filter(x -> Objects.nonNull(x.getOffering()))
+            .map(x -> x.getOffering().getSku())
+            .collect(Collectors.toSet()));
 
     Map<String, SkuCapacity> inventories = initializeDefaultSkuCapacities(skus, uom);
 
-    for (SubscriptionMeasurement measurement : measurements) {
-      Subscription subscription = measurement.getSubscription();
+    for (Subscription subscription : subscriptions) {
+
       SkuCapacity inventory = inventories.get(subscription.getOffering().getSku());
       calculateNextEvent(subscription, inventory, reportEnd);
       addSubscriptionInformation(subscription, inventory);
-      addTotalCapacity(measurement, inventory);
+      var measurements = subscription.getSubscriptionMeasurements().entrySet().stream();
+      if (metricId != null) {
+        measurements =
+            measurements.filter(entry -> Objects.equals(entry.getKey().getMetricId(), metricId));
+      }
+      if (hypervisorReportCategory == HypervisorReportCategory.HYPERVISOR) {
+        measurements =
+            measurements.filter(
+                entry ->
+                    ReportCategory.HYPERVISOR
+                        .toString()
+                        .equalsIgnoreCase(entry.getKey().getMeasurementType()));
+      } else if (hypervisorReportCategory == HypervisorReportCategory.NON_HYPERVISOR) {
+        measurements =
+            measurements.filter(
+                entry ->
+                    !ReportCategory.HYPERVISOR
+                        .toString()
+                        .equalsIgnoreCase(entry.getKey().getMeasurementType()));
+      }
+      measurements.forEach(
+          entry -> {
+            var measurementKey = entry.getKey();
+            var value = entry.getValue();
+            addTotalCapacity(subscription, measurementKey, value, inventory);
+          });
     }
 
     for (Subscription subscription : unlimitedSubs) {
-      SkuCapacity inventory = inventories.get(subscription.getOffering().getSku());
-      inventory.setHasInfiniteQuantity(true);
-      calculateNextEvent(subscription, inventory, reportCriteria.getEnding());
-      addSubscriptionInformation(subscription, inventory);
+
+      if (subscription.getOffering() != null) {
+        SkuCapacity inventory = inventories.get(subscription.getOffering().getSku());
+
+        inventory.setHasInfiniteQuantity(true);
+        calculateNextEvent(subscription, inventory, reportCriteria.getEnding());
+        addSubscriptionInformation(subscription, inventory);
+      }
     }
 
     List<SkuCapacity> reportItems = new ArrayList<>(inventories.values());
@@ -348,6 +374,7 @@ public class SubscriptionTableController {
     Optional.ofNullable(subscription.getSubscriptionNumber()).ifPresent(invSub::setNumber);
     // Different measurements can have the same subscription.  I'm not crazy about this
     // implementation but refining it is for another day.
+
     if (!skuCapacity.getSubscriptions().contains(invSub)) {
       skuCapacity.addSubscriptionsItem(invSub);
       skuCapacity.setQuantity(skuCapacity.getQuantity() + (int) subscription.getQuantity());
@@ -355,15 +382,19 @@ public class SubscriptionTableController {
   }
 
   @SuppressWarnings("java:S3776")
-  public void addTotalCapacity(SubscriptionMeasurement measurement, SkuCapacity skuCapacity) {
+  public void addTotalCapacity(
+      Subscription subscription,
+      SubscriptionMeasurementKey key,
+      Double value,
+      SkuCapacity skuCapacity) {
     log.debug(
-        "Calculating total capacity using sku capacity {} and subscription capacity view {}",
+        "Calculating total capacity using sku capacity {} and subscription capacity view {}, value: {}",
         skuCapacity,
-        measurement);
+        key,
+        value);
 
-    var metric = measurement.getMetricId();
-    var type = measurement.getMeasurementType();
-    var value = measurement.getValue();
+    var metric = key.getMetricId();
+    var type = key.getMeasurementType();
 
     var sockets =
         (MetricId.SOCKETS.toString().equalsIgnoreCase(metric) && "PHYSICAL".equals(type))
@@ -404,8 +435,7 @@ public class SubscriptionTableController {
     }
 
     boolean hasInfiniteQuantity =
-        Optional.ofNullable(measurement.getSubscription().getOffering().getHasUnlimitedUsage())
-            .orElse(false);
+        Optional.ofNullable(subscription.getOffering().getHasUnlimitedUsage()).orElse(false);
     if (hasInfiniteQuantity) {
       log.warn(
           "Subscription for SKU {} has both capacity and unlimited quantity", skuCapacity.getSku());

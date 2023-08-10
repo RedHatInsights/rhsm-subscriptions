@@ -46,7 +46,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.OfferingRepository;
-import org.candlepin.subscriptions.db.SubscriptionMeasurementRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.DbReportCriteria;
@@ -104,7 +103,6 @@ public class SubscriptionSyncController {
   @Autowired
   public SubscriptionSyncController(
       SubscriptionRepository subscriptionRepository,
-      SubscriptionMeasurementRepository measurementRepository,
       OrgConfigRepository orgRepository,
       OfferingRepository offeringRepository,
       ApplicationClock clock,

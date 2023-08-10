@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.db;
 
+import static org.candlepin.subscriptions.db.HypervisorReportCategory.NON_HYPERVISOR;
+
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
@@ -35,7 +37,7 @@ import org.candlepin.subscriptions.db.model.DbReportCriteria;
 import org.candlepin.subscriptions.db.model.Offering_;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.SubscriptionProductId_;
+import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey_;
 import org.candlepin.subscriptions.db.model.Subscription_;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.springframework.data.domain.Page;
@@ -87,7 +89,7 @@ public interface SubscriptionRepository
 
   void deleteByOrgId(String orgId);
 
-  private Specification<Subscription> buildSearchSpecification(DbReportCriteria dbReportCriteria) {
+  static Specification<Subscription> buildSearchSpecification(DbReportCriteria dbReportCriteria) {
     /* The where call allows us to build a Specification object to operate on even if the first
      * specification method we call returns null (which it won't in this case, but it's good
      * practice to handle it). */
@@ -108,7 +110,7 @@ public interface SubscriptionRepository
                     dbReportCriteria.getBeginning(), dbReportCriteria.getEnding())));
     if (Objects.nonNull(dbReportCriteria.getOrgId())) {
       searchCriteria = searchCriteria.and(orgIdEquals(dbReportCriteria.getOrgId()));
-    } else {
+    } else if (Objects.nonNull(dbReportCriteria.getAccountNumber())) {
       searchCriteria = searchCriteria.and(accountNumberEquals(dbReportCriteria.getAccountNumber()));
     }
     if (dbReportCriteria.isPayg()) {
@@ -139,6 +141,13 @@ public interface SubscriptionRepository
         && !dbReportCriteria.getBillingAccountId().equals("_ANY")) {
       searchCriteria =
           searchCriteria.and(billingAccountIdEquals(dbReportCriteria.getBillingAccountId()));
+    }
+    if (Objects.nonNull(dbReportCriteria.getMetricId())
+        || Objects.nonNull(dbReportCriteria.getHypervisorReportCategory())) {
+      searchCriteria =
+          searchCriteria.and(
+              metricsCriteria(
+                  dbReportCriteria.getHypervisorReportCategory(), dbReportCriteria.getMetricId()));
     }
 
     return searchCriteria;
@@ -177,9 +186,8 @@ public interface SubscriptionRepository
 
   private static Specification<Subscription> productIdEquals(String productId) {
     return (root, query, builder) -> {
-      var subscriptionProductIdRoot = root.join(Subscription_.subscriptionProductIds);
-      return builder.equal(
-          subscriptionProductIdRoot.get(SubscriptionProductId_.productId), productId);
+      var productIdsPath = root.join(Subscription_.subscriptionProductIds);
+      return builder.equal(productIdsPath, productId);
     };
   }
 
@@ -195,21 +203,44 @@ public interface SubscriptionRepository
   /**
    * This method looks for subscriptions that are active between the two dates given. The logic is
    * not intuitive: subscription_begin &lt;= report_end && (subscription_end &gt;= report_begin OR
-   * subscription_end IS NULL). See {@link
-   * SubscriptionMeasurementRepository#subscriptionIsActiveBetween(OffsetDateTime, OffsetDateTime)}
-   * for a detailed explanation of how this predicate is derived.
+   * subscription_end IS NULL).
+   *
+   * <p>There are four points that need to be considered: the subscription begin date (Sb), the
+   * subscription end date (Se), the report begin date (Rb), and the report end date (Re). Those
+   * dates can be in five different relationships.
+   *
+   * <ol>
+   *   <li>Sb Se Rb Re (a subscription that expires before the report period even starts
+   *   <li>Sb Rb Se Re (a subscription that has started before the report period and ends during it.
+   *   <li>Rb Sb Se Re (a subscription that falls entirely within the report period)
+   *   <li>Rb Sb Re Se (a subscription that starts inside the report period but continues past the
+   *       end of the period)
+   *   <li>Rb Re Sb Se (a subscription that does not start until after the period has already ended)
+   * </ol>
+   *
+   * <p>We want this method to return subscriptions that are active within the report period. That
+   * means cases 2, 3, and 4. Here are the relationships for those cases:
+   *
+   * <ol>
+   *   <li>Sb &lt; Rb, Sb &lt; Re, Se &gt; Rb, Se &lt; Re
+   *   <li>Sb &gt; Rb, Sb &lt; Re, Se &gt; Rb, Se &lt; Re
+   *   <li>Sb &gt; Rb, Sb &lt; Re, Se &gt; Rb, Se &gt; Re
+   * </ol>
+   *
+   * <p>Looking at those inequalities, we can see that the two invariant relationships are Sb &lt;
+   * Re and Se &gt; Rb. Then we add the "or equal to" to the inequalities to capture edge cases.
    *
    * @param reportStart the date the reporting period starts
    * @param reportEnd the date the reporting period ends
    * @return A Specification that determines if a subscription is active during the given period.
    */
-  static Specification<Subscription> subscriptionIsActiveBetween(
+  private static Specification<Subscription> subscriptionIsActiveBetween(
       OffsetDateTime reportStart, OffsetDateTime reportEnd) {
     return (root, query, builder) ->
         predicateForSubscriptionIsActiveBetween(root, builder, reportStart, reportEnd);
   }
 
-  static Predicate predicateForSubscriptionIsActiveBetween(
+  private static Predicate predicateForSubscriptionIsActiveBetween(
       Path<Subscription> path,
       CriteriaBuilder builder,
       OffsetDateTime reportStart,
@@ -250,5 +281,29 @@ public interface SubscriptionRepository
   private static Specification<Subscription> billingAccountIdEquals(String billingAccountId) {
     return (root, query, builder) ->
         builder.equal(root.get(Subscription_.billingAccountId), billingAccountId);
+  }
+
+  private static Specification<Subscription> metricsCriteria(
+      HypervisorReportCategory hypervisorReportCategory, String metricId) {
+    return (root, query, builder) -> {
+      var predicates = new ArrayList<Predicate>();
+      var measurementKeyPath = root.join(Subscription_.subscriptionMeasurements).key();
+      if (hypervisorReportCategory != null) {
+        var measurementType =
+            switch (hypervisorReportCategory) {
+              case NON_HYPERVISOR -> "PHYSICAL";
+              case HYPERVISOR -> "HYPERVISOR";
+            };
+        predicates.add(
+            builder.equal(
+                measurementKeyPath.get(SubscriptionMeasurementKey_.measurementType),
+                measurementType));
+      }
+      if (metricId != null) {
+        predicates.add(
+            builder.equal(measurementKeyPath.get(SubscriptionMeasurementKey_.metricId), metricId));
+      }
+      return builder.and(predicates.toArray(Predicate[]::new));
+    };
   }
 }
