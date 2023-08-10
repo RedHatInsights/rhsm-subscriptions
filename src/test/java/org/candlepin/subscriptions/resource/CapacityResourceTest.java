@@ -20,15 +20,19 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.BASILISK;
 import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_FOR_ARM;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.SATELLITE;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Response;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.HypervisorReportCategory;
 import org.candlepin.subscriptions.db.SubscriptionMeasurementRepository;
@@ -50,11 +54,16 @@ import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshotByMetricId;
 import org.candlepin.subscriptions.utilization.api.model.GranularityType;
 import org.candlepin.subscriptions.utilization.api.model.MetricId;
+import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -912,5 +921,46 @@ class CapacityResourceTest {
 
     CapacitySnapshotByMetricId capacitySnapshot = report.getData().get(0);
     assertEquals(4, capacitySnapshot.getValue());
+  }
+
+  @Test
+  void testValidateGranularityWhenProductIdNotConfigured() {
+
+    var thrownException =
+        Assertions.assertThrows(
+            BadRequestException.class,
+            () -> resource.validateGranularity(SATELLITE, Granularity.MONTHLY));
+
+    assertEquals(
+        String.format("No granularity configuration found for %s", SATELLITE),
+        thrownException.getMessage());
+  }
+
+  @Test
+  void testValidateGranularityIncompatible() {
+
+    var thrownException =
+        Assertions.assertThrows(
+            BadRequestException.class,
+            () -> resource.validateGranularity(RHEL_FOR_ARM, Granularity.HOURLY));
+
+    assertEquals(
+        String.format(
+            "%s does not support any granularity finer than %s", RHEL_FOR_ARM, Granularity.HOURLY),
+        thrownException.getMessage());
+  }
+
+  @ParameterizedTest
+  @MethodSource("generateFinestGranularityCases")
+  void testValidateGranularity(ProductId productId, Granularity granularity) {
+    assertDoesNotThrow(() -> resource.validateGranularity(productId, granularity));
+  }
+
+  private static Stream<Arguments> generateFinestGranularityCases() {
+    return Stream.of(
+        Arguments.of(BASILISK, Granularity.HOURLY),
+        Arguments.of(RHEL_FOR_ARM, Granularity.YEARLY),
+        Arguments.of(BASILISK, Granularity.YEARLY),
+        Arguments.of(RHEL_FOR_ARM, Granularity.DAILY));
   }
 }

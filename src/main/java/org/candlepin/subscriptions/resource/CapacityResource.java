@@ -474,21 +474,27 @@ public class CapacityResource implements CapacityApi {
     return new CapacitySnapshotByMetricId().date(date).value(value).hasData(hasData);
   }
 
-  private void validateGranularity(ProductId productId, Granularity granularity) {
+  void validateGranularity(ProductId productId, Granularity granularity) {
 
-    var compatible =
-        Variant.findByTag(productId.toString()).stream()
-            .map(Variant::getSubscription)
-            .anyMatch(
-                subscriptionDefinition ->
-                    subscriptionDefinition
-                        .getSupportedGranularity()
-                        .contains(SubscriptionDefinitionGranularity.valueOf(granularity.name())));
-    if (!compatible) {
-      throw new BadRequestException(
-          String.format(
-              "%s does not support any granularity finer than %s",
-              productId, granularity.getValue()));
-    }
+    Variant.findByTag(productId.toString())
+        .ifPresentOrElse(
+            variant -> {
+              boolean isCompatible =
+                  variant
+                      .getSubscription()
+                      .getSupportedGranularity()
+                      .contains(SubscriptionDefinitionGranularity.valueOf(granularity.name()));
+
+              if (!isCompatible) {
+                throw new BadRequestException(
+                    String.format(
+                        "%s does not support any granularity finer than %s",
+                        productId, granularity.getValue()));
+              }
+            },
+            () -> {
+              throw new BadRequestException(
+                  String.format("No granularity configuration found for %s", productId));
+            });
   }
 }
