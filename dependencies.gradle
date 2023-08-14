@@ -23,7 +23,7 @@ ext.plugins = [
         "com.diffplug.spotless:spotless-plugin-gradle:6.20.0",
         "com.netflix.nebula:nebula-release-plugin:17.2.2",
         "io.quarkus:gradle-application-plugin:3.2.0.Final",
-        "io.spring.gradle:dependency-management-plugin:1.1.2",
+        "io.spring.gradle:dependency-management-plugin:1.1.3",
         // swagger-parser manually upgraded for compatibility with snakeyaml 2.0
         // see https://github.com/OpenAPITools/openapi-generator/issues/15876
         "io.swagger.parser.v3:swagger-parser:2.1.16",
