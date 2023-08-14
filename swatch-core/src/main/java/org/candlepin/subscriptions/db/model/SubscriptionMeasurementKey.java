@@ -20,29 +20,25 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import java.time.OffsetDateTime;
-import java.util.Set;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
+import java.io.Serializable;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import org.candlepin.subscriptions.db.HypervisorReportCategory;
+import lombok.NoArgsConstructor;
 
-/** Common criteria that can be used to filter instances, subscriptions, and tally snapshots */
+/** Map key for subscription measurements */
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 @Builder
-public class DbReportCriteria {
-  private String accountNumber;
-  private String orgId;
-  private String productTag;
-  // TODO: ENT-5042 should move away from using product name values here //NOSONAR
-  private Set<String> productNames;
-  private String productId;
-  private ServiceLevel serviceLevel;
-  private Usage usage;
-  private BillingProvider billingProvider;
-  private String billingAccountId;
-  private boolean payg;
-  private OffsetDateTime beginning;
-  private OffsetDateTime ending;
+@Embeddable
+public class SubscriptionMeasurementKey implements Serializable {
+
+  @Column(name = "metric_id")
   private String metricId;
-  private HypervisorReportCategory hypervisorReportCategory;
+
+  @Column(name = "measurement_type")
+  private String measurementType;
 }

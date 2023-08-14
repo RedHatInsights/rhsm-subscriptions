@@ -27,21 +27,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.core.Response;
 import java.time.OffsetDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.AccountListSource;
-import org.candlepin.subscriptions.db.HypervisorReportCategory;
 import org.candlepin.subscriptions.db.OfferingRepository;
-import org.candlepin.subscriptions.db.SubscriptionMeasurementRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.DbReportCriteria;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
-import org.candlepin.subscriptions.db.model.SubscriptionProductId;
+import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.resource.SubscriptionTableController;
@@ -51,9 +48,11 @@ import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
@@ -61,15 +60,10 @@ import org.springframework.test.context.ActiveProfiles;
 @WithMockRedHatPrincipal("123456")
 class SubscriptionTableControllerTest {
 
-  private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
-  private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
-
-  @MockBean SubscriptionMeasurementRepository measurementRepository;
   @MockBean SubscriptionRepository subscriptionRepository;
   @MockBean OfferingRepository offeringRepository;
   @MockBean AccountListSource accountListSource;
   @Autowired ApplicationClock clock;
-
   @Autowired SubscriptionTableController subscriptionTableController;
 
   @BeforeEach
@@ -142,10 +136,6 @@ class SubscriptionTableControllerTest {
     public String orgId() {
       return orgId;
     }
-
-    public String accountNumber() {
-      return accountNumber;
-    }
   }
 
   /**
@@ -156,12 +146,20 @@ class SubscriptionTableControllerTest {
    * @param specs specifies what sub capacities to return
    * @return a list of subscription capacity views
    */
-  private List<SubscriptionMeasurement> givenCapacities(
+  private Map<SubscriptionMeasurementKey, Double> givenCapacities(
       Org org, ProductId productId, MeasurementSpec... specs) {
-    return Arrays.stream(specs)
-        .map(s -> s.createMeasurements(org, productId))
-        .flatMap(List::stream)
-        .collect(Collectors.toUnmodifiableList());
+
+    Map<SubscriptionMeasurementKey, Double> flattened = new HashMap<>();
+    Arrays.stream(specs)
+        .map(
+            s -> {
+              var measurements = s.createMeasurements(org, productId);
+              s.subscription.setSubscriptionMeasurements(measurements);
+              return measurements;
+            })
+        .forEach(flattened::putAll);
+
+    return flattened;
   }
 
   private void mockOfferings(MeasurementSpec... specs) {
@@ -183,20 +181,12 @@ class SubscriptionTableControllerTest {
     var productId = RHEL_SERVER;
     var expectedSub = stubSubscription("1234", "1235", 4);
     var spec = RH0180191.withSub(expectedSub);
-    var givenCapacities = givenCapacities(Org.STANDARD, productId, spec);
+    givenCapacities(Org.STANDARD, productId, spec);
 
-    when(measurementRepository.findAllBy(
-            any(),
-            eq(productId.toString()),
-            nullable(MetricId.class),
-            nullable(HypervisorReportCategory.class),
-            eq(ServiceLevel._ANY),
-            eq(Usage._ANY),
-            any(OffsetDateTime.class),
-            any(OffsetDateTime.class)))
-        .thenReturn(givenCapacities);
+    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
+        .thenReturn(List.of(expectedSub));
     mockOfferings(spec);
-
+    expectedSub.setOffering(spec.createOffering());
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
@@ -226,17 +216,12 @@ class SubscriptionTableControllerTest {
     var expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
     var spec1 = RH0180191.withSub(expectedOlderSub);
     var spec2 = RH0180191.withSub(expectedNewerSub);
-    var givenCapacities = givenCapacities(Org.STANDARD, productId, spec1, spec2);
-    when(measurementRepository.findAllBy(
-            any(),
-            eq(productId.toString()),
-            nullable(MetricId.class),
-            nullable(HypervisorReportCategory.class),
-            eq(ServiceLevel._ANY),
-            eq(Usage._ANY),
-            any(OffsetDateTime.class),
-            any(OffsetDateTime.class)))
-        .thenReturn(givenCapacities);
+
+    givenCapacities(Org.STANDARD, productId, spec1, spec2);
+
+    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
+        .thenReturn(List.of(expectedOlderSub, expectedNewerSub));
+
     mockOfferings(spec1); // spec2 is the same offering
 
     // When requesting a SKU capacity report for the eng product,
@@ -279,17 +264,11 @@ class SubscriptionTableControllerTest {
     var expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
     var spec1 = RH0180191.withSub(expectedNewerSub);
     var spec2 = RH00604F5.withSub(expectedOlderSub);
-    var givenCapacities = givenCapacities(Org.STANDARD, productId, spec1, spec2);
-    when(measurementRepository.findAllBy(
-            any(),
-            eq(productId.toString()),
-            nullable(MetricId.class),
-            nullable(HypervisorReportCategory.class),
-            eq(ServiceLevel._ANY),
-            eq(Usage._ANY),
-            any(OffsetDateTime.class),
-            any(OffsetDateTime.class)))
-        .thenReturn(givenCapacities);
+    givenCapacities(Org.STANDARD, productId, spec1, spec2);
+
+    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
+        .thenReturn(List.of(expectedNewerSub, expectedOlderSub));
+
     mockOfferings(spec1, spec2);
 
     // When requesting a SKU capacity report for the eng product, sorted by SKU
@@ -346,22 +325,14 @@ class SubscriptionTableControllerTest {
   @Test
   void testGetSkuCapacityReportNoSub() {
     // Given an org with no active subs,
-    var productId = RHEL_SERVER;
-    when(measurementRepository.findAllBy(
-            any(),
-            eq(productId.toString()),
-            nullable(MetricId.class),
-            nullable(HypervisorReportCategory.class),
-            eq(ServiceLevel._ANY),
-            eq(Usage._ANY),
-            any(OffsetDateTime.class),
-            any(OffsetDateTime.class)))
+
+    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
         .thenReturn(Collections.emptyList());
 
     // When requesting a SKU capacity report for an eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, null, null, null, null, null);
+            RHEL_SERVER, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains no inventory items.
     assertEquals(0, actual.getData().size(), "An empty inventory list should be returned.");
@@ -369,22 +340,17 @@ class SubscriptionTableControllerTest {
 
   @Test
   void testShouldUseQueryBasedOnHeaderAndParameters() {
-    var productId = RHEL_SERVER;
+
     var expectedNewerSub = stubSubscription("1234", "1235", 4, 5, 7);
     var expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
     var spec1 = RH0180191.withSub(expectedOlderSub);
     var spec2 = RH0180191.withSub(expectedNewerSub);
-    var givenCapacities = givenCapacities(Org.STANDARD, productId, spec1, spec2);
-    when(measurementRepository.findAllBy(
-            eq("owner123456"),
-            eq(RHEL_SERVER.toString()),
-            nullable(MetricId.class),
-            nullable(HypervisorReportCategory.class),
-            eq(ServiceLevel._ANY),
-            eq(Usage._ANY),
-            any(OffsetDateTime.class),
-            any(OffsetDateTime.class)))
-        .thenReturn(givenCapacities);
+
+    givenCapacities(Org.STANDARD, RHEL_SERVER, spec1, spec2);
+
+    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
+        .thenReturn(List.of(expectedNewerSub, expectedOlderSub));
+
     mockOfferings(spec1); // spec2 is the same offering
 
     SkuCapacityReport report =
@@ -410,17 +376,10 @@ class SubscriptionTableControllerTest {
     var expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
     var spec1 = RH0180191.withSub(expectedOlderSub);
     var spec2 = RH0180191.withSub(expectedNewerSub);
-    var givenCapacities = givenCapacities(Org.STANDARD, productId, spec1, spec2);
-    when(measurementRepository.findAllBy(
-            any(),
-            eq(productId.toString()),
-            nullable(MetricId.class),
-            nullable(HypervisorReportCategory.class),
-            eq(ServiceLevel.STANDARD),
-            eq(Usage._ANY),
-            any(OffsetDateTime.class),
-            any(OffsetDateTime.class)))
-        .thenReturn(givenCapacities);
+    givenCapacities(Org.STANDARD, productId, spec1, spec2);
+
+    when(subscriptionRepository.findAll(Mockito.any(Specification.class))).thenReturn(List.of());
+
     mockOfferings(spec1); // spec2 is the same offering
 
     SkuCapacityReport reportForUnmatchedSLA =
@@ -438,6 +397,8 @@ class SubscriptionTableControllerTest {
             null);
     assertEquals(0, reportForUnmatchedSLA.getData().size());
 
+    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
+        .thenReturn(List.of(expectedNewerSub));
     SkuCapacityReport reportForMatchingSLA =
         subscriptionTableController.capacityReportBySku(
             productId,
@@ -461,17 +422,10 @@ class SubscriptionTableControllerTest {
     Subscription expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
     var spec1 = RH0180191.withSub(expectedOlderSub);
     var spec2 = RH0180191.withSub(expectedNewerSub);
-    var givenCapacities = givenCapacities(Org.STANDARD, productId, spec1, spec2);
-    when(measurementRepository.findAllBy(
-            any(),
-            eq(productId.toString()),
-            nullable(MetricId.class),
-            nullable(HypervisorReportCategory.class),
-            eq(ServiceLevel._ANY),
-            eq(Usage.PRODUCTION),
-            any(OffsetDateTime.class),
-            any(OffsetDateTime.class)))
-        .thenReturn(givenCapacities);
+    givenCapacities(Org.STANDARD, productId, spec1, spec2);
+
+    when(subscriptionRepository.findAll(Mockito.any(Specification.class))).thenReturn(List.of());
+
     mockOfferings(spec1); // spec2 is the same offering
 
     SkuCapacityReport reportForUnmatchedUsage =
@@ -489,6 +443,8 @@ class SubscriptionTableControllerTest {
             null);
     assertEquals(0, reportForUnmatchedUsage.getData().size());
 
+    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
+        .thenReturn(List.of(expectedNewerSub));
     SkuCapacityReport reportForMatchingUsage =
         subscriptionTableController.capacityReportBySku(
             productId,
@@ -546,19 +502,18 @@ class SubscriptionTableControllerTest {
                 Usage.PRODUCTION,
                 false)
             .withSub(stubSubscription("1237", "1235", 4, 5, 7));
-    var givenCapacities =
-        givenCapacities(Org.STANDARD, productId, spec1, spec2, rh00604f6, rh00604f7, rh0060192);
 
-    when(measurementRepository.findAllBy(
-            any(),
-            eq(productId.toString()),
-            nullable(MetricId.class),
-            nullable(HypervisorReportCategory.class),
-            eq(ServiceLevel._ANY),
-            eq(Usage._ANY),
-            any(OffsetDateTime.class),
-            any(OffsetDateTime.class)))
-        .thenReturn(givenCapacities);
+    givenCapacities(Org.STANDARD, productId, spec1, spec2, rh00604f6, rh00604f7, rh0060192);
+
+    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
+        .thenReturn(
+            List.of(
+                spec1.subscription,
+                spec2.subscription,
+                rh00604f6.subscription,
+                rh00604f7.subscription,
+                rh0060192.subscription));
+
     mockOfferings(spec1, spec2, rh00604f6, rh00604f7, rh0060192);
 
     SkuCapacityReport reportWithOffsetAndLimit =
@@ -583,31 +538,15 @@ class SubscriptionTableControllerTest {
     var socketsSpec2 = RH0180194_SOCKETS_AND_CORES.withSub(expectedMuchOlderSub);
     mockOfferings(socketsSpec1, socketsSpec2);
 
-    var capacitiesWithCores = givenCapacities(Org.STANDARD, productId, coresSpec1, coresSpec2);
-    var capacitiesWithSockets =
-        givenCapacities(Org.STANDARD, productId, socketsSpec1, socketsSpec2);
+    givenCapacities(Org.STANDARD, productId, coresSpec1, coresSpec2);
 
-    when(measurementRepository.findAllBy(
-            any(),
-            eq(productId.toString()),
-            eq(MetricId.CORES),
-            nullable(HypervisorReportCategory.class),
-            eq(ServiceLevel.STANDARD),
-            eq(Usage._ANY),
-            any(OffsetDateTime.class),
-            any(OffsetDateTime.class)))
-        .thenReturn(capacitiesWithCores);
+    givenCapacities(Org.STANDARD, productId, socketsSpec1, socketsSpec2);
 
-    when(measurementRepository.findAllBy(
-            any(),
-            eq(productId.toString()),
-            eq(MetricId.SOCKETS),
-            nullable(HypervisorReportCategory.class),
-            eq(ServiceLevel.STANDARD),
-            eq(Usage._ANY),
-            any(OffsetDateTime.class),
-            any(OffsetDateTime.class)))
-        .thenReturn(capacitiesWithSockets);
+    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
+        .thenReturn(List.of(coresSpec1.subscription, coresSpec2.subscription));
+
+    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
+        .thenReturn(List.of(socketsSpec1.subscription, socketsSpec2.subscription));
 
     SkuCapacityReport reportForMatchingCoresUom =
         subscriptionTableController.capacityReportBySku(
@@ -663,7 +602,8 @@ class SubscriptionTableControllerTest {
 
   @Test
   void testShouldPopulateAnnualSubscriptionType() {
-    when(measurementRepository.findAllBy(any(), any(), any(), any(), any(), any(), any(), any()))
+
+    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
         .thenReturn(Collections.emptyList());
 
     SkuCapacityReport report =
@@ -685,7 +625,8 @@ class SubscriptionTableControllerTest {
 
   @Test
   void testShouldPopulateOnDemandSubscriptionType() {
-    when(measurementRepository.findAllBy(any(), any(), any(), any(), any(), any(), any(), any()))
+
+    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
         .thenReturn(Collections.emptyList());
 
     SkuCapacityReport report =
@@ -712,18 +653,11 @@ class SubscriptionTableControllerTest {
     var productId = RHEL_SERVER;
     var expectedSub = stubSubscription("1234", "1235", 4);
     var unlimitedSpec = RH0180195_UNLIMITED_USAGE.withSub(expectedSub);
-    var givenCapacities = givenCapacities(Org.STANDARD, productId, unlimitedSpec);
+    givenCapacities(Org.STANDARD, productId, unlimitedSpec);
 
-    when(measurementRepository.findAllBy(
-            any(),
-            eq(productId.toString()),
-            nullable(MetricId.class),
-            nullable(HypervisorReportCategory.class),
-            eq(ServiceLevel._ANY),
-            eq(Usage._ANY),
-            any(OffsetDateTime.class),
-            any(OffsetDateTime.class)))
-        .thenReturn(givenCapacities);
+    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
+        .thenReturn(List.of(expectedSub));
+
     when(subscriptionRepository.findUnlimited(any()))
         .thenReturn(List.of(unlimitedSpec.subscription));
     mockOfferings(unlimitedSpec);
@@ -740,6 +674,18 @@ class SubscriptionTableControllerTest {
     assertTrue(actualItem.getHasInfiniteQuantity(), "HasInfiniteQuantity should be true");
   }
 
+  @NotNull
+  private static Specification<Subscription> buildDefaultSpec(ProductId productId) {
+    var dbReportCriteria =
+        DbReportCriteria.builder()
+            .productId(productId.toString())
+            .serviceLevel(ServiceLevel._ANY)
+            .usage(Usage._ANY)
+            .build();
+
+    return SubscriptionRepository.buildSearchSpecification(dbReportCriteria);
+  }
+
   @Test
   void testShouldSortUnlimitedLastAscending() {
     // Given an org with two active subs with different quantities for different SKUs,
@@ -750,18 +696,10 @@ class SubscriptionTableControllerTest {
     var expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
     var spec1 = RH0180191.withSub(expectedNewerSub);
     var unlimitedSpec = RH0180195_UNLIMITED_USAGE.withSub(expectedOlderSub);
-    var givenCapacities = givenCapacities(Org.STANDARD, productId, spec1, unlimitedSpec);
+    givenCapacities(Org.STANDARD, productId, spec1, unlimitedSpec);
 
-    when(measurementRepository.findAllBy(
-            any(),
-            eq(productId.toString()),
-            nullable(MetricId.class),
-            nullable(HypervisorReportCategory.class),
-            eq(ServiceLevel._ANY),
-            eq(Usage._ANY),
-            any(OffsetDateTime.class),
-            any(OffsetDateTime.class)))
-        .thenReturn(givenCapacities);
+    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
+        .thenReturn(List.of(expectedNewerSub, expectedOlderSub));
 
     when(subscriptionRepository.findUnlimited(any()))
         .thenReturn(List.of(unlimitedSpec.subscription));
@@ -807,17 +745,11 @@ class SubscriptionTableControllerTest {
     var expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
     var spec1 = RH0180191.withSub(expectedNewerSub);
     var unlimitedSpec = RH0180195_UNLIMITED_USAGE.withSub(expectedOlderSub);
-    var givenCapacities = givenCapacities(Org.STANDARD, productId, spec1, unlimitedSpec);
-    when(measurementRepository.findAllBy(
-            any(),
-            eq(productId.toString()),
-            nullable(MetricId.class),
-            nullable(HypervisorReportCategory.class),
-            eq(ServiceLevel._ANY),
-            eq(Usage._ANY),
-            any(OffsetDateTime.class),
-            any(OffsetDateTime.class)))
-        .thenReturn(givenCapacities);
+    givenCapacities(Org.STANDARD, productId, spec1, unlimitedSpec);
+
+    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
+        .thenReturn(List.of(expectedNewerSub, expectedOlderSub));
+
     when(subscriptionRepository.findUnlimited(any()))
         .thenReturn(List.of(unlimitedSpec.subscription));
     mockOfferings(spec1, unlimitedSpec);
@@ -859,18 +791,11 @@ class SubscriptionTableControllerTest {
     var productId = RHEL_SERVER;
     var expectedSub = stubSubscription("1234", "1235", 4);
     var spec1 = RH0180196_HYPERVISOR_SOCKETS.withSub(expectedSub);
-    var givenCapacities = givenCapacities(Org.STANDARD, productId, spec1);
+    givenCapacities(Org.STANDARD, productId, spec1);
 
-    when(measurementRepository.findAllBy(
-            any(),
-            eq(productId.toString()),
-            nullable(MetricId.class),
-            nullable(HypervisorReportCategory.class),
-            eq(ServiceLevel._ANY),
-            eq(Usage._ANY),
-            any(OffsetDateTime.class),
-            any(OffsetDateTime.class)))
-        .thenReturn(givenCapacities);
+    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
+        .thenReturn(List.of(expectedSub));
+
     mockOfferings(spec1);
 
     // When requesting a SKU capacity report for the eng product,
@@ -893,18 +818,11 @@ class SubscriptionTableControllerTest {
     var productId = RHEL_SERVER;
     var expectedSub = stubSubscription("1234", "1235", 4);
     var spec1 = RH0180197_HYPERVISOR_CORES.withSub(expectedSub);
-    var givenCapacities = givenCapacities(Org.STANDARD, productId, spec1);
+    givenCapacities(Org.STANDARD, productId, spec1);
 
-    when(measurementRepository.findAllBy(
-            any(),
-            eq(productId.toString()),
-            nullable(MetricId.class),
-            nullable(HypervisorReportCategory.class),
-            eq(ServiceLevel._ANY),
-            eq(Usage._ANY),
-            any(OffsetDateTime.class),
-            any(OffsetDateTime.class)))
-        .thenReturn(givenCapacities);
+    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
+        .thenReturn(List.of(expectedSub));
+
     mockOfferings(spec1);
 
     // When requesting a SKU capacity report for the eng product,
@@ -1038,19 +956,22 @@ class SubscriptionTableControllerTest {
           sub);
     }
 
-    public SubscriptionMeasurement buildMeasurement(String type, MetricId metric, Double value) {
+    public Map<SubscriptionMeasurementKey, Double> buildMeasurement(
+        String type, MetricId metric, Double value) {
       if (value == null) {
-        return null;
+        return Map.of();
       }
 
-      return SubscriptionMeasurement.builder()
-          .measurementType(type)
-          .metricId(metric.toString().toUpperCase())
-          .value(value)
-          .build();
+      SubscriptionMeasurementKey key = new SubscriptionMeasurementKey();
+      key.setMeasurementType(type);
+      key.setMetricId(metric.toString().toUpperCase());
+
+      return Map.of(key, value);
     }
 
-    public List<SubscriptionMeasurement> createMeasurements(Org org, ProductId productId) {
+    public Map<SubscriptionMeasurementKey, Double> createMeasurements(
+        Org org, ProductId productId) {
+
       if (subscription == null) {
         subscription = stubSubscription("sub123", "number123", 1);
       }
@@ -1062,21 +983,23 @@ class SubscriptionTableControllerTest {
       subscription.setAccountNumber(org.accountNumber);
 
       var quantity = subscription.getQuantity();
-      var measurements =
-          Stream.of(
-                  buildMeasurement("PHYSICAL", MetricId.CORES, totalCapacity(cores, quantity)),
-                  buildMeasurement("PHYSICAL", MetricId.SOCKETS, totalCapacity(sockets, quantity)),
-                  buildMeasurement(
-                      "HYPERVISOR", MetricId.CORES, totalCapacity(hypervisorCores, quantity)),
-                  buildMeasurement(
-                      "HYPERVISOR", MetricId.SOCKETS, totalCapacity(hypervisorSockets, quantity)))
-              .filter(Objects::nonNull)
-              .toList();
 
-      var pId = SubscriptionProductId.builder().productId(productId.toString()).build();
+      var measurements = new HashMap<SubscriptionMeasurementKey, Double>();
+      measurements.putAll(
+          buildMeasurement("PHYSICAL", MetricId.CORES, totalCapacity(cores, quantity)));
+      measurements.putAll(
+          buildMeasurement("PHYSICAL", MetricId.SOCKETS, totalCapacity(sockets, quantity)));
+      measurements.putAll(
+          buildMeasurement("HYPERVISOR", MetricId.CORES, totalCapacity(hypervisorCores, quantity)));
+      measurements.putAll(
+          buildMeasurement(
+              "HYPERVISOR", MetricId.SOCKETS, totalCapacity(hypervisorSockets, quantity)));
 
-      subscription.addSubscriptionProductId(pId);
-      subscription.addSubscriptionMeasurements(measurements);
+      var productIds = new HashSet<>(subscription.getSubscriptionProductIds());
+      productIds.add(productId.toString());
+
+      subscription.setSubscriptionProductIds(productIds);
+      subscription.setSubscriptionMeasurements(measurements);
 
       return measurements;
     }

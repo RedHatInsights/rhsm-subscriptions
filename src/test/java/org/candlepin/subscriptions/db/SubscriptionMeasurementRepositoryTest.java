@@ -26,21 +26,22 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.HashSet;
+import java.util.List;
 import java.util.TimeZone;
 import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.DbReportCriteria;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.Subscription.SubscriptionCompoundId;
-import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
-import org.candlepin.subscriptions.db.model.SubscriptionMeasurement.SubscriptionMeasurementKey;
-import org.candlepin.subscriptions.db.model.SubscriptionProductId;
+import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,13 +56,11 @@ class SubscriptionMeasurementRepositoryTest {
       OffsetDateTime.of(2022, 2, 2, 0, 0, 0, 0, ZoneOffset.UTC);
   @Autowired private SubscriptionRepository subscriptionRepository;
   @Autowired private OfferingRepository offeringRepository;
-  @Autowired private SubscriptionMeasurementRepository subscriptionMeasurementRepository;
-  private SubscriptionProductId subscriptionProductId;
   private Subscription subscription;
-  private SubscriptionMeasurement physicalCores;
+  private SubscriptionMeasurementKey physicalCores =
+      createMeasurementKey("PHYSICAL", MetricId.CORES);
 
-  @BeforeEach
-  void setUp() {
+  private Subscription createTestSubscription(String subscriptionId) {
     TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
     var offering =
         Offering.builder()
@@ -70,10 +69,10 @@ class SubscriptionMeasurementRepositoryTest {
             .usage(Usage.PRODUCTION)
             .build();
 
-    subscription =
+    var subscription =
         Subscription.builder()
             .accountNumber("account123")
-            .subscriptionId("subscription123")
+            .subscriptionId(subscriptionId)
             .subscriptionNumber("subscriptionNumber123")
             .offering(offering)
             .orgId("org123")
@@ -83,28 +82,19 @@ class SubscriptionMeasurementRepositoryTest {
             .endDate(END)
             .build();
 
-    subscriptionProductId = SubscriptionProductId.builder().productId("RHEL").build();
-
-    subscription.addSubscriptionProductId(subscriptionProductId);
-    physicalCores = createMeasurement("PHYSICAL", MetricId.CORES, 42.0);
-    subscription.addSubscriptionMeasurement(physicalCores);
+    subscription.setSubscriptionProductIds(new HashSet<>(List.of("RHEL")));
+    subscription.getSubscriptionMeasurements().put(physicalCores, 42.0);
     subscription.setOffering(offering);
 
     offeringRepository.saveAndFlush(offering);
     subscriptionRepository.saveAndFlush(subscription);
+
+    return subscription;
   }
 
-  @Test
-  void testSimpleFetch() {
-    var subscriptionId = new SubscriptionCompoundId();
-    subscriptionId.setSubscriptionId("subscription123");
-    subscriptionId.setStartDate(subscription.getStartDate());
-    var key = new SubscriptionMeasurementKey();
-    key.setSubscription(subscriptionId);
-    key.setMetricId(MetricId.CORES.toString());
-    key.setMeasurementType("PHYSICAL");
-    var result = subscriptionMeasurementRepository.findById(key).orElseThrow();
-    assertEquals(physicalCores, result);
+  @BeforeEach
+  void setUp() {
+    subscription = createTestSubscription("subscription123");
   }
 
   @Test
@@ -123,147 +113,202 @@ class SubscriptionMeasurementRepositoryTest {
             .endDate(START.plusYears(1))
             .build();
 
-    var unexpectedMeasurement = createMeasurement("PHYSICAL", MetricId.CORES, 8.0);
-    wrongOrgId.addSubscriptionProductId(SubscriptionProductId.builder().productId("RHEL").build());
-    wrongOrgId.addSubscriptionMeasurement(unexpectedMeasurement);
-    subscriptionRepository.saveAndFlush(wrongOrgId);
-    var result =
-        subscriptionMeasurementRepository.findAllBy(
-            "org123", "RHEL", null, null, null, null, START.minusYears(2), START.plusYears(2));
+    var productIds = new HashSet<>(List.of("RHEL"));
+    wrongOrgId.setSubscriptionProductIds(productIds);
 
-    assertThat(result, contains(physicalCores));
-    assertThat(result, not(contains(unexpectedMeasurement)));
+    wrongOrgId.getSubscriptionMeasurements().put(physicalCores, 8.0);
+
+    subscriptionRepository.saveAndFlush(wrongOrgId);
+
+    var criteria =
+        DbReportCriteria.builder()
+            .orgId("org123")
+            .productId("RHEL")
+            .beginning(START.minusYears(2))
+            .ending(START.plusYears(2))
+            .build();
+
+    var result =
+        subscriptionRepository.findByCriteria(criteria, Sort.unsorted()).stream().findFirst();
+
+    result.ifPresentOrElse(
+        x -> {
+          assertEquals(42.0, x.getSubscriptionMeasurements().get(physicalCores), 42.0);
+          assertEquals(1, x.getSubscriptionMeasurements().size());
+        },
+        () -> fail("No matching subscription"));
   }
 
   @Test
   void testFiltersOutSubsBeforeRange() {
     var specification =
-        SubscriptionMeasurementRepository.subscriptionIsActiveBetween(
-            END.plusDays(1), END.plusDays(5));
-    var result = subscriptionMeasurementRepository.findAll(specification);
+        SubscriptionRepository.buildSearchSpecification(
+            DbReportCriteria.builder().beginning(END.plusDays(1)).ending(END.plusDays(5)).build());
+    var result = subscriptionRepository.findAll(specification);
     assertTrue(result.isEmpty());
   }
 
   @Test
   void testFiltersOutSubsAfterRange() {
     var specification =
-        SubscriptionMeasurementRepository.subscriptionIsActiveBetween(
-            START.minusDays(5), START.minusDays(1));
-    var result = subscriptionMeasurementRepository.findAll(specification);
+        SubscriptionRepository.buildSearchSpecification(
+            DbReportCriteria.builder()
+                .beginning(START.minusDays(5))
+                .ending(START.minusDays(1))
+                .build());
+    var result = subscriptionRepository.findAll(specification);
     assertTrue(result.isEmpty());
   }
 
   @Test
   void testFiltersOutSubStartsAfterRange() {
     var specification =
-        SubscriptionMeasurementRepository.subscriptionIsActiveBetween(
-            START.minusDays(5), START.minusDays(1));
-    var result = subscriptionMeasurementRepository.findAll(specification);
+        SubscriptionRepository.buildSearchSpecification(
+            DbReportCriteria.builder()
+                .beginning(START.minusDays(5))
+                .ending(START.minusDays(1))
+                .build());
+    var result = subscriptionRepository.findAll(specification);
     assertTrue(result.isEmpty());
   }
 
   @Test
   void testFindsSubStartingBeforeRangeAndEndingDuringRange() {
     var specification =
-        SubscriptionMeasurementRepository.subscriptionIsActiveBetween(
-            START.plusDays(5), END.plusDays(5));
-    var result = subscriptionMeasurementRepository.findAll(specification);
-    assertThat(result, contains(physicalCores));
+        SubscriptionRepository.buildSearchSpecification(
+            DbReportCriteria.builder()
+                .beginning(START.plusDays(5))
+                .ending(END.plusDays(5))
+                .build());
+    var result = subscriptionRepository.findAll(specification);
+    assertThat(result, contains(subscription));
   }
 
   @Test
   void testFindsSubStartingBeforeRangeAndEndingAfterRange() {
     var specification =
-        SubscriptionMeasurementRepository.subscriptionIsActiveBetween(
-            START.plusDays(5), END.minusDays(5));
-    var result = subscriptionMeasurementRepository.findAll(specification);
-    assertThat(result, contains(physicalCores));
+        SubscriptionRepository.buildSearchSpecification(
+            DbReportCriteria.builder()
+                .beginning(START.plusDays(5))
+                .ending(END.minusDays(5))
+                .build());
+    var result = subscriptionRepository.findAll(specification);
+    assertThat(result, contains(subscription));
   }
 
   @Test
   void testFindsSubStartingDuringRangeAndEndingDuringRange() {
     var specification =
-        SubscriptionMeasurementRepository.subscriptionIsActiveBetween(
-            START.minusDays(5), END.plusDays(5));
-    var result = subscriptionMeasurementRepository.findAll(specification);
-    assertThat(result, contains(physicalCores));
+        SubscriptionRepository.buildSearchSpecification(
+            DbReportCriteria.builder()
+                .beginning(START.minusDays(5))
+                .ending(END.plusDays(5))
+                .build());
+    var result = subscriptionRepository.findAll(specification);
+
+    assertThat(result, contains(subscription));
   }
 
   @Test
   void testFindsSubStartingDuringRangeAndEndingAfterRange() {
     var specification =
-        SubscriptionMeasurementRepository.subscriptionIsActiveBetween(
-            START.minusDays(5), END.minusDays(5));
-    var result = subscriptionMeasurementRepository.findAll(specification);
-    assertThat(result, contains(physicalCores));
+        SubscriptionRepository.buildSearchSpecification(
+            DbReportCriteria.builder()
+                .beginning(START.minusDays(5))
+                .ending(END.minusDays(5))
+                .build());
+    var result = subscriptionRepository.findAll(specification);
+    assertThat(result, contains(subscription));
   }
 
   @Test
   void testFiltersBySla() {
-    var specification = SubscriptionMeasurementRepository.slaEquals(ServiceLevel.PREMIUM);
-    var result = subscriptionMeasurementRepository.findAll(specification);
-    assertThat(result, contains(physicalCores));
+    var specification =
+        SubscriptionRepository.buildSearchSpecification(
+            DbReportCriteria.builder().serviceLevel(ServiceLevel.PREMIUM).build());
+    var result = subscriptionRepository.findAll(specification);
+    assertThat(result, contains(subscription));
 
-    specification = SubscriptionMeasurementRepository.slaEquals(ServiceLevel.SELF_SUPPORT);
-    result = subscriptionMeasurementRepository.findAll(specification);
+    specification =
+        SubscriptionRepository.buildSearchSpecification(
+            DbReportCriteria.builder().serviceLevel(ServiceLevel.SELF_SUPPORT).build());
+    result = subscriptionRepository.findAll(specification);
     assertTrue(result.isEmpty());
   }
 
   @Test
   void testFiltersByUsage() {
-    var specification = SubscriptionMeasurementRepository.usageEquals(Usage.PRODUCTION);
-    var result = subscriptionMeasurementRepository.findAll(specification);
-    assertThat(result, contains(physicalCores));
+    var specification =
+        SubscriptionRepository.buildSearchSpecification(
+            DbReportCriteria.builder().usage(Usage.PRODUCTION).build());
+    var result = subscriptionRepository.findAll(specification);
+    assertThat(result, contains(subscription));
 
-    specification = SubscriptionMeasurementRepository.usageEquals(Usage.DEVELOPMENT_TEST);
-    result = subscriptionMeasurementRepository.findAll(specification);
+    specification =
+        SubscriptionRepository.buildSearchSpecification(
+            DbReportCriteria.builder().usage(Usage.DEVELOPMENT_TEST).build());
+    result = subscriptionRepository.findAll(specification);
     assertTrue(result.isEmpty());
   }
 
   @Test
   void testMetricsCriteriaForPhysical() {
-    var hypervisorCores = createMeasurement("HYPERVISOR", MetricId.CORES, 42.0);
-    subscription.addSubscriptionMeasurement(hypervisorCores);
-    subscriptionRepository.saveAndFlush(subscription);
+    var hypervisorSub = createTestSubscription("hyp");
+    hypervisorSub.getSubscriptionMeasurements().clear();
+    var hypervisorCores = createMeasurementKey("HYPERVISOR", MetricId.CORES);
+    hypervisorSub.getSubscriptionMeasurements().put(hypervisorCores, 3.0);
+    subscriptionRepository.saveAndFlush(hypervisorSub);
     var specification =
-        SubscriptionMeasurementRepository.metricsCriteria(
-            HypervisorReportCategory.NON_HYPERVISOR, MetricId.CORES.toString());
-    var result = subscriptionMeasurementRepository.findAll(specification);
-    assertThat(result, not(contains(hypervisorCores)));
-    assertThat(result, contains(physicalCores));
+        SubscriptionRepository.buildSearchSpecification(
+            DbReportCriteria.builder()
+                .hypervisorReportCategory(HypervisorReportCategory.NON_HYPERVISOR)
+                .metricId(MetricId.CORES.toString())
+                .build());
+    var result = subscriptionRepository.findAll(specification);
+    assertThat(result, not(contains(hypervisorSub)));
+    assertThat(result, contains(subscription));
   }
 
   @Test
   void testMetricsCriteriaForHypervisor() {
-    var hypervisorCores = createMeasurement("HYPERVISOR", MetricId.CORES, 42.0);
-    subscription.addSubscriptionMeasurement(hypervisorCores);
-    subscriptionRepository.saveAndFlush(subscription);
+    var hypervisorSub = createTestSubscription("hyp");
+    hypervisorSub.getSubscriptionMeasurements().clear();
+    var hypervisorCores = createMeasurementKey("HYPERVISOR", MetricId.CORES);
+    hypervisorSub.getSubscriptionMeasurements().put(hypervisorCores, 3.0);
+    subscriptionRepository.saveAndFlush(hypervisorSub);
     var specification =
-        SubscriptionMeasurementRepository.metricsCriteria(
-            HypervisorReportCategory.HYPERVISOR, MetricId.CORES.toString());
-    var result = subscriptionMeasurementRepository.findAll(specification);
-    assertThat(result, contains(hypervisorCores));
-    assertThat(result, not(contains(physicalCores)));
+        SubscriptionRepository.buildSearchSpecification(
+            DbReportCriteria.builder()
+                .hypervisorReportCategory(HypervisorReportCategory.HYPERVISOR)
+                .metricId(MetricId.CORES.toString())
+                .build());
+    var result = subscriptionRepository.findAll(specification);
+    assertThat(result, contains(hypervisorSub));
+    assertThat(result, not(contains(subscription)));
   }
 
   @Test
   void testMetricsCriteriaFiltersByCategory() {
-    var hypervisorCores = createMeasurement("HYPERVISOR", MetricId.CORES, 3.0);
-    subscription.addSubscriptionMeasurement(hypervisorCores);
-    subscriptionRepository.saveAndFlush(subscription);
+    var hypervisorSub = createTestSubscription("hyp");
+    hypervisorSub.getSubscriptionMeasurements().clear();
+    var hypervisorCores = createMeasurementKey("HYPERVISOR", MetricId.CORES);
+    hypervisorSub.getSubscriptionMeasurements().put(hypervisorCores, 3.0);
+    subscriptionRepository.saveAndFlush(hypervisorSub);
     var specification =
-        SubscriptionMeasurementRepository.metricsCriteria(
-            HypervisorReportCategory.NON_HYPERVISOR, MetricId.CORES.toString());
-    var result = subscriptionMeasurementRepository.findAll(specification);
-    assertThat(result, contains(physicalCores));
-    assertThat(result, not(contains(hypervisorCores)));
+        SubscriptionRepository.buildSearchSpecification(
+            DbReportCriteria.builder()
+                .hypervisorReportCategory(HypervisorReportCategory.NON_HYPERVISOR)
+                .metricId(MetricId.CORES.toString())
+                .build());
+    var result = subscriptionRepository.findAll(specification);
+    assertThat(result, contains(subscription));
+    assertThat(result, not(contains(hypervisorSub)));
   }
 
-  SubscriptionMeasurement createMeasurement(String type, MetricId metric, double value) {
-    return SubscriptionMeasurement.builder()
-        .measurementType(type)
-        .metricId(metric.toString())
-        .value(value)
-        .build();
+  SubscriptionMeasurementKey createMeasurementKey(String type, MetricId metric) {
+    var key = new SubscriptionMeasurementKey();
+    key.setMeasurementType(type);
+    key.setMetricId(metric.toString());
+    return key;
   }
 }

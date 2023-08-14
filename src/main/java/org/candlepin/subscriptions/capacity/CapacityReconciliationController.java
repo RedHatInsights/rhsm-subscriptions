@@ -33,10 +33,7 @@ import org.candlepin.subscriptions.capacity.files.ProductDenylist;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.Subscription.SubscriptionCompoundId;
-import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
-import org.candlepin.subscriptions.db.model.SubscriptionMeasurement.SubscriptionMeasurementKey;
-import org.candlepin.subscriptions.db.model.SubscriptionProductId;
+import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.utilization.api.model.MetricId;
@@ -117,10 +114,7 @@ public class CapacityReconciliationController {
 
   private void reconcileSubscriptionCapacities(Subscription subscription) {
     Offering offering = subscription.getOffering();
-    var existingKeys =
-        subscription.getSubscriptionMeasurements().stream()
-            .map(m -> fromSubscriptionAndMeasurement(subscription, m))
-            .collect(Collectors.toCollection(HashSet::new));
+    var existingKeys = new HashSet<>(subscription.getSubscriptionMeasurements().keySet());
     upsertMeasurement(subscription, offering.getCores(), "PHYSICAL", CORES)
         .ifPresent(existingKeys::remove);
     upsertMeasurement(subscription, offering.getHypervisorCores(), "HYPERVISOR", CORES)
@@ -131,12 +125,7 @@ public class CapacityReconciliationController {
         .ifPresent(existingKeys::remove);
     // existingKeys now contains only stale SubscriptionMeasurement keys (i.e. measurements no
     // longer provided).
-    existingKeys.forEach(
-        key ->
-            subscription
-                .getSubscriptionMeasurements()
-                .removeIf(
-                    m -> Objects.equals(fromSubscriptionAndMeasurement(subscription, m), key)));
+    existingKeys.forEach(subscription.getSubscriptionMeasurements()::remove);
     if (!existingKeys.isEmpty()) {
       measurementsDeleted.increment(existingKeys.size());
       log.info(
@@ -146,34 +135,19 @@ public class CapacityReconciliationController {
     }
   }
 
-  private SubscriptionMeasurementKey fromSubscriptionAndMeasurement(
-      Subscription subscription, SubscriptionMeasurement measurement) {
-    return new SubscriptionMeasurementKey(
-        new SubscriptionCompoundId(subscription.getSubscriptionId(), subscription.getStartDate()),
-        measurement.getMetricId(),
-        measurement.getMeasurementType());
-  }
-
   private Optional<SubscriptionMeasurementKey> upsertMeasurement(
       Subscription subscription, Integer sourceValue, String measurementType, String metricId) {
     if (sourceValue != null && sourceValue > 0) {
-      var measurement = new SubscriptionMeasurement();
-      // subscription set here so that comparison works as expected
-      measurement.setSubscription(subscription);
-      measurement.setMeasurementType(measurementType);
-      measurement.setMetricId(metricId);
-      measurement.setValue((double) (sourceValue * subscription.getQuantity()));
-      var key = fromSubscriptionAndMeasurement(subscription, measurement);
-      var existingMeasurement =
-          subscription.getSubscriptionMeasurements().stream()
-              .filter(m -> Objects.equals(fromSubscriptionAndMeasurement(subscription, m), key))
-              .findFirst();
-      if (existingMeasurement.isPresent()
-          && !Objects.equals(existingMeasurement.get().getValue(), measurement.getValue())) {
-        existingMeasurement.get().setValue(measurement.getValue());
+      var key = new SubscriptionMeasurementKey();
+      key.setMeasurementType(measurementType);
+      key.setMetricId(metricId);
+      Double existing = subscription.getSubscriptionMeasurements().get(key);
+      var newValue = (double) (sourceValue * subscription.getQuantity());
+      if (existing != null && !Objects.equals(existing, newValue)) {
+        subscription.getSubscriptionMeasurements().put(key, newValue);
         measurementsUpdated.increment();
-      } else if (existingMeasurement.isEmpty()) {
-        subscription.addSubscriptionMeasurement(measurement);
+      } else if (existing == null) {
+        subscription.getSubscriptionMeasurements().put(key, newValue);
         measurementsCreated.increment();
       }
       return Optional.of(key);
@@ -184,24 +158,13 @@ public class CapacityReconciliationController {
   private void reconcileSubscriptionProductIds(Subscription subscription) {
     Offering offering = subscription.getOffering();
 
-    Set<String> products = productExtractor.getProducts(offering.getProductIdsAsStrings());
-    var expectedProducts =
-        products.stream()
-            .map(
-                product -> {
-                  var id = new SubscriptionProductId();
-                  // subscription set here so that comparison works as expected
-                  id.setSubscription(subscription);
-                  id.setProductId(product);
-                  return id;
-                })
-            .collect(Collectors.toSet());
+    Set<String> expectedProducts = productExtractor.getProducts(offering.getProductIdsAsStrings());
     var toBeRemoved =
         subscription.getSubscriptionProductIds().stream()
             .filter(p -> !expectedProducts.contains(p))
             .collect(Collectors.toSet());
     subscription.getSubscriptionProductIds().removeAll(toBeRemoved);
-    expectedProducts.forEach(subscription::addSubscriptionProductId);
+    subscription.getSubscriptionProductIds().addAll(expectedProducts);
     if (!toBeRemoved.isEmpty()) {
       log.info(
           "Update for subscription ID {} removed {} products.",

@@ -35,14 +35,12 @@ import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.HypervisorReportCategory;
-import org.candlepin.subscriptions.db.SubscriptionMeasurementRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.DbReportCriteria;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
-import org.candlepin.subscriptions.db.model.SubscriptionMeasurement;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
@@ -65,19 +63,19 @@ import org.candlepin.subscriptions.utilization.api.resources.CapacityApi;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 /** Capacity API implementation. */
 @Component
 @Slf4j
 public class CapacityResource implements CapacityApi {
+
   public static final String SOCKETS = MetricId.SOCKETS.toString().toUpperCase();
   public static final String CORES = MetricId.CORES.toString().toUpperCase();
   public static final String PHYSICAL = HardwareMeasurementType.PHYSICAL.toString().toUpperCase();
   public static final String HYPERVISOR =
       HardwareMeasurementType.HYPERVISOR.toString().toUpperCase();
-
-  private final SubscriptionMeasurementRepository repository;
   private final SubscriptionRepository subscriptionRepository;
   private final PageLinkCreator pageLinkCreator;
   private final ApplicationClock clock;
@@ -85,11 +83,10 @@ public class CapacityResource implements CapacityApi {
   @Context UriInfo uriInfo;
 
   public CapacityResource(
-      SubscriptionMeasurementRepository repository,
       SubscriptionRepository subscriptionRepository,
       PageLinkCreator pageLinkCreator,
       ApplicationClock clock) {
-    this.repository = repository;
+
     this.subscriptionRepository = subscriptionRepository;
     this.pageLinkCreator = pageLinkCreator;
     this.clock = clock;
@@ -278,8 +275,8 @@ public class CapacityResource implements CapacityApi {
             .ending(reportEnd)
             .build();
 
-    List<SubscriptionMeasurement> matches =
-        repository.findAllBy(orgId, productId.toString(), sla, usage, reportBegin, reportEnd);
+    List<Subscription> subscriptions =
+        subscriptionRepository.findByCriteria(dbReportCriteria, Sort.unsorted());
     List<Subscription> unlimitedSubscriptions =
         subscriptionRepository.findUnlimited(dbReportCriteria);
 
@@ -293,7 +290,7 @@ public class CapacityResource implements CapacityApi {
     OffsetDateTime next = OffsetDateTime.from(start);
 
     while (next.isBefore(end) || next.isEqual(end)) {
-      CapacitySnapshot capacitySnapshot = createCapacitySnapshot(next, matches);
+      CapacitySnapshot capacitySnapshot = createCapacitySnapshot(next, subscriptions);
       capacitySnapshot.setHasInfiniteQuantity(hasInfiniteQuantity(next, unlimitedSubscriptions));
       result.add(capacitySnapshot);
       next = timeAdjuster.adjustToPeriodStart(next.plus(offset));
@@ -338,18 +335,11 @@ public class CapacityResource implements CapacityApi {
             .usage(usage)
             .beginning(reportBegin)
             .ending(reportEnd)
+            .hypervisorReportCategory(hypervisorReportCategory)
+            .metricId(metricId == null ? null : metricId.toString())
             .build();
 
-    List<SubscriptionMeasurement> matches =
-        repository.findAllBy(
-            orgId,
-            productId.toString(),
-            metricId,
-            hypervisorReportCategory,
-            sla,
-            usage,
-            reportBegin,
-            reportEnd);
+    var subscriptions = subscriptionRepository.findByCriteria(dbReportCriteria, Sort.unsorted());
     List<Subscription> unlimitedSubscriptions =
         subscriptionRepository.findUnlimited(dbReportCriteria);
 
@@ -365,7 +355,7 @@ public class CapacityResource implements CapacityApi {
     while (next.isBefore(end) || next.isEqual(end)) {
       CapacitySnapshotByMetricId snapshot =
           createCapacitySnapshotWithMetricId(
-              next, matches, metricId, Optional.ofNullable(hypervisorReportCategory));
+              next, subscriptions, metricId, Optional.ofNullable(hypervisorReportCategory));
       snapshot.setHasInfiniteQuantity(hasInfiniteQuantity(next, unlimitedSubscriptions));
       result.add(snapshot);
       next = timeAdjuster.adjustToPeriodStart(next.plus(offset));
@@ -385,7 +375,7 @@ public class CapacityResource implements CapacityApi {
 
   @SuppressWarnings("java:S3776")
   protected CapacitySnapshot createCapacitySnapshot(
-      OffsetDateTime date, List<SubscriptionMeasurement> matches) {
+      OffsetDateTime date, List<Subscription> subscriptions) {
     // NOTE there is room for future optimization here, as we're *generally* calculating the
     // same sum across a time range, also we might opt to do some of this in the DB query in the
     // future.
@@ -396,30 +386,34 @@ public class CapacityResource implements CapacityApi {
     int physicalCores = 0;
     int hypervisorCores = 0;
 
-    for (SubscriptionMeasurement measurement : matches) {
-      var begin = measurement.getSubscription().getStartDate();
-      var end = measurement.getSubscription().getEndDate();
+    for (Subscription subscription : subscriptions) {
+      var begin = subscription.getStartDate();
+      var end = subscription.getEndDate();
 
-      if (begin.isBefore(date) && end.isAfter(date)) {
-        var measurementType = measurement.getMeasurementType();
-        var isPhysical = PHYSICAL.equals(measurementType);
-        var isHypervisor = HYPERVISOR.equals(measurementType);
+      if ((begin == null || begin.isBefore(date)) && (end == null || end.isAfter(date))) {
+        for (var entry : subscription.getSubscriptionMeasurements().entrySet()) {
+          var measurementKey = entry.getKey();
+          var measurementValue = entry.getValue();
+          var measurementType = measurementKey.getMeasurementType();
+          var isPhysical = PHYSICAL.equals(measurementType);
+          var isHypervisor = HYPERVISOR.equals(measurementType);
 
-        if (CORES.equals(measurement.getMetricId())) {
-          var val = measurement.getValue().intValue();
-          cores += val;
-          if (isPhysical) {
-            physicalCores += val;
-          } else if (isHypervisor) {
-            hypervisorCores += val;
-          }
-        } else if (SOCKETS.equals(measurement.getMetricId())) {
-          var val = measurement.getValue().intValue();
-          sockets += val;
-          if (isPhysical) {
-            physicalSockets += val;
-          } else if (isHypervisor) {
-            hypervisorSockets += val;
+          if (CORES.equalsIgnoreCase(measurementKey.getMetricId())) {
+            var val = measurementValue.intValue();
+            cores += val;
+            if (isPhysical) {
+              physicalCores += val;
+            } else if (isHypervisor) {
+              hypervisorCores += val;
+            }
+          } else if (SOCKETS.equalsIgnoreCase(measurementKey.getMetricId())) {
+            var val = measurementValue.intValue();
+            sockets += val;
+            if (isPhysical) {
+              physicalSockets += val;
+            } else if (isHypervisor) {
+              hypervisorSockets += val;
+            }
           }
         }
       }
@@ -438,34 +432,38 @@ public class CapacityResource implements CapacityApi {
   @SuppressWarnings("java:S3776")
   protected CapacitySnapshotByMetricId createCapacitySnapshotWithMetricId(
       OffsetDateTime date,
-      List<SubscriptionMeasurement> matches,
+      List<Subscription> subscriptions,
       MetricId metricId,
       Optional<HypervisorReportCategory> hypervisorReportCategory) {
     int value = 0;
     boolean hasData = false;
 
-    for (SubscriptionMeasurement measurement : matches) {
-      var begin = measurement.getSubscription().getStartDate();
-      var end = measurement.getSubscription().getEndDate();
+    for (Subscription subscription : subscriptions) {
+      var begin = subscription.getStartDate();
+      var end = subscription.getEndDate();
       if (begin.isBefore(date) && (Objects.isNull(end) || end.isAfter(date))) {
         hasData = true;
-        if (metricId.toString().toUpperCase().equals(measurement.getMetricId())) {
-          if (hypervisorReportCategory.isEmpty()) {
-            value += measurement.getValue().intValue();
-            continue;
-          }
+        for (var entry : subscription.getSubscriptionMeasurements().entrySet()) {
+          var measurementKey = entry.getKey();
+          var measurementValue = entry.getValue();
+          if (metricId.toString().equalsIgnoreCase(measurementKey.getMetricId())) {
+            if (hypervisorReportCategory.isEmpty()) {
+              value += measurementValue.intValue();
+              continue;
+            }
 
-          var measurementType = measurement.getMeasurementType();
-          var isNonHypervisorMeasurement = PHYSICAL.equals(measurementType);
-          var isHypervisorMeasurement = HYPERVISOR.equals(measurementType);
+            var measurementType = measurementKey.getMeasurementType();
+            var isNonHypervisorMeasurement = PHYSICAL.equals(measurementType);
+            var isHypervisorMeasurement = HYPERVISOR.equals(measurementType);
 
-          var category = hypervisorReportCategory.get();
-          var isHypervisorCategory = category.equals(HypervisorReportCategory.HYPERVISOR);
-          var isNonHypervisorCategory = category.equals(HypervisorReportCategory.NON_HYPERVISOR);
+            var category = hypervisorReportCategory.get();
+            var isHypervisorCategory = category.equals(HypervisorReportCategory.HYPERVISOR);
+            var isNonHypervisorCategory = category.equals(HypervisorReportCategory.NON_HYPERVISOR);
 
-          if ((isHypervisorCategory && isHypervisorMeasurement)
-              || (isNonHypervisorCategory && isNonHypervisorMeasurement)) {
-            value += measurement.getValue().intValue();
+            if ((isHypervisorCategory && isHypervisorMeasurement)
+                || (isNonHypervisorCategory && isNonHypervisorMeasurement)) {
+              value += measurementValue.intValue();
+            }
           }
         }
       }
