@@ -40,6 +40,4 @@ rhsm-conduit:
     kafka-group-id: ${CONDUIT_KAFKA_GROUP_ID:rhsm-conduit-task-processor}
     seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
     seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
-  package_uri_mappings:
-    # this mapping required here because it is used by our SecurityConfig, which is shared
-    org.candlepin.subscriptions.conduit.resteasy: ${PATH_PREFIX}/${APP_NAME}/v1
+

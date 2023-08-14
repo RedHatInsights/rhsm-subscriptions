@@ -91,7 +91,12 @@ public class ApiSecurityConfiguration {
 
   private static final String[] URLS_PERMITTED_WITHOUT_AUTH =
       new String[] {
-        "/**/*openapi.yaml", "/**/*openapi.json", "/**/version", "/api-docs/**", "/webjars/**"
+        "/**/*openapi.yaml",
+        "/**/*openapi.json",
+        "/**/version",
+        "/api-docs/**",
+        "/webjars/**",
+        "/api/swatch-system-conduit/internal/swagger-ui"
       };
 
   // NOTE: intentionally *not* annotated with @Bean; @Bean causes an extra use as an application
