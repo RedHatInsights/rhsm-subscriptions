@@ -115,19 +115,6 @@ public class PrometheusMetricsTaskManager {
 
   @Transactional
   public void updateMetricsForAllAccounts(
-      String productTag, OffsetDateTime start, OffsetDateTime end) {
-    updateMetricsForAllAccounts(
-        productTag, start, end, RetryTemplate.builder().maxAttempts(1).build());
-  }
-
-  @Transactional
-  public void updateMetricsForAllAccounts(String productTag, int rangeInMinutes) {
-    updateMetricsForAllAccounts(
-        productTag, rangeInMinutes, RetryTemplate.builder().maxAttempts(1).build());
-  }
-
-  @Transactional
-  public void updateMetricsForAllAccounts(
       String productTag, int rangeInMinutes, RetryTemplate retry) {
     OffsetDateTime end =
         clock.startOfHour(clock.now().minus(appProps.getPrometheusLatencyDuration()));

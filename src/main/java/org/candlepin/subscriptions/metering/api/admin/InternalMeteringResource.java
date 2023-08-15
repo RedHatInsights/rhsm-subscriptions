@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.metering.api.admin;
 import io.micrometer.core.annotation.Timed;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
@@ -30,7 +31,6 @@ import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.metering.ResourceUtil;
 import org.candlepin.subscriptions.metering.admin.api.InternalApi;
@@ -49,7 +49,6 @@ public class InternalMeteringResource implements InternalApi {
   private final ApplicationProperties applicationProperties;
   private final PrometheusMetricsTaskManager tasks;
   private final PrometheusMeteringController controller;
-  private final AccountConfigRepository accountConfigRepository;
   private final TagProfile tagProfile;
   private final EventRecordsRetentionProperties eventRecordsRetentionProperties;
   private final EventRecordRepository eventRecordRepository;
@@ -62,7 +61,6 @@ public class InternalMeteringResource implements InternalApi {
       TagProfile tagProfile,
       PrometheusMetricsTaskManager tasks,
       PrometheusMeteringController controller,
-      AccountConfigRepository accountConfigRepository,
       EventRecordRepository eventRecordRepository,
       MetricProperties metricProperties) {
     this.util = util;
@@ -71,7 +69,6 @@ public class InternalMeteringResource implements InternalApi {
     this.tagProfile = tagProfile;
     this.tasks = tasks;
     this.controller = controller;
-    this.accountConfigRepository = accountConfigRepository;
     this.eventRecordRepository = eventRecordRepository;
     this.metricProperties = metricProperties;
   }
@@ -90,42 +87,14 @@ public class InternalMeteringResource implements InternalApi {
     log.info("Event record purge completed successfully");
   }
 
-  protected void meterProductForAllAccounts(
-      String productTag, OffsetDateTime endDate, Integer rangeInMinutes) {
-    if (Objects.isNull(rangeInMinutes)) {
-      rangeInMinutes = metricProperties.getRangeInMinutes();
-    }
-    OffsetDateTime end = util.getDate(Optional.ofNullable(endDate));
-    OffsetDateTime start = util.getStartDate(end, rangeInMinutes);
-
-    log.info("Metering {} for all accounts in the past {} minutes", productTag, rangeInMinutes);
-
-    try {
-      tasks.updateMetricsForAllAccounts(productTag, start, end);
-    } catch (Exception e) {
-      log.error("Error triggering {} metering for all accounts.", productTag, e);
-    }
-  }
-
   @Override
-  public void meterProductForAccount(
+  public void meterProductForOrgIdAndRange(
       String productTag,
-      String accountNumber,
-      String orgId,
+      @NotNull String orgId,
       OffsetDateTime endDate,
       @Min(0) Integer rangeInMinutes,
       Boolean xRhSwatchSynchronousRequest) {
     Object principal = ResourceUtils.getPrincipal();
-
-    if (orgId == null && accountNumber == null) {
-      meterProductForAllAccounts(productTag, endDate, rangeInMinutes);
-    } else if (orgId == null) {
-      orgId = accountConfigRepository.findOrgByAccountNumber(accountNumber);
-      if (orgId == null) {
-        throw new BadRequestException(
-            String.format("Unable to look up orgId for accountNumber: %s", accountNumber));
-      }
-    }
 
     if (Objects.isNull(rangeInMinutes)) {
       rangeInMinutes = metricProperties.getRangeInMinutes();
@@ -140,7 +109,7 @@ public class InternalMeteringResource implements InternalApi {
     log.info(
         "{} metering for {} against range [{}, {}) triggered via API by {}",
         productTag,
-        accountNumber,
+        orgId,
         start,
         end,
         principal);

@@ -49,7 +49,7 @@ EOF
   while [ $TIME -lt $NOW ]; do
     TIME=$(($TIME + 300))
     cat <<EOF >> $FILE
-ocm_subscription{_id="$CLUSTER_ID",billing_model="marketplace",ebs_account="$ACCOUNT",external_organization="$ORG_ID",support="Premium",billing_provider="$BILLING_PROVIDER",billing_marketplace_account="$MARKETPLACE_ACCOUNT",product="$PRODUCT"} 1.0 $TIME
+ocm_subscription{_id="$CLUSTER_ID",billing_model="marketplace",ebs_account="$ACCOUNT",external_organization="$ORG_ID",support="Premium",billing_marketplace="$BILLING_PROVIDER",billing_marketplace_account="$MARKETPLACE_ACCOUNT",product="$PRODUCT"} 1.0 $TIME
 EOF
     for METRIC in $METRICS; do
       VALUE=$(($RANDOM % 100))
