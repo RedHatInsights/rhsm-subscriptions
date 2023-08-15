@@ -1,3 +1,5 @@
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+
 plugins {
     id "swatch.spring-boot-conventions"
     id "org.openapi.generator"
@@ -20,16 +22,29 @@ openApiGenerate {
     configFile = config_file
     outputDir = "$buildDir/generated"
     configOptions = [
+        outputFileName: "internal-system-conduit-openapi.json",
         interfaceOnly: "true",
         generatePom: "false",
         dateLibrary: "java8",
         useTags: "true",
-        useJakartaEe: "true",
+        useJakartaEe: "true"
     ]
 }
 
 openApiValidate {
     inputSpec = api_spec_path
+}
+
+tasks.register("generateOpenApiJsonInternal", GenerateTask) {
+    generatorName = "openapi"
+    inputSpec = api_spec_path
+    outputDir = "$buildDir/openapijson"
+    generateModelTests = false
+    generateApiTests = false
+    configOptions = [
+            outputFileName: "internal-organizations-sync-openapi.json",
+            useJakartaEe: "true",
+    ]
 }
 
 tasks.register("downloadJavaAgent", Copy) {
@@ -40,6 +55,12 @@ tasks.register("downloadJavaAgent", Copy) {
     rename { filename ->
         'splunk-otel-javaagent.jar'
     }
+}
+
+
+processResources {
+    from tasks.generateOpenApiJsonInternal
+    from api_spec_path
 }
 
 sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
@@ -70,6 +91,8 @@ dependencies {
     implementation "org.yaml:snakeyaml"
     implementation "org.postgresql:postgresql"
     implementation "org.hibernate.validator:hibernate-validator"
+    implementation "org.webjars:swagger-ui"
+    implementation "org.webjars:webjars-locator"
     implementation libraries["resilience4j-spring-boot2"]
 
     testImplementation "org.springframework.security:spring-security-test"

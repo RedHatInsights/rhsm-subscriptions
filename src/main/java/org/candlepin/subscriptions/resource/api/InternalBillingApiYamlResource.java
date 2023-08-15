@@ -18,15 +18,22 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.conduit.resteasy;
+package org.candlepin.subscriptions.resource.api;
 
-import jakarta.ws.rs.ApplicationPath;
-import jakarta.ws.rs.core.Application;
+import org.candlepin.subscriptions.billing.admin.api.InternalBillingOpenapiYamlApi;
 import org.springframework.stereotype.Component;
 
-/** Bootstrapper for RESTEasy. */
 @Component
-@ApplicationPath("/api/rhsm-subscriptions/v1")
-public class JaxrsApplication extends Application {
-  /* Intentionally left empty */
+public class InternalBillingApiYamlResource implements InternalBillingOpenapiYamlApi {
+
+  private ApiSpecController controller;
+
+  public InternalBillingApiYamlResource(ApiSpecController controller) {
+    this.controller = controller;
+  }
+
+  @Override
+  public String getOpenApiYaml() {
+    return controller.getInternalBillingApiYaml();
+  }
 }

@@ -335,8 +335,8 @@ tasks.register("generateOpenApiJsonProducerRhM", GenerateTask) {
 }
 
 processResources {
-    from tasks.generateOpenApiJsonTally, tasks.generateOpenApiJsonSubSync, tasks.generateOpenApiJsonBilling, tasks.generateOpenApiJsonMetering
-    from tally_api_spec_file, sub_sync_api_spec_file, billing_api_spec_file, metering_api_spec_file
+    from tasks.generateOpenApiJsonTally, tasks.generateOpenApiJsonSubSync, tasks.generateOpenApiJsonBilling, tasks.generateOpenApiJsonMetering, tasks.generateOpenApiJsonProducerRhM
+    from tally_api_spec_file, sub_sync_api_spec_file, billing_api_spec_file, metering_api_spec_file, swatch_producer_rhm_api_spec_file
 }
 
 sourceSets.main.java.srcDirs += [

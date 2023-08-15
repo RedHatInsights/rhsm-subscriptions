@@ -190,9 +190,7 @@ If no profiles are specified, the default profiles list in `application.yaml` is
 
 ### Deployment Notes
 
-RHSM Subscriptions is meant to be deployed under the context path "/". The
-location of app specific resources are then controlled by the
-`rhsm-subscriptions.package_uri_mappings.org.candlepin.insights` property.
+RHSM Subscriptions is meant to be deployed under the context path "/".
 This unusual configuration is due to external requirements that our
 application base its context path on the value of an environment
 variable. Using "/" as the context path means that we can have certain
