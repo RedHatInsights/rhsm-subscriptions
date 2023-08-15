@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.db;
 
 import static org.candlepin.subscriptions.db.HypervisorReportCategory.NON_HYPERVISOR;
-import static org.hibernate.jpa.HibernateHints.HINT_FETCH_SIZE;
+import static org.hibernate.jpa.AvailableHints.HINT_FETCH_SIZE;
 
 import jakarta.persistence.QueryHint;
 import jakarta.persistence.criteria.CriteriaBuilder;

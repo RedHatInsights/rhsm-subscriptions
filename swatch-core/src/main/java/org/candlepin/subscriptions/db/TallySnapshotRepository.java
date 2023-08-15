@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.hibernate.jpa.HibernateHints.HINT_FETCH_SIZE;
-import static org.hibernate.jpa.HibernateHints.HINT_READ_ONLY;
+import static org.hibernate.jpa.AvailableHints.HINT_FETCH_SIZE;
+import static org.hibernate.jpa.AvailableHints.HINT_READ_ONLY;
 
 import jakarta.persistence.QueryHint;
 import java.time.OffsetDateTime;
