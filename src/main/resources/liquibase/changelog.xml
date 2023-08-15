@@ -118,5 +118,6 @@
     <include file="liquibase/202307261851-event-change-event-type-data.xml"/>
     <!-- Uncomment once the above changeset has landed in prod -->
     <!-- <include file="liquibase/202307051245-drop-instance_id-columns.xml"/> -->
+    <include file="liquibase/202308151557-fix-subscription-measurement-metric-id-casing.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

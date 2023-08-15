@@ -54,8 +54,8 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles({"capacity-ingress", "test"})
 class CapacityReconciliationControllerTest {
-  private static final String SOCKETS = MetricId.SOCKETS.toString().toUpperCase();
-  private static final String CORES = MetricId.CORES.toString().toUpperCase();
+  private static final String SOCKETS = MetricId.SOCKETS.toString();
+  private static final String CORES = MetricId.CORES.toString();
 
   private static final OffsetDateTime NOW = OffsetDateTime.now();
 
