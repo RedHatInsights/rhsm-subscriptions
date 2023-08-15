@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.inventory.db;
 
-import static org.hibernate.jpa.QueryHints.HINT_FETCH_SIZE;
-import static org.hibernate.jpa.QueryHints.HINT_READONLY;
+import static org.hibernate.jpa.AvailableHints.HINT_FETCH_SIZE;
+import static org.hibernate.jpa.AvailableHints.HINT_READ_ONLY;
 
 import jakarta.persistence.QueryHint;
 import java.util.Collection;
@@ -42,7 +42,7 @@ public interface InventoryRepository extends Repository<InventoryHost, UUID> {
   @QueryHints(
       value = {
         @QueryHint(name = HINT_FETCH_SIZE, value = "1024"),
-        @QueryHint(name = HINT_READONLY, value = "true")
+        @QueryHint(name = HINT_READ_ONLY, value = "true")
       })
   Stream<InventoryHostFacts> streamFacts(
       @Param("orgId") String orgId, @Param("culledOffsetDays") Integer culledOffsetDays);
@@ -109,7 +109,7 @@ public interface InventoryRepository extends Repository<InventoryHost, UUID> {
   @QueryHints(
       value = {
         @QueryHint(name = HINT_FETCH_SIZE, value = "1024"),
-        @QueryHint(name = HINT_READONLY, value = "true")
+        @QueryHint(name = HINT_READ_ONLY, value = "true")
       })
   Stream<String> streamActiveSubscriptionManagerIds(
       @Param("orgId") String orgId, @Param("culledOffsetDays") Integer culledOffsetDays);

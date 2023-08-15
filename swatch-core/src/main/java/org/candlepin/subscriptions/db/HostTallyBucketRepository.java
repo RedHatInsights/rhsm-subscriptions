@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.hibernate.jpa.QueryHints.HINT_FETCH_SIZE;
-import static org.hibernate.jpa.QueryHints.HINT_READONLY;
+import static org.hibernate.jpa.AvailableHints.HINT_FETCH_SIZE;
+import static org.hibernate.jpa.AvailableHints.HINT_READ_ONLY;
 
 import jakarta.persistence.QueryHint;
 import java.util.stream.Stream;
@@ -47,7 +47,7 @@ public interface HostTallyBucketRepository extends CrudRepository<HostTallyBucke
   @QueryHints(
       value = {
         @QueryHint(name = HINT_FETCH_SIZE, value = "1024"),
-        @QueryHint(name = HINT_READONLY, value = "true")
+        @QueryHint(name = HINT_READ_ONLY, value = "true")
       })
-  public Stream<AccountBucketTally> tallyHostBuckets(String orgId, String instanceType);
+  Stream<AccountBucketTally> tallyHostBuckets(String orgId, String instanceType);
 }

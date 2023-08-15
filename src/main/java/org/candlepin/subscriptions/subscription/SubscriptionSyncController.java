@@ -26,22 +26,23 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.core.Response;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
@@ -99,6 +100,7 @@ public class SubscriptionSyncController {
   private String syncSubscriptionsTopic;
   private final ObjectMapper objectMapper;
   private final ProductDenylist productDenylist;
+  private final EntityManager entityManager;
 
   @Autowired
   public SubscriptionSyncController(
@@ -116,7 +118,8 @@ public class SubscriptionSyncController {
       ObjectMapper objectMapper,
       @Qualifier("syncSubscriptionTasks") TaskQueueProperties props,
       TagProfile tagProfile,
-      AccountService accountService) {
+      AccountService accountService,
+      EntityManager entityManager) {
     this.subscriptionRepository = subscriptionRepository;
     this.orgRepository = orgRepository;
     this.offeringRepository = offeringRepository;
@@ -132,6 +135,7 @@ public class SubscriptionSyncController {
     this.syncSubscriptionsByOrgKafkaTemplate = syncSubscriptionsByOrgKafkaTemplate;
     this.tagProfile = tagProfile;
     this.accountService = accountService;
+    this.entityManager = entityManager;
   }
 
   @Transactional
@@ -311,41 +315,81 @@ public class SubscriptionSyncController {
   @Timed("swatch_subscription_reconcile_org")
   public void reconcileSubscriptionsWithSubscriptionService(String orgId, boolean paygOnly) {
     log.info("Syncing subscriptions for orgId={}", orgId);
-    Set<String> seenSubscriptionIds = new HashSet<>();
-    Map<SubscriptionCompoundId, org.candlepin.subscriptions.db.model.Subscription>
-        swatchSubscriptions;
 
-    var subscriptions = subscriptionService.getSubscriptionsByOrgId(orgId).stream();
+    var dtos = subscriptionService.getSubscriptionsByOrgId(orgId).stream();
+
     // Filter out non PAYG subscriptions for faster processing when they are not needed.
     // Slow processing was causing: https://issues.redhat.com/browse/ENT-5083
+
     if (paygOnly) {
-      subscriptions =
-          subscriptions.filter(
+      dtos =
+          dtos.filter(
               subscription -> SubscriptionDtoUtil.extractBillingProviderId(subscription) != null);
     }
 
-    try (var subs = subscriptionRepository.findByOrgId(orgId)) {
-      swatchSubscriptions =
-          subs.collect(
-              Collectors.toMap(
-                  sub -> new SubscriptionCompoundId(sub.getSubscriptionId(), sub.getStartDate()),
-                  Function.identity(),
-                  (s1, s2) -> s1));
-    }
-    subscriptions
-        .filter(this::shouldSyncSub)
+    var subCompoundIdToDtoMap =
+        dtos.filter(this::shouldSyncSub)
+            .collect(
+                Collectors.toMap(
+                    dto -> {
+                      OffsetDateTime startDate =
+                          clock.dateFromMilliseconds(dto.getEffectiveStartDate());
+
+                      return new SubscriptionCompoundId(dto.getId().toString(), startDate);
+                    },
+                    Function.identity(),
+                    (firstMatch, secondMatch) -> firstMatch));
+
+    List<org.candlepin.subscriptions.db.model.Subscription> subEntitiesForDeletion =
+        new ArrayList<>();
+
+    Set<String> seenIds =
+        subCompoundIdToDtoMap.keySet().stream()
+            .map(SubscriptionCompoundId::getSubscriptionId)
+            .collect(Collectors.toSet());
+
+    var batchSize = 1024;
+    CustomBatchIterator.batchStreamOf(subscriptionRepository.findByOrgId(orgId), batchSize)
         .forEach(
-            subscription -> {
-              if (productDenylist.productIdMatches(SubscriptionDtoUtil.extractSku(subscription))) {
-                return;
-              }
-              seenSubscriptionIds.add(subscription.getId().toString());
-              var swatchSubscription =
-                  swatchSubscriptions.remove(
-                      new SubscriptionCompoundId(
-                          subscription.getId().toString(),
-                          clock.dateFromMilliseconds(subscription.getEffectiveStartDate())));
-              syncSubscription(subscription, Optional.ofNullable(swatchSubscription));
+            batch -> {
+              batch.forEach(
+                  subEntity -> {
+                    var startDate = subEntity.getStartDate();
+                    var subId = subEntity.getSubscriptionId();
+
+                    var key = new SubscriptionCompoundId(subId, startDate);
+
+                    var dto = subCompoundIdToDtoMap.remove(key);
+
+                    // delete from swatch because it didn't appear in the latest list from the
+                    // subscription service, or it's in the denylist
+                    if (!seenIds.contains(subId)
+                        || (productDenylist.productIdMatches(subEntity.getOffering().getSku()))) {
+                      subEntitiesForDeletion.add(subEntity);
+                      return;
+                    }
+
+                    // we've seen a newer version of the sub, but this version doesn't need updates
+                    if (dto == null) {
+                      return;
+                    }
+
+                    syncSubscription(dto, Optional.of(subEntity));
+                  });
+              subscriptionRepository.flush();
+              entityManager.clear();
+            });
+
+    // These are additional subs that should be sync'd but weren't previously in the database
+    Stream<Subscription> stream = subCompoundIdToDtoMap.values().stream();
+
+    CustomBatchIterator.batchStreamOf(stream, batchSize)
+        .forEach(
+            batch -> {
+              batch.forEach(dto -> syncSubscription(dto, Optional.empty()));
+
+              subscriptionRepository.flush();
+              entityManager.clear();
             });
 
     if (paygOnly) {
@@ -354,18 +398,13 @@ public class SubscriptionSyncController {
       return;
     }
 
-    var recordsToDelete =
-        swatchSubscriptions.values().stream()
-            .filter(sub -> !seenSubscriptionIds.contains(sub.getSubscriptionId()))
-            .toList();
-
-    if (!recordsToDelete.isEmpty()) {
-      log.info("Removing {} stale/incorrect subscription records", recordsToDelete.size());
+    if (!subEntitiesForDeletion.isEmpty()) {
+      log.info("Removing {} stale/incorrect subscription records", subEntitiesForDeletion.size());
     }
 
-    // anything remaining in the map at this point is stale. Measurements and subscription product
-    // ID objects should delete in a cascade.
-    subscriptionRepository.deleteAll(recordsToDelete);
+    subscriptionRepository.deleteAll(subEntitiesForDeletion);
+
+    log.info("Finished syncing subscriptions for orgId {}", orgId);
   }
 
   private boolean shouldSyncSub(Subscription sub) {

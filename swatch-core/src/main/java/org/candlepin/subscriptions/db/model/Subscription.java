@@ -49,7 +49,9 @@ import lombok.*;
       @NamedAttributeNode("subscriptionProductIds")
     },
     subgraphs = {
-      @NamedSubgraph(name = "subgraph.offering", attributeNodes = @NamedAttributeNode("productIds"))
+      @NamedSubgraph(
+          name = "subgraph.offering",
+          attributeNodes = {@NamedAttributeNode("childSkus"), @NamedAttributeNode("productIds")})
     })
 public class Subscription implements Serializable {
 
@@ -60,7 +62,7 @@ public class Subscription implements Serializable {
   @Column(name = "subscription_number")
   private String subscriptionNumber;
 
-  @ManyToOne(fetch = FetchType.EAGER)
+  @ManyToOne
   @JoinColumn(name = "sku")
   private Offering offering;
 
