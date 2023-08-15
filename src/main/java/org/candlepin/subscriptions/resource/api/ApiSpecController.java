@@ -64,6 +64,18 @@ public class ApiSpecController {
   @Value("classpath:internal-metering-openapi.json")
   private Resource internalMeteringApiJson;
 
+  @Value("classpath:internal-billing-api-spec.yaml")
+  private Resource internalBillingApiYaml;
+
+  @Value("classpath:internal-billing-openapi.json")
+  private Resource internalBillingApiJson;
+
+  @Value("classpath:internal-swatch-producer-red-hat-marketplace-openapi.json")
+  private Resource internalProducerRedHatMarketplaceApiYaml;
+
+  @Value("classpath:internal-producer-red-hat-marketplace-api-openapi.json")
+  private Resource internalProducerRedHatMarketplaceApiJson;
+
   private String getResourceAsString(Resource r) {
     try (InputStream is = r.getInputStream()) {
       return IOUtils.toString(is, StandardCharsets.UTF_8);
@@ -106,5 +118,21 @@ public class ApiSpecController {
 
   public String getInternalMeteringApiJson() {
     return getResourceAsString(internalMeteringApiJson);
+  }
+
+  public String getInternalBillingApiYaml() {
+    return getResourceAsString(internalBillingApiYaml);
+  }
+
+  public String getInternalBillingApiJson() {
+    return getResourceAsString(internalBillingApiJson);
+  }
+
+  public String getInternalProducerRHMApiYaml() {
+    return getResourceAsString(internalProducerRedHatMarketplaceApiYaml);
+  }
+
+  public String getInternalProducerRHMApiJson() {
+    return getResourceAsString(internalProducerRedHatMarketplaceApiJson);
   }
 }

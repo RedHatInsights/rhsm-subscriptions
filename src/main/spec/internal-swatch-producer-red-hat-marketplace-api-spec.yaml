@@ -3,6 +3,27 @@ info:
   title: "swatch-producer-red-hat-marketplace internal API"
   version: 1.0.0
 
+servers:
+  - url: /{PATH_PREFIX}/{APP_NAME}/v1
+    variables:
+      PATH_PREFIX:
+        default: api
+      APP_NAME:
+        default: rhsm-subscriptions
+  - url: https://{HOSTNAME}/{PATH_PREFIX}/{APP_NAME}/v1
+    variables:
+      HOSTNAME:
+        enum:
+          - ci.cloud.redhat.com
+          - qa.cloud.redhat.com
+          - stage.cloud.redhat.com
+          - cloud.redhat.com
+        default: ci.cloud.redhat.com
+      PATH_PREFIX:
+        default: api
+      APP_NAME:
+        default: rhsm-subscriptions
+
 paths:
   /internal/rhm/status/{batch_id}:
     parameters:
@@ -25,3 +46,17 @@ paths:
     $ref: "../../../spec/openapi-paths.yaml#/openapi-json"
   /internal-swatch-producer-red-hat-marketplace-openapi.yaml:
     $ref: "../../../spec/openapi-paths.yaml#/openapi-yaml"
+components:
+  securitySchemes:
+    PskIdentity:
+      type: apiKey
+      in: header
+      name: x-rh-swatch-psk
+      description: |
+        Psk header containing Pre Shared Key. Contains an
+        UUID string:
+        ```
+        c9a98753-2092-4617-b226-5c2653330b3d
+        ```
+security:
+  - PskIdentity: []
