@@ -45,7 +45,6 @@ import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageMeasurement;
-import org.candlepin.subscriptions.user.AccountService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -67,8 +66,6 @@ class RhMarketplacePayloadMapperTest {
   @Mock TagProfile tagProfile;
   @Mock InternalSubscriptionsApi subscriptionsApi;
 
-  @Mock AccountService accountService;
-
   RhMarketplacePayloadMapper rhMarketplacePayloadMapper;
 
   @BeforeEach
@@ -77,7 +74,7 @@ class RhMarketplacePayloadMapperTest {
     retry.setBackOffPolicy(new NoBackOffPolicy());
 
     rhMarketplacePayloadMapper =
-        new RhMarketplacePayloadMapper(tagProfile, accountService, subscriptionsApi, retry);
+        new RhMarketplacePayloadMapper(tagProfile, subscriptionsApi, retry);
 
     // Tell Mockito not to complain if some of these mocks aren't used in a particular test
     lenient()
@@ -121,6 +118,7 @@ class RhMarketplacePayloadMapperTest {
     var usage =
         new BillableUsage()
             .withId(UUID.fromString("c204074d-626f-4272-aa05-b6d69d6de16a"))
+            .withOrgId(orgId)
             .withAccountNumber(account)
             .withProductId("OpenShift-metrics")
             .withSnapshotDate(snapshotDate)
@@ -130,8 +128,6 @@ class RhMarketplacePayloadMapperTest {
             .withSla(Sla.PREMIUM)
             .withBillingProvider(BillingProvider.RED_HAT)
             .withBillingAccountId("sellerAccountId");
-
-    when(accountService.lookupOrgId(account)).thenReturn(orgId);
 
     var usageMeasurement =
         new UsageMeasurement().value(36.0).metricId("redhat.com:openshift:cpu_hour");
@@ -174,6 +170,7 @@ class RhMarketplacePayloadMapperTest {
             .withId(UUID.fromString("c204074d-626f-4272-aa05-b6d69d6de16a"))
             .withAccountNumber(account)
             .withProductId("OpenShift-metrics")
+            .withOrgId(orgId)
             .withSnapshotDate(snapshotDate)
             .withUsage(Usage.PRODUCTION)
             .withUom(Uom.CORES)
@@ -181,8 +178,6 @@ class RhMarketplacePayloadMapperTest {
             .withSla(Sla.PREMIUM)
             .withBillingProvider(BillingProvider.RED_HAT)
             .withBillingAccountId("sellerAccountId");
-
-    when(accountService.lookupOrgId(account)).thenReturn(orgId);
 
     assertNull(rhMarketplacePayloadMapper.produceUsageEvent(usage));
     assertTrue(rhMarketplacePayloadMapper.createUsageRequest(usage).getData().isEmpty());
@@ -283,7 +278,7 @@ class RhMarketplacePayloadMapperTest {
         .thenThrow(ApiException.class);
 
     RhMarketplacePayloadMapper mapper =
-        new RhMarketplacePayloadMapper(tagProfile, accountService, subscriptionsApi, retry);
+        new RhMarketplacePayloadMapper(tagProfile, subscriptionsApi, retry);
 
     BillableUsage billableUsage =
         new BillableUsage()
