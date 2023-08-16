@@ -41,7 +41,6 @@ import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageMeasurement;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageRequest;
 import org.candlepin.subscriptions.tally.billing.BillableUsageMapper;
-import org.candlepin.subscriptions.user.AccountService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,7 +57,6 @@ public class RhMarketplacePayloadMapper {
   public static final String OPENSHIFT_DEDICATED_4_CPU_HOUR =
       "redhat.com:openshift_dedicated:4cpu_hour";
 
-  private final AccountService accountService;
   private final BillableUsageMapper billableUsageMapper;
   private final TagProfile tagProfile;
   private final InternalSubscriptionsApi subscriptionsClient;
@@ -67,11 +65,9 @@ public class RhMarketplacePayloadMapper {
   @Autowired
   public RhMarketplacePayloadMapper(
       TagProfile tagProfile,
-      AccountService accountService,
       InternalSubscriptionsApi subscriptionsClient,
       @Qualifier("rhmUsageContextLookupRetryTemplate") RetryTemplate usageContextRetryTemplate) {
     this.tagProfile = tagProfile;
-    this.accountService = accountService;
     this.subscriptionsClient = subscriptionsClient;
     // NOTE(khowell) this dependency is temporary, and instantiating here was easier than
     // refactoring profiles.
@@ -154,10 +150,6 @@ public class RhMarketplacePayloadMapper {
         context -> {
           String accountNumber = billableUsage.getAccountNumber();
           String orgId = billableUsage.getOrgId();
-          if (orgId == null) {
-            orgId = accountService.lookupOrgId(accountNumber);
-          }
-
           try {
             log.debug(
                 "Looking up RHM usage context for orgId={} billableUsage={}", orgId, billableUsage);
