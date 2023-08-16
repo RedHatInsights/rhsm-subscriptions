@@ -25,6 +25,7 @@ import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityManager;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -383,17 +384,21 @@ public class InventoryAccountUsageCollector {
         AccountServiceInventoryId.builder().orgId(orgId).serviceType(HBI_INSTANCE_TYPE).build())) {
       accountServiceInventoryRepository.save(new AccountServiceInventory(orgId, HBI_INSTANCE_TYPE));
     }
+    List<Host> detachHosts = new ArrayList<>();
     int systemsUpdatedForOrg =
         collator.collateData(
             orgId,
             culledOffsetDays,
             (hbiSystem, swatchSystem, hypervisorData, iterationCount) -> {
               reconcileHbiSystemWithSwatchSystem(
-                  hbiSystem, swatchSystem, hypervisorData, applicableProducts);
+                  hbiSystem, swatchSystem, hypervisorData, applicableProducts, detachHosts);
               if (iterationCount % hbiReconciliationFlushInterval == 0) {
                 log.debug("Flushing system changes w/ count={}", iterationCount);
                 hostRepository.flush();
-                entityManager.clear();
+                if (Objects.nonNull(swatchSystem) && Objects.nonNull(hbiSystem)) {
+                  detachHosts.forEach(entityManager::detach);
+                  detachHosts.clear();
+                }
               }
             });
     log.info("Reconciled {} records for orgId={}", systemsUpdatedForOrg, orgId);
@@ -415,7 +420,8 @@ public class InventoryAccountUsageCollector {
       InventoryHostFacts hbiSystem,
       Host swatchSystem,
       OrgHostsData orgHostsData,
-      Set<String> applicableProducts) {
+      Set<String> applicableProducts,
+      List<Host> hosts) {
     log.debug(
         "Reconciling HBI inventoryId={} & swatch inventoryId={}",
         Optional.ofNullable(hbiSystem).map(InventoryHostFacts::getInventoryId),
@@ -430,10 +436,13 @@ public class InventoryAccountUsageCollector {
       Set<Key> usageKeys = createHostUsageKeys(applicableProducts, normalizedFacts);
       if (swatchSystem != null) {
         log.debug("Updating system w/ inventoryId={}", hbiSystem.getInventoryId());
-        updateSwatchSystem(hbiSystem, normalizedFacts, swatchSystem, usageKeys);
+        Host updatedSwatchSystem =
+            updateSwatchSystem(hbiSystem, normalizedFacts, swatchSystem, usageKeys);
+        hosts.add(updatedSwatchSystem);
       } else {
         log.debug("Creating system w/ inventoryId={}", hbiSystem.getInventoryId());
         swatchSystem = createSwatchSystem(hbiSystem, normalizedFacts, usageKeys);
+        hosts.add(swatchSystem);
       }
       reconcileHypervisorData(normalizedFacts, swatchSystem, orgHostsData, usageKeys);
     }
@@ -488,8 +497,7 @@ public class InventoryAccountUsageCollector {
     host.setInstanceType(HBI_INSTANCE_TYPE);
     populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
     applyNonHypervisorBuckets(host, normalizedFacts, usageKeys);
-    hostRepository.save(host);
-    return host;
+    return hostRepository.save(host);
   }
 
   private Set<Key> createHostUsageKeys(Set<String> products, NormalizedFacts facts) {
@@ -531,13 +539,13 @@ public class InventoryAccountUsageCollector {
         .removeIf(b -> !b.getKey().getAsHypervisor() && !seenBucketKeys.contains(b.getKey()));
   }
 
-  private void updateSwatchSystem(
+  private Host updateSwatchSystem(
       InventoryHostFacts inventoryHostFacts,
       NormalizedFacts normalizedFacts,
       Host host,
       Set<Key> usageKeys) {
     populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
     applyNonHypervisorBuckets(host, normalizedFacts, usageKeys);
-    hostRepository.save(host);
+    return hostRepository.save(host);
   }
 }
