@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import org.candlepin.subscriptions.db.AccountConfigRepository;
+import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.exception.OptInRequiredException;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfigData;
@@ -42,7 +42,7 @@ class OptInCheckerTest {
 
   @Autowired OptInChecker checker;
 
-  @MockBean AccountConfigRepository accountConfigRepository;
+  @MockBean OrgConfigRepository orgConfigRepository;
 
   @Test
   @WithInvalidPrincipal
@@ -60,7 +60,7 @@ class OptInCheckerTest {
     when(config.getData()).thenReturn(configData);
     when(configData.getOptInComplete()).thenReturn(Boolean.FALSE);
 
-    when(accountConfigRepository.existsByOrgId(anyString())).thenReturn(false);
+    when(orgConfigRepository.existsByOrgId(anyString())).thenReturn(false);
 
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     assertThrows(OptInRequiredException.class, () -> checker.checkAccess(auth));
@@ -75,7 +75,7 @@ class OptInCheckerTest {
     when(config.getData()).thenReturn(configData);
     when(configData.getOptInComplete()).thenReturn(Boolean.TRUE);
 
-    when(accountConfigRepository.existsByOrgId(anyString())).thenReturn(true);
+    when(orgConfigRepository.existsByOrgId(anyString())).thenReturn(true);
 
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     assertTrue(checker.checkAccess(auth));

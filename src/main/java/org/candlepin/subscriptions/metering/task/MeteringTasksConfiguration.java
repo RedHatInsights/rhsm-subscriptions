@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.metering.task;
 
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
@@ -71,7 +70,6 @@ public class MeteringTasksConfiguration {
       TaskQueue queue,
       @Qualifier("meteringTaskQueueProperties") TaskQueueProperties queueProps,
       PrometheusAccountSource accountSource,
-      AccountConfigRepository accountConfigRepository,
       ApplicationClock clock,
       ApplicationProperties appProps) {
     return new PrometheusMetricsTaskManager(queue, queueProps, accountSource, clock, appProps);
