@@ -118,15 +118,11 @@ public class InternalTallyDataController {
     tasks.updateHourlySnapshotsForAllOrgs(Optional.ofNullable(range));
   }
 
-  public String createOrUpdateOptInConfig(String accountNumber, String orgId, OptInType api) {
-    OptInConfig config = controller.optIn(accountNumber, orgId, api);
+  public String createOrUpdateOptInConfig(String orgId, OptInType api) {
+    OptInConfig config = controller.optIn(orgId, api);
 
-    log.info(
-        "Completed opt in for account {} and org {}: \n{}",
-        accountNumber,
-        orgId,
-        config.toString());
-    String text = "Completed opt in for account %s and org %s";
-    return String.format(text, accountNumber, orgId);
+    log.info("Completed opt in for org {}: \n{}", orgId, config.toString());
+    String text = "Completed opt in for org %s";
+    return String.format(text, orgId);
   }
 }

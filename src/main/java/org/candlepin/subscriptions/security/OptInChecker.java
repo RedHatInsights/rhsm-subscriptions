@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.security;
 
-import org.candlepin.subscriptions.db.AccountConfigRepository;
+import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.exception.OptInRequiredException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -38,10 +38,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class OptInChecker {
 
-  private final AccountConfigRepository accountConfigRepository;
+  private final OrgConfigRepository orgConfigRepository;
 
-  public OptInChecker(AccountConfigRepository accountConfigRepository) {
-    this.accountConfigRepository = accountConfigRepository;
+  public OptInChecker(OrgConfigRepository orgConfigRepository) {
+    this.orgConfigRepository = orgConfigRepository;
   }
 
   public boolean checkAccess(Authentication authentication) {
@@ -61,7 +61,7 @@ public class OptInChecker {
      * the OptInRequiredException in the AccessDecisionVoter.vote method and then our own
      * AbstractAccessDecisionManager capable of catching that exception and rethrowing it after all
      * the other voters had been consulted. */
-    if (!accountConfigRepository.existsByOrgId(insightsUserPrincipal.getOrgId())) {
+    if (Boolean.FALSE.equals(orgConfigRepository.existsByOrgId(insightsUserPrincipal.getOrgId()))) {
       throw new OptInRequiredException();
     }
     return true;

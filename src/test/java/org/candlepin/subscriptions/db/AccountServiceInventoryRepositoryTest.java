@@ -43,8 +43,6 @@ class AccountServiceInventoryRepositoryTest {
 
   @Autowired AccountServiceInventoryRepository repo;
 
-  @Autowired AccountConfigRepository accountConfigRepo;
-
   @Autowired HostRepository hostRepo;
 
   @Transactional
