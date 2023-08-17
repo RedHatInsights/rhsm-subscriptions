@@ -26,6 +26,7 @@ import static org.mockito.Mockito.*;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -179,7 +180,7 @@ class KafkaEnabledInventoryServiceTest {
     expectedFacts.setAccountNumber("my_account");
 
     InventoryServiceProperties props = new InventoryServiceProperties();
-    props.setStaleHostOffsetInDays(24);
+    props.setStaleHostOffset(Duration.ofHours(24));
 
     KafkaEnabledInventoryService service =
         new KafkaEnabledInventoryService(props, producer, meterRegistry, retryTemplate);
