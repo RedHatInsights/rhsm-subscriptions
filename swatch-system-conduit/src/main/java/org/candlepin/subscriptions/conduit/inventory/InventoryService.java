@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.conduit.inventory;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.*;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -47,12 +48,12 @@ public abstract class InventoryService {
   private static final Logger log = LoggerFactory.getLogger(InventoryService.class);
 
   private int maxQueueDepth;
-  private int staleHostOffset;
+  private Duration staleHostOffset;
   private List<ConduitFacts> factQueue;
 
   protected InventoryService(InventoryServiceProperties serviceProperties, int maxQueueDepth) {
     this.maxQueueDepth = maxQueueDepth;
-    this.staleHostOffset = serviceProperties.getStaleHostOffsetInDays();
+    this.staleHostOffset = serviceProperties.getStaleHostOffset();
     this.factQueue = new LinkedList<>();
   }
 
@@ -106,7 +107,7 @@ public abstract class InventoryService {
 
     // required culling properties
     host.setReporter("rhsm-conduit");
-    host.setStaleTimestamp(syncTimestamp.plusHours(staleHostOffset));
+    host.setStaleTimestamp(syncTimestamp.plus(staleHostOffset));
 
     // canonical facts.
     host.setOrgId(facts.getOrgId());
