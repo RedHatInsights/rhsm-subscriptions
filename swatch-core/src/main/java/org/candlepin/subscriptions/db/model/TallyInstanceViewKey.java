@@ -64,6 +64,6 @@ public class TallyInstanceViewKey implements Serializable {
   private HardwareMeasurementType measurementType;
 
   @Enumerated(EnumType.STRING)
-  @Column(name = "uom")
+  @Column(name = "metric_id")
   private Measurement.Uom uom;
 }
