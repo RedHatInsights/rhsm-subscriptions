@@ -176,18 +176,13 @@ public class SubscriptionSyncController {
       return;
     }
 
-    // NOTE: we do not need to check if the offering exists if there is an existing DB record for
-    // the subscription that uses that offering
-    if (subscriptionOptional.isEmpty() && !offeringRepository.existsById(sku)) {
-      log.debug("Sku={} not in Offering repository, syncing offering.", sku);
-      if (!SyncResult.isSynced(offeringSyncController.syncOffering(sku))) {
-        log.debug(
-            "Sku {} unable to be synced, skipping subscription sync for subscriptionId: {} in org: {}",
-            sku,
-            newOrUpdated.getSubscriptionId(),
-            newOrUpdated.getOrgId());
-        return;
-      }
+    if (!ensureOffering(sku, subscriptionOptional)) {
+      log.debug(
+          "Sku {} unable to be synced, skipping subscription sync for subscriptionId: {} in org: {}",
+          sku,
+          newOrUpdated.getSubscriptionId(),
+          newOrUpdated.getOrgId());
+      return;
     }
 
     subscriptionOptional.ifPresentOrElse(
@@ -258,6 +253,18 @@ public class SubscriptionSyncController {
     } else {
       subscriptionRepository.save(newOrUpdated);
     }
+  }
+
+  private boolean ensureOffering(
+      String sku,
+      Optional<org.candlepin.subscriptions.db.model.Subscription> subscriptionOptional) {
+    // NOTE: we do not need to check if the offering exists if there is an existing DB record for
+    // the subscription that uses that offering
+    if (subscriptionOptional.isEmpty() && !offeringRepository.existsById(sku)) {
+      log.debug("Sku={} not in Offering repository, syncing offering.", sku);
+      return SyncResult.isSynced(offeringSyncController.syncOffering(sku));
+    }
+    return true;
   }
 
   private void checkForMissingBillingProvider(
