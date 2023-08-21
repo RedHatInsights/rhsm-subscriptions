@@ -71,8 +71,8 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class CapacityResource implements CapacityApi {
 
-  public static final String SOCKETS = MetricId.SOCKETS.toString().toUpperCase();
-  public static final String CORES = MetricId.CORES.toString().toUpperCase();
+  public static final String SOCKETS = MetricId.SOCKETS.toString();
+  public static final String CORES = MetricId.CORES.toString();
   public static final String PHYSICAL = HardwareMeasurementType.PHYSICAL.toString().toUpperCase();
   public static final String HYPERVISOR =
       HardwareMeasurementType.HYPERVISOR.toString().toUpperCase();
@@ -398,7 +398,7 @@ public class CapacityResource implements CapacityApi {
           var isPhysical = PHYSICAL.equals(measurementType);
           var isHypervisor = HYPERVISOR.equals(measurementType);
 
-          if (CORES.equalsIgnoreCase(measurementKey.getMetricId())) {
+          if (CORES.equals(measurementKey.getMetricId())) {
             var val = measurementValue.intValue();
             cores += val;
             if (isPhysical) {
@@ -406,7 +406,7 @@ public class CapacityResource implements CapacityApi {
             } else if (isHypervisor) {
               hypervisorCores += val;
             }
-          } else if (SOCKETS.equalsIgnoreCase(measurementKey.getMetricId())) {
+          } else if (SOCKETS.equals(measurementKey.getMetricId())) {
             var val = measurementValue.intValue();
             sockets += val;
             if (isPhysical) {

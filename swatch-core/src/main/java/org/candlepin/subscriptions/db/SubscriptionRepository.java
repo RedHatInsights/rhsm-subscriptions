@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.candlepin.subscriptions.db.HypervisorReportCategory.NON_HYPERVISOR;
 import static org.hibernate.jpa.AvailableHints.HINT_FETCH_SIZE;
 
 import jakarta.persistence.QueryHint;
@@ -165,6 +164,10 @@ public interface SubscriptionRepository
   default List<Subscription> findByCriteria(DbReportCriteria dbReportCriteria, Sort sort) {
     return findAll(buildSearchSpecification(dbReportCriteria), sort);
   }
+
+  @Override
+  @EntityGraph(attributePaths = {"subscriptionMeasurements"})
+  List<Subscription> findAll(Specification<Subscription> spec, Sort sort);
 
   private static Specification<Subscription> hasUnlimitedUsage() {
     return (root, query, builder) -> {

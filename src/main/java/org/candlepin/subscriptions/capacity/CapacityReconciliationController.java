@@ -47,8 +47,8 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 public class CapacityReconciliationController {
-  private static final String SOCKETS = MetricId.SOCKETS.toString().toUpperCase();
-  private static final String CORES = MetricId.CORES.toString().toUpperCase();
+  private static final String SOCKETS = MetricId.SOCKETS.toString();
+  private static final String CORES = MetricId.CORES.toString();
 
   private final SubscriptionRepository subscriptionRepository;
   private final KafkaTemplate<String, ReconcileCapacityByOfferingTask>
