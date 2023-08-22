@@ -75,10 +75,11 @@ public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
     billableUsageMapper
         .fromTallySummary(tallySummary)
         .forEach(
-            usage -> retry.execute(
-                context -> {
-                  billableUsageController.submitBillableUsage(usage);
-                  return null;
-                }));
+            usage ->
+                retry.execute(
+                    context -> {
+                      billableUsageController.submitBillableUsage(usage);
+                      return null;
+                    }));
   }
 }
