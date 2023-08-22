@@ -25,7 +25,7 @@ variants:
 
 
 defaults:
-  variant: RHEL Server
+  variant: RHEL for x86
 
 metrics:
   - id: Sockets
