@@ -46,7 +46,7 @@ public class InstanceMonthlyTotalKey implements Serializable {
   private String month;
 
   @Enumerated(EnumType.STRING) // ENT-4622 needed to avoid recreating collections
-  @Column(nullable = false)
+  @Column(name = "metric_id", nullable = false)
   private Measurement.Uom uom;
 
   public static String formatMonthId(OffsetDateTime reference) {

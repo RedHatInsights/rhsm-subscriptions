@@ -23,13 +23,14 @@ package com.redhat.swatch.processors;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AwsUsageContext;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
+import com.redhat.swatch.configuration.registry.Metric;
+import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.exception.AwsDimensionNotConfiguredException;
 import com.redhat.swatch.exception.AwsMissingCredentialsException;
 import com.redhat.swatch.exception.AwsUnprocessedRecordsException;
 import com.redhat.swatch.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.exception.DefaultApiException;
 import com.redhat.swatch.exception.SubscriptionRecentlyTerminatedException;
-import com.redhat.swatch.files.TagProfile;
 import com.redhat.swatch.openapi.model.BillableUsage;
 import com.redhat.swatch.openapi.model.BillableUsage.BillingProviderEnum;
 import com.redhat.swatch.openapi.model.BillableUsage.SlaEnum;
@@ -39,6 +40,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.OffsetDateTime;
+import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -58,20 +60,17 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResu
 public class BillableUsageProcessor {
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
-  private final TagProfile tagProfile;
   private final InternalSubscriptionsApi internalSubscriptionsApi;
   private final AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory;
   private final Optional<Boolean> isDryRun;
 
   public BillableUsageProcessor(
       MeterRegistry meterRegistry,
-      TagProfile tagProfile,
       @RestClient InternalSubscriptionsApi internalSubscriptionsApi,
       AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory,
       @ConfigProperty(name = "ENABLE_AWS_DRY_RUN") Optional<Boolean> isDryRun) {
     acceptedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_rejected_total");
-    this.tagProfile = tagProfile;
     this.internalSubscriptionsApi = internalSubscriptionsApi;
     this.awsMarketplaceMeteringClientFactory = awsMarketplaceMeteringClientFactory;
     this.isDryRun = isDryRun;
@@ -92,7 +91,8 @@ public class BillableUsageProcessor {
       MDC.put("account_id", billableUsage.getAccountNumber());
     }
 
-    if (!isApplicable(billableUsage)) {
+    Optional<Metric> metric = validateUsageAndLookupMetric(billableUsage);
+    if (metric.isEmpty()) {
       log.debug("Skipping billable usage because it is not applicable: {}", billableUsage);
       return;
     }
@@ -117,7 +117,7 @@ public class BillableUsageProcessor {
       return;
     }
     try {
-      transformAndSend(context, billableUsage);
+      transformAndSend(context, billableUsage, metric.get());
     } catch (Exception e) {
       log.error(
           "Error sending usage for account={} rhSubscriptionId={} tallySnapshotId={} awsCustomerId={} awsProductCode={} orgId={}",
@@ -129,21 +129,6 @@ public class BillableUsageProcessor {
           billableUsage.getOrgId(),
           e);
     }
-  }
-
-  private boolean isApplicable(BillableUsage billableUsage) {
-    boolean applicable = true;
-    if (billableUsage.getBillingProvider() != BillingProviderEnum.AWS) {
-      log.debug("Snapshot not applicable because billingProvider is not AWS");
-      applicable = false;
-    }
-    if (!tagProfile.isAwsConfigured(
-        billableUsage.getProductId(),
-        Optional.ofNullable(billableUsage.getUom()).map(Enum::name).orElse(null))) {
-      log.debug("Snapshot not applicable because productId and/or uom is not configured for AWS");
-      applicable = false;
-    }
-    return applicable;
   }
 
   @Retry(retryOn = AwsUsageContextLookupException.class)
@@ -174,12 +159,12 @@ public class BillableUsageProcessor {
     }
   }
 
-  private void transformAndSend(AwsUsageContext context, BillableUsage billableUsage)
+  private void transformAndSend(AwsUsageContext context, BillableUsage billableUsage, Metric metric)
       throws AwsUnprocessedRecordsException, AwsDimensionNotConfiguredException {
     BatchMeterUsageRequest request =
         BatchMeterUsageRequest.builder()
             .productCode(context.getProductCode())
-            .usageRecords(transformToAwsUsage(context, billableUsage))
+            .usageRecords(transformToAwsUsage(context, billableUsage, metric))
             .build();
 
     if (isDryRun.isPresent() && Boolean.TRUE.equals(isDryRun.get())) {
@@ -253,7 +238,8 @@ public class BillableUsageProcessor {
     return client.batchMeterUsage(request);
   }
 
-  private UsageRecord transformToAwsUsage(AwsUsageContext context, BillableUsage billableUsage)
+  private UsageRecord transformToAwsUsage(
+      AwsUsageContext context, BillableUsage billableUsage, Metric metric)
       throws AwsDimensionNotConfiguredException {
     OffsetDateTime effectiveTimestamp = billableUsage.getSnapshotDate();
     if (effectiveTimestamp.isBefore(context.getSubscriptionStartDate())) {
@@ -265,10 +251,33 @@ public class BillableUsageProcessor {
     }
     return UsageRecord.builder()
         .customerIdentifier(context.getCustomerId())
-        .dimension(
-            tagProfile.getAwsDimension(billableUsage.getProductId(), billableUsage.getUom().name()))
+        .dimension(metric.getAwsDimension())
         .quantity(billableUsage.getValue().intValueExact())
         .timestamp(effectiveTimestamp.toInstant())
         .build();
+  }
+
+  private Optional<Metric> validateUsageAndLookupMetric(BillableUsage billableUsage) {
+    if (billableUsage.getBillingProvider() != BillingProviderEnum.AWS) {
+      log.debug("Snapshot not applicable because billingProvider is not AWS");
+      return Optional.empty();
+    }
+
+    if (billableUsage.getUom() == null) {
+      log.debug("Snapshot not applicable because billable uom is empty");
+      return Optional.empty();
+    }
+
+    Optional<Metric> metric =
+        Variant.findByTag(billableUsage.getProductId()).stream()
+            .map(v -> v.getSubscription().getMetric(billableUsage.getUom().value()).orElse(null))
+            .filter(Objects::nonNull)
+            .findFirst();
+
+    if (metric.isEmpty()) {
+      log.debug("Snapshot not applicable because productId and/or uom is not configured for AWS");
+    }
+
+    return metric;
   }
 }

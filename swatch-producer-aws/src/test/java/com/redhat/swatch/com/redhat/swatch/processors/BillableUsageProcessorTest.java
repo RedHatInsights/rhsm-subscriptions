@@ -33,7 +33,6 @@ import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.Inte
 import com.redhat.swatch.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.exception.DefaultApiException;
 import com.redhat.swatch.exception.SubscriptionRecentlyTerminatedException;
-import com.redhat.swatch.files.TagProfile;
 import com.redhat.swatch.openapi.model.BillableUsage;
 import com.redhat.swatch.openapi.model.BillableUsage.BillingProviderEnum;
 import com.redhat.swatch.openapi.model.BillableUsage.UomEnum;
@@ -116,11 +115,7 @@ class BillableUsageProcessorTest {
     rejectedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_rejected_total");
     processor =
         new BillableUsageProcessor(
-            meterRegistry,
-            new TagProfile(),
-            internalSubscriptionsApi,
-            clientFactory,
-            Optional.of(false));
+            meterRegistry, internalSubscriptionsApi, clientFactory, Optional.of(false));
   }
 
   @Test
@@ -230,11 +225,7 @@ class BillableUsageProcessorTest {
   void shouldNotMakeAwsUsageRequestWhenDryRunEnabled() throws ApiException {
     BillableUsageProcessor processor =
         new BillableUsageProcessor(
-            meterRegistry,
-            new TagProfile(),
-            internalSubscriptionsApi,
-            clientFactory,
-            Optional.of(true));
+            meterRegistry, internalSubscriptionsApi, clientFactory, Optional.of(true));
     when(internalSubscriptionsApi.getAwsUsageContext(
             any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);

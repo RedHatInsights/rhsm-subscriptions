@@ -1,0 +1,129 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202308210806-1" author="jcarvaja" dbms="postgresql">
+    <comment>Rename instance_measurements.uom to metric_id and support both.</comment>
+    <renameColumn tableName="instance_measurements" oldColumnName="uom" newColumnName="metric_id"/>
+    <dropView viewName="tally_instance_view"/>
+    <sql>
+      alter table instance_measurements add column uom varchar(255) generated always as (metric_id) stored
+    </sql>
+    <createView
+            replaceIfExists="true"
+            viewName="tally_instance_view">
+      select
+      distinct org_id,
+      h.id,
+      h.instance_id as instance_id,
+      h.display_name,
+      h.billing_provider as host_billing_provider,
+      h.billing_account_id as host_billing_account_id,
+      b.billing_provider as bucket_billing_provider,
+      b.billing_account_id as bucket_billing_account_id,
+      h.last_seen,
+      coalesce(h.num_of_guests, 0) AS num_of_guests,
+      b.product_id,
+      b.sla,
+      b.usage,
+      coalesce(b.measurement_type, 'EMPTY') AS measurement_type,
+      m.metric_id,
+      m.value,
+      b.sockets,
+      b.cores,
+      h.subscription_manager_id
+      from hosts h
+      join host_tally_buckets b on h.id = b.host_id
+      left outer join instance_measurements m on h.id = m.host_id;
+    </createView>
+    <rollback>
+      <dropView viewName="tally_instance_view"/>
+      <sql>
+        alter table instance_measurements drop column uom
+      </sql>
+      <renameColumn tableName="instance_measurements" oldColumnName="metric_id" newColumnName="uom"/>
+      <createView
+              replaceIfExists="true"
+              viewName="tally_instance_view">
+        select
+        distinct org_id,
+        h.id,
+        h.instance_id as instance_id,
+        h.display_name,
+        h.billing_provider as host_billing_provider,
+        h.billing_account_id as host_billing_account_id,
+        b.billing_provider as bucket_billing_provider,
+        b.billing_account_id as bucket_billing_account_id,
+        h.last_seen,
+        coalesce(h.num_of_guests, 0) AS num_of_guests,
+        b.product_id,
+        b.sla,
+        b.usage,
+        coalesce(b.measurement_type, 'EMPTY') AS measurement_type,
+        m.uom,
+        m.value,
+        b.sockets,
+        b.cores,
+        h.subscription_manager_id
+        from hosts h
+        join host_tally_buckets b on h.id = b.host_id
+        left outer join instance_measurements m on h.id = m.host_id;
+      </createView>
+    </rollback>
+  </changeSet>
+  <!-- NOTE: below changeset is the hsql alternative (only run for unit tests) -->
+  <changeSet id="202308210806-2" author="jcarvaja" dbms="!postgresql">
+    <comment>Rename instance_measurements.uom to metric_id.</comment>
+    <dropView viewName="tally_instance_view"/>
+    <renameColumn tableName="instance_measurements" oldColumnName="uom" newColumnName="metric_id"/>
+    <createView
+            replaceIfExists="true"
+            viewName="tally_instance_view">
+      select
+      distinct org_id,
+      h.id,
+      h.instance_id as instance_id,
+      h.display_name,
+      h.billing_provider as host_billing_provider,
+      h.billing_account_id as host_billing_account_id,
+      b.billing_provider as bucket_billing_provider,
+      b.billing_account_id as bucket_billing_account_id,
+      h.last_seen,
+      coalesce(h.num_of_guests, 0) AS num_of_guests,
+      b.product_id,
+      b.sla,
+      b.usage,
+      coalesce(b.measurement_type, 'EMPTY') AS measurement_type,
+      m.metric_id,
+      m.value,
+      b.sockets,
+      b.cores,
+      h.subscription_manager_id
+      from hosts h
+      join host_tally_buckets b on h.id = b.host_id
+      left outer join instance_measurements m on h.id = m.host_id;
+    </createView>
+  </changeSet>
+
+  <changeSet id="202308210806-3" author="jcarvaja" dbms="postgresql">
+    <comment>Rename instance_monthly_totals.uom to metric_id and support both.</comment>
+    <renameColumn tableName="instance_monthly_totals" oldColumnName="uom" newColumnName="metric_id"/>
+    <sql>
+      alter table instance_monthly_totals add column uom varchar(255) generated always as (metric_id) stored
+    </sql>
+    <rollback>
+      <sql>
+        alter table instance_monthly_totals drop column uom
+      </sql>
+      <renameColumn tableName="instance_monthly_totals" oldColumnName="metric_id" newColumnName="uom"/>
+    </rollback>
+  </changeSet>
+  <!-- NOTE: below changeset is the hsql alternative (only run for unit tests) -->
+  <changeSet id="202308210806-4" author="jcarvaja" dbms="!postgresql">
+    <comment>Rename instance_monthly_totals.uom to metric_id.</comment>
+    <renameColumn tableName="instance_monthly_totals" oldColumnName="uom" newColumnName="metric_id"/>
+  </changeSet>
+
+</databaseChangeLog>
