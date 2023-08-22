@@ -651,7 +651,8 @@ class BillableUsageControllerTest {
     usage.setSnapshotDate(OffsetDateTime.now());
     usage.setBillingProvider(BillingProvider.GCP);
     createSubscriptionDefinition(usage.getProductId(), usage.getUom().toString(), 1.0, true);
-    assertNull(controller.processBillableUsage(usage));
+    controller.submitBillableUsage(usage);
+    verify(producer).produce(null);
   }
 
   private void createSubscriptionDefinition(

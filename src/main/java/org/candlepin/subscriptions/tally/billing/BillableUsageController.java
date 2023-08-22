@@ -72,10 +72,6 @@ public class BillableUsageController {
     billingProducer.produce(produceMonthlyBillable(usage));
   }
 
-  public BillableUsage processBillableUsage(BillableUsage usage) {
-    return produceMonthlyBillable(usage);
-  }
-
   public double getTotalRemitted(BillableUsage billableUsage) {
     BillableUsageRemittanceEntityPK key =
         BillableUsageRemittanceEntityPK.keyFrom(billableUsage, clock.now());

@@ -119,29 +119,13 @@ public class ContractsController {
   }
 
   private String getContractMetricId(BillingProvider billingProvider, String productId, Uom uom) {
-    TallyMeasurement.Uom measurementUom = TallyMeasurement.Uom.fromValue(uom.toString());
+    String measurementUom = TallyMeasurement.Uom.fromValue(uom.toString()).value();
     if (BillingProvider.AWS.equals(billingProvider)) {
-      return getAwsDimension(productId, measurementUom);
+      return SubscriptionDefinition.getAwsDimension(productId, measurementUom);
     } else if (BillingProvider.RED_HAT.equals(billingProvider)) {
-      return getRhmMetricId(productId, measurementUom);
+      return SubscriptionDefinition.getRhmMetricId(productId, measurementUom);
     }
     return null;
-  }
-
-  public String getAwsDimension(String productId, TallyMeasurement.Uom uom) {
-    return Variant.findByTag(productId)
-        .map(Variant::getSubscription)
-        .flatMap(subscriptionDefinition -> subscriptionDefinition.getMetric(uom.value()))
-        .map(com.redhat.swatch.configuration.registry.Metric::getAwsDimension)
-        .orElse(null);
-  }
-
-  public String getRhmMetricId(String productId, TallyMeasurement.Uom uom) {
-    return Variant.findByTag(productId)
-        .map(Variant::getSubscription)
-        .flatMap(subscriptionDefinition -> subscriptionDefinition.getMetric(uom.value()))
-        .map(com.redhat.swatch.configuration.registry.Metric::getRhmMetricId)
-        .orElse(null);
   }
 
   private boolean isValidContract(Contract contract, BillableUsage usage) {

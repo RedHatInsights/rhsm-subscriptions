@@ -232,4 +232,20 @@ class SubscriptionDefinitionTest {
 
     assertEquals(expected, actual);
   }
+
+  @Test
+  void testLookupSubscriptionByTag() {
+    assertNotNull(SubscriptionDefinition.lookupSubscriptionByTag("BASILISK"));
+  }
+
+  @Test
+  void testGetRhmDimension() {
+    assertEquals("redhat.com:BASILISK:cluster_hour", SubscriptionDefinition.getRhmMetricId("BASILISK", "Instance-hours"));
+  }
+
+  @Test
+  void testGetAwsDimension() {
+    assertEquals("cluster_hour", SubscriptionDefinition.getAwsDimension("BASILISK", "Instance-hours"));
+  }
+
 }
