@@ -46,7 +46,7 @@ public class KafkaTaskQueueTester {
   protected void runSendAndReceiveTaskMessageTestWithOrg() throws InterruptedException {
     String org = "o1";
     TaskDescriptor taskDescriptor =
-        TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic())
+        TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic(), null)
             .setSingleValuedArg("orgs", org)
             .build();
 

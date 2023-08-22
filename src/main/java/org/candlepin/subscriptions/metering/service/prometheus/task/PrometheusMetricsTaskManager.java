@@ -153,7 +153,7 @@ public class PrometheusMetricsTaskManager {
     log.info(
         "ORGID: {} TAG: {} METRIC: {} START: {} END: {}", orgId, productTag, metric, start, end);
     TaskDescriptorBuilder builder =
-        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, topic)
+        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, topic, orgId)
             .setSingleValuedArg("orgId", orgId)
             .setSingleValuedArg("productTag", productTag)
             .setSingleValuedArg("metric", metric.value())

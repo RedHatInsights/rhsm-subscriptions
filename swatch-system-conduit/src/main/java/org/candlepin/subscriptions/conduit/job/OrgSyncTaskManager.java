@@ -71,7 +71,7 @@ public class OrgSyncTaskManager {
   @SuppressWarnings("indentation")
   public void updateOrgInventory(String orgId, String offset) {
     queue.enqueue(
-        TaskDescriptor.builder(TaskType.UPDATE_ORG_INVENTORY, taskQueueProperties.getTopic())
+        TaskDescriptor.builder(TaskType.UPDATE_ORG_INVENTORY, taskQueueProperties.getTopic(), orgId)
             .setSingleValuedArg("org_id", orgId)
             .setSingleValuedArg("offset", offset)
             .build());

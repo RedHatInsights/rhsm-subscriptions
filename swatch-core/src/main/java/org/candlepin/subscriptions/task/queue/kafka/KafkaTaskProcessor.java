@@ -33,6 +33,9 @@ import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.messaging.handler.annotation.Payload;
 
 /** Responsible for receiving task messages from Kafka when they become available. */
 public class KafkaTaskProcessor extends SeekableKafkaConsumer implements TaskConsumer {
@@ -49,9 +52,11 @@ public class KafkaTaskProcessor extends SeekableKafkaConsumer implements TaskCon
   }
 
   @KafkaListener(id = "#{__listener.groupId}", topics = "#{__listener.topic}")
-  public void receive(JsonTaskMessage taskMessage) {
+  public void receive(
+      @Payload JsonTaskMessage taskMessage,
+      @Header(name = KafkaHeaders.RECEIVED_KEY, required = false) String messageKey) {
     try {
-      log.info("Message received from kafka: {}", taskMessage);
+      log.info("Message received from kafka (key={}): {}", messageKey, taskMessage);
       worker.executeTask(describe(taskMessage));
     } catch (TaskExecutionException e) {
       // If a task fails to execute for any reason, it is logged and will
@@ -62,7 +67,7 @@ public class KafkaTaskProcessor extends SeekableKafkaConsumer implements TaskCon
 
   private TaskDescriptor describe(JsonTaskMessage message) throws TaskExecutionException {
     try {
-      return TaskDescriptor.builder(TaskType.valueOf(message.getType()), message.getGroupId())
+      return TaskDescriptor.builder(TaskType.valueOf(message.getType()), message.getGroupId(), null)
           .setArgs(message.getArgs())
           .build();
     } catch (IllegalArgumentException | NullPointerException e) {

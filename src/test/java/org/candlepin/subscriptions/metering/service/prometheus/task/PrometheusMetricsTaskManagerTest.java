@@ -86,7 +86,7 @@ class PrometheusMetricsTaskManagerTest {
     when(accountConfigRepository.findOrgByAccountNumber(any())).thenReturn("single-account-orgId");
 
     TaskDescriptor expectedTask =
-        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, TASK_TOPIC)
+        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, TASK_TOPIC, null)
             .setSingleValuedArg("orgId", "single-account-orgId")
             .setSingleValuedArg("productTag", TEST_PROFILE_ID)
             .setSingleValuedArg("metric", "Cores")

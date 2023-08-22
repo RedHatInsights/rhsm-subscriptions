@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import lombok.Getter;
 import org.springframework.lang.NonNull;
 
 /**
@@ -48,18 +49,16 @@ import org.springframework.lang.NonNull;
  */
 public class TaskDescriptor {
 
-  private final String groupId;
+  @Getter private final String groupId;
   private final TaskType type;
-  private Map<String, List<String>> args;
+  @Getter private final String key;
+  private final Map<String, List<String>> args;
 
   private TaskDescriptor(TaskDescriptorBuilder builder) {
     this.groupId = builder.groupId;
     this.type = builder.type;
     this.args = builder.args;
-  }
-
-  public String getGroupId() {
-    return groupId;
+    this.key = builder.key;
   }
 
   public TaskType getTaskType() {
@@ -121,8 +120,8 @@ public class TaskDescriptor {
     return Objects.hash(groupId, type, args);
   }
 
-  public static TaskDescriptorBuilder builder(TaskType type, String taskGroup) {
-    return new TaskDescriptorBuilder(type, taskGroup);
+  public static TaskDescriptorBuilder builder(TaskType type, String taskGroup, String key) {
+    return new TaskDescriptorBuilder(type, taskGroup, key);
   }
 
   /** A builder object for building TaskDescriptor objects. */
@@ -132,11 +131,14 @@ public class TaskDescriptor {
 
     @NonNull private final TaskType type;
 
+    @NonNull private final String key;
+
     private Map<String, List<String>> args;
 
-    private TaskDescriptorBuilder(TaskType type, String groupId) {
+    private TaskDescriptorBuilder(TaskType type, String groupId, @NonNull String key) {
       this.type = type;
       this.groupId = groupId;
+      this.key = key;
       this.args = new HashMap<>();
     }
 
