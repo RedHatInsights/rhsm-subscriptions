@@ -18,14 +18,14 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-actuator-autoconfigure"
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"
     implementation "org.springframework.boot:spring-boot-starter-security"
-    implementation "com.google.guava:guava" // for ip address class
+    implementation libraries["guava"] // for ip address class
     implementation "com.fasterxml.jackson.core:jackson-annotations" // for json generated models
     implementation "com.fasterxml.jackson.core:jackson-databind" // for use of objectmapper in EventRecord
     implementation "org.springframework.kafka:spring-kafka"
     implementation "io.micrometer:micrometer-core"
     implementation "com.jayway.jsonpath:json-path"
-    implementation "com.splunk.logging:splunk-library-javalogging"
-    implementation "org.codehaus.janino:janino"
+    implementation libraries["splunk-library-javalogging"]
+    implementation libraries["janino"]
     implementation (libraries["resteasy-spring-boot-starter"]) {
         exclude group: "org.jboss", module: "jandex"
     }

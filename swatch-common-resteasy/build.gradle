@@ -4,7 +4,7 @@ plugins {
 
 dependencies {
     compileOnly platform(libraries["quarkus-bom"])
-    compileOnly 'jakarta.ws.rs:jakarta.ws.rs-api'
+    compileOnly libraries["jakarta-ws-rs"]
     compileOnly 'org.slf4j:slf4j-api'
 }
 

@@ -57,13 +57,13 @@ dependencies {
 
     api "org.springframework:spring-context"
     api "org.slf4j:slf4j-api"
-    api "io.swagger:swagger-annotations"
+    api libraries["swagger-annotations"]
     api libraries["jsr305"]
     api libraries["jackson-databind-nullable"]
 
     compileOnly 'org.springframework.boot:spring-boot'
     testImplementation libraries["wiremock-jre8"]
-    testImplementation "com.google.guava:guava"
+    testImplementation libraries["guava"]
 }
 
 sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"
