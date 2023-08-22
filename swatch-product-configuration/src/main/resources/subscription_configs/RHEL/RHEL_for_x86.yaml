@@ -4,7 +4,7 @@ platform: RHEL
 id: rhel-for-x86
 
 variants:
-  - tag: RHEL Server
+  - tag: RHEL for x86
     engineeringIds:
       - 69 # Red Hat Enterprise Linux Server
       - 479 # RHEL for x86 catch-all
@@ -25,7 +25,7 @@ variants:
 
 
 defaults:
-  variant: RHEL Server
+  variant: RHEL for x86
 
 metrics:
   - id: Sockets

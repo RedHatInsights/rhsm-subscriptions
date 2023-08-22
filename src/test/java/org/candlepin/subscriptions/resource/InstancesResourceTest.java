@@ -226,7 +226,7 @@ class InstancesResourceTest {
 
     var meta = new InstanceMeta();
     meta.setCount(2);
-    meta.setProduct(RHEL_SERVER);
+    meta.setProduct(RHEL_FOR_X86);
     meta.setServiceLevel(ServiceLevelType.PREMIUM);
     meta.setUsage(UsageType.PRODUCTION);
     meta.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
@@ -238,7 +238,7 @@ class InstancesResourceTest {
 
     InstanceResponse report =
         resource.getInstancesByProduct(
-            RHEL_SERVER,
+            RHEL_FOR_X86,
             null,
             null,
             ServiceLevelType.PREMIUM,
@@ -391,7 +391,7 @@ class InstancesResourceTest {
         .thenReturn(new PageImpl<>(List.of(tallyInstanceView)));
 
     resource.getInstancesByProduct(
-        RHEL_SERVER,
+        RHEL_FOR_X86,
         null,
         null,
         ServiceLevelType.PREMIUM,
@@ -490,7 +490,7 @@ class InstancesResourceTest {
         .thenReturn(new PageImpl<>(List.of(tallyInstanceView)));
 
     resource.getInstancesByProduct(
-        RHEL_SERVER,
+        RHEL_FOR_X86,
         null,
         null,
         ServiceLevelType.PREMIUM,
@@ -555,7 +555,7 @@ class InstancesResourceTest {
         .thenReturn(new PageImpl<>(List.of(tallyInstanceView)));
 
     resource.getInstancesByProduct(
-        RHEL_SERVER,
+        RHEL_FOR_X86,
         null,
         null,
         ServiceLevelType.PREMIUM,
