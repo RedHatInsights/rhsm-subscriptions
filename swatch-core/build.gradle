@@ -26,7 +26,9 @@ dependencies {
     implementation "com.jayway.jsonpath:json-path"
     implementation "com.splunk.logging:splunk-library-javalogging"
     implementation "org.codehaus.janino:janino"
-    implementation libraries["resteasy-spring-boot-starter"]
+    implementation (libraries["resteasy-spring-boot-starter"]) {
+        exclude group: "org.jboss", module: "jandex"
+    }
 
     testImplementation project(":swatch-core-test")
     testImplementation "org.springframework:spring-test"
