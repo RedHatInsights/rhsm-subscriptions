@@ -95,7 +95,7 @@ public class Host implements Serializable {
   @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(name = "instance_measurements", joinColumns = @JoinColumn(name = "host_id"))
   @MapKeyEnumerated(EnumType.STRING)
-  @MapKeyColumn(name = "uom")
+  @MapKeyColumn(name = "metric_id")
   @Column(name = "value")
   private Map<Measurement.Uom, Double> measurements = new EnumMap<>(Measurement.Uom.class);
 
