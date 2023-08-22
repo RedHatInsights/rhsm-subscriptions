@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.configuration.registry;
 
+import com.google.common.collect.MoreCollectors;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
@@ -27,13 +28,19 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Subscription is an offering with one or more variants. Defines a specific metering model. Has a
  * single technical fingerprint. Defines a set of metrics.
  */
 @Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class SubscriptionDefinition {
 
   /**
@@ -54,13 +61,13 @@ public class SubscriptionDefinition {
    * defines an "in-the-box" subscription. Considered included from both usage and capacity
    * perspectives.
    */
-  private List<String> includedSubscriptions = new ArrayList<>();
+  @Builder.Default private List<String> includedSubscriptions = new ArrayList<>();
 
-  private List<Variant> variants = new ArrayList<>();
-  private BillingWindow billingWindow;
+  @Builder.Default private List<Variant> variants = new ArrayList<>();
   private String serviceType;
-  private List<Metric> metrics = new ArrayList<>();
+  @Builder.Default private List<Metric> metrics = new ArrayList<>();
   private Defaults defaults;
+  private boolean contractEnabled;
 
   /**
    * @param serviceType
@@ -172,5 +179,34 @@ public class SubscriptionDefinition {
                 subscription.getVariants().stream()
                     .anyMatch(variant -> variant.getRoles().contains(role)))
         .findFirst();
+  }
+
+  /**
+   * Looks for tag matching a variant
+   *
+   * @param tag
+   * @return Optional<Subscription>
+   */
+  public static Optional<SubscriptionDefinition> lookupSubscriptionByTag(
+      @NotNull @NotEmpty String tag) {
+
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
+        .filter(subscription -> !subscription.getVariants().isEmpty())
+        .filter(
+            subscription ->
+                subscription.getVariants().stream()
+                    .anyMatch(variant -> Objects.equals(tag, variant.getTag())))
+        .collect(MoreCollectors.toOptional());
+  }
+
+  public static boolean isContractEnabled(@NotNull @NotEmpty String tag) {
+    return lookupSubscriptionByTag(tag)
+        .map(SubscriptionDefinition::isContractEnabled)
+        .orElse(false);
+  }
+
+  public boolean isPaygEligible() {
+    return metrics.stream()
+        .anyMatch(metric -> metric.getRhmMetricId() != null || metric.getAwsDimension() != null);
   }
 }

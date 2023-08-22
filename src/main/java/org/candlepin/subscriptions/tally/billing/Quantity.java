@@ -25,7 +25,6 @@ import lombok.Getter;
 import lombok.ToString;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
 import org.candlepin.subscriptions.json.BillableUsage;
-import org.candlepin.subscriptions.registry.TagProfile;
 
 /**
  * Value with a unit attached. Encapsulates conversions involving billingFactor. Provides some
@@ -80,8 +79,8 @@ public class Quantity<U extends Unit> {
   }
 
   public static Quantity<BillingUnit> fromContractCoverage(
-      TagProfile tagProfile, BillableUsage referenceUsage, double value) {
-    return new Quantity<>(value, new BillingUnit(tagProfile, referenceUsage));
+      BillableUsage referenceUsage, double value) {
+    return new Quantity<>(value, new BillingUnit(referenceUsage));
   }
 
   public static Quantity<RemittanceUnit> fromRemittance(

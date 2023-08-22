@@ -35,15 +35,19 @@ import lombok.*;
  * Variants all have the same billing model.
  */
 @Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class Variant {
 
   /** Convenience method to easily get the "parent" subscription for a Variant */
   @ToString.Exclude @EqualsAndHashCode.Exclude @NotNull private SubscriptionDefinition subscription;
 
   @NotNull @NotEmpty private String tag; // required
-  private List<String> roles = new ArrayList<>();
-  private List<String> engineeringIds = new ArrayList<>();
-  private List<String> productNames = new ArrayList<>();
+
+  @Builder.Default private List<String> roles = new ArrayList<>();
+  @Builder.Default private List<String> engineeringIds = new ArrayList<>();
+  @Builder.Default private List<String> productNames = new ArrayList<>();
 
   public static Optional<Variant> findByRole(String role) {
     return SubscriptionDefinition.lookupSubscriptionByRole(role)

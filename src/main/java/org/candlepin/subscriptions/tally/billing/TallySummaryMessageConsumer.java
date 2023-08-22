@@ -21,12 +21,8 @@
 package org.candlepin.subscriptions.tally.billing;
 
 import io.micrometer.core.annotation.Timed;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.TallySummary;
-import org.candlepin.subscriptions.registry.TagMetric;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
@@ -47,14 +43,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
 
-  private TagProfile tagProfile;
   private BillableUsageMapper billableUsageMapper;
   private BillableUsageController billableUsageController;
   private RetryTemplate retry;
 
   @Autowired
   public TallySummaryMessageConsumer(
-      TagProfile tagProfile,
       @Qualifier("billingProducerTallySummaryTopicProperties")
           TaskQueueProperties tallySummaryTopicProperties,
       KafkaConsumerRegistry kafkaConsumerRegistry,
@@ -62,7 +56,6 @@ public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
       BillableUsageController billableUsageController,
       @Qualifier("billingProducerKafkaRetryTemplate") RetryTemplate retry) {
     super(tallySummaryTopicProperties, kafkaConsumerRegistry);
-    this.tagProfile = tagProfile;
     this.billableUsageMapper = billableUsageMapper;
     this.billableUsageController = billableUsageController;
     this.retry = retry;
@@ -82,22 +75,10 @@ public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
     billableUsageMapper
         .fromTallySummary(tallySummary)
         .forEach(
-            usage -> {
-              Measurement.Uom uom = Measurement.Uom.fromValue(usage.getUom().toString());
-              Optional<TagMetric> tagMetric = tagProfile.getTagMetric(usage.getProductId(), uom);
-              if (tagMetric.isEmpty()) {
-                throw new UnsupportedOperationException(
-                    String.format(
-                        "Unable to find TagMetric for snapshot measurement with product %s and UOM %s!",
-                        usage.getProductId(), uom));
-              }
-
-              retry.execute(
-                  context -> {
-                    billableUsageController.submitBillableUsage(
-                        tagMetric.get().getBillingWindow(), usage);
-                    return null;
-                  });
-            });
+            usage -> retry.execute(
+                context -> {
+                  billableUsageController.submitBillableUsage(usage);
+                  return null;
+                }));
   }
 }

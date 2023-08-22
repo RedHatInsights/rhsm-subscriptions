@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.tally.billing;
 
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -33,20 +35,12 @@ import org.candlepin.subscriptions.json.TallySnapshot.Granularity;
 import org.candlepin.subscriptions.json.TallySnapshot.Sla;
 import org.candlepin.subscriptions.json.TallySnapshot.Usage;
 import org.candlepin.subscriptions.json.TallySummary;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
 public class BillableUsageMapper {
-
-  private final TagProfile tagProfile;
-
-  @Autowired
-  public BillableUsageMapper(TagProfile tagProfile) {
-    this.tagProfile = tagProfile;
-  }
 
   /**
    * We only want to send snapshot information for PAYG product ids. To prevent duplicate data, we
@@ -59,7 +53,11 @@ public class BillableUsageMapper {
   protected boolean isSnapshotPAYGEligible(TallySnapshot snapshot) {
     String productId = snapshot.getProductId();
 
-    boolean isApplicableProduct = tagProfile.isProductPAYGEligible(productId);
+    boolean isApplicableProduct =
+        Variant.findByTag(productId)
+            .map(Variant::getSubscription)
+            .map(SubscriptionDefinition::isPaygEligible)
+            .orElse(false);
 
     boolean isHourlyGranularity = Objects.equals(Granularity.HOURLY, snapshot.getGranularity());
 

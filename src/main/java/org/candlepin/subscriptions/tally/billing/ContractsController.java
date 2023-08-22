@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.tally.billing;
 
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.contracts.api.model.Contract;
 import com.redhat.swatch.contracts.api.model.Metric;
 import com.redhat.swatch.contracts.api.resources.DefaultApi;
@@ -33,7 +35,6 @@ import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
 import org.candlepin.subscriptions.json.BillableUsage.Uom;
 import org.candlepin.subscriptions.json.TallyMeasurement;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
@@ -44,17 +45,13 @@ import org.springframework.util.ObjectUtils;
 @Slf4j
 public class ContractsController {
 
-  private final TagProfile tagProfile;
   private final DefaultApi contractsApi;
 
   @SuppressWarnings("java:S1068")
   private final ContractsClientProperties contractsClientProperties;
 
   public ContractsController(
-      TagProfile tagProfile,
-      DefaultApi contractsApi,
-      ContractsClientProperties contractsClientProperties) {
-    this.tagProfile = tagProfile;
+      DefaultApi contractsApi, ContractsClientProperties contractsClientProperties) {
     this.contractsApi = contractsApi;
     this.contractsClientProperties = contractsClientProperties;
   }
@@ -69,7 +66,7 @@ public class ContractsController {
               multiplierExpression = "#{@contractsClientProperties.getBackOffMultiplier()}"))
   public Double getContractCoverage(BillableUsage usage) throws ContractMissingException {
 
-    if (!tagProfile.isTagContractEnabled(usage.getProductId())) {
+    if (!SubscriptionDefinition.isContractEnabled(usage.getProductId())) {
       throw new IllegalStateException(
           String.format("Product %s is not contract enabled.", usage.getProductId()));
     }
@@ -124,11 +121,27 @@ public class ContractsController {
   private String getContractMetricId(BillingProvider billingProvider, String productId, Uom uom) {
     TallyMeasurement.Uom measurementUom = TallyMeasurement.Uom.fromValue(uom.toString());
     if (BillingProvider.AWS.equals(billingProvider)) {
-      return tagProfile.awsDimensionForTagAndUom(productId, measurementUom);
+      return getAwsDimension(productId, measurementUom);
     } else if (BillingProvider.RED_HAT.equals(billingProvider)) {
-      return tagProfile.rhmMetricIdForTagAndUom(productId, measurementUom);
+      return getRhmMetricId(productId, measurementUom);
     }
     return null;
+  }
+
+  public String getAwsDimension(String productId, TallyMeasurement.Uom uom) {
+    return Variant.findByTag(productId)
+        .map(Variant::getSubscription)
+        .flatMap(subscriptionDefinition -> subscriptionDefinition.getMetric(uom.value()))
+        .map(com.redhat.swatch.configuration.registry.Metric::getAwsDimension)
+        .orElse(null);
+  }
+
+  public String getRhmMetricId(String productId, TallyMeasurement.Uom uom) {
+    return Variant.findByTag(productId)
+        .map(Variant::getSubscription)
+        .flatMap(subscriptionDefinition -> subscriptionDefinition.getMetric(uom.value()))
+        .map(com.redhat.swatch.configuration.registry.Metric::getRhmMetricId)
+        .orElse(null);
   }
 
   private boolean isValidContract(Contract contract, BillableUsage usage) {

@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.billing;
 
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
@@ -39,8 +40,6 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.Measurement.Uom;
-import org.candlepin.subscriptions.registry.BillingWindow;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.stereotype.Component;
 
@@ -52,7 +51,6 @@ public class BillableUsageController {
   private final BillingProducer billingProducer;
   private final BillableUsageRemittanceRepository billableUsageRemittanceRepository;
   private final TallySnapshotRepository snapshotRepository;
-  private final TagProfile tagProfile;
   private final ContractsController contractsController;
 
   public BillableUsageController(
@@ -60,36 +58,22 @@ public class BillableUsageController {
       BillingProducer billingProducer,
       BillableUsageRemittanceRepository billableUsageRemittanceRepository,
       TallySnapshotRepository snapshotRepository,
-      TagProfile tagProfile,
       ContractsController contractsController) {
     this.clock = clock;
     this.billingProducer = billingProducer;
     this.billableUsageRemittanceRepository = billableUsageRemittanceRepository;
     this.snapshotRepository = snapshotRepository;
-    this.tagProfile = tagProfile;
     this.contractsController = contractsController;
   }
 
-  public void submitBillableUsage(BillingWindow billingWindow, BillableUsage usage) {
+  public void submitBillableUsage(BillableUsage usage) {
     // Send the message last to ensure that remittance has been updated.
     // If the message fails to send, it will roll back the transaction.
-    billingProducer.produce(processBillableUsage(billingWindow, usage));
+    billingProducer.produce(produceMonthlyBillable(usage));
   }
 
-  public BillableUsage processBillableUsage(BillingWindow billingWindow, BillableUsage usage) {
-    BillableUsage toBill;
-    switch (billingWindow) {
-      case HOURLY:
-        toBill = produceHourlyBillable(usage);
-        break;
-      case MONTHLY:
-        toBill = produceMonthlyBillable(usage);
-        break;
-      default:
-        throw new UnsupportedOperationException(
-            "Unsupported billing window specified when producing billable usage: " + billingWindow);
-    }
-    return toBill;
+  public BillableUsage processBillableUsage(BillableUsage usage) {
+    return produceMonthlyBillable(usage);
   }
 
   public double getTotalRemitted(BillableUsage billableUsage) {
@@ -129,7 +113,7 @@ public class BillableUsageController {
   private BillableUsageCalculation calculateBillableUsage(
       double applicableUsage, BillableUsage usage, double remittanceTotal) {
     Quantity<MetricUnit> totalUsage = Quantity.of(applicableUsage);
-    var billingUnit = new BillingUnit(tagProfile, usage);
+    var billingUnit = new BillingUnit(usage);
     Quantity<MetricUnit> currentRemittance = Quantity.of(remittanceTotal);
     Quantity<BillingUnit> billableValue =
         totalUsage
@@ -155,11 +139,6 @@ public class BillableUsageController {
         .build();
   }
 
-  private BillableUsage produceHourlyBillable(BillableUsage usage) {
-    log.debug("Processing hourly billable usage {}", usage);
-    return usage;
-  }
-
   private BillableUsage produceMonthlyBillable(BillableUsage usage) {
     log.info(
         "Processing monthly billable usage for orgId={} productId={} uom={} provider={}, billingAccountId={} snapshotDate={}",
@@ -176,7 +155,7 @@ public class BillableUsageController {
             usage, clock.startOfMonth(usage.getSnapshotDate()), usage.getSnapshotDate());
 
     Optional<Double> contractValue = Optional.of(0.0);
-    if (tagProfile.isTagContractEnabled(usage.getProductId())) {
+    if (SubscriptionDefinition.isContractEnabled(usage.getProductId())) {
       try {
         contractValue = Optional.of(contractsController.getContractCoverage(usage));
         log.debug("Adjusting usage based on contracted amount of {}", contractValue);
@@ -205,7 +184,7 @@ public class BillableUsageController {
     }
 
     Quantity<BillingUnit> contractAmount =
-        Quantity.fromContractCoverage(tagProfile, usage, contractValue.get());
+        Quantity.fromContractCoverage(usage, contractValue.get());
     double applicableUsage =
         Quantity.of(currentlyMeasuredTotal)
             .subtract(contractAmount)

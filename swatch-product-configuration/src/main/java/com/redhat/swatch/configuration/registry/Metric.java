@@ -25,6 +25,9 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 @Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class Metric {
 
   @NotNull @NotEmpty private String id; // required
