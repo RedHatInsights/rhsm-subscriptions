@@ -21,73 +21,64 @@
 package org.candlepin.subscriptions.metering.service.prometheus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
 
-import com.google.common.net.UrlEscapers;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
-import org.candlepin.subscriptions.prometheus.api.ApiProvider;
-import org.candlepin.subscriptions.prometheus.api.StubApiProvider;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
-import org.candlepin.subscriptions.prometheus.resources.QueryApi;
-import org.candlepin.subscriptions.prometheus.resources.QueryRangeApi;
 import org.candlepin.subscriptions.registry.TagProfile;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest
+@SpringBootTest(
+    properties =
+        "rhsm-subscriptions.metering.prometheus.client.url=http://localhost:${WIREMOCK_PORT:8101}")
 @ActiveProfiles({"openshift-metering-worker", "test"})
+@ExtendWith(PrometheusQueryWiremockExtension.class)
 class PrometheusServiceTest {
 
-  @MockBean private QueryApi queryApi;
-
-  @MockBean private QueryRangeApi rangeApi;
-
-  @MockBean private PrometheusAccountSource accountSource;
+  @Autowired private PrometheusService service;
 
   @Autowired private QueryBuilder queryBuilder;
 
   @Autowired private TagProfile tagProfile;
 
   @Test
-  void testRangeQueryApi() throws Exception {
+  void testRangeQueryApi(
+      PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer) {
     QueryHelper queries = new QueryHelper(tagProfile, queryBuilder);
-    String query = queries.expectedQuery("OpenShift-metrics", Map.of("orgId", "o1"));
-    String expectedQuery = UrlEscapers.urlFragmentEscaper().escape(query);
+
+    String expectedQuery = queries.expectedQuery("OpenShift-metrics", Map.of("orgId", "o1"));
     QueryResult expectedResult = new QueryResult();
 
     OffsetDateTime end = OffsetDateTime.now();
     OffsetDateTime start = end.minusDays(2);
-    String step = "3600";
+    int expectedTimeout = 1;
+    int expectedStep = 3600;
 
-    when(rangeApi.queryRange(expectedQuery, start.toEpochSecond(), end.toEpochSecond(), step, 1))
-        .thenReturn(expectedResult);
+    prometheusServer.stubQueryRange(
+        expectedQuery, start, end, expectedStep, expectedTimeout, expectedResult);
 
-    ApiProvider provider = new StubApiProvider(queryApi, rangeApi);
-    PrometheusService service = new PrometheusService(provider);
-
-    QueryResult result = service.runRangeQuery(query, start, end, 3600, 1);
+    QueryResult result =
+        service.runRangeQuery(expectedQuery, start, end, expectedStep, expectedTimeout);
     assertEquals(expectedResult, result);
   }
 
   @Test
-  void testQueryApi() throws Exception {
+  void testQueryApi(PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer) {
     QueryHelper queries = new QueryHelper(tagProfile, queryBuilder);
-    String query = queries.expectedQuery("OpenShift-metrics", Map.of("orgId", "o1"));
-    String expectedQuery = UrlEscapers.urlFragmentEscaper().escape(query);
+
+    String expectedQuery = queries.expectedQuery("OpenShift-metrics", Map.of("orgId", "o1"));
+    int expectedTimeout = 1;
+    OffsetDateTime expectedTime = OffsetDateTime.now();
     QueryResult expectedResult = new QueryResult();
 
-    OffsetDateTime time = OffsetDateTime.now();
-    when(queryApi.query(expectedQuery, time, 1)).thenReturn(expectedResult);
+    prometheusServer.stubQuery(expectedQuery, expectedTimeout, expectedTime, expectedResult);
 
-    ApiProvider provider = new StubApiProvider(queryApi, rangeApi);
-    PrometheusService service = new PrometheusService(provider);
-
-    QueryResult result = service.runQuery(query, time, 1);
+    QueryResult result = service.runQuery(expectedQuery, expectedTime, expectedTimeout);
     assertEquals(expectedResult, result);
   }
 }

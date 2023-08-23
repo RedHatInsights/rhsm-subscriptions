@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_SERVER;
+import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_FOR_X86;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.OffsetDateTime;
@@ -50,7 +50,7 @@ class SubscriptionResourceTest {
         AccessDeniedException.class,
         () ->
             subscriptionResource.getSkuCapacityReport(
-                RHEL_SERVER,
+                RHEL_FOR_X86,
                 0,
                 10,
                 null,
@@ -74,7 +74,7 @@ class SubscriptionResourceTest {
         AccessDeniedException.class,
         () ->
             subscriptionResource.getSkuCapacityReport(
-                RHEL_SERVER,
+                RHEL_FOR_X86,
                 0,
                 10,
                 null,

@@ -39,7 +39,7 @@ class CapacityProductExtractorTest {
   public static final String RHEL_x86_ID = "479";
   public static final String RHEL_WORKSTATION_ID = "71";
   public static final String OPENSHIFT_CONTAINER_PLATFORM_ID = "290";
-  public static final String RHEL_SERVER = "RHEL Server";
+  public static final String RHEL_FOR_X_86 = "RHEL for x86";
   public static final String SATELLITE_SERVER = "Satellite Server";
   public static final String OPEN_SHIFT_CONTAINER_PLATFORM = "OpenShift Container Platform";
   private CapacityProductExtractor extractor;
@@ -62,12 +62,12 @@ class CapacityProductExtractorTest {
     return Stream.of(
         Arguments.of(List.of(), Set.of()),
         Arguments.of(List.of("123"), Set.of()),
-        Arguments.of(List.of("123", RHEL_LINUX_ID), Set.of(RHEL_SERVER)),
-        Arguments.of(List.of(RHEL_LINUX_ID), Set.of(RHEL_SERVER)),
+        Arguments.of(List.of("123", RHEL_LINUX_ID), Set.of(RHEL_FOR_X_86)),
+        Arguments.of(List.of(RHEL_LINUX_ID), Set.of(RHEL_FOR_X_86)),
         Arguments.of(List.of(RHEL_LINUX_ID, SATELLITE_SERVER_ID), Set.of(SATELLITE_SERVER)),
         Arguments.of(List.of(RHEL_x86_ID, SATELLITE_SERVER_ID), Set.of(SATELLITE_SERVER)),
         Arguments.of(List.of(RHEL_LINUX_ID, SATELLITE_SERVER_ID), Set.of(SATELLITE_SERVER)),
-        Arguments.of(List.of(RHEL_x86_ID), Set.of(RHEL_SERVER)),
+        Arguments.of(List.of(RHEL_x86_ID), Set.of(RHEL_FOR_X_86)),
         Arguments.of(List.of(RHEL_WORKSTATION_ID, SATELLITE_SERVER_ID), Set.of(SATELLITE_SERVER)),
         Arguments.of(
             List.of(OPENSHIFT_CONTAINER_PLATFORM_ID, RHEL_x86_ID),

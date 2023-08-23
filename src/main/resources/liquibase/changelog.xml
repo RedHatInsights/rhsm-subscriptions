@@ -118,6 +118,7 @@
     <!-- Uncomment once the above changeset has landed in prod -->
     <!-- <include file="liquibase/202307051245-drop-instance_id-columns.xml"/> -->
     <include file="liquibase/202308151557-fix-subscription-measurement-metric-id-casing.xml"/>
+    <include file="liquibase/202308211518-rename-rhel-product-ids.xml"/>
     <include file="liquibase/202307261851-event-change-event-type-data.xml"/>
     <include file="liquibase/202308210806-add-metric-id-instance-measurements.xml"/>
     <!-- Uncomment once the above changeset has landed in prod -->

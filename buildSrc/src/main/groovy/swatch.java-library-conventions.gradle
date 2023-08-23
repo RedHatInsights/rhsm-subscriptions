@@ -7,3 +7,5 @@ plugins {
     // see https://quarkus.io/guides/cdi-reference#bean_discovery
     id "org.kordamp.gradle.jandex"
 }
+
+tasks.compileTestJava.dependsOn tasks.jandex

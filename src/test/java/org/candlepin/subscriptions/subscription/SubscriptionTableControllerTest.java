@@ -178,7 +178,7 @@ class SubscriptionTableControllerTest {
   void testGetSkuCapacityReportSingleSub() {
     // Given an org with one active sub with a quantity of 4 and has an eng product with a socket
     // capacity of 2,
-    var productId = RHEL_SERVER;
+    var productId = RHEL_FOR_X86;
     var expectedSub = stubSubscription("1234", "1235", 4);
     var spec = RH0180191.withSub(expectedSub);
     givenCapacities(Org.STANDARD, productId, spec);
@@ -211,7 +211,7 @@ class SubscriptionTableControllerTest {
     // Given an org with two active subs with different quantities for the same SKU,
     // and the subs have an eng product with a socket capacity of 2,
     // and the subs have different ending dates,
-    var productId = RHEL_SERVER;
+    var productId = RHEL_FOR_X86;
     var expectedNewerSub = stubSubscription("1234", "1235", 4, 5, 7);
     var expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
     var spec1 = RH0180191.withSub(expectedOlderSub);
@@ -259,7 +259,7 @@ class SubscriptionTableControllerTest {
     // Given an org with two active subs with different quantities for different SKUs,
     // and the subs have an eng product with a socket capacity of 2,
     // and the subs have different ending dates,
-    var productId = RHEL_SERVER;
+    var productId = RHEL_FOR_X86;
     var expectedNewerSub = stubSubscription("1234", "1235", 4, 5, 7);
     var expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
     var spec1 = RH0180191.withSub(expectedNewerSub);
@@ -332,7 +332,7 @@ class SubscriptionTableControllerTest {
     // When requesting a SKU capacity report for an eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            RHEL_SERVER, null, null, null, null, null, null, null, null, null, null);
+            RHEL_FOR_X86, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains no inventory items.
     assertEquals(0, actual.getData().size(), "An empty inventory list should be returned.");
@@ -346,7 +346,7 @@ class SubscriptionTableControllerTest {
     var spec1 = RH0180191.withSub(expectedOlderSub);
     var spec2 = RH0180191.withSub(expectedNewerSub);
 
-    givenCapacities(Org.STANDARD, RHEL_SERVER, spec1, spec2);
+    givenCapacities(Org.STANDARD, RHEL_FOR_X86, spec1, spec2);
 
     when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
         .thenReturn(List.of(expectedNewerSub, expectedOlderSub));
@@ -355,7 +355,7 @@ class SubscriptionTableControllerTest {
 
     SkuCapacityReport report =
         subscriptionTableController.capacityReportBySku(
-            RHEL_SERVER,
+            RHEL_FOR_X86,
             null,
             null,
             null,
@@ -371,7 +371,7 @@ class SubscriptionTableControllerTest {
 
   @Test
   void testShouldUseSlaQueryParam() {
-    ProductId productId = RHEL_SERVER;
+    ProductId productId = RHEL_FOR_X86;
     var expectedNewerSub = stubSubscription("1234", "1235", 4, 5, 7);
     var expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
     var spec1 = RH0180191.withSub(expectedOlderSub);
@@ -417,7 +417,7 @@ class SubscriptionTableControllerTest {
 
   @Test
   void testShouldUseUsageQueryParam() {
-    var productId = RHEL_SERVER;
+    var productId = RHEL_FOR_X86;
     var expectedNewerSub = stubSubscription("1234", "1235", 4, 5, 7);
     Subscription expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
     var spec1 = RH0180191.withSub(expectedOlderSub);
@@ -463,7 +463,7 @@ class SubscriptionTableControllerTest {
 
   @Test
   void testCountReturnedInMetaIgnoresOffsetAndLimit() {
-    var productId = RHEL_SERVER;
+    var productId = RHEL_FOR_X86;
     var spec1 = RH0180191.withSub(stubSubscription("1236", "1237", 5, 6, 6));
     var spec2 = RH00604F5.withSub(stubSubscription("1234", "1235", 4, 5, 7));
     var rh0060192 =
@@ -525,7 +525,7 @@ class SubscriptionTableControllerTest {
 
   @Test
   void testShouldUseUomQueryParam() {
-    var productId = RHEL_SERVER;
+    var productId = RHEL_FOR_X86;
     var expectedNewerSub = stubSubscription("1234", "1235", 4, 5, 7);
     var expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
     var expectedMuchOlderSub = stubSubscription("1238", "1237", 5, 24, 6);
@@ -586,7 +586,7 @@ class SubscriptionTableControllerTest {
             SubscriptionsException.class,
             () ->
                 subscriptionTableController.capacityReportBySku(
-                    RHEL_SERVER,
+                    RHEL_FOR_X86,
                     11,
                     10,
                     null,
@@ -608,7 +608,7 @@ class SubscriptionTableControllerTest {
 
     SkuCapacityReport report =
         subscriptionTableController.capacityReportBySku(
-            RHEL_SERVER,
+            RHEL_FOR_X86,
             null,
             null,
             null,
@@ -650,7 +650,7 @@ class SubscriptionTableControllerTest {
   void testGetSkuCapacityReportUnlimitedQuantity() {
     // Given an org with one active sub with a quantity of 4 and has an eng product with unlimited
     // usage.
-    var productId = RHEL_SERVER;
+    var productId = RHEL_FOR_X86;
     var expectedSub = stubSubscription("1234", "1235", 4);
     var unlimitedSpec = RH0180195_UNLIMITED_USAGE.withSub(expectedSub);
     givenCapacities(Org.STANDARD, productId, unlimitedSpec);
@@ -691,7 +691,7 @@ class SubscriptionTableControllerTest {
     // Given an org with two active subs with different quantities for different SKUs,
     // and the subs have an eng product with a socket capacity of 2,
     // and the subs have different ending dates,
-    var productId = RHEL_SERVER;
+    var productId = RHEL_FOR_X86;
     var expectedNewerSub = stubSubscription("1234", "1235", 4, 5, 7);
     var expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
     var spec1 = RH0180191.withSub(expectedNewerSub);
@@ -740,7 +740,7 @@ class SubscriptionTableControllerTest {
     // Given an org with two active subs with different quantities for different SKUs,
     // and the subs have an eng product with a socket capacity of 2,
     // and the subs have different ending dates,
-    var productId = RHEL_SERVER;
+    var productId = RHEL_FOR_X86;
     var expectedNewerSub = stubSubscription("1234", "1235", 4, 5, 7);
     var expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
     var spec1 = RH0180191.withSub(expectedNewerSub);
@@ -788,7 +788,7 @@ class SubscriptionTableControllerTest {
   void testGetSkuCapacityReportHypervisorSocketsOnly() {
     // Given an org with one active sub with a quantity of 4 and has an eng product with a
     // hypervisor socket capacity of 2,
-    var productId = RHEL_SERVER;
+    var productId = RHEL_FOR_X86;
     var expectedSub = stubSubscription("1234", "1235", 4);
     var spec1 = RH0180196_HYPERVISOR_SOCKETS.withSub(expectedSub);
     givenCapacities(Org.STANDARD, productId, spec1);
@@ -815,7 +815,7 @@ class SubscriptionTableControllerTest {
   void testGetSkuCapacityReportHypervisorCoresOnly() {
     // Given an org with one active sub with a quantity of 4 and has an eng product with a
     // hypervisor socket capacity of 2,
-    var productId = RHEL_SERVER;
+    var productId = RHEL_FOR_X86;
     var expectedSub = stubSubscription("1234", "1235", 4);
     var spec1 = RH0180197_HYPERVISOR_CORES.withSub(expectedSub);
     givenCapacities(Org.STANDARD, productId, spec1);
