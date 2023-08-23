@@ -141,10 +141,10 @@ def _generate_buckets(host_id, product, sla, usage, as_hypervisor=False, measure
                 _generate_insert("host_tally_buckets", sla=next_sla, usage=next_usage, **hypervisor_bucket_fields)
 
 
-def _generate_measurements(host_id, metric_id, value):
+def _generate_measurements(host_id, uom, value):
     measurement_fields = {
         'host_id': host_id,
-        'metric_id': metric_id,
+        'uom': uom,
         'value': value,
     }
     _generate_insert("instance_measurements", **measurement_fields)

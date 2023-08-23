@@ -120,8 +120,5 @@
     <include file="liquibase/202308151557-fix-subscription-measurement-metric-id-casing.xml"/>
     <include file="liquibase/202308211518-rename-rhel-product-ids.xml"/>
     <include file="liquibase/202307261851-event-change-event-type-data.xml"/>
-    <include file="liquibase/202308210806-add-metric-id-instance-measurements.xml"/>
-    <!-- Uncomment once the above changeset has landed in prod -->
-    <!-- <include file="liquibase/202308210906-drop-uom-column-instance-measurements.xml"/> -->
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
