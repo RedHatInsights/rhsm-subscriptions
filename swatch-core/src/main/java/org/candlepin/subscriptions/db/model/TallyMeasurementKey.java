@@ -41,6 +41,7 @@ public class TallyMeasurementKey implements Serializable {
   private HardwareMeasurementType measurementType;
 
   @Enumerated(EnumType.STRING)
+  @Column(name = "metric_id")
   private Measurement.Uom uom;
 
   public TallyMeasurementKey() {
