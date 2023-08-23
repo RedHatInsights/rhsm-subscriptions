@@ -56,6 +56,7 @@ import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -66,23 +67,21 @@ import org.springframework.retry.backoff.NoBackOffPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
-//
-// NOTE: We should really turn these into integration tests when
-//       we have time. All of the mocking here is getting hard
-//       to follow.
-//
-@SpringBootTest
+@SpringBootTest(
+    properties =
+        "rhsm-subscriptions.metering.prometheus.client.url=http://localhost:${WIREMOCK_PORT:8101}")
 @ActiveProfiles({"openshift-metering-worker", "test"})
 @Import(TestClockConfiguration.class)
+@ExtendWith(PrometheusQueryWiremockExtension.class)
 class PrometheusMeteringControllerTest {
-
-  @MockBean private PrometheusService service;
 
   @MockBean private EventController eventController;
 
   @MockBean AccountConfigRepository accountConfigRepository;
 
   @MockBean OrgConfigRepository orgConfigRepository;
+
+  @Autowired private PrometheusService service;
 
   @Autowired private MetricProperties metricProperties;
 
@@ -151,7 +150,8 @@ class PrometheusMeteringControllerTest {
   }
 
   @Test
-  void testRetryWhenOpenshiftServiceReturnsError() throws Exception {
+  void testRetryWhenOpenshiftServiceReturnsError(
+      PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer) {
     QueryResult errorResponse = new QueryResult();
     errorResponse.setStatus(StatusType.ERROR);
     errorResponse.setError("FORCED!!");
@@ -165,20 +165,20 @@ class PrometheusMeteringControllerTest {
             expectedUsage,
             expectedBillingProvider,
             expectedBillingAccountId,
-            List.of(List.of(new BigDecimal(12312.345), new BigDecimal(24))));
+            List.of(List.of(new BigDecimal("12312.345"), new BigDecimal(24))));
 
-    when(service.runRangeQuery(anyString(), any(), any(), any(), any()))
-        .thenReturn(errorResponse, errorResponse, good);
+    prometheusServer.stubQueryRange(errorResponse, errorResponse, good);
 
     OffsetDateTime start = OffsetDateTime.now();
     OffsetDateTime end = start.plusDays(1);
 
     controller.collectMetrics("OpenShift-metrics", Uom.CORES, "account", start, end);
-    verify(service, times(3)).runRangeQuery(anyString(), any(), any(), any(), any());
+    prometheusServer.verifyQueryRangeWasCalled(3);
   }
 
   @Test
-  void datesAdjustedWhenReportingOpenShiftMetrics() throws Exception {
+  void datesAdjustedWhenReportingOpenShiftMetrics(
+      PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer) {
     OffsetDateTime start = clock.now().withSecond(30).withMinute(22);
     OffsetDateTime end = start.plusHours(4);
     QueryResult data =
@@ -190,21 +190,21 @@ class PrometheusMeteringControllerTest {
             expectedUsage,
             expectedBillingProvider,
             expectedBillingAccountId,
-            List.of(List.of(new BigDecimal(12312.345), new BigDecimal(24))));
-    when(service.runRangeQuery(anyString(), any(), any(), any(), any())).thenReturn(data);
+            List.of(List.of(new BigDecimal("12312.345"), new BigDecimal(24))));
+    prometheusServer.stubQueryRange(data);
 
     controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedOrgId, start, end);
-    verify(service)
-        .runRangeQuery(
-            queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
-            clock.startOfHour(start).plusHours(1),
-            end,
-            metricProperties.getStep(),
-            metricProperties.getQueryTimeout());
+    prometheusServer.verifyQueryRange(
+        queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
+        clock.startOfHour(start).plusHours(1),
+        end,
+        metricProperties.getStep(),
+        metricProperties.getQueryTimeout());
   }
 
   @Test
-  void orgIdGetsOptedInWhenReportingMetrics() {
+  void orgIdGetsOptedInWhenReportingMetrics(
+      PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer) {
     OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = start.plusHours(4);
     QueryResult data =
@@ -216,23 +216,23 @@ class PrometheusMeteringControllerTest {
             expectedUsage,
             expectedBillingProvider,
             expectedBillingAccountId,
-            List.of(List.of(new BigDecimal(12312.345), new BigDecimal(24))));
-    when(service.runRangeQuery(anyString(), any(), any(), any(), any())).thenReturn(data);
+            List.of(List.of(new BigDecimal("12312.345"), new BigDecimal(24))));
+    prometheusServer.stubQueryRange(data);
 
     controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedOrgId, start, end);
-    verify(service)
-        .runRangeQuery(
-            queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
-            start.plusHours(1),
-            end,
-            metricProperties.getStep(),
-            metricProperties.getQueryTimeout());
+    prometheusServer.verifyQueryRange(
+        queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
+        start.plusHours(1),
+        end,
+        metricProperties.getStep(),
+        metricProperties.getQueryTimeout());
     verify(optInController).optInByOrgId(expectedOrgId, OptInType.PROMETHEUS);
   }
 
   @Test
   @SuppressWarnings("indentation")
-  void collectOpenShiftMetricsWillPersistEvents() throws Exception {
+  void collectOpenShiftMetricsWillPersistEvents(
+      PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer) {
     BigDecimal time1 = BigDecimal.valueOf(123456.234);
     BigDecimal val1 = BigDecimal.valueOf(100L);
     BigDecimal time2 = BigDecimal.valueOf(222222.222);
@@ -248,13 +248,7 @@ class PrometheusMeteringControllerTest {
             expectedBillingProvider,
             expectedBillingAccountId,
             List.of(List.of(time1, val1), List.of(time2, val2)));
-    when(service.runRangeQuery(
-            eq(queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId))),
-            any(),
-            any(),
-            any(),
-            any()))
-        .thenReturn(data);
+    prometheusServer.stubQueryRange(data);
 
     OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = start.plusDays(1);
@@ -299,13 +293,12 @@ class PrometheusMeteringControllerTest {
     ArgumentCaptor<Collection> saveCaptor = ArgumentCaptor.forClass(Collection.class);
     verify(eventController).saveAll(saveCaptor.capture());
 
-    verify(service)
-        .runRangeQuery(
-            queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
-            start.plusHours(1),
-            end,
-            metricProperties.getStep(),
-            metricProperties.getQueryTimeout());
+    prometheusServer.verifyQueryRange(
+        queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
+        start.plusHours(1),
+        end,
+        metricProperties.getStep(),
+        metricProperties.getQueryTimeout());
     verify(eventController).saveAll(any());
 
     // Attempted to verify the eventController.saveAll(events) but
@@ -316,8 +309,8 @@ class PrometheusMeteringControllerTest {
   }
 
   @Test
-  void verifyExistingEventsAreUpdatedWhenReportedByPrometheusAndDeletedIfStale()
-      throws InterruptedException {
+  void verifyExistingEventsAreUpdatedWhenReportedByPrometheusAndDeletedIfStale(
+      PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer) {
     BigDecimal time1 = BigDecimal.valueOf(123456.234);
     BigDecimal val1 = BigDecimal.valueOf(100L);
     BigDecimal time2 = BigDecimal.valueOf(222222.222);
@@ -333,13 +326,7 @@ class PrometheusMeteringControllerTest {
             expectedBillingProvider,
             expectedBillingAccountId,
             List.of(List.of(time1, val1), List.of(time2, val2)));
-    when(service.runRangeQuery(
-            eq(queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId))),
-            any(),
-            any(),
-            any(),
-            any()))
-        .thenReturn(data);
+    prometheusServer.stubQueryRange(data);
 
     OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = start.plusDays(1);
@@ -439,13 +426,12 @@ class PrometheusMeteringControllerTest {
     ArgumentCaptor<Collection> purgeCaptor = ArgumentCaptor.forClass(Collection.class);
     verify(eventController).deleteEvents(purgeCaptor.capture());
 
-    verify(service)
-        .runRangeQuery(
-            queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
-            start.plusHours(1),
-            end,
-            metricProperties.getStep(),
-            metricProperties.getQueryTimeout());
+    prometheusServer.verifyQueryRange(
+        queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
+        start.plusHours(1),
+        end,
+        metricProperties.getStep(),
+        metricProperties.getQueryTimeout());
 
     // Attempted to verify the eventController calls below, but
     // couldn't find a way to get mockito to match on collection of HashMap.Value.
@@ -458,7 +444,8 @@ class PrometheusMeteringControllerTest {
   }
 
   @Test
-  void verifyConflictingSlaCausesSavesFirstValue() {
+  void verifyConflictingSlaCausesSavesFirstValue(
+      PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer) {
     QueryResultDataResultInner standardResultItem =
         new QueryResultDataResultInner()
             .putMetricItem("_id", expectedClusterId)
@@ -485,13 +472,7 @@ class PrometheusMeteringControllerTest {
         new QueryResultData().addResultItem(standardResultItem).addResultItem(premiumResultItem);
     QueryResult data = new QueryResult().data(queryResultData);
 
-    when(service.runRangeQuery(
-            eq(queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId))),
-            any(),
-            any(),
-            any(),
-            any()))
-        .thenReturn(data);
+    prometheusServer.stubQueryRange(data);
 
     OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = clock.endOfHour(start.plusDays(1));
@@ -556,13 +537,12 @@ class PrometheusMeteringControllerTest {
     var saveCaptor = ArgumentCaptor.forClass(Collection.class);
     verify(eventController).saveAll(saveCaptor.capture());
 
-    verify(service)
-        .runRangeQuery(
-            queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
-            start.plusHours(1),
-            end,
-            metricProperties.getStep(),
-            metricProperties.getQueryTimeout());
+    prometheusServer.verifyQueryRange(
+        queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
+        start.plusHours(1),
+        end,
+        metricProperties.getStep(),
+        metricProperties.getQueryTimeout());
 
     // Attempted to verify the eventController calls below, but
     // couldn't find a way to get mockito to match on collection of HashMap.Value.
