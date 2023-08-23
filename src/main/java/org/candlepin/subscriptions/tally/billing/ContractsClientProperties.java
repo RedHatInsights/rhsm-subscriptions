@@ -21,9 +21,13 @@
 package org.candlepin.subscriptions.tally.billing;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 
 @Data
+@ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
 public class ContractsClientProperties extends HttpClientProperties {
   /** How many attempts before giving up. */
   private Integer maxAttempts;
