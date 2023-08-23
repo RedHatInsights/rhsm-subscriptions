@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.configuration.registry;
 
-import com.google.common.collect.MoreCollectors;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
@@ -196,7 +195,7 @@ public class SubscriptionDefinition {
             subscription ->
                 subscription.getVariants().stream()
                     .anyMatch(variant -> Objects.equals(tag, variant.getTag())))
-        .collect(MoreCollectors.toOptional());
+        .findFirst();
   }
 
   public static boolean isContractEnabled(@NotNull @NotEmpty String tag) {

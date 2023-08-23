@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.tally.billing;
 
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
-import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.contracts.api.model.Contract;
 import com.redhat.swatch.contracts.api.model.Metric;
 import com.redhat.swatch.contracts.api.resources.DefaultApi;
