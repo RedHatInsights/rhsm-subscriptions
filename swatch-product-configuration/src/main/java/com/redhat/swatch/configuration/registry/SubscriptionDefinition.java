@@ -173,4 +173,9 @@ public class SubscriptionDefinition {
                     .anyMatch(variant -> variant.getRoles().contains(role)))
         .findFirst();
   }
+
+  public boolean isPaygEligible() {
+    return metrics.stream()
+        .anyMatch(metric -> metric.getRhmMetricId() != null || metric.getAwsDimension() != null);
+  }
 }

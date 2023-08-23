@@ -36,6 +36,7 @@ import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
+import org.candlepin.subscriptions.util.UomUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -52,10 +53,7 @@ import org.springframework.util.StringUtils;
 /** Provides access to Host database entities. */
 @SuppressWarnings({"linelength", "indentation"})
 public interface HostRepository
-    extends JpaRepository<Host, UUID>,
-        JpaSpecificationExecutor<Host>,
-        TagProfileLookup,
-        EntityManagerLookup {
+    extends JpaRepository<Host, UUID>, JpaSpecificationExecutor<Host>, EntityManagerLookup {
   String MEASUREMENT_JOIN_CORES = "coresMeasurements";
   String MEASUREMENT_JOIN_SOCKETS = "socketsMeasurements";
   String MONTHLY_TOTAL_JOIN_CORES = "coresMonthlyTotal";
@@ -513,9 +511,7 @@ public interface HostRepository
   }
 
   default Uom getDefaultUomForProduct(String productId) {
-    return Optional.ofNullable(getTagProfile().uomsForTag(productId)).orElse(List.of()).stream()
-        .findFirst()
-        .orElse(null);
+    return UomUtils.getUomsFromConfigForTag(productId).findFirst().orElse(null);
   }
 
   @Query(

@@ -21,6 +21,8 @@
 package org.candlepin.subscriptions.resource;
 
 import com.google.common.collect.ImmutableMap;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.ws.rs.core.Context;
@@ -42,7 +44,6 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyHostView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.utilization.api.model.HostReport;
@@ -112,14 +113,11 @@ public class HostsResource implements HostsApi {
 
   private final HostRepository repository;
   private final PageLinkCreator pageLinkCreator;
-  private final TagProfile tagProfile;
   @Context UriInfo uriInfo;
 
-  public HostsResource(
-      HostRepository repository, PageLinkCreator pageLinkCreator, TagProfile tagProfile) {
+  public HostsResource(HostRepository repository, PageLinkCreator pageLinkCreator) {
     this.repository = repository;
     this.pageLinkCreator = pageLinkCreator;
-    this.tagProfile = tagProfile;
   }
 
   @SuppressWarnings("java:S3776")
@@ -163,7 +161,11 @@ public class HostsResource implements HostsApi {
 
     List<org.candlepin.subscriptions.utilization.api.model.Host> payload;
     Page<?> hosts;
-    if (tagProfile.isProductPAYGEligible(productId.toString())) {
+    if (Variant.findByTag(productId.toString()).stream()
+        .map(Variant::getSubscription)
+        .map(SubscriptionDefinition::isPaygEligible)
+        .findFirst()
+        .orElse(false)) {
       if (sort != null) {
         Sort.Order userDefinedOrder =
             new Sort.Order(dirValue, INSTANCE_SORT_PARAM_MAPPING.get(sort));

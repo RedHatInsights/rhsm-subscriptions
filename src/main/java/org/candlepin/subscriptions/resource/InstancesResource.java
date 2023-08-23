@@ -21,6 +21,8 @@
 package org.candlepin.subscriptions.resource;
 
 import com.google.common.collect.ImmutableMap;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.UriInfo;
@@ -45,9 +47,9 @@ import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
+import org.candlepin.subscriptions.util.UomUtils;
 import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
 import org.candlepin.subscriptions.utilization.api.model.CloudProvider;
 import org.candlepin.subscriptions.utilization.api.model.InstanceData;
@@ -78,7 +80,6 @@ public class InstancesResource implements InstancesApi {
   private final TallyInstanceViewRepository repository;
   private final HostRepository hostRepository;
   private final PageLinkCreator pageLinkCreator;
-  private final TagProfile tagProfile;
 
   public static final Map<InstanceReportSort, String> INSTANCE_SORT_PARAM_MAPPING =
       ImmutableMap.<InstanceReportSort, String>builder()
@@ -106,12 +107,10 @@ public class InstancesResource implements InstancesApi {
   public InstancesResource(
       TallyInstanceViewRepository tallyInstanceViewRepository,
       HostRepository hostRepository,
-      PageLinkCreator pageLinkCreator,
-      TagProfile tagProfile) {
+      PageLinkCreator pageLinkCreator) {
     this.repository = tallyInstanceViewRepository;
     this.hostRepository = hostRepository;
     this.pageLinkCreator = pageLinkCreator;
-    this.tagProfile = tagProfile;
   }
 
   @Override
@@ -190,12 +189,15 @@ public class InstancesResource implements InstancesApi {
     OffsetDateTime now = OffsetDateTime.now();
     OffsetDateTime start = Optional.ofNullable(beginning).orElse(now);
     OffsetDateTime end = Optional.ofNullable(ending).orElse(now);
-    var uomSet = tagProfile.measurementsByTag(productId.toString());
+
+    var variant = Variant.findByTag(productId.toString());
+    var uomSet =
+        UomUtils.getUomsFromConfigForVariant(variant.orElse(null)).collect(Collectors.toSet());
     List<String> measurements = uomSet.stream().map(Measurement.Uom::toString).sorted().toList();
 
     validateBeginningAndEndingDates(productId, start, end);
 
-    boolean isPAYG = tagProfile.isProductPAYGEligible(productId.toString());
+    boolean isPAYG = isPayg(variant);
     String month = isPAYG ? InstanceMonthlyTotalKey.formatMonthId(start) : null;
     // We depend on a "reference UOM" in order to filter out instances that were not active in
     // the selected month. This is also used for sorting purposes (same join). See
@@ -246,11 +248,18 @@ public class InstancesResource implements InstancesApi {
         .data(payload);
   }
 
+  private static Boolean isPayg(Optional<Variant> variant) {
+    return variant
+        .map(Variant::getSubscription)
+        .map(SubscriptionDefinition::isPaygEligible)
+        .orElse(false);
+  }
+
   protected void validateBeginningAndEndingDates(
       ProductId productId, OffsetDateTime beginning, OffsetDateTime ending) {
     boolean isDateRangePossible = beginning.isBefore(ending) || beginning.isEqual(ending);
     boolean isBothDatesFromSameMonth = Objects.equals(beginning.getMonth(), ending.getMonth());
-    boolean isPAYG = tagProfile.isProductPAYGEligible(productId.toString());
+    boolean isPAYG = isPayg(Variant.findByTag(productId.toString()));
 
     // See SWATCH-745 for the reasoning on the same month restriction
     if (!isDateRangePossible || (isPAYG && !isBothDatesFromSameMonth)) {
