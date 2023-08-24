@@ -44,8 +44,12 @@ openApiGenerate {
 dependencies {
     api project(':clients-core')
     api "jakarta.annotation:jakarta.annotation-api"
-    api "org.jboss.resteasy:resteasy-client"
-    api "org.jboss.resteasy:resteasy-multipart-provider"
+    api (libraries["resteasy-client"]) {
+        exclude group: "org.jboss", module: "jandex"
+    }
+    api (libraries["resteasy-multipart-provider"]) {
+        exclude group: "org.jboss", module: "jandex"
+    }
 
     api "com.fasterxml.jackson.core:jackson-annotations"
     api "com.fasterxml.jackson.core:jackson-databind"

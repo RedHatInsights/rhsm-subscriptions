@@ -28,11 +28,6 @@ dependencyManagement {
         dependency libraries["swagger-annotations"]
         dependency libraries["swagger-ui"]
         dependency libraries["webjars-locator"]
-        dependency(libraries["resteasy-spring-boot-starter"]) {
-            exclude "org.jboss:jandex"
-        }
-        dependency libraries["resteasy-client"]
-        dependency libraries["resteasy-multipart-provider"]
         dependency libraries["resteasy-validator-provider"]
         dependency libraries["resteasy-jackson2-provider"]
         dependency libraries["guava"]
