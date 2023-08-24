@@ -25,12 +25,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.configuration.registry.Metric;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.time.OffsetDateTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescriptor;
@@ -39,8 +41,6 @@ import org.candlepin.subscriptions.prometheus.model.QueryResultData;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.ResultType;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
-import org.candlepin.subscriptions.registry.TagMetric;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,17 +50,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class PrometheusAccountSourceTest {
 
-  final String TEST_ACCT_QUERY_KEY = "TEST_QUERY";
-  final String TEST_ACCOUNT_QUERY = "ACCOUNT QUERY";
-  final String TEST_PROD_TAG = "OpenShift-metrics";
+  final String TEST_ACCT_QUERY_KEY = "default";
+  final String TEST_ACCOUNT_QUERY = "default";
+  final String TEST_PROD_TAG = "OpenShift-dedicated-metrics";
 
   @Mock PrometheusService service;
-  @Mock TagProfile tagProfile;
 
   PrometheusAccountSource accountSource;
   MetricProperties metricProperties;
   QueryBuilder queryBuilder;
-  TagMetric tag;
+  Metric tag;
 
   @BeforeEach
   void setupTest() {
@@ -69,17 +68,12 @@ class PrometheusAccountSourceTest {
     metricProperties.setAccountQueryTemplates(Map.of(TEST_ACCT_QUERY_KEY, TEST_ACCOUNT_QUERY));
 
     queryBuilder = new QueryBuilder(metricProperties);
-    accountSource =
-        new PrometheusAccountSource(service, metricProperties, queryBuilder, tagProfile);
+    accountSource = new PrometheusAccountSource(service, metricProperties, queryBuilder);
 
-    tag =
-        TagMetric.builder()
-            .tag(TEST_PROD_TAG)
-            .uom(Uom.CORES)
-            .accountQueryKey(TEST_ACCT_QUERY_KEY)
-            .build();
-
-    when(tagProfile.getTagMetric(TEST_PROD_TAG, Uom.CORES)).thenReturn(Optional.of(tag));
+    var subDefOptional = SubscriptionDefinition.lookupSubscriptionByTag(TEST_PROD_TAG);
+    subDefOptional
+        .flatMap(subDef -> subDef.getMetric(Measurement.Uom.CORES.value()))
+        .ifPresent(tag -> this.tag = tag);
   }
 
   @Test

@@ -99,6 +99,7 @@ class SubscriptionDefinitionTest {
     metric.setAwsDimension("cluster_hour");
 
     var prometheusMetric = new PrometheusMetric();
+    prometheusMetric.setQueryKey("default");
     prometheusMetric.setQueryParams(
         Map.of(
             "product",

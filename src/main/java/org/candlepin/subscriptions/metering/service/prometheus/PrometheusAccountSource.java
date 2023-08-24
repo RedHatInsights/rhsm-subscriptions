@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
+import com.redhat.swatch.configuration.registry.Metric;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.Set;
@@ -29,8 +31,6 @@ import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescriptor;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
-import org.candlepin.subscriptions.registry.TagMetric;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.springframework.util.StringUtils;
 
 /** Provides account lists from Prometheus metrics. */
@@ -39,18 +39,13 @@ public class PrometheusAccountSource {
 
   private PrometheusService service;
   private MetricProperties metricProperties;
-  private TagProfile tagProfile;
   private QueryBuilder queryBuilder;
 
   public PrometheusAccountSource(
-      PrometheusService service,
-      MetricProperties metricProperties,
-      QueryBuilder queryBuilder,
-      TagProfile tagProfile) {
+      PrometheusService service, MetricProperties metricProperties, QueryBuilder queryBuilder) {
     this.service = service;
     this.metricProperties = metricProperties;
     this.queryBuilder = queryBuilder;
-    this.tagProfile = tagProfile;
   }
 
   public Set<String> getMarketplaceAccounts(
@@ -70,11 +65,13 @@ public class PrometheusAccountSource {
   }
 
   private String buildQuery(String productTag, Uom metric) {
-    Optional<TagMetric> tag = tagProfile.getTagMetric(productTag, metric);
-    if (tag.isEmpty()) {
+    var subDefOptional = SubscriptionDefinition.lookupSubscriptionByTag(productTag);
+    Optional<Metric> tagMetric = subDefOptional.flatMap(subDef -> subDef.getMetric(metric.value()));
+    if (tagMetric.isEmpty()) {
       throw new IllegalArgumentException(
-          String.format("Could not find TagMetric for %s %s", productTag, metric));
+          String.format("Could not find tag %s and metric %s!", productTag, metric));
     }
-    return queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag.get()));
+
+    return queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tagMetric.get()));
   }
 }

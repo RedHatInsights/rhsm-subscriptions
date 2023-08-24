@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.metering.api.admin;
 
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import io.micrometer.core.annotation.Timed;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.Min;
@@ -32,13 +33,13 @@ import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.EventRecordRepository;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.metering.ResourceUtil;
 import org.candlepin.subscriptions.metering.admin.api.InternalApi;
 import org.candlepin.subscriptions.metering.retention.EventRecordsRetentionProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.springframework.stereotype.Component;
 
@@ -49,7 +50,6 @@ public class InternalMeteringResource implements InternalApi {
   private final ApplicationProperties applicationProperties;
   private final PrometheusMetricsTaskManager tasks;
   private final PrometheusMeteringController controller;
-  private final TagProfile tagProfile;
   private final EventRecordsRetentionProperties eventRecordsRetentionProperties;
   private final EventRecordRepository eventRecordRepository;
   private final MetricProperties metricProperties;
@@ -58,7 +58,6 @@ public class InternalMeteringResource implements InternalApi {
       ResourceUtil util,
       ApplicationProperties applicationProperties,
       EventRecordsRetentionProperties eventRecordsRetentionProperties,
-      TagProfile tagProfile,
       PrometheusMetricsTaskManager tasks,
       PrometheusMeteringController controller,
       EventRecordRepository eventRecordRepository,
@@ -66,7 +65,6 @@ public class InternalMeteringResource implements InternalApi {
     this.util = util;
     this.applicationProperties = applicationProperties;
     this.eventRecordsRetentionProperties = eventRecordsRetentionProperties;
-    this.tagProfile = tagProfile;
     this.tasks = tasks;
     this.controller = controller;
     this.eventRecordRepository = eventRecordRepository;
@@ -102,7 +100,8 @@ public class InternalMeteringResource implements InternalApi {
     OffsetDateTime end = util.getDate(Optional.ofNullable(endDate));
     OffsetDateTime start = util.getStartDate(end, rangeInMinutes);
 
-    if (!tagProfile.tagIsPrometheusEnabled(productTag)) {
+    var subDef = SubscriptionDefinition.lookupSubscriptionByTag(productTag);
+    if (subDef.isEmpty() || !subDef.get().isPrometheusEnabled()) {
       throw new BadRequestException(String.format("Invalid product tag specified: %s", productTag));
     }
 
@@ -118,21 +117,27 @@ public class InternalMeteringResource implements InternalApi {
       if (!applicationProperties.isEnableSynchronousOperations()) {
         throw new BadRequestException("Synchronous metering operations are not enabled.");
       }
-      performMeteringForOrgId(orgId, productTag, start, end);
+      performMeteringForOrgId(orgId, productTag, start, end, subDef.get());
     } else {
       queueMeteringForOrgId(orgId, productTag, start, end);
     }
   }
 
   private void performMeteringForOrgId(
-      String orgId, String productTag, OffsetDateTime start, OffsetDateTime end) {
+      String orgId,
+      String productTag,
+      OffsetDateTime start,
+      OffsetDateTime end,
+      SubscriptionDefinition subDef) {
     log.info("Performing {} metering for orgId={} via API.", productTag, orgId);
-    tagProfile
-        .getSupportedMetricsForProduct(productTag)
+
+    subDef
+        .getMetricIds()
         .forEach(
             metric -> {
               try {
-                controller.collectMetrics(productTag, metric, orgId, start, end);
+                controller.collectMetrics(
+                    productTag, Measurement.Uom.fromValue(metric), orgId, start, end);
               } catch (Exception e) {
                 log.error(
                     "Problem collecting metrics: {} {} {} [{} -> {}]",

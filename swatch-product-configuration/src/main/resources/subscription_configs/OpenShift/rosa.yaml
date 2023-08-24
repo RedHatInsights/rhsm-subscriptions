@@ -21,6 +21,7 @@ metrics:
   - id: Instance-hours
     awsDimension: control_plane_0
     prometheus:
+      queryKey: default
       queryParams:
         product: moa-hostedcontrolplane
         metric: cluster:usage:workload:capacity_physical_instance_hours
@@ -29,6 +30,7 @@ metrics:
     awsDimension: four_vcpu_0
     billingFactor: 0.25
     prometheus:
+      queryKey: default
       queryParams:
         product: moa-hostedcontrolplane
         metric: cluster:usage:workload:capacity_physical_cpu_hours

@@ -56,7 +56,7 @@ rhsm-subscriptions:
       metric:
         accountQueryTemplates:
           default: >-
-            ${OPENSHIFT_ENABLED_ACCOUNT_PROMQL:group(min_over_time(#{metric.queryParams[prometheusMetadataMetric]}{product='#{metric.queryParams[product]}', external_organization != '', billing_model='marketplace'}[1h]))
+            ${OPENSHIFT_ENABLED_ACCOUNT_PROMQL:group(min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{product='#{metric.prometheus.queryParams[product]}', external_organization != '', billing_model='marketplace'}[1h]))
             by (external_organization)}
   prometheus-latency-duration: ${PROMETHEUS_LATENCY_DURATION:0h}
   hourly-tally-offset: ${HOURLY_TALLY_OFFSET:60m}

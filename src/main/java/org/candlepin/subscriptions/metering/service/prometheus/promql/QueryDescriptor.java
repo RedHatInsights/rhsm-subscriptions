@@ -20,10 +20,10 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus.promql;
 
+import com.redhat.swatch.configuration.registry.Metric;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.Getter;
-import org.candlepin.subscriptions.registry.TagMetric;
 
 /**
  * Describes the variables to be applied to a query template. Within a template, these variables can
@@ -35,12 +35,12 @@ import org.candlepin.subscriptions.registry.TagMetric;
 public class QueryDescriptor {
 
   /** Any variables that should be provided by the tag configuration. */
-  private TagMetric metric;
+  private Metric metric;
 
   /** Any variable that are specified at runtime. */
   private Map<String, String> runtime;
 
-  public QueryDescriptor(TagMetric metric) {
+  public QueryDescriptor(Metric metric) {
     this.metric = metric;
     this.runtime = new HashMap<>();
   }

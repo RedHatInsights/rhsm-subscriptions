@@ -20,32 +20,29 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
+import com.redhat.swatch.configuration.registry.Metric;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.util.Map;
 import java.util.Optional;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescriptor;
-import org.candlepin.subscriptions.registry.TagMetric;
-import org.candlepin.subscriptions.registry.TagProfile;
 
 /** Common query utilities used for testing. */
 public class QueryHelper {
-
-  private TagProfile tagProfile;
   private QueryBuilder queryBuilder;
 
-  public QueryHelper(TagProfile tagProfile, QueryBuilder builder) {
-    this.tagProfile = tagProfile;
+  public QueryHelper(QueryBuilder builder) {
     this.queryBuilder = builder;
   }
 
   public String expectedQuery(String productTag, Map<String, String> queryParams) {
-    Optional<TagMetric> tag = tagProfile.getTagMetric(productTag, Uom.CORES);
-    if (tag.isEmpty()) {
-      throw new RuntimeException("Bad test configuration! Could not find TagMetric!");
+    var subDefOptional = SubscriptionDefinition.lookupSubscriptionByTag(productTag);
+    Optional<Metric> tagMetric = subDefOptional.flatMap(subDef -> subDef.getMetric("Cores"));
+    if (tagMetric.isEmpty()) {
+      throw new RuntimeException("Bad test configuration! Could not find Tag with Metric!");
     }
 
-    QueryDescriptor descriptor = new QueryDescriptor(tag.get());
+    QueryDescriptor descriptor = new QueryDescriptor(tagMetric.get());
     queryParams.forEach(descriptor::addRuntimeVar);
     return queryBuilder.build(descriptor);
   }

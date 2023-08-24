@@ -26,7 +26,6 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,12 +43,10 @@ class PrometheusServiceTest {
 
   @Autowired private QueryBuilder queryBuilder;
 
-  @Autowired private TagProfile tagProfile;
-
   @Test
   void testRangeQueryApi(
       PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer) {
-    QueryHelper queries = new QueryHelper(tagProfile, queryBuilder);
+    QueryHelper queries = new QueryHelper(queryBuilder);
 
     String expectedQuery = queries.expectedQuery("OpenShift-metrics", Map.of("orgId", "o1"));
     QueryResult expectedResult = new QueryResult();
@@ -69,7 +66,7 @@ class PrometheusServiceTest {
 
   @Test
   void testQueryApi(PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer) {
-    QueryHelper queries = new QueryHelper(tagProfile, queryBuilder);
+    QueryHelper queries = new QueryHelper(queryBuilder);
 
     String expectedQuery = queries.expectedQuery("OpenShift-metrics", Map.of("orgId", "o1"));
     int expectedTimeout = 1;

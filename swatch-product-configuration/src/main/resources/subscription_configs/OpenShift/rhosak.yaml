@@ -22,6 +22,7 @@ metrics:
     rhmMetricId: redhat.com:rhosak:transfer_gb
     awsDimension: transfer_gb
     prometheus:
+      queryKey: default
       queryParams:
         product: rhosak
         metric: kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes
@@ -30,6 +31,7 @@ metrics:
     rhmMetricId: redhat.com:rhosak:cluster_hour
     awsDimension: cluster_hour
     prometheus:
+      queryKey: default
       queryParams:
         product: rhosak
         metric: kafka_id:strimzi_resource_state:max_over_time1h
@@ -38,6 +40,7 @@ metrics:
     rhmMetricId: redhat.com:rhosak:storage_gib_months
     awsDimension: storage_gb
     prometheus:
+      queryKey: default
       queryParams:
         product: rhosak
         metric: kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibyte_months
@@ -45,6 +48,7 @@ metrics:
   - id: Storage-gibibytes
     rhmMetricId: redhat.com:rhosak:storage_gb
     prometheus:
+      queryKey: default
       queryParams:
         product: rhosak
         metric: kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibytes

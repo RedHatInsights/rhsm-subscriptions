@@ -23,84 +23,63 @@ package org.candlepin.subscriptions.metering.service.prometheus.promql;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.redhat.swatch.configuration.registry.Metric;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.util.HashMap;
 import java.util.Map;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
-import org.candlepin.subscriptions.registry.TagMetric;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class QueryBuilderTest {
 
+  Metric tag;
+  final String TEST_PROD_TAG = "OpenShift-dedicated-metrics";
+
+  @BeforeEach
+  void setupTest() {
+    var subDefOptional = SubscriptionDefinition.lookupSubscriptionByTag(TEST_PROD_TAG);
+    subDefOptional
+        .flatMap(subDef -> subDef.getMetric(Measurement.Uom.CORES.value()))
+        .ifPresent(tag -> this.tag = tag);
+  }
+
   @Test
   void testBuildQuery() {
-    String templateKey = "test_template";
+    String templateKey = "default";
     String template =
-        "Account: #{runtime[account]} Metric ID: #{metric.metricId} P1: #{metric.queryParams[p1]}";
+        "Account: #{runtime[account]} Metric ID: #{metric.id} P1: #{metric.prometheus.queryParams[metadataMetric]}";
 
-    String metricId = "CORES";
+    String id = "Cores";
     String account = "12345";
-    String param1 = "PARAM_1";
+    String param1 = "ocm_subscription";
 
     MetricProperties props = new MetricProperties();
     props.getQueryTemplates().put(templateKey, template);
 
     Map<String, String> params = new HashMap<>();
-    params.put("p1", param1);
-
-    TagMetric tagMetric =
-        TagMetric.builder().queryKey(templateKey).metricId(metricId).queryParams(params).build();
+    params.put("metadataMetric", param1);
 
     Map<String, String> runtimeParams = new HashMap<>();
     runtimeParams.put("account", account);
 
-    QueryDescriptor queryDesc = new QueryDescriptor(tagMetric);
+    QueryDescriptor queryDesc = new QueryDescriptor(tag);
     queryDesc.addRuntimeVar("account", account);
 
     QueryBuilder builder = new QueryBuilder(props);
     assertEquals(
-        String.format("Account: %s Metric ID: %s P1: %s", account, metricId, param1),
+        String.format("Account: %s Metric ID: %s P1: %s", account, id, param1),
         builder.build(queryDesc));
   }
 
   @Test
   void testExceptionWhenInvalidTemplateSpecified() {
-    String key = "UNKNOWN_KEY";
+    String key = "default";
     QueryBuilder builder = new QueryBuilder(new MetricProperties());
-    QueryDescriptor descriptor = new QueryDescriptor(TagMetric.builder().queryKey(key).build());
+    QueryDescriptor descriptor = new QueryDescriptor(tag);
     Throwable e = assertThrows(IllegalArgumentException.class, () -> builder.build(descriptor));
 
     assertEquals(String.format("Unable to find query template for key: %s", key), e.getMessage());
-  }
-
-  @Test
-  void supportsNestedExpressions() {
-    String templateKey = "test_template";
-    String template = "#{metric.queryParams[account_exp]} #{metric.queryParams[metric_exp]}";
-
-    String accountExp = "Account: #{runtime[account]}";
-    String metricExp = "Metric ID: #{metric.metricId}";
-
-    String metricId = "CORES";
-    String account = "12345";
-
-    MetricProperties props = new MetricProperties();
-    props.getQueryTemplates().put(templateKey, template);
-
-    Map<String, String> queryParams = new HashMap<>();
-    queryParams.put("account_exp", accountExp);
-    queryParams.put("metric_exp", metricExp);
-
-    QueryDescriptor queryDesc =
-        new QueryDescriptor(
-            TagMetric.builder()
-                .queryKey(templateKey)
-                .metricId(metricId)
-                .queryParams(queryParams)
-                .build());
-    queryDesc.addRuntimeVar("account", account);
-
-    QueryBuilder builder = new QueryBuilder(props);
-    String query = builder.build(queryDesc);
-    assertEquals(String.format("Account: %s Metric ID: %s", account, metricId), query);
   }
 }
