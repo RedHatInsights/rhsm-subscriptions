@@ -28,6 +28,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 import java.util.UUID;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
@@ -115,7 +116,10 @@ public class PrometheusQueryWiremockExtension
           get(urlPathEqualTo(QUERY_PATH))
               .withQueryParam(QUERY_PARAM, equalTo(expectedQuery))
               .withQueryParam(TIMEOUT_PARAM, equalTo(String.valueOf(expectedTimeout)))
-              .withQueryParam(TIME_PARAM, equalTo(expectedTime.toString()))
+              // the client uses a specific formatter; see
+              // org.candlepin.subscriptions.prometheus.JavaTimeFormatter
+              .withQueryParam(
+                  TIME_PARAM, equalTo(DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(expectedTime)))
               .willReturn(okJson(extension.toJson(expectedResult))));
     }
 
