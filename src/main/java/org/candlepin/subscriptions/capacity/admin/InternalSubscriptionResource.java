@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.capacity.admin;
 
+import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.ws.rs.NotFoundException;
@@ -191,7 +192,7 @@ public class InternalSubscriptionResource implements InternalApi {
 
   @Override
   public List<Metric> getMetrics(String tag) {
-    return metricMapper.mapMetrics(subscriptionSyncController.getMetricsForTag(tag));
+    return metricMapper.mapMetrics(Variant.getMetricsForTag(tag));
   }
 
   private AwsUsageContext buildAwsUsageContext(Subscription subscription) {

@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.subscription;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.annotation.Timed;
@@ -627,11 +626,7 @@ public class SubscriptionSyncController {
     Assert.isTrue(ServiceLevel._ANY != usageKey.getSla(), "Service Level cannot be _ANY");
 
     String productId = usageKey.getProductId();
-    Set<String> productNames =
-        Variant.findByTag(productId).stream()
-            .map(Variant::getProductNames)
-            .flatMap(List::stream)
-            .collect(Collectors.toSet());
+    Set<String> productNames = Variant.getProductNamesForTag(productId);
     if (productNames.isEmpty()) {
       log.warn("No product names configured for tag: {}", productId);
       return Collections.emptyList();
@@ -708,13 +703,5 @@ public class SubscriptionSyncController {
           null);
     }
     return productTags;
-  }
-
-  public List<Metric> getMetricsForTag(String tag) {
-    return Variant.findByTag(tag).stream()
-        .map(Variant::getSubscription)
-        .map(SubscriptionDefinition::getMetrics)
-        .flatMap(List::stream)
-        .toList();
   }
 }
