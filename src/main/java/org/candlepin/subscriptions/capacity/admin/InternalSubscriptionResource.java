@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.capacity.admin;
 
+import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.ws.rs.NotFoundException;
@@ -38,11 +39,11 @@ import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.candlepin.subscriptions.utilization.admin.api.InternalApi;
 import org.candlepin.subscriptions.utilization.admin.api.model.AwsUsageContext;
 import org.candlepin.subscriptions.utilization.admin.api.model.DefaultResponse;
+import org.candlepin.subscriptions.utilization.admin.api.model.Metric;
 import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTags;
 import org.candlepin.subscriptions.utilization.admin.api.model.OfferingResponse;
 import org.candlepin.subscriptions.utilization.admin.api.model.RhmUsageContext;
 import org.candlepin.subscriptions.utilization.admin.api.model.SubscriptionResponse;
-import org.candlepin.subscriptions.utilization.admin.api.model.TagMetric;
 import org.candlepin.subscriptions.utilization.admin.api.model.TerminationRequest;
 import org.candlepin.subscriptions.utilization.admin.api.model.TerminationRequestData;
 import org.jetbrains.annotations.NotNull;
@@ -62,7 +63,7 @@ public class InternalSubscriptionResource implements InternalApi {
   private final MeterRegistry meterRegistry;
   private final UsageContextSubscriptionProvider awsSubscriptionProvider;
   private final UsageContextSubscriptionProvider rhmSubscriptionProvider;
-  private final TagMetricMapper tagMetricMapper;
+  private final MetricMapper metricMapper;
   private static final String SUCCESS_STATUS = "Success";
 
   public static final String FEATURE_NOT_ENABLED_MESSSAGE =
@@ -76,7 +77,7 @@ public class InternalSubscriptionResource implements InternalApi {
       SubscriptionPruneController subscriptionPruneController,
       OfferingSyncController offeringSync,
       CapacityReconciliationController capacityReconciliationController,
-      TagMetricMapper tagMetricMapper) {
+      MetricMapper metricMapper) {
     this.meterRegistry = meterRegistry;
     this.subscriptionSyncController = subscriptionSyncController;
     this.properties = properties;
@@ -95,7 +96,7 @@ public class InternalSubscriptionResource implements InternalApi {
     this.subscriptionPruneController = subscriptionPruneController;
     this.offeringSync = offeringSync;
     this.capacityReconciliationController = capacityReconciliationController;
-    this.tagMetricMapper = tagMetricMapper;
+    this.metricMapper = metricMapper;
   }
 
   /**
@@ -190,8 +191,8 @@ public class InternalSubscriptionResource implements InternalApi {
   }
 
   @Override
-  public List<TagMetric> getTagMetrics(String tag) {
-    return tagMetricMapper.mapTagMetrics(subscriptionSyncController.getMetricsForTag(tag));
+  public List<Metric> getMetrics(String tag) {
+    return metricMapper.mapMetrics(Variant.getMetricsForTag(tag));
   }
 
   private AwsUsageContext buildAwsUsageContext(Subscription subscription) {

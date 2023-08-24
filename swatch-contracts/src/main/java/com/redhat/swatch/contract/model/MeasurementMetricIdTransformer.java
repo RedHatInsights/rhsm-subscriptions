@@ -53,7 +53,7 @@ public class MeasurementMetricIdTransformer {
                 .findFirst()
                 .map(SubscriptionProductIdEntity::getProductId)
                 .orElseThrow();
-        var metrics = internalSubscriptionsApi.getTagMetrics(tag);
+        var metrics = internalSubscriptionsApi.getMetrics(tag);
         subscription
             .getSubscriptionMeasurements()
             .forEach(

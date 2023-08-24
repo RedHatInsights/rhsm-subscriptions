@@ -124,6 +124,11 @@ public class SubscriptionDefinition {
     return granularity;
   }
 
+  public boolean isPaygEnabled() {
+    return metrics.stream()
+        .anyMatch(metric -> metric.getRhmMetricId() != null || metric.getAwsDimension() != null);
+  }
+
   /**
    * An engineering id can be found in either a fingerprint or variant. Check the variant first. If
    * not found, check the fingerprint.

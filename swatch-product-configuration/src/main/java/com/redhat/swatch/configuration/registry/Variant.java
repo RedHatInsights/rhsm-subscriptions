@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.*;
 
 /**
@@ -77,5 +79,28 @@ public class Variant {
         .flatMap(subscription -> subscription.getVariants().stream())
         .filter(variant -> Objects.equals(variant.getTag(), defaultVariantTag))
         .findFirst();
+  }
+
+  public static Optional<Variant> findByProductName(String productName) {
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
+        .map(SubscriptionDefinition::getVariants)
+        .flatMap(List::stream)
+        .filter(v -> v.getProductNames().contains(productName))
+        .findFirst();
+  }
+
+  public static Set<String> getProductNamesForTag(String productId) {
+    return findByTag(productId).stream()
+        .map(Variant::getProductNames)
+        .flatMap(List::stream)
+        .collect(Collectors.toSet());
+  }
+
+  public static List<Metric> getMetricsForTag(String tag) {
+    return findByTag(tag).stream()
+        .map(Variant::getSubscription)
+        .map(SubscriptionDefinition::getMetrics)
+        .flatMap(List::stream)
+        .toList();
   }
 }
