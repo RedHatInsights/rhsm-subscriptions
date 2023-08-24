@@ -1200,11 +1200,13 @@ class TallyResourceTest {
             null);
     assertEquals(31, report.getData().size());
 
+    // Each running total entry should be the Math.ceil of all the total previous snapshot values
+    // Rounding should only occur after the total has been calculated
     var firstSnapshot = report.getData().get(0);
-    assertEquals(2, firstSnapshot.getValue());
+    assertEquals((int) Math.ceil(1.3), firstSnapshot.getValue());
 
     var secondSnapshot = report.getData().get(1);
-    assertEquals(4, secondSnapshot.getValue());
+    assertEquals((int) Math.ceil(1.3 + 1.3), secondSnapshot.getValue());
 
     assertEquals(expectedTotalMonthly, report.getMeta().getTotalMonthly());
   }
