@@ -285,17 +285,17 @@ paths:
         schema:
           type: string
     get:
-      summary: "Lookup metrics tags by tag"
-      operationId: getTagMetrics
+      summary: "Lookup metric information by tag"
+      operationId: getMetrics
       responses:
         '200':
-          description: Matching tag metrics
+          description: Matching metrics
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/TagMetric'
+                  $ref: '#/components/schemas/Metric'
               example:
                 data:
                   - metric_id: foo
@@ -461,7 +461,7 @@ components:
           type: array
           items:
             type: string
-    TagMetric:
+    Metric:
       properties:
         uom:
           type: string

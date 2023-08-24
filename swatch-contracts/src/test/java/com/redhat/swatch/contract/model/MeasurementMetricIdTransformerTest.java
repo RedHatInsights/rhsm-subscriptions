@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.redhat.swatch.clients.swatch.internal.subscription.api.model.TagMetric;
+import com.redhat.swatch.clients.swatch.internal.subscription.api.model.Metric;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
 import com.redhat.swatch.contract.repository.BillingProvider;
@@ -65,11 +65,11 @@ class MeasurementMetricIdTransformerTest {
     productId.setProductId("hello");
     subscription.addSubscriptionProductId(productId);
 
-    when(internalSubscriptionsApi.getTagMetrics("hello"))
+    when(internalSubscriptionsApi.getMetrics("hello"))
         .thenReturn(
             List.of(
-                new TagMetric().uom("foo1").awsDimension("foo").billingFactor(0.25),
-                new TagMetric().uom("bar2").awsDimension("bar").billingFactor(1.0)));
+                new Metric().uom("foo1").awsDimension("foo").billingFactor(0.25),
+                new Metric().uom("bar2").awsDimension("bar").billingFactor(1.0)));
     transformer.translateContractMetricIdsToSubscriptionMetricIds(subscription);
     assertEquals(
         List.of("bar2", "foo1"),
