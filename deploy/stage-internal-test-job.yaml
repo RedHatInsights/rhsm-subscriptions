@@ -47,7 +47,7 @@ objects:
           - name: IQE_RP_ARGS
             value: "true"
           - name: IQE_IBUTSU_SOURCE
-            value: "rhsm-stage"
+            value: "rhsm-stage-${IMAGE_TAG}"
           - name: DYNACONF_IQE_VAULT_LOADER_ENABLED
             value: "true"
           - name: DYNACONF_IQE_VAULT_VERIFY
