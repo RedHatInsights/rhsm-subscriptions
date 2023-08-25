@@ -4,7 +4,9 @@ plugins {
 }
 
 dependencies {
-    implementation "org.jboss.resteasy:resteasy-client"
+    implementation (libraries["resteasy-client"]) {
+        exclude group: "org.jboss", module: "jandex"
+    }
     implementation "org.springframework:spring-beans"
     implementation "org.slf4j:slf4j-api"
     testImplementation libraries["wiremock-jre8"]

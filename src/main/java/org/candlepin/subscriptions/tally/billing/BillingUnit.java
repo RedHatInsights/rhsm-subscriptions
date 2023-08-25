@@ -20,13 +20,12 @@
  */
 package org.candlepin.subscriptions.tally.billing;
 
+import com.redhat.swatch.configuration.registry.Metric;
+import com.redhat.swatch.configuration.registry.Variant;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.candlepin.subscriptions.json.BillableUsage;
-import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.registry.TagMetric;
-import org.candlepin.subscriptions.registry.TagProfile;
 
 /** UOM with the currently configured billingFactor applied. */
 @Getter
@@ -35,13 +34,15 @@ import org.candlepin.subscriptions.registry.TagProfile;
 public class BillingUnit implements Unit {
   private final double billingFactor;
 
-  public BillingUnit(TagProfile tagProfile, BillableUsage usage) {
-    var tagMetricOptional =
-        tagProfile.getTagMetric(
-            usage.getProductId(), Measurement.Uom.fromValue(usage.getUom().value()));
+  public BillingUnit(BillableUsage usage) {
+    var metricOptional =
+        Variant.findByTag(usage.getProductId())
+            .map(Variant::getSubscription)
+            .flatMap(
+                subscriptionDefinition -> subscriptionDefinition.getMetric(usage.getUom().value()));
     billingFactor =
-        tagMetricOptional
-            .map(TagMetric::getBillingFactor)
+        metricOptional
+            .map(Metric::getBillingFactor)
             .orElse(1.0); // get configured billingFactor in tag_profile yaml
   }
 }

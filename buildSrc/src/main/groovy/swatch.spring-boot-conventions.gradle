@@ -12,8 +12,9 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-devtools"
     // This starter pulls in Spring Boot versions that we don't want.  The actual classes that we need are
     // baked into the starter artifact itself which is peculiar but sometimes that's how the cookie crumbles.
-    implementation("org.jboss.resteasy:resteasy-servlet-spring-boot-starter") {
+    implementation(libraries["resteasy-spring-boot-starter"]) {
         exclude group: "org.springframework.boot"
+        exclude group: "org.jboss", module: "jandex"
     }
     implementation "org.springframework.boot:spring-boot-starter-security"
     implementation "org.springframework.boot:spring-boot-starter-actuator"

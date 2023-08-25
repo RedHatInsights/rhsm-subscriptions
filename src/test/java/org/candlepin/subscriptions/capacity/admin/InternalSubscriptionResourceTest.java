@@ -71,7 +71,7 @@ class InternalSubscriptionResourceTest {
   @MockBean OfferingSyncController offeringSync;
 
   @MockBean CapacityReconciliationController capacityReconciliationController;
-  @MockBean TagMetricMapper tagMetricMapper;
+  @MockBean MetricMapper metricMapper;
   @Autowired SecurityProperties properties;
   @Autowired WebApplicationContext context;
   @Autowired InternalSubscriptionResource resource;
@@ -109,7 +109,7 @@ class InternalSubscriptionResourceTest {
             subscriptionPruneController,
             offeringSync,
             capacityReconciliationController,
-            tagMetricMapper);
+            metricMapper);
     when(syncController.findSubscriptionsAndSyncIfNeeded(
             any(), any(), any(), any(), any(), anyBoolean()))
         .thenReturn(Collections.emptyList());
@@ -133,7 +133,7 @@ class InternalSubscriptionResourceTest {
             subscriptionPruneController,
             offeringSync,
             capacityReconciliationController,
-            tagMetricMapper);
+            metricMapper);
     when(syncController.findSubscriptionsAndSyncIfNeeded(
             any(), any(), any(), any(), any(), anyBoolean()))
         .thenReturn(Collections.emptyList());
@@ -157,7 +157,7 @@ class InternalSubscriptionResourceTest {
             subscriptionPruneController,
             offeringSync,
             capacityReconciliationController,
-            tagMetricMapper);
+            metricMapper);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
     sub1.setEndDate(defaultEndDate);
@@ -188,7 +188,7 @@ class InternalSubscriptionResourceTest {
             subscriptionPruneController,
             offeringSync,
             capacityReconciliationController,
-            tagMetricMapper);
+            metricMapper);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
     sub1.setEndDate(defaultEndDate);
@@ -336,7 +336,7 @@ class InternalSubscriptionResourceTest {
             subscriptionPruneController,
             offeringSync,
             capacityReconciliationController,
-            tagMetricMapper);
+            metricMapper);
 
     when(syncController.findSubscriptionsAndSyncIfNeeded(
             any(), any(), any(), any(), any(), anyBoolean()))
@@ -366,7 +366,7 @@ class InternalSubscriptionResourceTest {
             subscriptionPruneController,
             offeringSync,
             capacityReconciliationController,
-            tagMetricMapper);
+            metricMapper);
 
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("account123");
