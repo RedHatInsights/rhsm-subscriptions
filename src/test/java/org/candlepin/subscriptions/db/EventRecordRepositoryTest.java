@@ -61,6 +61,7 @@ class EventRecordRepositoryTest {
     event.setEventId(eventId);
     event.setEventSource("eventSource");
     event.setDisplayName(Optional.empty());
+    event.setEventType("Prometheus");
 
     EventRecord record = new EventRecord(event);
     repository.saveAndFlush(record);

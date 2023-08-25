@@ -163,6 +163,7 @@ public class EventController {
         eventJson -> {
           try {
             Event event = eventRecordConverter.convertToEntityAttribute(eventJson);
+            log.info("Event processing in batch: " + event);
             if (StringUtils.hasText(event.getOrgId())) {
               log.debug(
                   "Ensuring orgId={} has been set up for syncing/reporting.", event.getOrgId());
