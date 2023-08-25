@@ -6,5 +6,6 @@ for db in rhsm-subscriptions insights; do
       CREATE USER "$db";
       CREATE DATABASE "$db";
       GRANT ALL PRIVILEGES ON DATABASE "$db" TO "$db";
+      ALTER USER "$db" WITH SUPERUSER;
 EOSQL
 done
