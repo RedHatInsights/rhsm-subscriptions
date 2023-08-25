@@ -14,7 +14,7 @@ properties:
     description: Source-specific identifier for the type of event we use lower Kebab case (e.g. snapshot, delete, descriptive-variable-name). This allows
       the source to encode a special semantic for the event.
     type: string
-    required: false
+    required: true
   account_number:
     description: Account identifier for the relevant account.
     type: string

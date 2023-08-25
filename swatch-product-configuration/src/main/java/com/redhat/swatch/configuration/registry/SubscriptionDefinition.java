@@ -28,7 +28,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -37,6 +40,9 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Data
 @Slf4j
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class SubscriptionDefinition {
   public static final List<String> ORDERED_GRANULARITY =
       List.of("HOURLY", "DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY");
@@ -59,13 +65,13 @@ public class SubscriptionDefinition {
    * defines an "in-the-box" subscription. Considered included from both usage and capacity
    * perspectives.
    */
-  private List<String> includedSubscriptions = new ArrayList<>();
+  @Builder.Default private List<String> includedSubscriptions = new ArrayList<>();
 
-  private List<Variant> variants = new ArrayList<>();
-  private BillingWindow billingWindow;
+  @Builder.Default private List<Variant> variants = new ArrayList<>();
   private String serviceType;
-  private List<Metric> metrics = new ArrayList<>();
+  @Builder.Default private List<Metric> metrics = new ArrayList<>();
   private Defaults defaults;
+  private boolean contractEnabled;
 
   public Optional<Variant> findVariantForEngId(String engId) {
     return getVariants().stream()
@@ -223,8 +229,28 @@ public class SubscriptionDefinition {
         .collect(MoreCollectors.toOptional());
   }
 
+  public static boolean isContractEnabled(@NotNull @NotEmpty String tag) {
+    return lookupSubscriptionByTag(tag)
+        .map(SubscriptionDefinition::isContractEnabled)
+        .orElse(false);
+  }
+
   public boolean isPaygEligible() {
     return metrics.stream()
         .anyMatch(metric -> metric.getRhmMetricId() != null || metric.getAwsDimension() != null);
+  }
+
+  public static String getAwsDimension(String productId, String metricId) {
+    return lookupSubscriptionByTag(productId)
+        .flatMap(subscriptionDefinition -> subscriptionDefinition.getMetric(metricId))
+        .map(com.redhat.swatch.configuration.registry.Metric::getAwsDimension)
+        .orElse(null);
+  }
+
+  public static String getRhmMetricId(String productId, String metricId) {
+    return lookupSubscriptionByTag(productId)
+        .flatMap(subscriptionDefinition -> subscriptionDefinition.getMetric(metricId))
+        .map(com.redhat.swatch.configuration.registry.Metric::getRhmMetricId)
+        .orElse(null);
   }
 }

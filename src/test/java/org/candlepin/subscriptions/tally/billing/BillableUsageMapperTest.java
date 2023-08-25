@@ -22,10 +22,15 @@ package org.candlepin.subscriptions.tally.billing;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinitionRegistry;
+import com.redhat.swatch.configuration.registry.Variant;
+import java.lang.reflect.Field;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Set;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.TallyMeasurement;
@@ -36,30 +41,46 @@ import org.candlepin.subscriptions.json.TallySnapshot.Granularity;
 import org.candlepin.subscriptions.json.TallySnapshot.Sla;
 import org.candlepin.subscriptions.json.TallySnapshot.Usage;
 import org.candlepin.subscriptions.json.TallySummary;
-import org.candlepin.subscriptions.registry.TagMetaData;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class BillableUsageMapperTest {
 
-  private TagProfile tagProfile;
+  private SubscriptionDefinitionRegistry subscriptionDefinitionRegistry;
 
   @BeforeEach
-  void setup() {
-    tagProfile = new TagProfile();
-    TagMetaData tagMetaData = new TagMetaData();
-    tagMetaData.setTags(Set.of("rhosak"));
-    tagMetaData.setBillingModel("PAYG");
-    tagProfile.setTagMetaData(List.of(tagMetaData));
-    tagProfile.setTagMetrics(List.of());
-    tagProfile.setTagMappings(List.of());
-    tagProfile.initLookups();
+  void setupTest() {
+    subscriptionDefinitionRegistry = mock(SubscriptionDefinitionRegistry.class);
+    setMock(subscriptionDefinitionRegistry);
+    var variant = Variant.builder().tag("rhosak").build();
+    var awsMetric =
+        com.redhat.swatch.configuration.registry.Metric.builder()
+            .awsDimension("AWS_METRIC_ID")
+            .id("Cores")
+            .build();
+    var subscriptionDefinition =
+        SubscriptionDefinition.builder()
+            .variants(List.of(variant))
+            .metrics(List.of(awsMetric))
+            .build();
+    variant.setSubscription(subscriptionDefinition);
+    when(subscriptionDefinitionRegistry.getSubscriptions())
+        .thenReturn(List.of(subscriptionDefinition));
+  }
+
+  private void setMock(SubscriptionDefinitionRegistry mock) {
+    try {
+      Field instance = SubscriptionDefinitionRegistry.class.getDeclaredField("instance");
+      instance.setAccessible(true);
+      instance.set(instance, mock);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Test
   void shouldSkipNonPaygProducts() {
-    BillableUsageMapper mapper = new BillableUsageMapper(tagProfile);
+    BillableUsageMapper mapper = new BillableUsageMapper();
     assertTrue(
         mapper
             .fromTallySummary(
@@ -76,7 +97,7 @@ class BillableUsageMapperTest {
 
   @Test
   void shouldSkipAnySla() {
-    BillableUsageMapper mapper = new BillableUsageMapper(tagProfile);
+    BillableUsageMapper mapper = new BillableUsageMapper();
     assertTrue(
         mapper
             .fromTallySummary(
@@ -93,7 +114,7 @@ class BillableUsageMapperTest {
 
   @Test
   void shouldSkipAnyUsage() {
-    BillableUsageMapper mapper = new BillableUsageMapper(tagProfile);
+    BillableUsageMapper mapper = new BillableUsageMapper();
     assertTrue(
         mapper
             .fromTallySummary(
@@ -110,7 +131,7 @@ class BillableUsageMapperTest {
 
   @Test
   void shouldSkipAnyBillingProvider() {
-    BillableUsageMapper mapper = new BillableUsageMapper(tagProfile);
+    BillableUsageMapper mapper = new BillableUsageMapper();
     assertTrue(
         mapper
             .fromTallySummary(
@@ -127,7 +148,7 @@ class BillableUsageMapperTest {
 
   @Test
   void shouldSkipAnyBillingAccountId() {
-    BillableUsageMapper mapper = new BillableUsageMapper(tagProfile);
+    BillableUsageMapper mapper = new BillableUsageMapper();
     assertTrue(
         mapper
             .fromTallySummary(
@@ -144,7 +165,7 @@ class BillableUsageMapperTest {
 
   @Test
   void shouldProduceBillableUsage_WhenAccountNumberPresent() {
-    BillableUsageMapper mapper = new BillableUsageMapper(tagProfile);
+    BillableUsageMapper mapper = new BillableUsageMapper();
     BillableUsage expected =
         new BillableUsage()
             .withAccountNumber("123")
@@ -173,7 +194,7 @@ class BillableUsageMapperTest {
 
   @Test
   void shouldProduceBillableUsage_WhenOrgIdPresent() {
-    BillableUsageMapper mapper = new BillableUsageMapper(tagProfile);
+    BillableUsageMapper mapper = new BillableUsageMapper();
     BillableUsage expected =
         new BillableUsage()
             .withOrgId("org123")
@@ -202,7 +223,7 @@ class BillableUsageMapperTest {
 
   @Test
   void shouldSkipNonDailySnapshots() {
-    BillableUsageMapper mapper = new BillableUsageMapper(tagProfile);
+    BillableUsageMapper mapper = new BillableUsageMapper();
     assertTrue(
         mapper
             .fromTallySummary(
@@ -219,7 +240,7 @@ class BillableUsageMapperTest {
 
   @Test
   void shouldSkipSummaryWithNoMeasurements() {
-    BillableUsageMapper mapper = new BillableUsageMapper(tagProfile);
+    BillableUsageMapper mapper = new BillableUsageMapper();
     TallySummary tallySummary =
         createExampleTallySummaryWithAccountNumber(
             "rhosak",
