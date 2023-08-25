@@ -65,7 +65,7 @@ pipeline {
         stage('SonarQube Quality Gate') {
             steps {
                 withSonarQubeEnv('sonarcloud.io') {
-                    echo "SonarQube scan results will be visible at: ${SONAR_HOST_URL}/dashboard?id=rhsm-subscriptions"
+                    echo "SonarQube scan results will be visible at: ${SONAR_HOST_URL}/summary/new_code?id=rhsm-subscriptions${CHANGE_ID ? '&pullRequest=' + CHANGE_ID : ''}"
                 }
                 retry(4) {
                     script {
