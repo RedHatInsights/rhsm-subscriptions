@@ -1163,11 +1163,21 @@ class CapacityResourceTest {
 
   @Test
   void testValidateGranularityIncompatible() {
-
     var thrownException =
         Assertions.assertThrows(
             BadRequestException.class,
-            () -> resource.validateGranularity(RHEL_FOR_ARM, Granularity.HOURLY));
+            () ->
+                resource.getCapacityReportByMetricId(
+                    RHEL_FOR_ARM,
+                    MetricId.CORES,
+                    GranularityType.HOURLY,
+                    min,
+                    max,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null));
 
     assertEquals(
         String.format(
@@ -1178,15 +1188,18 @@ class CapacityResourceTest {
 
   @ParameterizedTest
   @MethodSource("generateFinestGranularityCases")
-  void testValidateGranularity(ProductId productId, Granularity granularity) {
-    assertDoesNotThrow(() -> resource.validateGranularity(productId, granularity));
+  void testValidateGranularity(ProductId productId, GranularityType granularity) {
+    assertDoesNotThrow(
+        () ->
+            resource.getCapacityReportByMetricId(
+                productId, MetricId.CORES, granularity, min, max, null, null, null, null, null));
   }
 
   private static Stream<Arguments> generateFinestGranularityCases() {
     return Stream.of(
-        Arguments.of(BASILISK, Granularity.HOURLY),
-        Arguments.of(RHEL_FOR_ARM, Granularity.YEARLY),
-        Arguments.of(BASILISK, Granularity.YEARLY),
-        Arguments.of(RHEL_FOR_ARM, Granularity.DAILY));
+        Arguments.of(BASILISK, GranularityType.HOURLY),
+        Arguments.of(RHEL_FOR_ARM, GranularityType.YEARLY),
+        Arguments.of(BASILISK, GranularityType.YEARLY),
+        Arguments.of(RHEL_FOR_ARM, GranularityType.DAILY));
   }
 }
