@@ -24,6 +24,8 @@ import java.util.Map;
 import lombok.*;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class PrometheusMetric {
   private String queryKey;
   private Map<String, String> queryParams;

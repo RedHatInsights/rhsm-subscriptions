@@ -17,6 +17,8 @@ defaults:
 
 serviceType: BASILISK Instance
 
+contractEnabled: true
+
 metrics:
   - id: Transfer-gibibytes
     rhmMetricId: redhat.com:BASILISK:transfer_gb

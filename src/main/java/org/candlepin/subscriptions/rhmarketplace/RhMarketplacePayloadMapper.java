@@ -71,7 +71,7 @@ public class RhMarketplacePayloadMapper {
     this.subscriptionsClient = subscriptionsClient;
     // NOTE(khowell) this dependency is temporary, and instantiating here was easier than
     // refactoring profiles.
-    this.billableUsageMapper = new BillableUsageMapper(tagProfile);
+    this.billableUsageMapper = new BillableUsageMapper();
     this.usageContextRetryTemplate = usageContextRetryTemplate;
   }
 

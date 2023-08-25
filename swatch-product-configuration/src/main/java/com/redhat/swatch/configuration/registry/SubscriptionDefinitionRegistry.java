@@ -36,7 +36,7 @@ import org.yaml.snakeyaml.constructor.Constructor;
  * lookup methods for that list.
  */
 @Slf4j
-class SubscriptionDefinitionRegistry {
+public class SubscriptionDefinitionRegistry {
 
   private static SubscriptionDefinitionRegistry instance = null;
 

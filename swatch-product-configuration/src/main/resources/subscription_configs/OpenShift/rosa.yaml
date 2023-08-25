@@ -17,6 +17,8 @@ defaults:
 
 serviceType: rosa Instance
 
+contractEnabled: true
+
 metrics:
   - id: Instance-hours
     awsDimension: control_plane_0
