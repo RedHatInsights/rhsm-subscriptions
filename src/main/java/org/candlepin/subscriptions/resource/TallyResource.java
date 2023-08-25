@@ -496,8 +496,7 @@ public class TallyResource implements TallyApi {
           double newValue = runningTotals.getOrDefault(uom, 0.0) + snapshotTotal;
 
           double snapshotValue = newValue;
-          double capacity =
-              (double) capacityByDate.getOrDefault(clock.startOfDay(snapshot.date()), 0);
+          double capacity = capacityByDate.getOrDefault(clock.startOfDay(snapshot.date()), 0);
           if (BillingCategory.PREPAID.equals(billingCategory)) {
             snapshotValue = Math.min(newValue, capacity);
           } else if (BillingCategory.ON_DEMAND.equals(billingCategory)) {
