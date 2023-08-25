@@ -51,7 +51,7 @@ public class QueryBuilder {
   }
 
   public String build(QueryDescriptor queryDescriptor) {
-    String templateKey = queryDescriptor.getMetric().getQueryKey();
+    String templateKey = queryDescriptor.getMetric().getPrometheus().getQueryKey();
     Optional<String> template = metricProperties.getQueryTemplate(templateKey);
 
     if (template.isEmpty()) {
@@ -63,7 +63,9 @@ public class QueryBuilder {
   }
 
   public String buildAccountLookupQuery(QueryDescriptor queryDescriptor) {
-    String templateKey = queryDescriptor.getMetric().getAccountQueryKey();
+    // SWATCH-1629 At some point templateKey here should read either "default" or "addonSamples"
+    // with a property added in application.yaml
+    String templateKey = DEFAULT_METRIC_QUERY_KEY;
     Optional<String> template = metricProperties.getAccountQueryTemplate(templateKey);
     if (template.isEmpty()) {
       throw new IllegalArgumentException(

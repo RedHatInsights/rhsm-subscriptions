@@ -10,13 +10,13 @@ rhsm-subscriptions:
       metric:
         queryTemplates:
           default: >-
-            #{metric.queryParams[prometheusMetric]}
+            #{metric.prometheus.queryParams[metric]}
             * on(_id) group_right
-            min_over_time(#{metric.queryParams[prometheusMetadataMetric]}{product="#{metric.queryParams[product]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
+            min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{product="#{metric.prometheus.queryParams[product]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
           addonSamples: >-
-            #{metric.queryParams[prometheusMetric]}
+            #{metric.prometheus.queryParams[metric]}
             * on(_id) group_right
-            min_over_time(#{metric.queryParams[prometheusMetadataMetric]}{resource_type="addon",resource_name="#{metric.queryParams[resourceName]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
+            min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{resource_type="addon",resource_name="#{metric.prometheus.queryParams[resourceName]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
         maxAttempts: ${OPENSHIFT_MAX_ATTEMPTS:50}
         backOffMaxInterval: ${OPENSHIFT_BACK_OFF_MAX_INTERVAL:50000}
         backOffInitialInterval: ${OPENSHIFT_BACK_OFF_INITIAL_INTERVAL:1000}

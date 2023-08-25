@@ -20,13 +20,17 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
+import com.redhat.swatch.configuration.registry.Metric;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import io.micrometer.core.annotation.Timed;
+import jakarta.ws.rs.BadRequestException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.config.OptInType;
@@ -40,9 +44,6 @@ import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescr
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
-import org.candlepin.subscriptions.registry.TagMetaData;
-import org.candlepin.subscriptions.registry.TagMetric;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.slf4j.Logger;
@@ -66,7 +67,6 @@ public class PrometheusMeteringController {
   private final RetryTemplate openshiftRetry;
   private final OptInController optInController;
   private final QueryBuilder prometheusQueryBuilder;
-  private final TagProfile tagProfile;
 
   @SuppressWarnings("java:S107")
   public PrometheusMeteringController(
@@ -76,8 +76,7 @@ public class PrometheusMeteringController {
       QueryBuilder queryBuilder,
       EventController eventController,
       @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetry,
-      OptInController optInController,
-      TagProfile tagProfile) {
+      OptInController optInController) {
     this.clock = clock;
     this.metricProperties = metricProperties;
     this.prometheusService = service;
@@ -85,7 +84,6 @@ public class PrometheusMeteringController {
     this.eventController = eventController;
     this.openshiftRetry = openshiftRetry;
     this.optInController = optInController;
-    this.tagProfile = tagProfile;
   }
 
   // Suppressing this sonar issue because we need to log plus throw an exception on retry
@@ -96,16 +94,19 @@ public class PrometheusMeteringController {
   @Transactional
   public void collectMetrics(
       String tag, Uom metric, String orgId, OffsetDateTime start, OffsetDateTime end) {
-    Optional<TagMetric> tagMetric = tagProfile.getTagMetric(tag, metric);
+    var subDefOptional = SubscriptionDefinition.lookupSubscriptionByTag(tag);
+    if (subDefOptional.isEmpty()) {
+      throw new BadRequestException(String.format("Invalid product tag specified: %s", tag));
+    }
+    Optional<Metric> tagMetric = subDefOptional.flatMap(subDef -> subDef.getMetric(metric.value()));
     if (tagMetric.isEmpty()) {
       throw new UnsupportedOperationException(
-          String.format("Unable to find TagMetric for tag %s and metric %s!", tag, metric));
+          String.format("Unable to find tag %s and metric %s!", tag, metric));
     }
 
-    Optional<TagMetaData> tagMetaData = tagProfile.getTagMetaDataByTag(tagMetric.get().getTag());
-    if (tagMetaData.isEmpty()) {
+    if (!Objects.nonNull(subDefOptional.get().getServiceType())) {
       throw new UnsupportedOperationException(
-          String.format("Unable to determine service type for tag %s.", tagMetric.get().getTag()));
+          String.format("Unable to determine service type for tag %s.", tag));
     }
 
     /* Adjust the range for the prometheus range query API. Range query returns a data point at the
@@ -141,8 +142,7 @@ public class PrometheusMeteringController {
                 eventController.mapEventsInTimeRange(
                     orgId,
                     MeteringEventFactory.EVENT_SOURCE,
-                    MeteringEventFactory.getEventType(
-                        tagMetric.get().getMetricId(), tagMetric.get().getTag()),
+                    MeteringEventFactory.getEventType(tagMetric.get().getId(), tag),
                     // We need to shift the start and end dates by the step, to account for the
                     // shift in the event start date when it is created. See note about eventDate
                     // below.
@@ -193,19 +193,19 @@ public class PrometheusMeteringController {
                         existing,
                         account,
                         orgId,
-                        tagMetric.get().getMetricId(),
+                        tagMetric.get().getId(),
                         clusterId,
                         sla,
                         usage,
                         role,
                         eventDate,
                         eventTermDate,
-                        tagMetaData.get().getServiceType(),
+                        subDefOptional.get().getServiceType(),
                         billingProvider,
                         billingAccountId,
-                        tagMetric.get().getUom(),
+                        Uom.fromValue(tagMetric.get().getId()),
                         value,
-                        tagMetric.get().getTag());
+                        tag);
                 events.putIfAbsent(EventKey.fromEvent(event), event);
               }
             }
@@ -259,7 +259,7 @@ public class PrometheusMeteringController {
         new EventKey(
             orgId,
             MeteringEventFactory.EVENT_SOURCE,
-            MeteringEventFactory.getEventType(metric.value(), productTag), // NOSONAR
+            MeteringEventFactory.getEventType(metricId, productTag), // NOSONAR
             instanceId,
             measuredDate);
     Event event = existing.remove(lookupKey);
@@ -293,10 +293,12 @@ public class PrometheusMeteringController {
     }
   }
 
-  private String buildPromQLForMetering(String orgId, TagMetric tagMetric) {
+  private String buildPromQLForMetering(String orgId, Metric tagMetric) {
+
     // Default the query template if the tag profile didn't specify one.
-    if (!StringUtils.hasText(tagMetric.getQueryKey())) {
-      tagMetric.setQueryKey(QueryBuilder.DEFAULT_METRIC_QUERY_KEY);
+    if (Objects.nonNull(tagMetric.getPrometheus())
+        && !StringUtils.hasText(tagMetric.getPrometheus().getQueryKey())) {
+      tagMetric.getPrometheus().setQueryKey(QueryBuilder.DEFAULT_METRIC_QUERY_KEY);
     }
 
     QueryDescriptor descriptor = new QueryDescriptor(tagMetric);

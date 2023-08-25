@@ -50,7 +50,6 @@ import org.candlepin.subscriptions.prometheus.model.ResultType;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.candlepin.subscriptions.registry.BillingWindow;
 import org.candlepin.subscriptions.registry.TagMetric;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -86,8 +85,6 @@ class PrometheusMeteringControllerTest {
   @Autowired private MetricProperties metricProperties;
 
   @Autowired private QueryBuilder queryBuilder;
-
-  @Autowired private TagProfile tagProfile;
 
   @MockBean private OptInController optInController;
 
@@ -125,10 +122,9 @@ class PrometheusMeteringControllerTest {
             queryBuilder,
             eventController,
             openshiftRetry,
-            optInController,
-            tagProfile);
+            optInController);
 
-    queries = new QueryHelper(tagProfile, queryBuilder);
+    queries = new QueryHelper(queryBuilder);
 
     Map<String, String> queryParams = new HashMap<>();
     queryParams.put("product", "ocp");

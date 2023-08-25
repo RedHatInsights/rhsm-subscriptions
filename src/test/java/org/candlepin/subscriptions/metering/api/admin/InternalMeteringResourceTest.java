@@ -26,11 +26,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
 
 import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
-import java.util.Set;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
@@ -40,7 +38,6 @@ import org.candlepin.subscriptions.metering.retention.EventRecordsRetentionPrope
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.hamcrest.Matchers;
@@ -55,7 +52,6 @@ class InternalMeteringResourceTest {
 
   private static final String VALID_PRODUCT = "rhosak";
 
-  @Mock private TagProfile tagProfile;
   @Mock private PrometheusMetricsTaskManager tasks;
   @Mock private PrometheusMeteringController controller;
   @Mock private AccountConfigRepository accountConfigRepository;
@@ -73,10 +69,6 @@ class InternalMeteringResourceTest {
     appProps = new ApplicationProperties();
     clock = new TestClockConfiguration().adjustableClock();
     util = new ResourceUtil(clock);
-    lenient().when(tagProfile.tagIsPrometheusEnabled(VALID_PRODUCT)).thenReturn(true);
-    lenient()
-        .when(tagProfile.getSupportedMetricsForProduct(VALID_PRODUCT))
-        .thenReturn(Set.of(Uom.INSTANCE_HOURS));
     lenient().when(accountConfigRepository.findOrgByAccountNumber("account1")).thenReturn("org1");
 
     metricProps = new MetricProperties();
@@ -87,7 +79,6 @@ class InternalMeteringResourceTest {
             util,
             appProps,
             eventRecordsRetentionProperties,
-            tagProfile,
             tasks,
             controller,
             eventRecordRepository,
@@ -97,7 +88,6 @@ class InternalMeteringResourceTest {
   @Test
   void ensureBadRequestIfProductTagIsInvalid() {
     String productId = "test-product";
-    when(tagProfile.tagIsPrometheusEnabled(productId)).thenReturn(false);
 
     OffsetDateTime end = clock.startOfCurrentHour();
     assertThrows(
