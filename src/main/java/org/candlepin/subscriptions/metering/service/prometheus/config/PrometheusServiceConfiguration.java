@@ -29,7 +29,6 @@ import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.prometheus.api.ApiProvider;
 import org.candlepin.subscriptions.prometheus.api.ApiProviderFactory;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.security.OptInController;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -52,7 +51,7 @@ public class PrometheusServiceConfiguration {
   }
 
   @Bean
-  public MetricProperties metricProperties(TagProfile tagProfile) {
+  public MetricProperties metricProperties() {
     return new MetricProperties();
   }
 

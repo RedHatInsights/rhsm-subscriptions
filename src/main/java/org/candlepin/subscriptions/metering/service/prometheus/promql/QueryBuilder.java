@@ -63,8 +63,8 @@ public class QueryBuilder {
   }
 
   public String buildAccountLookupQuery(QueryDescriptor queryDescriptor) {
-    // At some point templateKey here should read either "default" or "addonSamples" with a property
-    // added in application.yaml
+    // SWATCH-1629 At some point templateKey here should read either "default" or "addonSamples"
+    // with a property added in application.yaml
     String templateKey = DEFAULT_METRIC_QUERY_KEY;
     Optional<String> template = metricProperties.getAccountQueryTemplate(templateKey);
     if (template.isEmpty()) {
