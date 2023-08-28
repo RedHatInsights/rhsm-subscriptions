@@ -39,7 +39,8 @@ class TallyTaskFactoryTest {
 
   @Test
   void ensureFactoryBuildsUpdateAccountSnapshotTask() {
-    TaskDescriptor task = TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "accounts").build();
+    TaskDescriptor task =
+        TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "accounts", null).build();
     assertThrows(
         IllegalArgumentException.class,
         () -> {
@@ -49,7 +50,7 @@ class TallyTaskFactoryTest {
 
   @Test
   void ensureIllegalArgumentExceptionWhenTaskTypeIsNull() {
-    TaskDescriptor task = TaskDescriptor.builder(null, "my-group").build();
+    TaskDescriptor task = TaskDescriptor.builder(null, "my-group", null).build();
     assertThrows(
         IllegalArgumentException.class,
         () -> {

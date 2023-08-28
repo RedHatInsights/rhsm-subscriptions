@@ -181,7 +181,7 @@ class CaptureSnapshotsTaskManagerTest {
           verify(queue, times(1))
               .enqueue(
                   TaskDescriptor.builder(
-                          TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic())
+                          TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic(), null)
                       .setSingleValuedArg("orgId", orgId)
                       // 2019-05-24T12:35Z truncated to top of the hour - 1 hour tally range
                       .setSingleValuedArg("startDateTime", "2019-05-24T10:00:00Z")
@@ -205,7 +205,7 @@ class CaptureSnapshotsTaskManagerTest {
           verify(queue, times(1))
               .enqueue(
                   TaskDescriptor.builder(
-                          TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic())
+                          TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic(), null)
                       .setSingleValuedArg("orgId", orgId)
                       // 10 days less than the test clock at the top of the hour.
                       .setSingleValuedArg("startDateTime", "2019-05-14T12:00:00Z")
@@ -220,7 +220,7 @@ class CaptureSnapshotsTaskManagerTest {
   }
 
   private TaskDescriptor createDescriptorAccount(List<String> accounts) {
-    return TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic())
+    return TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic(), null)
         .setArg("accounts", accounts)
         .build();
   }
@@ -230,7 +230,7 @@ class CaptureSnapshotsTaskManagerTest {
   }
 
   private TaskDescriptor createDescriptorOrg(List<String> orgs) {
-    return TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic())
+    return TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic(), null)
         .setArg("orgs", orgs)
         .build();
   }

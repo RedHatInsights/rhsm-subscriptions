@@ -45,7 +45,7 @@ class ExecutorTaskQueueTest {
     ExecutorTaskProcessor processor =
         new ExecutorTaskProcessor(Executors.newCachedThreadPool(), taskFactory, queue, "my-group");
     TaskDescriptor expectedTaskDesc =
-        TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "my-group").build();
+        TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "my-group", null).build();
     final AtomicBoolean done = new AtomicBoolean();
     Mockito.when(taskFactory.build(Mockito.any()))
         .thenReturn(
@@ -76,7 +76,7 @@ class ExecutorTaskQueueTest {
             queue,
             "my-group");
     TaskDescriptor expectedTaskDesc =
-        TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "my-group").build();
+        TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "my-group", null).build();
     Mockito.when(taskFactory.build(Mockito.any()))
         .thenReturn(
             () -> {

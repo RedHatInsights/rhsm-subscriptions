@@ -56,7 +56,7 @@ class PrometheusMeteringTaskFactoryTest {
   @Test
   void testUnsupportedTask() {
     TaskDescriptor descriptor =
-        TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "a-group").build();
+        TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "a-group", null).build();
     assertThrows(IllegalArgumentException.class, () -> factory.build(descriptor));
   }
 
@@ -68,7 +68,7 @@ class PrometheusMeteringTaskFactoryTest {
 
     Task task =
         factory.build(
-            TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group")
+            TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group", null)
                 .setSingleValuedArg("orgId", "12234")
                 .setSingleValuedArg("productTag", "OpenShift")
                 .setSingleValuedArg("metric", "Cores")
@@ -85,7 +85,7 @@ class PrometheusMeteringTaskFactoryTest {
   @Test
   void testOpenshiftMetricsTaskMissingOrgId() {
     TaskDescriptor descriptor =
-        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group")
+        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group", null)
             .setSingleValuedArg("start", "2018-03-20T09:12:28Z")
             .setSingleValuedArg("end", "2018-03-20T09:12:28Z")
             .setSingleValuedArg("productTag", "OpenShift")
@@ -99,7 +99,7 @@ class PrometheusMeteringTaskFactoryTest {
   @Test
   void testOpenshiftMetricsTaskInvalidStartDateFormat() {
     TaskDescriptor descriptor =
-        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group")
+        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group", null)
             .setSingleValuedArg("orgId", "1234")
             .setSingleValuedArg("productTag", "OpenShift")
             .setSingleValuedArg("metric", "Cores")
@@ -115,7 +115,7 @@ class PrometheusMeteringTaskFactoryTest {
   @Test
   void testOpenshiftMetricsTaskInvalidEndDateFormat() {
     TaskDescriptor descriptor =
-        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group")
+        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, "a-group", null)
             .setSingleValuedArg("orgId", "1234")
             .setSingleValuedArg("productTag", "OpenShift")
             .setSingleValuedArg("metric", "Cores")
