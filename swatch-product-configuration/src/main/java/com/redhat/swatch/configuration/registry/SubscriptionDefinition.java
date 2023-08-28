@@ -24,9 +24,11 @@ import com.google.common.collect.MoreCollectors;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -159,6 +161,14 @@ public class SubscriptionDefinition {
               log.warn("Granularity requested for missing subscription variant: {}", tag);
               return false;
             });
+  }
+
+  public static Set<String> getAllTags() {
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
+        .map(SubscriptionDefinition::getVariants)
+        .flatMap(Collection::stream)
+        .map(Variant::getTag)
+        .collect(Collectors.toUnmodifiableSet());
   }
 
   /**

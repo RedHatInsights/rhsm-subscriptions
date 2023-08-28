@@ -55,13 +55,11 @@ public class TallySnapshotController {
   private final MaxSeenSnapshotStrategy maxSeenSnapshotStrategy;
   private final CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy;
   private final RetryTemplate retryTemplate;
-  private final Set<String> applicableProducts;
   private final SnapshotSummaryProducer summaryProducer;
 
   @Autowired
   public TallySnapshotController(
       AccountConfigRepository accountRepo,
-      @Qualifier("applicableProducts") Set<String> applicableProducts,
       InventoryAccountUsageCollector usageCollector,
       MaxSeenSnapshotStrategy maxSeenSnapshotStrategy,
       @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
@@ -71,7 +69,6 @@ public class TallySnapshotController {
       SnapshotSummaryProducer summaryProducer) {
 
     this.accountRepo = accountRepo;
-    this.applicableProducts = applicableProducts;
     this.usageCollector = usageCollector;
     this.maxSeenSnapshotStrategy = maxSeenSnapshotStrategy;
     this.retryTemplate = retryTemplate;
@@ -179,7 +176,7 @@ public class TallySnapshotController {
   private AccountUsageCalculation performTally(String orgId) {
     retryTemplate.execute(
         context -> {
-          usageCollector.reconcileSystemDataWithHbi(orgId, this.applicableProducts);
+          usageCollector.reconcileSystemDataWithHbi(orgId, SubscriptionDefinition.getAllTags());
           return null;
         });
     return usageCollector.tally(orgId);

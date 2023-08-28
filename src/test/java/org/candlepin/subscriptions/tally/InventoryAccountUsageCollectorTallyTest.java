@@ -34,7 +34,6 @@ import static org.mockito.Mockito.*;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.EnumMap;
@@ -63,42 +62,20 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.test.context.ActiveProfiles;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
 
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
 class InventoryAccountUsageCollectorTallyTest {
-
-  @TestConfiguration
-  static class InventoryAccountUsageTagProfileConfig {
-    @Bean
-    @Primary
-    public TagProfile testTagProfile(ResourceLoader resourceLoader) throws IOException {
-      Yaml parser = new Yaml(new Constructor(TagProfile.class));
-      TagProfile tagProfile =
-          parser.load(
-              resourceLoader.getResource("classpath:test_tag_profile.yaml").getInputStream());
-      tagProfile.initLookups();
-      return tagProfile;
-    }
-  }
-
-  private static final String TEST_PRODUCT = "RHEL";
-  public static final Integer TEST_PRODUCT_ID = 1;
-  private static final String NON_RHEL = "OTHER PRODUCT";
-  public static final Integer NON_RHEL_PRODUCT_ID = 2000;
+  private static final String TEST_PRODUCT = "RHEL for x86";
+  public static final Integer TEST_PRODUCT_ID = 69;
+  private static final String NON_RHEL = "Satellite Server";
+  public static final Integer NON_RHEL_PRODUCT_ID = 250;
 
   public static final Set<String> RHEL_PRODUCTS = new HashSet<>(List.of(TEST_PRODUCT));
   public static final Set<String> NON_RHEL_PRODUCTS = new HashSet<>(List.of(NON_RHEL));
@@ -276,7 +253,7 @@ class InventoryAccountUsageCollectorTallyTest {
 
     AccountUsageCalculation a1Calc = collector.tally(orgId1);
     assertEquals(1, a1Calc.getProducts().size());
-    checkTotalsCalculation(a1Calc, account1, orgId1, "RHEL", 12, 8, 2);
+    checkTotalsCalculation(a1Calc, account1, orgId1, TEST_PRODUCT, 12, 8, 2);
 
     AccountUsageCalculation a2Calc = collector.tally(orgId2);
     assertEquals(1, a2Calc.getProducts().size());
@@ -315,10 +292,10 @@ class InventoryAccountUsageCollectorTallyTest {
 
     AccountUsageCalculation a1Calc = collector.tally(ORG_ID);
     assertEquals(1, a1Calc.getProducts().size());
-    checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, "RHEL", 16, 16, 2);
-    checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, "RHEL", ServiceLevel._ANY, 16, 16, 2);
-    checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, "RHEL", ServiceLevel.STANDARD, 6, 6, 1);
-    checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, "RHEL", ServiceLevel.PREMIUM, 10, 10, 1);
+    checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 16, 16, 2);
+    checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, TEST_PRODUCT, ServiceLevel._ANY, 16, 16, 2);
+    checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, TEST_PRODUCT, ServiceLevel.STANDARD, 6, 6, 1);
+    checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, TEST_PRODUCT, ServiceLevel.PREMIUM, 10, 10, 1);
   }
 
   @Test
@@ -355,12 +332,12 @@ class InventoryAccountUsageCollectorTallyTest {
 
     AccountUsageCalculation a1Calc = collector.tally(ORG_ID);
     assertEquals(1, a1Calc.getProducts().size());
-    checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, "RHEL", 16, 16, 2);
+    checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 16, 16, 2);
     checkTotalsCalculation(
         a1Calc,
         ACCOUNT,
         ORG_ID,
-        "RHEL",
+        TEST_PRODUCT,
         ServiceLevel.EMPTY,
         Usage._ANY,
         BillingProvider._ANY,
@@ -372,7 +349,7 @@ class InventoryAccountUsageCollectorTallyTest {
         a1Calc,
         ACCOUNT,
         ORG_ID,
-        "RHEL",
+        TEST_PRODUCT,
         ServiceLevel.EMPTY,
         Usage.DEVELOPMENT_TEST,
         BillingProvider._ANY,
@@ -384,7 +361,7 @@ class InventoryAccountUsageCollectorTallyTest {
         a1Calc,
         ACCOUNT,
         ORG_ID,
-        "RHEL",
+        TEST_PRODUCT,
         ServiceLevel.EMPTY,
         Usage.PRODUCTION,
         BillingProvider._ANY,

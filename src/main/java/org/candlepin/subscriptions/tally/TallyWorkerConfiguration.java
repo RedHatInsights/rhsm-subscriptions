@@ -105,8 +105,8 @@ public class TallyWorkerConfiguration {
 
   @Bean
   public FactNormalizer factNormalizer(
-      ApplicationProperties applicationProperties, TagProfile tagProfile, ApplicationClock clock) {
-    return new FactNormalizer(applicationProperties, tagProfile, clock);
+      ApplicationProperties applicationProperties, ApplicationClock clock) {
+    return new FactNormalizer(applicationProperties, clock);
   }
 
   @Bean(name = "collectorRetryTemplate")
