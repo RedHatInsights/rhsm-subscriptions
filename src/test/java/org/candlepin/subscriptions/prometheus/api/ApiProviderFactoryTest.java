@@ -20,9 +20,9 @@
  */
 package org.candlepin.subscriptions.prometheus.api;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.File;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.junit.jupiter.api.Test;
 
@@ -36,6 +36,8 @@ class ApiProviderFactoryTest {
     ApiProviderFactory factory = new ApiProviderFactory(props);
     ApiProvider api = factory.getObject();
     assertTrue(api instanceof StubApiProvider);
+    assertStubFile(api.queryApi().query(null, null, null));
+    assertStubFile(api.queryRangeApi().queryRange(null, null, null, null, null));
   }
 
   @Test
@@ -46,5 +48,10 @@ class ApiProviderFactoryTest {
     ApiProviderFactory factory = new ApiProviderFactory(props);
     ApiProvider api = factory.getObject();
     assertTrue(api instanceof ApiProviderImpl);
+  }
+
+  private void assertStubFile(File file) {
+    assertNotNull(file);
+    assertTrue(file.exists());
   }
 }

@@ -18,18 +18,19 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.prometheus.api;
+package org.candlepin.subscriptions.metering.service.prometheus.model;
 
-import java.io.File;
-import java.time.OffsetDateTime;
-import org.candlepin.subscriptions.prometheus.ApiException;
-import org.candlepin.subscriptions.prometheus.resources.QueryApi;
+import lombok.Builder;
+import lombok.Data;
+import org.candlepin.subscriptions.prometheus.model.ResultType;
+import org.candlepin.subscriptions.prometheus.model.StatusType;
 
-/** A class that stubs out the QueryAPI endpoint calls. */
-public class StubQueryApi extends QueryApi {
-
-  @Override
-  public File query(String query, OffsetDateTime time, Integer timeout) throws ApiException {
-    return PrometheusStubLocator.getStubFile();
-  }
+@Data
+@Builder
+public class QuerySummaryResult {
+  private final StatusType status;
+  private final ResultType resultType;
+  @Builder.Default private final long numOfResults = 0;
+  private final String errorType;
+  private final String error;
 }

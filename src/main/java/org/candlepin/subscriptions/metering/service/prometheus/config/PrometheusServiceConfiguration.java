@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventRecordConverter;
 import org.candlepin.subscriptions.event.EventController;
@@ -56,8 +57,8 @@ public class PrometheusServiceConfiguration {
   }
 
   @Bean
-  public PrometheusService prometheusService(ApiProvider provider) {
-    return new PrometheusService(provider);
+  public PrometheusService prometheusService(ApiProvider provider, ObjectMapper objectMapper) {
+    return new PrometheusService(provider, objectMapper);
   }
 
   @Bean
