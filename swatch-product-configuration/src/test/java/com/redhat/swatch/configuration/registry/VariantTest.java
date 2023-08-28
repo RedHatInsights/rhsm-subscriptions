@@ -58,4 +58,16 @@ class VariantTest {
 
     assertEquals("RHEL for x86", actual.get().getTag());
   }
+
+  @Test
+  void testGranularityCompatibility() {
+    assertTrue(
+        Variant.isGranularityCompatible("RHEL for x86", SubscriptionDefinitionGranularity.DAILY));
+  }
+
+  @Test
+  void testGranularityCompatibilityNotSupported() {
+    assertFalse(
+        Variant.isGranularityCompatible("RHEL for x86", SubscriptionDefinitionGranularity.HOURLY));
+  }
 }

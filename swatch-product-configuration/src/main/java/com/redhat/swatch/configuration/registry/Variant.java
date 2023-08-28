@@ -85,6 +85,15 @@ public class Variant {
         .findFirst();
   }
 
+  public static boolean isGranularityCompatible(
+      String productId, SubscriptionDefinitionGranularity granularity) {
+    return findByTag(productId).stream()
+        .map(Variant::getSubscription)
+        .anyMatch(
+            subscriptionDefinition ->
+                subscriptionDefinition.getSupportedGranularity().contains(granularity));
+  }
+
   public static Optional<Variant> findByProductName(String productName) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .map(SubscriptionDefinition::getVariants)
