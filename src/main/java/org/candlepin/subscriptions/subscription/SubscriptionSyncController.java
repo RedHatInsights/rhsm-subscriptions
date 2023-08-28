@@ -67,7 +67,6 @@ import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.umb.CanonicalMessage;
 import org.candlepin.subscriptions.umb.SubscriptionProductStatus;
 import org.candlepin.subscriptions.umb.UmbSubscription;
-import org.candlepin.subscriptions.user.AccountService;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTags;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,7 +93,6 @@ public class SubscriptionSyncController {
   private SubscriptionServiceProperties properties;
   private Timer enqueueAllTimer;
   private KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate;
-  private final AccountService accountService;
   private String syncSubscriptionsTopic;
   private final ObjectMapper objectMapper;
   private final ProductDenylist productDenylist;
@@ -115,7 +113,6 @@ public class SubscriptionSyncController {
       ProductDenylist productDenylist,
       ObjectMapper objectMapper,
       @Qualifier("syncSubscriptionTasks") TaskQueueProperties props,
-      AccountService accountService,
       EntityManager entityManager) {
     this.subscriptionRepository = subscriptionRepository;
     this.orgRepository = orgRepository;
@@ -130,7 +127,6 @@ public class SubscriptionSyncController {
     this.objectMapper = objectMapper;
     this.syncSubscriptionsTopic = props.getTopic();
     this.syncSubscriptionsByOrgKafkaTemplate = syncSubscriptionsByOrgKafkaTemplate;
-    this.accountService = accountService;
     this.entityManager = entityManager;
   }
 
@@ -615,13 +611,12 @@ public class SubscriptionSyncController {
   }
 
   @Transactional
-  public List<org.candlepin.subscriptions.db.model.Subscription> findSubscriptionsAndSyncIfNeeded(
+  public List<org.candlepin.subscriptions.db.model.Subscription> findSubscriptions(
       String accountNumber,
       Optional<String> orgId,
       Key usageKey,
       OffsetDateTime rangeStart,
-      OffsetDateTime rangeEnd,
-      boolean paygOnly) {
+      OffsetDateTime rangeEnd) {
     Assert.isTrue(Usage._ANY != usageKey.getUsage(), "Usage cannot be _ANY");
     Assert.isTrue(ServiceLevel._ANY != usageKey.getSla(), "Service Level cannot be _ANY");
 
@@ -653,19 +648,6 @@ public class SubscriptionSyncController {
     List<org.candlepin.subscriptions.db.model.Subscription> result =
         subscriptionRepository.findByCriteria(
             subscriptionCriteria, Sort.by(Subscription_.START_DATE).descending());
-
-    if (result.isEmpty()) {
-      /* If we are missing the subscription, call out to the RhMarketplaceSubscriptionCollector
-      to fetch from Marketplace.  Sync all those subscriptions. Query again. */
-      if (orgId.isEmpty()) {
-        orgId = Optional.of(accountService.lookupOrgId(accountNumber));
-      }
-      log.info("Syncing subscriptions for account {} using orgId {}", accountNumber, orgId.get());
-      forceSyncSubscriptionsForOrg(orgId.get(), paygOnly);
-      result =
-          subscriptionRepository.findByCriteria(
-              subscriptionCriteria, Sort.by(Subscription_.START_DATE).descending());
-    }
 
     if (result.isEmpty()) {
       log.error(

@@ -26,7 +26,6 @@ import jakarta.ws.rs.core.Response.Status;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -76,8 +75,8 @@ public class UsageContextSubscriptionProvider {
     // Set start date one hour in past to pickup recently terminated subscriptions
     var start = subscriptionDate.minusHours(1);
     List<Subscription> subscriptions =
-        subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
-            accountNumber, Optional.ofNullable(orgId), usageKey, start, subscriptionDate, true);
+        subscriptionSyncController.findSubscriptions(
+            accountNumber, Optional.ofNullable(orgId), usageKey, start, subscriptionDate);
 
     var existsRecentlyTerminatedSubscription =
         subscriptions.stream()
@@ -90,7 +89,7 @@ public class UsageContextSubscriptionProvider {
                 subscription ->
                     subscription.getEndDate().isAfter(subscriptionDate)
                         || subscription.getEndDate().equals(subscriptionDate))
-            .collect(Collectors.toList());
+            .toList();
 
     if (subscriptions.isEmpty()) {
       missingSubscriptionCounter.increment();
