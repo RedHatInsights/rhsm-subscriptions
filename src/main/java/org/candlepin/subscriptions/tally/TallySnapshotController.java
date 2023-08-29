@@ -125,7 +125,7 @@ public class TallySnapshotController {
                 context ->
                     metricUsageCollector.collect(serviceType, accountNumber, orgId, snapshotRange));
         if (result == null) {
-          return;
+          continue;
         }
 
         var applicableUsageCalculations =
