@@ -105,13 +105,15 @@ public class SubscriptionDefinition {
   }
 
   public Optional<Metric> getMetric(String metricId) {
-    return this.getMetrics().stream().filter(x -> Objects.equals(x.getId(), metricId)).findFirst();
+    return this.getMetrics().stream()
+        .filter(x -> Objects.equals(x.getId(), metricId))
+        .collect(MoreCollectors.toOptional());
   }
 
   public static Optional<SubscriptionDefinition> findById(String id) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .filter(subscription -> Objects.equals(subscription.getId(), id))
-        .findFirst();
+        .collect(MoreCollectors.toOptional());
   }
 
   /**
