@@ -117,11 +117,26 @@ public class PrometheusMetricsTaskManager {
   @Transactional
   public void updateMetricsForAllAccounts(
       String productTag, int rangeInMinutes, RetryTemplate retry) {
+    OffsetDateTime timeOfRunning = clock.now();
+
     OffsetDateTime end =
-        clock.startOfHour(clock.now().minus(appProps.getPrometheusLatencyDuration()));
+        clock.startOfHour(timeOfRunning.minus(appProps.getPrometheusLatencyDuration()));
+
     OffsetDateTime start = end.minusMinutes(rangeInMinutes);
     log.debug("range [{}, {})", start, end);
     updateMetricsForAllAccounts(productTag, start, end, retry);
+  }
+
+  @Transactional
+  public void updateMetricsForAllAccounts(
+      String productTag, OffsetDateTime timeOfJob, int rangeInMinutes) {
+
+    OffsetDateTime end =
+        clock.startOfHour(timeOfJob.minus(appProps.getPrometheusLatencyDuration()));
+
+    OffsetDateTime start = end.minusMinutes(rangeInMinutes);
+    log.debug("range [{}, {})", start, end);
+    updateMetricsForAllAccounts(productTag, start, end, null);
   }
 
   private void updateMetricsForAllAccounts(
@@ -133,13 +148,19 @@ public class PrometheusMetricsTaskManager {
             subDef
                 .getMetricIds() // No null check required here since metrics will always be present
                 .forEach(
-                    metric ->
+                    metric -> {
+                      if (retry != null) {
                         retry.execute(
                             context -> {
                               queueMetricUpdateForAllAccounts(
                                   productTag, Uom.fromValue(metric), start, end);
                               return null;
-                            })));
+                            });
+                      } else {
+                        queueMetricUpdateForAllAccounts(
+                            productTag, Uom.fromValue(metric), start, end);
+                      }
+                    }));
   }
 
   private void queueMetricUpdateForAllAccounts(

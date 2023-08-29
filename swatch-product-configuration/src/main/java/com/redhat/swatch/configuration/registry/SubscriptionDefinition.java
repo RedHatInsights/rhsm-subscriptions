@@ -227,4 +227,8 @@ public class SubscriptionDefinition {
         .map(com.redhat.swatch.configuration.registry.Metric::getRhmMetricId)
         .orElse(null);
   }
+
+  public static List<SubscriptionDefinition> getSubscriptionDefinitions() {
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions();
+  }
 }
