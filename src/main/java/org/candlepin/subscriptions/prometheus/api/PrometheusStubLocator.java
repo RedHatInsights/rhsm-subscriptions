@@ -21,15 +21,24 @@
 package org.candlepin.subscriptions.prometheus.api;
 
 import java.io.File;
-import java.time.OffsetDateTime;
-import org.candlepin.subscriptions.prometheus.ApiException;
-import org.candlepin.subscriptions.prometheus.resources.QueryApi;
+import java.net.URISyntaxException;
+import java.net.URL;
+import org.webjars.NotFoundException;
 
-/** A class that stubs out the QueryAPI endpoint calls. */
-public class StubQueryApi extends QueryApi {
+/** Utility class to locate the prometheus json file used for stubs. */
+public final class PrometheusStubLocator {
 
-  @Override
-  public File query(String query, OffsetDateTime time, Integer timeout) throws ApiException {
-    return PrometheusStubLocator.getStubFile();
+  public static final URL STUB =
+      PrometheusStubLocator.class.getResource("/prometheus-stub-data/success.json");
+
+  private PrometheusStubLocator() {}
+
+  public static File getStubFile() {
+    try {
+      return new File(STUB.toURI());
+    } catch (URISyntaxException e) {
+      throw new NotFoundException(
+          "The '/prometheus-stub-data/success.json' file could not be loaded");
+    }
   }
 }

@@ -22,7 +22,9 @@ package org.candlepin.subscriptions.metering.service.prometheus;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
+import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 import static org.junit.jupiter.api.Assertions.fail;
+import static wiremock.com.google.common.net.HttpHeaders.CONTENT_TYPE;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -154,6 +156,12 @@ public class PrometheusQueryWiremockExtension
                 .willSetStateTo(nextState));
         currentState = nextState;
       }
+    }
+
+    public void stubQueryRangeWithFile(String file) {
+      extension.prometheusServer.stubFor(
+          get(urlPathEqualTo(QUERY_RANGE_PATH))
+              .willReturn(ok().withHeader(CONTENT_TYPE, APPLICATION_JSON).withBodyFile(file)));
     }
 
     public void verifyQueryRangeWasCalled(int times) {

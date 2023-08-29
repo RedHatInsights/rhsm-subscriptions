@@ -39,10 +39,9 @@ import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
 import org.candlepin.subscriptions.metering.MeteringException;
+import org.candlepin.subscriptions.metering.service.prometheus.model.QuerySummaryResult;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescriptor;
-import org.candlepin.subscriptions.prometheus.model.QueryResult;
-import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -124,20 +123,8 @@ public class PrometheusMeteringController {
           try {
 
             log.info("Collecting metrics for orgId={}: {} {}", orgId, tag, metric);
-            QueryResult metricData =
-                prometheusService.runRangeQuery(
-                    buildPromQLForMetering(orgId, tagMetric.get()),
-                    startDate,
-                    end,
-                    metricProperties.getStep(),
-                    metricProperties.getQueryTimeout());
 
-            if (StatusType.ERROR.equals(metricData.getStatus())) {
-              throw new MeteringException(
-                  String.format(
-                      "Unable to fetch %s %s metrics: %s", tag, metric, metricData.getError()));
-            }
-
+            Map<EventKey, Event> events = new HashMap<>();
             Map<EventKey, Event> existing =
                 eventController.mapEventsInTimeRange(
                     orgId,
@@ -155,59 +142,72 @@ public class PrometheusMeteringController {
                 end);
             log.debug("Found {} existing events.", existing.size());
 
-            Map<EventKey, Event> events = new HashMap<>();
-            for (QueryResultDataResultInner r : metricData.getData().getResult()) {
-              Map<String, String> labels = r.getMetric();
-              String clusterId = labels.get("_id");
-              String sla = labels.get("support");
-              String usage = labels.get("usage");
+            QuerySummaryResult metricData =
+                prometheusService.runRangeQuery(
+                    buildPromQLForMetering(orgId, tagMetric.get()),
+                    startDate,
+                    end,
+                    metricProperties.getStep(),
+                    metricProperties.getQueryTimeout(),
+                    item -> {
+                      Map<String, String> labels = item.getMetric();
+                      String clusterId = labels.get("_id");
+                      String sla = labels.get("support");
+                      String usage = labels.get("usage");
 
-              // These were added as an edge case with RHODS as it doesn't have product as a label
-              // in prometheus
-              String product = labels.get("product");
-              String resourceName = labels.get("resource_name");
+                      // These were added as an edge case with RHODS as it doesn't have product as a
+                      // label in prometheus
+                      String product = labels.get("product");
+                      String resourceName = labels.get("resource_name");
 
-              // NOTE: Role comes from the product label despite its name. The values set here
-              //       are NOT engineering or swatch product IDs. They map to the roles in the
-              //       tag profile. For openshift, the values will be 'ocp' or 'osd'.
-              String role = product == null ? resourceName : product;
-              String billingProvider = labels.get("billing_marketplace");
-              String billingAccountId = labels.get("billing_marketplace_account");
-              String account = labels.get("ebs_account");
+                      // NOTE: Role comes from the product label despite its name. The values set
+                      // here are NOT engineering or swatch product IDs. They map to the roles in
+                      // the tag profile. For openshift, the values will be 'ocp' or 'osd'.
+                      String role = product == null ? resourceName : product;
+                      String billingProvider = labels.get("billing_marketplace");
+                      String billingAccountId = labels.get("billing_marketplace_account");
+                      String account = labels.get("ebs_account");
 
-              // For the openshift metrics, we expect our results to be a 'matrix'
-              // vector [(instant_time,value), ...] so we only look at the result's getValues()
-              // data.
-              for (List<BigDecimal> measurement : r.getValues()) {
-                BigDecimal time = measurement.get(0);
-                BigDecimal value = measurement.get(1);
+                      // For the openshift metrics, we expect our results to be a 'matrix'
+                      // vector [(instant_time,value), ...] so we only look at the result's
+                      // getValues() data.
+                      for (List<BigDecimal> measurement : item.getValues()) {
+                        BigDecimal time = measurement.get(0);
+                        BigDecimal value = measurement.get(1);
 
-                OffsetDateTime eventTermDate = clock.dateFromUnix(time);
-                // Need to subtract the step because we are averaging and the metric value
-                // actually represents the end of the measured period. The start of the event
-                // should be at the beginning.
-                OffsetDateTime eventDate = eventTermDate.minusSeconds(metricProperties.getStep());
+                        OffsetDateTime eventTermDate = clock.dateFromUnix(time);
+                        // Need to subtract the step because we are averaging and the metric value
+                        // actually represents the end of the measured period. The start of the
+                        // event should be at the beginning.
+                        OffsetDateTime eventDate =
+                            eventTermDate.minusSeconds(metricProperties.getStep());
 
-                Event event =
-                    createOrUpdateEvent(
-                        existing,
-                        account,
-                        orgId,
-                        tagMetric.get().getId(),
-                        clusterId,
-                        sla,
-                        usage,
-                        role,
-                        eventDate,
-                        eventTermDate,
-                        subDefOptional.get().getServiceType(),
-                        billingProvider,
-                        billingAccountId,
-                        Uom.fromValue(tagMetric.get().getId()),
-                        value,
-                        tag);
-                events.putIfAbsent(EventKey.fromEvent(event), event);
-              }
+                        Event event =
+                            createOrUpdateEvent(
+                                existing,
+                                account,
+                                orgId,
+                                tagMetric.get().getId(),
+                                clusterId,
+                                sla,
+                                usage,
+                                role,
+                                eventDate,
+                                eventTermDate,
+                                subDefOptional.get().getServiceType(),
+                                billingProvider,
+                                billingAccountId,
+                                Uom.fromValue(tagMetric.get().getId()),
+                                value,
+                                tag);
+                        events.putIfAbsent(EventKey.fromEvent(event), event);
+                      }
+                    });
+
+            if (StatusType.ERROR.equals(metricData.getStatus())) {
+              throw new MeteringException(
+                  String.format(
+                      "Unable to fetch %s %s metrics: %s", tag, metric, metricData.getError()));
             }
 
             eventController.saveAll(events.values());

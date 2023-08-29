@@ -23,14 +23,13 @@ package org.candlepin.subscriptions.metering.service.prometheus;
 import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.time.OffsetDateTime;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescriptor;
-import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.springframework.util.StringUtils;
 
 /** Provides account lists from Prometheus metrics. */
@@ -51,17 +50,21 @@ public class PrometheusAccountSource {
   public Set<String> getMarketplaceAccounts(
       String productTag, Uom metric, OffsetDateTime start, OffsetDateTime end) {
     log.debug("Querying for active accounts for range [{}, {})", start, end);
-    QueryResult result =
-        service.runRangeQuery(
-            buildQuery(productTag, metric),
-            start.plusHours(1),
-            end,
-            metricProperties.getStep(),
-            metricProperties.getQueryTimeout());
-    return result.getData().getResult().stream()
-        .map(r -> r.getMetric().getOrDefault("external_organization", ""))
-        .filter(StringUtils::hasText)
-        .collect(Collectors.toSet());
+    Set<String> accounts = new HashSet<>();
+    service.runRangeQuery(
+        buildQuery(productTag, metric),
+        start.plusHours(1),
+        end,
+        metricProperties.getStep(),
+        metricProperties.getQueryTimeout(),
+        item -> {
+          String organization = item.getMetric().get("external_organization");
+          if (StringUtils.hasText(organization)) {
+            accounts.add(organization);
+          }
+        });
+
+    return accounts;
   }
 
   private String buildQuery(String productTag, Uom metric) {

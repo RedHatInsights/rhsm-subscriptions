@@ -39,7 +39,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QueryResult'
+                type: string
+                format: file
 
   /query_range:
     description: " Evaluates an expression query over a range of time"
@@ -83,7 +84,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QueryResult'
+                type: string
+                format: file
 components:
   schemas:
     ResultType:
@@ -126,6 +128,12 @@ components:
                       type: array
                       items:
                         type: number
+                # To force OpenAPI to generate default collections if not provided
+                # This marks the following fields as `@Notnull` and avoid null pointers.
+                required:
+                  - metric
+                  - value
+                  - values
         errorType:
           type: string
         error:
