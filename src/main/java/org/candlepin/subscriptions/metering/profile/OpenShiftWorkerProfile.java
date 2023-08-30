@@ -27,7 +27,6 @@ import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService
 import org.candlepin.subscriptions.metering.service.prometheus.config.PrometheusServiceConfiguration;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.task.MeteringTasksConfiguration;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
@@ -96,8 +95,7 @@ public class OpenShiftWorkerProfile {
       QueryBuilder queryBuilder,
       EventController eventController,
       @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetryTemplate,
-      OptInController optInController,
-      TagProfile tagProfile) {
+      OptInController optInController) {
     return new PrometheusMeteringController(
         clock,
         mProps,
@@ -105,7 +103,6 @@ public class OpenShiftWorkerProfile {
         queryBuilder,
         eventController,
         openshiftRetryTemplate,
-        optInController,
-        tagProfile);
+        optInController);
   }
 }

@@ -18,34 +18,19 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.metering.service.prometheus.promql;
+package org.candlepin.subscriptions.metering.service.prometheus.model;
 
-import com.redhat.swatch.configuration.registry.Metric;
-import java.util.HashMap;
-import java.util.Map;
-import lombok.Getter;
+import lombok.Builder;
+import lombok.Data;
+import org.candlepin.subscriptions.prometheus.model.ResultType;
+import org.candlepin.subscriptions.prometheus.model.StatusType;
 
-/**
- * Describes the variables to be applied to a query template. Within a template, these variables can
- * be utilized as follows:
- *
- * <p>#{metric.metricId} #{runtime[yourCustomProperty]}
- */
-@Getter
-public class QueryDescriptor {
-
-  /** Any variables that should be provided by the tag configuration. */
-  private Metric metric;
-
-  /** Any variable that are specified at runtime. */
-  private Map<String, String> runtime;
-
-  public QueryDescriptor(Metric metric) {
-    this.metric = metric;
-    this.runtime = new HashMap<>();
-  }
-
-  public void addRuntimeVar(String name, String value) {
-    this.runtime.put(name, value);
-  }
+@Data
+@Builder
+public class QuerySummaryResult {
+  private final StatusType status;
+  private final ResultType resultType;
+  @Builder.Default private final long numOfResults = 0;
+  private final String errorType;
+  private final String error;
 }

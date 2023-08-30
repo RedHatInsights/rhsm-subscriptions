@@ -22,16 +22,19 @@ package org.candlepin.subscriptions.metering.service.prometheus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
+import com.redhat.swatch.configuration.registry.Metric;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.time.OffsetDateTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
+import org.candlepin.subscriptions.metering.service.prometheus.model.QuerySummaryResult;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescriptor;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
@@ -39,8 +42,6 @@ import org.candlepin.subscriptions.prometheus.model.QueryResultData;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.ResultType;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
-import org.candlepin.subscriptions.registry.TagMetric;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,17 +51,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class PrometheusAccountSourceTest {
 
-  final String TEST_ACCT_QUERY_KEY = "TEST_QUERY";
-  final String TEST_ACCOUNT_QUERY = "ACCOUNT QUERY";
-  final String TEST_PROD_TAG = "OpenShift-metrics";
+  final String TEST_ACCT_QUERY_KEY = "default";
+  final String TEST_ACCOUNT_QUERY = "default";
+  final String TEST_PROD_TAG = "OpenShift-dedicated-metrics";
 
   @Mock PrometheusService service;
-  @Mock TagProfile tagProfile;
 
   PrometheusAccountSource accountSource;
   MetricProperties metricProperties;
   QueryBuilder queryBuilder;
-  TagMetric tag;
+  Metric tag;
 
   @BeforeEach
   void setupTest() {
@@ -69,39 +69,29 @@ class PrometheusAccountSourceTest {
     metricProperties.setAccountQueryTemplates(Map.of(TEST_ACCT_QUERY_KEY, TEST_ACCOUNT_QUERY));
 
     queryBuilder = new QueryBuilder(metricProperties);
-    accountSource =
-        new PrometheusAccountSource(service, metricProperties, queryBuilder, tagProfile);
+    accountSource = new PrometheusAccountSource(service, metricProperties, queryBuilder);
 
-    tag =
-        TagMetric.builder()
-            .tag(TEST_PROD_TAG)
-            .uom(Uom.CORES)
-            .accountQueryKey(TEST_ACCT_QUERY_KEY)
-            .build();
-
-    when(tagProfile.getTagMetric(TEST_PROD_TAG, Uom.CORES)).thenReturn(Optional.of(tag));
+    var subDefOptional = SubscriptionDefinition.lookupSubscriptionByTag(TEST_PROD_TAG);
+    subDefOptional
+        .flatMap(subDef -> subDef.getMetric(Measurement.Uom.CORES.value()))
+        .ifPresent(tag -> this.tag = tag);
   }
 
   @Test
   void buildsPromQLByAccountLookupTemplateKey() {
     OffsetDateTime expectedDate = OffsetDateTime.now();
-    when(service.runRangeQuery(
-            queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag)),
-            expectedDate,
-            expectedDate,
-            3600,
-            metricProperties.getQueryTimeout()))
-        .thenReturn(buildAccountQueryResult(List.of("A1")));
+    mockPrometheusServiceRangeQuery(expectedDate, buildAccountQueryResult(List.of("A1")));
 
     accountSource.getMarketplaceAccounts(
         TEST_PROD_TAG, Uom.CORES, expectedDate.minusHours(1), expectedDate);
     verify(service)
         .runRangeQuery(
-            queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag)),
-            expectedDate,
-            expectedDate,
-            3600,
-            metricProperties.getQueryTimeout());
+            eq(queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag))),
+            eq(expectedDate),
+            eq(expectedDate),
+            eq(3600),
+            eq(metricProperties.getQueryTimeout()),
+            any());
   }
 
   @Test
@@ -115,13 +105,7 @@ class PrometheusAccountSourceTest {
     accountList.add("");
     accountList.add(expectedAccount);
 
-    when(service.runRangeQuery(
-            queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag)),
-            expectedDate,
-            expectedDate,
-            3600,
-            metricProperties.getQueryTimeout()))
-        .thenReturn(buildAccountQueryResult(accountList));
+    mockPrometheusServiceRangeQuery(expectedDate, buildAccountQueryResult(accountList));
 
     Set<String> accounts =
         accountSource.getMarketplaceAccounts(
@@ -134,20 +118,44 @@ class PrometheusAccountSourceTest {
   void getAllAccounts() {
     List<String> expectedAccounts = List.of("A1", "A2");
     OffsetDateTime expectedDate = OffsetDateTime.now();
-
-    when(service.runRangeQuery(
-            queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag)),
-            expectedDate,
-            expectedDate,
-            3600,
-            metricProperties.getQueryTimeout()))
-        .thenReturn(buildAccountQueryResult(expectedAccounts));
-
+    mockPrometheusServiceRangeQuery(expectedDate, buildAccountQueryResult(expectedAccounts));
     Set<String> accounts =
         accountSource.getMarketplaceAccounts(
             TEST_PROD_TAG, Uom.CORES, expectedDate.minusHours(1), expectedDate);
     assertEquals(2, accounts.size());
     assertTrue(accounts.containsAll(expectedAccounts));
+  }
+
+  @SuppressWarnings("unchecked")
+  private void mockPrometheusServiceRangeQuery(OffsetDateTime date, QueryResult queryResult) {
+    doAnswer(
+            answer -> {
+              var prometheusServiceResult = QuerySummaryResult.builder();
+              prometheusServiceResult.status(queryResult.getStatus());
+              prometheusServiceResult.errorType(queryResult.getErrorType());
+              prometheusServiceResult.error(queryResult.getError());
+
+              var itemConsumer = (Consumer<QueryResultDataResultInner>) answer.getArgument(5);
+              if (queryResult.getData() != null) {
+                prometheusServiceResult.resultType(queryResult.getData().getResultType());
+                if (queryResult.getData().getResult() != null) {
+                  prometheusServiceResult.numOfResults(queryResult.getData().getResult().size());
+                  for (var item : queryResult.getData().getResult()) {
+                    itemConsumer.accept(item);
+                  }
+                }
+              }
+
+              return prometheusServiceResult.build();
+            })
+        .when(service)
+        .runRangeQuery(
+            eq(queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag))),
+            eq(date),
+            eq(date),
+            eq(3600),
+            eq(metricProperties.getQueryTimeout()),
+            any());
   }
 
   private QueryResult buildAccountQueryResult(List<String> orgIds) {

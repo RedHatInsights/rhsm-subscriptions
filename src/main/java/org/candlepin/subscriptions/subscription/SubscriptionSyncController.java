@@ -67,7 +67,6 @@ import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.umb.CanonicalMessage;
 import org.candlepin.subscriptions.umb.SubscriptionProductStatus;
 import org.candlepin.subscriptions.umb.UmbSubscription;
-import org.candlepin.subscriptions.user.AccountService;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTags;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,7 +93,6 @@ public class SubscriptionSyncController {
   private SubscriptionServiceProperties properties;
   private Timer enqueueAllTimer;
   private KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate;
-  private final AccountService accountService;
   private String syncSubscriptionsTopic;
   private final ObjectMapper objectMapper;
   private final ProductDenylist productDenylist;
@@ -115,7 +113,6 @@ public class SubscriptionSyncController {
       ProductDenylist productDenylist,
       ObjectMapper objectMapper,
       @Qualifier("syncSubscriptionTasks") TaskQueueProperties props,
-      AccountService accountService,
       EntityManager entityManager) {
     this.subscriptionRepository = subscriptionRepository;
     this.orgRepository = orgRepository;
@@ -130,7 +127,6 @@ public class SubscriptionSyncController {
     this.objectMapper = objectMapper;
     this.syncSubscriptionsTopic = props.getTopic();
     this.syncSubscriptionsByOrgKafkaTemplate = syncSubscriptionsByOrgKafkaTemplate;
-    this.accountService = accountService;
     this.entityManager = entityManager;
   }
 
@@ -172,18 +168,13 @@ public class SubscriptionSyncController {
       return;
     }
 
-    // NOTE: we do not need to check if the offering exists if there is an existing DB record for
-    // the subscription that uses that offering
-    if (subscriptionOptional.isEmpty() && !offeringRepository.existsById(sku)) {
-      log.debug("Sku={} not in Offering repository, syncing offering.", sku);
-      if (!SyncResult.isSynced(offeringSyncController.syncOffering(sku))) {
-        log.debug(
-            "Sku {} unable to be synced, skipping subscription sync for subscriptionId: {} in org: {}",
-            sku,
-            newOrUpdated.getSubscriptionId(),
-            newOrUpdated.getOrgId());
-        return;
-      }
+    if (!ensureOffering(sku, subscriptionOptional)) {
+      log.debug(
+          "Sku {} unable to be synced, skipping subscription sync for subscriptionId: {} in org: {}",
+          sku,
+          newOrUpdated.getSubscriptionId(),
+          newOrUpdated.getOrgId());
+      return;
     }
 
     subscriptionOptional.ifPresentOrElse(
@@ -215,6 +206,16 @@ public class SubscriptionSyncController {
       final org.candlepin.subscriptions.db.model.Subscription existingSubscription =
           subscriptionOptional.get();
       log.debug("Existing subscription in DB={}", existingSubscription);
+      if (Objects.nonNull(existingSubscription.getBillingProvider())
+          && !existingSubscription.getSubscriptionMeasurements().isEmpty()) {
+        // NOTE(khowell): longer term, we should query the partnerEntitlement service for this
+        // subscription on any attempt to sync, but for now we rely on UMB messages from the IT
+        // Partner Entitlement service to update this record outside this process.
+        log.info(
+            "Skipping sync of subscriptionId={} because it has contract-provided capacity",
+            existingSubscription.getSubscriptionId());
+        return;
+      }
       if (existingSubscription.equals(newOrUpdated)) {
         return; // we have nothing to do as the DB and the subs service have the same info
       }
@@ -244,6 +245,18 @@ public class SubscriptionSyncController {
     } else {
       subscriptionRepository.save(newOrUpdated);
     }
+  }
+
+  private boolean ensureOffering(
+      String sku,
+      Optional<org.candlepin.subscriptions.db.model.Subscription> subscriptionOptional) {
+    // NOTE: we do not need to check if the offering exists if there is an existing DB record for
+    // the subscription that uses that offering
+    if (subscriptionOptional.isEmpty() && !offeringRepository.existsById(sku)) {
+      log.debug("Sku={} not in Offering repository, syncing offering.", sku);
+      return SyncResult.isSynced(offeringSyncController.syncOffering(sku));
+    }
+    return true;
   }
 
   private void checkForMissingBillingProvider(
@@ -618,13 +631,12 @@ public class SubscriptionSyncController {
   }
 
   @Transactional
-  public List<org.candlepin.subscriptions.db.model.Subscription> findSubscriptionsAndSyncIfNeeded(
+  public List<org.candlepin.subscriptions.db.model.Subscription> findSubscriptions(
       String accountNumber,
       Optional<String> orgId,
       Key usageKey,
       OffsetDateTime rangeStart,
-      OffsetDateTime rangeEnd,
-      boolean paygOnly) {
+      OffsetDateTime rangeEnd) {
     Assert.isTrue(Usage._ANY != usageKey.getUsage(), "Usage cannot be _ANY");
     Assert.isTrue(ServiceLevel._ANY != usageKey.getSla(), "Service Level cannot be _ANY");
 
@@ -656,19 +668,6 @@ public class SubscriptionSyncController {
     List<org.candlepin.subscriptions.db.model.Subscription> result =
         subscriptionRepository.findByCriteria(
             subscriptionCriteria, Sort.by(Subscription_.START_DATE).descending());
-
-    if (result.isEmpty()) {
-      /* If we are missing the subscription, call out to the RhMarketplaceSubscriptionCollector
-      to fetch from Marketplace.  Sync all those subscriptions. Query again. */
-      if (orgId.isEmpty()) {
-        orgId = Optional.of(accountService.lookupOrgId(accountNumber));
-      }
-      log.info("Syncing subscriptions for account {} using orgId {}", accountNumber, orgId.get());
-      forceSyncSubscriptionsForOrg(orgId.get(), paygOnly);
-      result =
-          subscriptionRepository.findByCriteria(
-              subscriptionCriteria, Sort.by(Subscription_.START_DATE).descending());
-    }
 
     if (result.isEmpty()) {
       log.error(

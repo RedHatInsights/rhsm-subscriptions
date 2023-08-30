@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 
 import io.micrometer.core.instrument.Counter;
@@ -74,8 +73,7 @@ class UsageContextSubscriptionProviderTest {
 
   @Test
   void incrementsMissingCounter_WhenAccounNumberPresent() {
-    when(syncController.findSubscriptionsAndSyncIfNeeded(
-            any(), any(), any(), any(), any(), anyBoolean()))
+    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
     assertThrows(
         NotFoundException.class,
@@ -88,8 +86,7 @@ class UsageContextSubscriptionProviderTest {
 
   @Test
   void incrementsMissingCounter_WhenOrgIdPresent() {
-    when(syncController.findSubscriptionsAndSyncIfNeeded(
-            any(), any(), any(), any(), any(), anyBoolean()))
+    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
     assertThrows(
         NotFoundException.class,
@@ -112,8 +109,7 @@ class UsageContextSubscriptionProviderTest {
     sub2.setBillingProviderId("bar1;bar2;bar3");
     sub2.setEndDate(defaultEndDate);
 
-    when(syncController.findSubscriptionsAndSyncIfNeeded(
-            any(), any(), any(), any(), any(), anyBoolean()))
+    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(List.of(sub1, sub2));
 
     Optional<Subscription> subscription =
@@ -137,8 +133,7 @@ class UsageContextSubscriptionProviderTest {
     sub2.setBillingProviderId("bar1;bar2;bar3");
     sub2.setEndDate(defaultEndDate);
 
-    when(syncController.findSubscriptionsAndSyncIfNeeded(
-            any(), any(), any(), any(), any(), anyBoolean()))
+    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(List.of(sub1, sub2));
 
     Optional<Subscription> subscription =
@@ -157,8 +152,7 @@ class UsageContextSubscriptionProviderTest {
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
     sub1.setEndDate(endDate);
-    when(syncController.findSubscriptionsAndSyncIfNeeded(
-            any(), any(), any(), any(), any(), anyBoolean()))
+    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(List.of(sub1));
 
     var lookupDate = endDate.plusMinutes(30);
@@ -181,8 +175,7 @@ class UsageContextSubscriptionProviderTest {
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
     sub1.setEndDate(endDate);
-    when(syncController.findSubscriptionsAndSyncIfNeeded(
-            any(), any(), any(), any(), any(), anyBoolean()))
+    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(List.of(sub1));
 
     var lookupDate = endDate.plusMinutes(30);
@@ -211,8 +204,7 @@ class UsageContextSubscriptionProviderTest {
     sub2.setBillingProviderId("bar1;bar2;bar3");
     sub2.setEndDate(endDate.plusMinutes(45));
 
-    when(syncController.findSubscriptionsAndSyncIfNeeded(
-            any(), any(), any(), any(), any(), anyBoolean()))
+    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(List.of(sub1, sub2));
     var lookupDate = endDate.plusMinutes(30);
 
@@ -233,8 +225,7 @@ class UsageContextSubscriptionProviderTest {
     sub2.setBillingProviderId("bar1;bar2;bar3");
     sub2.setEndDate(endDate.plusMinutes(45));
 
-    when(syncController.findSubscriptionsAndSyncIfNeeded(
-            any(), any(), any(), any(), any(), anyBoolean()))
+    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(List.of(sub1, sub2));
 
     var lookupDate = endDate.plusMinutes(30);

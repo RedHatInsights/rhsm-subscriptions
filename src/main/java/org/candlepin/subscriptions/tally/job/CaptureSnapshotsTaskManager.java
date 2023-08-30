@@ -84,7 +84,7 @@ public class CaptureSnapshotsTaskManager {
   @SuppressWarnings("indentation")
   public void updateOrgSnapshots(String orgId) {
     queue.enqueue(
-        TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic())
+        TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic(), orgId)
             .setSingleValuedArg("orgs", orgId)
             .build());
   }
@@ -103,7 +103,8 @@ public class CaptureSnapshotsTaskManager {
       orgStream.forEach(
           org -> {
             queue.enqueue(
-                TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic())
+                TaskDescriptor.builder(
+                        TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic(), org)
                     .setSingleValuedArg("orgs", org)
                     .build());
             count.addAndGet(1);
@@ -134,7 +135,8 @@ public class CaptureSnapshotsTaskManager {
         tallyRange.getEndString());
 
     queue.enqueue(
-        TaskDescriptor.builder(TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic())
+        TaskDescriptor.builder(
+                TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic(), orgId)
             .setSingleValuedArg("orgId", orgId)
             .setSingleValuedArg("startDateTime", tallyRange.getStartString())
             .setSingleValuedArg("endDateTime", tallyRange.getEndString())

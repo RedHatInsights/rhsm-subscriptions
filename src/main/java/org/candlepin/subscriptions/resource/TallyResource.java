@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import com.redhat.swatch.configuration.registry.SubscriptionDefinitionGranularity;
+import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.contracts.api.resources.CapacityApi;
 import com.redhat.swatch.contracts.client.ApiException;
 import jakarta.validation.constraints.Min;
@@ -44,7 +46,6 @@ import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.tally.filler.ReportFiller;
@@ -73,7 +74,6 @@ public class TallyResource implements TallyApi {
   private final TallySnapshotRepository repository;
   private final PageLinkCreator pageLinkCreator;
   private final ApplicationClock clock;
-  private final TagProfile tagProfile;
   private final CapacityApi capacityApi;
 
   @Context private UriInfo uriInfo;
@@ -83,12 +83,10 @@ public class TallyResource implements TallyApi {
       TallySnapshotRepository repository,
       PageLinkCreator pageLinkCreator,
       ApplicationClock clock,
-      TagProfile tagProfile,
       CapacityApi capacityApi) {
     this.repository = repository;
     this.pageLinkCreator = pageLinkCreator;
     this.clock = clock;
-    this.tagProfile = tagProfile;
     this.capacityApi = capacityApi;
   }
 
@@ -316,16 +314,18 @@ public class TallyResource implements TallyApi {
     BillingProvider providerType = ResourceUtils.sanitizeBillingProvider(billingProviderType);
     String sanitizedBillingAcctId = ResourceUtils.sanitizeBillingAccountId(billingAccountId);
 
-    try {
-      /* Throw an error if we are asked to return reports at a finer grain than what is supported by
-       * product.  Ideally, those reports should not even exist, but we want to inform the user that
-       * their request is a non sequitur. */
-      tagProfile.validateGranularityCompatibility(productId, granularityFromValue);
-    } catch (IllegalStateException e) {
+    /* Throw an error if we are asked to return reports at a finer grain than what is supported by
+     * product.  Ideally, those reports should not even exist, but we want to inform the user that
+     * their request is a non sequitur. */
+    if (!Variant.isGranularityCompatible(
+        productId.toString(), SubscriptionDefinitionGranularity.valueOf(granularityType.name()))) {
       // Combined with our logging configuration, this tells the OnMdcEvaluator class to suppress
       // the stacktrace
       MDC.put("INVALID_GRANULARITY", Boolean.TRUE.toString());
-      throw new BadRequestException(e.getMessage());
+      throw new BadRequestException(
+          String.format(
+              "%s does not support any granularity finer than %s",
+              productId, granularityFromValue.getValue()));
     }
     return ReportCriteria.builder()
         .orgId(ResourceUtils.getOrgId())

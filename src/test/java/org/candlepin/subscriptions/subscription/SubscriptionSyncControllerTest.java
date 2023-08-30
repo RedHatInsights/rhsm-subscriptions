@@ -30,7 +30,6 @@ import static org.mockito.Mockito.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -395,13 +394,13 @@ class SubscriptionSyncControllerTest {
     assertThrows(
         IllegalArgumentException.class,
         () ->
-            subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
-                "1000", orgId, key1, rangeStart, rangeEnd, false));
+            subscriptionSyncController.findSubscriptions(
+                "1000", orgId, key1, rangeStart, rangeEnd));
     assertThrows(
         IllegalArgumentException.class,
         () ->
-            subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
-                "1000", orgId, key2, rangeStart, rangeEnd, false));
+            subscriptionSyncController.findSubscriptions(
+                "1000", orgId, key2, rangeStart, rangeEnd));
   }
 
   @Test
@@ -421,13 +420,11 @@ class SubscriptionSyncControllerTest {
     s.setBillingProviderId("xyz");
     List<Subscription> result = Collections.singletonList(s);
 
-    when(subscriptionRepository.findByCriteria(any(), any()))
-        .thenReturn(new ArrayList<>())
-        .thenReturn(result);
+    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(result);
 
     List<Subscription> actual =
-        subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
-            "1000", Optional.of("org1000"), key, rangeStart, rangeEnd, false);
+        subscriptionSyncController.findSubscriptions(
+            "1000", Optional.of("org1000"), key, rangeStart, rangeEnd);
     assertEquals(1, actual.size());
     assertEquals("xyz", actual.get(0).getBillingProviderId());
   }
@@ -448,13 +445,11 @@ class SubscriptionSyncControllerTest {
     s.setBillingProviderId("xyz");
     List<Subscription> result = Collections.singletonList(s);
 
-    when(subscriptionRepository.findByCriteria(any(), any()))
-        .thenReturn(new ArrayList<>())
-        .thenReturn(result);
+    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(result);
 
     List<Subscription> actual =
-        subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
-            null, Optional.of("org1000"), key, rangeStart, rangeEnd, false);
+        subscriptionSyncController.findSubscriptions(
+            null, Optional.of("org1000"), key, rangeStart, rangeEnd);
     assertEquals(1, actual.size());
     assertEquals("xyz", actual.get(0).getBillingProviderId());
   }
@@ -476,13 +471,11 @@ class SubscriptionSyncControllerTest {
     s.setBillingProviderId("xyz");
     List<Subscription> result = Collections.singletonList(s);
 
-    when(subscriptionRepository.findByCriteria(any(), any()))
-        .thenReturn(new ArrayList<>())
-        .thenReturn(result);
+    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(result);
 
     List<Subscription> actual =
-        subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
-            "account123", Optional.empty(), key, rangeStart, rangeEnd, false);
+        subscriptionSyncController.findSubscriptions(
+            "account123", Optional.empty(), key, rangeStart, rangeEnd);
     assertEquals(1, actual.size());
     assertEquals("xyz", actual.get(0).getBillingProviderId());
   }
@@ -509,34 +502,6 @@ class SubscriptionSyncControllerTest {
     when(offeringRepository.findProductNameBySku("sku")).thenReturn(Optional.of("placeholder"));
     OfferingProductTags productTags2 = subscriptionSyncController.findProductTags("sku");
     assertNull(productTags2.getData());
-  }
-
-  @Test
-  void memoizesSubscriptionId() {
-    UsageCalculation.Key key =
-        new Key(
-            "OpenShift-metrics",
-            ServiceLevel.STANDARD,
-            Usage.PRODUCTION,
-            BillingProvider.RED_HAT,
-            "abc");
-    Subscription s = new Subscription();
-    s.setStartDate(OffsetDateTime.now().minusDays(7));
-    s.setEndDate(OffsetDateTime.now().plusDays(7));
-    s.setBillingProvider(BillingProvider.RED_HAT);
-    s.setBillingProviderId("abc");
-    List<Subscription> result = Collections.singletonList(s);
-
-    when(subscriptionRepository.findByCriteria(any(), any()))
-        .thenReturn(new ArrayList<>())
-        .thenReturn(result);
-
-    List<Subscription> actual =
-        subscriptionSyncController.findSubscriptionsAndSyncIfNeeded(
-            "1000", Optional.of("org1000"), key, rangeStart, rangeEnd, false);
-    assertEquals(1, actual.size());
-    assertEquals("abc", actual.get(0).getBillingProviderId());
-    verify(subscriptionService, times(1)).getSubscriptionsByOrgId("org1000");
   }
 
   @Test

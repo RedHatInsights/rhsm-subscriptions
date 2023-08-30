@@ -21,12 +21,15 @@
 package org.candlepin.subscriptions.metering.service.prometheus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.time.OffsetDateTime;
 import java.util.Map;
+import org.candlepin.subscriptions.metering.service.prometheus.model.QuerySummaryResult;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
-import org.candlepin.subscriptions.registry.TagProfile;
+import org.candlepin.subscriptions.prometheus.model.ResultType;
+import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,15 +47,14 @@ class PrometheusServiceTest {
 
   @Autowired private QueryBuilder queryBuilder;
 
-  @Autowired private TagProfile tagProfile;
-
   @Test
   void testRangeQueryApi(
       PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer) {
-    QueryHelper queries = new QueryHelper(tagProfile, queryBuilder);
+    QueryHelper queries = new QueryHelper(queryBuilder);
 
     String expectedQuery = queries.expectedQuery("OpenShift-metrics", Map.of("orgId", "o1"));
     QueryResult expectedResult = new QueryResult();
+    expectedResult.status(StatusType.SUCCESS);
 
     OffsetDateTime end = OffsetDateTime.now();
     OffsetDateTime start = end.minusDays(2);
@@ -62,23 +64,45 @@ class PrometheusServiceTest {
     prometheusServer.stubQueryRange(
         expectedQuery, start, end, expectedStep, expectedTimeout, expectedResult);
 
-    QueryResult result =
-        service.runRangeQuery(expectedQuery, start, end, expectedStep, expectedTimeout);
-    assertEquals(expectedResult, result);
+    QuerySummaryResult result =
+        service.runRangeQuery(expectedQuery, start, end, expectedStep, expectedTimeout, item -> {});
+    assertEquals(expectedResult.getStatus(), result.getStatus());
+    assertEquals(0, result.getNumOfResults());
   }
 
   @Test
   void testQueryApi(PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer) {
-    QueryHelper queries = new QueryHelper(tagProfile, queryBuilder);
+    QueryHelper queries = new QueryHelper(queryBuilder);
 
     String expectedQuery = queries.expectedQuery("OpenShift-metrics", Map.of("orgId", "o1"));
     int expectedTimeout = 1;
     OffsetDateTime expectedTime = OffsetDateTime.now();
     QueryResult expectedResult = new QueryResult();
+    expectedResult.status(StatusType.ERROR);
+    expectedResult.error(null);
 
     prometheusServer.stubQuery(expectedQuery, expectedTimeout, expectedTime, expectedResult);
 
-    QueryResult result = service.runQuery(expectedQuery, expectedTime, expectedTimeout);
-    assertEquals(expectedResult, result);
+    QuerySummaryResult result =
+        service.runQuery(expectedQuery, expectedTime, expectedTimeout, item -> {});
+    assertEquals(expectedResult.getStatus(), result.getStatus());
+  }
+
+  @Test
+  void testRangeQueryApiWithSmallDataset(
+      PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer) {
+    prometheusServer.stubQueryRangeWithFile("prometheus_small.json");
+
+    QueryHelper queries = new QueryHelper(queryBuilder);
+    String query = queries.expectedQuery("OpenShift-metrics", Map.of("orgId", "o1"));
+
+    OffsetDateTime end = OffsetDateTime.now();
+    OffsetDateTime start = end.minusDays(2);
+
+    QuerySummaryResult result = service.runRangeQuery(query, start, end, 3600, 1, r -> {});
+    assertNotNull(result);
+    assertEquals(StatusType.SUCCESS, result.getStatus());
+    assertEquals(ResultType.VECTOR, result.getResultType());
+    assertEquals(5, result.getNumOfResults());
   }
 }

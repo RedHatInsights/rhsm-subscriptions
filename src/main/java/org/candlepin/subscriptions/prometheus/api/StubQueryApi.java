@@ -20,21 +20,16 @@
  */
 package org.candlepin.subscriptions.prometheus.api;
 
+import java.io.File;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import org.candlepin.subscriptions.prometheus.ApiException;
-import org.candlepin.subscriptions.prometheus.model.QueryResult;
-import org.candlepin.subscriptions.prometheus.model.QueryResultData;
-import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.candlepin.subscriptions.prometheus.resources.QueryApi;
 
 /** A class that stubs out the QueryAPI endpoint calls. */
 public class StubQueryApi extends QueryApi {
 
   @Override
-  public QueryResult query(String query, OffsetDateTime time, Integer timeout) throws ApiException {
-    return new QueryResult()
-        .status(StatusType.SUCCESS)
-        .data(new QueryResultData().result(Arrays.asList()));
+  public File query(String query, OffsetDateTime time, Integer timeout) throws ApiException {
+    return PrometheusStubLocator.getStubFile();
   }
 }

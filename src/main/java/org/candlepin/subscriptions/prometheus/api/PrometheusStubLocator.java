@@ -18,34 +18,27 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.metering.service.prometheus.promql;
+package org.candlepin.subscriptions.prometheus.api;
 
-import com.redhat.swatch.configuration.registry.Metric;
-import java.util.HashMap;
-import java.util.Map;
-import lombok.Getter;
+import java.io.File;
+import java.net.URISyntaxException;
+import java.net.URL;
+import org.webjars.NotFoundException;
 
-/**
- * Describes the variables to be applied to a query template. Within a template, these variables can
- * be utilized as follows:
- *
- * <p>#{metric.metricId} #{runtime[yourCustomProperty]}
- */
-@Getter
-public class QueryDescriptor {
+/** Utility class to locate the prometheus json file used for stubs. */
+public final class PrometheusStubLocator {
 
-  /** Any variables that should be provided by the tag configuration. */
-  private Metric metric;
+  public static final URL STUB =
+      PrometheusStubLocator.class.getResource("/prometheus-stub-data/success.json");
 
-  /** Any variable that are specified at runtime. */
-  private Map<String, String> runtime;
+  private PrometheusStubLocator() {}
 
-  public QueryDescriptor(Metric metric) {
-    this.metric = metric;
-    this.runtime = new HashMap<>();
-  }
-
-  public void addRuntimeVar(String name, String value) {
-    this.runtime.put(name, value);
+  public static File getStubFile() {
+    try {
+      return new File(STUB.toURI());
+    } catch (URISyntaxException e) {
+      throw new NotFoundException(
+          "The '/prometheus-stub-data/success.json' file could not be loaded");
+    }
   }
 }

@@ -110,8 +110,7 @@ class InternalSubscriptionResourceTest {
             offeringSync,
             capacityReconciliationController,
             metricMapper);
-    when(syncController.findSubscriptionsAndSyncIfNeeded(
-            any(), any(), any(), any(), any(), anyBoolean()))
+    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
     assertThrows(
         NotFoundException.class,
@@ -134,8 +133,7 @@ class InternalSubscriptionResourceTest {
             offeringSync,
             capacityReconciliationController,
             metricMapper);
-    when(syncController.findSubscriptionsAndSyncIfNeeded(
-            any(), any(), any(), any(), any(), anyBoolean()))
+    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
     assertThrows(
         NotFoundException.class,
@@ -164,8 +162,7 @@ class InternalSubscriptionResourceTest {
     Subscription sub2 = new Subscription();
     sub2.setBillingProviderId("bar1;bar2;bar3");
     sub2.setEndDate(defaultEndDate);
-    when(syncController.findSubscriptionsAndSyncIfNeeded(
-            any(), any(), any(), any(), any(), anyBoolean()))
+    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(List.of(sub1, sub2));
     AwsUsageContext awsUsageContext =
         resource.getAwsUsageContext(
@@ -195,8 +192,7 @@ class InternalSubscriptionResourceTest {
     Subscription sub2 = new Subscription();
     sub2.setBillingProviderId("bar1;bar2;bar3");
     sub2.setEndDate(defaultEndDate);
-    when(syncController.findSubscriptionsAndSyncIfNeeded(
-            any(), any(), any(), any(), any(), anyBoolean()))
+    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(List.of(sub1, sub2));
     AwsUsageContext awsUsageContext =
         resource.getAwsUsageContext(
@@ -214,8 +210,7 @@ class InternalSubscriptionResourceTest {
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
     sub1.setEndDate(endDate);
-    when(syncController.findSubscriptionsAndSyncIfNeeded(
-            any(), any(), any(), any(), any(), anyBoolean()))
+    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(List.of(sub1));
 
     var lookupDate = endDate.plusMinutes(30);
@@ -238,8 +233,7 @@ class InternalSubscriptionResourceTest {
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
     sub1.setEndDate(endDate);
-    when(syncController.findSubscriptionsAndSyncIfNeeded(
-            any(), any(), any(), any(), any(), anyBoolean()))
+    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(List.of(sub1));
 
     var lookupDate = endDate.plusMinutes(30);
@@ -265,8 +259,7 @@ class InternalSubscriptionResourceTest {
     Subscription sub2 = new Subscription();
     sub2.setBillingProviderId("bar1;bar2;bar3");
     sub2.setEndDate(endDate.plusMinutes(45));
-    when(syncController.findSubscriptionsAndSyncIfNeeded(
-            any(), any(), any(), any(), any(), anyBoolean()))
+    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(List.of(sub1, sub2));
     var lookupDate = endDate.plusMinutes(30);
     AwsUsageContext awsUsageContext =
@@ -286,8 +279,7 @@ class InternalSubscriptionResourceTest {
     Subscription sub2 = new Subscription();
     sub2.setBillingProviderId("bar1;bar2;bar3");
     sub2.setEndDate(endDate.plusMinutes(45));
-    when(syncController.findSubscriptionsAndSyncIfNeeded(
-            any(), any(), any(), any(), any(), anyBoolean()))
+    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(List.of(sub1, sub2));
     var lookupDate = endDate.plusMinutes(30);
     AwsUsageContext awsUsageContext =
@@ -338,8 +330,7 @@ class InternalSubscriptionResourceTest {
             capacityReconciliationController,
             metricMapper);
 
-    when(syncController.findSubscriptionsAndSyncIfNeeded(
-            any(), any(), any(), any(), any(), anyBoolean()))
+    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
 
     OffsetDateTime now = OffsetDateTime.now();
@@ -378,8 +369,7 @@ class InternalSubscriptionResourceTest {
     sub2.setStartDate(OffsetDateTime.now());
     sub2.setEndDate(sub2.getStartDate().plusMonths(1));
 
-    when(syncController.findSubscriptionsAndSyncIfNeeded(
-            any(), any(), any(), any(), any(), anyBoolean()))
+    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(List.of(sub1, sub2));
 
     RhmUsageContext rhmUsageContext =

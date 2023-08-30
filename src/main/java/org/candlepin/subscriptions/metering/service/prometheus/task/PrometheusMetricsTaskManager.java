@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus.task;
 
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.stream.Stream;
@@ -27,7 +28,6 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskDescriptor.TaskDescriptorBuilder;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -54,8 +54,6 @@ public class PrometheusMetricsTaskManager {
 
   private PrometheusAccountSource accountSource;
 
-  private TagProfile tagProfile;
-
   private ApplicationClock clock;
 
   private ApplicationProperties appProps;
@@ -66,7 +64,6 @@ public class PrometheusMetricsTaskManager {
       @Qualifier("meteringTaskQueueProperties") TaskQueueProperties queueProps,
       PrometheusAccountSource accountSource,
       AccountConfigRepository accountConfigRepository,
-      TagProfile tagProfile,
       ApplicationClock clock,
       ApplicationProperties appProps) {
     this.accountConfigRepository = accountConfigRepository;
@@ -74,7 +71,6 @@ public class PrometheusMetricsTaskManager {
     this.queue = queue;
     this.topic = queueProps.getTopic();
     this.accountSource = accountSource;
-    this.tagProfile = tagProfile;
     this.clock = clock;
     this.appProps = appProps;
   }
@@ -91,14 +87,19 @@ public class PrometheusMetricsTaskManager {
 
   public void updateMetricsForOrgId(
       String orgId, String productTag, OffsetDateTime start, OffsetDateTime end) {
-    tagProfile
-        .getSupportedMetricsForProduct(productTag)
-        .forEach(
-            metric -> {
-              log.info("Queuing {} {} metric updates for orgId={}.", productTag, metric, orgId);
-              queueMetricUpdateForOrgId(orgId, productTag, metric, start, end);
-              log.info("Done queuing updates of {} {} metric", productTag, metric);
-            });
+    var subDefOptional = SubscriptionDefinition.lookupSubscriptionByTag(productTag);
+    subDefOptional.ifPresent(
+        subDef ->
+            subDef
+                .getMetricIds() // No null check required here since metrics will always be present
+                .forEach(
+                    metric -> {
+                      log.info(
+                          "Queuing {} {} metric updates for orgId={}.", productTag, metric, orgId);
+                      queueMetricUpdateForOrgId(
+                          orgId, productTag, Uom.fromValue(metric), start, end);
+                      log.info("Done queuing updates of {} {} metric", productTag, metric);
+                    }));
   }
 
   private void queueMetricUpdateForOrgId(
@@ -126,15 +127,19 @@ public class PrometheusMetricsTaskManager {
   private void updateMetricsForAllAccounts(
       String productTag, OffsetDateTime start, OffsetDateTime end, RetryTemplate retry) {
     log.info("Queuing {} metric updates for range: [{}, {})", productTag, start, end);
-    tagProfile
-        .getSupportedMetricsForProduct(productTag)
-        .forEach(
-            metric ->
-                retry.execute(
-                    context -> {
-                      queueMetricUpdateForAllAccounts(productTag, metric, start, end);
-                      return null;
-                    }));
+    var subDefOptional = SubscriptionDefinition.lookupSubscriptionByTag(productTag);
+    subDefOptional.ifPresent(
+        subDef ->
+            subDef
+                .getMetricIds() // No null check required here since metrics will always be present
+                .forEach(
+                    metric ->
+                        retry.execute(
+                            context -> {
+                              queueMetricUpdateForAllAccounts(
+                                  productTag, Uom.fromValue(metric), start, end);
+                              return null;
+                            })));
   }
 
   private void queueMetricUpdateForAllAccounts(
@@ -153,7 +158,7 @@ public class PrometheusMetricsTaskManager {
     log.info(
         "ORGID: {} TAG: {} METRIC: {} START: {} END: {}", orgId, productTag, metric, start, end);
     TaskDescriptorBuilder builder =
-        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, topic)
+        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, topic, orgId)
             .setSingleValuedArg("orgId", orgId)
             .setSingleValuedArg("productTag", productTag)
             .setSingleValuedArg("metric", metric.value())

@@ -25,12 +25,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
-import java.util.Set;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
@@ -47,15 +44,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class PrometheusMetricsTaskManagerTest {
 
   private static final String TASK_TOPIC = "metrics-tasks-topic";
-  private static final String TEST_PROFILE_ID = "OpenShift";
+  private static final String TEST_PROFILE_ID = "OpenShift-dedicated-metrics";
 
   @Mock private TaskQueue queue;
 
   @Mock private TaskQueueProperties queueProperties;
 
   @Mock private PrometheusAccountSource accountSource;
-
-  @Mock private TagProfile tagProfile;
 
   @Mock private AccountConfigRepository accountConfigRepository;
 
@@ -64,7 +59,6 @@ class PrometheusMetricsTaskManagerTest {
   @BeforeEach
   void setupTest() {
     when(queueProperties.getTopic()).thenReturn(TASK_TOPIC);
-    when(tagProfile.getSupportedMetricsForProduct(any())).thenReturn(Set.of(Uom.CORES));
     ApplicationClock clock = new TestClockConfiguration().adjustableClock();
     manager =
         new PrometheusMetricsTaskManager(
@@ -72,7 +66,6 @@ class PrometheusMetricsTaskManagerTest {
             queueProperties,
             accountSource,
             accountConfigRepository,
-            tagProfile,
             clock,
             new ApplicationProperties());
   }
@@ -86,7 +79,7 @@ class PrometheusMetricsTaskManagerTest {
     when(accountConfigRepository.findOrgByAccountNumber(any())).thenReturn("single-account-orgId");
 
     TaskDescriptor expectedTask =
-        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, TASK_TOPIC)
+        TaskDescriptor.builder(TaskType.METRICS_COLLECTION, TASK_TOPIC, null)
             .setSingleValuedArg("orgId", "single-account-orgId")
             .setSingleValuedArg("productTag", TEST_PROFILE_ID)
             .setSingleValuedArg("metric", "Cores")

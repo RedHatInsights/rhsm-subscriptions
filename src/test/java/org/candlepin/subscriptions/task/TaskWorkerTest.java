@@ -43,7 +43,7 @@ class TaskWorkerTest {
   void testExecuteTask() throws Exception {
     TaskWorker worker = new TaskWorker(factory);
     when(factory.build(any(TaskDescriptor.class))).thenReturn(mockTask);
-    worker.executeTask(TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group").build());
+    worker.executeTask(TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group", null).build());
     verify(mockTask).execute();
   }
 
@@ -55,6 +55,7 @@ class TaskWorkerTest {
     assertThrows(
         TaskExecutionException.class,
         () ->
-            worker.executeTask(TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group").build()));
+            worker.executeTask(
+                TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, "group", null).build()));
   }
 }
