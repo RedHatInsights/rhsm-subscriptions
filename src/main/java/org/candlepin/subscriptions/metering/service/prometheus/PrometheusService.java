@@ -182,9 +182,11 @@ public class PrometheusService {
       QuerySummaryResult.QuerySummaryResultBuilder builder,
       Consumer<QueryResultDataResultInner> itemConsumer)
       throws IOException {
+    // consume the [ (START_ARRAY) symbol
+    parser.nextToken();
     int numOfResults = 0;
     while (isNot(parser.nextToken(), JsonToken.END_ARRAY)) {
-      parser.nextToken();
+      // NOTE: parser.readValueAs starts with currentToken as START_OBJECT
       itemConsumer.accept(parser.readValueAs(QueryResultDataResultInner.class));
       numOfResults++;
     }
