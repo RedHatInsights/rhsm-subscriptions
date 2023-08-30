@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.metering.service.prometheus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.time.OffsetDateTime;
 import java.util.Map;
@@ -104,5 +105,32 @@ class PrometheusServiceTest {
     assertEquals(StatusType.SUCCESS, result.getStatus());
     assertEquals(ResultType.VECTOR, result.getResultType());
     assertEquals(5, result.getNumOfResults());
+  }
+
+  @Test
+  void testRangeQueryApiWithEmptyResult(
+      PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer) {
+    prometheusServer.stubQueryRangeWithFile("prometheus_empty_result.json");
+
+    QueryHelper queries = new QueryHelper(queryBuilder);
+    String query = queries.expectedQuery("OpenShift-metrics", Map.of("orgId", "o1"));
+
+    OffsetDateTime end = OffsetDateTime.now();
+    OffsetDateTime start = end.minusDays(2);
+
+    QuerySummaryResult result =
+        service.runRangeQuery(
+            query,
+            start,
+            end,
+            3600,
+            1,
+            r -> {
+              fail("Should have nothing to operate against");
+            });
+    assertNotNull(result);
+    assertEquals(StatusType.SUCCESS, result.getStatus());
+    assertEquals(ResultType.MATRIX, result.getResultType());
+    assertEquals(0, result.getNumOfResults());
   }
 }
