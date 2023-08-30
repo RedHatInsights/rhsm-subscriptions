@@ -26,7 +26,6 @@ import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.config.PrometheusServiceConfiguration;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.metering.task.MeteringTasksConfiguration;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.spring.JobRunner;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -68,10 +67,9 @@ public class MeteringJobProfile {
   @Bean
   MeteringJob meteringJob(
       PrometheusMetricsTaskManager tasks,
-      TagProfile tagProfile,
       MetricProperties metricProperties,
       @Qualifier("meteringJobRetryTemplate") RetryTemplate retryTemplate) {
-    return new MeteringJob(tasks, tagProfile, metricProperties, retryTemplate);
+    return new MeteringJob(tasks, metricProperties, retryTemplate);
   }
 
   @Bean

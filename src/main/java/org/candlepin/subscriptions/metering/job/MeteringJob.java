@@ -20,10 +20,11 @@
  */
 package org.candlepin.subscriptions.metering.job;
 
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
 import org.candlepin.subscriptions.exception.JobFailureException;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 
@@ -31,17 +32,14 @@ import org.springframework.scheduling.annotation.Scheduled;
 public class MeteringJob implements Runnable {
 
   private PrometheusMetricsTaskManager tasks;
-  private final TagProfile tagProfile;
   private MetricProperties metricProperties;
   private RetryTemplate retryTemplate;
 
   public MeteringJob(
       PrometheusMetricsTaskManager tasks,
-      TagProfile tagProfile,
       MetricProperties metricProperties,
       RetryTemplate retryTemplate) {
     this.tasks = tasks;
-    this.tagProfile = tagProfile;
     this.metricProperties = metricProperties;
     this.retryTemplate = retryTemplate;
   }
@@ -50,12 +48,18 @@ public class MeteringJob implements Runnable {
   @Scheduled(cron = "${rhsm-subscriptions.jobs.metering-schedule}")
   public void run() {
     int range = metricProperties.getRangeInMinutes();
-    for (String productTag : tagProfile.getTagsWithPrometheusEnabledLookup()) {
-      try {
-        tasks.updateMetricsForAllAccounts(productTag, range, retryTemplate);
-      } catch (Exception e) {
-        throw new JobFailureException("Unable to run MeteringJob.", e);
-      }
-    }
+
+    SubscriptionDefinition.getSubscriptionDefinitions().stream()
+        .filter(SubscriptionDefinition::isPrometheusEnabled)
+        .flatMap(subDef -> subDef.getVariants().stream())
+        .map(Variant::getTag)
+        .forEach(
+            productTag -> {
+              try {
+                tasks.updateMetricsForAllAccounts(productTag, range, retryTemplate);
+              } catch (Exception e) {
+                throw new JobFailureException("Unable to run MeteringJob.", e);
+              }
+            });
   }
 }
