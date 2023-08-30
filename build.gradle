@@ -56,7 +56,7 @@ dependencies {
 
     implementation "org.liquibase:liquibase-core"
     implementation "org.postgresql:postgresql"
-    implementation "com.google.guava:guava"
+    implementation libraries["guava"]
 
     implementation libraries["mapstruct"]
     annotationProcessor libraries["mapstruct-processor"]
@@ -419,8 +419,8 @@ project(":api") {
         implementation "jakarta.annotation:jakarta.annotation-api"
         implementation "com.fasterxml.jackson.core:jackson-annotations"
         implementation "jakarta.validation:jakarta.validation-api"
-        implementation "jakarta.ws.rs:jakarta.ws.rs-api"
-        implementation "io.swagger:swagger-annotations"
+        implementation libraries["jakarta-ws-rs"]
+        implementation libraries["swagger-annotations"]
         implementation libraries["jsr305"]
         implementation libraries["jackson-databind-nullable"]
     }
