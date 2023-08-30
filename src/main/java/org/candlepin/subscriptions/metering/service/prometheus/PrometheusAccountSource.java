@@ -58,9 +58,11 @@ public class PrometheusAccountSource {
         metricProperties.getStep(),
         metricProperties.getQueryTimeout(),
         item -> {
-          String organization = item.getMetric().get("external_organization");
-          if (StringUtils.hasText(organization)) {
-            accounts.add(organization);
+          if (item != null) {
+            String organization = item.getMetric().get("external_organization");
+            if (StringUtils.hasText(organization)) {
+              accounts.add(organization);
+            }
           }
         });
 
