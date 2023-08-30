@@ -1,0 +1,28 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202308231356-1" author="jcarvaja" dbms="postgresql">
+    <comment>Rename tally_measurements.uom to metric_id and support both.</comment>
+    <renameColumn tableName="tally_measurements" oldColumnName="uom" newColumnName="metric_id"/>
+    <sql>
+      alter table tally_measurements add column uom varchar(255) generated always as (metric_id) stored
+    </sql>
+    <rollback>
+      <sql>
+        alter table tally_measurements drop column uom
+      </sql>
+      <renameColumn tableName="tally_measurements" oldColumnName="metric_id" newColumnName="uom"/>
+    </rollback>
+  </changeSet>
+  <!-- NOTE: below changeset is the hsql alternative (only run for unit tests) -->
+  <changeSet id="202308231356-2" author="jcarvaja" dbms="!postgresql">
+    <comment>Rename tally_measurements.uom to metric_id.</comment>
+    <renameColumn tableName="tally_measurements" oldColumnName="uom" newColumnName="metric_id"/>
+    <rollback>
+      <renameColumn tableName="tally_measurements" oldColumnName="metric_id" newColumnName="uom"/>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>
