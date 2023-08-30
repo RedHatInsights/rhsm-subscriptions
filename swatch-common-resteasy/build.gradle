@@ -3,6 +3,7 @@ plugins {
 }
 
 dependencies {
+    // Intentionally marked as platform rather than enforcedPlatform as this project is a library
     compileOnly platform(libraries["quarkus-bom"])
     compileOnly libraries["jakarta-ws-rs"]
     compileOnly 'org.slf4j:slf4j-api'
