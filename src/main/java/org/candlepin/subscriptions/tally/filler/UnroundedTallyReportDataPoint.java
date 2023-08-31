@@ -18,26 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.tally.billing;
+package org.candlepin.subscriptions.tally.filler;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
-import org.candlepin.subscriptions.http.HttpClientProperties;
+import java.time.OffsetDateTime;
+import org.candlepin.subscriptions.utilization.api.model.TallyReportDataPoint;
 
-@Data
-@ToString(callSuper = true)
-@EqualsAndHashCode(callSuper = true)
-public class ContractsClientProperties extends HttpClientProperties {
-  /** How many attempts before giving up. */
-  private Integer maxAttempts;
-
-  /** Retry backoff interval in milliseconds. */
-  private Integer backOffInitialInterval;
-
-  /** Retry backoff interval in milliseconds. */
-  private Integer backOffMaxInterval;
-
-  /** Retry exponential backoff multiplier. */
-  private Double backOffMultiplier;
+public record UnroundedTallyReportDataPoint(OffsetDateTime date, Double value, Boolean hasData) {
+  public TallyReportDataPoint toRoundedDataPoint() {
+    return new TallyReportDataPoint().hasData(hasData).date(date).value((int) Math.ceil(value));
+  }
 }
