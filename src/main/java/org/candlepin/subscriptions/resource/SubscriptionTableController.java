@@ -22,6 +22,8 @@ package org.candlepin.subscriptions.resource;
 
 import static org.candlepin.subscriptions.resource.ResourceUtils.*;
 
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.Min;
 import java.time.OffsetDateTime;
@@ -46,7 +48,6 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,17 +61,14 @@ public class SubscriptionTableController {
   private final SubscriptionRepository subscriptionRepository;
   private final OfferingRepository offeringRepository;
   private final ApplicationClock clock;
-  private final TagProfile tagProfile;
 
   @Autowired
   SubscriptionTableController(
       SubscriptionRepository subscriptionRepository,
       OfferingRepository offeringRepository,
-      TagProfile tagProfile,
       ApplicationClock clock) {
     this.subscriptionRepository = subscriptionRepository;
     this.offeringRepository = offeringRepository;
-    this.tagProfile = tagProfile;
     this.clock = clock;
   }
 
@@ -206,7 +204,13 @@ public class SubscriptionTableController {
 
     List<SkuCapacity> reportItems = new ArrayList<>(inventories.values());
 
-    boolean isOnDemand = tagProfile.tagIsPrometheusEnabled(productId.toString());
+    boolean isOnDemand =
+        SubscriptionDefinition.lookupSubscriptionByTag(productId.toString())
+            .filter(SubscriptionDefinition::isPrometheusEnabled)
+            .stream()
+            .findFirst()
+            .isPresent();
+
     SubscriptionType subscriptionType =
         isOnDemand ? SubscriptionType.ON_DEMAND : SubscriptionType.ANNUAL;
 
@@ -290,7 +294,13 @@ public class SubscriptionTableController {
       String billingAccountId,
       OffsetDateTime reportStart,
       OffsetDateTime reportEnd) {
-    var productNames = tagProfile.getOfferingProductNamesForTag(productId.toString());
+
+    var productNames =
+        new HashSet<>(
+            Variant.findByTag(productId.toString())
+                .map(Variant::getProductNames)
+                .orElse(new ArrayList<>()));
+
     Map<String, SkuCapacity> inventories = new HashMap<>();
 
     var subscriptions =

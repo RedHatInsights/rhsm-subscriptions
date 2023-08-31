@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.rhmarketplace;
 import com.redhat.swatch.clients.internal.subscriptions.api.client.ApiException;
 import com.redhat.swatch.clients.internal.subscriptions.api.model.RhmUsageContext;
 import com.redhat.swatch.clients.internal.subscriptions.api.resources.InternalSubscriptionsApi;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Collections;
@@ -36,7 +37,6 @@ import org.candlepin.subscriptions.json.BillableUsage.Sla;
 import org.candlepin.subscriptions.json.BillableUsage.Usage;
 import org.candlepin.subscriptions.json.TallyMeasurement.Uom;
 import org.candlepin.subscriptions.json.TallySummary;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageMeasurement;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageRequest;
@@ -58,16 +58,13 @@ public class RhMarketplacePayloadMapper {
       "redhat.com:openshift_dedicated:4cpu_hour";
 
   private final BillableUsageMapper billableUsageMapper;
-  private final TagProfile tagProfile;
   private final InternalSubscriptionsApi subscriptionsClient;
   private final RetryTemplate usageContextRetryTemplate;
 
   @Autowired
   public RhMarketplacePayloadMapper(
-      TagProfile tagProfile,
       InternalSubscriptionsApi subscriptionsClient,
       @Qualifier("rhmUsageContextLookupRetryTemplate") RetryTemplate usageContextRetryTemplate) {
-    this.tagProfile = tagProfile;
     this.subscriptionsClient = subscriptionsClient;
     // NOTE(khowell) this dependency is temporary, and instantiating here was easier than
     // refactoring profiles.
@@ -177,9 +174,12 @@ public class RhMarketplacePayloadMapper {
    * @return List&lt;UsageMeasurement%gt;
    */
   protected UsageMeasurement produceUsageMeasurement(BillableUsage billableUsage) {
+
     Uom uom = Uom.fromValue(billableUsage.getUom().value());
+
     String rhmMarketplaceMetricId =
-        tagProfile.rhmMetricIdForTagAndUom(billableUsage.getProductId(), uom);
+        SubscriptionDefinition.getRhmMetricId(billableUsage.getProductId(), uom.toString());
+
     Double value = billableUsage.getValue();
 
     UsageMeasurement usageMeasurement = new UsageMeasurement();
