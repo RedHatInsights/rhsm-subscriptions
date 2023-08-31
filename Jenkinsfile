@@ -26,6 +26,12 @@ pipeline {
             when {
                 beforeInput true
                 expression { env.CHANGE_FORK }
+                not {
+                  anyOf {
+                    // Jose Carvajal
+                    changeRequest author: "Sgitario"
+                  }
+               }
             }
             steps {
                 input 'ok to test?'
