@@ -253,13 +253,14 @@ if args.clear:
 for i in range(args.num_accounts):
     if args.num_accounts > 1:
         account = f'{args.account}{i}'
+        org = f'{args.org}{i}'
     else:
         account = args.account
+        org = args.org
     if args.opt_in:
         _generate_insert('account_config',
                          account_number=account,
-                         sync_enabled=True,
-                         reporting_enabled=True,
+                         org_id=org,
                          opt_in_type='API',
                          created='2021-01-01',
                          updated='2021-01-01'

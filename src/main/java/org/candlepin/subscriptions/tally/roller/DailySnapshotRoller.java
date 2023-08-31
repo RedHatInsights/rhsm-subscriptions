@@ -26,7 +26,6 @@ import java.util.Collection;
 import java.util.List;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.slf4j.Logger;
@@ -43,9 +42,8 @@ public class DailySnapshotRoller extends BaseSnapshotRoller {
 
   private static final Logger log = LoggerFactory.getLogger(DailySnapshotRoller.class);
 
-  public DailySnapshotRoller(
-      TallySnapshotRepository tallyRepo, ApplicationClock clock, TagProfile tagProfile) {
-    super(tallyRepo, clock, tagProfile);
+  public DailySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
+    super(tallyRepo, clock);
   }
 
   @Override

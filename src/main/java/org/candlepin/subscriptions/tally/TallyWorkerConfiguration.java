@@ -45,11 +45,14 @@ import org.candlepin.subscriptions.task.queue.TaskConsumerFactory;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
+import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
@@ -90,13 +93,20 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
       "org.candlepin.subscriptions.inventory.db",
       "org.candlepin.subscriptions.tally",
       "org.candlepin.subscriptions.retention"
+    },
+    // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
+    excludeFilters = {
+      @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+      @ComponentScan.Filter(
+          type = FilterType.CUSTOM,
+          classes = AutoConfigurationExcludeFilter.class)
     })
 public class TallyWorkerConfiguration {
 
   @Bean
   public FactNormalizer factNormalizer(
-      ApplicationProperties applicationProperties, TagProfile tagProfile, ApplicationClock clock) {
-    return new FactNormalizer(applicationProperties, tagProfile, clock);
+      ApplicationProperties applicationProperties, ApplicationClock clock) {
+    return new FactNormalizer(applicationProperties, clock);
   }
 
   @Bean(name = "collectorRetryTemplate")
@@ -154,12 +164,10 @@ public class TallyWorkerConfiguration {
 
   @Bean
   public MetricUsageCollector metricUsageCollector(
-      TagProfile tagProfile,
       AccountServiceInventoryRepository accountServiceInventoryRepository,
       EventController eventController,
       ApplicationClock clock) {
-    return new MetricUsageCollector(
-        tagProfile, accountServiceInventoryRepository, eventController, clock);
+    return new MetricUsageCollector(accountServiceInventoryRepository, eventController, clock);
   }
 
   @Bean

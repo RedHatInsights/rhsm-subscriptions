@@ -26,10 +26,13 @@ import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
+import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 
@@ -40,7 +43,15 @@ import org.springframework.context.annotation.Profile;
  */
 @Configuration
 @Profile("api")
-@ComponentScan(basePackages = "org.candlepin.subscriptions.resource")
+@ComponentScan(
+    basePackages = "org.candlepin.subscriptions.resource",
+    // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
+    excludeFilters = {
+      @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+      @ComponentScan.Filter(
+          type = FilterType.CUSTOM,
+          classes = AutoConfigurationExcludeFilter.class)
+    })
 @Import({
   ResteasyConfiguration.class,
   RhsmSubscriptionsDataSourceConfiguration.class,

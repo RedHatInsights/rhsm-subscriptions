@@ -21,11 +21,14 @@
 package org.candlepin.subscriptions.user;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
+import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.classify.Classifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.retry.RetryPolicy;
 import org.springframework.retry.policy.ExceptionClassifierRetryPolicy;
 import org.springframework.retry.policy.MaxAttemptsRetryPolicy;
@@ -40,7 +43,15 @@ import org.springframework.retry.support.RetryTemplateBuilder;
  * findAccount API.
  */
 @Configuration
-@ComponentScan(basePackages = "org.candlepin.subscriptions.user")
+@ComponentScan(
+    basePackages = "org.candlepin.subscriptions.user",
+    // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
+    excludeFilters = {
+      @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+      @ComponentScan.Filter(
+          type = FilterType.CUSTOM,
+          classes = AutoConfigurationExcludeFilter.class)
+    })
 public class UserServiceClientConfiguration {
   @Bean
   @ConfigurationProperties(prefix = "rhsm-subscriptions.user-service")
