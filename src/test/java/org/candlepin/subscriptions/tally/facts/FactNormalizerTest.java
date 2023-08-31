@@ -52,6 +52,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -289,35 +290,19 @@ class FactNormalizerTest {
     assertEquals(Integer.valueOf(2), normalized.getSockets());
   }
 
-  @Test
-  void testNormalizationDiscardsRHELWhenOpenShiftExists() {
+  @ParameterizedTest
+  @ValueSource(
+      ints = {
+        290, // OpenShift Container Platform
+        250, // Satellite Server
+        269 // Satellite Capsule
+      })
+  void testNormalizationDiscardsRHELWhenProductExists() {
     InventoryHostFacts host = createRhsmHost(Arrays.asList(69, 290), null, clock.now());
     host.setSystemProfileCoresPerSocket(6);
     host.setSystemProfileSockets(2);
     NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
     assertThat(normalized.getProducts(), Matchers.contains("OpenShift Container Platform"));
-    assertEquals(Integer.valueOf(12), normalized.getCores());
-    assertEquals(Integer.valueOf(2), normalized.getSockets());
-  }
-
-  @Test
-  void testNormalizationDiscardsRHELForArchWhenSatelliteExists() {
-    InventoryHostFacts host = createRhsmHost(Arrays.asList(69, 250), null, clock.now());
-    host.setSystemProfileCoresPerSocket(6);
-    host.setSystemProfileSockets(2);
-    NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
-    assertThat(normalized.getProducts(), Matchers.contains("Satellite Server"));
-    assertEquals(Integer.valueOf(12), normalized.getCores());
-    assertEquals(Integer.valueOf(2), normalized.getSockets());
-  }
-
-  @Test
-  void testNormalizationDiscardsRHELWhenSatelliteExistsSameProduct() {
-    InventoryHostFacts host = createRhsmHost(Arrays.asList(69, 269), null, clock.now());
-    host.setSystemProfileCoresPerSocket(6);
-    host.setSystemProfileSockets(2);
-    NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
-    assertThat(normalized.getProducts(), Matchers.contains("Satellite Capsule"));
     assertEquals(Integer.valueOf(12), normalized.getCores());
     assertEquals(Integer.valueOf(2), normalized.getSockets());
   }
