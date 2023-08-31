@@ -9,7 +9,7 @@ dependencies {
     }
     implementation "org.springframework:spring-beans"
     implementation "org.slf4j:slf4j-api"
-    testImplementation libraries["wiremock-jre8"]
+    testImplementation libraries["wiremock"]
 }
 
 description = 'SWATCH core library for generated clients'
