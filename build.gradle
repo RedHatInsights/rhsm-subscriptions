@@ -64,7 +64,7 @@ dependencies {
 
     testImplementation "org.springframework.security:spring-security-test"
     testImplementation "org.springframework.kafka:spring-kafka-test"
-    testImplementation libraries["wiremock-jre8"]
+    testImplementation libraries["wiremock"]
     testImplementation project(':swatch-core-test')
 
     runtimeOnly "org.hsqldb:hsqldb"
