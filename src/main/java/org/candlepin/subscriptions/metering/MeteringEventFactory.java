@@ -21,6 +21,8 @@
 package org.candlepin.subscriptions.metering;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import static org.candlepin.subscriptions.util.EventConstants.CLEAN_UP_EVENT_TYPE_PREFIX;
+
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -93,6 +95,24 @@ public class MeteringEventFactory {
         measuredMetric,
         measuredValue,
         productTag);
+    return event;
+  }
+
+  /**
+   * Creates an event with type "cleanup" which is a special type that triggers the deletion of
+   * stale events.
+   *
+   * @param orgId the organization id.
+   * @param eventType the event type.
+   * @param cutOff the time when events are considered stale events.
+   * @return a populated Event instance.
+   */
+  public static Event createCleanUpEvent(String orgId, String eventType, OffsetDateTime cutOff) {
+    Event event = new Event();
+    event.setOrgId(orgId);
+    event.setEventSource(MeteringEventFactory.EVENT_SOURCE);
+    event.setEventType(CLEAN_UP_EVENT_TYPE_PREFIX + eventType);
+    event.setTimestamp(cutOff);
     return event;
   }
 

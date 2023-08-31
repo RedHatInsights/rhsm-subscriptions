@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
+import static org.candlepin.subscriptions.metering.MeteringEventFactory.createCleanUpEvent;
+
 import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
@@ -27,7 +29,6 @@ import io.micrometer.core.annotation.Timed;
 import jakarta.ws.rs.BadRequestException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +51,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 /** A controller class that defines the business logic related to any metrics that are gathered. */
@@ -91,7 +91,6 @@ public class PrometheusMeteringController {
   // are exhausted.
   @SuppressWarnings("java:S2139")
   @Timed("rhsm-subscriptions.metering.openshift")
-  @Transactional
   public void collectMetrics(
       String tag, MetricId metric, String orgId, OffsetDateTime start, OffsetDateTime end) {
     var subDefOptional = SubscriptionDefinition.lookupSubscriptionByTag(tag);
@@ -203,9 +202,16 @@ public class PrometheusMeteringController {
             }
 
             log.info("Sent {} events for {} {} metrics.", eventsSent.size(), tag, metric);
+            // Send event to delete any stale events found during the period only if
+            // there were events sent.
+            if (!eventsSent.isEmpty()) {
+              eventsProducer.produce(
+                  createCleanUpEvent(
+                      orgId,
+                      MeteringEventFactory.getEventType(tagMetric.get().getId(), tag),
+                      start));
+            }
 
-            // Delete any stale events found during the period.
-            // deleteStaleEvents(existing.values());
             return null;
           } catch (Exception e) {
             log.warn(
@@ -266,13 +272,6 @@ public class PrometheusMeteringController {
         value.doubleValue(),
         productTag);
     return event;
-  }
-
-  private void deleteStaleEvents(Collection<Event> toDelete) {
-    if (!toDelete.isEmpty()) {
-      log.info("Deleting {} stale metric events.", toDelete.size());
-      // eventController.deleteEvents(toDelete);
-    }
   }
 
   private String buildPromQLForMetering(String orgId, Metric tagMetric) {

@@ -109,6 +109,24 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
   void deleteInBulkEventRecordsByTimestampBefore(OffsetDateTime cutoffDate);
 
   /**
+   * Delete old event records given a cutoff date and an organization id.
+   *
+   * @param orgId The organization id
+   * @param eventSource The event source
+   * @param eventType The event type
+   * @param cutoffDate Dates before this timestamp get deleted
+   */
+  @Modifying
+  @Query(
+      "DELETE FROM EventRecord e "
+          + "WHERE e.orgId=:orgId "
+          + "AND e.eventSource=:eventSource "
+          + "AND e.eventType=:eventType "
+          + "AND e.timestamp<:cutoffDate")
+  void deleteStaleEvents(
+      String orgId, String eventSource, String eventType, OffsetDateTime cutoffDate);
+
+  /**
    * Check if any Events exist for the specified org and service type during the specified range.
    *
    * @param orgId

@@ -20,16 +20,12 @@
  */
 package org.candlepin.subscriptions.event;
 
+import static org.candlepin.subscriptions.util.EventConstants.CLEAN_UP_EVENT_TYPE_PREFIX;
+
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -153,12 +149,22 @@ public class EventController {
 
   @Transactional
   public void persistServiceInstances(Set<String> eventJsonList) {
-    Map<EventKey, Event> eventsMap = parseEventRecordsToEventsEntityMap(eventJsonList);
-    saveAll(eventsMap.values());
+    ServiceInstancesResult result = parseServiceInstancesResult(eventJsonList);
+    if (!result.eventsMap.isEmpty()) {
+      saveAll(result.eventsMap.values());
+    }
+
+    result.cleanUpEvents.forEach(
+        cleanUpEvent ->
+            repo.deleteStaleEvents(
+                cleanUpEvent.getOrgId(),
+                cleanUpEvent.getEventSource(),
+                cleanUpEvent.getEventType().substring(CLEAN_UP_EVENT_TYPE_PREFIX.length()),
+                cleanUpEvent.getTimestamp()));
   }
 
-  private Map<EventKey, Event> parseEventRecordsToEventsEntityMap(Set<String> eventJsonList) {
-    Map<EventKey, Event> eventsMap = new HashMap<>();
+  private ServiceInstancesResult parseServiceInstancesResult(Set<String> eventJsonList) {
+    ServiceInstancesResult result = new ServiceInstancesResult();
     eventJsonList.forEach(
         eventJson -> {
           try {
@@ -169,7 +175,14 @@ public class EventController {
                   "Ensuring orgId={} has been set up for syncing/reporting.", event.getOrgId());
               ensureOptIn(event.getOrgId());
             }
-            eventsMap.putIfAbsent(EventKey.fromEvent(event), event);
+
+            if (event.getEventType().startsWith(CLEAN_UP_EVENT_TYPE_PREFIX)) {
+              log.debug("Processing clean up event for: " + event);
+              result.cleanUpEvents.add(event);
+            } else {
+              result.eventsMap.putIfAbsent(EventKey.fromEvent(event), event);
+            }
+
           } catch (Exception e) {
             log.warn(
                 String.format(
@@ -177,7 +190,7 @@ public class EventController {
                     e.getCause()));
           }
         });
-    return eventsMap;
+    return result;
   }
 
   private void ensureOptIn(String orgId) {
@@ -186,5 +199,10 @@ public class EventController {
     } catch (Exception e) {
       log.error("Error while attempting to automatically opt-in for orgId={} ", orgId, e);
     }
+  }
+
+  private class ServiceInstancesResult {
+    private final Map<EventKey, Event> eventsMap = new HashMap<>();
+    private final Set<Event> cleanUpEvents = new HashSet<>();
   }
 }

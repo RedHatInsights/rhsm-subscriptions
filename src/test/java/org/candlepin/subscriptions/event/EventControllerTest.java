@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.event;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -32,10 +33,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.candlepin.subscriptions.db.EventRecordRepository;
+import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.security.OptInController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -48,12 +51,14 @@ class EventControllerTest {
 
   @MockBean private EventRecordRepository eventRecordRepository;
   @MockBean private OptInController optInController;
+  @Captor private ArgumentCaptor<Collection<EventRecord>> eventsSaved;
 
   String eventRecord1;
   String eventRecord2;
   String eventRecord3;
   String eventRecord4;
   String eventRecord5;
+  String cleanUpEvent;
 
   @BeforeEach
   void setup() {
@@ -162,6 +167,15 @@ class EventControllerTest {
                    "service_type": "OpenShift Cluster"
                  }
                 """;
+    cleanUpEvent =
+        """
+                {
+                   "org_id": "7",
+                   "timestamp": "2023-05-02T00:00:00Z",
+                   "event_type": "cleanup-snapshot_redhat.com:openshift_dedicated:cluster_hour",
+                   "event_source": "prometheus"
+                 }
+                """;
   }
 
   @Test
@@ -175,15 +189,14 @@ class EventControllerTest {
     verify(optInController, times(2)).optInByOrgId(any(), any());
     when(eventRecordRepository.saveAll(any())).thenReturn(new ArrayList<>());
 
-    ArgumentCaptor<Collection> eve = ArgumentCaptor.forClass(Collection.class);
-    verify(eventRecordRepository).saveAll(eve.capture());
-    List events = eve.getAllValues().get(0).stream().toList();
+    verify(eventRecordRepository).saveAll(eventsSaved.capture());
+    List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
     assertEquals(2, events.size());
+    verifyDeletionOfStaleEventsIsNotDone();
   }
 
   @Test
   void testPersistServiceInstances_ProcessValidPayloadAndSkipInvalidPayload() {
-
     Set<String> eventRecords = new HashSet<>();
     eventRecords.add(eventRecord1);
     eventRecords.add(eventRecord2);
@@ -193,9 +206,33 @@ class EventControllerTest {
     eventController.persistServiceInstances(eventRecords);
     verify(optInController, times(3)).optInByOrgId(any(), any());
     when(eventRecordRepository.saveAll(any())).thenReturn(new ArrayList<>());
-    ArgumentCaptor<Collection> eve = ArgumentCaptor.forClass(Collection.class);
-    verify(eventRecordRepository).saveAll(eve.capture());
-    List events = eve.getAllValues().get(0).stream().toList();
+    verify(eventRecordRepository).saveAll(eventsSaved.capture());
+    List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
     assertEquals(3, events.size());
+    verifyDeletionOfStaleEventsIsNotDone();
+  }
+
+  @Test
+  void testPersistServiceInstances_ProcessCleanUpEvent() {
+    Set<String> eventRecords = Set.of(eventRecord1, eventRecord2, cleanUpEvent);
+    eventController.persistServiceInstances(eventRecords);
+    verify(optInController, times(3)).optInByOrgId(any(), any());
+    verify(eventRecordRepository).saveAll(eventsSaved.capture());
+    List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
+    assertEquals(2, events.size());
+    verifyDeletionOfStaleEventsIsDone();
+  }
+
+  private void verifyDeletionOfStaleEventsIsDone() {
+    verify(eventRecordRepository)
+        .deleteStaleEvents(
+            eq("7"),
+            eq("prometheus"),
+            eq("snapshot_redhat.com:openshift_dedicated:cluster_hour"),
+            any());
+  }
+
+  private void verifyDeletionOfStaleEventsIsNotDone() {
+    verify(eventRecordRepository, times(0)).deleteStaleEvents(any(), any(), any(), any());
   }
 }

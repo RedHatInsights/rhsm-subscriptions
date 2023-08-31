@@ -20,15 +20,14 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
+import static org.candlepin.subscriptions.metering.MeteringEventFactory.getEventType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
@@ -119,11 +118,6 @@ class PrometheusMeteringControllerTest {
             optInController);
 
     queries = new QueryHelper(queryBuilder);
-
-    Map<String, String> queryParams = new HashMap<>();
-    queryParams.put("product", "ocp");
-    queryParams.put("prometheusMetric", "cluster:usage:workload:capacity_physical_cpu_hours");
-    queryParams.put("prometheusMetadataMetric", "ocm_subscription");
   }
 
   @Test
@@ -149,7 +143,7 @@ class PrometheusMeteringControllerTest {
     OffsetDateTime start = OffsetDateTime.now();
     OffsetDateTime end = start.plusDays(1);
 
-    controller.collectMetrics("OpenShift-metrics", MetricIdUtils.getCores(), "account", start, end);
+    whenCollectMetrics("account", start, end);
     prometheusServer.verifyQueryRangeWasCalled(3);
   }
 
@@ -170,14 +164,8 @@ class PrometheusMeteringControllerTest {
             List.of(List.of(new BigDecimal("12312.345"), new BigDecimal(24))));
     prometheusServer.stubQueryRange(data);
 
-    controller.collectMetrics(
-        "OpenShift-metrics", MetricIdUtils.getCores(), expectedOrgId, start, end);
-    prometheusServer.verifyQueryRange(
-        queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
-        clock.startOfHour(start).plusHours(1),
-        end,
-        metricProperties.getStep(),
-        metricProperties.getQueryTimeout());
+    whenCollectMetrics(start, end);
+    verifyQueryRange(prometheusServer, clock.startOfHour(start), end);
   }
 
   @Test
@@ -197,14 +185,8 @@ class PrometheusMeteringControllerTest {
             List.of(List.of(new BigDecimal("12312.345"), new BigDecimal(24))));
     prometheusServer.stubQueryRange(data);
 
-    controller.collectMetrics(
-        "OpenShift-metrics", MetricIdUtils.getCores(), expectedOrgId, start, end);
-    prometheusServer.verifyQueryRange(
-        queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
-        start.plusHours(1),
-        end,
-        metricProperties.getStep(),
-        metricProperties.getQueryTimeout());
+    whenCollectMetrics(start, end);
+    verifyQueryRange(prometheusServer, start, end);
     verify(optInController).optInByOrgId(expectedOrgId, OptInType.PROMETHEUS);
   }
 
@@ -263,24 +245,15 @@ class PrometheusMeteringControllerTest {
                 expectedBillingAccountId,
                 expectedMetricId,
                 val2.doubleValue(),
-                expectedProductTag));
+                expectedProductTag),
+            MeteringEventFactory.createCleanUpEvent(
+                expectedOrgId, getEventType(expectedMetricId, expectedProductTag), start));
 
-    controller.collectMetrics(
-        "OpenShift-metrics", MetricIdUtils.getCores(), expectedOrgId, start, end);
+    whenCollectMetrics(start, end);
 
-    verify(eventsProducer, times(2)).produce(eventsSent.capture());
+    verify(eventsProducer, times(expectedEvents.size())).produce(eventsSent.capture());
+    verifyQueryRange(prometheusServer, start, end);
 
-    prometheusServer.verifyQueryRange(
-        queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
-        start.plusHours(1),
-        end,
-        metricProperties.getStep(),
-        metricProperties.getQueryTimeout());
-    verify(eventsProducer, times(2)).produce(any());
-
-    // Attempted to verify the eventController.saveAll(events) but
-    // couldn't find a way to get mockito to match on the collection
-    // of HashMap.Value. Using a capture works just as well, but is a less convenient.
     assertEquals(expectedEvents.size(), eventsSent.getAllValues().size());
     assertTrue(eventsSent.getAllValues().containsAll(expectedEvents));
   }
@@ -342,47 +315,15 @@ class PrometheusMeteringControllerTest {
                 expectedBillingAccountId,
                 expectedMetricId,
                 val2.doubleValue(),
-                expectedProductTag));
+                expectedProductTag),
+            MeteringEventFactory.createCleanUpEvent(
+                expectedOrgId, getEventType(expectedMetricId, expectedProductTag), start));
 
-    Event purgedEvent =
-        MeteringEventFactory.createMetricEvent(
-            expectedAccount,
-            expectedOrgId,
-            "CLUSTER_NO_LONGER_EXISTS",
-            expectedSla,
-            expectedUsage,
-            expectedRole,
-            clock.dateFromUnix(time1).minusSeconds(metricProperties.getStep()),
-            clock.dateFromUnix(time1),
-            expectedServiceType,
-            expectedBillingProvider,
-            expectedBillingAccountId,
-            expectedMetricId,
-            val1.doubleValue(),
-            expectedProductTag);
-
-    controller.collectMetrics("OpenShift-metrics", MetricIdUtils.getCores(), expectedOrgId, start, end);
-
-    verify(eventsProducer, times(2)).produce(eventsSent.capture());
-
-    // ArgumentCaptor<Collection> purgeCaptor = ArgumentCaptor.forClass(Collection.class);
-    // verify(eventController).deleteEvents(purgeCaptor.capture());
-
-    prometheusServer.verifyQueryRange(
-        queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
-        start.plusHours(1),
-        end,
-        metricProperties.getStep(),
-        metricProperties.getQueryTimeout());
-
-    // Attempted to verify the eventController calls below, but
-    // couldn't find a way to get mockito to match on collection of HashMap.Value.
-    // Using a capture works just as well, but is a less convenient.
+    whenCollectMetrics(start, end);
+    verify(eventsProducer, times(expectedEvents.size())).produce(eventsSent.capture());
+    verifyQueryRange(prometheusServer, start, end);
     assertEquals(expectedEvents.size(), eventsSent.getAllValues().size());
     assertTrue(eventsSent.getAllValues().containsAll(expectedEvents));
-
-    // assertEquals(1, purgeCaptor.getValue().size());
-    // assertTrue(purgeCaptor.getValue().contains(purgedEvent));
   }
 
   @Test
@@ -436,24 +377,37 @@ class PrometheusMeteringControllerTest {
             4.0,
             expectedProductTag);
 
-    List<Event> expectedEvents = List.of(updatedEvent);
+    List<Event> expectedEvents =
+        List.of(
+            updatedEvent,
+            MeteringEventFactory.createCleanUpEvent(
+                expectedOrgId, getEventType(expectedMetricId, expectedProductTag), start));
+    whenCollectMetrics(start, end);
+    verify(eventsProducer, times(expectedEvents.size())).produce(eventsSent.capture());
 
-    controller.collectMetrics("OpenShift-metrics", MetricIdUtils.getCores(), expectedOrgId, start, end);
+    verifyQueryRange(prometheusServer, start, end);
+    assertEquals(expectedEvents.size(), eventsSent.getAllValues().size());
+    assertTrue(eventsSent.getAllValues().containsAll(expectedEvents));
+  }
 
-    verify(eventsProducer).produce(eventsSent.capture());
+  private void whenCollectMetrics(OffsetDateTime start, OffsetDateTime end) {
+    whenCollectMetrics(expectedOrgId, start, end);
+  }
 
+  private void whenCollectMetrics(String expectedOrgId, OffsetDateTime start, OffsetDateTime end) {
+    controller.collectMetrics(expectedProductTag, MetricIdUtils.getCores(), expectedOrgId, start, end);
+  }
+
+  private void verifyQueryRange(
+      PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer,
+      OffsetDateTime start,
+      OffsetDateTime end) {
     prometheusServer.verifyQueryRange(
-        queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
+        queries.expectedQuery(expectedProductTag, Map.of("orgId", expectedOrgId)),
         start.plusHours(1),
         end,
         metricProperties.getStep(),
         metricProperties.getQueryTimeout());
-
-    // Attempted to verify the eventController calls below, but
-    // couldn't find a way to get mockito to match on collection of HashMap.Value.
-    // Using a capture works just as well, but is a less convenient.
-    assertEquals(expectedEvents.size(), eventsSent.getAllValues().size());
-    assertTrue(eventsSent.getAllValues().containsAll(expectedEvents));
   }
 
   private QueryResult buildOpenShiftClusterQueryResult(
@@ -476,7 +430,7 @@ class PrometheusMeteringControllerTest {
             .putMetricItem("billing_marketplace_account", billingAccountId);
 
     // NOTE: A tuple is [unix_time,value]
-    timeValueTuples.forEach(tuple -> dataResult.addValuesItem(tuple));
+    timeValueTuples.forEach(dataResult::addValuesItem);
 
     return new QueryResult()
         .status(StatusType.SUCCESS)
