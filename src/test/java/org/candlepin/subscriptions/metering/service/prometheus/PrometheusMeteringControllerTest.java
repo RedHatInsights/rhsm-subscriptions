@@ -59,9 +59,7 @@ import org.springframework.retry.backoff.NoBackOffPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest(
-    properties =
-        "rhsm-subscriptions.metering.prometheus.client.url=http://localhost:${WIREMOCK_PORT:8101}")
+@SpringBootTest(properties = PrometheusQueryWiremockExtension.PROM_URL)
 @ActiveProfiles({"openshift-metering-worker", "test"})
 @Import(TestClockConfiguration.class)
 @ExtendWith(PrometheusQueryWiremockExtension.class)
