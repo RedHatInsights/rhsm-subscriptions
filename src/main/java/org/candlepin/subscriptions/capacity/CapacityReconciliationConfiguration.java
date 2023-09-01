@@ -24,10 +24,13 @@ import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConf
 
 import org.candlepin.subscriptions.subscription.PruneSubscriptionsTask;
 import org.candlepin.subscriptions.subscription.SyncSubscriptionsTask;
+import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
+import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
@@ -37,7 +40,15 @@ import org.springframework.kafka.core.ProducerFactory;
  * reconciliation logic.
  */
 @Configuration
-@ComponentScan(basePackages = "org.candlepin.subscriptions.capacity")
+@ComponentScan(
+    basePackages = "org.candlepin.subscriptions.capacity",
+    // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
+    excludeFilters = {
+      @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+      @ComponentScan.Filter(
+          type = FilterType.CUSTOM,
+          classes = AutoConfigurationExcludeFilter.class)
+    })
 public class CapacityReconciliationConfiguration {
   @Bean
   public ProducerFactory<String, SyncSubscriptionsTask> syncSubscriptionsProducerFactory(

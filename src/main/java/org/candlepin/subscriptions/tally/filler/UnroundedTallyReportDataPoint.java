@@ -18,25 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.validator;
+package org.candlepin.subscriptions.tally.filler;
 
-import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
-import org.springframework.boot.context.TypeExcludeFilter;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.FilterType;
+import java.time.OffsetDateTime;
+import org.candlepin.subscriptions.utilization.api.model.TallyReportDataPoint;
 
-/** Configuration for validators */
-@Configuration
-@ComponentScan(
-    basePackages = {"org.candlepin.subscriptions.validator"},
-    // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
-    excludeFilters = {
-      @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
-      @ComponentScan.Filter(
-          type = FilterType.CUSTOM,
-          classes = AutoConfigurationExcludeFilter.class)
-    })
-public class ValidatorConfiguration {
-  // No op
+public record UnroundedTallyReportDataPoint(OffsetDateTime date, Double value, Boolean hasData) {
+  public TallyReportDataPoint toRoundedDataPoint() {
+    return new TallyReportDataPoint().hasData(hasData).date(date).value((int) Math.ceil(value));
+  }
 }

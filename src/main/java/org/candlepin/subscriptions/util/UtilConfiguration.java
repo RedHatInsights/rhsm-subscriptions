@@ -20,12 +20,23 @@
  */
 package org.candlepin.subscriptions.util;
 
+import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
+import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 
 /** Provides access to common utility beans. */
 @Configuration
-@ComponentScan("org.candlepin.subscriptions.util")
+@ComponentScan(
+    basePackages = "org.candlepin.subscriptions.util",
+    // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
+    excludeFilters = {
+      @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+      @ComponentScan.Filter(
+          type = FilterType.CUSTOM,
+          classes = AutoConfigurationExcludeFilter.class)
+    })
 public class UtilConfiguration {
   /* Intentionally empty */
 }

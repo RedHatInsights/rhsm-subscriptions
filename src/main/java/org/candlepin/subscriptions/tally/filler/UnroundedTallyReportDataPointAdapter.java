@@ -23,39 +23,42 @@ package org.candlepin.subscriptions.tally.filler;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import org.candlepin.subscriptions.util.ApplicationClock;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportDataPoint;
 
-public class TallyReportDataPointAdapter implements ReportFillerAdapter<TallyReportDataPoint> {
+public class UnroundedTallyReportDataPointAdapter
+    implements ReportFillerAdapter<UnroundedTallyReportDataPoint> {
 
   private final ApplicationClock clock;
 
-  public TallyReportDataPointAdapter(ApplicationClock clock) {
+  public UnroundedTallyReportDataPointAdapter(ApplicationClock clock) {
     this.clock = clock;
   }
 
   @Override
-  public boolean itemIsLarger(TallyReportDataPoint oldData, TallyReportDataPoint newData) {
-    return newData.getValue() >= oldData.getValue();
+  public boolean itemIsLarger(
+      UnroundedTallyReportDataPoint oldData, UnroundedTallyReportDataPoint newData) {
+    return newData.value() >= oldData.value();
   }
 
   @Override
-  public TallyReportDataPoint createDefaultItem(
-      OffsetDateTime itemDate, TallyReportDataPoint previous, boolean useRunningTotalFormat) {
-    var point = new TallyReportDataPoint().date(itemDate).hasData(false).value(0);
+  public UnroundedTallyReportDataPoint createDefaultItem(
+      OffsetDateTime itemDate,
+      UnroundedTallyReportDataPoint previous,
+      boolean useRunningTotalFormat) {
+    var point = new UnroundedTallyReportDataPoint(itemDate, 0.0, false);
     // itemDate is already adjusted in ReportFiller to be at the period start.  ReportFiller is also
     // responsible for ticking through every period contained in the requested range, so we should
     // not see any time gaps in the finished report.
     if (itemDate.isBefore(clock.now()) && useRunningTotalFormat && previous != null) {
-      point
-          .hasData(previous.getValue() != null)
-          .value(Objects.requireNonNullElse(previous.getValue(), 0));
+      boolean hasData = previous.value() != null;
+      double value = Objects.requireNonNullElse(previous.value(), 0.0);
+      point = new UnroundedTallyReportDataPoint(itemDate, value, hasData);
     }
 
     return point;
   }
 
   @Override
-  public OffsetDateTime getDate(TallyReportDataPoint item) {
-    return item.getDate();
+  public OffsetDateTime getDate(UnroundedTallyReportDataPoint item) {
+    return item.date();
   }
 }

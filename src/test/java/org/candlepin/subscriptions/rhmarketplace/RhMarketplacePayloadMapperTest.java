@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.rhmarketplace;
 
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.OPENSHIFT_DEDICATED_METRICS;
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.OPENSHIFT_METRICS;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.params.ParameterizedTest.DEFAULT_DISPLAY_NAME;
 import static org.junit.jupiter.params.ParameterizedTest.DISPLAY_NAME_PLACEHOLDER;
@@ -41,8 +39,6 @@ import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
 import org.candlepin.subscriptions.json.BillableUsage.Sla;
 import org.candlepin.subscriptions.json.BillableUsage.Uom;
 import org.candlepin.subscriptions.json.BillableUsage.Usage;
-import org.candlepin.subscriptions.json.TallyMeasurement;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageMeasurement;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,7 +59,6 @@ import org.springframework.retry.support.RetryTemplate;
 @ExtendWith(MockitoExtension.class)
 class RhMarketplacePayloadMapperTest {
 
-  @Mock TagProfile tagProfile;
   @Mock InternalSubscriptionsApi subscriptionsApi;
 
   RhMarketplacePayloadMapper rhMarketplacePayloadMapper;
@@ -73,26 +68,7 @@ class RhMarketplacePayloadMapperTest {
     RetryTemplate retry = new RetryTemplate();
     retry.setBackOffPolicy(new NoBackOffPolicy());
 
-    rhMarketplacePayloadMapper =
-        new RhMarketplacePayloadMapper(tagProfile, subscriptionsApi, retry);
-
-    // Tell Mockito not to complain if some of these mocks aren't used in a particular test
-    lenient()
-        .when(
-            tagProfile.rhmMetricIdForTagAndUom(
-                OPENSHIFT_METRICS.toString(), TallyMeasurement.Uom.CORES))
-        .thenReturn("redhat.com:openshift:cpu_hour");
-
-    lenient()
-        .when(
-            tagProfile.rhmMetricIdForTagAndUom(
-                OPENSHIFT_DEDICATED_METRICS.toString(), TallyMeasurement.Uom.CORES))
-        .thenReturn(RhMarketplacePayloadMapper.OPENSHIFT_DEDICATED_4_CPU_HOUR);
-
-    lenient()
-        .when(tagProfile.isProductPAYGEligible(OPENSHIFT_DEDICATED_METRICS.toString()))
-        .thenReturn(true);
-    lenient().when(tagProfile.isProductPAYGEligible(OPENSHIFT_METRICS.toString())).thenReturn(true);
+    rhMarketplacePayloadMapper = new RhMarketplacePayloadMapper(subscriptionsApi, retry);
   }
 
   @Test
@@ -130,7 +106,9 @@ class RhMarketplacePayloadMapperTest {
             .withBillingAccountId("sellerAccountId");
 
     var usageMeasurement =
-        new UsageMeasurement().value(36.0).metricId("redhat.com:openshift:cpu_hour");
+        new UsageMeasurement()
+            .value(36.0)
+            .metricId("redhat.com:openshift_container_platform:cpu_hour");
     var expected =
         new UsageEvent()
             .start(snapshotDateLong)
@@ -277,8 +255,7 @@ class RhMarketplacePayloadMapperTest {
             any(String.class)))
         .thenThrow(ApiException.class);
 
-    RhMarketplacePayloadMapper mapper =
-        new RhMarketplacePayloadMapper(tagProfile, subscriptionsApi, retry);
+    RhMarketplacePayloadMapper mapper = new RhMarketplacePayloadMapper(subscriptionsApi, retry);
 
     BillableUsage billableUsage =
         new BillableUsage()

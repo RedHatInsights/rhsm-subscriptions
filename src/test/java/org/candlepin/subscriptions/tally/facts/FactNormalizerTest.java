@@ -30,7 +30,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
@@ -42,7 +41,6 @@ import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.tally.OrgHostsData;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -54,17 +52,14 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.io.DefaultResourceLoader;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.StringUtils;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
 
 @TestInstance(Lifecycle.PER_CLASS)
 @SpringBootTest
@@ -79,13 +74,8 @@ class FactNormalizerTest {
   @MockBean BuildProperties buildProperties;
 
   @BeforeAll
-  void setup() throws IOException {
-    ResourceLoader resourceLoader = new DefaultResourceLoader();
-    Yaml parser = new Yaml(new Constructor(TagProfile.class));
-    TagProfile tagProfile =
-        parser.load(resourceLoader.getResource("classpath:test_tag_profile.yaml").getInputStream());
-    tagProfile.initLookups();
-    normalizer = new FactNormalizer(new ApplicationProperties(), tagProfile, clock);
+  void setup() {
+    normalizer = new FactNormalizer(new ApplicationProperties(), clock);
   }
 
   private OrgHostsData hypervisorData() {
@@ -101,11 +91,11 @@ class FactNormalizerTest {
 
   @Test
   void testRhsmNormalization() {
-    InventoryHostFacts rhsmHost = createRhsmHost(Arrays.asList(1), null, clock.now());
+    InventoryHostFacts rhsmHost = createRhsmHost(Arrays.asList(69), null, clock.now());
     rhsmHost.setSystemProfileCoresPerSocket(6);
     rhsmHost.setSystemProfileSockets(2);
     NormalizedFacts normalized = normalizer.normalize(rhsmHost, hypervisorData());
-    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
+    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for x86"));
     assertEquals(Integer.valueOf(12), normalized.getCores());
     assertEquals(Integer.valueOf(2), normalized.getSockets());
   }
@@ -122,9 +112,9 @@ class FactNormalizerTest {
   @Test
   void testSystemProfileNormalization() {
     InventoryHostFacts host =
-        createSystemProfileHost(Collections.singletonList(1), 4, 2, clock.now());
+        createSystemProfileHost(Collections.singletonList(69), 4, 2, clock.now());
     NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
-    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
+    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for x86"));
     assertEquals(Integer.valueOf(8), normalized.getCores());
     assertEquals(Integer.valueOf(2), normalized.getSockets());
   }
@@ -186,8 +176,9 @@ class FactNormalizerTest {
   @Test
   void testNormalizeWhenCoresAndSocketsMissingFromFacts() {
     NormalizedFacts normalized =
-        normalizer.normalize(createRhsmHost(Arrays.asList(1), null, clock.now()), hypervisorData());
-    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
+        normalizer.normalize(
+            createRhsmHost(Arrays.asList(69), null, clock.now()), hypervisorData());
+    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for x86"));
     assertEquals(Integer.valueOf(0), normalized.getCores());
     assertEquals(Integer.valueOf(0), normalized.getSockets());
   }
@@ -195,7 +186,7 @@ class FactNormalizerTest {
   @Test
   void testIgnoresHostWhenLastSyncIsOutOfConfiguredThreshold() {
     OffsetDateTime lastSynced = clock.now().minusDays(2);
-    InventoryHostFacts facts = createRhsmHost("A1", "O1", "1", null, lastSynced);
+    InventoryHostFacts facts = createRhsmHost("A1", "O1", "69", null, lastSynced);
 
     NormalizedFacts normalized = normalizer.normalize(facts, hypervisorData());
     assertThat(normalized.getProducts(), Matchers.empty());
@@ -205,11 +196,11 @@ class FactNormalizerTest {
   @Test
   void testIncludesHostWhenLastSyncIsWithinTheConfiguredThreshold() {
     OffsetDateTime lastSynced = clock.now().minusDays(1);
-    InventoryHostFacts facts = createRhsmHost("A1", "O1", "1", null, lastSynced);
+    InventoryHostFacts facts = createRhsmHost("A1", "O1", "69", null, lastSynced);
     facts.setSystemProfileCoresPerSocket(2);
     facts.setSystemProfileSockets(2);
     NormalizedFacts normalized = normalizer.normalize(facts, hypervisorData());
-    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
+    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for x86"));
     assertEquals(Integer.valueOf(4), normalized.getCores());
   }
 
@@ -246,10 +237,10 @@ class FactNormalizerTest {
   void testDetectsMultipleProductsBasedOnProductId() {
     NormalizedFacts normalized =
         normalizer.normalize(
-            createRhsmHost(Arrays.asList(1, 5, 7), null, clock.now()), hypervisorData());
+            createRhsmHost(Arrays.asList(69, 419, 72), null, clock.now()), hypervisorData());
     assertThat(
         normalized.getProducts(),
-        Matchers.containsInAnyOrder("RHEL", "NOT RHEL", "RHEL Ungrouped"));
+        Matchers.containsInAnyOrder("RHEL for x86", "RHEL for ARM", "RHEL for IBM z"));
   }
 
   @Test
@@ -258,7 +249,7 @@ class FactNormalizerTest {
         normalizer.normalize(
             createRhsmHost(Collections.emptyList(), "Red Hat Enterprise Linux Server", clock.now()),
             hypervisorData());
-    assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Server"));
+    assertThat(normalized.getProducts(), Matchers.contains("RHEL for x86"));
   }
 
   @Test
@@ -274,7 +265,7 @@ class FactNormalizerTest {
         normalizer.normalize(
             createRhsmHost(Arrays.asList(9, 10), "Red Hat Enterprise Linux Server", clock.now()),
             hypervisorData());
-    assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Server"));
+    assertThat(normalized.getProducts(), Matchers.contains("RHEL for x86"));
   }
 
   @Test
@@ -282,9 +273,10 @@ class FactNormalizerTest {
     NormalizedFacts normalized =
         normalizer.normalize(
             createRhsmHost(
-                "A1", "O1", "9,10,Foobar", "Red Hat Enterprise Linux Server", clock.now()),
+                "A1", "O1", "69,419,Foobar", "Red Hat Enterprise Linux Server", clock.now()),
             hypervisorData());
-    assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Server"));
+    assertThat(
+        normalized.getProducts(), Matchers.containsInAnyOrder("RHEL for x86", "RHEL " + "for ARM"));
   }
 
   @Test
@@ -293,51 +285,31 @@ class FactNormalizerTest {
     host.setSystemProfileCoresPerSocket(6);
     host.setSystemProfileSockets(2);
     NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
-    assertEquals(2, normalized.getProducts().size());
-    assertThat(normalized.getProducts(), Matchers.hasItems("Satellite", "Satellite Server"));
+    assertThat(normalized.getProducts(), Matchers.contains("Satellite Server"));
     assertEquals(Integer.valueOf(12), normalized.getCores());
     assertEquals(Integer.valueOf(2), normalized.getSockets());
   }
 
-  @Test
-  void testNormalizationDiscardsRHELWhenOpenShiftExists() {
-    InventoryHostFacts host = createRhsmHost(Arrays.asList(2, 13), null, clock.now());
+  @ParameterizedTest
+  @ValueSource(
+      ints = {
+        290, // OpenShift Container Platform
+        250, // Satellite Server
+        269 // Satellite Capsule
+      })
+  void testNormalizationDiscardsRHELWhenProductExists() {
+    InventoryHostFacts host = createRhsmHost(Arrays.asList(69, 290), null, clock.now());
     host.setSystemProfileCoresPerSocket(6);
     host.setSystemProfileSockets(2);
     NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
-    assertEquals(1, normalized.getProducts().size());
-    assertThat(normalized.getProducts(), Matchers.hasItem("OpenShift Container Platform"));
-    assertEquals(Integer.valueOf(12), normalized.getCores());
-    assertEquals(Integer.valueOf(2), normalized.getSockets());
-  }
-
-  @Test
-  void testNormalizationDiscardsRHELForArchWhenSatelliteExists() {
-    InventoryHostFacts host = createRhsmHost(Arrays.asList(2, 250), null, clock.now());
-    host.setSystemProfileCoresPerSocket(6);
-    host.setSystemProfileSockets(2);
-    NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
-    assertEquals(2, normalized.getProducts().size());
-    assertThat(normalized.getProducts(), Matchers.hasItems("Satellite", "Satellite Server"));
-    assertEquals(Integer.valueOf(12), normalized.getCores());
-    assertEquals(Integer.valueOf(2), normalized.getSockets());
-  }
-
-  @Test
-  void testNormalizationDiscardsRHELWhenSatelliteExistsSameProduct() {
-    InventoryHostFacts host = createRhsmHost(Arrays.asList(2, 269), null, clock.now());
-    host.setSystemProfileCoresPerSocket(6);
-    host.setSystemProfileSockets(2);
-    NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
-    assertEquals(2, normalized.getProducts().size());
-    assertThat(normalized.getProducts(), Matchers.hasItems("Satellite", "Satellite Capsule"));
+    assertThat(normalized.getProducts(), Matchers.contains("OpenShift Container Platform"));
     assertEquals(Integer.valueOf(12), normalized.getCores());
     assertEquals(Integer.valueOf(2), normalized.getSockets());
   }
 
   @Test
   void testModulo2SocketNormalizationForHypervisors() {
-    InventoryHostFacts hypervisor = createHypervisor("A1", "O1", 1);
+    InventoryHostFacts hypervisor = createHypervisor("A1", "O1", 69);
     hypervisor.setSystemProfileCoresPerSocket(4);
     hypervisor.setSystemProfileSockets(3);
 
@@ -345,25 +317,25 @@ class FactNormalizerTest {
     guestData.addHostMapping(hypervisor.getSubscriptionManagerId(), null);
 
     NormalizedFacts normalized = normalizer.normalize(hypervisor, guestData);
-    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
+    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for x86"));
     assertEquals(Integer.valueOf(12), normalized.getCores());
     assertEquals(Integer.valueOf(4), normalized.getSockets());
   }
 
   @Test
   void testModulo2SocketNormalizationForPhysicalHosts() {
-    InventoryHostFacts host = createRhsmHost(Arrays.asList(1), null, clock.now());
+    InventoryHostFacts host = createRhsmHost(Arrays.asList(69), null, clock.now());
     host.setSystemProfileCoresPerSocket(4);
     host.setSystemProfileSockets(3);
     NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
-    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
+    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for x86"));
     assertEquals(Integer.valueOf(12), normalized.getCores());
     assertEquals(Integer.valueOf(4), normalized.getSockets());
   }
 
   @Test
   void testNoModulo2SocketNormalizationForGuests() {
-    InventoryHostFacts guestFacts = createGuest("hyp-id", "A1", "O1", 1);
+    InventoryHostFacts guestFacts = createGuest("hyp-id", "A1", "O1", 69);
     guestFacts.setSystemProfileCoresPerSocket(4);
     guestFacts.setSystemProfileSockets(3);
     assertTrue(guestFacts.isVirtual());
@@ -372,7 +344,7 @@ class FactNormalizerTest {
     guestData.addHostMapping(guestFacts.getHypervisorUuid(), guestFacts.getHypervisorUuid());
 
     NormalizedFacts normalized = normalizer.normalize(guestFacts, guestData);
-    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
+    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for x86"));
     assertEquals(Integer.valueOf(12), normalized.getCores());
     assertEquals(Integer.valueOf(3), normalized.getSockets());
   }
@@ -597,7 +569,7 @@ class FactNormalizerTest {
     facts.setSatelliteSla("Premium");
     facts.setSatelliteUsage("Production");
     NormalizedFacts normalized = normalizer.normalize(facts, hypervisorData());
-    assertThat(normalized.getProducts(), Matchers.contains("RHEL Server", "RHEL"));
+    assertThat(normalized.getProducts(), Matchers.contains("RHEL for x86"));
     assertEquals(ServiceLevel.PREMIUM, normalized.getSla());
     assertEquals(Usage.PRODUCTION, normalized.getUsage());
   }
@@ -612,7 +584,9 @@ class FactNormalizerTest {
     facts.setSyspurposeSla("Standard");
     facts.setSyspurposeUsage("Development/Test");
     NormalizedFacts normalized = normalizer.normalize(facts, hypervisorData());
-    assertThat(normalized.getProducts(), Matchers.contains("RHEL Workstation", "RHEL"));
+    assertThat(
+        normalized.getProducts(),
+        Matchers.containsInAnyOrder("RHEL Workstation", "RHEL " + "for x86"));
     assertEquals(ServiceLevel.STANDARD, normalized.getSla());
     assertEquals(Usage.DEVELOPMENT_TEST, normalized.getUsage());
   }

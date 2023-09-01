@@ -40,7 +40,7 @@ dependencies {
     testImplementation 'org.testcontainers:postgresql'
     testImplementation 'org.testcontainers:testcontainers'
     testImplementation libraries["junit-jupiter"]
-    testImplementation libraries["wiremock-jre8"]
+    testImplementation libraries["wiremock"]
 
 }
 

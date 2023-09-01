@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.Sets;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.HashSet;
@@ -44,10 +45,6 @@ import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.Role;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.json.Measurement.Uom;
-import org.candlepin.subscriptions.registry.TagMapping;
-import org.candlepin.subscriptions.registry.TagMetaData;
-import org.candlepin.subscriptions.registry.TagMetric;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
@@ -63,6 +60,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class MetricUsageCollectorTest {
+
+  public static final String RHEL_ENG_ID = "69";
   MetricUsageCollector metricUsageCollector;
 
   @Mock AccountServiceInventoryRepository accountRepo;
@@ -71,65 +70,17 @@ class MetricUsageCollectorTest {
 
   ApplicationClock clock = new TestClockConfiguration().adjustableClock();
 
-  static final String SERVICE_TYPE = "SERVICE TYPE";
-  static final String RHEL_SERVER_SWATCH_PRODUCT_ID = "RHEL_SERVER";
-  static final String RHEL_WORKSTATION_SWATCH_PRODUCT_ID = "RHEL_WORKSTATION";
-  static final String RHEL = "RHEL";
+  static final String SERVICE_TYPE = "OpenShift Cluster";
+  static final String RHEL_FOR_X86 = "RHEL for x86";
+  static final String RHEL_WORKSTATION_SWATCH_PRODUCT_ID = "RHEL Workstation";
+  static final String RHEL_COMPUTE_NODE_SWATCH_PRODUCT_ID = "RHEL Compute Node";
   static final String OSD_PRODUCT_ID = "OpenShift-dedicated-metrics";
 
-  static final String OSD_METRIC_ID = "OSD-METRIC-ID";
+  static final String OSD_METRIC_ID = "redhat.com:openshift_dedicated:4cpu_hour";
 
   @BeforeEach
   void setup() {
-
-    TagProfile profile =
-        TagProfile.builder()
-            .tagMappings(
-                List.of(
-                    TagMapping.builder()
-                        .value("1234")
-                        .valueType("engId")
-                        .tags(Set.of("RHEL"))
-                        .build(),
-                    TagMapping.builder()
-                        .value("Red Hat Enterprise Linux Server")
-                        .valueType("productName")
-                        .tags(Set.of("RHEL_SERVER"))
-                        .build(),
-                    TagMapping.builder()
-                        .value("Red Hat Enterprise Linux Workstation")
-                        .valueType("productName")
-                        .tags(Set.of("RHEL_WORKSTATION"))
-                        .build(),
-                    TagMapping.builder()
-                        .value("osd")
-                        .valueType("role")
-                        .tags(Set.of(OSD_PRODUCT_ID))
-                        .build()))
-            .tagMetaData(
-                List.of(
-                    TagMetaData.builder()
-                        .tags(
-                            Set.of(
-                                RHEL,
-                                RHEL_SERVER_SWATCH_PRODUCT_ID,
-                                RHEL_WORKSTATION_SWATCH_PRODUCT_ID,
-                                OSD_PRODUCT_ID))
-                        .serviceType(SERVICE_TYPE)
-                        .defaultUsage(Usage.PRODUCTION)
-                        .defaultSla(ServiceLevel.PREMIUM)
-                        .build()))
-            .tagMetrics(
-                List.of(
-                    TagMetric.builder()
-                        .tag(OSD_PRODUCT_ID)
-                        .metricId(OSD_METRIC_ID)
-                        .uom(Uom.CORES)
-                        .build()))
-            .build();
-    profile.initLookups();
-
-    metricUsageCollector = new MetricUsageCollector(profile, accountRepo, eventController, clock);
+    metricUsageCollector = new MetricUsageCollector(accountRepo, eventController, clock);
   }
 
   @Test
@@ -159,7 +110,7 @@ class MetricUsageCollectorTest {
     Event event =
         new Event()
             .withEventId(UUID.randomUUID())
-            .withProductIds(List.of("1234"))
+            .withRole(Event.Role.OSD)
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
             .withInstanceId(UUID.randomUUID().toString())
@@ -174,7 +125,11 @@ class MetricUsageCollectorTest {
     assertNotNull(accountUsageCalculation);
     UsageCalculation.Key usageCalculationKey =
         new UsageCalculation.Key(
-            RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION, BillingProvider.RED_HAT, "sellerAcct");
+            OSD_PRODUCT_ID,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            "sellerAcct");
     assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
     assertEquals(
         Double.valueOf(42.0),
@@ -237,7 +192,7 @@ class MetricUsageCollectorTest {
     Event event =
         new Event()
             .withEventId(UUID.randomUUID())
-            .withProductIds(List.of("1234"))
+            .withProductIds(List.of(RHEL_ENG_ID))
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
             .withInstanceId(UUID.randomUUID().toString())
@@ -249,34 +204,39 @@ class MetricUsageCollectorTest {
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
     when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
         .thenReturn(Stream.of(event));
-    AccountUsageCalculation accountUsageCalculation =
-        metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN);
+
+    metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN);
+
     Host instance = accountServiceInventory.getServiceInstances().get(event.getInstanceId());
     assertNotNull(instance);
+
     Set<HostTallyBucket> expected = new HashSet<>();
-    Set.of(Usage._ANY, Usage.PRODUCTION)
-        .forEach(
-            usage ->
-                Set.of(ServiceLevel._ANY, ServiceLevel.PREMIUM)
-                    .forEach(
-                        sla -> {
-                          for (BillingProvider billingProvider :
-                              Set.of(BillingProvider._ANY, BillingProvider.RED_HAT)) {
-                            for (String billingAcctId : Set.of("sellerAcctId", "_ANY")) {
-                              HostBucketKey key = new HostBucketKey();
-                              key.setProductId(RHEL);
-                              key.setSla(sla);
-                              key.setBillingProvider(billingProvider);
-                              key.setBillingAccountId(billingAcctId);
-                              key.setUsage(usage);
-                              key.setAsHypervisor(false);
-                              HostTallyBucket bucket = new HostTallyBucket();
-                              bucket.setKey(key);
-                              bucket.setHost(instance);
-                              expected.add(bucket);
-                            }
-                          }
-                        }));
+
+    var usages = Set.of(Usage._ANY, Usage.PRODUCTION);
+    var slas = Set.of(ServiceLevel._ANY, ServiceLevel.PREMIUM);
+    var billingProviders = Set.of(BillingProvider._ANY, BillingProvider.RED_HAT);
+    var billingAccountIds = Set.of("sellerAcctId", "_ANY");
+    var tuples = Sets.cartesianProduct(usages, slas, billingProviders, billingAccountIds);
+
+    tuples.forEach(
+        tuple -> {
+          Usage usage = (Usage) tuple.get(0);
+          ServiceLevel sla = (ServiceLevel) tuple.get(1);
+          BillingProvider billingProvider = (BillingProvider) tuple.get(2);
+          String billingAccountId = (String) tuple.get(3);
+
+          HostBucketKey key = new HostBucketKey();
+          key.setProductId(RHEL_FOR_X86);
+          key.setSla(sla);
+          key.setBillingProvider(billingProvider);
+          key.setBillingAccountId(billingAccountId);
+          key.setUsage(usage);
+          key.setAsHypervisor(false);
+          HostTallyBucket bucket = new HostTallyBucket();
+          bucket.setKey(key);
+          bucket.setHost(instance);
+          expected.add(bucket);
+        });
     assertEquals(expected, new HashSet<>(instance.getBuckets()));
   }
 
@@ -286,7 +246,7 @@ class MetricUsageCollectorTest {
     Event event =
         new Event()
             .withEventId(UUID.randomUUID())
-            .withProductIds(List.of("1234"))
+            .withRole(Event.Role.OSD)
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
             .withInstanceId(UUID.randomUUID().toString())
@@ -302,7 +262,11 @@ class MetricUsageCollectorTest {
     assertNotNull(accountUsageCalculation);
     UsageCalculation.Key usageCalculationKey =
         new UsageCalculation.Key(
-            RHEL, ServiceLevel._ANY, Usage.PRODUCTION, BillingProvider.RED_HAT, "sellerAcctId");
+            OSD_PRODUCT_ID,
+            ServiceLevel._ANY,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            "sellerAcctId");
     assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
     assertEquals(
         Double.valueOf(42.0),
@@ -318,7 +282,7 @@ class MetricUsageCollectorTest {
     Event event =
         new Event()
             .withEventId(UUID.randomUUID())
-            .withProductIds(List.of("1234"))
+            .withRole(Event.Role.OSD)
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
             .withInstanceId(UUID.randomUUID().toString())
@@ -334,7 +298,11 @@ class MetricUsageCollectorTest {
     assertNotNull(accountUsageCalculation);
     UsageCalculation.Key usageCalculationKey =
         new UsageCalculation.Key(
-            RHEL, ServiceLevel.PREMIUM, Usage._ANY, BillingProvider.RED_HAT, "sellerAcctId");
+            OSD_PRODUCT_ID,
+            ServiceLevel.PREMIUM,
+            Usage._ANY,
+            BillingProvider.RED_HAT,
+            "sellerAcctId");
     assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
     assertEquals(
         Double.valueOf(42.0),
@@ -396,12 +364,11 @@ class MetricUsageCollectorTest {
         new Event()
             .withEventId(UUID.randomUUID())
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
-            .withServiceType(SERVICE_TYPE)
             .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION)
             .withBillingProvider(Event.BillingProvider.RED_HAT)
-            .withProductIds(List.of("1234"));
+            .withProductIds(List.of(RHEL_ENG_ID));
 
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
     when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
@@ -413,7 +380,7 @@ class MetricUsageCollectorTest {
 
     UsageCalculation.Key engIdKey =
         new UsageCalculation.Key(
-            RHEL, ServiceLevel.PREMIUM, Usage._ANY, BillingProvider.RED_HAT, "_ANY");
+            RHEL_FOR_X86, ServiceLevel.PREMIUM, Usage._ANY, BillingProvider.RED_HAT, "_ANY");
     assertTrue(accountUsageCalculation.containsCalculation(engIdKey));
     assertEquals(
         Double.valueOf(42.0),
@@ -423,7 +390,7 @@ class MetricUsageCollectorTest {
             .getMeasurement(Measurement.Uom.CORES));
 
     // Not defined on the event, should not exist.
-    List.of(RHEL_SERVER_SWATCH_PRODUCT_ID, RHEL_WORKSTATION_SWATCH_PRODUCT_ID)
+    List.of(RHEL_WORKSTATION_SWATCH_PRODUCT_ID, RHEL_COMPUTE_NODE_SWATCH_PRODUCT_ID)
         .forEach(
             swatchProdId -> {
               UsageCalculation.Key key =
@@ -446,7 +413,7 @@ class MetricUsageCollectorTest {
     Event event =
         new Event()
             .withEventId(UUID.randomUUID())
-            .withProductIds(List.of("1234"))
+            .withRole(Event.Role.OSD)
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
             .withInstanceId(UUID.randomUUID().toString())
@@ -462,7 +429,11 @@ class MetricUsageCollectorTest {
     assertNotNull(accountUsageCalculation);
     UsageCalculation.Key usageCalculationKey =
         new UsageCalculation.Key(
-            RHEL, ServiceLevel.PREMIUM, Usage.PRODUCTION, BillingProvider.RED_HAT, "sellerAcctId");
+            OSD_PRODUCT_ID,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            "sellerAcctId");
     assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
     assertEquals(
         Double.valueOf(42.0),

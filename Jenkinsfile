@@ -26,6 +26,32 @@ pipeline {
             when {
                 beforeInput true
                 expression { env.CHANGE_FORK }
+                not {
+                  anyOf {
+                    // Kevin Howell
+                    changeRequest author: "kahowell"
+                    // Lindsey Burnett
+                    changeRequest author: "lindseyburnett"
+                    // Alex Wood
+                    changeRequest author: "awood"
+                    // Michael Stead
+                    changeRequest author: "mstead"
+                    // Kevin Flaherty
+                    changeRequest author: "kflahert"
+                    // Barnaby Court
+                    changeRequest author: "barnabycourt"
+                    // Nikhil Kathole
+                    changeRequest author: "ntkathole"
+                    // Jose Carvajal
+                    changeRequest author: "Sgitario"
+                    // Kenny Synvrit
+                    changeRequest author: "ksynvrit"
+                    // Kartik Shah
+                    changeRequest author: "kartikshahc"
+                    // Vanessa Busch
+                    changeRequest author: "vbusch"
+                  }
+               }
             }
             steps {
                 input 'ok to test?'

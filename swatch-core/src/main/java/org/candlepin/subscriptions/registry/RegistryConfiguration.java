@@ -21,16 +21,27 @@
 package org.candlepin.subscriptions.registry;
 
 import java.io.IOException;
+import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
+import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.core.io.ResourceLoader;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
 /** Configuration that provides the product ID to product map. */
 @Configuration
-@ComponentScan(basePackages = "org.candlepin.subscriptions.registry")
+@ComponentScan(
+    basePackages = "org.candlepin.subscriptions.registry",
+    // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
+    excludeFilters = {
+      @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+      @ComponentScan.Filter(
+          type = FilterType.CUSTOM,
+          classes = AutoConfigurationExcludeFilter.class)
+    })
 public class RegistryConfiguration {
 
   @Bean

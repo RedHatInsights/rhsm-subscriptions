@@ -63,6 +63,8 @@ import org.candlepin.subscriptions.json.BillableUsage.Usage;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -76,7 +78,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @Slf4j
 @ExtendWith(MockitoExtension.class)
 class BillableUsageControllerTest {
-
+  private static SubscriptionDefinitionRegistry originalReference;
   private static ApplicationClock CLOCK = new TestClockConfiguration().adjustableClock();
   private static final String AWS_METRIC_ID = "aws_metric";
 
@@ -89,6 +91,21 @@ class BillableUsageControllerTest {
   private SubscriptionDefinitionRegistry subscriptionDefinitionRegistry;
   private BillableUsageController controller;
   private ContractsController contractsController;
+
+  @BeforeAll
+  static void setupClass() throws Exception {
+    Field instance = SubscriptionDefinitionRegistry.class.getDeclaredField("instance");
+    instance.setAccessible(true);
+    originalReference =
+        (SubscriptionDefinitionRegistry) instance.get(SubscriptionDefinitionRegistry.class);
+  }
+
+  @AfterAll
+  static void tearDown() throws Exception {
+    Field instance = SubscriptionDefinitionRegistry.class.getDeclaredField("instance");
+    instance.setAccessible(true);
+    instance.set(instance, originalReference);
+  }
 
   @BeforeEach
   void setup() {

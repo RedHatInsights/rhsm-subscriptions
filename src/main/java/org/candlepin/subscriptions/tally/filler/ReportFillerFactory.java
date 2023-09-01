@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.tally.filler;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
-import org.candlepin.subscriptions.utilization.api.model.TallyReportDataPoint;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
 
 /** Responsible for creating ReportFiller objects based on granularity. */
@@ -55,9 +54,9 @@ public class ReportFillerFactory {
    * @param granularity the target granularity
    * @return a ReportFiller instance for the specified granularity.
    */
-  public static ReportFiller<TallyReportDataPoint> getDataPointReportFiller(
+  public static ReportFiller<UnroundedTallyReportDataPoint> getDataPointReportFiller(
       ApplicationClock clock, Granularity granularity) {
     SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
-    return new ReportFiller<>(timeAdjuster, new TallyReportDataPointAdapter(clock));
+    return new ReportFiller<>(timeAdjuster, new UnroundedTallyReportDataPointAdapter(clock));
   }
 }

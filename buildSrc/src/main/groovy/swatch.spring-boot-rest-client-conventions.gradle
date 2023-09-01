@@ -62,7 +62,7 @@ dependencies {
     api libraries["jackson-databind-nullable"]
 
     compileOnly 'org.springframework.boot:spring-boot'
-    testImplementation libraries["wiremock-jre8"]
+    testImplementation libraries["wiremock"]
     testImplementation libraries["guava"]
 }
 

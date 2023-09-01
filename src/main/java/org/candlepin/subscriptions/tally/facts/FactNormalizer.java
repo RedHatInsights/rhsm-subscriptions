@@ -20,12 +20,10 @@
  */
 package org.candlepin.subscriptions.tally.facts;
 
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -33,7 +31,6 @@ import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.tally.OrgHostsData;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.slf4j.Logger;
@@ -50,16 +47,11 @@ public class FactNormalizer {
 
   private final ApplicationClock clock;
   private final Duration hostSyncThreshold;
-  private final Map<Integer, Set<String>> engProductIdToSwatchProductIdsMap;
-  private final Map<String, Set<String>> roleToProductsMap;
 
-  public FactNormalizer(
-      ApplicationProperties props, TagProfile tagProfile, ApplicationClock clock) {
+  public FactNormalizer(ApplicationProperties props, ApplicationClock clock) {
     this.clock = clock;
     this.hostSyncThreshold = props.getHostLastSyncThreshold();
     log.info("rhsm-conduit stale threshold: {}", this.hostSyncThreshold);
-    this.engProductIdToSwatchProductIdsMap = tagProfile.getEngProductIdToSwatchProductIdsMap();
-    this.roleToProductsMap = tagProfile.getRoleToTagLookup();
   }
 
   public static boolean isRhelVariant(String product) {
@@ -254,12 +246,11 @@ public class FactNormalizer {
 
     for (String productId : productIds) {
       try {
-        Integer numericProductId = Integer.parseInt(productId);
-        normalizedFacts
-            .getProducts()
-            .addAll(
-                engProductIdToSwatchProductIdsMap.getOrDefault(
-                    numericProductId, Collections.emptySet()));
+        var subscription = SubscriptionDefinition.lookupSubscriptionByEngId(productId);
+        if (subscription.isPresent()) {
+          var variant = subscription.get().findVariantForEngId(productId);
+          variant.ifPresent(v -> normalizedFacts.getProducts().add(v.getTag()));
+        }
       } catch (NumberFormatException e) {
         log.debug("Skipping non-numeric productId: {}", productId);
       }
@@ -292,9 +283,12 @@ public class FactNormalizer {
   private void handleRole(NormalizedFacts normalizedFacts, String role) {
     if (role != null) {
       normalizedFacts.getProducts().removeIf(FactNormalizer::isRhelVariant);
-      normalizedFacts
-          .getProducts()
-          .addAll(roleToProductsMap.getOrDefault(role, Collections.emptySet()));
+
+      var subscription = SubscriptionDefinition.lookupSubscriptionByRole(role);
+      if (subscription.isPresent()) {
+        var variant = subscription.get().findVariantForRole(role);
+        variant.ifPresent(v -> normalizedFacts.getProducts().add(v.getTag()));
+      }
     }
   }
 

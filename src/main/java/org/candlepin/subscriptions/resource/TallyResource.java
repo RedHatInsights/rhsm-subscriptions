@@ -32,6 +32,7 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.UriInfo;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashSet;
@@ -50,6 +51,7 @@ import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.tally.filler.ReportFiller;
 import org.candlepin.subscriptions.tally.filler.ReportFillerFactory;
+import org.candlepin.subscriptions.tally.filler.UnroundedTallyReportDataPoint;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.*;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
@@ -161,13 +163,12 @@ public class TallyResource implements TallyApi {
     List<org.candlepin.subscriptions.db.model.TallySnapshot> snapshots =
         snapshotPage.stream().collect(Collectors.toList());
 
-    List<TallyReportDataPoint> snaps =
+    List<UnroundedTallyReportDataPoint> snaps =
         snapshots.stream()
-            .map(snapshot -> dataPointFromSnapshot(uom, category, snapshot))
+            .map(snapshot -> unroundedDataPointFromSnapshot(uom, category, snapshot))
             .collect(Collectors.toList());
 
     TallyReportData report = new TallyReportData();
-    report.setData(snaps);
     report.setMeta(new TallyReportDataMeta());
     report.getMeta().setGranularity(reportCriteria.getGranularity().asOpenApiEnum());
     report.getMeta().setProduct(productId);
@@ -220,20 +221,24 @@ public class TallyResource implements TallyApi {
     }
 
     if (Boolean.TRUE.equals(useRunningTotalsFormat)) {
-      transformToRunningTotalFormat(report, uom, billingCategory, capacityByDate);
+      snaps = transformToRunningTotalFormat(snaps, uom, billingCategory, capacityByDate);
     }
 
     // Fill the report gaps if no paging was requested.
+    List<UnroundedTallyReportDataPoint> dataPointsToConvert;
     if (reportCriteria.getPageable() == null) {
-      ReportFiller<TallyReportDataPoint> reportFiller =
+      ReportFiller<UnroundedTallyReportDataPoint> reportFiller =
           ReportFillerFactory.getDataPointReportFiller(clock, reportCriteria.getGranularity());
-      report.setData(
+      dataPointsToConvert =
           reportFiller.fillGaps(
-              report.getData(),
-              beginning,
-              ending,
-              Objects.requireNonNullElse(useRunningTotalsFormat, false)));
+              snaps, beginning, ending, Objects.requireNonNullElse(useRunningTotalsFormat, false));
+    } else {
+      dataPointsToConvert = snaps;
     }
+    report.setData(
+        dataPointsToConvert.stream()
+            .map(UnroundedTallyReportDataPoint::toRoundedDataPoint)
+            .toList());
 
     // Set the count last since the report may have gotten filled.
     report.getMeta().setCount(report.getData().size());
@@ -344,21 +349,12 @@ public class TallyResource implements TallyApi {
         .build();
   }
 
-  private TallyReportDataPoint dataPointFromSnapshot(
+  private UnroundedTallyReportDataPoint unroundedDataPointFromSnapshot(
       Uom uom,
       ReportCategory category,
       org.candlepin.subscriptions.db.model.TallySnapshot snapshot) {
-    return new TallyReportDataPoint()
-        .date(snapshot.getSnapshotDate())
-        .value(extractValue(uom, category, snapshot))
-        .hasData(true);
-  }
-
-  private int extractValue(
-      Uom uom,
-      ReportCategory category,
-      org.candlepin.subscriptions.db.model.TallySnapshot snapshot) {
-    return (int) Math.ceil(extractRawValue(uom, category, snapshot));
+    return new UnroundedTallyReportDataPoint(
+        snapshot.getSnapshotDate(), extractRawValue(uom, category, snapshot), true);
   }
 
   private Double extractRawValue(
@@ -487,31 +483,31 @@ public class TallyResource implements TallyApi {
             });
   }
 
-  private void transformToRunningTotalFormat(
-      TallyReportData report,
+  private List<UnroundedTallyReportDataPoint> transformToRunningTotalFormat(
+      List<UnroundedTallyReportDataPoint> snaps,
       Uom uom,
       BillingCategory billingCategory,
       Map<OffsetDateTime, Integer> capacityByDate) {
-    Map<Uom, Integer> runningTotals = new EnumMap<>(Measurement.Uom.class);
-    report
-        .getData()
-        .forEach(
-            snapshot -> {
-              int snapshotTotal = Optional.ofNullable(snapshot.getValue()).orElse(0);
-              Integer newValue = runningTotals.getOrDefault(uom, 0) + snapshotTotal;
+    Map<Uom, Double> runningTotals = new EnumMap<>(Measurement.Uom.class);
+    List<UnroundedTallyReportDataPoint> runningTotalSnaps = new ArrayList<>();
+    snaps.forEach(
+        snapshot -> {
+          double snapshotTotal = Optional.ofNullable(snapshot.value()).orElse(0.0);
+          double newValue = runningTotals.getOrDefault(uom, 0.0) + snapshotTotal;
 
-              int snapshotValue = newValue;
-              Integer capacity =
-                  Optional.ofNullable(capacityByDate.get(clock.startOfDay(snapshot.getDate())))
-                      .orElse(0);
-              if (BillingCategory.PREPAID.equals(billingCategory)) {
-                snapshotValue = Math.min(newValue, capacity);
-              } else if (BillingCategory.ON_DEMAND.equals(billingCategory)) {
-                snapshotValue = Math.max(newValue - capacity, 0);
-              }
+          double snapshotValue = newValue;
+          double capacity = capacityByDate.getOrDefault(clock.startOfDay(snapshot.date()), 0);
+          if (BillingCategory.PREPAID.equals(billingCategory)) {
+            snapshotValue = Math.min(newValue, capacity);
+          } else if (BillingCategory.ON_DEMAND.equals(billingCategory)) {
+            snapshotValue = Math.max(newValue - capacity, 0);
+          }
 
-              snapshot.setValue(snapshotValue);
-              runningTotals.put(uom, newValue);
-            });
+          runningTotalSnaps.add(
+              new UnroundedTallyReportDataPoint(
+                  snapshot.date(), snapshotValue, snapshot.hasData()));
+          runningTotals.put(uom, newValue);
+        });
+    return runningTotalSnaps;
   }
 }

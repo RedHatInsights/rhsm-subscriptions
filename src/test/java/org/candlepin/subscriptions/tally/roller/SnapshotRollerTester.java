@@ -45,7 +45,7 @@ import org.springframework.data.domain.PageRequest;
 /** Since the roller tests are very similar, this class provides some common test scenarios. */
 @SuppressWarnings("linelength")
 public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
-  private String testProduct = "RHEL";
+  private String testProduct = "RHEL for x86";
 
   private TallySnapshotRepository repository;
   private R roller;
