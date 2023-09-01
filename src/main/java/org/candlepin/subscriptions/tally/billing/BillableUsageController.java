@@ -94,11 +94,12 @@ public class BillableUsageController {
 
   /**
    * Find the latest remitted value and billing factor used for that remittance in the database.
-   * Convert it to use the billing factor that's currently listed in the tag profile. This might be
-   * a no-op if the factor hasn't changed. BillableUsage should be the difference between the
-   * current usage and the previous usage at the newest tag profile billing factor. Integer-only
-   * billing is then applied before remitting. calculations that are need to bill any unbilled
-   * amount and to record any unbilled amount
+   * Convert it to use the billing factor that's currently listed in the
+   * swatch-product-configuration library. This might be a no-op if the factor hasn't changed.
+   * BillableUsage should be the difference between the current usage and the previous usage at the
+   * newest swatch-product-configuration library billing factor. Integer-only billing is then
+   * applied before remitting. calculations that are need to bill any unbilled amount and to record
+   * any unbilled amount
    *
    * @param applicableUsage The total amount of measured usage used during the calculation.
    * @param usage The specific event within a given month to determine what need to be billed

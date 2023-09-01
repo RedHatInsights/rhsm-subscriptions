@@ -68,13 +68,6 @@ openApiGenerate {
     ]
 }
 
-processResources {
-    // copy tag profile into the project
-    from("../swatch-core/src/main/resources") {
-        include "tag_profile.yaml"
-    }
-}
-
 // Let gradle know that if billable_usage.yaml changes, openApiGenerate should run
 tasks.openApiGenerate.inputs.file("../swatch-core/schemas/billable_usage.yaml")
 

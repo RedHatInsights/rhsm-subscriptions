@@ -43,6 +43,6 @@ public class BillingUnit implements Unit {
     billingFactor =
         metricOptional
             .map(Metric::getBillingFactor)
-            .orElse(1.0); // get configured billingFactor in tag_profile yaml
+            .orElse(1.0); // get configured billingFactor from swatch-product-configuration library
   }
 }

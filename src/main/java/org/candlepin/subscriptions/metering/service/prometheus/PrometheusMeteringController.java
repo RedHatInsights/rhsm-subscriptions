@@ -162,7 +162,8 @@ public class PrometheusMeteringController {
 
                       // NOTE: Role comes from the product label despite its name. The values set
                       // here are NOT engineering or swatch product IDs. They map to the roles in
-                      // the tag profile. For openshift, the values will be 'ocp' or 'osd'.
+                      // the swatch-product-configuration library. For openshift, the values will
+                      // be 'ocp' or 'osd'.
                       String role = product == null ? resourceName : product;
                       String billingProvider = labels.get("billing_marketplace");
                       String billingAccountId = labels.get("billing_marketplace_account");
@@ -295,7 +296,7 @@ public class PrometheusMeteringController {
 
   private String buildPromQLForMetering(String orgId, Metric tagMetric) {
 
-    // Default the query template if the tag profile didn't specify one.
+    // Default the query template if the swatch-product-configuration library didn't specify one.
     if (Objects.nonNull(tagMetric.getPrometheus())
         && !StringUtils.hasText(tagMetric.getPrometheus().getQueryKey())) {
       tagMetric.getPrometheus().setQueryKey(QueryBuilder.DEFAULT_METRIC_QUERY_KEY);
