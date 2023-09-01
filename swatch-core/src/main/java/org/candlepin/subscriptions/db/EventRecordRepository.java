@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.db;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -36,7 +37,7 @@ import org.springframework.data.repository.query.Param;
  * @see org.candlepin.subscriptions.json.Event
  */
 @SuppressWarnings({"linelength", "indentation"})
-public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> {
+public interface EventRecordRepository extends JpaRepository<EventRecord, EventKey> {
 
   /**
    * Fetch a stream of events for a given account for a given time range.
@@ -167,4 +168,6 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
           @Param("end") OffsetDateTime end);
 
   void deleteByOrgId(String orgId);
+
+  void deleteByEventId(UUID eventId);
 }

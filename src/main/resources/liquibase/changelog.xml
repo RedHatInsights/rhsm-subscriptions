@@ -124,5 +124,8 @@
     <include file="liquibase/202308231356-add-metric-id-tally-measurements.xml"/>
     <include file="liquibase/202308231456-drop-uom-column-tally-measurements.xml"/>
     <include file="liquibase/202309111412-drop-subscription-capacity-table.xml"/>
+    <include file="liquibase/202309011316-rename-id-event-record.xml"/>
+    <!-- Uncomment once the above changeset has landed in prod -->
+    <!-- <include file="liquibase/202309011416-drop-id-event-record.xml"/> -->
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

@@ -179,5 +179,9 @@ public class PrometheusQueryWiremockExtension
               .withQueryParam(END_PARAM, equalTo(Long.toString(end.toEpochSecond())))
               .withQueryParam(STEP_PARAM, equalTo(String.valueOf(step))));
     }
+
+    public void resetScenario() {
+      extension.prometheusServer.resetScenario(STARTED);
+    }
   }
 }

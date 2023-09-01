@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.event;
 
 import static org.candlepin.subscriptions.util.EventConstants.CLEAN_UP_EVENT_TYPE_PREFIX;
 
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.*;
@@ -115,21 +114,6 @@ public class EventController {
         .collect(Collectors.toList());
   }
 
-  /**
-   * Fetch a single Event by its ID.
-   *
-   * @param eventId Event id as a UUID
-   * @return Event if present, otherwise Optional.empty()
-   */
-  @Transactional
-  public Optional<Event> getEvent(UUID eventId) {
-    try {
-      return Optional.of(repo.getOne(eventId).getEvent());
-    } catch (EntityNotFoundException e) {
-      return Optional.empty();
-    }
-  }
-
   @Transactional
   public void deleteEvents(Collection<Event> toDelete) {
     repo.deleteInBatch(toDelete.stream().map(EventRecord::new).collect(Collectors.toList()));
@@ -137,7 +121,7 @@ public class EventController {
 
   @Transactional
   public void deleteEvent(UUID eventId) {
-    repo.deleteById(eventId);
+    repo.deleteByEventId(eventId);
   }
 
   @Transactional

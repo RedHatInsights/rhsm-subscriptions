@@ -25,6 +25,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
@@ -49,6 +50,7 @@ import org.candlepin.subscriptions.json.Event;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@IdClass(EventKey.class)
 public class EventRecord {
 
   /**
@@ -64,7 +66,7 @@ public class EventRecord {
     if (event.getEventId() == null) {
       event.setEventId(UUID.randomUUID());
     }
-    this.id = event.getEventId();
+    this.eventId = event.getEventId();
     this.event = event;
     this.accountNumber = event.getAccountNumber();
     this.orgId = event.getOrgId();
@@ -74,24 +76,29 @@ public class EventRecord {
     this.timestamp = event.getTimestamp();
   }
 
-  @Id private UUID id;
+  @Column(name = "event_id")
+  private UUID eventId;
 
   @Column(name = "account_number")
   private String accountNumber;
 
+  @Id
   @Column(name = "org_id")
   private String orgId;
 
+  @Id
   @Column(name = "event_type")
   private String eventType;
 
+  @Id
   @Column(name = "event_source")
   private String eventSource;
 
+  @Id
   @Column(name = "instance_id")
   private String instanceId;
 
-  private OffsetDateTime timestamp;
+  @Id private OffsetDateTime timestamp;
 
   @Valid
   @Column(name = "data")
