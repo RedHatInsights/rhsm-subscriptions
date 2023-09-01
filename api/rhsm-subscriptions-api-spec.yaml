@@ -141,7 +141,7 @@ paths:
         in: path
         required: true
         schema:
-          $ref: '#/components/schemas/MetricId'
+          type: string
         description: "The metric ID to fetch graph data for"
       - name: category
         in: query
@@ -389,7 +389,7 @@ paths:
         in: path
         required: true
         schema:
-          $ref: '#/components/schemas/MetricId'
+          type: string
         description: "The metric ID for the product we wish to query"
       - name: offset
         in: query
@@ -869,7 +869,7 @@ paths:
         - name: uom
           in: query
           schema:
-            $ref: '#/components/schemas/MetricId'
+            type: string
           description: "Include only hosts with a specific unit of measure"
         - name: billing_provider
           in: query
@@ -1155,17 +1155,6 @@ components:
         - rhods
         - BASILISK
         - rosa
-    MetricId:
-      type: string
-      enum:
-        # Cores is the same as core-hours
-        - Cores
-        - Sockets
-        - Core-seconds
-        - Instance-hours
-        - Storage-gibibyte-months
-        - Storage-gibibytes
-        - Transfer-gibibytes
     ReportCategory:
       type: string
       enum:
@@ -1507,7 +1496,7 @@ components:
             product:
               $ref: '#/components/schemas/ProductId'
             metric_id:
-              $ref: '#/components/schemas/MetricId'
+              type: string
             granularity:
               $ref: '#/components/schemas/GranularityType'
             service_level:

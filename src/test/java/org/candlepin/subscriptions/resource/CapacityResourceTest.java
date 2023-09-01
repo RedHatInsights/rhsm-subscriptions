@@ -25,6 +25,7 @@ import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_F
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Response;
 import java.time.OffsetDateTime;
@@ -51,7 +52,6 @@ import org.candlepin.subscriptions.utilization.api.model.CapacityReportByMetricI
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshotByMetricId;
 import org.candlepin.subscriptions.utilization.api.model.GranularityType;
-import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
@@ -76,6 +76,8 @@ class CapacityResourceTest {
 
   private static final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
   private static final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
+  private static final String METRIC_ID_CORES = "Cores";
+  private static final String METRIC_ID_SOCKETS = "Sockets";
 
   @MockBean SubscriptionRepository subscriptionRepository;
   @MockBean PageLinkCreator pageLinkCreator;
@@ -130,7 +132,7 @@ class CapacityResourceTest {
   }
 
   private Map<SubscriptionMeasurementKey, Double> basicMeasurement() {
-    return createMeasurement("PHYSICAL", MetricId.CORES, 42.0);
+    return createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_CORES), 42.0);
   }
 
   @Test
@@ -279,17 +281,17 @@ class CapacityResourceTest {
 
   @Test
   void testShouldCalculateCapacityBasedOnMultipleSubscriptions() {
-    var hypSock1 = createMeasurement("HYPERVISOR", MetricId.SOCKETS, 5.0);
-    var hypSock2 = createMeasurement("HYPERVISOR", MetricId.SOCKETS, 7.0);
+    var hypSock1 = createMeasurement("HYPERVISOR", MetricId.fromString(METRIC_ID_SOCKETS), 5.0);
+    var hypSock2 = createMeasurement("HYPERVISOR", MetricId.fromString(METRIC_ID_SOCKETS), 7.0);
 
-    var hypCore1 = createMeasurement("HYPERVISOR", MetricId.CORES, 20.0);
-    var hypCore2 = createMeasurement("HYPERVISOR", MetricId.CORES, 14.0);
+    var hypCore1 = createMeasurement("HYPERVISOR", MetricId.fromString(METRIC_ID_CORES), 20.0);
+    var hypCore2 = createMeasurement("HYPERVISOR", MetricId.fromString(METRIC_ID_CORES), 14.0);
 
-    var sock1 = createMeasurement("PHYSICAL", MetricId.SOCKETS, 2.0);
-    var sock2 = createMeasurement("PHYSICAL", MetricId.SOCKETS, 11.0);
+    var sock1 = createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_SOCKETS), 2.0);
+    var sock2 = createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_SOCKETS), 11.0);
 
-    var cores1 = createMeasurement("PHYSICAL", MetricId.CORES, 8.0);
-    var cores2 = createMeasurement("PHYSICAL", MetricId.CORES, 22.0);
+    var cores1 = createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_CORES), 8.0);
+    var cores2 = createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_CORES), 22.0);
 
     var subs =
         Stream.of(sock1, sock2, cores1, cores2, hypSock1, hypSock2, hypCore1, hypCore2)
@@ -477,7 +479,7 @@ class CapacityResourceTest {
             .beginning(min)
             .ending(max)
             .hypervisorReportCategory(HypervisorReportCategory.NON_HYPERVISOR)
-            .metricId(MetricId.CORES.toString())
+            .metricId(METRIC_ID_CORES)
             .build();
 
     Subscription s = new Subscription();
@@ -489,7 +491,7 @@ class CapacityResourceTest {
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
             RHEL_FOR_ARM,
-            MetricId.CORES,
+            METRIC_ID_CORES,
             GranularityType.DAILY,
             min,
             max,
@@ -513,7 +515,7 @@ class CapacityResourceTest {
             .usage(Usage._ANY)
             .beginning(min)
             .ending(max)
-            .metricId(MetricId.CORES.toString())
+            .metricId(METRIC_ID_CORES)
             .build();
 
     Subscription s = new Subscription();
@@ -525,7 +527,7 @@ class CapacityResourceTest {
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
             RHEL_FOR_ARM,
-            MetricId.CORES,
+            METRIC_ID_CORES,
             GranularityType.DAILY,
             min,
             max,
@@ -549,7 +551,7 @@ class CapacityResourceTest {
             .usage(Usage.PRODUCTION)
             .beginning(min)
             .ending(max)
-            .metricId(MetricId.CORES.toString())
+            .metricId(METRIC_ID_CORES)
             .build();
 
     Subscription s = new Subscription();
@@ -561,7 +563,7 @@ class CapacityResourceTest {
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
             RHEL_FOR_ARM,
-            MetricId.CORES,
+            METRIC_ID_CORES,
             GranularityType.DAILY,
             min,
             max,
@@ -585,7 +587,7 @@ class CapacityResourceTest {
             .usage(Usage._ANY)
             .beginning(min)
             .ending(max)
-            .metricId(MetricId.CORES.toString())
+            .metricId(METRIC_ID_CORES)
             .build();
 
     Subscription s = new Subscription();
@@ -597,7 +599,7 @@ class CapacityResourceTest {
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
             RHEL_FOR_ARM,
-            MetricId.CORES,
+            METRIC_ID_CORES,
             GranularityType.DAILY,
             min,
             max,
@@ -621,7 +623,7 @@ class CapacityResourceTest {
             .usage(Usage._ANY)
             .beginning(min)
             .ending(max)
-            .metricId(MetricId.CORES.toString())
+            .metricId(METRIC_ID_CORES)
             .build();
 
     Subscription s = new Subscription();
@@ -633,7 +635,7 @@ class CapacityResourceTest {
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
             RHEL_FOR_ARM,
-            MetricId.CORES,
+            METRIC_ID_CORES,
             GranularityType.DAILY,
             min,
             max,
@@ -648,17 +650,17 @@ class CapacityResourceTest {
 
   @Test
   void testReportByMetricIdShouldCalculateCapacityBasedOnMultipleSubscriptions() {
-    var hypSock1 = createMeasurement("HYPERVISOR", MetricId.SOCKETS, 5.0);
-    var hypSock2 = createMeasurement("HYPERVISOR", MetricId.SOCKETS, 7.0);
+    var hypSock1 = createMeasurement("HYPERVISOR", MetricId.fromString(METRIC_ID_SOCKETS), 5.0);
+    var hypSock2 = createMeasurement("HYPERVISOR", MetricId.fromString(METRIC_ID_SOCKETS), 7.0);
 
-    var hypCore1 = createMeasurement("HYPERVISOR", MetricId.CORES, 20.0);
-    var hypCore2 = createMeasurement("HYPERVISOR", MetricId.CORES, 14.0);
+    var hypCore1 = createMeasurement("HYPERVISOR", MetricId.fromString(METRIC_ID_CORES), 20.0);
+    var hypCore2 = createMeasurement("HYPERVISOR", MetricId.fromString(METRIC_ID_CORES), 14.0);
 
-    var sock1 = createMeasurement("PHYSICAL", MetricId.SOCKETS, 2.0);
-    var sock2 = createMeasurement("PHYSICAL", MetricId.SOCKETS, 11.0);
+    var sock1 = createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_SOCKETS), 2.0);
+    var sock2 = createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_SOCKETS), 11.0);
 
-    var cores1 = createMeasurement("PHYSICAL", MetricId.CORES, 8.0);
-    var cores2 = createMeasurement("PHYSICAL", MetricId.CORES, 22.0);
+    var cores1 = createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_CORES), 8.0);
+    var cores2 = createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_CORES), 22.0);
 
     var subs =
         Stream.of(sock1, sock2, cores1, cores2, hypSock1, hypSock2, hypCore1, hypCore2)
@@ -684,7 +686,7 @@ class CapacityResourceTest {
             .usage(null)
             .beginning(min)
             .ending(max)
-            .metricId(MetricId.CORES.toString())
+            .metricId(METRIC_ID_CORES)
             .build();
 
     when(subscriptionRepository.findByCriteria(dbReportCriteria, Sort.unsorted())).thenReturn(subs);
@@ -692,7 +694,7 @@ class CapacityResourceTest {
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
             RHEL_FOR_ARM,
-            MetricId.CORES,
+            METRIC_ID_CORES,
             GranularityType.DAILY,
             min,
             max,
@@ -708,10 +710,10 @@ class CapacityResourceTest {
 
   @Test
   void testReportByMetricIdShouldCalculateCapacityAllSockets() {
-    var hypSock = createMeasurement("HYPERVISOR", MetricId.SOCKETS, 5.0);
-    var hypCore = createMeasurement("HYPERVISOR", MetricId.CORES, 20.0);
-    var sock = createMeasurement("PHYSICAL", MetricId.SOCKETS, 2.0);
-    var cores = createMeasurement("PHYSICAL", MetricId.CORES, 8.0);
+    var hypSock = createMeasurement("HYPERVISOR", MetricId.fromString(METRIC_ID_SOCKETS), 5.0);
+    var hypCore = createMeasurement("HYPERVISOR", MetricId.fromString(METRIC_ID_CORES), 20.0);
+    var sock = createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_SOCKETS), 2.0);
+    var cores = createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_CORES), 8.0);
 
     var subs =
         Stream.of(hypSock, hypCore, sock, cores)
@@ -737,7 +739,7 @@ class CapacityResourceTest {
             .usage(null)
             .beginning(min)
             .ending(max)
-            .metricId(MetricId.SOCKETS.toString())
+            .metricId(METRIC_ID_SOCKETS)
             .build();
 
     when(subscriptionRepository.findByCriteria(dbReportCriteria, Sort.unsorted())).thenReturn(subs);
@@ -745,7 +747,7 @@ class CapacityResourceTest {
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
             RHEL_FOR_ARM,
-            MetricId.SOCKETS,
+            METRIC_ID_SOCKETS,
             GranularityType.DAILY,
             min,
             max,
@@ -761,10 +763,10 @@ class CapacityResourceTest {
 
   @Test
   void testReportByMetricIdShouldCalculateCapacityVirtualSockets() {
-    var hypSock = createMeasurement("HYPERVISOR", MetricId.SOCKETS, 5.0);
-    var hypCore = createMeasurement("HYPERVISOR", MetricId.CORES, 20.0);
-    var sock = createMeasurement("PHYSICAL", MetricId.SOCKETS, 2.0);
-    var cores = createMeasurement("PHYSICAL", MetricId.CORES, 8.0);
+    var hypSock = createMeasurement("HYPERVISOR", MetricId.fromString(METRIC_ID_SOCKETS), 5.0);
+    var hypCore = createMeasurement("HYPERVISOR", MetricId.fromString(METRIC_ID_CORES), 20.0);
+    var sock = createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_SOCKETS), 2.0);
+    var cores = createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_CORES), 8.0);
 
     var newMeasurements = new HashMap<SubscriptionMeasurementKey, Double>();
 
@@ -781,7 +783,7 @@ class CapacityResourceTest {
             .beginning(min)
             .ending(max)
             .hypervisorReportCategory(HypervisorReportCategory.NON_HYPERVISOR)
-            .metricId(MetricId.SOCKETS.toString())
+            .metricId(METRIC_ID_SOCKETS)
             .build();
 
     when(subscriptionRepository.findByCriteria(dbReportCriteria, Sort.unsorted()))
@@ -790,7 +792,7 @@ class CapacityResourceTest {
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
             RHEL_FOR_ARM,
-            MetricId.SOCKETS,
+            METRIC_ID_SOCKETS,
             GranularityType.DAILY,
             min,
             max,
@@ -806,10 +808,10 @@ class CapacityResourceTest {
 
   @Test
   void testReportByMetricIdShouldCalculateCapacityPhysicalSockets() {
-    var hypSock = createMeasurement("HYPERVISOR", MetricId.SOCKETS, 5.0);
-    var hypCore = createMeasurement("HYPERVISOR", MetricId.CORES, 20.0);
-    var sock = createMeasurement("PHYSICAL", MetricId.SOCKETS, 2.0);
-    var cores = createMeasurement("PHYSICAL", MetricId.CORES, 8.0);
+    var hypSock = createMeasurement("HYPERVISOR", MetricId.fromString(METRIC_ID_SOCKETS), 5.0);
+    var hypCore = createMeasurement("HYPERVISOR", MetricId.fromString(METRIC_ID_CORES), 20.0);
+    var sock = createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_SOCKETS), 2.0);
+    var cores = createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_CORES), 8.0);
 
     var newMeasurements = new HashMap<SubscriptionMeasurementKey, Double>();
 
@@ -823,7 +825,7 @@ class CapacityResourceTest {
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
             RHEL_FOR_ARM,
-            MetricId.SOCKETS,
+            METRIC_ID_SOCKETS,
             GranularityType.DAILY,
             min,
             max,
@@ -839,10 +841,10 @@ class CapacityResourceTest {
 
   @Test
   void testReportByMetricIdShouldCalculateCapacityAllCores() {
-    var hypSock = createMeasurement("HYPERVISOR", MetricId.SOCKETS, 5.0);
-    var hypCore = createMeasurement("HYPERVISOR", MetricId.CORES, 20.0);
-    var sock = createMeasurement("PHYSICAL", MetricId.SOCKETS, 2.0);
-    var cores = createMeasurement("PHYSICAL", MetricId.CORES, 8.0);
+    var hypSock = createMeasurement("HYPERVISOR", MetricId.fromString(METRIC_ID_SOCKETS), 5.0);
+    var hypCore = createMeasurement("HYPERVISOR", MetricId.fromString(METRIC_ID_CORES), 20.0);
+    var sock = createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_SOCKETS), 2.0);
+    var cores = createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_CORES), 8.0);
 
     var newMeasurements = new HashMap<SubscriptionMeasurementKey, Double>();
 
@@ -858,7 +860,7 @@ class CapacityResourceTest {
             .usage(null)
             .beginning(min)
             .ending(max)
-            .metricId(MetricId.CORES.toString())
+            .metricId(METRIC_ID_CORES)
             .build();
 
     when(subscriptionRepository.findByCriteria(dbReportCriteria, Sort.unsorted()))
@@ -867,7 +869,7 @@ class CapacityResourceTest {
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
             RHEL_FOR_ARM,
-            MetricId.CORES,
+            METRIC_ID_CORES,
             GranularityType.DAILY,
             min,
             max,
@@ -883,10 +885,10 @@ class CapacityResourceTest {
 
   @Test
   void testReportByMetricIdShouldCalculateCapacityVirtualCores() {
-    var hypSock = createMeasurement("HYPERVISOR", MetricId.SOCKETS, 5.0);
-    var hypCore = createMeasurement("HYPERVISOR", MetricId.CORES, 20.0);
-    var sock = createMeasurement("PHYSICAL", MetricId.SOCKETS, 2.0);
-    var cores = createMeasurement("PHYSICAL", MetricId.CORES, 8.0);
+    var hypSock = createMeasurement("HYPERVISOR", MetricId.fromString(METRIC_ID_SOCKETS), 5.0);
+    var hypCore = createMeasurement("HYPERVISOR", MetricId.fromString(METRIC_ID_CORES), 20.0);
+    var sock = createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_SOCKETS), 2.0);
+    var cores = createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_CORES), 8.0);
 
     var newMeasurements = new HashMap<SubscriptionMeasurementKey, Double>();
 
@@ -903,7 +905,7 @@ class CapacityResourceTest {
             .beginning(min)
             .ending(max)
             .hypervisorReportCategory(HypervisorReportCategory.NON_HYPERVISOR)
-            .metricId(MetricId.CORES.toString())
+            .metricId(METRIC_ID_CORES)
             .build();
 
     when(subscriptionRepository.findByCriteria(dbReportCriteria, Sort.unsorted()))
@@ -912,7 +914,7 @@ class CapacityResourceTest {
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
             RHEL_FOR_ARM,
-            MetricId.CORES,
+            METRIC_ID_CORES,
             GranularityType.DAILY,
             min,
             max,
@@ -928,10 +930,10 @@ class CapacityResourceTest {
 
   @Test
   void testReportByMetricIdShouldCalculateCapacityPhysicalCores() {
-    var hypSock = createMeasurement("HYPERVISOR", MetricId.SOCKETS, 5.0);
-    var hypCore = createMeasurement("HYPERVISOR", MetricId.CORES, 20.0);
-    var sock = createMeasurement("PHYSICAL", MetricId.SOCKETS, 2.0);
-    var cores = createMeasurement("PHYSICAL", MetricId.CORES, 8.0);
+    var hypSock = createMeasurement("HYPERVISOR", MetricId.fromString(METRIC_ID_SOCKETS), 5.0);
+    var hypCore = createMeasurement("HYPERVISOR", MetricId.fromString(METRIC_ID_CORES), 20.0);
+    var sock = createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_SOCKETS), 2.0);
+    var cores = createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_CORES), 8.0);
 
     var newMeasurements = new HashMap<SubscriptionMeasurementKey, Double>();
 
@@ -948,7 +950,7 @@ class CapacityResourceTest {
             .beginning(min)
             .ending(max)
             .hypervisorReportCategory(HypervisorReportCategory.NON_HYPERVISOR)
-            .metricId(MetricId.CORES.toString())
+            .metricId(METRIC_ID_CORES)
             .build();
 
     when(subscriptionRepository.findByCriteria(dbReportCriteria, Sort.unsorted()))
@@ -957,7 +959,7 @@ class CapacityResourceTest {
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
             RHEL_FOR_ARM,
-            MetricId.CORES,
+            METRIC_ID_CORES,
             GranularityType.DAILY,
             min,
             max,
@@ -979,7 +981,7 @@ class CapacityResourceTest {
             () -> {
               resource.getCapacityReportByMetricId(
                   RHEL_FOR_ARM,
-                  MetricId.CORES,
+                  METRIC_ID_CORES,
                   GranularityType.DAILY,
                   min,
                   max,
@@ -1003,7 +1005,7 @@ class CapacityResourceTest {
             .usage(Usage._ANY)
             .beginning(min)
             .ending(max)
-            .metricId(MetricId.CORES.toString())
+            .metricId(METRIC_ID_CORES)
             .build();
 
     Subscription s = new Subscription();
@@ -1014,7 +1016,7 @@ class CapacityResourceTest {
 
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
-            RHEL_FOR_ARM, MetricId.CORES, GranularityType.DAILY, min, max, 1, 1, null, null, null);
+            RHEL_FOR_ARM, METRIC_ID_CORES, GranularityType.DAILY, min, max, 1, 1, null, null, null);
 
     assertEquals(1, report.getData().size());
     assertEquals(
@@ -1030,7 +1032,7 @@ class CapacityResourceTest {
         () -> {
           resource.getCapacityReportByMetricId(
               RHEL_FOR_ARM,
-              MetricId.CORES,
+              METRIC_ID_CORES,
               GranularityType.DAILY,
               min,
               max,
@@ -1052,7 +1054,7 @@ class CapacityResourceTest {
         () -> {
           resource.getCapacityReportByMetricId(
               RHEL_FOR_ARM,
-              MetricId.CORES,
+              METRIC_ID_CORES,
               GranularityType.DAILY,
               min,
               max,
@@ -1079,7 +1081,7 @@ class CapacityResourceTest {
             .beginning(min)
             .ending(max)
             .hypervisorReportCategory(HypervisorReportCategory.HYPERVISOR)
-            .metricId(MetricId.CORES.toString())
+            .metricId(METRIC_ID_CORES)
             .build();
 
     s.setSubscriptionMeasurements(basicMeasurement());
@@ -1091,7 +1093,7 @@ class CapacityResourceTest {
         resource.getCapacitiesByMetricId(
             "owner123456",
             RHEL_FOR_ARM,
-            MetricId.CORES,
+            MetricId.fromString(METRIC_ID_CORES),
             HypervisorReportCategory.HYPERVISOR,
             ServiceLevel.STANDARD,
             Usage.PRODUCTION,
@@ -1115,7 +1117,8 @@ class CapacityResourceTest {
     var limited = datedSubscription(begin, max);
     limited.setSubscriptionId("limited123");
 
-    limited.setSubscriptionMeasurements(createMeasurement("PHYSICAL", MetricId.CORES, 4.0));
+    limited.setSubscriptionMeasurements(
+        createMeasurement("PHYSICAL", MetricId.fromString(METRIC_ID_CORES), 4.0));
 
     var limitedOffering = Offering.builder().sku("limitedsku").hasUnlimitedUsage(false).build();
     limited.setOffering(limitedOffering);
@@ -1128,7 +1131,7 @@ class CapacityResourceTest {
             .usage(null)
             .beginning(min)
             .ending(max)
-            .metricId(MetricId.CORES.toString())
+            .metricId(METRIC_ID_CORES)
             .build();
 
     when(subscriptionRepository.findByCriteria(dbReportCriteria, Sort.unsorted()))
@@ -1147,7 +1150,7 @@ class CapacityResourceTest {
     CapacityReportByMetricId report =
         resource.getCapacityReportByMetricId(
             RHEL_FOR_ARM,
-            MetricId.CORES,
+            METRIC_ID_CORES,
             GranularityType.DAILY,
             min,
             max,
@@ -1169,7 +1172,7 @@ class CapacityResourceTest {
             () ->
                 resource.getCapacityReportByMetricId(
                     RHEL_FOR_ARM,
-                    MetricId.CORES,
+                    METRIC_ID_CORES,
                     GranularityType.HOURLY,
                     min,
                     max,
@@ -1192,7 +1195,7 @@ class CapacityResourceTest {
     assertDoesNotThrow(
         () ->
             resource.getCapacityReportByMetricId(
-                productId, MetricId.CORES, granularity, min, max, null, null, null, null, null));
+                productId, METRIC_ID_CORES, granularity, min, max, null, null, null, null, null));
   }
 
   private static Stream<Arguments> generateFinestGranularityCases() {
@@ -1201,5 +1204,23 @@ class CapacityResourceTest {
         Arguments.of(RHEL_FOR_ARM, GranularityType.YEARLY),
         Arguments.of(BASILISK, GranularityType.YEARLY),
         Arguments.of(RHEL_FOR_ARM, GranularityType.DAILY));
+  }
+
+  @Test()
+  void testGetCapacityReportByMetricIdThrowsExceptionForUnknownMetricId() {
+    assertThrows(
+        BadRequestException.class,
+        () ->
+            resource.getCapacityReportByMetricId(
+                RHEL_FOR_ARM,
+                "NotAMetricId",
+                GranularityType.DAILY,
+                min,
+                max,
+                null,
+                null,
+                ReportCategory.PHYSICAL,
+                null,
+                null));
   }
 }

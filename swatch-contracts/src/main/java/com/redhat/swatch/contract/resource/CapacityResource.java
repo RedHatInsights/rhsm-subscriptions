@@ -22,7 +22,6 @@ package com.redhat.swatch.contract.resource;
 
 import com.redhat.swatch.contract.openapi.model.CapacityReportByMetricId;
 import com.redhat.swatch.contract.openapi.model.GranularityType;
-import com.redhat.swatch.contract.openapi.model.MetricId;
 import com.redhat.swatch.contract.openapi.model.ProductId;
 import com.redhat.swatch.contract.openapi.model.ReportCategory;
 import com.redhat.swatch.contract.openapi.model.ServiceLevelType;
@@ -42,7 +41,7 @@ public class CapacityResource implements CapacityApi {
   @RolesAllowed({"customer"})
   public CapacityReportByMetricId getCapacityReportByMetricId(
       ProductId productId,
-      MetricId metricId,
+      String metricId,
       GranularityType granularity,
       OffsetDateTime beginning,
       OffsetDateTime ending,

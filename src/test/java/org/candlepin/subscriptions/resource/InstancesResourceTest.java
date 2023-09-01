@@ -495,7 +495,7 @@ class InstancesResourceTest {
         null,
         ServiceLevelType.PREMIUM,
         UsageType.PRODUCTION,
-        MetricId.CORES,
+        "Cores",
         BillingProviderType.RED_HAT,
         null,
         null,
@@ -560,7 +560,7 @@ class InstancesResourceTest {
         null,
         ServiceLevelType.PREMIUM,
         UsageType.PRODUCTION,
-        MetricId.SOCKETS,
+        "Sockets",
         BillingProviderType.RED_HAT,
         null,
         null,
@@ -585,5 +585,27 @@ class InstancesResourceTest {
             any(),
             any(),
             any());
+  }
+
+  @Test()
+  void testGetInstancesByProductThrowsExceptionForUnknownMetricId() {
+    assertThrows(
+        BadRequestException.class,
+        () ->
+            resource.getInstancesByProduct(
+                RHOSAK,
+                null,
+                null,
+                ServiceLevelType.PREMIUM,
+                UsageType.PRODUCTION,
+                "NotAMetricId",
+                BillingProviderType.RED_HAT,
+                null,
+                null,
+                null,
+                null,
+                null,
+                InstanceReportSort.DISPLAY_NAME,
+                null));
   }
 }

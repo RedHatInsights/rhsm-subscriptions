@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.resource;
 
 import com.google.common.collect.ImmutableMap;
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import jakarta.ws.rs.BadRequestException;
@@ -58,7 +59,6 @@ import org.candlepin.subscriptions.utilization.api.model.InstanceMeta;
 import org.candlepin.subscriptions.utilization.api.model.InstanceReportSort;
 import org.candlepin.subscriptions.utilization.api.model.InstanceResponse;
 import org.candlepin.subscriptions.utilization.api.model.MetaCount;
-import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.candlepin.subscriptions.utilization.api.model.PageLinks;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
@@ -140,7 +140,7 @@ public class InstancesResource implements InstancesApi {
       Integer limit,
       ServiceLevelType sla,
       UsageType usage,
-      MetricId uom,
+      String uom,
       BillingProviderType billingProviderType,
       String billingAccountId,
       String displayNameContains,
@@ -161,11 +161,22 @@ public class InstancesResource implements InstancesApi {
     Sort.Order implicitOrder = Sort.Order.by("id");
     Sort sortValue = Sort.by(implicitOrder);
 
+    Optional<MetricId> metricIdOptional = Optional.empty();
+    if (Objects.nonNull(uom)) {
+      try {
+        metricIdOptional = Optional.of(MetricId.fromString(uom));
+      } catch (IllegalArgumentException ex) {
+        throw new BadRequestException(ex);
+      }
+    }
+
     int minCores = 0;
     int minSockets = 0;
-    if (uom == MetricId.CORES) {
+    if (metricIdOptional.map(metricId -> metricId.getValue().equals("Cores")).orElse(false)) {
       minCores = 1;
-    } else if (uom == MetricId.SOCKETS) {
+    } else if (metricIdOptional
+        .map(metricId -> metricId.getValue().equals("Sockets"))
+        .orElse(false)) {
       minSockets = 1;
     }
 
@@ -203,7 +214,7 @@ public class InstancesResource implements InstancesApi {
     // the selected month. This is also used for sorting purposes (same join). See
     // org.candlepin.subscriptions.db.TallyInstanceViewSpecification#toPredicate and
     // org.candlepin.subscriptions.db.TallyInstanceViewRepository#findAllBy.
-    Measurement.Uom referenceUom = getMeasurementUom(uom, sort);
+    Measurement.Uom referenceUom = getMeasurementUom(metricIdOptional, sort);
 
     instances =
         repository.findAllBy(
@@ -367,10 +378,10 @@ public class InstancesResource implements InstancesApi {
         .collect(Collectors.toMap(Function.identity(), key -> "value"));
   }
 
-  private static Measurement.Uom getMeasurementUom(MetricId uom, InstanceReportSort sort) {
-    if (uom != null) {
-      return Measurement.Uom.fromValue(uom.toString());
-    }
-    return SORT_TO_UOM_MAP.get(sort);
+  private static Measurement.Uom getMeasurementUom(
+      Optional<MetricId> optionalMetricId, InstanceReportSort sort) {
+    return optionalMetricId
+        .map(metricId -> Measurement.Uom.fromValue(metricId.toString()))
+        .orElse(SORT_TO_UOM_MAP.get(sort));
   }
 }

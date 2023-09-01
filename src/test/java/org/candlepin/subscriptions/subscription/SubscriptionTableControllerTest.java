@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.core.Response;
 import java.time.OffsetDateTime;
@@ -984,16 +985,19 @@ class SubscriptionTableControllerTest {
 
       var quantity = subscription.getQuantity();
 
+      var coresMetric = MetricId.fromString("Cores");
+      var socketsMetric = MetricId.fromString("Sockets");
+
       var measurements = new HashMap<SubscriptionMeasurementKey, Double>();
       measurements.putAll(
-          buildMeasurement("PHYSICAL", MetricId.CORES, totalCapacity(cores, quantity)));
+          buildMeasurement("PHYSICAL", coresMetric, totalCapacity(cores, quantity)));
       measurements.putAll(
-          buildMeasurement("PHYSICAL", MetricId.SOCKETS, totalCapacity(sockets, quantity)));
+          buildMeasurement("PHYSICAL", socketsMetric, totalCapacity(sockets, quantity)));
       measurements.putAll(
-          buildMeasurement("HYPERVISOR", MetricId.CORES, totalCapacity(hypervisorCores, quantity)));
+          buildMeasurement("HYPERVISOR", coresMetric, totalCapacity(hypervisorCores, quantity)));
       measurements.putAll(
           buildMeasurement(
-              "HYPERVISOR", MetricId.SOCKETS, totalCapacity(hypervisorSockets, quantity)));
+              "HYPERVISOR", socketsMetric, totalCapacity(hypervisorSockets, quantity)));
 
       var productIds = new HashSet<>(subscription.getSubscriptionProductIds());
       productIds.add(productId.toString());

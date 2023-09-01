@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinitionGranularity;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.contracts.api.resources.CapacityApi;
@@ -96,7 +97,7 @@ public class TallyResource implements TallyApi {
   @ReportingAccessRequired
   public TallyReportData getTallyReportData(
       ProductId productId,
-      MetricId metricId,
+      String metricIdValue,
       GranularityType granularityType,
       OffsetDateTime beginning,
       OffsetDateTime ending,
@@ -109,6 +110,19 @@ public class TallyResource implements TallyApi {
       Integer limit,
       Boolean useRunningTotalsFormat,
       BillingCategory billingCategory) {
+
+    if (Objects.nonNull(billingCategory) && !Boolean.TRUE.equals(useRunningTotalsFormat)) {
+      throw new BadRequestException(
+          "When `billing_category` is specified, `use_running_totals_format` must be `true`.");
+    }
+
+    MetricId metricId;
+    try {
+      metricId = MetricId.fromString(metricIdValue);
+    } catch (IllegalArgumentException ex) {
+      throw new BadRequestException(ex);
+    }
+
     ReportCriteria reportCriteria =
         extractReportCriteria(
             productId,
@@ -124,11 +138,6 @@ public class TallyResource implements TallyApi {
             billingCategory,
             offset,
             limit);
-
-    if (Objects.nonNull(billingCategory) && !Boolean.TRUE.equals(useRunningTotalsFormat)) {
-      throw new BadRequestException(
-          "When `billing_category` is specified, `use_running_totals_format` must be `true`.");
-    }
 
     Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage =
         repository.findSnapshot(
@@ -161,7 +170,7 @@ public class TallyResource implements TallyApi {
     Uom uom = Uom.fromValue(metricId.toString());
 
     List<org.candlepin.subscriptions.db.model.TallySnapshot> snapshots =
-        snapshotPage.stream().collect(Collectors.toList());
+        snapshotPage.stream().toList();
 
     List<UnroundedTallyReportDataPoint> snaps =
         snapshots.stream()
@@ -263,7 +272,7 @@ public class TallyResource implements TallyApi {
       capacityReportByMetricId =
           capacityApi.getCapacityReportByMetricId(
               com.redhat.swatch.contracts.api.model.ProductId.valueOf(productId.name()),
-              com.redhat.swatch.contracts.api.model.MetricId.valueOf(metricId.name()),
+              metricId.getValue(),
               com.redhat.swatch.contracts.api.model.GranularityType.valueOf(granularityType.name()),
               beginning,
               ending,
@@ -422,7 +431,7 @@ public class TallyResource implements TallyApi {
     List<TallySnapshot> snaps =
         snapshotPage.stream()
             .map(org.candlepin.subscriptions.db.model.TallySnapshot::asApiSnapshot)
-            .collect(Collectors.toList());
+            .toList();
 
     TallyReport report = new TallyReport();
     report.setData(snaps);

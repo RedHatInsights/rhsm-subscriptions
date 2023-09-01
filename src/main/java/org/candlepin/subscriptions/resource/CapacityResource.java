@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinitionGranularity;
 import com.redhat.swatch.configuration.registry.Variant;
 import jakarta.validation.constraints.Min;
@@ -53,7 +54,6 @@ import org.candlepin.subscriptions.utilization.api.model.CapacityReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshotByMetricId;
 import org.candlepin.subscriptions.utilization.api.model.GranularityType;
-import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.candlepin.subscriptions.utilization.api.model.PageLinks;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
@@ -71,8 +71,8 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class CapacityResource implements CapacityApi {
 
-  public static final String SOCKETS = MetricId.SOCKETS.toString();
-  public static final String CORES = MetricId.CORES.toString();
+  public static final String SOCKETS = "Sockets";
+  public static final String CORES = "Cores";
   public static final String PHYSICAL = HardwareMeasurementType.PHYSICAL.toString().toUpperCase();
   public static final String HYPERVISOR =
       HardwareMeasurementType.HYPERVISOR.toString().toUpperCase();
@@ -169,7 +169,7 @@ public class CapacityResource implements CapacityApi {
   @ReportingAccessRequired
   public CapacityReportByMetricId getCapacityReportByMetricId(
       ProductId productId,
-      MetricId metricId,
+      String metricIdValue,
       @NotNull GranularityType granularityType,
       @NotNull OffsetDateTime beginning,
       @NotNull OffsetDateTime ending,
@@ -182,7 +182,7 @@ public class CapacityResource implements CapacityApi {
     log.debug(
         "Get capacity report for product {} by metric {} in range [{}, {}] for category {}",
         productId,
-        metricId,
+        metricIdValue,
         beginning,
         ending,
         reportCategory);
@@ -198,6 +198,13 @@ public class CapacityResource implements CapacityApi {
     Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
     if (sanitizedUsage == Usage._ANY) {
       sanitizedUsage = null;
+    }
+
+    MetricId metricId;
+    try {
+      metricId = MetricId.fromString(metricIdValue);
+    } catch (IllegalArgumentException ex) {
+      throw new BadRequestException(ex);
     }
 
     Granularity granularityValue = Granularity.fromString(granularityType.toString());
@@ -233,7 +240,7 @@ public class CapacityResource implements CapacityApi {
     var meta = report.getMeta();
     meta.setGranularity(granularityType);
     meta.setProduct(productId);
-    meta.setMetricId(metricId);
+    meta.setMetricId(metricId.toString());
     meta.setCategory(reportCategory);
     meta.setCount(report.getData().size());
 

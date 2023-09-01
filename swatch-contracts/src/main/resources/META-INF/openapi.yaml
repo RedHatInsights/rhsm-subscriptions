@@ -25,7 +25,7 @@ paths:
         in: path
         required: true
         schema:
-          $ref: '#/components/schemas/MetricId'
+          type: string
         description: "The metric ID for the product we wish to query"
       - name: offset
         in: query
@@ -539,17 +539,6 @@ components:
         - rhods
         - BASILISK
         - rosa
-    MetricId:
-      type: string
-      enum:
-        # Cores is the same as core-hours
-        - Cores
-        - Sockets
-        - Core-seconds
-        - Instance-hours
-        - Storage-gibibyte-months
-        - Storage-gibibytes
-        - Transfer-gibibytes
     # Schemas ending in "Type" are intentionally named to prevent naming conflicts with db model classes
     GranularityType:
       description: "Describes the significance of each date in the snapshot list. For example if the
@@ -590,7 +579,7 @@ components:
             product:
               $ref: '#/components/schemas/ProductId'
             metric_id:
-              $ref: '#/components/schemas/MetricId'
+              type: string
             granularity:
               $ref: '#/components/schemas/GranularityType'
             service_level:
