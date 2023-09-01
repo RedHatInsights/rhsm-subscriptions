@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.16-1
+FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.16-1.1693315923
 USER root
 WORKDIR /tmp/src
 ADD . /tmp/src
