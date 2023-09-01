@@ -171,3 +171,10 @@ properties:
     type: string
     existingJavaType: java.util.Optional<String>
     required: false
+  action:
+    description: Custom action to handle the current event.
+    type: string
+    enum:
+      - add
+      - cleanup
+    required: false

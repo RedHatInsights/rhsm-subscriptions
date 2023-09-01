@@ -172,8 +172,9 @@ class EventControllerTest {
                 {
                    "org_id": "7",
                    "timestamp": "2023-05-02T00:00:00Z",
-                   "event_type": "cleanup-snapshot_redhat.com:openshift_dedicated:cluster_hour",
-                   "event_source": "prometheus"
+                   "event_type": "snapshot_redhat.com:openshift_dedicated:cluster_hour",
+                   "event_source": "prometheus",
+                   "action": "cleanup"
                  }
                 """;
   }

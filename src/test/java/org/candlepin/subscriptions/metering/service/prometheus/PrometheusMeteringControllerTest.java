@@ -23,7 +23,8 @@ package org.candlepin.subscriptions.metering.service.prometheus;
 import static org.candlepin.subscriptions.metering.MeteringEventFactory.getEventType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import java.math.BigDecimal;

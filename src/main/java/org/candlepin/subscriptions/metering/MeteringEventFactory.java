@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.metering;
 
 import com.redhat.swatch.configuration.registry.MetricId;
-import static org.candlepin.subscriptions.util.EventConstants.CLEAN_UP_EVENT_TYPE_PREFIX;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -111,8 +110,9 @@ public class MeteringEventFactory {
     Event event = new Event();
     event.setOrgId(orgId);
     event.setEventSource(MeteringEventFactory.EVENT_SOURCE);
-    event.setEventType(CLEAN_UP_EVENT_TYPE_PREFIX + eventType);
+    event.setEventType(eventType);
     event.setTimestamp(cutOff);
+    event.setAction(Event.Action.CLEANUP);
     return event;
   }
 
@@ -147,9 +147,9 @@ public class MeteringEventFactory {
         .withUsage(getUsage(usage, accountNumber, instanceId))
         .withBillingProvider(getBillingProvider(billingProvider, accountNumber, instanceId))
         .withBillingAccountId(Optional.ofNullable(billingAccountId))
-        .withMeasurements(
-            List.of(new Measurement().withUom(measuredMetric.getValue()).withValue(measuredValue)))
-        .withRole(getRole(role, accountNumber, instanceId));
+        .withMeasurements(List.of(new Measurement().withUom(measuredMetric.getValue()).withValue(measuredValue)))
+        .withRole(getRole(role, accountNumber, instanceId))
+        .withAction(Event.Action.ADD);
   }
 
   public static String getEventType(String metricId, String productTag) {

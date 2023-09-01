@@ -20,11 +20,15 @@
  */
 package org.candlepin.subscriptions.event;
 
-import static org.candlepin.subscriptions.util.EventConstants.CLEAN_UP_EVENT_TYPE_PREFIX;
-
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -143,7 +147,7 @@ public class EventController {
             repo.deleteStaleEvents(
                 cleanUpEvent.getOrgId(),
                 cleanUpEvent.getEventSource(),
-                cleanUpEvent.getEventType().substring(CLEAN_UP_EVENT_TYPE_PREFIX.length()),
+                cleanUpEvent.getEventType(),
                 cleanUpEvent.getTimestamp()));
   }
 
@@ -160,10 +164,10 @@ public class EventController {
               ensureOptIn(event.getOrgId());
             }
 
-            if (event.getEventType().startsWith(CLEAN_UP_EVENT_TYPE_PREFIX)) {
+            if (event.getAction() != null && event.getAction() == Event.Action.CLEANUP) {
               log.debug("Processing clean up event for: " + event);
               result.cleanUpEvents.add(event);
-            } else {
+            } else if (event.getAction() == null || event.getAction() == Event.Action.ADD) {
               result.eventsMap.putIfAbsent(EventKey.fromEvent(event), event);
             }
 
