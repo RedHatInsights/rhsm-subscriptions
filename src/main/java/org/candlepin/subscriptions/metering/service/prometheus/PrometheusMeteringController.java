@@ -28,14 +28,14 @@ import jakarta.ws.rs.BadRequestException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.config.OptInType;
-import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
 import org.candlepin.subscriptions.metering.MeteringException;
@@ -61,7 +61,7 @@ public class PrometheusMeteringController {
   private static final String PROMETHEUS_QUERY_PARAM_INSTANCE_KEY = "instanceKey";
 
   private final PrometheusService prometheusService;
-  private final EventController eventController;
+  private final PrometheusEventsProducer eventsProducer;
   private final ApplicationClock clock;
   private final MetricProperties metricProperties;
   private final RetryTemplate openshiftRetry;
@@ -74,14 +74,14 @@ public class PrometheusMeteringController {
       MetricProperties metricProperties,
       PrometheusService service,
       QueryBuilder queryBuilder,
-      EventController eventController,
+      PrometheusEventsProducer eventsProducer,
       @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetry,
       OptInController optInController) {
     this.clock = clock;
     this.metricProperties = metricProperties;
     this.prometheusService = service;
     this.prometheusQueryBuilder = queryBuilder;
-    this.eventController = eventController;
+    this.eventsProducer = eventsProducer;
     this.openshiftRetry = openshiftRetry;
     this.optInController = optInController;
   }
@@ -128,25 +128,7 @@ public class PrometheusMeteringController {
           try {
 
             log.info("Collecting metrics for orgId={}: {} {}", orgId, tag, metric);
-
-            Map<EventKey, Event> events = new HashMap<>();
-            Map<EventKey, Event> existing =
-                eventController.mapEventsInTimeRange(
-                    orgId,
-                    MeteringEventFactory.EVENT_SOURCE,
-                    MeteringEventFactory.getEventType(tagMetric.get().getId(), tag),
-                    // We need to shift the start and end dates by the step, to account for the
-                    // shift in the event start date when it is created. See note about eventDate
-                    // below.
-                    startDate.minusSeconds(metricProperties.getStep()),
-                    end);
-
-            log.debug(
-                "Looking for events in range [{}, {})",
-                startDate.minusSeconds(metricProperties.getStep()),
-                end);
-            log.debug("Found {} existing events.", existing.size());
-
+            Set<EventKey> eventsSent = new HashSet<>();
             QuerySummaryResult metricData =
                 prometheusService.runRangeQuery(
                     buildPromQLForMetering(orgId, tagMetric.get()),
@@ -190,7 +172,6 @@ public class PrometheusMeteringController {
 
                         Event event =
                             createOrUpdateEvent(
-                                existing,
                                 account,
                                 orgId,
                                 tagMetric.get().getId(),
@@ -206,7 +187,11 @@ public class PrometheusMeteringController {
                                 MetricId.fromString(tagMetric.get().getId()),
                                 value,
                                 tag);
-                        events.putIfAbsent(EventKey.fromEvent(event), event);
+                        // Send if and only if it has not been sent yet.
+                        // Related to https://github.com/RedHatInsights/rhsm-subscriptions/pull/374.
+                        if (eventsSent.add(EventKey.fromEvent(event))) {
+                          eventsProducer.produce(event);
+                        }
                       }
                     });
 
@@ -217,11 +202,10 @@ public class PrometheusMeteringController {
                       tag, instanceKey, metric, metricData.getError()));
             }
 
-            eventController.saveAll(events.values());
-            log.info("Persisted {} events for {} {} metrics.", events.size(), tag, metric);
+            log.info("Sent {} events for {} {} metrics.", eventsSent.size(), tag, metric);
 
             // Delete any stale events found during the period.
-            deleteStaleEvents(existing.values());
+            // deleteStaleEvents(existing.values());
             return null;
           } catch (Exception e) {
             log.warn(
@@ -247,7 +231,6 @@ public class PrometheusMeteringController {
 
   @SuppressWarnings("java:S107")
   private Event createOrUpdateEvent(
-      Map<EventKey, Event> existing,
       String account,
       String orgId,
       String metricId,
@@ -263,17 +246,9 @@ public class PrometheusMeteringController {
       MetricId metric,
       BigDecimal value,
       String productTag) {
-    EventKey lookupKey =
-        new EventKey(
-            orgId,
-            MeteringEventFactory.EVENT_SOURCE,
-            MeteringEventFactory.getEventType(metricId, productTag), // NOSONAR
-            instanceId,
-            measuredDate);
-    Event event = existing.remove(lookupKey);
-    if (event == null) {
-      event = new Event();
-    }
+    Event event = new Event();
+    event.setEventSource(MeteringEventFactory.EVENT_SOURCE);
+    event.setEventType(MeteringEventFactory.getEventType(metricId, productTag));
     MeteringEventFactory.updateMetricEvent(
         event,
         account,
@@ -296,7 +271,7 @@ public class PrometheusMeteringController {
   private void deleteStaleEvents(Collection<Event> toDelete) {
     if (!toDelete.isEmpty()) {
       log.info("Deleting {} stale metric events.", toDelete.size());
-      eventController.deleteEvents(toDelete);
+      // eventController.deleteEvents(toDelete);
     }
   }
 

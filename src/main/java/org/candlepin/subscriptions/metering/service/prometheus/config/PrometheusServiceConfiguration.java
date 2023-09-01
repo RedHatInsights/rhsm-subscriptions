@@ -21,16 +21,12 @@
 package org.candlepin.subscriptions.metering.service.prometheus.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.candlepin.subscriptions.db.EventRecordRepository;
-import org.candlepin.subscriptions.db.model.EventRecordConverter;
-import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.prometheus.api.ApiProvider;
 import org.candlepin.subscriptions.prometheus.api.ApiProviderFactory;
-import org.candlepin.subscriptions.security.OptInController;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -59,14 +55,6 @@ public class PrometheusServiceConfiguration {
   @Bean
   public PrometheusService prometheusService(ApiProvider provider, ObjectMapper objectMapper) {
     return new PrometheusService(provider, objectMapper);
-  }
-
-  @Bean
-  EventController prometheusEventController(
-      EventRecordRepository repo,
-      EventRecordConverter eventRecordConverter,
-      OptInController optInController) {
-    return new EventController(repo, eventRecordConverter, optInController);
   }
 
   @Bean

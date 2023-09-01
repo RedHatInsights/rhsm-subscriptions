@@ -20,26 +20,37 @@
  */
 package org.candlepin.subscriptions.metering.profile;
 
-import org.candlepin.subscriptions.event.EventController;
+import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getProducerProperties;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusEventsProducer;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService;
 import org.candlepin.subscriptions.metering.service.prometheus.config.PrometheusServiceConfiguration;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.task.MeteringTasksConfiguration;
 import org.candlepin.subscriptions.security.OptInController;
+import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.context.TypeExcludeFilter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.retry.backoff.ExponentialBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
@@ -86,6 +97,40 @@ public class OpenShiftWorkerProfile {
     return retryTemplate;
   }
 
+  @Bean
+  public ProducerFactory<String, Event> prometheusUsageProducerFactory(
+      KafkaProperties kafkaProperties, ObjectMapper objectMapper) {
+    DefaultKafkaProducerFactory<String, Event> factory =
+        new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
+    /*
+    Use our customized ObjectMapper. Notably, the spring-kafka default ObjectMapper writes dates as
+    timestamps, which produces messages not compatible with JSON-B deserialization.
+     */
+    factory.setValueSerializer(new JsonSerializer<>(objectMapper));
+    return factory;
+  }
+
+  @Bean
+  public KafkaTemplate<String, Event> prometheusUsageKafkaTemplate(
+      @Qualifier("prometheusUsageProducerFactory")
+          ProducerFactory<String, Event> prometheusUsageProducerFactory) {
+    return new KafkaTemplate<>(prometheusUsageProducerFactory);
+  }
+
+  @Bean
+  @Qualifier("eventsTopicProperties")
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.metering.events")
+  public TaskQueueProperties eventsTopicProperties() {
+    return new TaskQueueProperties();
+  }
+
+  @Bean
+  public PrometheusEventsProducer prometheusEventsProducer(
+      @Qualifier("eventsTopicProperties") TaskQueueProperties eventsTopicProperties,
+      KafkaTemplate<String, Event> prometheusUsageKafkaTemplate) {
+    return new PrometheusEventsProducer(eventsTopicProperties, prometheusUsageKafkaTemplate);
+  }
+
   @SuppressWarnings("java:S107")
   @Bean
   PrometheusMeteringController getController(
@@ -93,7 +138,7 @@ public class OpenShiftWorkerProfile {
       MetricProperties mProps,
       PrometheusService service,
       QueryBuilder queryBuilder,
-      EventController eventController,
+      PrometheusEventsProducer prometheusEventsProducer,
       @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetryTemplate,
       OptInController optInController) {
     return new PrometheusMeteringController(
@@ -101,7 +146,7 @@ public class OpenShiftWorkerProfile {
         mProps,
         service,
         queryBuilder,
-        eventController,
+        prometheusEventsProducer,
         openshiftRetryTemplate,
         optInController);
   }

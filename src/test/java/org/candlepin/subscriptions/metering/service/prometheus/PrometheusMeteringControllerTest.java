@@ -20,25 +20,20 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
-import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
-import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
@@ -55,6 +50,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -72,7 +68,7 @@ import org.springframework.test.context.ActiveProfiles;
 @ExtendWith(PrometheusQueryWiremockExtension.class)
 class PrometheusMeteringControllerTest {
 
-  @MockBean private EventController eventController;
+  @MockBean private PrometheusEventsProducer eventsProducer;
 
   @MockBean AccountConfigRepository accountConfigRepository;
 
@@ -83,6 +79,8 @@ class PrometheusMeteringControllerTest {
   @Autowired private MetricProperties metricProperties;
 
   @Autowired private QueryBuilder queryBuilder;
+
+  @Captor private ArgumentCaptor<Event> eventsSent;
 
   @MockBean private OptInController optInController;
 
@@ -116,7 +114,7 @@ class PrometheusMeteringControllerTest {
             metricProperties,
             service,
             queryBuilder,
-            eventController,
+            eventsProducer,
             openshiftRetry,
             optInController);
 
@@ -270,8 +268,7 @@ class PrometheusMeteringControllerTest {
     controller.collectMetrics(
         "OpenShift-metrics", MetricIdUtils.getCores(), expectedOrgId, start, end);
 
-    ArgumentCaptor<Collection> saveCaptor = ArgumentCaptor.forClass(Collection.class);
-    verify(eventController).saveAll(saveCaptor.capture());
+    verify(eventsProducer, times(2)).produce(eventsSent.capture());
 
     prometheusServer.verifyQueryRange(
         queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
@@ -279,13 +276,13 @@ class PrometheusMeteringControllerTest {
         end,
         metricProperties.getStep(),
         metricProperties.getQueryTimeout());
-    verify(eventController).saveAll(any());
+    verify(eventsProducer, times(2)).produce(any());
 
     // Attempted to verify the eventController.saveAll(events) but
     // couldn't find a way to get mockito to match on the collection
     // of HashMap.Value. Using a capture works just as well, but is a less convenient.
-    assertEquals(expectedEvents.size(), saveCaptor.getValue().size());
-    assertTrue(saveCaptor.getValue().containsAll(expectedEvents));
+    assertEquals(expectedEvents.size(), eventsSent.getAllValues().size());
+    assertTrue(eventsSent.getAllValues().containsAll(expectedEvents));
   }
 
   @Test
@@ -364,44 +361,12 @@ class PrometheusMeteringControllerTest {
             val1.doubleValue(),
             expectedProductTag);
 
-    List<Event> existingEvents =
-        List.of(
-            // This event will get updated by the incoming data from prometheus.
-            MeteringEventFactory.createMetricEvent(
-                expectedAccount,
-                expectedOrgId,
-                expectedClusterId,
-                expectedSla,
-                expectedUsage,
-                expectedRole,
-                updatedEvent.getTimestamp(),
-                updatedEvent.getExpiration().get(),
-                expectedServiceType,
-                expectedBillingProvider,
-                expectedBillingAccountId,
-                expectedMetricId,
-                144.4,
-                expectedProductTag),
-            // This event should get purged because prometheus did not report this cluster.
-            purgedEvent);
-    when(eventController.mapEventsInTimeRange(
-            expectedOrgId,
-            MeteringEventFactory.EVENT_SOURCE,
-            MeteringEventFactory.getEventType(expectedMetricId.toString(), expectedProductTag),
-            start,
-            end))
-        .thenReturn(
-            existingEvents.stream()
-                .collect(Collectors.toMap(EventKey::fromEvent, Function.identity())));
+    controller.collectMetrics("OpenShift-metrics", MetricIdUtils.getCores(), expectedOrgId, start, end);
 
-    controller.collectMetrics(
-        "OpenShift-metrics", MetricIdUtils.getCores(), expectedOrgId, start, end);
+    verify(eventsProducer, times(2)).produce(eventsSent.capture());
 
-    ArgumentCaptor<Collection> saveCaptor = ArgumentCaptor.forClass(Collection.class);
-    verify(eventController).saveAll(saveCaptor.capture());
-
-    ArgumentCaptor<Collection> purgeCaptor = ArgumentCaptor.forClass(Collection.class);
-    verify(eventController).deleteEvents(purgeCaptor.capture());
+    // ArgumentCaptor<Collection> purgeCaptor = ArgumentCaptor.forClass(Collection.class);
+    // verify(eventController).deleteEvents(purgeCaptor.capture());
 
     prometheusServer.verifyQueryRange(
         queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
@@ -413,11 +378,11 @@ class PrometheusMeteringControllerTest {
     // Attempted to verify the eventController calls below, but
     // couldn't find a way to get mockito to match on collection of HashMap.Value.
     // Using a capture works just as well, but is a less convenient.
-    assertEquals(expectedEvents.size(), saveCaptor.getValue().size());
-    assertTrue(saveCaptor.getValue().containsAll(expectedEvents));
+    assertEquals(expectedEvents.size(), eventsSent.getAllValues().size());
+    assertTrue(eventsSent.getAllValues().containsAll(expectedEvents));
 
-    assertEquals(1, purgeCaptor.getValue().size());
-    assertTrue(purgeCaptor.getValue().contains(purgedEvent));
+    // assertEquals(1, purgeCaptor.getValue().size());
+    // assertTrue(purgeCaptor.getValue().contains(purgedEvent));
   }
 
   @Test
@@ -471,47 +436,11 @@ class PrometheusMeteringControllerTest {
             4.0,
             expectedProductTag);
 
-    var eventId = UUID.randomUUID();
-    updatedEvent.setEventId(eventId);
-
     List<Event> expectedEvents = List.of(updatedEvent);
 
-    var existingEvent =
-        MeteringEventFactory.createMetricEvent(
-            expectedAccount,
-            expectedOrgId,
-            expectedClusterId,
-            expectedSla,
-            expectedUsage,
-            expectedRole,
-            updatedEvent.getTimestamp(),
-            updatedEvent.getExpiration().get(),
-            expectedServiceType,
-            expectedBillingProvider,
-            expectedBillingAccountId,
-            expectedMetricId,
-            144.4,
-            expectedProductTag);
-    existingEvent.setEventId(eventId);
-    List<Event> existingEvents =
-        List.of(
-            // This event will get updated by the incoming data from prometheus.
-            existingEvent);
-    when(eventController.mapEventsInTimeRange(
-            expectedOrgId,
-            MeteringEventFactory.EVENT_SOURCE,
-            MeteringEventFactory.getEventType(expectedMetricId.toString(), expectedProductTag),
-            start,
-            end))
-        .thenReturn(
-            existingEvents.stream()
-                .collect(Collectors.toMap(EventKey::fromEvent, Function.identity())));
+    controller.collectMetrics("OpenShift-metrics", MetricIdUtils.getCores(), expectedOrgId, start, end);
 
-    controller.collectMetrics(
-        "OpenShift-metrics", MetricIdUtils.getCores(), expectedOrgId, start, end);
-
-    var saveCaptor = ArgumentCaptor.forClass(Collection.class);
-    verify(eventController).saveAll(saveCaptor.capture());
+    verify(eventsProducer).produce(eventsSent.capture());
 
     prometheusServer.verifyQueryRange(
         queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
@@ -523,8 +452,8 @@ class PrometheusMeteringControllerTest {
     // Attempted to verify the eventController calls below, but
     // couldn't find a way to get mockito to match on collection of HashMap.Value.
     // Using a capture works just as well, but is a less convenient.
-    assertEquals(expectedEvents.size(), saveCaptor.getValue().size());
-    assertTrue(saveCaptor.getValue().containsAll(expectedEvents));
+    assertEquals(expectedEvents.size(), eventsSent.getAllValues().size());
+    assertTrue(eventsSent.getAllValues().containsAll(expectedEvents));
   }
 
   private QueryResult buildOpenShiftClusterQueryResult(
