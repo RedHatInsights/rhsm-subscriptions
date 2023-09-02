@@ -23,7 +23,9 @@ package org.candlepin.subscriptions.tally.admin;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -78,14 +80,23 @@ public class InternalTallyDataController {
 
   public String saveEvents(String jsonListOfEvents) {
     List<Event> saved;
+    Collection<Event> events;
+
     try {
-      saved =
-          eventController.saveAll(
-              objectMapper.readValue(
-                  jsonListOfEvents,
-                  objectMapper.getTypeFactory().constructCollectionType(List.class, Event.class)));
+      events =
+          objectMapper.readValue(
+              jsonListOfEvents,
+              objectMapper.getTypeFactory().constructCollectionType(List.class, Event.class));
+
     } catch (Exception e) {
-      log.error("Error saving events", e);
+      log.warn("Error parsing request body");
+      throw new BadRequestException(e.getMessage());
+    }
+
+    try {
+      saved = eventController.saveAll(events);
+    } catch (Exception e) {
+      log.error("Error saving events, {}", e.getMessage());
       return "Error saving events";
     }
 
