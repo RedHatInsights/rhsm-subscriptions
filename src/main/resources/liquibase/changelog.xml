@@ -122,8 +122,7 @@
     <!-- <include file="liquibase/202308211518-rename-rhel-product-ids.xml"/> -->
     <include file="liquibase/202307261851-event-change-event-type-data.xml"/>
     <include file="liquibase/202308210806-add-metric-id-instance-measurements.xml"/>
-    <!-- Uncomment once the above changeset has landed in prod -->
-    <!-- <include file="liquibase/202308210906-drop-uom-column-instance-measurements.xml"/> -->
+    <include file="liquibase/202308210906-drop-uom-column-instance-measurements.xml"/>
     <include file="liquibase/202308231356-add-metric-id-tally-measurements.xml"/>
     <!-- Uncomment once the above changeset has landed in prod -->
     <!-- <include file="liquibase/202308231456-drop-uom-column-tally-measurements.xml"/> -->
