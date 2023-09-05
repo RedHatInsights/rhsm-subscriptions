@@ -24,7 +24,6 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationConfiguration;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.exception.UnretryableException;
-import org.candlepin.subscriptions.registry.RegistryConfiguration;
 import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
@@ -45,7 +44,6 @@ import org.springframework.retry.support.RetryTemplateBuilder;
 @Import({
   ResteasyConfiguration.class,
   RhsmSubscriptionsDataSourceConfiguration.class,
-  RegistryConfiguration.class,
   CapacityReconciliationConfiguration.class
 })
 @EnableJms
