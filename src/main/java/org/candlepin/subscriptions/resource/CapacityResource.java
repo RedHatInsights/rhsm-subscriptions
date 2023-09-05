@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.resource;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinitionGranularity;
 import com.redhat.swatch.configuration.registry.Variant;
 import jakarta.validation.constraints.Min;
@@ -55,7 +56,6 @@ import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshotByMetricId;
 import org.candlepin.subscriptions.utilization.api.model.GranularityType;
 import org.candlepin.subscriptions.utilization.api.model.PageLinks;
-import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
@@ -100,7 +100,7 @@ public class CapacityResource implements CapacityApi {
   @Deprecated(since = "https://issues.redhat.com/browse/ENT-4384")
   @ReportingAccessRequired
   public CapacityReport getCapacityReport(
-      ProductId productId,
+      String productIdValue,
       @NotNull GranularityType granularityType,
       @NotNull OffsetDateTime beginning,
       @NotNull OffsetDateTime ending,
@@ -108,6 +108,12 @@ public class CapacityResource implements CapacityApi {
       @Min(1) Integer limit,
       ServiceLevelType sla,
       UsageType usage) {
+    ProductId productId;
+    try {
+      productId = ProductId.fromString(productIdValue);
+    } catch (IllegalArgumentException e) {
+      throw new BadRequestException(e);
+    }
 
     // capacity records do not include _ANY rows
     ServiceLevel sanitizedServiceLevel = ResourceUtils.sanitizeServiceLevel(sla);
@@ -149,7 +155,7 @@ public class CapacityResource implements CapacityApi {
     report.setData(data);
     report.setMeta(new CapacityReportMeta());
     report.getMeta().setGranularity(granularityType);
-    report.getMeta().setProduct(productId);
+    report.getMeta().setProduct(productId.toString());
     report.getMeta().setCount(report.getData().size());
 
     if (sanitizedServiceLevel != null) {
@@ -168,7 +174,7 @@ public class CapacityResource implements CapacityApi {
   @Override
   @ReportingAccessRequired
   public CapacityReportByMetricId getCapacityReportByMetricId(
-      ProductId productId,
+      String productIdValue,
       String metricIdValue,
       @NotNull GranularityType granularityType,
       @NotNull OffsetDateTime beginning,
@@ -179,10 +185,18 @@ public class CapacityResource implements CapacityApi {
       ServiceLevelType sla,
       UsageType usage) {
 
+    ProductId productId;
+    MetricId metricId;
+    try {
+      productId = ProductId.fromString(productIdValue);
+      metricId = MetricId.fromString(metricIdValue);
+    } catch (IllegalArgumentException e) {
+      throw new BadRequestException(e);
+    }
     log.debug(
         "Get capacity report for product {} by metric {} in range [{}, {}] for category {}",
         productId,
-        metricIdValue,
+        metricId,
         beginning,
         ending,
         reportCategory);
@@ -198,13 +212,6 @@ public class CapacityResource implements CapacityApi {
     Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
     if (sanitizedUsage == Usage._ANY) {
       sanitizedUsage = null;
-    }
-
-    MetricId metricId;
-    try {
-      metricId = MetricId.fromString(metricIdValue);
-    } catch (IllegalArgumentException ex) {
-      throw new BadRequestException(ex);
     }
 
     Granularity granularityValue = Granularity.fromString(granularityType.toString());
@@ -239,7 +246,7 @@ public class CapacityResource implements CapacityApi {
     report.setMeta(new CapacityReportByMetricIdMeta());
     var meta = report.getMeta();
     meta.setGranularity(granularityType);
-    meta.setProduct(productId);
+    meta.setProduct(productId.toString());
     meta.setMetricId(metricId.toString());
     meta.setCategory(reportCategory);
     meta.setCount(report.getData().size());

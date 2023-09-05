@@ -20,16 +20,20 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.RHEL_FOR_X86;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.when;
 
+import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
+import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.utilization.api.model.SkuCapacityReportSort;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -37,11 +41,17 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles({"api", "test", "capacity-ingress"})
 @WithMockRedHatPrincipal("123456")
 class SubscriptionResourceTest {
-
+  private static final String RHEL_FOR_X86 = "RHEL for x86";
   private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
   private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
 
   @Autowired SubscriptionResource subscriptionResource;
+  @MockBean AccountConfigRepository accountConfigRepository;
+
+  @BeforeEach
+  public void setupTests() {
+    when(accountConfigRepository.existsByOrgId("owner123456")).thenReturn(true);
+  }
 
   @Test
   @WithMockRedHatPrincipal("1111")
@@ -75,6 +85,27 @@ class SubscriptionResourceTest {
         () ->
             subscriptionResource.getSkuCapacityReport(
                 RHEL_FOR_X86,
+                0,
+                10,
+                null,
+                null,
+                UsageType.PRODUCTION,
+                null,
+                null,
+                min,
+                max,
+                null,
+                SkuCapacityReportSort.SKU,
+                null));
+  }
+
+  @Test
+  void testCapacityByProductThrowsExceptionForUnknownProductId() {
+    assertThrows(
+        BadRequestException.class,
+        () ->
+            subscriptionResource.getSkuCapacityReport(
+                "NotARealProductId",
                 0,
                 10,
                 null,

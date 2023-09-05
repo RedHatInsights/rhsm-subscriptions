@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.resource;
 
 import static org.candlepin.subscriptions.resource.ResourceUtils.*;
 
+import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import jakarta.transaction.Transactional;
@@ -247,7 +248,7 @@ public class SubscriptionTableController {
                 .usage(usage)
                 .uom(uom)
                 .reportCategory(category)
-                .product(productId));
+                .product(productId.toString()));
   }
 
   private Map<String, SkuCapacity> initializeDefaultSkuCapacities(Set<String> skus, Uom uom) {

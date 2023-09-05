@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.subscription;
 
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,6 +27,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.ProductId;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.core.Response;
 import java.time.OffsetDateTime;
@@ -61,6 +61,7 @@ import org.springframework.test.context.ActiveProfiles;
 @WithMockRedHatPrincipal("123456")
 class SubscriptionTableControllerTest {
 
+  private static final ProductId RHEL_FOR_X86 = ProductId.fromString("RHEL for x86");
   @MockBean SubscriptionRepository subscriptionRepository;
   @MockBean OfferingRepository offeringRepository;
   @MockBean AccountListSource accountListSource;
@@ -632,7 +633,7 @@ class SubscriptionTableControllerTest {
 
     SkuCapacityReport report =
         subscriptionTableController.capacityReportBySku(
-            OPENSHIFT_METRICS,
+            ProductId.fromString("OpenShift-metrics"),
             null,
             null,
             null,

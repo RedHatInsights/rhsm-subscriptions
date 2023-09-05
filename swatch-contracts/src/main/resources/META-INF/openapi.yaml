@@ -19,7 +19,7 @@ paths:
         in: path
         required: true
         schema:
-          $ref: '#/components/schemas/ProductId'
+          type: string
         description: "The ID for the product we wish to query"
       - name: metric_id
         in: path
@@ -520,25 +520,6 @@ components:
           type: string
         message:
           type: string
-    ProductId:
-      type: string
-      enum:
-        - OpenShift Container Platform
-        - RHEL Compute Node
-        - RHEL for ARM
-        - RHEL for IBM Power
-        - RHEL for IBM z
-        - RHEL for x86
-        - RHEL Workstation
-        - Satellite Capsule
-        - Satellite Server
-        - OpenShift-metrics
-        - OpenShift-dedicated-metrics
-        - rhosak
-        - rhacs
-        - rhods
-        - BASILISK
-        - rosa
     # Schemas ending in "Type" are intentionally named to prevent naming conflicts with db model classes
     GranularityType:
       description: "Describes the significance of each date in the snapshot list. For example if the
@@ -577,7 +558,7 @@ components:
             count:
               type: integer
             product:
-              $ref: '#/components/schemas/ProductId'
+              type: string
             metric_id:
               type: string
             granularity:

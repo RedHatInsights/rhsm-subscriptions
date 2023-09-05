@@ -22,10 +22,12 @@ package org.candlepin.subscriptions.resource;
 
 import com.google.common.collect.ImmutableMap;
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.UriInfo;
 import java.time.OffsetDateTime;
@@ -52,7 +54,6 @@ import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
 import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReport;
 import org.candlepin.subscriptions.utilization.api.model.MetaCount;
 import org.candlepin.subscriptions.utilization.api.model.PageLinks;
-import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.SortDirection;
 import org.candlepin.subscriptions.utilization.api.model.Uom;
@@ -126,7 +127,7 @@ public class HostsResource implements HostsApi {
   @ReportingAccessRequired
   @Override
   public HostReport getHosts(
-      ProductId productId,
+      String productIdValue,
       Integer offset,
       @Min(1) @Max(100) Integer limit,
       ServiceLevelType sla,
@@ -138,6 +139,12 @@ public class HostsResource implements HostsApi {
       HostReportSort sort,
       SortDirection dir) {
 
+    ProductId productId;
+    try {
+      productId = ProductId.fromString(productIdValue);
+    } catch (IllegalArgumentException e) {
+      throw new BadRequestException(e);
+    }
     Sort.Direction dirValue = Sort.Direction.ASC;
     if (dir == SortDirection.DESC) {
       dirValue = Sort.Direction.DESC;
@@ -242,7 +249,7 @@ public class HostsResource implements HostsApi {
         .meta(
             new HostReportMeta()
                 .count((int) hosts.getTotalElements())
-                .product(productId)
+                .product(productId.toString())
                 .serviceLevel(sla)
                 .usage(usage)
                 .uom(uom))

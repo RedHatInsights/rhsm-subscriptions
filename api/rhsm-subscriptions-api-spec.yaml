@@ -135,7 +135,7 @@ paths:
         in: path
         required: true
         schema:
-          $ref: '#/components/schemas/ProductId'
+          type: string
         description: "The product to fetch graph data for"
       - name: metric_id
         in: path
@@ -253,7 +253,7 @@ paths:
         in: path
         required: true
         schema:
-          $ref: '#/components/schemas/ProductId'
+          type: string
         description: "The ID for the product we wish to query"
       - name: offset
         in: query
@@ -383,7 +383,7 @@ paths:
         in: path
         required: true
         schema:
-          $ref: '#/components/schemas/ProductId'
+          type: string
         description: "The ID for the product we wish to query"
       - name: metric_id
         in: path
@@ -494,7 +494,7 @@ paths:
         in: path
         required: true
         schema:
-          $ref: '#/components/schemas/ProductId'
+          type: string
         description: "The ID for the product we wish to query"
       - name: offset
         in: query
@@ -605,7 +605,7 @@ paths:
         in: path
         required: true
         schema:
-          $ref: '#/components/schemas/ProductId'
+          type: string
         description: "The ID for the product we wish to query"
       - name: offset
         in: query
@@ -840,7 +840,7 @@ paths:
         in: path
         required: true
         schema:
-          $ref: '#/components/schemas/ProductId'
+          type: string
       - name: offset
         in: query
         schema:
@@ -937,7 +937,7 @@ paths:
         in: path
         required: true
         schema:
-          $ref: '#/components/schemas/ProductId'
+          type: string
         description: "The ID for the product we wish to query"
       - name: offset
         in: query
@@ -1136,25 +1136,6 @@ components:
     BillingProviderType:
       type: string
       enum: [ "", red hat, aws, gcp, azure, oracle, _ANY ]
-    ProductId:
-      type: string
-      enum:
-        - OpenShift Container Platform
-        - RHEL Compute Node
-        - RHEL for ARM
-        - RHEL for IBM Power
-        - RHEL for IBM z
-        - RHEL for x86
-        - RHEL Workstation
-        - Satellite Capsule
-        - Satellite Server
-        - OpenShift-metrics
-        - OpenShift-dedicated-metrics
-        - rhosak
-        - rhacs
-        - rhods
-        - BASILISK
-        - rosa
     ReportCategory:
       type: string
       enum:
@@ -1294,7 +1275,7 @@ components:
             total_monthly:
               $ref: "#/components/schemas/TallyReportDataPoint"
             product:
-              $ref: '#/components/schemas/ProductId'
+              type: string
             metric_id:
               type: string
             service_level:
@@ -1348,7 +1329,7 @@ components:
               type: number
               format: double
             product:
-              $ref: '#/components/schemas/ProductId'
+              type: string
             service_level:
               $ref: '#/components/schemas/ServiceLevelType'
             usage:
@@ -1469,7 +1450,7 @@ components:
             count:
               type: integer
             product:
-              $ref: '#/components/schemas/ProductId'
+              type: string
             granularity:
               $ref: '#/components/schemas/GranularityType'
             service_level:
@@ -1494,7 +1475,7 @@ components:
             count:
               type: integer
             product:
-              $ref: '#/components/schemas/ProductId'
+              type: string
             metric_id:
               type: string
             granularity:
@@ -1602,7 +1583,7 @@ components:
             count:
               type: integer
             product:
-              $ref: '#/components/schemas/ProductId'
+              type: string
             service_level:
               $ref: '#/components/schemas/ServiceLevelType'
             usage:
@@ -1702,7 +1683,7 @@ components:
           format: int32
           type: integer
         product:
-          $ref: '#/components/schemas/ProductId'
+          type: string
         service_level:
           $ref: '#/components/schemas/ServiceLevelType'
         usage:
@@ -1969,7 +1950,7 @@ components:
             count:
               type: integer
             product:
-              $ref: '#/components/schemas/ProductId'
+              type: string
             service_level:
               $ref: '#/components/schemas/ServiceLevelType'
             usage:

@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,6 +29,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.ProductId;
 import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -63,6 +63,8 @@ import org.springframework.test.context.ActiveProfiles;
 @WithMockRedHatPrincipal("123456")
 class InstancesResourceTest {
 
+  private static final String RHOSAK = "rhosak";
+  private static final String RHEL_FOR_X86 = "RHEL for x86";
   @MockBean TallyInstanceViewRepository repository;
   @MockBean HostRepository hostRepository;
   @MockBean PageLinkCreator pageLinkCreator;
@@ -128,7 +130,7 @@ class InstancesResourceTest {
 
     var meta = new InstanceMeta();
     meta.setCount(1);
-    meta.setProduct(ProductId.RHOSAK);
+    meta.setProduct(RHOSAK);
     meta.setServiceLevel(ServiceLevelType.PREMIUM);
     meta.setUsage(UsageType.PRODUCTION);
     meta.setMeasurements(expectUom);
@@ -316,7 +318,7 @@ class InstancesResourceTest {
 
     var meta = new InstanceMeta();
     meta.setCount(1);
-    meta.setProduct(ProductId.RHOSAK);
+    meta.setProduct(RHOSAK);
     meta.setServiceLevel(ServiceLevelType.PREMIUM);
     meta.setUsage(UsageType.PRODUCTION);
     meta.setMeasurements(expectUom);
@@ -353,10 +355,11 @@ class InstancesResourceTest {
     var dayInFebruary = OffsetDateTime.of(2023, 2, 23, 10, 0, 0, 0, ZoneOffset.UTC);
 
     // RHOSAK is a PAYG product
-    resource.validateBeginningAndEndingDates(RHOSAK, dayInJanuary, laterDayInJanuary);
+    var rhosak = ProductId.fromString(RHOSAK);
+    resource.validateBeginningAndEndingDates(rhosak, dayInJanuary, laterDayInJanuary);
     assertThrows(
         BadRequestException.class,
-        () -> resource.validateBeginningAndEndingDates(RHOSAK, dayInJanuary, dayInFebruary));
+        () -> resource.validateBeginningAndEndingDates(rhosak, dayInJanuary, dayInFebruary));
   }
 
   @Test
@@ -600,6 +603,28 @@ class InstancesResourceTest {
                 ServiceLevelType.PREMIUM,
                 UsageType.PRODUCTION,
                 "NotAMetricId",
+                BillingProviderType.RED_HAT,
+                null,
+                null,
+                null,
+                null,
+                null,
+                InstanceReportSort.DISPLAY_NAME,
+                null));
+  }
+
+  @Test()
+  void testGetInstancesByProductThrowsExceptionForUnknownProductId() {
+    assertThrows(
+        BadRequestException.class,
+        () ->
+            resource.getInstancesByProduct(
+                "NotAProductId",
+                null,
+                null,
+                ServiceLevelType.PREMIUM,
+                UsageType.PRODUCTION,
+                "Sockets",
                 BillingProviderType.RED_HAT,
                 null,
                 null,
