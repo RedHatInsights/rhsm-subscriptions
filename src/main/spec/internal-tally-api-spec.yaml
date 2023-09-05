@@ -197,6 +197,26 @@ paths:
           application/json:
             schema:
               type: string
+            examples:
+              EventDetail:
+                value:
+                  - event_id: 0998c49b-9552-463f-b363-0a4b046dd6e9
+                    event_source: prometheus
+                    event_type: 'snapshot_redhat.com:BASILISK:storage_gb'
+                    account_number: account123
+                    org_id: org123
+                    service_type: BASILISK Instance
+                    instance_id: c5mu16smf1c22rn8e730
+                    timestamp: '2021-10-18T22:00:00Z'
+                    expiration: '2021-10-19T22:00:00Z'
+                    display_name: c5mu16smf1c22rn8e730
+                    measurements:
+                      - value: 1.5
+                        uom: Storage-gibibyte-months
+                    role: BASILISK
+                    sla: Premium
+                    billing_provider: red hat
+                    billing_account_id: placeholderId
       responses:
         '200':
           description: Save a list of events
