@@ -43,6 +43,7 @@ import org.candlepin.subscriptions.metering.MeteringException;
 import org.candlepin.subscriptions.metering.service.prometheus.model.QuerySummaryResult;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescriptor;
+import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -125,7 +126,6 @@ public class PrometheusMeteringController {
     openshiftRetry.execute(
         context -> {
           try {
-
             log.info("Collecting metrics for orgId={}: {} {}", orgId, tag, metric);
             Set<EventKey> eventsSent = new HashSet<>();
             QuerySummaryResult metricData =
@@ -135,64 +135,9 @@ public class PrometheusMeteringController {
                     end,
                     metricProperties.getStep(),
                     metricProperties.getQueryTimeout(),
-                    item -> {
-                      Map<String, String> labels = item.getMetric();
-                      String clusterId = labels.get(instanceKey);
-                      String sla = labels.get("support");
-                      String usage = labels.get("usage");
-
-                      // These were added as an edge case with RHODS as it doesn't have product as a
-                      // label in prometheus
-                      String product = labels.get("product");
-                      String resourceName = labels.get("resource_name");
-
-                      // NOTE: Role comes from the product label despite its name. The values set
-                      // here are NOT engineering or swatch product IDs. They map to the roles in
-                      // the swatch-product-configuration library. For openshift, the values will
-                      // be 'ocp' or 'osd'.
-                      String role = product == null ? resourceName : product;
-                      String billingProvider = labels.get("billing_marketplace");
-                      String billingAccountId = labels.get("billing_marketplace_account");
-                      String account = labels.get("ebs_account");
-
-                      // For the openshift metrics, we expect our results to be a 'matrix'
-                      // vector [(instant_time,value), ...] so we only look at the result's
-                      // getValues() data.
-                      for (List<BigDecimal> measurement : item.getValues()) {
-                        BigDecimal time = measurement.get(0);
-                        BigDecimal value = measurement.get(1);
-
-                        OffsetDateTime eventTermDate = clock.dateFromUnix(time);
-                        // Need to subtract the step because we are averaging and the metric value
-                        // actually represents the end of the measured period. The start of the
-                        // event should be at the beginning.
-                        OffsetDateTime eventDate =
-                            eventTermDate.minusSeconds(metricProperties.getStep());
-
-                        Event event =
-                            createOrUpdateEvent(
-                                account,
-                                orgId,
-                                tagMetric.get().getId(),
-                                clusterId,
-                                sla,
-                                usage,
-                                role,
-                                eventDate,
-                                eventTermDate,
-                                subDefOptional.get().getServiceType(),
-                                billingProvider,
-                                billingAccountId,
-                                MetricId.fromString(tagMetric.get().getId()),
-                                value,
-                                tag);
-                        // Send if and only if it has not been sent yet.
-                        // Related to https://github.com/RedHatInsights/rhsm-subscriptions/pull/374.
-                        if (eventsSent.add(EventKey.fromEvent(event))) {
-                          eventsProducer.produce(event);
-                        }
-                      }
-                    });
+                    item ->
+                        sendEventFromData(
+                            item, eventsSent, tag, orgId, tagMetric.get(), subDefOptional.get()));
 
             if (StatusType.ERROR.equals(metricData.getStatus())) {
               throw new MeteringException(
@@ -205,11 +150,7 @@ public class PrometheusMeteringController {
             // Send event to delete any stale events found during the period only if
             // there were events sent.
             if (!eventsSent.isEmpty()) {
-              eventsProducer.produce(
-                  createCleanUpEvent(
-                      orgId,
-                      MeteringEventFactory.getEventType(tagMetric.get().getId(), tag),
-                      start));
+              sendCleanUpEvent(tag, orgId, tagMetric.get(), start);
             }
 
             return null;
@@ -224,6 +165,77 @@ public class PrometheusMeteringController {
             throw e;
           }
         });
+  }
+
+  private void sendEventFromData(
+      QueryResultDataResultInner item,
+      Set<EventKey> eventsSent,
+      String productTag,
+      String orgId,
+      Metric tagMetric,
+      SubscriptionDefinition subscriptionDefinition) {
+    Map<String, String> labels = item.getMetric();
+    String clusterId = labels.get(getPrometheusInstanceKeyFromMetric(productTag, tagMetric));
+    String sla = labels.get("support");
+    String usage = labels.get("usage");
+
+    // These were added as an edge case with RHODS as it doesn't have product as a
+    // label in prometheus
+    String product = labels.get("product");
+    String resourceName = labels.get("resource_name");
+
+    // NOTE: Role comes from the product label despite its name. The values set
+    // here are NOT engineering or swatch product IDs. They map to the roles in
+    // the swatch-product-configuration library. For openshift, the values will
+    // be 'ocp' or 'osd'.
+    String role = product == null ? resourceName : product;
+    String billingProvider = labels.get("billing_marketplace");
+    String billingAccountId = labels.get("billing_marketplace_account");
+    String account = labels.get("ebs_account");
+
+    // For the openshift metrics, we expect our results to be a 'matrix'
+    // vector [(instant_time,value), ...] so we only look at the result's
+    // getValues() data.
+    for (List<BigDecimal> measurement : item.getValues()) {
+      BigDecimal time = measurement.get(0);
+      BigDecimal value = measurement.get(1);
+
+      OffsetDateTime eventTermDate = clock.dateFromUnix(time);
+      // Need to subtract the step because we are averaging and the metric value
+      // actually represents the end of the measured period. The start of the
+      // event should be at the beginning.
+      OffsetDateTime eventDate = eventTermDate.minusSeconds(metricProperties.getStep());
+
+      Event event =
+          createOrUpdateEvent(
+              account,
+              orgId,
+              tagMetric.getId(),
+              clusterId,
+              sla,
+              usage,
+              role,
+              eventDate,
+              eventTermDate,
+              subscriptionDefinition.getServiceType(),
+              billingProvider,
+              billingAccountId,
+              MetricId.fromString(tagMetric.getId()),
+              value,
+              productTag);
+      // Send if and only if it has not been sent yet.
+      // Related to https://github.com/RedHatInsights/rhsm-subscriptions/pull/374.
+      if (eventsSent.add(EventKey.fromEvent(event))) {
+        eventsProducer.produce(event);
+      }
+    }
+  }
+
+  private void sendCleanUpEvent(
+      String productTag, String orgId, Metric tagMetric, OffsetDateTime start) {
+    eventsProducer.produce(
+        createCleanUpEvent(
+            orgId, MeteringEventFactory.getEventType(tagMetric.getId(), productTag), start));
   }
 
   private void ensureOptIn(String orgId) {
@@ -253,8 +265,6 @@ public class PrometheusMeteringController {
       BigDecimal value,
       String productTag) {
     Event event = new Event();
-    event.setEventSource(MeteringEventFactory.EVENT_SOURCE);
-    event.setEventType(MeteringEventFactory.getEventType(metricId, productTag));
     MeteringEventFactory.updateMetricEvent(
         event,
         account,
