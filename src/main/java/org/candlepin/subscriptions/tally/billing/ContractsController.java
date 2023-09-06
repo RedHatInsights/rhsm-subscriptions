@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.billing;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.contracts.api.model.Contract;
 import com.redhat.swatch.contracts.api.model.Metric;
@@ -32,7 +33,6 @@ import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
-import org.candlepin.subscriptions.json.BillableUsage.Uom;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
@@ -70,7 +70,8 @@ public class ContractsController {
     }
 
     String contractMetricId =
-        getContractMetricId(usage.getBillingProvider(), usage.getProductId(), usage.getUom());
+        getContractMetricId(
+            usage.getBillingProvider(), usage.getProductId(), MetricId.fromString(usage.getUom()));
 
     if (ObjectUtils.isEmpty(contractMetricId)) {
       throw new IllegalStateException(
@@ -116,12 +117,13 @@ public class ContractsController {
     return Double.valueOf(totalUnderContract);
   }
 
-  private String getContractMetricId(BillingProvider billingProvider, String productId, Uom uom) {
-    String measurementUom = uom.toString();
+  private String getContractMetricId(
+      BillingProvider billingProvider, String productId, MetricId metricId) {
+    String measurementMetricId = metricId.toString();
     if (BillingProvider.AWS.equals(billingProvider)) {
-      return SubscriptionDefinition.getAwsDimension(productId, measurementUom);
+      return SubscriptionDefinition.getAwsDimension(productId, measurementMetricId);
     } else if (BillingProvider.RED_HAT.equals(billingProvider)) {
-      return SubscriptionDefinition.getRhmMetricId(productId, measurementUom);
+      return SubscriptionDefinition.getRhmMetricId(productId, measurementMetricId);
     }
     return null;
   }

@@ -193,7 +193,7 @@ class BillableUsageMapperTest {
             .withSla(BillableUsage.Sla.STANDARD)
             .withBillingProvider(BillableUsage.BillingProvider.AWS)
             .withBillingAccountId("bill123")
-            .withUom(BillableUsage.Uom.STORAGE_GIBIBYTES)
+            .withUom("Storage-gibibytes")
             .withValue(42.0);
     assertEquals(
         expected,
@@ -222,7 +222,7 @@ class BillableUsageMapperTest {
             .withSla(BillableUsage.Sla.STANDARD)
             .withBillingProvider(BillableUsage.BillingProvider.AWS)
             .withBillingAccountId("bill123")
-            .withUom(BillableUsage.Uom.STORAGE_GIBIBYTES)
+            .withUom("Storage-gibibytes")
             .withValue(42.0);
     assertEquals(
         expected,

@@ -175,8 +175,7 @@ public class RhMarketplacePayloadMapper {
   protected UsageMeasurement produceUsageMeasurement(BillableUsage billableUsage) {
 
     String rhmMarketplaceMetricId =
-        SubscriptionDefinition.getRhmMetricId(
-            billableUsage.getProductId(), billableUsage.getUom().value());
+        SubscriptionDefinition.getRhmMetricId(billableUsage.getProductId(), billableUsage.getUom());
 
     Double value = billableUsage.getValue();
 

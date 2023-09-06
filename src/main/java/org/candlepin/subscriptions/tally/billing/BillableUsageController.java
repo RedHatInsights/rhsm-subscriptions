@@ -237,7 +237,7 @@ public class BillableUsageController {
     // NOTE: We are filtering billable usage to PHYSICAL hardware as that's the only
     //       hardware type set when metering.
     TallyMeasurementKey measurementKey =
-        new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, usage.getUom().value());
+        new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, usage.getUom());
     return snapshotRepository.sumMeasurementValueForPeriod(
         usage.getOrgId(),
         usage.getProductId(),

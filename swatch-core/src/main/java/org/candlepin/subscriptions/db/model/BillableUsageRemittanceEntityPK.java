@@ -73,7 +73,7 @@ public class BillableUsageRemittanceEntityPK implements Serializable {
         .billingAccountId(billableUsage.getBillingAccountId())
         .productId(billableUsage.getProductId())
         .sla(billableUsage.getSla().value())
-        .metricId(billableUsage.getUom().value())
+        .metricId(billableUsage.getUom())
         .accumulationPeriod(getAccumulationPeriod(billableUsage.getSnapshotDate()))
         .remittancePendingDate(remittancePendingDate)
         .build();

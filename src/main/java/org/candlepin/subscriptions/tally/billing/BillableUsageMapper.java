@@ -28,7 +28,6 @@ import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.json.BillableUsage;
-import org.candlepin.subscriptions.json.BillableUsage.Uom;
 import org.candlepin.subscriptions.json.TallySnapshot;
 import org.candlepin.subscriptions.json.TallySnapshot.BillingProvider;
 import org.candlepin.subscriptions.json.TallySnapshot.Granularity;
@@ -113,7 +112,7 @@ public class BillableUsageMapper {
                                     BillableUsage.BillingProvider.fromValue(
                                         snapshot.getBillingProvider().value()))
                                 .withBillingAccountId(snapshot.getBillingAccountId())
-                                .withUom(Uom.fromValue(measurement.getUom()))
+                                .withUom(measurement.getUom())
                                 .withValue(measurement.getValue())));
   }
 

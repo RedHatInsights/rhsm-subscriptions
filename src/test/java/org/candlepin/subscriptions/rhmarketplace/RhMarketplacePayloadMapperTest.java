@@ -37,10 +37,10 @@ import java.util.stream.Stream;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
 import org.candlepin.subscriptions.json.BillableUsage.Sla;
-import org.candlepin.subscriptions.json.BillableUsage.Uom;
 import org.candlepin.subscriptions.json.BillableUsage.Usage;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageMeasurement;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -99,7 +99,7 @@ class RhMarketplacePayloadMapperTest {
             .withProductId("OpenShift-metrics")
             .withSnapshotDate(snapshotDate)
             .withUsage(Usage.PRODUCTION)
-            .withUom(Uom.CORES)
+            .withUom(MetricIdUtils.getCores().getValue())
             .withValue(36.0)
             .withSla(Sla.PREMIUM)
             .withBillingProvider(BillingProvider.RED_HAT)
@@ -151,7 +151,7 @@ class RhMarketplacePayloadMapperTest {
             .withOrgId(orgId)
             .withSnapshotDate(snapshotDate)
             .withUsage(Usage.PRODUCTION)
-            .withUom(Uom.CORES)
+            .withUom(MetricIdUtils.getCores().getValue())
             .withValue(36.0)
             .withSla(Sla.PREMIUM)
             .withBillingProvider(BillingProvider.RED_HAT)
