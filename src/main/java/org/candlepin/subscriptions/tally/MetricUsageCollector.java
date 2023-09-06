@@ -85,6 +85,10 @@ public class MetricUsageCollector {
     }
 
     log.info("Event exists for org {} of service type {} in range: {}", orgId, serviceType, range);
+
+    Optional<OffsetDateTime> firstUntalliedEventDate =
+        eventController.findFirstUntalliedEvent(orgId, serviceType);
+
     /* load the latest accountServiceInventory state, so we can update host records conveniently */
     AccountServiceInventoryId inventoryId =
         AccountServiceInventoryId.builder().orgId(orgId).serviceType(serviceType).build();
@@ -101,13 +105,8 @@ public class MetricUsageCollector {
     the product profile we're working on
     */
     Map<String, Host> existingInstances = new HashMap<>();
-    OffsetDateTime newestInstanceTimestamp = OffsetDateTime.MIN;
     for (Host host : accountServiceInventory.getServiceInstances().values()) {
       existingInstances.put(host.getInstanceId(), host);
-      newestInstanceTimestamp =
-          newestInstanceTimestamp.isAfter(host.getLastSeen())
-              ? newestInstanceTimestamp
-              : host.getLastSeen();
     }
     OffsetDateTime effectiveStartDateTime;
     OffsetDateTime effectiveEndDateTime;
@@ -115,9 +114,15 @@ public class MetricUsageCollector {
     /*
     We need to recalculate several things if we are re-tallying, namely monthly totals need to be
     cleared and re-updated for each host record
+    Evaluate latest state to determine if we are doing a recalculation.
+    This condition serves a dual purpose: First, it validates the presence of untallied events.
+    Additionally, it assesses whether the earliest untallied record_date is after the specified start date range.
+    If this condition holds true, the effectiveStartDateTime is adjusted from the first day of the month to
+    the end of current hour. Otherwise, the start date is same as the beginning of the untallied record_date,
+    it extends until the specified passed end date.
      */
-    if (newestInstanceTimestamp.isAfter(range.getStartDate())
-        || newestInstanceTimestamp.isEqual(range.getStartDate())) {
+    if (firstUntalliedEventDate.isEmpty()
+        || firstUntalliedEventDate.get().isAfter(range.getStartDate())) {
       effectiveStartDateTime = clock.startOfMonth(range.getStartDate());
       effectiveEndDateTime = clock.endOfCurrentHour();
       log.info(
@@ -128,7 +133,7 @@ public class MetricUsageCollector {
           effectiveEndDateTime);
       isRecalculating = true;
     } else {
-      effectiveStartDateTime = range.getStartDate();
+      effectiveStartDateTime = firstUntalliedEventDate.get();
       effectiveEndDateTime = range.getEndDate();
       log.info(
           "New tally! Adjusting start and end from [{} : {}] to [{} : {}]",
@@ -152,6 +157,9 @@ public class MetricUsageCollector {
         collectHourlyCalculations(
             accountServiceInventory, effectiveStartDateTime, effectiveEndDateTime);
     accountServiceInventoryRepository.save(accountServiceInventory);
+
+    eventController.updateLastSeenTallyEvents(
+        effectiveStartDateTime, effectiveEndDateTime, orgId, serviceType, OffsetDateTime.now());
 
     return new CollectionResult(
         new DateRange(effectiveStartDateTime, effectiveEndDateTime), accountCalcs, isRecalculating);

@@ -70,6 +70,7 @@ class EventRecordRepositoryTest {
     assertNull(found.getEvent().getInventoryId());
     assertNotNull(found.getEvent().getDisplayName());
     assertFalse(found.getEvent().getDisplayName().isPresent());
+    record.setRecordDate(found.getRecordDate());
     assertEquals(record, found);
   }
 
@@ -176,6 +177,7 @@ class EventRecordRepositoryTest {
             .collect(Collectors.toList());
 
     assertEquals(1, found.size());
+    e1.setRecordDate(found.get(0).getRecordDate());
     assertEquals(e1, found.get(0));
   }
 

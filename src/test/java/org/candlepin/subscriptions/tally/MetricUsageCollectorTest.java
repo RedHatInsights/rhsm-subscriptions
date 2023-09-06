@@ -26,8 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.google.common.collect.Sets;
 import java.time.OffsetDateTime;
@@ -519,6 +518,8 @@ class MetricUsageCollectorTest {
         "account123",
         "org123",
         new DateRange(instanceDate.minusHours(1), instanceDate.plusHours(1)));
+    verify(eventController, times(1)).findFirstUntalliedEvent("org123", SERVICE_TYPE);
+    verify(eventController, times(1)).updateLastSeenTallyEvents(any(), any(), any(), any(), any());
     assertEquals(
         Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
   }
@@ -571,6 +572,8 @@ class MetricUsageCollectorTest {
         "account123",
         "org123",
         new DateRange(instanceDate.minusHours(1), instanceDate.plusHours(1)));
+    verify(eventController, times(1)).findFirstUntalliedEvent("org123", SERVICE_TYPE);
+    verify(eventController, times(1)).updateLastSeenTallyEvents(any(), any(), any(), any(), any());
     assertEquals(
         Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
     assertEquals(0.0, staleInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
@@ -617,6 +620,8 @@ class MetricUsageCollectorTest {
 
     metricUsageCollector.collect(
         SERVICE_TYPE, "account123", "org123", new DateRange(eventDate, eventDate.plusHours(1)));
+    verify(eventController, times(1)).findFirstUntalliedEvent("org123", SERVICE_TYPE);
+    verify(eventController, times(1)).updateLastSeenTallyEvents(any(), any(), any(), any(), any());
     assertEquals(
         Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, Measurement.Uom.CORES));
   }

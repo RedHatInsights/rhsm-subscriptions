@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.event;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -149,6 +150,23 @@ public class EventController {
       String orgId, String serviceType, OffsetDateTime startDate, OffsetDateTime endDate) {
     return repo.existsByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThan(
         orgId, serviceType, startDate, endDate);
+  }
+
+  @Transactional
+  public Optional<OffsetDateTime> findFirstUntalliedEvent(String orgId, String serviceType) {
+    return Optional.ofNullable(repo.findFirstUntalliedEvent(orgId, serviceType))
+        .map(dateTime -> dateTime.atOffset(ZoneOffset.UTC));
+  }
+
+  @Transactional
+  public void updateLastSeenTallyEvents(
+      OffsetDateTime effectiveStartDateTime,
+      OffsetDateTime effectiveEndDateTime,
+      String orgId,
+      String serviceType,
+      OffsetDateTime updatedTimestamp) {
+    repo.updateLastSeenTallyEvents(
+        effectiveStartDateTime, effectiveEndDateTime, orgId, serviceType, updatedTimestamp);
   }
 
   @Transactional
