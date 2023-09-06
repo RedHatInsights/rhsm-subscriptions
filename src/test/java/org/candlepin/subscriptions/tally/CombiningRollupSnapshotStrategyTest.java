@@ -26,18 +26,22 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.any;
 
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.*;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.DateRange;
 import org.candlepin.subscriptions.util.MetricIdUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,9 +57,19 @@ class CombiningRollupSnapshotStrategyTest {
 
   @Autowired CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy;
 
-  @Autowired TagProfile tagProfile;
-
   @MockBean TallySnapshotRepository repo;
+
+  private Set<String> tagsWithPrometheusEnabled;
+
+  @BeforeEach
+  void setUp() {
+    tagsWithPrometheusEnabled =
+        SubscriptionDefinition.getSubscriptionDefinitions().stream()
+            .filter(SubscriptionDefinition::isPrometheusEnabled)
+            .flatMap(subDef -> subDef.getVariants().stream())
+            .map(Variant::getTag)
+            .collect(Collectors.toSet());
+  }
 
   @Test
   void testConsecutiveHoursAddedTogether() {
@@ -77,7 +91,7 @@ class CombiningRollupSnapshotStrategyTest {
         new DateRange(
             OffsetDateTime.parse("2021-02-24T12:00:00Z"),
             OffsetDateTime.parse("2021-02-26T12:00:00Z")),
-        tagProfile.getTagsWithPrometheusEnabledLookup(),
+        tagsWithPrometheusEnabled,
         Map.of(
             OffsetDateTime.parse("2021-02-25T12:00:00Z"),
             noonUsage,
@@ -132,7 +146,7 @@ class CombiningRollupSnapshotStrategyTest {
         new DateRange(
             OffsetDateTime.parse("2021-02-24T12:00:00Z"),
             OffsetDateTime.parse("2021-02-26T12:00:00Z")),
-        tagProfile.getTagsWithPrometheusEnabledLookup(),
+        tagsWithPrometheusEnabled,
         Map.of(hourlyTimestamp1, day1Usage, hourlyTimestamp2, day2Usage),
         Granularity.HOURLY,
         Double::sum);
@@ -202,7 +216,7 @@ class CombiningRollupSnapshotStrategyTest {
         new DateRange(
             OffsetDateTime.parse("2021-02-24T12:00:00Z"),
             OffsetDateTime.parse("2021-02-26T12:00:00Z")),
-        tagProfile.getTagsWithPrometheusEnabledLookup(),
+        tagsWithPrometheusEnabled,
         Map.of(
             OffsetDateTime.parse("2021-02-25T12:00:00Z"),
             noonUsage,
@@ -256,7 +270,7 @@ class CombiningRollupSnapshotStrategyTest {
         new DateRange(
             OffsetDateTime.parse("2021-02-24T12:00:00Z"),
             OffsetDateTime.parse("2021-02-26T12:00:00Z")),
-        tagProfile.getTagsWithPrometheusEnabledLookup(),
+        tagsWithPrometheusEnabled,
         Map.of(
             OffsetDateTime.parse("2021-02-25T12:00:00Z"),
             noonUsage,
@@ -316,7 +330,7 @@ class CombiningRollupSnapshotStrategyTest {
         new DateRange(
             OffsetDateTime.parse("2021-02-24T12:00:00Z"),
             OffsetDateTime.parse("2021-02-26T12:00:00Z")),
-        tagProfile.getTagsWithPrometheusEnabledLookup(),
+        tagsWithPrometheusEnabled,
         Map.of(OffsetDateTime.parse("2021-02-25T13:00:00Z"), afternoonUsage),
         Granularity.HOURLY,
         Double::sum);
@@ -399,7 +413,7 @@ class CombiningRollupSnapshotStrategyTest {
         new DateRange(
             OffsetDateTime.parse("2021-02-24T12:00:00Z"),
             OffsetDateTime.parse("2021-02-26T12:00:00Z")),
-        tagProfile.getTagsWithPrometheusEnabledLookup(),
+        tagsWithPrometheusEnabled,
         Map.of(existingHourlySnapshot1.getSnapshotDate(), accountCalc),
         Granularity.HOURLY,
         Double::sum);
@@ -459,7 +473,7 @@ class CombiningRollupSnapshotStrategyTest {
             new DateRange(
                 OffsetDateTime.parse("2021-02-25T13:00:00Z"),
                 OffsetDateTime.parse("2021-02-25T14:00:00Z")),
-            tagProfile.getTagsWithPrometheusEnabledLookup(),
+            tagsWithPrometheusEnabled,
             Map.of(
                 OffsetDateTime.parse("2021-02-25T12:00:00Z"),
                 noonUsage,
@@ -495,7 +509,7 @@ class CombiningRollupSnapshotStrategyTest {
         new DateRange(
             OffsetDateTime.parse("2022-10-24T13:00:00Z"),
             OffsetDateTime.parse("2022-10-24T14:00:00Z")),
-        tagProfile.getTagsWithPrometheusEnabledLookup(),
+        tagsWithPrometheusEnabled,
         Map.of(),
         Granularity.HOURLY,
         Double::sum);
@@ -517,7 +531,7 @@ class CombiningRollupSnapshotStrategyTest {
         new DateRange(
             OffsetDateTime.parse("2022-10-24T13:00:00Z"),
             OffsetDateTime.parse("2022-10-24T14:00:00Z")),
-        tagProfile.getTagsWithPrometheusEnabledLookup(),
+        tagsWithPrometheusEnabled,
         Map.of(),
         Granularity.HOURLY,
         Double::sum);
@@ -540,7 +554,7 @@ class CombiningRollupSnapshotStrategyTest {
         new DateRange(
             OffsetDateTime.parse("2022-10-24T13:00:00Z"),
             OffsetDateTime.parse("2022-10-24T14:00:00Z")),
-        tagProfile.getTagsWithPrometheusEnabledLookup(),
+        tagsWithPrometheusEnabled,
         Map.of(),
         Granularity.HOURLY,
         Double::sum);

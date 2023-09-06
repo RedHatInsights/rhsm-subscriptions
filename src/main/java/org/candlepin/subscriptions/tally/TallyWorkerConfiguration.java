@@ -23,9 +23,6 @@ package org.candlepin.subscriptions.tally;
 import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getProducerProperties;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Executor;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -35,7 +32,6 @@ import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.product.ProductConfiguration;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.tally.billing.BillingProducerConfiguration;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -138,18 +134,6 @@ public class TallyWorkerConfiguration {
             properties.getBackOffMultiplier(),
             properties.getBackOffMaxInterval().toMillis())
         .build();
-  }
-
-  @Bean(name = "applicableProducts")
-  public Set<String> applicableProducts(TagProfile tagProfile) {
-    Set<String> products = new HashSet<>();
-    Map<Integer, Set<String>> productToProductIds =
-        tagProfile.getEngProductIdToSwatchProductIdsMap();
-    productToProductIds.values().forEach(products::addAll);
-
-    Map<String, Set<String>> roleToProducts = tagProfile.getRoleToTagLookup();
-    roleToProducts.values().forEach(products::addAll);
-    return products;
   }
 
   @Bean

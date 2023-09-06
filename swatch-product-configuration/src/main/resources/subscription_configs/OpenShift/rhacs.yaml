@@ -23,6 +23,7 @@ metrics:
     prometheus:
       queryKey: default
       queryParams:
+        instanceKey: _id
         product: rhacs
         metric: rhacs:rox_central_cluster_metrics_cpu_capacity:avg_over_time1h
         metadataMetric: ocm_subscription

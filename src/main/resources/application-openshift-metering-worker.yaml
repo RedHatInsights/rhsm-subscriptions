@@ -11,11 +11,11 @@ rhsm-subscriptions:
         queryTemplates:
           default: >-
             #{metric.prometheus.queryParams[metric]}
-            * on(_id) group_right
+            * on(#{metric.prometheus.queryParams[instanceKey]}) group_right
             min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{product="#{metric.prometheus.queryParams[product]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
           addonSamples: >-
             #{metric.prometheus.queryParams[metric]}
-            * on(_id) group_right
+            * on(#{metric.prometheus.queryParams[instanceKey]}) group_right
             min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{resource_type="addon",resource_name="#{metric.prometheus.queryParams[resourceName]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
         maxAttempts: ${OPENSHIFT_MAX_ATTEMPTS:50}
         backOffMaxInterval: ${OPENSHIFT_BACK_OFF_MAX_INTERVAL:50000}

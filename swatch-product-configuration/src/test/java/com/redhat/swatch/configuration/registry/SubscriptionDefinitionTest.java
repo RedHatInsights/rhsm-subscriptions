@@ -100,6 +100,8 @@ class SubscriptionDefinitionTest {
     prometheusMetric.setQueryKey("default");
     prometheusMetric.setQueryParams(
         Map.of(
+            "instanceKey",
+            "_id",
             "product",
             "BASILISK",
             "metric",

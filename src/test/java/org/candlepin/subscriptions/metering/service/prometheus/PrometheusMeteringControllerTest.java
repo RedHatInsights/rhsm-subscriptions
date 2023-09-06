@@ -47,8 +47,6 @@ import org.candlepin.subscriptions.prometheus.model.QueryResultData;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.ResultType;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
-import org.candlepin.subscriptions.registry.BillingWindow;
-import org.candlepin.subscriptions.registry.TagMetric;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
@@ -106,10 +104,8 @@ class PrometheusMeteringControllerTest {
   private final String expectedBillingAccountId = "mktp-account";
   private final MetricId expectedMetricId = MetricIdUtils.getCores();
   private final String expectedProductTag = "OpenShift-metrics";
-
   private PrometheusMeteringController controller;
   private QueryHelper queries;
-  private TagMetric tagMetric;
 
   @BeforeEach
   void setupTest() {
@@ -130,18 +126,6 @@ class PrometheusMeteringControllerTest {
     queryParams.put("product", "ocp");
     queryParams.put("prometheusMetric", "cluster:usage:workload:capacity_physical_cpu_hours");
     queryParams.put("prometheusMetadataMetric", "ocm_subscription");
-    tagMetric =
-        TagMetric.builder()
-            .tag("OpenShift-metrics")
-            .metricId(expectedMetricIdValue)
-            .rhmMetricId(expectedMetricIdValue)
-            .awsDimension(null)
-            .billingFactor(1.0)
-            .billingWindow(BillingWindow.MONTHLY)
-            .queryKey("default")
-            .accountQueryKey("default")
-            .queryParams(queryParams)
-            .build();
   }
 
   @Test
@@ -403,7 +387,7 @@ class PrometheusMeteringControllerTest {
     when(eventController.mapEventsInTimeRange(
             expectedOrgId,
             MeteringEventFactory.EVENT_SOURCE,
-            MeteringEventFactory.getEventType(tagMetric.getMetricId(), tagMetric.getTag()),
+            MeteringEventFactory.getEventType(expectedMetricId.toString(), expectedProductTag),
             start,
             end))
         .thenReturn(
@@ -516,7 +500,7 @@ class PrometheusMeteringControllerTest {
     when(eventController.mapEventsInTimeRange(
             expectedOrgId,
             MeteringEventFactory.EVENT_SOURCE,
-            MeteringEventFactory.getEventType(tagMetric.getMetricId(), tagMetric.getTag()),
+            MeteringEventFactory.getEventType(expectedMetricId.toString(), expectedProductTag),
             start,
             end))
         .thenReturn(

@@ -682,9 +682,9 @@ public class SubscriptionSyncController {
   /**
    * This will allow any service to look up the swatch product(s) associated with a given SKU. (This
    * lookup will use the offering information already stored in the database) and map the
-   * `product_name` to a swatch `product_tag` via info in `tag_profile.yaml` If the offering does
-   * not exist then return 404. If it does exist, then return an empty list if there are no tags
-   * found for that particular offering.
+   * `product_name` to a swatch `product_tag` via info from `swatch-product-configuration` library.
+   * If the offering does not exist then return 404. If it does exist, then return an empty list if
+   * there are no tags found for that particular offering.
    *
    * @param sku
    * @return OfferingProductTags
