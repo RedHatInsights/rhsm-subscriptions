@@ -23,6 +23,7 @@ metrics:
     prometheus:
       queryKey: default
       queryParams:
+        instanceKey: _id
         product: ocp
         metric: cluster:usage:workload:capacity_physical_cpu_hours
         metadataMetric: ocm_subscription
