@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.resteasy;
 
 import io.micrometer.common.KeyValue;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.server.observation.DefaultServerRequestObservationConvention;
 import org.springframework.http.server.observation.ServerHttpObservationDocumentation.LowCardinalityKeyNames;
 import org.springframework.http.server.observation.ServerRequestObservationContext;
@@ -45,6 +46,15 @@ public class ResteasyRequestObservationConvention
     if (uriAttribute != null) {
       return KeyValue.of(LowCardinalityKeyNames.URI, uriAttribute);
     }
+
+    // For the scenarios that the default server request observation convention does not address:
+    if (context.getPathPattern() == null && context.getResponse() != null) {
+      HttpStatus status = HttpStatus.resolve(context.getResponse().getStatus());
+      if (status != null && !status.is3xxRedirection() && status != HttpStatus.NOT_FOUND) {
+        return KeyValue.of(LowCardinalityKeyNames.URI, context.getCarrier().getRequestURI());
+      }
+    }
+
     return super.uri(context);
   }
 }
