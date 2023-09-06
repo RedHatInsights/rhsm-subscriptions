@@ -26,8 +26,8 @@ import lombok.Setter;
 import lombok.ToString;
 
 /**
- * This object represents the combination of swatch product id and Measurement.Uom. This should map
- * to a unique metric ID. The ProductUom / metricId is used in the product profile registry.
+ * This object represents the combination of swatch product id and MetricId. This should map to a
+ * unique metric ID. The ProductUom / metricId is used in the product profile registry.
  */
 @EqualsAndHashCode
 @Getter

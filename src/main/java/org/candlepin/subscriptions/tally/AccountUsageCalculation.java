@@ -20,12 +20,12 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.json.Measurement;
 
 /** The calculated usage for an account. */
 public class AccountUsageCalculation {
@@ -76,12 +76,9 @@ public class AccountUsageCalculation {
   }
 
   public void addUsage(
-      UsageCalculation.Key key,
-      HardwareMeasurementType category,
-      Measurement.Uom uom,
-      Double value) {
+      UsageCalculation.Key key, HardwareMeasurementType category, MetricId metricId, Double value) {
     UsageCalculation usageCalculation = getOrCreateCalculation(key);
-    usageCalculation.add(category, uom, value);
+    usageCalculation.add(category, metricId, value);
     products.add(key.getProductId());
   }
 

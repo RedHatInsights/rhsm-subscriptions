@@ -21,45 +21,39 @@
 package org.candlepin.subscriptions.util;
 
 import com.redhat.swatch.configuration.registry.Metric;
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 
-public class UomUtils {
-  private UomUtils() {
+public class MetricIdUtils {
+  private MetricIdUtils() {
     /* intentionally empty */
   }
 
-  public static Stream<Uom> getUomsFromConfigForTag(String tag) {
-    return getUomsFromConfigForVariant(Variant.findByTag(tag).orElse(null));
+  public static MetricId getCores() {
+    return MetricId.fromString("Cores");
   }
 
-  public static Stream<Uom> getUomsFromConfigForVariant(Variant variant) {
+  public static MetricId getSockets() {
+    return MetricId.fromString("Sockets");
+  }
+
+  public static MetricId getInstanceHours() {
+    return MetricId.fromString("Instance-hours");
+  }
+
+  public static Stream<MetricId> getMetricIdsFromConfigForTag(String tag) {
+    return getMetricIdsFromConfigForVariant(Variant.findByTag(tag).orElse(null));
+  }
+
+  public static Stream<MetricId> getMetricIdsFromConfigForVariant(Variant variant) {
     return Optional.ofNullable(variant).map(Variant::getSubscription).stream()
         .map(SubscriptionDefinition::getMetrics)
         .flatMap(Collection::stream)
         .map(Metric::getId)
-        .map(
-            metricId -> {
-              /*
-              NOTE: Measurement.Uom values use a convention of capitalized kebab-case (e.g.
-              Instance-hours). The DB values and our config both use a convention with uppercase
-              snake-case (e.g. INSTANCE_HOURS). So in order to match them, we need to make them the
-              same case and remove hyphens and underscores (e.g. instancehours).
-              */
-              var normalized = metricId.replaceAll("[_-]", "").toLowerCase();
-              return Arrays.stream(Uom.values())
-                  .filter(
-                      v ->
-                          Objects.equals(
-                              v.toString().replaceAll("[_-]", "").toLowerCase(), normalized))
-                  .findFirst()
-                  .orElseThrow();
-            });
+        .map(MetricId::fromString);
   }
 }

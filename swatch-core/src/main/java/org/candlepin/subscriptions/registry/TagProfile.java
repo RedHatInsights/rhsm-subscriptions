@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.registry;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,10 +42,6 @@ import lombok.Setter;
 import lombok.ToString;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.json.Event.Role;
-import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.json.Measurement.Uom;
-import org.candlepin.subscriptions.json.TallyMeasurement;
-import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
@@ -64,14 +61,14 @@ public class TagProfile {
   private Map<ProductUom, String> productUomToRhmMetricIdLookup;
   private Map<ProductUom, String> productUomToAwsDimensionLookup;
   @Getter private Set<String> tagsWithPrometheusEnabledLookup;
-  private Map<String, Set<Uom>> measurementsByTagLookup;
+  private Map<String, Set<String>> measurementsByTagLookup;
   private Map<String, String> offeringProductNameToTagLookup;
   private Map<String, Set<String>> tagToOfferingProductNamesLookup;
   @Getter private Map<String, Set<String>> roleToTagLookup;
   @Getter private Map<String, Set<String>> archToTagLookup;
   private Map<String, Granularity> finestGranularityLookup;
   private Map<String, TagMetaData> tagMetaDataToTagLookup;
-  private Map<String, List<Measurement.Uom>> tagToUomLookup;
+  private Map<String, List<String>> tagToUomLookup;
 
   /** Initialize lookup fields */
   @PostConstruct
@@ -153,19 +150,19 @@ public class TagProfile {
     }
 
     productUomToRhmMetricIdLookup.put(
-        new ProductUom(tagMetric.getTag(), tagMetric.getUom().value()), tagMetric.getRhmMetricId());
+        new ProductUom(tagMetric.getTag(), tagMetric.getMetricId()), tagMetric.getRhmMetricId());
 
     if (!ObjectUtils.isEmpty(tagMetric.getAwsDimension())) {
       productUomToAwsDimensionLookup.put(
-          new ProductUom(tagMetric.getTag(), tagMetric.getUom().value()),
-          tagMetric.getAwsDimension());
+          new ProductUom(tagMetric.getTag(), tagMetric.getMetricId()), tagMetric.getAwsDimension());
     }
 
     measurementsByTagLookup
         .computeIfAbsent(tagMetric.getTag(), k -> new HashSet<>())
-        .add(tagMetric.getUom());
-    List<Uom> uomList = tagToUomLookup.computeIfAbsent(tagMetric.getTag(), k -> new ArrayList<>());
-    uomList.add(tagMetric.getUom());
+        .add(tagMetric.getMetricId());
+    List<String> uomList =
+        tagToUomLookup.computeIfAbsent(tagMetric.getTag(), k -> new ArrayList<>());
+    uomList.add(tagMetric.getMetricId());
   }
 
   private void handleTagMetaData(TagMetaData tagMetaData) {
@@ -191,35 +188,11 @@ public class TagProfile {
     }
   }
 
-  public boolean tagSupportsEngProduct(String tag, String engId) {
-    return tagToEngProductsLookup.getOrDefault(tag, Collections.emptySet()).contains(engId);
-  }
-
   public boolean tagIsPrometheusEnabled(String tag) {
     return tagsWithPrometheusEnabledLookup.contains(tag);
   }
 
-  public boolean tagSupportsGranularity(String tag, Granularity granularity) {
-    return granularity.compareTo(finestGranularityLookup.get(tag)) < 1;
-  }
-
-  public String rhmMetricIdForTagAndUom(String tag, TallyMeasurement.Uom uom) {
-    return productUomToRhmMetricIdLookup.get(new ProductUom(tag, uom.value()));
-  }
-
-  public String awsDimensionForTagAndUom(String tag, TallyMeasurement.Uom uom) {
-    return productUomToAwsDimensionLookup.get(new ProductUom(tag, uom.value()));
-  }
-
-  public String tagForOfferingProductName(String offeringProductName) {
-    return offeringProductNameToTagLookup.get(offeringProductName);
-  }
-
-  public Granularity granularityByTag(String productId) {
-    return finestGranularityLookup.getOrDefault(productId, Granularity.DAILY);
-  }
-
-  public Set<Uom> measurementsByTag(String tag) {
+  public Set<String> measurementsByTag(String tag) {
     return measurementsByTagLookup.getOrDefault(tag, new HashSet<>());
   }
 
@@ -230,18 +203,18 @@ public class TagProfile {
     return Optional.ofNullable(tagMetaDataToTagLookup.get(productTag));
   }
 
-  public List<Measurement.Uom> uomsForTag(String tag) {
+  public List<String> uomsForTag(String tag) {
     return tagToUomLookup.getOrDefault(tag, Collections.emptyList());
   }
 
-  public Optional<TagMetric> getTagMetric(String productTag, Uom metric) {
+  public Optional<TagMetric> getTagMetric(String productTag, MetricId metric) {
     if (!StringUtils.hasText(productTag) || Objects.isNull(metric)) {
       return Optional.empty();
     }
 
     List<TagMetric> matchedMetrics =
         getTagMetrics().stream()
-            .filter(x -> productTag.equals(x.getTag()) && metric.equals(x.getUom()))
+            .filter(x -> productTag.equals(x.getTag()) && metric.toString().equals(x.getMetricId()))
             .collect(Collectors.toList());
 
     if (matchedMetrics.size() > 1) {
@@ -252,7 +225,7 @@ public class TagProfile {
     return matchedMetrics.stream().findFirst();
   }
 
-  public Set<Uom> getSupportedMetricsForProduct(String productTag) {
+  public Set<String> getSupportedMetricsForProduct(String productTag) {
     if (!tagIsPrometheusEnabled(productTag)) {
       throw new UnsupportedOperationException(
           String.format("Metrics gathering for %s is not currently supported!", productTag));
@@ -303,24 +276,6 @@ public class TagProfile {
 
   public Set<String> getOfferingProductNamesForTag(String productTag) {
     return tagToOfferingProductNamesLookup.getOrDefault(productTag, Collections.emptySet());
-  }
-
-  /**
-   * Verify that the granularity requested is compatible with the finest granularity supported by
-   * the product. For example, if the requester asks for HOURLY granularity but the product only
-   * supports DAILY granularity, we can't meaningfully fulfill that request.
-   *
-   * @throws IllegalStateException if the granularities are not compatible
-   */
-  public void validateGranularityCompatibility(
-      ProductId productId, Granularity requestedGranularity) {
-    if (!tagSupportsGranularity(productId.toString(), requestedGranularity)) {
-      String msg =
-          String.format(
-              "%s does not support any granularity finer than %s",
-              productId, requestedGranularity.getValue());
-      throw new IllegalStateException(msg);
-    }
   }
 
   public Map<Integer, Set<String>> getEngProductIdToSwatchProductIdsMap() {

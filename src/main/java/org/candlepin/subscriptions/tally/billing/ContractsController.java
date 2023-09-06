@@ -33,7 +33,6 @@ import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
 import org.candlepin.subscriptions.json.BillableUsage.Uom;
-import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
@@ -118,7 +117,7 @@ public class ContractsController {
   }
 
   private String getContractMetricId(BillingProvider billingProvider, String productId, Uom uom) {
-    String measurementUom = TallyMeasurement.Uom.fromValue(uom.toString()).value();
+    String measurementUom = uom.toString();
     if (BillingProvider.AWS.equals(billingProvider)) {
       return SubscriptionDefinition.getAwsDimension(productId, measurementUom);
     } else if (BillingProvider.RED_HAT.equals(billingProvider)) {

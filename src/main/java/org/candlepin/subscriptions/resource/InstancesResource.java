@@ -46,11 +46,9 @@ import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
-import org.candlepin.subscriptions.util.UomUtils;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
 import org.candlepin.subscriptions.utilization.api.model.CloudProvider;
 import org.candlepin.subscriptions.utilization.api.model.InstanceData;
@@ -92,8 +90,8 @@ public class InstancesResource implements InstancesApi {
           .put(InstanceReportSort.SOCKETS, "sockets")
           .build();
 
-  public static final Map<InstanceReportSort, Measurement.Uom> SORT_TO_UOM_MAP =
-      ImmutableMap.copyOf(getSortToUomMap());
+  public static final Map<InstanceReportSort, MetricId> SORT_TO_METRIC_ID_MAP =
+      ImmutableMap.copyOf(getSortToMetricIdMap());
 
   private static final Map<ReportCategory, List<HardwareMeasurementType>> CATEGORY_MAP =
       Map.of(
@@ -202,19 +200,20 @@ public class InstancesResource implements InstancesApi {
     OffsetDateTime end = Optional.ofNullable(ending).orElse(now);
 
     var variant = Variant.findByTag(productId.toString());
-    var uomSet =
-        UomUtils.getUomsFromConfigForVariant(variant.orElse(null)).collect(Collectors.toSet());
-    List<String> measurements = uomSet.stream().map(Measurement.Uom::toString).sorted().toList();
+    var metricIdSet =
+        MetricIdUtils.getMetricIdsFromConfigForVariant(variant.orElse(null))
+            .collect(Collectors.toSet());
+    List<String> measurements = metricIdSet.stream().map(MetricId::toString).sorted().toList();
 
     validateBeginningAndEndingDates(productId, start, end);
 
     boolean isPAYG = isPayg(variant);
     String month = isPAYG ? InstanceMonthlyTotalKey.formatMonthId(start) : null;
-    // We depend on a "reference UOM" in order to filter out instances that were not active in
+    // We depend on a "reference MetricId" in order to filter out instances that were not active in
     // the selected month. This is also used for sorting purposes (same join). See
     // org.candlepin.subscriptions.db.TallyInstanceViewSpecification#toPredicate and
     // org.candlepin.subscriptions.db.TallyInstanceViewRepository#findAllBy.
-    Measurement.Uom referenceUom = getMeasurementUom(metricIdOptional, sort);
+    MetricId referenceMetricId = metricIdOptional.orElse(SORT_TO_METRIC_ID_MAP.get(sort));
 
     instances =
         repository.findAllBy(
@@ -226,7 +225,7 @@ public class InstancesResource implements InstancesApi {
             minCores,
             minSockets,
             month,
-            referenceUom,
+            referenceMetricId,
             sanitizedBillingProvider,
             sanitizedBillingAccountId,
             hardwareMeasurementTypes,
@@ -310,16 +309,16 @@ public class InstancesResource implements InstancesApi {
       List<String> measurements,
       boolean isPAYG) {
     List<Double> measurementList = new ArrayList<>();
-    for (String uom : measurements) {
-      if (Measurement.Uom.SOCKETS.equals(Measurement.Uom.fromValue(uom))) {
+    for (String metric : measurements) {
+      if (MetricIdUtils.getSockets().equals(MetricId.fromString(metric))) {
         measurementList.add(Double.valueOf(tallyInstanceView.getSockets()));
       } else if (!isPAYG
-          && tallyInstanceView.getKey().getUom().equals(Measurement.Uom.fromValue(uom))) {
+          && tallyInstanceView.getKey().getMetricId().equals(MetricId.fromString(metric))) {
         measurementList.add(Optional.ofNullable(tallyInstanceView.getValue()).orElse(0.0));
       } else {
         measurementList.add(
             Optional.ofNullable(
-                    tallyInstanceView.getMonthlyTotal(monthId, Measurement.Uom.fromValue(uom)))
+                    tallyInstanceView.getMonthlyTotal(monthId, MetricId.fromString(metric)))
                 .orElse(0.0));
       }
     }
@@ -359,29 +358,23 @@ public class InstancesResource implements InstancesApi {
     };
   }
 
-  private static Map<InstanceReportSort, Measurement.Uom> getSortToUomMap() {
-    return Arrays.stream(Measurement.Uom.values())
+  private static Map<InstanceReportSort, MetricId> getSortToMetricIdMap() {
+    return MetricId.getAll().stream()
         .filter(
-            uom ->
+            metricId ->
                 Arrays.stream(InstanceReportSort.values())
                     .map(InstanceReportSort::toString)
-                    .filter(value -> !value.equals(Uom.SOCKETS.value()))
+                    .filter(value -> !value.equals(MetricIdUtils.getSockets().getValue()))
                     .collect(Collectors.toSet())
-                    .contains(uom.value()))
+                    .contains(metricId.getValue()))
         .collect(
             Collectors.toMap(
-                uom -> InstanceReportSort.fromValue(uom.value()), Function.identity()));
+                metricId -> InstanceReportSort.fromValue(metricId.getValue()),
+                Function.identity()));
   }
 
   private static Map<InstanceReportSort, String> getUomSorts() {
-    return getSortToUomMap().keySet().stream()
+    return getSortToMetricIdMap().keySet().stream()
         .collect(Collectors.toMap(Function.identity(), key -> "value"));
-  }
-
-  private static Measurement.Uom getMeasurementUom(
-      Optional<MetricId> optionalMetricId, InstanceReportSort sort) {
-    return optionalMetricId
-        .map(metricId -> Measurement.Uom.fromValue(metricId.toString()))
-        .orElse(SORT_TO_UOM_MAP.get(sort));
   }
 }

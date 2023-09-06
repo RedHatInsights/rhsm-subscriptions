@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.metering;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -29,7 +30,6 @@ import org.candlepin.subscriptions.json.Event.Role;
 import org.candlepin.subscriptions.json.Event.Sla;
 import org.candlepin.subscriptions.json.Event.Usage;
 import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
@@ -64,7 +64,6 @@ public class MeteringEventFactory {
   public static Event createMetricEvent(
       String accountNumber,
       String orgId,
-      String metricId,
       String instanceId,
       String serviceLevel,
       String usage,
@@ -74,7 +73,7 @@ public class MeteringEventFactory {
       String serviceType,
       String billingProvider,
       String billingAccountId,
-      Uom measuredMetric,
+      MetricId measuredMetric,
       Double measuredValue,
       String productTag) {
     Event event = new Event();
@@ -82,7 +81,6 @@ public class MeteringEventFactory {
         event,
         accountNumber,
         orgId,
-        metricId,
         instanceId,
         serviceLevel,
         usage,
@@ -103,7 +101,6 @@ public class MeteringEventFactory {
       Event toUpdate,
       String accountNumber,
       String orgId,
-      String metricId,
       String instanceId,
       String serviceLevel,
       String usage,
@@ -113,12 +110,12 @@ public class MeteringEventFactory {
       String serviceType,
       String billingProvider,
       String billingAccountId,
-      Uom measuredMetric,
+      MetricId measuredMetric,
       Double measuredValue,
       String productTag) {
     toUpdate
         .withEventSource(EVENT_SOURCE)
-        .withEventType(MeteringEventFactory.getEventType(measuredMetric.value(), productTag))
+        .withEventType(MeteringEventFactory.getEventType(measuredMetric.getValue(), productTag))
         .withServiceType(serviceType)
         .withAccountNumber(accountNumber)
         .withOrgId(orgId)
@@ -131,7 +128,7 @@ public class MeteringEventFactory {
         .withBillingProvider(getBillingProvider(billingProvider, accountNumber, instanceId))
         .withBillingAccountId(Optional.ofNullable(billingAccountId))
         .withMeasurements(
-            List.of(new Measurement().withUom(measuredMetric).withValue(measuredValue)))
+            List.of(new Measurement().withUom(measuredMetric.getValue()).withValue(measuredValue)))
         .withRole(getRole(role, accountNumber, instanceId));
   }
 

@@ -60,7 +60,6 @@ import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
 import org.candlepin.subscriptions.json.BillableUsage.Sla;
 import org.candlepin.subscriptions.json.BillableUsage.Uom;
 import org.candlepin.subscriptions.json.BillableUsage.Usage;
-import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.AfterAll;
@@ -526,8 +525,7 @@ class BillableUsageControllerTest {
 
   private void mockCurrentSnapshotMeasurementTotal(BillableUsage usage, Double sum) {
     TallyMeasurementKey measurementKey =
-        new TallyMeasurementKey(
-            HardwareMeasurementType.PHYSICAL, Measurement.Uom.fromValue(usage.getUom().value()));
+        new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, usage.getUom().value());
     when(snapshotRepo.sumMeasurementValueForPeriod(
             usage.getOrgId(),
             usage.getProductId(),

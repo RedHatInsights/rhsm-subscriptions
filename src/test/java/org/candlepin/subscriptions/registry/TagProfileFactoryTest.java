@@ -23,15 +23,12 @@ package org.candlepin.subscriptions.registry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.candlepin.subscriptions.db.model.Granularity;
-import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.json.TallyMeasurement.Uom;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,46 +68,8 @@ class TagProfileFactoryTest {
   }
 
   @Test
-  void testCanLookupMetricIdByTagAndUom() {
-    assertNotNull(
-        tagProfile.rhmMetricIdForTagAndUom(ProductId.OPENSHIFT_METRICS.toString(), Uom.CORES));
-  }
-
-  @Test
-  void testCanLookupAwsDimensionByTagAndUom() {
-    String rosaCoresAwsDimension =
-        tagProfile.awsDimensionForTagAndUom(ProductId.ROSA.toString(), Uom.CORES);
-    assertNotNull(rosaCoresAwsDimension);
-    assertEquals("four_vcpu_0", rosaCoresAwsDimension);
-  }
-
-  @Test
-  void awsDimensionLookupReturnsNullWhenNotDefined() {
-    assertNull(
-        tagProfile.awsDimensionForTagAndUom(ProductId.OPENSHIFT_METRICS.toString(), Uom.CORES));
-  }
-
-  @Test
   void testCanLookupPrometheusEnabled() {
     assertTrue(tagProfile.tagIsPrometheusEnabled(ProductId.OPENSHIFT_METRICS.toString()));
-  }
-
-  @Test
-  void testCanLookupEngIdSupport() {
-    assertTrue(
-        tagProfile.tagSupportsEngProduct(ProductId.OPENSHIFT_CONTAINER_PLATFORM.toString(), "290"));
-  }
-
-  @Test
-  void testCanLookupTagByOfferingName() {
-    assertNotNull(tagProfile.tagForOfferingProductName("OpenShift Container Platform"));
-  }
-
-  @Test
-  void testCanLookupSupportedGranularity() {
-    assertTrue(
-        tagProfile.tagSupportsGranularity(
-            ProductId.OPENSHIFT_METRICS.toString(), Granularity.HOURLY));
   }
 
   @Test
@@ -128,7 +87,8 @@ class TagProfileFactoryTest {
   @Test
   void billingFrequencyIsSet() {
     Optional<TagMetric> metric =
-        tagProfile.getTagMetric(ProductId.RHOSAK.toString(), Measurement.Uom.STORAGE_GIBIBYTES);
+        tagProfile.getTagMetric(
+            ProductId.RHOSAK.toString(), MetricId.fromString("Storage-gibibytes"));
     assertEquals(BillingWindow.HOURLY, metric.get().getBillingWindow());
   }
 }

@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Collection;
@@ -39,8 +40,6 @@ import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
@@ -53,6 +52,7 @@ import org.candlepin.subscriptions.registry.TagMetric;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -96,7 +96,7 @@ class PrometheusMeteringControllerTest {
 
   private final String expectedAccount = "my-test-account";
   private final String expectedOrgId = "my-test-org";
-  private final String expectedMetricId = "CORES";
+  private final String expectedMetricIdValue = "CORES";
   private final String expectedClusterId = "C1";
   private final String expectedSla = "Premium";
   private final String expectedUsage = "Production";
@@ -104,7 +104,7 @@ class PrometheusMeteringControllerTest {
   private final String expectedServiceType = "OpenShift Cluster";
   private final String expectedBillingProvider = "red hat";
   private final String expectedBillingAccountId = "mktp-account";
-  private final Uom expectedUom = Uom.CORES;
+  private final MetricId expectedMetricId = MetricIdUtils.getCores();
   private final String expectedProductTag = "OpenShift-metrics";
 
   private PrometheusMeteringController controller;
@@ -133,10 +133,9 @@ class PrometheusMeteringControllerTest {
     tagMetric =
         TagMetric.builder()
             .tag("OpenShift-metrics")
-            .metricId(expectedMetricId)
-            .rhmMetricId(expectedMetricId)
+            .metricId(expectedMetricIdValue)
+            .rhmMetricId(expectedMetricIdValue)
             .awsDimension(null)
-            .uom(Measurement.Uom.CORES)
             .billingFactor(1.0)
             .billingWindow(BillingWindow.MONTHLY)
             .queryKey("default")
@@ -168,7 +167,7 @@ class PrometheusMeteringControllerTest {
     OffsetDateTime start = OffsetDateTime.now();
     OffsetDateTime end = start.plusDays(1);
 
-    controller.collectMetrics("OpenShift-metrics", Uom.CORES, "account", start, end);
+    controller.collectMetrics("OpenShift-metrics", MetricIdUtils.getCores(), "account", start, end);
     prometheusServer.verifyQueryRangeWasCalled(3);
   }
 
@@ -189,7 +188,8 @@ class PrometheusMeteringControllerTest {
             List.of(List.of(new BigDecimal("12312.345"), new BigDecimal(24))));
     prometheusServer.stubQueryRange(data);
 
-    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedOrgId, start, end);
+    controller.collectMetrics(
+        "OpenShift-metrics", MetricIdUtils.getCores(), expectedOrgId, start, end);
     prometheusServer.verifyQueryRange(
         queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
         clock.startOfHour(start).plusHours(1),
@@ -215,7 +215,8 @@ class PrometheusMeteringControllerTest {
             List.of(List.of(new BigDecimal("12312.345"), new BigDecimal(24))));
     prometheusServer.stubQueryRange(data);
 
-    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedOrgId, start, end);
+    controller.collectMetrics(
+        "OpenShift-metrics", MetricIdUtils.getCores(), expectedOrgId, start, end);
     prometheusServer.verifyQueryRange(
         queries.expectedQuery("OpenShift-metrics", Map.of("orgId", expectedOrgId)),
         start.plusHours(1),
@@ -254,7 +255,6 @@ class PrometheusMeteringControllerTest {
             MeteringEventFactory.createMetricEvent(
                 expectedAccount,
                 expectedOrgId,
-                expectedMetricId,
                 expectedClusterId,
                 expectedSla,
                 expectedUsage,
@@ -264,13 +264,12 @@ class PrometheusMeteringControllerTest {
                 expectedServiceType,
                 expectedBillingProvider,
                 expectedBillingAccountId,
-                expectedUom,
+                expectedMetricId,
                 val1.doubleValue(),
                 expectedProductTag),
             MeteringEventFactory.createMetricEvent(
                 expectedAccount,
                 expectedOrgId,
-                expectedMetricId,
                 expectedClusterId,
                 expectedSla,
                 expectedUsage,
@@ -280,11 +279,12 @@ class PrometheusMeteringControllerTest {
                 expectedServiceType,
                 expectedBillingProvider,
                 expectedBillingAccountId,
-                expectedUom,
+                expectedMetricId,
                 val2.doubleValue(),
                 expectedProductTag));
 
-    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedOrgId, start, end);
+    controller.collectMetrics(
+        "OpenShift-metrics", MetricIdUtils.getCores(), expectedOrgId, start, end);
 
     ArgumentCaptor<Collection> saveCaptor = ArgumentCaptor.forClass(Collection.class);
     verify(eventController).saveAll(saveCaptor.capture());
@@ -331,7 +331,6 @@ class PrometheusMeteringControllerTest {
         MeteringEventFactory.createMetricEvent(
             expectedAccount,
             expectedOrgId,
-            expectedMetricId,
             expectedClusterId,
             expectedSla,
             expectedUsage,
@@ -341,7 +340,7 @@ class PrometheusMeteringControllerTest {
             expectedServiceType,
             expectedBillingProvider,
             expectedBillingAccountId,
-            expectedUom,
+            expectedMetricId,
             val1.doubleValue(),
             expectedProductTag);
 
@@ -351,7 +350,6 @@ class PrometheusMeteringControllerTest {
             MeteringEventFactory.createMetricEvent(
                 expectedAccount,
                 expectedOrgId,
-                expectedMetricId,
                 expectedClusterId,
                 expectedSla,
                 expectedUsage,
@@ -361,7 +359,7 @@ class PrometheusMeteringControllerTest {
                 expectedServiceType,
                 expectedBillingProvider,
                 expectedBillingAccountId,
-                expectedUom,
+                expectedMetricId,
                 val2.doubleValue(),
                 expectedProductTag));
 
@@ -369,7 +367,6 @@ class PrometheusMeteringControllerTest {
         MeteringEventFactory.createMetricEvent(
             expectedAccount,
             expectedOrgId,
-            expectedMetricId,
             "CLUSTER_NO_LONGER_EXISTS",
             expectedSla,
             expectedUsage,
@@ -379,7 +376,7 @@ class PrometheusMeteringControllerTest {
             expectedServiceType,
             expectedBillingProvider,
             expectedBillingAccountId,
-            expectedUom,
+            expectedMetricId,
             val1.doubleValue(),
             expectedProductTag);
 
@@ -389,7 +386,6 @@ class PrometheusMeteringControllerTest {
             MeteringEventFactory.createMetricEvent(
                 expectedAccount,
                 expectedOrgId,
-                expectedMetricId,
                 expectedClusterId,
                 expectedSla,
                 expectedUsage,
@@ -399,7 +395,7 @@ class PrometheusMeteringControllerTest {
                 expectedServiceType,
                 expectedBillingProvider,
                 expectedBillingAccountId,
-                expectedUom,
+                expectedMetricId,
                 144.4,
                 expectedProductTag),
             // This event should get purged because prometheus did not report this cluster.
@@ -414,7 +410,8 @@ class PrometheusMeteringControllerTest {
             existingEvents.stream()
                 .collect(Collectors.toMap(EventKey::fromEvent, Function.identity())));
 
-    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedOrgId, start, end);
+    controller.collectMetrics(
+        "OpenShift-metrics", MetricIdUtils.getCores(), expectedOrgId, start, end);
 
     ArgumentCaptor<Collection> saveCaptor = ArgumentCaptor.forClass(Collection.class);
     verify(eventController).saveAll(saveCaptor.capture());
@@ -477,7 +474,6 @@ class PrometheusMeteringControllerTest {
         MeteringEventFactory.createMetricEvent(
             expectedAccount,
             expectedOrgId,
-            expectedMetricId,
             expectedClusterId,
             "Standard",
             expectedUsage,
@@ -487,7 +483,7 @@ class PrometheusMeteringControllerTest {
             expectedServiceType,
             expectedBillingProvider,
             expectedBillingAccountId,
-            expectedUom,
+            expectedMetricId,
             4.0,
             expectedProductTag);
 
@@ -500,7 +496,6 @@ class PrometheusMeteringControllerTest {
         MeteringEventFactory.createMetricEvent(
             expectedAccount,
             expectedOrgId,
-            expectedMetricId,
             expectedClusterId,
             expectedSla,
             expectedUsage,
@@ -510,7 +505,7 @@ class PrometheusMeteringControllerTest {
             expectedServiceType,
             expectedBillingProvider,
             expectedBillingAccountId,
-            expectedUom,
+            expectedMetricId,
             144.4,
             expectedProductTag);
     existingEvent.setEventId(eventId);
@@ -528,7 +523,8 @@ class PrometheusMeteringControllerTest {
             existingEvents.stream()
                 .collect(Collectors.toMap(EventKey::fromEvent, Function.identity())));
 
-    controller.collectMetrics("OpenShift-metrics", Uom.CORES, expectedOrgId, start, end);
+    controller.collectMetrics(
+        "OpenShift-metrics", MetricIdUtils.getCores(), expectedOrgId, start, end);
 
     var saveCaptor = ArgumentCaptor.forClass(Collection.class);
     verify(eventController).saveAll(saveCaptor.capture());

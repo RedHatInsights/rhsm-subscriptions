@@ -29,7 +29,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 
 /** A composite class for tag profiles. Describes tag metric information. */
 @AllArgsConstructor
@@ -44,7 +43,7 @@ public class TagMetric {
   private String metricId;
   private String rhmMetricId;
   private String awsDimension;
-  private Uom uom;
+  @Deprecated private String uom;
   @Default private Double billingFactor = 1.0;
   @Default private BillingWindow billingWindow = BillingWindow.MONTHLY;
   @Default private String queryKey = "default";

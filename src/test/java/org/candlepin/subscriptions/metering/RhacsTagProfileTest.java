@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.metering;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -30,13 +31,11 @@ import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.json.Measurement.Uom;
-import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.registry.BillingWindow;
 import org.candlepin.subscriptions.registry.TagMetaData;
 import org.candlepin.subscriptions.registry.TagMetric;
 import org.candlepin.subscriptions.registry.TagProfile;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -52,7 +51,7 @@ class RhacsTagProfileTest {
 
   @ParameterizedTest
   @MethodSource("tagMetricTestArgs")
-  void testTagMetric(String tag, Measurement.Uom uom, TagMetric expectedTagMetric) {
+  void testTagMetric(String tag, MetricId uom, TagMetric expectedTagMetric) {
     Optional<TagMetric> tagMetric = tagProfile.getTagMetric(tag, uom);
     assertTrue(tagMetric.isPresent());
     assertEquals(expectedTagMetric, tagMetric.get());
@@ -62,14 +61,14 @@ class RhacsTagProfileTest {
     return Stream.of(
         Arguments.of(
             "rhacs",
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             TagMetric.builder()
                 .tag("rhacs")
                 .metricId("Cores")
+                .uom("CORES")
                 .rhmMetricId("redhat.com:rhacs:cpu_hour")
                 .billingWindow(BillingWindow.MONTHLY)
                 .awsDimension("vCPU_Hour")
-                .uom(Uom.CORES)
                 .queryKey("default")
                 .accountQueryKey("default")
                 .queryParams(
@@ -101,17 +100,5 @@ class RhacsTagProfileTest {
                 .tags(Set.of("rhacs"))
                 .billingModel("PAYG")
                 .build()));
-  }
-
-  @ParameterizedTest
-  @MethodSource("promethuesEnabledLookupArgs")
-  void testPrometueusEnabledMeasurements(String tag, TallyMeasurement.Uom uom, String exMetricId) {
-    assertTrue(tagProfile.getTagsWithPrometheusEnabledLookup().contains(tag));
-    assertEquals(exMetricId, tagProfile.rhmMetricIdForTagAndUom(tag, uom));
-  }
-
-  static Stream<Arguments> promethuesEnabledLookupArgs() {
-    return Stream.of(
-        Arguments.of("rhacs", TallyMeasurement.Uom.CORES, "redhat.com:rhacs:cpu_hour"));
   }
 }

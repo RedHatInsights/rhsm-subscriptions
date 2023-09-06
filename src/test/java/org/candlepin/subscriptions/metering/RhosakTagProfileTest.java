@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.metering;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -29,13 +30,11 @@ import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.json.Measurement.Uom;
-import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.registry.BillingWindow;
 import org.candlepin.subscriptions.registry.TagMetaData;
 import org.candlepin.subscriptions.registry.TagMetric;
 import org.candlepin.subscriptions.registry.TagProfile;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -48,10 +47,13 @@ import org.springframework.test.context.ActiveProfiles;
 class RhosakTagProfileTest {
 
   @Autowired private TagProfile tagProfile;
+  private static String STORAGE_GIBIBYTES = "Storage-gibibytes";
+  private static String TRANSFER_GIBIBYTES = "Transfer-gibibytes";
+  private static String STORAGE_GIBIBYTE_MONTHS = "Storage-gibibyte-months";
 
   @ParameterizedTest
   @MethodSource("tagMetricTestArgs")
-  void testTagMetric(String tag, Measurement.Uom uom, TagMetric expectedTagMetric) {
+  void testTagMetric(String tag, MetricId uom, TagMetric expectedTagMetric) {
     Optional<TagMetric> tagMetric = tagProfile.getTagMetric(tag, uom);
     assertTrue(tagMetric.isPresent());
     assertEquals(expectedTagMetric, tagMetric.get());
@@ -61,12 +63,12 @@ class RhosakTagProfileTest {
     return Stream.of(
         Arguments.of(
             "rhosak",
-            Uom.STORAGE_GIBIBYTES,
+            MetricId.fromString(STORAGE_GIBIBYTES),
             TagMetric.builder()
                 .tag("rhosak")
-                .metricId("Storage-gibibytes")
+                .metricId(STORAGE_GIBIBYTES)
+                .uom("STORAGE_GIBIBYTES")
                 .rhmMetricId("redhat.com:rhosak:storage_gb")
-                .uom(Uom.STORAGE_GIBIBYTES)
                 .billingWindow(BillingWindow.HOURLY)
                 .queryKey("default")
                 .accountQueryKey("default")
@@ -79,13 +81,13 @@ class RhosakTagProfileTest {
                 .build()),
         Arguments.of(
             "rhosak",
-            Uom.TRANSFER_GIBIBYTES,
+            MetricId.fromString(TRANSFER_GIBIBYTES),
             TagMetric.builder()
                 .tag("rhosak")
-                .metricId("Transfer-gibibytes")
+                .metricId(TRANSFER_GIBIBYTES)
+                .uom("TRANSFER_GIBIBYTES")
                 .rhmMetricId("redhat.com:rhosak:transfer_gb")
                 .awsDimension("transfer_gb")
-                .uom(Uom.TRANSFER_GIBIBYTES)
                 .billingWindow(BillingWindow.MONTHLY)
                 .queryKey("default")
                 .accountQueryKey("default")
@@ -100,13 +102,13 @@ class RhosakTagProfileTest {
                 .build()),
         Arguments.of(
             "rhosak",
-            Uom.INSTANCE_HOURS,
+            MetricIdUtils.getInstanceHours(),
             TagMetric.builder()
                 .tag("rhosak")
-                .metricId("Instance-hours")
+                .metricId(MetricIdUtils.getInstanceHours().toString())
+                .uom("INSTANCE_HOURS")
                 .rhmMetricId("redhat.com:rhosak:cluster_hour")
                 .awsDimension("cluster_hour")
-                .uom(Uom.INSTANCE_HOURS)
                 .queryKey("default")
                 .billingWindow(BillingWindow.MONTHLY)
                 .accountQueryKey("default")
@@ -118,12 +120,12 @@ class RhosakTagProfileTest {
                 .build()),
         Arguments.of(
             "rhosak",
-            Uom.STORAGE_GIBIBYTE_MONTHS,
+            MetricId.fromString(STORAGE_GIBIBYTE_MONTHS),
             TagMetric.builder()
                 .tag("rhosak")
-                .metricId("Storage-gibibyte-months")
+                .metricId(STORAGE_GIBIBYTE_MONTHS)
+                .uom("STORAGE_GIBIBYTE_MONTHS")
                 .awsDimension("storage_gb")
-                .uom(Uom.STORAGE_GIBIBYTE_MONTHS)
                 .billingWindow(BillingWindow.MONTHLY)
                 .queryKey("default")
                 .accountQueryKey("default")
@@ -158,22 +160,5 @@ class RhosakTagProfileTest {
                 .tags(Set.of("rhosak"))
                 .billingModel("PAYG")
                 .build()));
-  }
-
-  @ParameterizedTest
-  @MethodSource("promethuesEnabledLookupArgs")
-  void testPrometueusEnabledMeasurements(String tag, TallyMeasurement.Uom uom, String exMetricId) {
-    assertTrue(tagProfile.getTagsWithPrometheusEnabledLookup().contains(tag));
-    assertEquals(exMetricId, tagProfile.rhmMetricIdForTagAndUom(tag, uom));
-  }
-
-  static Stream<Arguments> promethuesEnabledLookupArgs() {
-    return Stream.of(
-        Arguments.of(
-            "rhosak", TallyMeasurement.Uom.STORAGE_GIBIBYTES, "redhat.com:rhosak:storage_gb"),
-        Arguments.of(
-            "rhosak", TallyMeasurement.Uom.TRANSFER_GIBIBYTES, "redhat.com:rhosak:transfer_gb"),
-        Arguments.of(
-            "rhosak", TallyMeasurement.Uom.INSTANCE_HOURS, "redhat.com:rhosak:cluster_hour"));
   }
 }

@@ -53,14 +53,13 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
-import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.RoleProvider;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.test.TestClock;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 import org.candlepin.subscriptions.utilization.api.model.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -441,7 +440,7 @@ class TallyResourceTest {
                           0,
                           ZoneOffset.UTC));
                   snapshot.setMeasurement(
-                      HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, i * 2.0);
+                      HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), i * 2.0);
                   return snapshot;
                 })
             .collect(Collectors.toList());
@@ -529,7 +528,7 @@ class TallyResourceTest {
                           0,
                           ZoneOffset.UTC));
                   snapshot.setMeasurement(
-                      HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, i * 2.0);
+                      HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), i * 2.0);
                   return snapshot;
                 })
             .collect(Collectors.toList());
@@ -622,7 +621,7 @@ class TallyResourceTest {
   @Test
   void testShouldPopulateTotalInstanceHours() throws Exception {
     TallySnapshot snap = new TallySnapshot();
-    snap.setMeasurement(HardwareMeasurementType.TOTAL, Uom.INSTANCE_HOURS, 42.0);
+    snap.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getInstanceHours(), 42.0);
 
     Mockito.when(
             repository.findSnapshot(
@@ -785,7 +784,7 @@ class TallyResourceTest {
     snapshot.setOrgId("org123");
     ;
     snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
-    snapshot.setMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES, 4.0);
+    snapshot.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 4.0);
     when(repository.findSnapshot(
             any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(new PageImpl<>(List.of(snapshot)));
@@ -814,7 +813,7 @@ class TallyResourceTest {
     TallySnapshot snapshot = new TallySnapshot();
     snapshot.setAccountNumber("account123");
     snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
-    snapshot.setMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES, 4.0);
+    snapshot.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 4.0);
     when(repository.findSnapshot(
             any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(new PageImpl<>(List.of(snapshot)));
@@ -845,7 +844,7 @@ class TallyResourceTest {
     snapshot.setAccountNumber("account123");
     snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
     for (HardwareMeasurementType hardwareMeasurementType : HardwareMeasurementType.values()) {
-      snapshot.setMeasurement(hardwareMeasurementType, Uom.CORES, 4.0);
+      snapshot.setMeasurement(hardwareMeasurementType, MetricIdUtils.getCores(), 4.0);
     }
     when(repository.findSnapshot(
             any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
@@ -877,7 +876,7 @@ class TallyResourceTest {
     snapshot.setAccountNumber("account123");
     snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
     for (HardwareMeasurementType hardwareMeasurementType : HardwareMeasurementType.values()) {
-      snapshot.setMeasurement(hardwareMeasurementType, Uom.CORES, 4.0);
+      snapshot.setMeasurement(hardwareMeasurementType, MetricIdUtils.getCores(), 4.0);
     }
     when(repository.findSnapshot(
             any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
@@ -1030,11 +1029,11 @@ class TallyResourceTest {
     TallySnapshot snapshot1 = new TallySnapshot();
     snapshot1.setSnapshotDate(OffsetDateTime.parse("2021-11-02T00:00Z"));
     snapshot1.setGranularity(Granularity.DAILY);
-    snapshot1.setMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES, 4.0);
+    snapshot1.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 4.0);
     TallySnapshot snapshot2 = new TallySnapshot();
     snapshot2.setSnapshotDate(OffsetDateTime.parse("2021-11-03T00:00Z"));
     snapshot2.setGranularity(Granularity.DAILY);
-    snapshot2.setMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES, 3.0);
+    snapshot2.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 3.0);
     when(repository.findSnapshot(
             any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(new PageImpl<>(List.of(snapshot1, snapshot2)));
@@ -1068,12 +1067,12 @@ class TallyResourceTest {
     snapshot1.setSnapshotDate(OffsetDateTime.parse("2021-11-02T00:00Z"));
     snapshot1.setGranularity(Granularity.DAILY);
     snapshot1.setBillingProvider(BillingProvider.RED_HAT);
-    snapshot1.setMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES, 4.0);
+    snapshot1.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 4.0);
     TallySnapshot snapshot2 = new TallySnapshot();
     snapshot2.setSnapshotDate(OffsetDateTime.parse("2021-11-03T00:00Z"));
     snapshot2.setGranularity(Granularity.DAILY);
     snapshot2.setBillingProvider(BillingProvider.RED_HAT);
-    snapshot2.setMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES, 3.0);
+    snapshot2.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 3.0);
     when(repository.findSnapshot(
             any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(new PageImpl<>(List.of(snapshot1, snapshot2)));
@@ -1112,7 +1111,7 @@ class TallyResourceTest {
                   snapshot.setSnapshotDate(
                       OffsetDateTime.of(2023, 3, i, 12, 35, 0, 0, ZoneOffset.UTC));
                   snapshot.setMeasurement(
-                      HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, i * 2.0);
+                      HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), i * 2.0);
                   return snapshot;
                 })
             .collect(Collectors.toList());
@@ -1171,7 +1170,7 @@ class TallyResourceTest {
                   snapshot.setSnapshotDate(
                       OffsetDateTime.of(2023, 3, i, 12, 35, 0, 0, ZoneOffset.UTC));
                   snapshot.setMeasurement(
-                      HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, 1.3);
+                      HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 1.3);
                   return snapshot;
                 })
             .collect(Collectors.toList());
@@ -1281,7 +1280,7 @@ class TallyResourceTest {
               .productId(ProductId.OPENSHIFT_DEDICATED_METRICS.toString())
               .snapshotDate(nextDate)
               .build();
-      snap.setMeasurement(HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, 100.0);
+      snap.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 100.0);
       snapshots.add(snap);
     }
 
@@ -1363,7 +1362,7 @@ class TallyResourceTest {
               .productId(ProductId.OPENSHIFT_DEDICATED_METRICS.toString())
               .snapshotDate(nextDate)
               .build();
-      snap.setMeasurement(HardwareMeasurementType.TOTAL, Measurement.Uom.CORES, 100.0);
+      snap.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 100.0);
       snapshots.add(snap);
     }
 

@@ -39,7 +39,6 @@ import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.json.BillableUsage;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.stereotype.Component;
 
@@ -237,8 +236,7 @@ public class BillableUsageController {
     // NOTE: We are filtering billable usage to PHYSICAL hardware as that's the only
     //       hardware type set when metering.
     TallyMeasurementKey measurementKey =
-        new TallyMeasurementKey(
-            HardwareMeasurementType.PHYSICAL, Uom.fromValue(usage.getUom().value()));
+        new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, usage.getUom().value());
     return snapshotRepository.sumMeasurementValueForPeriod(
         usage.getOrgId(),
         usage.getProductId(),

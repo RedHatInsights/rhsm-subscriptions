@@ -113,7 +113,7 @@ public class BillableUsageMapper {
                                     BillableUsage.BillingProvider.fromValue(
                                         snapshot.getBillingProvider().value()))
                                 .withBillingAccountId(snapshot.getBillingAccountId())
-                                .withUom(Uom.fromValue(measurement.getUom().value()))
+                                .withUom(Uom.fromValue(measurement.getUom()))
                                 .withValue(measurement.getValue())));
   }
 

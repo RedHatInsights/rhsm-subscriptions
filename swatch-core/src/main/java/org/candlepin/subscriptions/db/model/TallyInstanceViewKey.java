@@ -31,7 +31,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.candlepin.subscriptions.json.Measurement;
 
 /** An embeddable composite key for a tally instance view. */
 @Embeddable
@@ -63,7 +62,6 @@ public class TallyInstanceViewKey implements Serializable {
   @Column(name = "measurement_type")
   private HardwareMeasurementType measurementType;
 
-  @Enumerated(EnumType.STRING)
   @Column(name = "metric_id")
-  private Measurement.Uom uom;
+  private String metricId;
 }

@@ -36,7 +36,7 @@ import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.Event.Role;
-import org.candlepin.subscriptions.json.Measurement.Uom;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -95,39 +95,49 @@ class TagProfileTest {
 
   @Test
   void testGetTagMetricByProductTagAndUom() {
-    Optional<TagMetric> metric = tagProfile.getTagMetric("OpenShift-metrics", Uom.CORES);
+    Optional<TagMetric> metric =
+        tagProfile.getTagMetric("OpenShift-metrics", MetricIdUtils.getCores());
     assertFalse(metric.isEmpty());
     assertEquals("OpenShift-metrics", metric.get().getTag());
-    assertEquals(Uom.CORES, metric.get().getUom());
+    assertEquals(MetricIdUtils.getCores().toString(), metric.get().getMetricId());
   }
 
   @Test
   void testGetTagMetricByProductTagAndUomThrowsExceptionWhenDuplicateDefined() {
-    tagProfile.getTagMetrics().add(tagProfile.getTagMetric("OpenShift-metrics", Uom.CORES).get());
+    tagProfile
+        .getTagMetrics()
+        .add(tagProfile.getTagMetric("OpenShift-metrics", MetricIdUtils.getCores()).get());
 
     assertThrows(
-        IllegalStateException.class, () -> tagProfile.getTagMetric("OpenShift-metrics", Uom.CORES));
+        IllegalStateException.class,
+        () -> tagProfile.getTagMetric("OpenShift-metrics", MetricIdUtils.getCores()));
   }
 
   @Test
   void testUomsForTag() {
-    List<Uom> uoms = tagProfile.uomsForTag("OpenShift-metrics");
+    List<String> uoms = tagProfile.uomsForTag("OpenShift-metrics");
     assertEquals(2, uoms.size());
-    assertTrue(uoms.containsAll(List.of(Uom.CORES, Uom.INSTANCE_HOURS)));
+    assertTrue(
+        uoms.containsAll(
+            List.of(
+                MetricIdUtils.getCores().toString(), MetricIdUtils.getInstanceHours().toString())));
   }
 
   @Test
   void emptyListOfUomsWhenTagDoesNotExist() {
-    List<Uom> uoms = tagProfile.uomsForTag("NOT_FOUND");
+    List<String> uoms = tagProfile.uomsForTag("NOT_FOUND");
     assertTrue(uoms.isEmpty());
   }
 
   @Test
   void getSupportedMetricsForProduct() {
-    Set<Uom> supportedMetricsForProduct =
+    Set<String> supportedMetricsForProduct =
         tagProfile.getSupportedMetricsForProduct("OpenShift-metrics");
     assertEquals(2, supportedMetricsForProduct.size());
-    assertTrue(supportedMetricsForProduct.containsAll(List.of(Uom.CORES, Uom.INSTANCE_HOURS)));
+    assertTrue(
+        supportedMetricsForProduct.containsAll(
+            List.of(
+                MetricIdUtils.getCores().toString(), MetricIdUtils.getInstanceHours().toString())));
   }
 
   @Test
@@ -217,7 +227,7 @@ class TagProfileTest {
   void throwsIllegalStateOnInitializationOnContractEnabledTagWithoutMonthlyBillingWindow() {
     TagProfile profile = buildTagProfile();
     profile
-        .getTagMetric(BASILISK_TAG, Uom.INSTANCE_HOURS)
+        .getTagMetric(BASILISK_TAG, MetricIdUtils.getInstanceHours())
         .get()
         .setBillingWindow(BillingWindow.HOURLY);
 
@@ -258,24 +268,17 @@ class TagProfileTest {
     // Mutable List for purpose of modifying during testing.
     List<TagMetric> tagMetrics = new LinkedList<>();
     tagMetrics.add(
-        TagMetric.builder()
-            .tag("OpenShift-metrics")
-            .uom(Uom.CORES)
-            .metricId("m_cores")
-            .queryParams(params)
-            .build());
+        TagMetric.builder().tag("OpenShift-metrics").metricId("Cores").queryParams(params).build());
     tagMetrics.add(
         TagMetric.builder()
             .tag("OpenShift-metrics")
-            .uom(Uom.INSTANCE_HOURS)
-            .metricId("m_ihours")
+            .metricId("Instance-hours")
             .queryParams(params)
             .build());
     tagMetrics.add(
         TagMetric.builder()
             .tag(BASILISK_TAG)
-            .uom(Uom.INSTANCE_HOURS)
-            .metricId("b_instance_hours")
+            .metricId("Instance-hours")
             .queryParams(params)
             .build());
 

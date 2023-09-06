@@ -21,6 +21,8 @@
 package com.redhat.swatch.configuration.registry;
 
 import java.util.Collection;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +31,7 @@ import lombok.RequiredArgsConstructor;
 // constructor is private so that the factory method is the only way to get a MetricId
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class MetricId {
+
   private final String value;
 
   /**
@@ -51,6 +54,15 @@ public class MetricId {
             () ->
                 new IllegalArgumentException(
                     String.format("MetricId: %s not found in configuration", value)));
+  }
+
+  public static Set<MetricId> getAll() {
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
+        .map(SubscriptionDefinition::getMetrics)
+        .flatMap(Collection::stream)
+        .map(Metric::getId)
+        .map(MetricId::new)
+        .collect(Collectors.toSet());
   }
 
   public String toString() {
