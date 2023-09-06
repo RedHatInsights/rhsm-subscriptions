@@ -24,6 +24,7 @@ metrics:
     prometheus:
       queryKey: addonSamples
       queryParams:
+        instanceKey: _id
         resourceName: addon-open-data-hub
         metric: cluster:usage:workload:capacity_virtual_cpu_hours
         metadataMetric: ocm_subscription_resource

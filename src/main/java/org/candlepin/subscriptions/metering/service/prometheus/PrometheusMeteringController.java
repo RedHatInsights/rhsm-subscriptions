@@ -58,6 +58,7 @@ import org.springframework.util.StringUtils;
 public class PrometheusMeteringController {
 
   private static final Logger log = LoggerFactory.getLogger(PrometheusMeteringController.class);
+  private static final String PROMETHEUS_QUERY_PARAM_INSTANCE_KEY = "instanceKey";
 
   private final PrometheusService prometheusService;
   private final EventController eventController;
@@ -108,6 +109,9 @@ public class PrometheusMeteringController {
           String.format("Unable to determine service type for tag %s.", tag));
     }
 
+    // Get the instance key from the prometheus query params.
+    String instanceKey = getPrometheusInstanceKeyFromMetric(tag, tagMetric.get());
+
     /* Adjust the range for the prometheus range query API. Range query returns a data point at the
     startDate, and then an additional data point for each increment of `step` that is <= endDate.
     Because our prometheus queries use a range vector (look back) of 1h, we need to add an hour to
@@ -151,7 +155,7 @@ public class PrometheusMeteringController {
                     metricProperties.getQueryTimeout(),
                     item -> {
                       Map<String, String> labels = item.getMetric();
-                      String clusterId = labels.get("_id");
+                      String clusterId = labels.get(instanceKey);
                       String sla = labels.get("support");
                       String usage = labels.get("usage");
 
@@ -207,7 +211,8 @@ public class PrometheusMeteringController {
             if (StatusType.ERROR.equals(metricData.getStatus())) {
               throw new MeteringException(
                   String.format(
-                      "Unable to fetch %s %s metrics: %s", tag, metric, metricData.getError()));
+                      "Unable to fetch %s %s %s metrics: %s",
+                      tag, instanceKey, metric, metricData.getError()));
             }
 
             eventController.saveAll(events.values());
@@ -218,8 +223,9 @@ public class PrometheusMeteringController {
             return null;
           } catch (Exception e) {
             log.warn(
-                "Exception thrown while updating {} {} metrics. [Attempt: {}]: {}",
+                "Exception thrown while updating {} {} {} metrics. [Attempt: {}]: {}",
                 tag,
+                instanceKey,
                 metric,
                 context.getRetryCount() + 1,
                 e.getMessage());
@@ -304,5 +310,21 @@ public class PrometheusMeteringController {
     QueryDescriptor descriptor = new QueryDescriptor(tagMetric);
     descriptor.addRuntimeVar("orgId", orgId);
     return prometheusQueryBuilder.build(descriptor);
+  }
+
+  private String getPrometheusInstanceKeyFromMetric(String productTag, Metric metric) {
+    String instanceKey = null;
+    if (metric.getPrometheus() != null && metric.getPrometheus().getQueryParams() != null) {
+      instanceKey =
+          metric.getPrometheus().getQueryParams().get(PROMETHEUS_QUERY_PARAM_INSTANCE_KEY);
+    }
+
+    if (!StringUtils.hasText(instanceKey)) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Could not find the `instanceKey` prometheus query param for %s-%s metric. ",
+              productTag, metric.getId()));
+    }
+    return instanceKey;
   }
 }

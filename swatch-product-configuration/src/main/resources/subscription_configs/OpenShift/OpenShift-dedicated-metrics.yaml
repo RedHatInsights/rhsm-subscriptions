@@ -24,6 +24,7 @@ metrics:
     prometheus:
       queryKey: default
       queryParams:
+        instanceKey: _id
         product: osd
         metric: cluster:usage:workload:capacity_physical_cpu_hours
         metadataMetric: ocm_subscription
@@ -32,6 +33,7 @@ metrics:
     prometheus:
       queryKey: default
       queryParams:
+        instanceKey: _id
         product: osd
         metric: cluster:usage:workload:capacity_physical_instance_hours
         metadataMetric: ocm_subscription
