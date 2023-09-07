@@ -60,8 +60,7 @@ public class TallyMeasurementKey implements Serializable {
       return false;
     }
     TallyMeasurementKey that = (TallyMeasurementKey) o;
-    return measurementType == that.measurementType && Objects.equals(metricId,
-        that.metricId);
+    return measurementType == that.measurementType && Objects.equals(metricId, that.metricId);
   }
 
   @Override
