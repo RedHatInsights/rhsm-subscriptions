@@ -370,7 +370,7 @@ public class MetricUsageCollector {
     if (instance.getCloudProvider() == null) {
       throw new IllegalArgumentException("Hardware type cloud, but no cloud provider specified");
     }
-    return HardwareMeasurementType.valueOf(instance.getCloudProvider());
+    return HardwareMeasurementType.fromString(instance.getCloudProvider());
   }
 
   private HardwareMeasurementType getCloudProvider(Event.CloudProvider cloudProvider) {
