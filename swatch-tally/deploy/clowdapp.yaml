@@ -799,7 +799,15 @@ objects:
     queries:
     - prefix: swatch/tally
       query: >-
-        select *
+        select
+        account_number,
+        org_id,
+        snapshot_date,
+        product_id,
+        measurement_type,
+        metric_id,
+        metric_id as uom,
+        value
         from tally_snapshots s
         join tally_measurements tm on s.id = tm.snapshot_id
         where sla = '_ANY'
