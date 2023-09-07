@@ -301,13 +301,6 @@ public class PrometheusMeteringController {
   }
 
   private String buildPromQLForMetering(String orgId, Metric tagMetric) {
-
-    // Default the query template if the swatch-product-configuration library didn't specify one.
-    if (Objects.nonNull(tagMetric.getPrometheus())
-        && !StringUtils.hasText(tagMetric.getPrometheus().getQueryKey())) {
-      tagMetric.getPrometheus().setQueryKey(QueryBuilder.DEFAULT_METRIC_QUERY_KEY);
-    }
-
     QueryDescriptor descriptor = new QueryDescriptor(tagMetric);
     descriptor.addRuntimeVar("orgId", orgId);
     return prometheusQueryBuilder.build(descriptor);

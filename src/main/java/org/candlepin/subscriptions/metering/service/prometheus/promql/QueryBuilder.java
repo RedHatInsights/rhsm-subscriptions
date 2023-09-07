@@ -36,14 +36,6 @@ public class QueryBuilder {
 
   private static final Logger log = LoggerFactory.getLogger(QueryBuilder.class);
 
-  /**
-   * The default metric query key. A query with this key must be defined in the config file as a
-   * query template.
-   *
-   * @see MetricProperties
-   */
-  public static final String DEFAULT_METRIC_QUERY_KEY = "default";
-
   private final MetricProperties metricProperties;
 
   public QueryBuilder(MetricProperties metricProperties) {
@@ -63,9 +55,7 @@ public class QueryBuilder {
   }
 
   public String buildAccountLookupQuery(QueryDescriptor queryDescriptor) {
-    // SWATCH-1629 At some point templateKey here should read either "default" or "addonSamples"
-    // with a property added in application.yaml
-    String templateKey = DEFAULT_METRIC_QUERY_KEY;
+    String templateKey = queryDescriptor.getMetric().getPrometheus().getQueryKey();
     Optional<String> template = metricProperties.getAccountQueryTemplate(templateKey);
     if (template.isEmpty()) {
       throw new IllegalArgumentException(
