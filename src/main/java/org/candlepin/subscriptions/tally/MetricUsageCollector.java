@@ -223,7 +223,7 @@ public class MetricUsageCollector {
           // clear any measurements that we don't have events for
           Set<String> staleMeasurements =
               host.getMeasurements().keySet().stream()
-                  .filter(k -> !seenMetricIds.contains(k.toString()))
+                  .filter(k -> !seenMetricIds.contains(k))
                   .collect(Collectors.toSet());
           staleMeasurements.forEach(host.getMeasurements()::remove);
         });
