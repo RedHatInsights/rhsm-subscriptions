@@ -22,12 +22,13 @@ package org.candlepin.subscriptions.metering.task;
 
 import static org.mockito.Mockito.*;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.prometheus.ApiException;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -45,11 +46,12 @@ class MetricsTaskTest {
     OffsetDateTime expStart = expEnd.minusDays(1);
     String expAccount = "test-account";
     String expProductTag = "OpenShift";
-    Uom expMetric = Uom.CORES;
+    MetricId expMetric = MetricIdUtils.getCores();
 
     MetricsTask task =
         new MetricsTask(controller, expAccount, expProductTag, expMetric, expStart, expEnd);
     task.execute();
-    verify(controller).collectMetrics("OpenShift", Uom.CORES, expAccount, expStart, expEnd);
+    verify(controller)
+        .collectMetrics("OpenShift", MetricIdUtils.getCores(), expAccount, expStart, expEnd);
   }
 }

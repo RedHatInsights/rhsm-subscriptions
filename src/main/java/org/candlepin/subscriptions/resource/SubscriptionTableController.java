@@ -58,6 +58,9 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 public class SubscriptionTableController {
+
+  private static final String CORES = "Cores";
+  private static final String SOCKETS = "Sockets";
   private final SubscriptionRepository subscriptionRepository;
   private final OfferingRepository offeringRepository;
   private final ApplicationClock clock;
@@ -125,8 +128,8 @@ public class SubscriptionTableController {
     var metricId =
         (uom != null)
             ? switch (uom) {
-              case CORES -> MetricId.CORES.toString();
-              case SOCKETS -> MetricId.SOCKETS.toString();
+              case CORES -> CORES;
+              case SOCKETS -> SOCKETS;
             }
             : null;
 
@@ -407,22 +410,13 @@ public class SubscriptionTableController {
     var type = key.getMeasurementType();
 
     var sockets =
-        (MetricId.SOCKETS.toString().equalsIgnoreCase(metric) && "PHYSICAL".equals(type))
-            ? value.intValue()
-            : 0;
-    var cores =
-        (MetricId.CORES.toString().equalsIgnoreCase(metric) && "PHYSICAL".equals(type))
-            ? value.intValue()
-            : 0;
+        (SOCKETS.equalsIgnoreCase(metric) && "PHYSICAL".equals(type)) ? value.intValue() : 0;
+    var cores = (CORES.equalsIgnoreCase(metric) && "PHYSICAL".equals(type)) ? value.intValue() : 0;
 
     var hypervisorSockets =
-        (MetricId.SOCKETS.toString().equalsIgnoreCase(metric) && "HYPERVISOR".equals(type))
-            ? value.intValue()
-            : 0;
+        (SOCKETS.equalsIgnoreCase(metric) && "HYPERVISOR".equals(type)) ? value.intValue() : 0;
     var hypervisorCores =
-        (MetricId.CORES.toString().equalsIgnoreCase(metric) && "HYPERVISOR".equals(type))
-            ? value.intValue()
-            : 0;
+        (CORES.equalsIgnoreCase(metric) && "HYPERVISOR".equals(type)) ? value.intValue() : 0;
 
     if (skuCapacity.getUom() == Uom.SOCKETS) {
       skuCapacity.setCapacity(skuCapacity.getCapacity() + sockets);

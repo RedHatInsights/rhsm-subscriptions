@@ -27,8 +27,8 @@ import java.time.OffsetDateTime;
 import java.util.Set;
 import java.util.UUID;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
-import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.Test;
 
 class HostTest {
@@ -146,8 +146,8 @@ class HostTest {
   @Test
   void testRemoveRangeRemovesMultipleMonths() {
     Host host = new Host();
-    host.addToMonthlyTotal("2021-01", Measurement.Uom.CORES, 1.0);
-    host.addToMonthlyTotal("2021-02", Measurement.Uom.CORES, 2.0);
+    host.addToMonthlyTotal("2021-01", MetricIdUtils.getCores(), 1.0);
+    host.addToMonthlyTotal("2021-02", MetricIdUtils.getCores(), 2.0);
     host.clearMonthlyTotals(
         OffsetDateTime.parse("2021-01-01T00:00:00Z"), OffsetDateTime.parse("2021-02-01T00:00:00Z"));
     assertTrue(host.getMonthlyTotals().values().stream().allMatch(v -> v == 0));
@@ -160,10 +160,10 @@ class HostTest {
 
     Host host = new Host();
     host.setBuckets(Set.of(b1));
-    host.addToMonthlyTotal("2021-01", Measurement.Uom.CORES, 1.0);
-    host.addToMonthlyTotal("2021-01", Measurement.Uom.CORES, 1.0);
-    host.addToMonthlyTotal("2021-02", Measurement.Uom.CORES, 2.0);
-    host.addToMonthlyTotal("2021-02", Measurement.Uom.CORES, 3.0);
+    host.addToMonthlyTotal("2021-01", MetricIdUtils.getCores(), 1.0);
+    host.addToMonthlyTotal("2021-01", MetricIdUtils.getCores(), 1.0);
+    host.addToMonthlyTotal("2021-02", MetricIdUtils.getCores(), 2.0);
+    host.addToMonthlyTotal("2021-02", MetricIdUtils.getCores(), 3.0);
 
     assertEquals(2.0, host.asTallyHostViewApiHost("2021-01").getCoreHours());
     assertEquals(5.0, host.asTallyHostViewApiHost("2021-02").getCoreHours());

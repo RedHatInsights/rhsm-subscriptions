@@ -36,7 +36,6 @@ import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
-import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
@@ -47,8 +46,8 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 public class CapacityReconciliationController {
-  private static final String SOCKETS = MetricId.SOCKETS.toString();
-  private static final String CORES = MetricId.CORES.toString();
+  private static final String SOCKETS = "Sockets";
+  private static final String CORES = "Cores";
 
   private final SubscriptionRepository subscriptionRepository;
   private final KafkaTemplate<String, ReconcileCapacityByOfferingTask>

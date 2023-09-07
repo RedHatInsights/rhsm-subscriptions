@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus.task;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.task.MetricsTask;
 import org.candlepin.subscriptions.task.Task;
@@ -50,7 +50,7 @@ public class PrometheusMeteringTaskFactory implements TaskFactory {
           controller,
           validateString(taskDescriptor, "orgId"),
           validateString(taskDescriptor, "productTag"),
-          Uom.fromValue(validateString(taskDescriptor, "metric")),
+          MetricId.fromString(validateString(taskDescriptor, "metric")),
           validateDate(taskDescriptor, "start"),
           validateDate(taskDescriptor, "end"));
     }

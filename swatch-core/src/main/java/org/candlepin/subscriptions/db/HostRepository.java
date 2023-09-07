@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.db;
 
 import static org.hibernate.jpa.AvailableHints.HINT_FETCH_SIZE;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import jakarta.persistence.QueryHint;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
@@ -34,9 +35,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.*;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.*;
-import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.json.Measurement.Uom;
-import org.candlepin.subscriptions.util.UomUtils;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -136,7 +135,7 @@ public interface HostRepository
       Specification<Host> specification,
       Specification<HostTallyBucket> hostTallyBucketSpecification,
       Pageable pageable,
-      Uom referenceUom,
+      MetricId referenceUom,
       String productId) {
     var entityManager = getEntityManager();
     var criteriaBuilder = entityManager.getCriteriaBuilder();
@@ -153,7 +152,8 @@ public interface HostRepository
     var coresMonthlyTotalsJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_CORES);
     var instanceHoursMonthlyTotalsJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_INSTANCE_HOURS);
 
-    Uom effectiveUom = Optional.ofNullable(referenceUom).orElse(getDefaultUomForProduct(productId));
+    MetricId effectiveUom =
+        Optional.ofNullable(referenceUom).orElse(getDefaultMetricIdForProduct(productId));
 
     query.select(
         criteriaBuilder.construct(
@@ -232,7 +232,7 @@ public interface HostRepository
       Root<Host> root,
       CriteriaQuery<HostApiProjection> query,
       CriteriaBuilder criteriaBuilder,
-      Measurement.Uom effectiveUom,
+      MetricId effectiveUom,
       Pageable pageable) {
     var sort = pageable.getSort();
     var orderOptional = sort.get().findFirst();
@@ -251,13 +251,13 @@ public interface HostRepository
       CriteriaBuilder criteriaBuilder,
       CriteriaQuery<HostApiProjection> query,
       Sort.Order order,
-      Measurement.Uom effectiveUom) {
+      MetricId effectiveUom) {
     if (order.getProperty().equals(MONTHLY_TOTALS)) {
       var coresMonthlyTotalsJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_CORES);
       var instanceHoursMonthlyTotalsJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_INSTANCE_HOURS);
-      if (Uom.CORES.equals(effectiveUom)) {
+      if (MetricIdUtils.getCores().equals(effectiveUom)) {
         query.orderBy(criteriaBuilder.asc(coresMonthlyTotalsJoin.value()));
-      } else if (Uom.INSTANCE_HOURS.equals(effectiveUom)) {
+      } else if (MetricIdUtils.getInstanceHours().equals(effectiveUom)) {
         query.orderBy(criteriaBuilder.asc(instanceHoursMonthlyTotalsJoin.value()));
       }
     } else {
@@ -270,13 +270,13 @@ public interface HostRepository
       CriteriaBuilder criteriaBuilder,
       CriteriaQuery<HostApiProjection> query,
       Sort.Order order,
-      Measurement.Uom effectiveUom) {
+      MetricId effectiveUom) {
     if (order.getProperty().equals(MONTHLY_TOTALS)) {
       var coresMonthlyTotalsJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_CORES);
       var instanceHoursMonthlyTotalsJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_INSTANCE_HOURS);
-      if (Uom.CORES.equals(effectiveUom)) {
+      if (MetricIdUtils.getCores().equals(effectiveUom)) {
         query.orderBy(criteriaBuilder.asc(coresMonthlyTotalsJoin.value()));
-      } else if (Uom.INSTANCE_HOURS.equals(effectiveUom)) {
+      } else if (MetricIdUtils.getInstanceHours().equals(effectiveUom)) {
         query.orderBy(criteriaBuilder.asc(instanceHoursMonthlyTotalsJoin.value()));
       }
     } else {
@@ -315,7 +315,7 @@ public interface HostRepository
    * @param minCores Filter to Hosts with at least this number of cores.
    * @param minSockets Filter to Hosts with at least this number of sockets.
    * @param month Filter to Hosts with monthly instance totals in provided month
-   * @param referenceUom Uom used when filtering to a specific month.
+   * @param referenceUom MetricId used when filtering to a specific month.
    * @param pageable the current paging info for this query.
    * @return a page of Host entities matching the criteria.
    */
@@ -329,7 +329,7 @@ public interface HostRepository
       int minCores,
       int minSockets,
       String month,
-      Uom referenceUom,
+      MetricId referenceUom,
       BillingProvider billingProvider,
       String billingAccountId,
       List<HardwareMeasurementType> hardwareMeasurementTypes,
@@ -406,7 +406,7 @@ public interface HostRepository
   static Specification<Host> monthlyKeyEquals(InstanceMonthlyTotalKey totalKey) {
     return (root, query, builder) -> {
       MapJoin<Object, Object, Object> monthlyTotalJoin;
-      if (totalKey.getUom().equals(Uom.CORES)) {
+      if (totalKey.getMetricId().equals(MetricIdUtils.getCores().toString())) {
         monthlyTotalJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_CORES);
       } else {
         monthlyTotalJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_INSTANCE_HOURS);
@@ -432,19 +432,22 @@ public interface HostRepository
   static Specification<Host> setJoinCriteria(String month) {
     return (root, query, builder) -> {
       var measurementCoresJoin = findMapJoin(root, MEASUREMENT_JOIN_CORES);
-      measurementCoresJoin.on(builder.equal(measurementCoresJoin.key(), Uom.CORES));
+      measurementCoresJoin.on(
+          builder.equal(measurementCoresJoin.key(), MetricIdUtils.getCores().toString()));
       var measurementSocketsJoin = findMapJoin(root, MEASUREMENT_JOIN_SOCKETS);
-      measurementSocketsJoin.on(builder.equal(measurementSocketsJoin.key(), Uom.SOCKETS));
+      measurementSocketsJoin.on(
+          builder.equal(measurementSocketsJoin.key(), MetricIdUtils.getSockets().toString()));
       if (StringUtils.hasText(month)) {
         var monthlyTotalCoresJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_CORES);
         monthlyTotalCoresJoin.on(
             builder.equal(
-                monthlyTotalCoresJoin.key(), new InstanceMonthlyTotalKey(month, Uom.CORES)));
+                monthlyTotalCoresJoin.key(),
+                new InstanceMonthlyTotalKey(month, MetricIdUtils.getCores().toString())));
         var monthlyTotalInstanceHoursJoin = findMapJoin(root, MONTHLY_TOTAL_JOIN_INSTANCE_HOURS);
         monthlyTotalInstanceHoursJoin.on(
             builder.equal(
                 monthlyTotalInstanceHoursJoin.key(),
-                new InstanceMonthlyTotalKey(month, Uom.INSTANCE_HOURS)));
+                new InstanceMonthlyTotalKey(month, MetricIdUtils.getInstanceHours().toString())));
       }
       return null;
     };
@@ -452,7 +455,11 @@ public interface HostRepository
 
   @SuppressWarnings("java:S107")
   default Specification<Host> buildSearchSpecification(
-      String orgId, String productId, String displayNameSubstring, String month, Uom referenceUom) {
+      String orgId,
+      String productId,
+      String displayNameSubstring,
+      String month,
+      MetricId referenceUom) {
 
     /* The where call allows us to build a Specification object to operate on even if the
      * first specification method we call returns null (it won't be null in this case, but it's
@@ -466,12 +473,14 @@ public interface HostRepository
       searchCriteria = searchCriteria.and(displayNameContains(displayNameSubstring));
     }
     if (StringUtils.hasText(month)) {
-      // Defaulting if null, since we need a UOM in order to properly filter against a given month
-      Uom effectiveUom =
-          Optional.ofNullable(referenceUom).orElse(getDefaultUomForProduct(productId));
+      // Defaulting if null, since we need a MetricId in order to properly filter against a given
+      // month
+      MetricId effectiveUom =
+          Optional.ofNullable(referenceUom).orElse(getDefaultMetricIdForProduct(productId));
       if (Objects.nonNull(effectiveUom)) {
         searchCriteria =
-            searchCriteria.and(monthlyKeyEquals(new InstanceMonthlyTotalKey(month, effectiveUom)));
+            searchCriteria.and(
+                monthlyKeyEquals(new InstanceMonthlyTotalKey(month, effectiveUom.toString())));
       }
     }
 
@@ -510,8 +519,8 @@ public interface HostRepository
     return searchCriteria;
   }
 
-  default Uom getDefaultUomForProduct(String productId) {
-    return UomUtils.getUomsFromConfigForTag(productId).findFirst().orElse(null);
+  default MetricId getDefaultMetricIdForProduct(String productId) {
+    return MetricIdUtils.getMetricIdsFromConfigForTag(productId).findFirst().orElse(null);
   }
 
   @Query(

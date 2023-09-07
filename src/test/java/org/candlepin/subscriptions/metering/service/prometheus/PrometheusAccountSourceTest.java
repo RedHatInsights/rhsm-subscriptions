@@ -32,8 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
-import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.model.QuerySummaryResult;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescriptor;
@@ -42,6 +40,7 @@ import org.candlepin.subscriptions.prometheus.model.QueryResultData;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.ResultType;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -73,7 +72,7 @@ class PrometheusAccountSourceTest {
 
     var subDefOptional = SubscriptionDefinition.lookupSubscriptionByTag(TEST_PROD_TAG);
     subDefOptional
-        .flatMap(subDef -> subDef.getMetric(Measurement.Uom.CORES.value()))
+        .flatMap(subDef -> subDef.getMetric(MetricIdUtils.getCores().getValue()))
         .ifPresent(tag -> this.tag = tag);
   }
 
@@ -83,7 +82,7 @@ class PrometheusAccountSourceTest {
     mockPrometheusServiceRangeQuery(expectedDate, buildAccountQueryResult(List.of("A1")));
 
     accountSource.getMarketplaceAccounts(
-        TEST_PROD_TAG, Uom.CORES, expectedDate.minusHours(1), expectedDate);
+        TEST_PROD_TAG, MetricIdUtils.getCores(), expectedDate.minusHours(1), expectedDate);
     verify(service)
         .runRangeQuery(
             eq(queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tag))),
@@ -109,7 +108,7 @@ class PrometheusAccountSourceTest {
 
     Set<String> accounts =
         accountSource.getMarketplaceAccounts(
-            TEST_PROD_TAG, Uom.CORES, expectedDate.minusHours(1), expectedDate);
+            TEST_PROD_TAG, MetricIdUtils.getCores(), expectedDate.minusHours(1), expectedDate);
     assertEquals(1, accounts.size());
     assertTrue(accounts.contains(expectedAccount));
   }
@@ -121,7 +120,7 @@ class PrometheusAccountSourceTest {
     mockPrometheusServiceRangeQuery(expectedDate, buildAccountQueryResult(expectedAccounts));
     Set<String> accounts =
         accountSource.getMarketplaceAccounts(
-            TEST_PROD_TAG, Uom.CORES, expectedDate.minusHours(1), expectedDate);
+            TEST_PROD_TAG, MetricIdUtils.getCores(), expectedDate.minusHours(1), expectedDate);
     assertEquals(2, accounts.size());
     assertTrue(accounts.containsAll(expectedAccounts));
   }

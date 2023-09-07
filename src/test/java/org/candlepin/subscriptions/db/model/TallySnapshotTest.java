@@ -22,7 +22,7 @@ package org.candlepin.subscriptions.db.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.candlepin.subscriptions.json.Measurement.Uom;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.Test;
 
 class TallySnapshotTest {
@@ -30,10 +30,11 @@ class TallySnapshotTest {
   @Test
   void testShouldAddHypervisorAndVirtual() {
     TallySnapshot snapshot = new TallySnapshot();
-    snapshot.setMeasurement(HardwareMeasurementType.HYPERVISOR, Uom.SOCKETS, 30.0);
-    snapshot.setMeasurement(HardwareMeasurementType.HYPERVISOR, Uom.INSTANCES, 3.0);
-    snapshot.setMeasurement(HardwareMeasurementType.VIRTUAL, Uom.SOCKETS, 70.0);
-    snapshot.setMeasurement(HardwareMeasurementType.VIRTUAL, Uom.INSTANCES, 7.0);
+    snapshot.setMeasurement(HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getSockets(), 30.0);
+    snapshot.setMeasurement(
+        HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getInstanceHours(), 3.0);
+    snapshot.setMeasurement(HardwareMeasurementType.VIRTUAL, MetricIdUtils.getSockets(), 70.0);
+    snapshot.setMeasurement(HardwareMeasurementType.VIRTUAL, MetricIdUtils.getInstanceHours(), 7.0);
 
     org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot =
         snapshot.asApiSnapshot();
@@ -46,7 +47,7 @@ class TallySnapshotTest {
   void shouldAddCoreHoursWhenCreatingApiSnapshot() {
     Double expCoreHours = 22.2;
     TallySnapshot snapshot = new TallySnapshot();
-    snapshot.setMeasurement(HardwareMeasurementType.TOTAL, Uom.CORES, expCoreHours);
+    snapshot.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), expCoreHours);
 
     org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot =
         snapshot.asApiSnapshot();
@@ -57,7 +58,8 @@ class TallySnapshotTest {
   void shouldAddInstanceHoursWhenCreatingApiSnapshot() {
     Double expCoreHours = 22.2;
     TallySnapshot snapshot = new TallySnapshot();
-    snapshot.setMeasurement(HardwareMeasurementType.TOTAL, Uom.INSTANCE_HOURS, expCoreHours);
+    snapshot.setMeasurement(
+        HardwareMeasurementType.TOTAL, MetricIdUtils.getInstanceHours(), expCoreHours);
 
     org.candlepin.subscriptions.utilization.api.model.TallySnapshot apiSnapshot =
         snapshot.asApiSnapshot();

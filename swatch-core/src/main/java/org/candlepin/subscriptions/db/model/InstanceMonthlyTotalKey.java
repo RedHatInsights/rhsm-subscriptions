@@ -22,15 +22,12 @@ package org.candlepin.subscriptions.db.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.candlepin.subscriptions.json.Measurement;
 
 /** Key for instance monthly totals */
 @Data
@@ -45,16 +42,15 @@ public class InstanceMonthlyTotalKey implements Serializable {
   @Column(nullable = false) // ENT-4622 needed to avoid recreating collections
   private String month;
 
-  @Enumerated(EnumType.STRING) // ENT-4622 needed to avoid recreating collections
   @Column(name = "metric_id", nullable = false)
-  private Measurement.Uom uom;
+  private String metricId;
 
   public static String formatMonthId(OffsetDateTime reference) {
     return reference.format(MONTH_ID_FORMATTER);
   }
 
-  public InstanceMonthlyTotalKey(OffsetDateTime reference, Measurement.Uom uom) {
+  public InstanceMonthlyTotalKey(OffsetDateTime reference, String metricId) {
     this.month = formatMonthId(reference);
-    this.uom = uom;
+    this.metricId = metricId;
   }
 }

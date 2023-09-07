@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.metering.service.prometheus;
 
 import com.redhat.swatch.configuration.registry.Metric;
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import io.micrometer.core.annotation.Timed;
 import jakarta.ws.rs.BadRequestException;
@@ -36,7 +37,6 @@ import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
 import org.candlepin.subscriptions.metering.MeteringException;
 import org.candlepin.subscriptions.metering.service.prometheus.model.QuerySummaryResult;
@@ -93,12 +93,13 @@ public class PrometheusMeteringController {
   @Timed("rhsm-subscriptions.metering.openshift")
   @Transactional
   public void collectMetrics(
-      String tag, Uom metric, String orgId, OffsetDateTime start, OffsetDateTime end) {
+      String tag, MetricId metric, String orgId, OffsetDateTime start, OffsetDateTime end) {
     var subDefOptional = SubscriptionDefinition.lookupSubscriptionByTag(tag);
     if (subDefOptional.isEmpty()) {
       throw new BadRequestException(String.format("Invalid product tag specified: %s", tag));
     }
-    Optional<Metric> tagMetric = subDefOptional.flatMap(subDef -> subDef.getMetric(metric.value()));
+    Optional<Metric> tagMetric =
+        subDefOptional.flatMap(subDef -> subDef.getMetric(metric.getValue()));
     if (tagMetric.isEmpty()) {
       throw new UnsupportedOperationException(
           String.format("Unable to find tag %s and metric %s!", tag, metric));
@@ -202,7 +203,7 @@ public class PrometheusMeteringController {
                                 subDefOptional.get().getServiceType(),
                                 billingProvider,
                                 billingAccountId,
-                                Uom.fromValue(tagMetric.get().getId()),
+                                MetricId.fromString(tagMetric.get().getId()),
                                 value,
                                 tag);
                         events.putIfAbsent(EventKey.fromEvent(event), event);
@@ -259,7 +260,7 @@ public class PrometheusMeteringController {
       String serviceType,
       String billingProvider,
       String billingAccountId,
-      Uom metric,
+      MetricId metric,
       BigDecimal value,
       String productTag) {
     EventKey lookupKey =
@@ -277,7 +278,6 @@ public class PrometheusMeteringController {
         event,
         account,
         orgId,
-        metricId,
         instanceId,
         sla,
         usage,

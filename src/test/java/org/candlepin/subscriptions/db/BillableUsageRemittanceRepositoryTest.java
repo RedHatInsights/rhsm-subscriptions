@@ -34,10 +34,10 @@ import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.RemittanceSummaryProjection;
 import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
 import org.candlepin.subscriptions.json.BillableUsage.Sla;
-import org.candlepin.subscriptions.json.BillableUsage.Uom;
 import org.candlepin.subscriptions.json.BillableUsage.Usage;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -135,7 +135,7 @@ class BillableUsageRemittanceRepositoryTest {
             .billingAccountId(orgId + "_ba")
             .productId(productId)
             .sla(Sla.PREMIUM.value())
-            .metricId(Uom.CORES.value())
+            .metricId(MetricIdUtils.getCores().toString())
             .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(remittanceDate))
             .remittancePendingDate(remittanceDate)
             .build();

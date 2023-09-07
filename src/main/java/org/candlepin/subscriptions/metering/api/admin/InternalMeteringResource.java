@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.metering.api.admin;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import io.micrometer.core.annotation.Timed;
 import jakarta.transaction.Transactional;
@@ -33,7 +34,6 @@ import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.EventRecordRepository;
-import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.metering.ResourceUtil;
 import org.candlepin.subscriptions.metering.admin.api.InternalApi;
 import org.candlepin.subscriptions.metering.retention.EventRecordsRetentionProperties;
@@ -137,7 +137,7 @@ public class InternalMeteringResource implements InternalApi {
             metric -> {
               try {
                 controller.collectMetrics(
-                    productTag, Measurement.Uom.fromValue(metric), orgId, start, end);
+                    productTag, MetricId.fromString(metric), orgId, start, end);
               } catch (Exception e) {
                 log.error(
                     "Problem collecting metrics: {} {} {} [{} -> {}]",

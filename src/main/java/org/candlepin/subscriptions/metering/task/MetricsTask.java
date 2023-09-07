@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.metering.task;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.task.Task;
 import org.slf4j.Logger;
@@ -36,7 +36,7 @@ public class MetricsTask implements Task {
 
   private final String orgId;
   private final String productTag;
-  private final Uom metric;
+  private final MetricId metric;
   private final OffsetDateTime start;
   private final OffsetDateTime end;
 
@@ -46,7 +46,7 @@ public class MetricsTask implements Task {
       PrometheusMeteringController controller,
       String orgId,
       String productTag,
-      Uom metric,
+      MetricId metric,
       OffsetDateTime start,
       OffsetDateTime end) {
     this.controller = controller;

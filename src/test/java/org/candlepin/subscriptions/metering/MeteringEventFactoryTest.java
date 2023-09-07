@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import org.candlepin.subscriptions.json.Event;
@@ -31,7 +32,7 @@ import org.candlepin.subscriptions.json.Event.BillingProvider;
 import org.candlepin.subscriptions.json.Event.Sla;
 import org.candlepin.subscriptions.json.Event.Usage;
 import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.json.Measurement.Uom;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.Test;
 
 class MeteringEventFactoryTest {
@@ -48,17 +49,15 @@ class MeteringEventFactoryTest {
     String role = "ocp";
     String serviceType = "cluster-service-type";
     String billingProvider = "red hat";
-    String metricId = "cluster_metric_id";
     OffsetDateTime expiry = OffsetDateTime.now();
     OffsetDateTime measuredTime = expiry.minusHours(1);
     Double measuredValue = 23.0;
-    Uom uom = Uom.CORES;
+    MetricId uom = MetricIdUtils.getCores();
 
     Event event =
         MeteringEventFactory.createMetricEvent(
             account,
             orgId,
-            metricId,
             clusterId,
             sla,
             usage,
@@ -81,11 +80,12 @@ class MeteringEventFactoryTest {
     assertEquals(Sla.PREMIUM, event.getSla());
     assertEquals(Usage.PRODUCTION, event.getUsage());
     assertEquals(MeteringEventFactory.EVENT_SOURCE, event.getEventSource());
-    assertEquals(MeteringEventFactory.getEventType(uom.value(), productTag), event.getEventType());
+    assertEquals(
+        MeteringEventFactory.getEventType(uom.getValue(), productTag), event.getEventType());
     assertEquals(serviceType, event.getServiceType());
     assertEquals(1, event.getMeasurements().size());
     Measurement measurement = event.getMeasurements().get(0);
-    assertEquals(uom, measurement.getUom());
+    assertEquals(uom.toString(), measurement.getUom());
     assertEquals(measuredValue, measurement.getValue());
   }
 
@@ -95,7 +95,6 @@ class MeteringEventFactoryTest {
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             null,
             "Production",
@@ -105,7 +104,7 @@ class MeteringEventFactoryTest {
             "service_type",
             "red hat",
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
             productTag);
     assertNull(event.getSla());
@@ -117,7 +116,6 @@ class MeteringEventFactoryTest {
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "None",
             "Production",
@@ -127,7 +125,7 @@ class MeteringEventFactoryTest {
             "service_type",
             "red hat",
             "null",
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
             productTag);
     assertEquals(Sla.__EMPTY__, event.getSla());
@@ -139,7 +137,6 @@ class MeteringEventFactoryTest {
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "UNKNOWN_SLA",
             "Production",
@@ -149,7 +146,7 @@ class MeteringEventFactoryTest {
             "service_type",
             "red hat",
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
             productTag);
     assertNull(event.getSla());
@@ -161,7 +158,6 @@ class MeteringEventFactoryTest {
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "Premium",
             "UNKNOWN_USAGE",
@@ -171,7 +167,7 @@ class MeteringEventFactoryTest {
             "service_type",
             "red hat",
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
             productTag);
     assertNull(event.getUsage());
@@ -183,7 +179,6 @@ class MeteringEventFactoryTest {
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "Premium",
             null,
@@ -193,7 +188,7 @@ class MeteringEventFactoryTest {
             "service_type",
             "red hat",
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
             productTag);
     assertNull(event.getUsage());
@@ -205,7 +200,6 @@ class MeteringEventFactoryTest {
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "Premium",
             "Production",
@@ -215,7 +209,7 @@ class MeteringEventFactoryTest {
             "service_type",
             "red hat",
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
             productTag);
     assertNull(event.getRole());
@@ -227,7 +221,6 @@ class MeteringEventFactoryTest {
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "Premium",
             "Production",
@@ -237,7 +230,7 @@ class MeteringEventFactoryTest {
             "service_type",
             "red hat",
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
             productTag);
     assertNull(event.getRole());
@@ -249,7 +242,6 @@ class MeteringEventFactoryTest {
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "Premium",
             "Production",
@@ -259,7 +251,7 @@ class MeteringEventFactoryTest {
             "service_type",
             "aws",
             "aws_account_123",
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
             productTag);
     assertEquals(BillingProvider.AWS, event.getBillingProvider());
@@ -273,7 +265,6 @@ class MeteringEventFactoryTest {
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "Premium",
             "Production",
@@ -283,7 +274,7 @@ class MeteringEventFactoryTest {
             "service_type",
             null,
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
             productTag);
     assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());
@@ -296,7 +287,6 @@ class MeteringEventFactoryTest {
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "Premium",
             "Production",
@@ -306,7 +296,7 @@ class MeteringEventFactoryTest {
             "service_type",
             "",
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
             productTag);
     assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());
@@ -318,7 +308,6 @@ class MeteringEventFactoryTest {
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "Premium",
             "Production",
@@ -328,7 +317,7 @@ class MeteringEventFactoryTest {
             "service_type",
             "invalid provider",
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
             productTag);
     assertNull(event.getBillingProvider());
@@ -340,7 +329,6 @@ class MeteringEventFactoryTest {
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "Premium",
             "Production",
@@ -350,7 +338,7 @@ class MeteringEventFactoryTest {
             "service_type",
             "red hat",
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
             productTag);
     assertEquals("snapshot_openshift-dedicated-metrics_cores", event.getEventType());
@@ -370,7 +358,6 @@ class MeteringEventFactoryTest {
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "Premium",
             "Production",
@@ -380,7 +367,7 @@ class MeteringEventFactoryTest {
             "service_type",
             "rhm",
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
             productTag);
     assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());

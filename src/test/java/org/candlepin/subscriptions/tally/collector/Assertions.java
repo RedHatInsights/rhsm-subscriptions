@@ -28,9 +28,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Totals;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 
 public class Assertions {
 
@@ -64,13 +64,17 @@ public class Assertions {
 
     assertEquals(
         cores,
-        Optional.ofNullable(totals.getMeasurement(Uom.CORES)).map(Double::intValue).orElse(null));
+        Optional.ofNullable(totals.getMeasurement(MetricIdUtils.getCores()))
+            .map(Double::intValue)
+            .orElse(null));
     assertEquals(
         sockets,
-        Optional.ofNullable(totals.getMeasurement(Uom.SOCKETS)).map(Double::intValue).orElse(null));
+        Optional.ofNullable(totals.getMeasurement(MetricIdUtils.getSockets()))
+            .map(Double::intValue)
+            .orElse(null));
     assertEquals(
         instances,
-        Optional.ofNullable(totals.getMeasurement(Uom.INSTANCES))
+        Optional.ofNullable(totals.getMeasurement(MetricIdUtils.getInstanceHours()))
             .map(Double::intValue)
             .orElse(null));
   }

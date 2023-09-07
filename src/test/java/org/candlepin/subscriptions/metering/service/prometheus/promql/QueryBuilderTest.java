@@ -27,8 +27,8 @@ import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.util.HashMap;
 import java.util.Map;
-import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -41,7 +41,7 @@ class QueryBuilderTest {
   void setupTest() {
     var subDefOptional = SubscriptionDefinition.lookupSubscriptionByTag(TEST_PROD_TAG);
     subDefOptional
-        .flatMap(subDef -> subDef.getMetric(Measurement.Uom.CORES.value()))
+        .flatMap(subDef -> subDef.getMetric(MetricIdUtils.getCores().getValue()))
         .ifPresent(tag -> this.tag = tag);
   }
 

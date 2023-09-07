@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -228,7 +229,9 @@ public class CombiningRollupSnapshotStrategy {
         calculatedTotals
             .getMeasurements()
             .keySet()
-            .forEach(uom -> seenMeasurements.add(new TallyMeasurementKey(type, uom)));
+            .forEach(
+                metricId ->
+                    seenMeasurements.add(new TallyMeasurementKey(type, metricId.getValue())));
       }
       updateSnapshotWithHardwareMeasurements(snapshot, type, calculatedTotals);
     }
@@ -450,7 +453,9 @@ public class CombiningRollupSnapshotStrategy {
           measurements.forEach(
               (measurementKey, value) ->
                   snapshot.setMeasurement(
-                      measurementKey.getMeasurementType(), measurementKey.getUom(), value));
+                      measurementKey.getMeasurementType(),
+                      MetricId.fromString(measurementKey.getMetricId()),
+                      value));
 
           saved.add(tallyRepo.save(snapshot));
         });

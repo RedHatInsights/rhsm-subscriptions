@@ -34,8 +34,8 @@ import org.candlepin.subscriptions.db.model.HostBucketKey;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.tally.InventoryAccountUsageCollector;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -176,8 +176,8 @@ class HostTallyBucketRepositoryTest {
             orgId,
             "SUBMAN_" + inventoryId);
     host.setDisplayName(orgId);
-    host.setMeasurement(Uom.SOCKETS, 1.0);
-    host.setMeasurement(Uom.CORES, 1.0);
+    host.setMeasurement(MetricIdUtils.getSockets().getValue(), 1.0);
+    host.setMeasurement(MetricIdUtils.getCores().getValue(), 1.0);
     return host;
   }
 }

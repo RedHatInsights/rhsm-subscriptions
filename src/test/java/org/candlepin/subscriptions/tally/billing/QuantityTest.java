@@ -31,7 +31,6 @@ import java.lang.reflect.Field;
 import java.util.List;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
 import org.candlepin.subscriptions.json.BillableUsage;
-import org.candlepin.subscriptions.json.BillableUsage.Uom;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +40,8 @@ class QuantityTest {
   private static SubscriptionDefinitionRegistry originalReference;
 
   private SubscriptionDefinitionRegistry subscriptionDefinitionRegistry;
+
+  private static final String SOCKETS = "Sockets";
 
   @BeforeAll
   static void setupClass() throws Exception {
@@ -108,7 +109,7 @@ class QuantityTest {
   @Test
   void testQuantityFromBillableUsage() {
     var billableUsage = new BillableUsage();
-    billableUsage.setUom(Uom.SOCKETS);
+    billableUsage.setUom(SOCKETS);
     billableUsage.setProductId("foo");
     createSubscriptionDefinition(billableUsage.getProductId(), billableUsage.getUom().toString());
     var billingUnit = new BillingUnit(billableUsage);
@@ -122,7 +123,7 @@ class QuantityTest {
   void testAddingBillableUnitToMetricUnit() {
     var quantity = Quantity.of(1.5);
     var billableUsage = new BillableUsage();
-    billableUsage.setUom(Uom.SOCKETS);
+    billableUsage.setUom(SOCKETS);
     billableUsage.setProductId("productId");
     createSubscriptionDefinition(billableUsage.getProductId(), billableUsage.getUom().toString());
     var billingUnit = new BillingUnit(billableUsage);
@@ -137,7 +138,7 @@ class QuantityTest {
   void testSubtractingBillableUnitFromMetricUnit() {
     var quantity = Quantity.of(1.5);
     var billableUsage = new BillableUsage();
-    billableUsage.setUom(Uom.SOCKETS);
+    billableUsage.setUom(SOCKETS);
     billableUsage.setProductId("productId");
     createSubscriptionDefinition(billableUsage.getProductId(), billableUsage.getUom().toString());
     var billingUnit = new BillingUnit(billableUsage);

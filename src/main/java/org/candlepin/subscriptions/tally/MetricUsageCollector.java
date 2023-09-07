@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.tally;
 
 import com.google.common.collect.MoreCollectors;
 import com.google.common.collect.Sets;
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import java.time.OffsetDateTime;
@@ -43,7 +44,6 @@ import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
 import org.slf4j.Logger;
@@ -203,7 +203,7 @@ public class MetricUsageCollector {
     Map<String, Host> thisHoursInstances = new HashMap<>();
     eventToHostMapping.forEach(
         (instanceId, events) -> {
-          Set<Uom> seenUoms = new HashSet<>();
+          Set<String> seenMetricIds = new HashSet<>();
           Host existing = accountServiceInventory.getServiceInstances().get(instanceId);
           Host host = existing == null ? new Host() : existing;
           thisHoursInstances.put(instanceId, host);
@@ -214,14 +214,16 @@ public class MetricUsageCollector {
                 updateInstanceFromEvent(event, host, accountServiceInventory.getServiceType());
 
                 if (event.getMeasurements() != null) {
-                  event.getMeasurements().stream().map(Measurement::getUom).forEach(seenUoms::add);
+                  event.getMeasurements().stream()
+                      .map(Measurement::getUom)
+                      .forEach(seenMetricIds::add);
                 }
               });
 
           // clear any measurements that we don't have events for
-          Set<Uom> staleMeasurements =
+          Set<String> staleMeasurements =
               host.getMeasurements().keySet().stream()
-                  .filter(k -> !seenUoms.contains(k))
+                  .filter(k -> !seenMetricIds.contains(k))
                   .collect(Collectors.toSet());
           staleMeasurements.forEach(host.getMeasurements()::remove);
         });
@@ -254,11 +256,11 @@ public class MetricUsageCollector {
                         instance
                             .getMeasurements()
                             .forEach(
-                                (uom, value) ->
+                                (metricId, value) ->
                                     accountUsageCalculation.addUsage(
                                         usageKey,
                                         getHardwareMeasurementType(instance),
-                                        uom,
+                                        MetricId.fromString(metricId),
                                         value));
                       });
 
@@ -302,7 +304,9 @@ public class MetricUsageCollector {
             measurement -> {
               instance.setMeasurement(measurement.getUom(), measurement.getValue());
               instance.addToMonthlyTotal(
-                  event.getTimestamp(), measurement.getUom(), measurement.getValue());
+                  event.getTimestamp(),
+                  MetricId.fromString(measurement.getUom()),
+                  measurement.getValue());
             });
     addBucketsFromEvent(instance, event, serviceType);
   }

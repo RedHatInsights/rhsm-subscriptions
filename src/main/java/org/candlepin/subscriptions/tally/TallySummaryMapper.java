@@ -84,7 +84,7 @@ public class TallySummaryMapper {
             entry ->
                 new TallyMeasurement()
                     .withHardwareMeasurementType(entry.getKey().getMeasurementType().toString())
-                    .withUom(TallyMeasurement.Uom.fromValue(entry.getKey().getUom().value()))
+                    .withUom(entry.getKey().getMetricId())
                     .withValue(entry.getValue()))
         .collect(Collectors.toList());
   }

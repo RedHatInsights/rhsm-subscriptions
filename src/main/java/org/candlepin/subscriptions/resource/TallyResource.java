@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinitionGranularity;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.contracts.api.resources.CapacityApi;
@@ -34,7 +35,7 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -45,14 +46,13 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.*;
-import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.tally.filler.ReportFiller;
 import org.candlepin.subscriptions.tally.filler.ReportFillerFactory;
 import org.candlepin.subscriptions.tally.filler.UnroundedTallyReportDataPoint;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.candlepin.subscriptions.utilization.api.model.*;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
 import org.candlepin.subscriptions.utilization.api.resources.TallyApi;
@@ -96,7 +96,7 @@ public class TallyResource implements TallyApi {
   @ReportingAccessRequired
   public TallyReportData getTallyReportData(
       ProductId productId,
-      MetricId metricId,
+      String metricIdValue,
       GranularityType granularityType,
       OffsetDateTime beginning,
       OffsetDateTime ending,
@@ -109,6 +109,19 @@ public class TallyResource implements TallyApi {
       Integer limit,
       Boolean useRunningTotalsFormat,
       BillingCategory billingCategory) {
+
+    if (Objects.nonNull(billingCategory) && !Boolean.TRUE.equals(useRunningTotalsFormat)) {
+      throw new BadRequestException(
+          "When `billing_category` is specified, `use_running_totals_format` must be `true`.");
+    }
+
+    MetricId metricId;
+    try {
+      metricId = MetricId.fromString(metricIdValue);
+    } catch (IllegalArgumentException ex) {
+      throw new BadRequestException(ex);
+    }
+
     ReportCriteria reportCriteria =
         extractReportCriteria(
             productId,
@@ -124,11 +137,6 @@ public class TallyResource implements TallyApi {
             billingCategory,
             offset,
             limit);
-
-    if (Objects.nonNull(billingCategory) && !Boolean.TRUE.equals(useRunningTotalsFormat)) {
-      throw new BadRequestException(
-          "When `billing_category` is specified, `use_running_totals_format` must be `true`.");
-    }
 
     Page<org.candlepin.subscriptions.db.model.TallySnapshot> snapshotPage =
         repository.findSnapshot(
@@ -158,14 +166,12 @@ public class TallyResource implements TallyApi {
                 usageType)
             : Collections.emptyMap();
 
-    Uom uom = Uom.fromValue(metricId.toString());
-
     List<org.candlepin.subscriptions.db.model.TallySnapshot> snapshots =
-        snapshotPage.stream().collect(Collectors.toList());
+        snapshotPage.stream().toList();
 
     List<UnroundedTallyReportDataPoint> snaps =
         snapshots.stream()
-            .map(snapshot -> unroundedDataPointFromSnapshot(uom, category, snapshot))
+            .map(snapshot -> unroundedDataPointFromSnapshot(metricId, category, snapshot))
             .collect(Collectors.toList());
 
     TallyReportData report = new TallyReportData();
@@ -200,7 +206,7 @@ public class TallyResource implements TallyApi {
       OffsetDateTime latestSnapshotDate = null;
       var totalMonthlyValueRaw = 0.0;
       for (var snapshot : snapshots) {
-        totalMonthlyValueRaw += extractRawValue(uom, category, snapshot);
+        totalMonthlyValueRaw += extractRawValue(metricId, category, snapshot);
         latestSnapshotDate = snapshot.getSnapshotDate();
       }
       var totalMonthlyValue = (int) Math.ceil(totalMonthlyValueRaw);
@@ -221,7 +227,7 @@ public class TallyResource implements TallyApi {
     }
 
     if (Boolean.TRUE.equals(useRunningTotalsFormat)) {
-      snaps = transformToRunningTotalFormat(snaps, uom, billingCategory, capacityByDate);
+      snaps = transformToRunningTotalFormat(snaps, metricId, billingCategory, capacityByDate);
     }
 
     // Fill the report gaps if no paging was requested.
@@ -263,7 +269,7 @@ public class TallyResource implements TallyApi {
       capacityReportByMetricId =
           capacityApi.getCapacityReportByMetricId(
               com.redhat.swatch.contracts.api.model.ProductId.valueOf(productId.name()),
-              com.redhat.swatch.contracts.api.model.MetricId.valueOf(metricId.name()),
+              metricId.getValue(),
               com.redhat.swatch.contracts.api.model.GranularityType.valueOf(granularityType.name()),
               beginning,
               ending,
@@ -350,20 +356,21 @@ public class TallyResource implements TallyApi {
   }
 
   private UnroundedTallyReportDataPoint unroundedDataPointFromSnapshot(
-      Uom uom,
+      MetricId metricId,
       ReportCategory category,
       org.candlepin.subscriptions.db.model.TallySnapshot snapshot) {
     return new UnroundedTallyReportDataPoint(
-        snapshot.getSnapshotDate(), extractRawValue(uom, category, snapshot), true);
+        snapshot.getSnapshotDate(), extractRawValue(metricId, category, snapshot), true);
   }
 
   private Double extractRawValue(
-      Uom uom,
+      MetricId metricId,
       ReportCategory category,
       org.candlepin.subscriptions.db.model.TallySnapshot snapshot) {
     Set<HardwareMeasurementType> contributingTypes = getContributingTypes(category);
     return contributingTypes.stream()
-        .mapToDouble(type -> Optional.ofNullable(snapshot.getMeasurement(type, uom)).orElse(0.0))
+        .mapToDouble(
+            type -> Optional.ofNullable(snapshot.getMeasurement(type, metricId)).orElse(0.0))
         .sum();
   }
 
@@ -422,7 +429,7 @@ public class TallyResource implements TallyApi {
     List<TallySnapshot> snaps =
         snapshotPage.stream()
             .map(org.candlepin.subscriptions.db.model.TallySnapshot::asApiSnapshot)
-            .collect(Collectors.toList());
+            .toList();
 
     TallyReport report = new TallyReport();
     report.setData(snaps);
@@ -470,30 +477,30 @@ public class TallyResource implements TallyApi {
   }
 
   private void transformToRunningTotalFormat(TallyReport report) {
-    Map<Uom, Double> runningTotals = new EnumMap<>(Measurement.Uom.class);
+    Map<MetricId, Double> runningTotals = new HashMap<>();
     report
         .getData()
         .forEach(
             snapshot -> {
               double snapshotHours = Optional.ofNullable(snapshot.getCoreHours()).orElse(0.0);
               Double newValue =
-                  runningTotals.getOrDefault(Measurement.Uom.CORES, 0.0) + snapshotHours;
+                  runningTotals.getOrDefault(MetricIdUtils.getCores(), 0.0) + snapshotHours;
               snapshot.setCoreHours(newValue);
-              runningTotals.put(Measurement.Uom.CORES, newValue);
+              runningTotals.put(MetricIdUtils.getCores(), newValue);
             });
   }
 
   private List<UnroundedTallyReportDataPoint> transformToRunningTotalFormat(
       List<UnroundedTallyReportDataPoint> snaps,
-      Uom uom,
+      MetricId metricId,
       BillingCategory billingCategory,
       Map<OffsetDateTime, Integer> capacityByDate) {
-    Map<Uom, Double> runningTotals = new EnumMap<>(Measurement.Uom.class);
+    Map<MetricId, Double> runningTotals = new HashMap<>();
     List<UnroundedTallyReportDataPoint> runningTotalSnaps = new ArrayList<>();
     snaps.forEach(
         snapshot -> {
           double snapshotTotal = Optional.ofNullable(snapshot.value()).orElse(0.0);
-          double newValue = runningTotals.getOrDefault(uom, 0.0) + snapshotTotal;
+          double newValue = runningTotals.getOrDefault(metricId, 0.0) + snapshotTotal;
 
           double snapshotValue = newValue;
           double capacity = capacityByDate.getOrDefault(clock.startOfDay(snapshot.date()), 0);
@@ -506,7 +513,7 @@ public class TallyResource implements TallyApi {
           runningTotalSnaps.add(
               new UnroundedTallyReportDataPoint(
                   snapshot.date(), snapshotValue, snapshot.hasData()));
-          runningTotals.put(uom, newValue);
+          runningTotals.put(metricId, newValue);
         });
     return runningTotalSnaps;
   }

@@ -79,19 +79,9 @@ properties:
           type: number
           required: true
         uom:
-          description: UOM for the measurement. (e.g. Cores, Sockets)
+          description: Metric ID for the measurement. (e.g. Cores, Sockets)
           type: string
           required: true
-          enum:
-            - Cores
-            - Sockets
-            - Core-seconds
-            - Instance-hours
-            - Storage-gibibytes
-            - Transfer-gibibytes
-            - Storage-gibibyte-months
-            - Instances
-            - vCPUs
     required: false
   cloud_provider:
     description: Identifier for the cloud provider of the subject.
