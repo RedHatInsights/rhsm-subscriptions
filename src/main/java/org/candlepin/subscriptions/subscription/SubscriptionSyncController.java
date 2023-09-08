@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.subscription;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.google.common.collect.MoreCollectors;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.annotation.Timed;
@@ -31,6 +32,7 @@ import io.micrometer.core.instrument.Timer;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Response;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -38,6 +40,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -470,6 +473,8 @@ public class SubscriptionSyncController {
     return org.candlepin.subscriptions.db.model.Subscription.builder()
         .subscriptionId(String.valueOf(subscription.getId()))
         .subscriptionNumber(subscription.getSubscriptionNumber())
+        .subscriptionProductIds(
+            new HashSet<>(Collections.singleton(SubscriptionDtoUtil.extractSku(subscription))))
         .orgId(subscription.getWebCustomerId().toString())
         .accountNumber(String.valueOf(subscription.getOracleAccountNumber()))
         .quantity(subscription.getQuantity())
@@ -549,12 +554,29 @@ public class SubscriptionSyncController {
           .forEach(
               subscription -> {
                 if (reconcileCapacity) {
+                  determineSubscriptionOffering(subscription);
                   capacityReconciliationController.reconcileCapacityForSubscription(subscription);
                 }
                 subscriptionRepository.save(subscription);
               });
     } catch (JsonProcessingException e) {
       throw new IllegalArgumentException("Error parsing subscriptionsJson", e);
+    }
+  }
+
+  private void determineSubscriptionOffering(
+      org.candlepin.subscriptions.db.model.Subscription subscription) {
+    // should look up the offering and set it before additional processing
+    var offer =
+        offeringRepository.findOfferingBySku(
+            subscription.getSubscriptionProductIds().stream()
+                .collect(MoreCollectors.toOptional())
+                .orElse(null));
+    if (Objects.nonNull(offer)) {
+      // should only be one offering per subscription
+      subscription.setOffering(offer);
+    } else {
+      throw new BadRequestException("Error offering doesn't exist");
     }
   }
 

@@ -29,6 +29,7 @@ import static org.mockito.Mockito.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
@@ -282,12 +283,30 @@ class SubscriptionSyncControllerTest {
   void shouldSaveSubscriptionToDatabaseAndReconcile() throws JsonProcessingException {
     ObjectMapper mapper = new ObjectMapper();
     var subscription = createDto("123", 1);
+    var offer = Offering.builder().sku("test").build();
     String subscriptionsJson =
         mapper.writeValueAsString(
             new org.candlepin.subscriptions.subscription.api.model.Subscription[] {subscription});
+    when(offeringRepository.findOfferingBySku(any())).thenReturn(offer);
     subscriptionSyncController.saveSubscriptions(subscriptionsJson, true);
     verify(subscriptionRepository).save(any());
     verify(capacityReconciliationController).reconcileCapacityForSubscription(any());
+  }
+
+  @Test
+  void shouldHandleSubscriptionWithoutOffering() throws JsonProcessingException {
+    ObjectMapper mapper = new ObjectMapper();
+    var subscription = createDto("123", 1);
+    String subscriptionsJson =
+        mapper.writeValueAsString(
+            new org.candlepin.subscriptions.subscription.api.model.Subscription[] {subscription});
+    var thrown =
+        assertThrows(
+            BadRequestException.class,
+            () -> {
+              subscriptionSyncController.saveSubscriptions(subscriptionsJson, true);
+            });
+    assertEquals("Error offering doesn't exist", thrown.getMessage());
   }
 
   @Test
