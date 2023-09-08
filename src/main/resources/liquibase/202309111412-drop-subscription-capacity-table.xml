@@ -5,8 +5,7 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
-
-  <changeSet id="202305251412-01" author="awood" dbms="postgresql">
+  <changeSet id="202309111412-01" author="awood" dbms="postgresql">
     <sql>
       DROP TRIGGER subscription_measurements_insert ON subscription_capacity;
     </sql>
@@ -14,7 +13,7 @@
     changeSetPath="liquibase/202305031403-create-subscription-measurements-table.xml" />
   </changeSet>
 
-  <changeSet id="202305251412-02" author="awood" dbms="postgresql">
+  <changeSet id="202309111412-02" author="awood" dbms="postgresql">
     <sql>
       DROP TRIGGER subscription_measurements_update ON subscription_capacity;
     </sql>
@@ -22,7 +21,7 @@
     changeSetPath="liquibase/202305031403-create-subscription-measurements-table.xml" />
   </changeSet>
 
-  <changeSet id="202305251412-03" author="awood" dbms="postgresql">
+  <changeSet id="202309111412-03" author="awood" dbms="postgresql">
     <sql>
       DROP TRIGGER subscription_product_id_insert ON subscription_capacity;
     </sql>
@@ -30,7 +29,7 @@
     changeSetPath="liquibase/202305031403-create-subscription-measurements-table.xml" />
   </changeSet>
 
-  <changeSet id="202305251412-04" author="awood" dbms="postgresql">
+  <changeSet id="202309111412-04" author="awood" dbms="postgresql">
     <sql>
       DROP TRIGGER subscription_product_id_update ON subscription_capacity;
     </sql>
@@ -38,7 +37,7 @@
     changeSetPath="liquibase/202305031403-create-subscription-measurements-table.xml" />
   </changeSet>
 
-  <changeSet id="202305251412-05" author="awood" dbms="postgresql">
+  <changeSet id="202309111412-05" author="awood" dbms="postgresql">
     <sql>
       DROP FUNCTION copy_subscription_capacity_sockets_and_cores();
     </sql>
@@ -46,7 +45,7 @@
     changeSetPath="liquibase/202305031403-create-subscription-measurements-table.xml" />
   </changeSet>
 
-  <changeSet id="202305251412-07" author="awood" dbms="postgresql">
+  <changeSet id="202309111412-07" author="awood" dbms="postgresql">
     <sql>
       DROP FUNCTION copy_subscription_product_id();
     </sql>
@@ -54,7 +53,7 @@
     changeSetPath="liquibase/202305031403-create-subscription-measurements-table.xml" />
   </changeSet>
 
-  <changeSet id="202305031403-08" author="awood">
+  <changeSet id="202309111412-08" author="awood">
     <dropTable tableName="subscription_capacity"/>
   </changeSet>
 </databaseChangeLog>
