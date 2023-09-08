@@ -908,7 +908,7 @@ class InventoryControllerTest {
     negative.getFacts().put("dmi.bios.vendor", "foobar");
 
     ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
-    assertEquals("google", conduitFacts.getCloudProvider());
+    assertEquals("gcp", conduitFacts.getCloudProvider());
 
     ConduitFacts conduitFactsNegative = controller.getFactsFromConsumer(negative);
     assertNull(conduitFactsNegative.getCloudProvider());

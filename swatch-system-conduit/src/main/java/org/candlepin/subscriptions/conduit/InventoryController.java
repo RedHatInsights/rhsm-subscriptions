@@ -234,7 +234,7 @@ public class InventoryController {
     if (assetTag.equals("7783-7084-3265-9085-8269-3286-77")) {
       return "azure";
     } else if (biosVendor.toLowerCase().contains("google")) {
-      return "google";
+      return "gcp";
     } else if (biosVersion.toLowerCase().contains("amazon")) {
       return "aws";
     } else if (systemManufacturer.toLowerCase().contains("alibaba")) {
