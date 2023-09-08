@@ -171,7 +171,9 @@ class EventControllerTest {
         """
                 {
                    "org_id": "7",
-                   "timestamp": "2023-05-02T00:00:00Z",
+                   "start": "2023-05-02T00:00:00Z",
+                   "end": "2023-05-02T01:00:00Z",
+                   "span_id": "123",
                    "event_type": "snapshot_redhat.com:openshift_dedicated:cluster_hour",
                    "event_source": "prometheus",
                    "action": "cleanup"
@@ -230,10 +232,13 @@ class EventControllerTest {
             eq("7"),
             eq("prometheus"),
             eq("snapshot_redhat.com:openshift_dedicated:cluster_hour"),
+            eq("123"),
+            any(),
             any());
   }
 
   private void verifyDeletionOfStaleEventsIsNotDone() {
-    verify(eventRecordRepository, times(0)).deleteStaleEvents(any(), any(), any(), any());
+    verify(eventRecordRepository, times(0))
+        .deleteStaleEvents(any(), any(), any(), any(), any(), any());
   }
 }

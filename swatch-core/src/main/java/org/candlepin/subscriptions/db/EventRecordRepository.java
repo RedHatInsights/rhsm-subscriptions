@@ -115,7 +115,9 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, EventK
    * @param orgId The organization id
    * @param eventSource The event source
    * @param eventType The event type
-   * @param cutoffDate Dates before this timestamp get deleted
+   * @param spanId The span ID to exclude.
+   * @param begin Start time window to query events to delete.
+   * @param end End time window to query events to delete.
    */
   @Modifying
   @Query(
@@ -123,9 +125,16 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, EventK
           + "WHERE e.orgId=:orgId "
           + "AND e.eventSource=:eventSource "
           + "AND e.eventType=:eventType "
-          + "AND e.timestamp<:cutoffDate")
-  void deleteStaleEvents(
-      String orgId, String eventSource, String eventType, OffsetDateTime cutoffDate);
+          + "AND (e.spanId IS NULL OR e.spanId != :spanId)"
+          + "AND e.timestamp>=:begin "
+          + "AND e.timestamp<:end ")
+  int deleteStaleEvents(
+      String orgId,
+      String eventSource,
+      String eventType,
+      String spanId,
+      OffsetDateTime begin,
+      OffsetDateTime end);
 
   /**
    * Check if any Events exist for the specified org and service type during the specified range.

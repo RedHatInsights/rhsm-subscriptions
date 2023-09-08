@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.metering;
 
 import com.redhat.swatch.configuration.registry.MetricId;
-
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -76,7 +75,8 @@ public class MeteringEventFactory {
       String billingAccountId,
       MetricId measuredMetric,
       Double measuredValue,
-      String productTag) {
+      String productTag,
+      String spanId) {
     Event event = new Event();
     updateMetricEvent(
         event,
@@ -93,7 +93,8 @@ public class MeteringEventFactory {
         billingAccountId,
         measuredMetric,
         measuredValue,
-        productTag);
+        productTag,
+        spanId);
     return event;
   }
 
@@ -103,16 +104,20 @@ public class MeteringEventFactory {
    *
    * @param orgId the organization id.
    * @param eventType the event type.
-   * @param cutOff the time when events are considered stale events.
+   * @param start the start time window.
+   * @param end the end time window.
    * @return a populated Event instance.
    */
-  public static Event createCleanUpEvent(String orgId, String eventType, OffsetDateTime cutOff) {
+  public static Event createCleanUpEvent(
+      String orgId, String eventType, OffsetDateTime start, OffsetDateTime end, String spanId) {
     Event event = new Event();
     event.setOrgId(orgId);
     event.setEventSource(MeteringEventFactory.EVENT_SOURCE);
     event.setEventType(eventType);
-    event.setTimestamp(cutOff);
     event.setAction(Event.Action.CLEANUP);
+    event.setSpanId(spanId);
+    event.setStart(start);
+    event.setEnd(end);
     return event;
   }
 
@@ -132,7 +137,8 @@ public class MeteringEventFactory {
       String billingAccountId,
       MetricId measuredMetric,
       Double measuredValue,
-      String productTag) {
+      String productTag,
+      String spanId) {
     toUpdate
         .withEventSource(EVENT_SOURCE)
         .withEventType(MeteringEventFactory.getEventType(measuredMetric.getValue(), productTag))
@@ -147,9 +153,11 @@ public class MeteringEventFactory {
         .withUsage(getUsage(usage, accountNumber, instanceId))
         .withBillingProvider(getBillingProvider(billingProvider, accountNumber, instanceId))
         .withBillingAccountId(Optional.ofNullable(billingAccountId))
-        .withMeasurements(List.of(new Measurement().withUom(measuredMetric.getValue()).withValue(measuredValue)))
+        .withMeasurements(
+            List.of(new Measurement().withUom(measuredMetric.getValue()).withValue(measuredValue)))
         .withRole(getRole(role, accountNumber, instanceId))
-        .withAction(Event.Action.ADD);
+        .withAction(Event.Action.ADD)
+        .withSpanId(spanId);
   }
 
   public static String getEventType(String metricId, String productTag) {

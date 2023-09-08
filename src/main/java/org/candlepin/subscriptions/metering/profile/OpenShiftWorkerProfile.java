@@ -36,6 +36,7 @@ import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.SpanGenerator;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -131,6 +132,11 @@ public class OpenShiftWorkerProfile {
     return new PrometheusEventsProducer(eventsTopicProperties, prometheusUsageKafkaTemplate);
   }
 
+  @Bean(name = "prometheusMeteringSpanGenerator")
+  public SpanGenerator prometheusSpanGenerator() {
+    return new SpanGenerator("prometheus-span-id");
+  }
+
   @SuppressWarnings("java:S107")
   @Bean
   PrometheusMeteringController getController(
@@ -140,7 +146,8 @@ public class OpenShiftWorkerProfile {
       QueryBuilder queryBuilder,
       PrometheusEventsProducer prometheusEventsProducer,
       @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetryTemplate,
-      OptInController optInController) {
+      OptInController optInController,
+      @Qualifier("prometheusMeteringSpanGenerator") SpanGenerator spanGenerator) {
     return new PrometheusMeteringController(
         clock,
         mProps,
@@ -148,6 +155,7 @@ public class OpenShiftWorkerProfile {
         queryBuilder,
         prometheusEventsProducer,
         openshiftRetryTemplate,
-        optInController);
+        optInController,
+        spanGenerator);
   }
 }

@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.event;
 
+import static org.candlepin.subscriptions.metering.MeteringEventFactory.EVENT_SOURCE;
+
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.Collection;
@@ -29,8 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.EventRecordRepository;
@@ -82,30 +82,6 @@ public class EventController {
         .map(EventRecord::getEvent);
   }
 
-  @SuppressWarnings({"linelength", "indentation"})
-  public Map<EventKey, Event> mapEventsInTimeRange(
-      String orgId,
-      String eventSource,
-      String eventType,
-      OffsetDateTime begin,
-      OffsetDateTime end) {
-    return repo.findEventRecordsByCriteria(orgId, eventSource, eventType, begin, end)
-        .map(EventRecord::getEvent)
-        .collect(Collectors.toMap(EventKey::fromEvent, Function.identity()));
-  }
-
-  /**
-   * Validates and saves event JSON in the DB.
-   *
-   * @param event the event to save
-   * @return the event ID
-   */
-  @Transactional
-  public Event saveEvent(Event event) {
-    EventRecord eventRecord = new EventRecord(event);
-    return repo.save(eventRecord).getEvent();
-  }
-
   /**
    * Validates and saves a list of event JSON objects in the DB.
    *
@@ -113,14 +89,9 @@ public class EventController {
    */
   @Transactional
   public List<Event> saveAll(Collection<Event> events) {
-    return repo.saveAll(events.stream().map(EventRecord::new).collect(Collectors.toList())).stream()
+    return repo.saveAll(events.stream().map(EventRecord::new).toList()).stream()
         .map(EventRecord::getEvent)
-        .collect(Collectors.toList());
-  }
-
-  @Transactional
-  public void deleteEvents(Collection<Event> toDelete) {
-    repo.deleteInBatch(toDelete.stream().map(EventRecord::new).collect(Collectors.toList()));
+        .toList();
   }
 
   @Transactional
@@ -139,16 +110,26 @@ public class EventController {
   public void persistServiceInstances(Set<String> eventJsonList) {
     ServiceInstancesResult result = parseServiceInstancesResult(eventJsonList);
     if (!result.eventsMap.isEmpty()) {
-      saveAll(result.eventsMap.values());
+      int updated = saveAll(result.eventsMap.values()).size();
+      log.debug("Adding/Updating {} metric events", updated);
     }
 
     result.cleanUpEvents.forEach(
-        cleanUpEvent ->
-            repo.deleteStaleEvents(
-                cleanUpEvent.getOrgId(),
-                cleanUpEvent.getEventSource(),
-                cleanUpEvent.getEventType(),
-                cleanUpEvent.getTimestamp()));
+        cleanUpEvent -> {
+          int deleted =
+              repo.deleteStaleEvents(
+                  cleanUpEvent.getOrgId(),
+                  cleanUpEvent.getEventSource(),
+                  cleanUpEvent.getEventType(),
+                  cleanUpEvent.getSpanId(),
+                  cleanUpEvent.getStart(),
+                  cleanUpEvent.getEnd());
+          log.info(
+              "Deleting {} stale metric events for orgId={} and {} metrics",
+              deleted,
+              cleanUpEvent.getOrgId(),
+              cleanUpEvent.getEventType());
+        });
   }
 
   private ServiceInstancesResult parseServiceInstancesResult(Set<String> eventJsonList) {
@@ -157,7 +138,10 @@ public class EventController {
         eventJson -> {
           try {
             Event event = eventRecordConverter.convertToEntityAttribute(eventJson);
-            log.info("Event processing in batch: " + event);
+            if (!EVENT_SOURCE.equals(event.getEventSource())) {
+              log.info("Event processing in batch: " + event);
+            }
+
             if (StringUtils.hasText(event.getOrgId())) {
               log.debug(
                   "Ensuring orgId={} has been set up for syncing/reporting.", event.getOrgId());
@@ -189,7 +173,7 @@ public class EventController {
     }
   }
 
-  private class ServiceInstancesResult {
+  private static class ServiceInstancesResult {
     private final Map<EventKey, Event> eventsMap = new HashMap<>();
     private final Set<Event> cleanUpEvents = new HashSet<>();
   }

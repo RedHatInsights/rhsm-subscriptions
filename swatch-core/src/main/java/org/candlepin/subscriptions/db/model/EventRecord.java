@@ -67,6 +67,7 @@ public class EventRecord {
       event.setEventId(UUID.randomUUID());
     }
     this.eventId = event.getEventId();
+    this.spanId = event.getSpanId();
     this.event = event;
     this.accountNumber = event.getAccountNumber();
     this.orgId = event.getOrgId();
@@ -97,6 +98,9 @@ public class EventRecord {
   @Id
   @Column(name = "instance_id")
   private String instanceId;
+
+  @Column(name = "span_id")
+  private String spanId;
 
   @Id private OffsetDateTime timestamp;
 

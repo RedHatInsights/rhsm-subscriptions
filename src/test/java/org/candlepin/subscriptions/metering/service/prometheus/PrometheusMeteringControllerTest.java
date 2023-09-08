@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import java.math.BigDecimal;
@@ -46,6 +47,7 @@ import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.MetricIdUtils;
+import org.candlepin.subscriptions.util.SpanGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -82,6 +84,8 @@ class PrometheusMeteringControllerTest {
 
   @MockBean private OptInController optInController;
 
+  @MockBean private SpanGenerator spanGenerator;
+
   @Autowired
   @Qualifier("openshiftMetricRetryTemplate")
   RetryTemplate openshiftRetry;
@@ -90,7 +94,6 @@ class PrometheusMeteringControllerTest {
 
   private final String expectedAccount = "my-test-account";
   private final String expectedOrgId = "my-test-org";
-  private final String expectedMetricIdValue = "CORES";
   private final String expectedClusterId = "C1";
   private final String expectedSla = "Premium";
   private final String expectedUsage = "Production";
@@ -100,6 +103,7 @@ class PrometheusMeteringControllerTest {
   private final String expectedBillingAccountId = "mktp-account";
   private final MetricId expectedMetricId = MetricIdUtils.getCores();
   private final String expectedProductTag = "OpenShift-metrics";
+  private final String expectedSpanId = "123";
   private PrometheusMeteringController controller;
   private QueryHelper queries;
 
@@ -114,9 +118,12 @@ class PrometheusMeteringControllerTest {
             queryBuilder,
             eventsProducer,
             openshiftRetry,
-            optInController);
+            optInController,
+            spanGenerator);
 
     queries = new QueryHelper(queryBuilder);
+
+    when(spanGenerator.generate()).thenReturn(expectedSpanId);
   }
 
   @Test
@@ -229,7 +236,8 @@ class PrometheusMeteringControllerTest {
                 expectedBillingAccountId,
                 expectedMetricId,
                 val1.doubleValue(),
-                expectedProductTag),
+                expectedProductTag,
+                expectedSpanId),
             MeteringEventFactory.createMetricEvent(
                 expectedAccount,
                 expectedOrgId,
@@ -244,9 +252,14 @@ class PrometheusMeteringControllerTest {
                 expectedBillingAccountId,
                 expectedMetricId,
                 val2.doubleValue(),
-                expectedProductTag),
+                expectedProductTag,
+                expectedSpanId),
             MeteringEventFactory.createCleanUpEvent(
-                expectedOrgId, getEventType(expectedMetricId, expectedProductTag), start));
+                expectedOrgId,
+                getEventType(expectedMetricId.toString(), expectedProductTag),
+                start,
+                end,
+                expectedSpanId));
 
     whenCollectMetrics(start, end);
 
@@ -295,7 +308,8 @@ class PrometheusMeteringControllerTest {
             expectedBillingAccountId,
             expectedMetricId,
             val1.doubleValue(),
-            expectedProductTag);
+            expectedProductTag,
+            expectedSpanId);
 
     List<Event> expectedEvents =
         List.of(
@@ -314,9 +328,14 @@ class PrometheusMeteringControllerTest {
                 expectedBillingAccountId,
                 expectedMetricId,
                 val2.doubleValue(),
-                expectedProductTag),
+                expectedProductTag,
+                expectedSpanId),
             MeteringEventFactory.createCleanUpEvent(
-                expectedOrgId, getEventType(expectedMetricId, expectedProductTag), start));
+                expectedOrgId,
+                getEventType(expectedMetricId.toString(), expectedProductTag),
+                start,
+                end,
+                expectedSpanId));
 
     whenCollectMetrics(start, end);
     verify(eventsProducer, times(expectedEvents.size())).produce(eventsSent.capture());
@@ -374,13 +393,18 @@ class PrometheusMeteringControllerTest {
             expectedBillingAccountId,
             expectedMetricId,
             4.0,
-            expectedProductTag);
+            expectedProductTag,
+            expectedSpanId);
 
     List<Event> expectedEvents =
         List.of(
             updatedEvent,
             MeteringEventFactory.createCleanUpEvent(
-                expectedOrgId, getEventType(expectedMetricId, expectedProductTag), start));
+                expectedOrgId,
+                getEventType(expectedMetricId.toString(), expectedProductTag),
+                start,
+                end,
+                expectedSpanId));
     whenCollectMetrics(start, end);
     verify(eventsProducer, times(expectedEvents.size())).produce(eventsSent.capture());
 
@@ -394,7 +418,8 @@ class PrometheusMeteringControllerTest {
   }
 
   private void whenCollectMetrics(String expectedOrgId, OffsetDateTime start, OffsetDateTime end) {
-    controller.collectMetrics(expectedProductTag, MetricIdUtils.getCores(), expectedOrgId, start, end);
+    controller.collectMetrics(
+        expectedProductTag, MetricIdUtils.getCores(), expectedOrgId, start, end);
   }
 
   private void verifyQueryRange(

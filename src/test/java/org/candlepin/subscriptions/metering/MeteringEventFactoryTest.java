@@ -49,6 +49,7 @@ class MeteringEventFactoryTest {
     String role = "ocp";
     String serviceType = "cluster-service-type";
     String billingProvider = "red hat";
+    String spanId = "123";
     OffsetDateTime expiry = OffsetDateTime.now();
     OffsetDateTime measuredTime = expiry.minusHours(1);
     Double measuredValue = 23.0;
@@ -69,7 +70,8 @@ class MeteringEventFactoryTest {
             null,
             uom,
             measuredValue,
-            productTag);
+            productTag,
+            spanId);
 
     assertEquals(account, event.getAccountNumber());
     assertEquals(orgId, event.getOrgId());
@@ -83,6 +85,7 @@ class MeteringEventFactoryTest {
     assertEquals(
         MeteringEventFactory.getEventType(uom.getValue(), productTag), event.getEventType());
     assertEquals(serviceType, event.getServiceType());
+    assertEquals(spanId, event.getSpanId());
     assertEquals(1, event.getMeasurements().size());
     Measurement measurement = event.getMeasurements().get(0);
     assertEquals(uom.toString(), measurement.getUom());
@@ -106,7 +109,8 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            "span");
     assertNull(event.getSla());
   }
 
@@ -127,7 +131,8 @@ class MeteringEventFactoryTest {
             "null",
             MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            "span");
     assertEquals(Sla.__EMPTY__, event.getSla());
   }
 
@@ -148,7 +153,8 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            "span");
     assertNull(event.getSla());
   }
 
@@ -169,7 +175,8 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            "span");
     assertNull(event.getUsage());
   }
 
@@ -190,7 +197,8 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            "span");
     assertNull(event.getUsage());
   }
 
@@ -211,7 +219,8 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            "span");
     assertNull(event.getRole());
   }
 
@@ -232,7 +241,8 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            "span");
     assertNull(event.getRole());
   }
 
@@ -253,7 +263,8 @@ class MeteringEventFactoryTest {
             "aws_account_123",
             MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            "span");
     assertEquals(BillingProvider.AWS, event.getBillingProvider());
     assertTrue(event.getBillingAccountId().isPresent());
     assertEquals("aws_account_123", event.getBillingAccountId().get());
@@ -276,7 +287,8 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            "span");
     assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());
     assertTrue(event.getBillingAccountId().isEmpty());
   }
@@ -298,7 +310,8 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            "span");
     assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());
   }
 
@@ -319,7 +332,8 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            "span");
     assertNull(event.getBillingProvider());
   }
 
@@ -340,7 +354,8 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            "span");
     assertEquals("snapshot_openshift-dedicated-metrics_cores", event.getEventType());
   }
 
@@ -369,7 +384,8 @@ class MeteringEventFactoryTest {
             null,
             MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            "span");
     assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());
   }
 }
