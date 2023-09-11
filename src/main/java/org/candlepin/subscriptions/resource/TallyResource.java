@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.resource;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinitionGranularity;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.contracts.api.resources.CapacityApi;
@@ -96,7 +97,7 @@ public class TallyResource implements TallyApi {
   @ReportingAccessRequired
   public TallyReportData getTallyReportData(
       ProductId productId,
-      String metricIdValue,
+      MetricId metricId,
       GranularityType granularityType,
       OffsetDateTime beginning,
       OffsetDateTime ending,
@@ -113,13 +114,6 @@ public class TallyResource implements TallyApi {
     if (Objects.nonNull(billingCategory) && !Boolean.TRUE.equals(useRunningTotalsFormat)) {
       throw new BadRequestException(
           "When `billing_category` is specified, `use_running_totals_format` must be `true`.");
-    }
-
-    MetricId metricId;
-    try {
-      metricId = MetricId.fromString(metricIdValue);
-    } catch (IllegalArgumentException ex) {
-      throw new BadRequestException(ex);
     }
 
     ReportCriteria reportCriteria =
@@ -177,7 +171,7 @@ public class TallyResource implements TallyApi {
     TallyReportData report = new TallyReportData();
     report.setMeta(new TallyReportDataMeta());
     report.getMeta().setGranularity(reportCriteria.getGranularity().asOpenApiEnum());
-    report.getMeta().setProduct(productId);
+    report.getMeta().setProduct(productId.toString());
     report.getMeta().setMetricId(metricId.toString());
     report.getMeta().setServiceLevel(sla);
     report.getMeta().setUsage(usageType == null ? null : reportCriteria.getUsage().asOpenApiEnum());
@@ -268,7 +262,7 @@ public class TallyResource implements TallyApi {
     try {
       capacityReportByMetricId =
           capacityApi.getCapacityReportByMetricId(
-              com.redhat.swatch.contracts.api.model.ProductId.valueOf(productId.name()),
+              productId.toString(),
               metricId.getValue(),
               com.redhat.swatch.contracts.api.model.GranularityType.valueOf(granularityType.name()),
               beginning,
@@ -435,7 +429,7 @@ public class TallyResource implements TallyApi {
     report.setData(snaps);
     report.setMeta(new TallyReportMeta());
     report.getMeta().setGranularity(reportCriteria.getGranularity().asOpenApiEnum());
-    report.getMeta().setProduct(productId);
+    report.getMeta().setProduct(productId.toString());
     report.getMeta().setServiceLevel(sla);
     report.getMeta().setUsage(usageType == null ? null : reportCriteria.getUsage().asOpenApiEnum());
     report.getMeta().setTotalCoreHours(getTotalCoreHours(report));

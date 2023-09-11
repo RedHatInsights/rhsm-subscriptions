@@ -26,6 +26,7 @@ import static org.junit.jupiter.params.ParameterizedTest.DISPLAY_NAME_PLACEHOLDE
 import static org.mockito.Mockito.*;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.contracts.api.resources.CapacityApi;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Response;
@@ -88,13 +89,15 @@ class TallyResourceTest {
   public static final OffsetDateTime TEST_DATE =
       OffsetDateTime.ofInstant(MID_MONTH_INSTANT, ZoneOffset.UTC);
 
-  public static final ProductId RHEL_PRODUCT_ID = ProductId.RHEL_FOR_X86;
-
   private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
   private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
 
-  private static final String METRIC_ID_CORES = "Cores";
-  private static final String METRIC_ID_SOCKETS = "Sockets";
+  public static final ProductId RHEL_PRODUCT_ID = ProductId.fromString("RHEL for x86");
+  public static final ProductId OPENSHIFT_DEDICATED_METRICS =
+      ProductId.fromString("OpenShift-dedicated-metrics");
+  public static final ProductId RHEL_FOR_X86 = RHEL_PRODUCT_ID;
+  private static final MetricId METRIC_ID_CORES = MetricId.fromString("Cores");
+  private static final MetricId METRIC_ID_SOCKETS = MetricId.fromString("Sockets");
 
   @MockBean TallySnapshotRepository repository;
   @MockBean BillableUsageRemittanceRepository remittanceRepository;
@@ -175,7 +178,7 @@ class TallyResourceTest {
 
     assertMetadata(
         report.getMeta(),
-        RHEL_PRODUCT_ID,
+        RHEL_PRODUCT_ID.toString(),
         null,
         UsageType.PRODUCTION,
         GranularityType.DAILY,
@@ -185,7 +188,7 @@ class TallyResourceTest {
 
   private void assertMetadata(
       TallyReportMeta meta,
-      ProductId expectedProduct,
+      String expectedProduct,
       ServiceLevelType expectedSla,
       UsageType expectedUsage,
       GranularityType expectedGranularity,
@@ -246,7 +249,7 @@ class TallyResourceTest {
 
     assertMetadata(
         report.getMeta(),
-        RHEL_PRODUCT_ID,
+        RHEL_PRODUCT_ID.toString(),
         ServiceLevelType.PREMIUM,
         null,
         GranularityType.DAILY,
@@ -302,7 +305,7 @@ class TallyResourceTest {
 
     assertMetadata(
         report.getMeta(),
-        RHEL_PRODUCT_ID,
+        RHEL_PRODUCT_ID.toString(),
         ServiceLevelType.EMPTY,
         UsageType.PRODUCTION,
         GranularityType.DAILY,
@@ -357,7 +360,7 @@ class TallyResourceTest {
 
     assertMetadata(
         report.getMeta(),
-        RHEL_PRODUCT_ID,
+        RHEL_PRODUCT_ID.toString(),
         ServiceLevelType.PREMIUM,
         UsageType.EMPTY,
         GranularityType.DAILY,
@@ -412,7 +415,7 @@ class TallyResourceTest {
 
     assertMetadata(
         report.getMeta(),
-        RHEL_PRODUCT_ID,
+        RHEL_PRODUCT_ID.toString(),
         ServiceLevelType.PREMIUM,
         UsageType.PRODUCTION,
         GranularityType.DAILY,
@@ -448,7 +451,7 @@ class TallyResourceTest {
     Mockito.when(
             repository.findSnapshot(
                 "owner123456",
-                ProductId.RHEL_FOR_X86.toString(),
+                RHEL_FOR_X86.toString(),
                 Granularity.DAILY,
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
@@ -461,7 +464,7 @@ class TallyResourceTest {
 
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL_FOR_X86,
+            RHEL_FOR_X86,
             METRIC_ID_CORES,
             GranularityType.DAILY,
             begin,
@@ -536,7 +539,7 @@ class TallyResourceTest {
     Mockito.when(
             repository.findSnapshot(
                 "owner123456",
-                ProductId.OPENSHIFT_DEDICATED_METRICS.toString(),
+                OPENSHIFT_DEDICATED_METRICS.toString(),
                 Granularity.DAILY,
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
@@ -549,7 +552,7 @@ class TallyResourceTest {
 
     TallyReport report =
         resource.getTallyReport(
-            ProductId.OPENSHIFT_DEDICATED_METRICS,
+            OPENSHIFT_DEDICATED_METRICS,
             GranularityType.DAILY,
             begin,
             end,
@@ -790,7 +793,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of(snapshot)));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL_FOR_X86,
+            RHEL_FOR_X86,
             METRIC_ID_CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
@@ -819,7 +822,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of(snapshot)));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL_FOR_X86,
+            RHEL_FOR_X86,
             METRIC_ID_CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
@@ -851,7 +854,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of(snapshot)));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL_FOR_X86,
+            RHEL_FOR_X86,
             METRIC_ID_CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
@@ -883,7 +886,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of(snapshot)));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL_FOR_X86,
+            RHEL_FOR_X86,
             METRIC_ID_CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
@@ -908,7 +911,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of()));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL_FOR_X86,
+            RHEL_FOR_X86,
             METRIC_ID_CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-10-01T00:00Z"),
@@ -933,7 +936,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of()));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL_FOR_X86,
+            RHEL_FOR_X86,
             METRIC_ID_CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-11-02T00:00Z"),
@@ -957,7 +960,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of()));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL_FOR_X86,
+            RHEL_FOR_X86,
             METRIC_ID_CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-11-01T00:00Z"),
@@ -981,7 +984,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of()));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL_FOR_X86,
+            RHEL_FOR_X86,
             METRIC_ID_CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-11-01T00:00Z"),
@@ -1005,7 +1008,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of()));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL_FOR_X86,
+            RHEL_FOR_X86,
             METRIC_ID_CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-11-01T00:00Z"),
@@ -1039,7 +1042,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of(snapshot1, snapshot2)));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL_FOR_X86,
+            RHEL_FOR_X86,
             METRIC_ID_CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-11-01T00:00Z"),
@@ -1078,7 +1081,7 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(List.of(snapshot1, snapshot2)));
     TallyReportData response =
         resource.getTallyReportData(
-            ProductId.RHEL_FOR_X86,
+            RHEL_FOR_X86,
             METRIC_ID_CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2021-11-01T00:00Z"),
@@ -1128,7 +1131,7 @@ class TallyResourceTest {
 
     TallyReportData report =
         resource.getTallyReportData(
-            ProductId.OPENSHIFT_DEDICATED_METRICS,
+            OPENSHIFT_DEDICATED_METRICS,
             METRIC_ID_CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2023-03-01T00:00Z"),
@@ -1187,7 +1190,7 @@ class TallyResourceTest {
 
     TallyReportData report =
         resource.getTallyReportData(
-            ProductId.OPENSHIFT_DEDICATED_METRICS,
+            OPENSHIFT_DEDICATED_METRICS,
             METRIC_ID_CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2023-03-01T00:00Z"),
@@ -1222,7 +1225,7 @@ class TallyResourceTest {
         BadRequestException.class,
         () -> {
           resource.getTallyReportData(
-              ProductId.RHEL_FOR_X86,
+              RHEL_FOR_X86,
               METRIC_ID_CORES,
               GranularityType.DAILY,
               beginning,
@@ -1247,7 +1250,7 @@ class TallyResourceTest {
         BadRequestException.class,
         () -> {
           resource.getTallyReportData(
-              ProductId.RHEL_FOR_X86,
+              RHEL_FOR_X86,
               METRIC_ID_CORES,
               GranularityType.DAILY,
               beginning,
@@ -1277,7 +1280,7 @@ class TallyResourceTest {
     for (OffsetDateTime nextDate : snapDates) {
       TallySnapshot snap =
           TallySnapshot.builder()
-              .productId(ProductId.OPENSHIFT_DEDICATED_METRICS.toString())
+              .productId(OPENSHIFT_DEDICATED_METRICS.toString())
               .snapshotDate(nextDate)
               .build();
       snap.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 100.0);
@@ -1289,8 +1292,8 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(snapshots));
 
     mockCapacity(
-        ProductId.OPENSHIFT_DEDICATED_METRICS,
-        MetricId.fromString(METRIC_ID_CORES),
+        OPENSHIFT_DEDICATED_METRICS,
+        METRIC_ID_CORES,
         GranularityType.DAILY,
         OffsetDateTime.parse("2023-03-01T00:00Z"),
         OffsetDateTime.parse("2023-03-31T23:59:59.999Z"),
@@ -1308,7 +1311,7 @@ class TallyResourceTest {
 
     TallyReportData report =
         resource.getTallyReportData(
-            ProductId.OPENSHIFT_DEDICATED_METRICS,
+            OPENSHIFT_DEDICATED_METRICS,
             METRIC_ID_CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2023-03-01T00:00Z"),
@@ -1359,7 +1362,7 @@ class TallyResourceTest {
     for (OffsetDateTime nextDate : snapDates) {
       TallySnapshot snap =
           TallySnapshot.builder()
-              .productId(ProductId.OPENSHIFT_DEDICATED_METRICS.toString())
+              .productId(OPENSHIFT_DEDICATED_METRICS.toString())
               .snapshotDate(nextDate)
               .build();
       snap.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 100.0);
@@ -1371,8 +1374,8 @@ class TallyResourceTest {
         .thenReturn(new PageImpl<>(snapshots));
 
     mockCapacity(
-        ProductId.OPENSHIFT_DEDICATED_METRICS,
-        MetricId.fromString(METRIC_ID_CORES),
+        OPENSHIFT_DEDICATED_METRICS,
+        METRIC_ID_CORES,
         GranularityType.DAILY,
         OffsetDateTime.parse("2023-03-01T00:00Z"),
         OffsetDateTime.parse("2023-03-31T23:59:59.999Z"),
@@ -1390,7 +1393,7 @@ class TallyResourceTest {
 
     TallyReportData report =
         resource.getTallyReportData(
-            ProductId.OPENSHIFT_DEDICATED_METRICS,
+            OPENSHIFT_DEDICATED_METRICS,
             METRIC_ID_CORES,
             GranularityType.DAILY,
             OffsetDateTime.parse("2023-03-01T00:00Z"),
@@ -1429,30 +1432,6 @@ class TallyResourceTest {
     assertEquals(500, noUsage2.getValue());
   }
 
-  @Test()
-  void testGetTallyReportDataThrowsExceptionForUnknownMetricId() {
-    var beginning = OffsetDateTime.parse("2023-03-01T00:00Z");
-    var ending = OffsetDateTime.parse("2023-03-31T23:59:59.999Z");
-    assertThrows(
-        BadRequestException.class,
-        () ->
-            resource.getTallyReportData(
-                ProductId.OPENSHIFT_DEDICATED_METRICS,
-                "NotAMetricId",
-                GranularityType.DAILY,
-                beginning,
-                ending,
-                null,
-                null,
-                null,
-                BillingProviderType.RED_HAT,
-                null,
-                null,
-                null,
-                true,
-                BillingCategory.PREPAID));
-  }
-
   private void mockCapacity(
       ProductId productId,
       MetricId metricId,
@@ -1480,7 +1459,7 @@ class TallyResourceTest {
             .orElse(null);
 
     when(capacityApi.getCapacityReportByMetricId(
-            eq(com.redhat.swatch.contracts.api.model.ProductId.valueOf(productId.name())),
+            eq(productId.getValue()),
             eq(metricId.getValue()),
             eq(cGranularity),
             eq(beginning),

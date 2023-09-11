@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.resource;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinitionGranularity;
 import com.redhat.swatch.configuration.registry.Variant;
 import jakarta.validation.constraints.Min;
@@ -55,7 +56,6 @@ import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshotByMetricId;
 import org.candlepin.subscriptions.utilization.api.model.GranularityType;
 import org.candlepin.subscriptions.utilization.api.model.PageLinks;
-import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
@@ -108,7 +108,6 @@ public class CapacityResource implements CapacityApi {
       @Min(1) Integer limit,
       ServiceLevelType sla,
       UsageType usage) {
-
     // capacity records do not include _ANY rows
     ServiceLevel sanitizedServiceLevel = ResourceUtils.sanitizeServiceLevel(sla);
     if (sanitizedServiceLevel == ServiceLevel._ANY) {
@@ -149,7 +148,7 @@ public class CapacityResource implements CapacityApi {
     report.setData(data);
     report.setMeta(new CapacityReportMeta());
     report.getMeta().setGranularity(granularityType);
-    report.getMeta().setProduct(productId);
+    report.getMeta().setProduct(productId.toString());
     report.getMeta().setCount(report.getData().size());
 
     if (sanitizedServiceLevel != null) {
@@ -169,7 +168,7 @@ public class CapacityResource implements CapacityApi {
   @ReportingAccessRequired
   public CapacityReportByMetricId getCapacityReportByMetricId(
       ProductId productId,
-      String metricIdValue,
+      MetricId metricId,
       @NotNull GranularityType granularityType,
       @NotNull OffsetDateTime beginning,
       @NotNull OffsetDateTime ending,
@@ -182,7 +181,7 @@ public class CapacityResource implements CapacityApi {
     log.debug(
         "Get capacity report for product {} by metric {} in range [{}, {}] for category {}",
         productId,
-        metricIdValue,
+        metricId,
         beginning,
         ending,
         reportCategory);
@@ -198,13 +197,6 @@ public class CapacityResource implements CapacityApi {
     Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
     if (sanitizedUsage == Usage._ANY) {
       sanitizedUsage = null;
-    }
-
-    MetricId metricId;
-    try {
-      metricId = MetricId.fromString(metricIdValue);
-    } catch (IllegalArgumentException ex) {
-      throw new BadRequestException(ex);
     }
 
     Granularity granularityValue = Granularity.fromString(granularityType.toString());
@@ -239,7 +231,7 @@ public class CapacityResource implements CapacityApi {
     report.setMeta(new CapacityReportByMetricIdMeta());
     var meta = report.getMeta();
     meta.setGranularity(granularityType);
-    meta.setProduct(productId);
+    meta.setProduct(productId.toString());
     meta.setMetricId(metricId.toString());
     meta.setCategory(reportCategory);
     meta.setCount(report.getData().size());

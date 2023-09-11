@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,6 +29,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.ProductId;
 import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -63,6 +63,8 @@ import org.springframework.test.context.ActiveProfiles;
 @WithMockRedHatPrincipal("123456")
 class InstancesResourceTest {
 
+  private static final ProductId RHOSAK = ProductId.fromString("rhosak");
+  private static final ProductId RHEL_FOR_X86 = ProductId.fromString("RHEL for x86");
   @MockBean TallyInstanceViewRepository repository;
   @MockBean HostRepository hostRepository;
   @MockBean PageLinkCreator pageLinkCreator;
@@ -128,7 +130,7 @@ class InstancesResourceTest {
 
     var meta = new InstanceMeta();
     meta.setCount(1);
-    meta.setProduct(ProductId.RHOSAK);
+    meta.setProduct(RHOSAK.toString());
     meta.setServiceLevel(ServiceLevelType.PREMIUM);
     meta.setUsage(UsageType.PRODUCTION);
     meta.setMeasurements(expectUom);
@@ -226,7 +228,7 @@ class InstancesResourceTest {
 
     var meta = new InstanceMeta();
     meta.setCount(2);
-    meta.setProduct(RHEL_FOR_X86);
+    meta.setProduct(RHEL_FOR_X86.toString());
     meta.setServiceLevel(ServiceLevelType.PREMIUM);
     meta.setUsage(UsageType.PRODUCTION);
     meta.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
@@ -316,7 +318,7 @@ class InstancesResourceTest {
 
     var meta = new InstanceMeta();
     meta.setCount(1);
-    meta.setProduct(ProductId.RHOSAK);
+    meta.setProduct(RHOSAK.toString());
     meta.setServiceLevel(ServiceLevelType.PREMIUM);
     meta.setUsage(UsageType.PRODUCTION);
     meta.setMeasurements(expectUom);

@@ -21,8 +21,6 @@
 package com.redhat.swatch.configuration.registry;
 
 import java.util.Collection;
-import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -30,39 +28,29 @@ import lombok.RequiredArgsConstructor;
 @Data
 // constructor is private so that the factory method is the only way to get a MetricId
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
-public class MetricId {
-
+public class ProductId {
   private final String value;
 
   /**
-   * Creates a MetricId from a String.
+   * Creates a ProductId from a String.
    *
-   * @param value String value for the metric
-   * @return a validated MetricId
-   * @throws IllegalArgumentException if the metric is not defined in configuration
+   * @param value String value for the ProductId
+   * @return a validated ProductId
+   * @throws IllegalArgumentException if the productId is not defined in configuration
    */
-  public static MetricId fromString(String value) {
+  public static ProductId fromString(String value) {
     // NOTE: if the volume of data becomes large enough, we can pre-cache these values.
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
-        .map(SubscriptionDefinition::getMetrics)
+        .map(SubscriptionDefinition::getVariants)
         .flatMap(Collection::stream)
-        .map(Metric::getId)
-        .filter(metricId -> metricId.equalsIgnoreCase(value))
-        .map(MetricId::new)
+        .map(Variant::getTag)
+        .filter(productId -> productId.equalsIgnoreCase(value))
         .findFirst()
+        .map(ProductId::new)
         .orElseThrow(
             () ->
                 new IllegalArgumentException(
-                    String.format("MetricId: %s not found in configuration", value)));
-  }
-
-  public static Set<MetricId> getAll() {
-    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
-        .map(SubscriptionDefinition::getMetrics)
-        .flatMap(Collection::stream)
-        .map(Metric::getId)
-        .map(MetricId::new)
-        .collect(Collectors.toSet());
+                    String.format("ProductId: %s not found in configuration", value)));
   }
 
   // NOTE: intentionally overriding the toString() from @Data, so users can use getValue() and

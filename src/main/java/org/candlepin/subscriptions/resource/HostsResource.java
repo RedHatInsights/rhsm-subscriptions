@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.resource;
 
 import com.google.common.collect.ImmutableMap;
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import jakarta.validation.constraints.Max;
@@ -52,7 +53,6 @@ import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
 import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReport;
 import org.candlepin.subscriptions.utilization.api.model.MetaCount;
 import org.candlepin.subscriptions.utilization.api.model.PageLinks;
-import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.SortDirection;
 import org.candlepin.subscriptions.utilization.api.model.Uom;
@@ -242,7 +242,7 @@ public class HostsResource implements HostsApi {
         .meta(
             new HostReportMeta()
                 .count((int) hosts.getTotalElements())
-                .product(productId)
+                .product(productId.toString())
                 .serviceLevel(sla)
                 .usage(usage)
                 .uom(uom))
