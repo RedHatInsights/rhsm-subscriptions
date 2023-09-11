@@ -6,7 +6,7 @@ pipeline {
     }
     agent {
         kubernetes {
-            label 'swatch-17' // this value + unique identifier becomes the pod name
+            label 'swatch-17-kubedock' // this value + unique identifier becomes the pod name
             idleMinutes 5  // how long the pod will live after no jobs have run on it
             containerTemplate {
                 name 'openjdk17'
