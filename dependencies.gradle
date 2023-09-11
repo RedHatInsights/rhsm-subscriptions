@@ -40,7 +40,7 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:2.1.1"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.20.144"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.20.145"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:1.5.0"
 libraries["guava"] = "com.google.guava:guava:32.1.2-jre"
 libraries["hamcrest-all"] = "org.hamcrest:hamcrest-all:1.3"
