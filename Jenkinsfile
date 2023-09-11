@@ -6,23 +6,25 @@ pipeline {
     }
     agent {
         kubernetes {
-            label 'swatch-17-kubedock' // this value + unique identifier becomes the pod name
+            label 'swatch-17-kubedock2' // this value + unique identifier becomes the pod name
             idleMinutes 5  // how long the pod will live after no jobs have run on it
-            containerTemplate {
-                name 'openjdk17'
-                image 'registry.access.redhat.com/ubi9/openjdk-17-runtime'
-                command 'sleep'
-                args '99d'
-                resourceRequestCpu '2'
-                resourceLimitCpu '6'
-                resourceRequestMemory '2Gi'
-                resourceLimitMemory '6Gi'
-            }
-            containerTemplate {
-                name 'kubedock'
-                image 'quay.io/kahowell/kubedock'
-            }
-
+            yaml '''
+            spec:
+              containers:
+              - name: openjdk17
+                image: registry.access.redhat.com/ubi9/openjdk-17-runtime
+                command: [sleep]
+                args: ['99d']
+                resources:
+                  requests:
+                    cpu: '2'
+                    memory: '2Gi'
+                  limits:
+                    cpu: '6'
+                    memory: '6Gi'
+              - name: kubedock
+                image: quay.io/kahowell/kubedock
+            '''
             defaultContainer 'openjdk17'
         }
     }
