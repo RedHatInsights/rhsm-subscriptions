@@ -423,6 +423,17 @@ class FactNormalizerTest {
     assertEquals(HardwareMeasurementType.AWS, normalized.getCloudProviderType());
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"google", "gcp"})
+  void testThatGoogleCloudProviderIsSet(String expectedCloudProvider) {
+    InventoryHostFacts baseFacts = createBaseHost("A1", "O1");
+    baseFacts.setCloudProvider(expectedCloudProvider);
+
+    NormalizedFacts normalized = normalizer.normalize(baseFacts, hypervisorData());
+    assertNotNull(normalized.getCloudProviderType());
+    assertEquals(HardwareMeasurementType.GOOGLE, normalized.getCloudProviderType());
+  }
+
   @Test
   void testThatCloudProviderIsNotSetIfNull() {
     NormalizedFacts normalized = normalizer.normalize(createBaseHost("A1", "O1"), hypervisorData());
