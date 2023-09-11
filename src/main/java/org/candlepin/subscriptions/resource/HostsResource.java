@@ -27,7 +27,6 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.UriInfo;
 import java.time.OffsetDateTime;
@@ -127,7 +126,7 @@ public class HostsResource implements HostsApi {
   @ReportingAccessRequired
   @Override
   public HostReport getHosts(
-      String productIdValue,
+      ProductId productId,
       Integer offset,
       @Min(1) @Max(100) Integer limit,
       ServiceLevelType sla,
@@ -139,12 +138,6 @@ public class HostsResource implements HostsApi {
       HostReportSort sort,
       SortDirection dir) {
 
-    ProductId productId;
-    try {
-      productId = ProductId.fromString(productIdValue);
-    } catch (IllegalArgumentException e) {
-      throw new BadRequestException(e);
-    }
     Sort.Direction dirValue = Sort.Direction.ASC;
     if (dir == SortDirection.DESC) {
       dirValue = Sort.Direction.DESC;

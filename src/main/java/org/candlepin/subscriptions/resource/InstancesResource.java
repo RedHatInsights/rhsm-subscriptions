@@ -133,7 +133,7 @@ public class InstancesResource implements InstancesApi {
   @Override
   @Transactional(readOnly = true)
   public InstanceResponse getInstancesByProduct(
-      String productIdValue,
+      ProductId productId,
       Integer offset,
       Integer limit,
       ServiceLevelType sla,
@@ -147,13 +147,6 @@ public class InstancesResource implements InstancesApi {
       OffsetDateTime ending,
       InstanceReportSort sort,
       SortDirection dir) {
-
-    ProductId productId;
-    try {
-      productId = ProductId.fromString(productIdValue);
-    } catch (IllegalArgumentException e) {
-      throw new BadRequestException(e);
-    }
 
     String orgId = ResourceUtils.getOrgId();
 

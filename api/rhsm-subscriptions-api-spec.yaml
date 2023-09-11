@@ -135,13 +135,13 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          $ref: '#/components/schemas/ProductId'
         description: "The product to fetch graph data for"
       - name: metric_id
         in: path
         required: true
         schema:
-          type: string
+          $ref: '#/components/schemas/MetricId'
         description: "The metric ID to fetch graph data for"
       - name: category
         in: query
@@ -253,7 +253,7 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          $ref: "#/components/schemas/ProductId"
         description: "The ID for the product we wish to query"
       - name: offset
         in: query
@@ -383,13 +383,13 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          $ref: "#/components/schemas/ProductId"
         description: "The ID for the product we wish to query"
       - name: metric_id
         in: path
         required: true
         schema:
-          type: string
+          $ref: "#/components/schemas/MetricId"
         description: "The metric ID for the product we wish to query"
       - name: offset
         in: query
@@ -494,7 +494,7 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          $ref: "#/components/schemas/ProductId"
         description: "The ID for the product we wish to query"
       - name: offset
         in: query
@@ -605,7 +605,7 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          $ref: "#/components/schemas/ProductId"
         description: "The ID for the product we wish to query"
       - name: offset
         in: query
@@ -840,7 +840,7 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          $ref: "#/components/schemas/ProductId"
       - name: offset
         in: query
         schema:
@@ -937,7 +937,7 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          $ref: "#/components/schemas/ProductId"
         description: "The ID for the product we wish to query"
       - name: offset
         in: query
@@ -1965,6 +1965,12 @@ components:
             - count
             - product
             - subscription_type
+    ProductId:
+      type: string
+      format: ProductId
+    MetricId:
+      type: string
+      format: MetricId
 
 security:
   - 3ScaleIdentity: []

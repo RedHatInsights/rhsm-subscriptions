@@ -100,7 +100,7 @@ public class CapacityResource implements CapacityApi {
   @Deprecated(since = "https://issues.redhat.com/browse/ENT-4384")
   @ReportingAccessRequired
   public CapacityReport getCapacityReport(
-      String productIdValue,
+      ProductId productId,
       @NotNull GranularityType granularityType,
       @NotNull OffsetDateTime beginning,
       @NotNull OffsetDateTime ending,
@@ -108,13 +108,6 @@ public class CapacityResource implements CapacityApi {
       @Min(1) Integer limit,
       ServiceLevelType sla,
       UsageType usage) {
-    ProductId productId;
-    try {
-      productId = ProductId.fromString(productIdValue);
-    } catch (IllegalArgumentException e) {
-      throw new BadRequestException(e);
-    }
-
     // capacity records do not include _ANY rows
     ServiceLevel sanitizedServiceLevel = ResourceUtils.sanitizeServiceLevel(sla);
     if (sanitizedServiceLevel == ServiceLevel._ANY) {
@@ -174,8 +167,8 @@ public class CapacityResource implements CapacityApi {
   @Override
   @ReportingAccessRequired
   public CapacityReportByMetricId getCapacityReportByMetricId(
-      String productIdValue,
-      String metricIdValue,
+      ProductId productId,
+      MetricId metricId,
       @NotNull GranularityType granularityType,
       @NotNull OffsetDateTime beginning,
       @NotNull OffsetDateTime ending,
@@ -185,14 +178,6 @@ public class CapacityResource implements CapacityApi {
       ServiceLevelType sla,
       UsageType usage) {
 
-    ProductId productId;
-    MetricId metricId;
-    try {
-      productId = ProductId.fromString(productIdValue);
-      metricId = MetricId.fromString(metricIdValue);
-    } catch (IllegalArgumentException e) {
-      throw new BadRequestException(e);
-    }
     log.debug(
         "Get capacity report for product {} by metric {} in range [{}, {}] for category {}",
         productId,

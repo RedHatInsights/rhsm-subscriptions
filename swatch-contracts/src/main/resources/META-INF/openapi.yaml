@@ -19,13 +19,13 @@ paths:
         in: path
         required: true
         schema:
-          type: string
+          $ref: "#/components/schemas/ProductId"
         description: "The ID for the product we wish to query"
       - name: metric_id
         in: path
         required: true
         schema:
-          type: string
+          $ref: "#/components/schemas/MetricId"
         description: "The metric ID for the product we wish to query"
       - name: offset
         in: query
@@ -607,6 +607,12 @@ components:
       required:
         - first
         - last
+    ProductId:
+      type: string
+      format: ProductId
+    MetricId:
+      type: string
+      format: MetricId
   responses:
     ErrorResponse:
       description: "Error handling request"

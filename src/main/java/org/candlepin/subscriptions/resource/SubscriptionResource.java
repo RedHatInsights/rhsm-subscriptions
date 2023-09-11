@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.resource;
 
 import com.redhat.swatch.configuration.registry.ProductId;
 import jakarta.validation.constraints.Min;
-import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.utilization.api.model.*;
@@ -42,7 +41,7 @@ public class SubscriptionResource implements SubscriptionsApi {
   @ReportingAccessRequired
   @Override
   public SkuCapacityReport getSkuCapacityReport(
-      String productIdValue,
+      ProductId productId,
       @Min(0) Integer offset,
       @Min(1) Integer limit,
       ReportCategory category,
@@ -56,12 +55,6 @@ public class SubscriptionResource implements SubscriptionsApi {
       SkuCapacityReportSort sort,
       SortDirection dir) {
 
-    ProductId productId;
-    try {
-      productId = ProductId.fromString(productIdValue);
-    } catch (IllegalArgumentException e) {
-      throw new BadRequestException(e);
-    }
     return subscriptionTableController.capacityReportBySku(
         productId,
         offset,

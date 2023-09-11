@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.resource;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
-import jakarta.ws.rs.BadRequestException;
+import com.redhat.swatch.configuration.registry.ProductId;
 import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
@@ -41,7 +41,7 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles({"api", "test", "capacity-ingress"})
 @WithMockRedHatPrincipal("123456")
 class SubscriptionResourceTest {
-  private static final String RHEL_FOR_X86 = "RHEL for x86";
+  private static final ProductId RHEL_FOR_X86 = ProductId.fromString("RHEL for x86");
   private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
   private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
 
@@ -85,27 +85,6 @@ class SubscriptionResourceTest {
         () ->
             subscriptionResource.getSkuCapacityReport(
                 RHEL_FOR_X86,
-                0,
-                10,
-                null,
-                null,
-                UsageType.PRODUCTION,
-                null,
-                null,
-                min,
-                max,
-                null,
-                SkuCapacityReportSort.SKU,
-                null));
-  }
-
-  @Test
-  void testCapacityByProductThrowsExceptionForUnknownProductId() {
-    assertThrows(
-        BadRequestException.class,
-        () ->
-            subscriptionResource.getSkuCapacityReport(
-                "NotARealProductId",
                 0,
                 10,
                 null,

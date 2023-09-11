@@ -63,8 +63,8 @@ import org.springframework.test.context.ActiveProfiles;
 @WithMockRedHatPrincipal("123456")
 class InstancesResourceTest {
 
-  private static final String RHOSAK = "rhosak";
-  private static final String RHEL_FOR_X86 = "RHEL for x86";
+  private static final ProductId RHOSAK = ProductId.fromString("rhosak");
+  private static final ProductId RHEL_FOR_X86 = ProductId.fromString("RHEL for x86");
   @MockBean TallyInstanceViewRepository repository;
   @MockBean HostRepository hostRepository;
   @MockBean PageLinkCreator pageLinkCreator;
@@ -130,7 +130,7 @@ class InstancesResourceTest {
 
     var meta = new InstanceMeta();
     meta.setCount(1);
-    meta.setProduct(RHOSAK);
+    meta.setProduct(RHOSAK.toString());
     meta.setServiceLevel(ServiceLevelType.PREMIUM);
     meta.setUsage(UsageType.PRODUCTION);
     meta.setMeasurements(expectUom);
@@ -228,7 +228,7 @@ class InstancesResourceTest {
 
     var meta = new InstanceMeta();
     meta.setCount(2);
-    meta.setProduct(RHEL_FOR_X86);
+    meta.setProduct(RHEL_FOR_X86.toString());
     meta.setServiceLevel(ServiceLevelType.PREMIUM);
     meta.setUsage(UsageType.PRODUCTION);
     meta.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
@@ -318,7 +318,7 @@ class InstancesResourceTest {
 
     var meta = new InstanceMeta();
     meta.setCount(1);
-    meta.setProduct(RHOSAK);
+    meta.setProduct(RHOSAK.toString());
     meta.setServiceLevel(ServiceLevelType.PREMIUM);
     meta.setUsage(UsageType.PRODUCTION);
     meta.setMeasurements(expectUom);
@@ -355,11 +355,10 @@ class InstancesResourceTest {
     var dayInFebruary = OffsetDateTime.of(2023, 2, 23, 10, 0, 0, 0, ZoneOffset.UTC);
 
     // RHOSAK is a PAYG product
-    var rhosak = ProductId.fromString(RHOSAK);
-    resource.validateBeginningAndEndingDates(rhosak, dayInJanuary, laterDayInJanuary);
+    resource.validateBeginningAndEndingDates(RHOSAK, dayInJanuary, laterDayInJanuary);
     assertThrows(
         BadRequestException.class,
-        () -> resource.validateBeginningAndEndingDates(rhosak, dayInJanuary, dayInFebruary));
+        () -> resource.validateBeginningAndEndingDates(RHOSAK, dayInJanuary, dayInFebruary));
   }
 
   @Test
@@ -603,28 +602,6 @@ class InstancesResourceTest {
                 ServiceLevelType.PREMIUM,
                 UsageType.PRODUCTION,
                 "NotAMetricId",
-                BillingProviderType.RED_HAT,
-                null,
-                null,
-                null,
-                null,
-                null,
-                InstanceReportSort.DISPLAY_NAME,
-                null));
-  }
-
-  @Test()
-  void testGetInstancesByProductThrowsExceptionForUnknownProductId() {
-    assertThrows(
-        BadRequestException.class,
-        () ->
-            resource.getInstancesByProduct(
-                "NotAProductId",
-                null,
-                null,
-                ServiceLevelType.PREMIUM,
-                UsageType.PRODUCTION,
-                "Sockets",
                 BillingProviderType.RED_HAT,
                 null,
                 null,

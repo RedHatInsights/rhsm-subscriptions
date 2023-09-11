@@ -96,8 +96,8 @@ public class TallyResource implements TallyApi {
   @Override
   @ReportingAccessRequired
   public TallyReportData getTallyReportData(
-      String productIdValue,
-      String metricIdValue,
+      ProductId productId,
+      MetricId metricId,
       GranularityType granularityType,
       OffsetDateTime beginning,
       OffsetDateTime ending,
@@ -116,14 +116,6 @@ public class TallyResource implements TallyApi {
           "When `billing_category` is specified, `use_running_totals_format` must be `true`.");
     }
 
-    ProductId productId;
-    MetricId metricId;
-    try {
-      productId = ProductId.fromString(productIdValue);
-      metricId = MetricId.fromString(metricIdValue);
-    } catch (IllegalArgumentException e) {
-      throw new BadRequestException(e);
-    }
     ReportCriteria reportCriteria =
         extractReportCriteria(
             productId,
@@ -390,7 +382,7 @@ public class TallyResource implements TallyApi {
   @Override
   @ReportingAccessRequired
   public TallyReport getTallyReport(
-      String productIdValue,
+      ProductId productId,
       @NotNull GranularityType granularityType,
       @NotNull OffsetDateTime beginning,
       @NotNull OffsetDateTime ending,
@@ -399,12 +391,6 @@ public class TallyResource implements TallyApi {
       ServiceLevelType sla,
       UsageType usageType,
       Boolean useRunningTotalsFormat) {
-    ProductId productId;
-    try {
-      productId = ProductId.fromString(productIdValue);
-    } catch (IllegalArgumentException e) {
-      throw new BadRequestException(e);
-    }
     ReportCriteria reportCriteria =
         extractReportCriteria(
             productId,

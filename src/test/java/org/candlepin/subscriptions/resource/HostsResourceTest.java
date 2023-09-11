@@ -20,10 +20,9 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
-import jakarta.ws.rs.BadRequestException;
+import com.redhat.swatch.configuration.registry.ProductId;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
@@ -57,7 +56,7 @@ class HostsResourceTest {
   static final Sort.Order IMPLICIT_ORDER = new Sort.Order(Sort.Direction.ASC, "id");
   private static final String SANITIZED_MISSING_DISPLAY_NAME = "";
   private static final OffsetDateTime NULL_BEGINNING_ENDING_PARAM = null;
-  private static final String RHEL_FOR_X86 = "RHEL for x86";
+  private static final ProductId RHEL_FOR_X86 = ProductId.fromString("RHEL for x86");
 
   @MockBean HostRepository repository;
   @MockBean PageLinkCreator pageLinkCreator;
@@ -93,7 +92,7 @@ class HostsResourceTest {
     verify(repository, only())
         .getTallyHostViews(
             "owner123456",
-            RHEL_FOR_X86,
+            RHEL_FOR_X86.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -128,7 +127,7 @@ class HostsResourceTest {
     verify(repository, only())
         .getTallyHostViews(
             "owner123456",
-            RHEL_FOR_X86,
+            RHEL_FOR_X86.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -162,7 +161,7 @@ class HostsResourceTest {
     verify(repository, only())
         .getTallyHostViews(
             "owner123456",
-            RHEL_FOR_X86,
+            RHEL_FOR_X86.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -197,7 +196,7 @@ class HostsResourceTest {
     verify(repository, only())
         .getTallyHostViews(
             "owner123456",
-            RHEL_FOR_X86,
+            RHEL_FOR_X86.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -232,7 +231,7 @@ class HostsResourceTest {
     verify(repository, only())
         .getTallyHostViews(
             "owner123456",
-            RHEL_FOR_X86,
+            RHEL_FOR_X86.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -267,7 +266,7 @@ class HostsResourceTest {
     verify(repository, only())
         .getTallyHostViews(
             "owner123456",
-            RHEL_FOR_X86,
+            RHEL_FOR_X86.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -296,7 +295,7 @@ class HostsResourceTest {
     verify(repository, only())
         .getTallyHostViews(
             "owner123456",
-            RHEL_FOR_X86,
+            RHEL_FOR_X86.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -330,7 +329,7 @@ class HostsResourceTest {
     verify(repository, only())
         .getTallyHostViews(
             "owner123456",
-            RHEL_FOR_X86,
+            RHEL_FOR_X86.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -359,7 +358,7 @@ class HostsResourceTest {
     verify(repository, only())
         .getTallyHostViews(
             "owner123456",
-            RHEL_FOR_X86,
+            RHEL_FOR_X86.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -389,24 +388,5 @@ class HostsResourceTest {
   void testValidBeginningAndEndingDates(OffsetDateTime beginning, OffsetDateTime ending) {
     Assertions.assertDoesNotThrow(
         () -> resource.validateBeginningAndEndingDates(beginning, ending));
-  }
-
-  @Test()
-  void testGetCapacityReportByMetricIdThrowsExceptionForUnknownProductId() {
-    assertThrows(
-        BadRequestException.class,
-        () ->
-            resource.getHosts(
-                "NotARealProduct",
-                0,
-                1,
-                null,
-                null,
-                Uom.SOCKETS,
-                null,
-                NULL_BEGINNING_ENDING_PARAM,
-                NULL_BEGINNING_ENDING_PARAM,
-                null,
-                null));
   }
 }
