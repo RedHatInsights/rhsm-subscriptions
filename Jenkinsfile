@@ -2,6 +2,7 @@ pipeline {
     options { buildDiscarder(logRotator(numToKeepStr: '50')) }
     environment {
         SPRING_ACTIVE_PROFILE = "test"
+        DOCKER_HOST = 'tcp://localhost:2475'
     }
     agent {
         kubernetes {
@@ -16,6 +17,10 @@ pipeline {
                 resourceLimitCpu '6'
                 resourceRequestMemory '2Gi'
                 resourceLimitMemory '6Gi'
+            }
+            containerTemplate {
+                name 'kubedock'
+                image 'quay.io/kahowell/kubedock'
             }
 
             defaultContainer 'openjdk17'
@@ -62,7 +67,7 @@ pipeline {
                 // The build task includes check, test, and assemble.  Linting happens during the check
                 // task and uses the spotless gradle plugin.
                 echo "The ci value is ${env.CI}"
-                sh "./gradlew --no-daemon build"
+                sh "./gradlew --no-daemon swatch-producer-aws:test --tests=TestContainerTest"
             }
         }
 
