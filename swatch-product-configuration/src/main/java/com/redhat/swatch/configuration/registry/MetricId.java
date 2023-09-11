@@ -65,6 +65,8 @@ public class MetricId {
         .collect(Collectors.toSet());
   }
 
+  // NOTE: intentionally overriding the toString() from @Data, so users can use getValue() and
+  // toString() interchangeably without introducing errors
   public String toString() {
     return getValue();
   }

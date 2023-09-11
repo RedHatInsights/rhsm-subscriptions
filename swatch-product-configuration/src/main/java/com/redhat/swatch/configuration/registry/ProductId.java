@@ -53,6 +53,8 @@ public class ProductId {
                     String.format("ProductId: %s not found in configuration", value)));
   }
 
+  // NOTE: intentionally overriding the toString() from @Data, so users can use getValue() and
+  // toString() interchangeably without introducing errors
   public String toString() {
     return getValue();
   }
