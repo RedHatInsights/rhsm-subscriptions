@@ -1,7 +1,12 @@
-# by default ignore everything
-**
-
 # allow the build libs for spring-boot based contexts
 !build/libs
 # allow the quarkus-app build folder for quarkus based builds
 !build/quarkus-app
+# ignore bonfire CI working files
+.bonfire
+.bonfire_venv
+.cicd_bootstrap.sh
+.cicd_tools_bootstrap.sh
+.kube
+.docker
+artifacts
