@@ -24,12 +24,13 @@ import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import java.util.Collections;
 import java.util.Map;
 import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.utility.DockerImageName;
 
 public class KafkaResource implements QuarkusTestResourceLifecycleManager {
 
   static KafkaContainer kafka =
-      new KafkaContainer(
+      new CustomKafkaContainer(
           DockerImageName.parse("quay.io/cloudservices/cp-kafka")
               .asCompatibleSubstituteFor("confluentinc/cp-kafka"));
 
@@ -42,5 +43,24 @@ public class KafkaResource implements QuarkusTestResourceLifecycleManager {
   @Override
   public void stop() {
     kafka.stop();
+  }
+
+  /*
+   * Hack to override the STARTER_SCRIPT location, so that this can run in OpenShift, where
+   * the root filesystem is read-only.
+   */
+  static class CustomKafkaContainer extends KafkaContainer {
+    private static final String STARTER_SCRIPT = "/tmp/testcontainers_start.sh";
+
+    public CustomKafkaContainer(final DockerImageName dockerImageName) {
+      super(dockerImageName);
+      withCommand(
+          "-c", "while [ ! -f " + STARTER_SCRIPT + " ]; do sleep 0.1; done; " + STARTER_SCRIPT);
+    }
+
+    @Override
+    public void copyFileToContainer(Transferable transferable, String containerPath) {
+      super.copyFileToContainer(transferable, "/tmp" + containerPath);
+    }
   }
 }
