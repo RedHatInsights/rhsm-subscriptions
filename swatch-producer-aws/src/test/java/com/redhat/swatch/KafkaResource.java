@@ -54,6 +54,7 @@ public class KafkaResource implements QuarkusTestResourceLifecycleManager {
 
     public CustomKafkaContainer(final DockerImageName dockerImageName) {
       super(dockerImageName);
+      withKraft();
       withCommand(
           "-c", "while [ ! -f " + STARTER_SCRIPT + " ]; do sleep 0.1; done; " + STARTER_SCRIPT);
     }
