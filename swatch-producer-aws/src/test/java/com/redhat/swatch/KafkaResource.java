@@ -32,7 +32,7 @@ public class KafkaResource implements QuarkusTestResourceLifecycleManager {
   static KafkaContainer kafka =
       new CustomKafkaContainer(
           DockerImageName.parse("quay.io/cloudservices/cp-kafka")
-              .asCompatibleSubstituteFor("confluentinc/cp-kafka"));
+              .asCompatibleSubstituteFor("confluentinc/cp-kafka")).withKraft();
 
   @Override
   public Map<String, String> start() {
@@ -54,7 +54,6 @@ public class KafkaResource implements QuarkusTestResourceLifecycleManager {
 
     public CustomKafkaContainer(final DockerImageName dockerImageName) {
       super(dockerImageName);
-      withKraft();
       withCommand(
           "-c", "while [ ! -f " + STARTER_SCRIPT + " ]; do sleep 0.1; done; " + STARTER_SCRIPT);
     }
