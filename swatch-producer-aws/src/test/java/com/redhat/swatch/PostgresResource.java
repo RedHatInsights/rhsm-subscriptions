@@ -36,7 +36,9 @@ public class PostgresResource implements QuarkusTestResourceLifecycleManager {
   @Override
   public Map<String, String> start() {
     db.start();
-    return Collections.singletonMap("quarkus.datasource.jdbc.url", db.getJdbcUrl());
+    return Map.of("quarkus.datasource.jdbc.url", db.getJdbcUrl(),
+        "quarkus.datasource.username", db.getUsername(),
+        "quarkus.datasource.password", db.getPassword());
   }
 
   @Override

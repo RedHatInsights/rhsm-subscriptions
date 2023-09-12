@@ -20,8 +20,15 @@
  */
 package com.redhat.swatch;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import javax.sql.DataSource;
 import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 
@@ -31,8 +38,21 @@ import org.junit.jupiter.api.Test;
 @QuarkusTestResource(KafkaResource.class)
 class TestContainerTest {
 
+  @Inject DataSource dataSource;
+
   @Test
   void testContainersStarting() {
     Assert.assertTrue(true);
+  }
+
+  @Test
+  void testPgVersion() {
+    try(Statement statement = dataSource.getConnection().createStatement()) {
+      statement.execute("select version()");
+      statement.getResultSet().next();
+      assertTrue(statement.getResultSet().getString(1).contains("PostgreSQL"));
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

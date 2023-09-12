@@ -39,9 +39,12 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.Optional;
+import javax.sql.DataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.faulttolerance.Retry;
@@ -63,6 +66,7 @@ public class BillableUsageProcessor {
   private final InternalSubscriptionsApi internalSubscriptionsApi;
   private final AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory;
   private final Optional<Boolean> isDryRun;
+  @Inject DataSource dataSource;
 
   public BillableUsageProcessor(
       MeterRegistry meterRegistry,
@@ -74,6 +78,11 @@ public class BillableUsageProcessor {
     this.internalSubscriptionsApi = internalSubscriptionsApi;
     this.awsMarketplaceMeteringClientFactory = awsMarketplaceMeteringClientFactory;
     this.isDryRun = isDryRun;
+    try {
+      dataSource.getConnection().createStatement().execute("select version()");
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Incoming("tally-in")
