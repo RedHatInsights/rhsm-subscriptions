@@ -32,7 +32,7 @@ public class KafkaResource implements QuarkusTestResourceLifecycleManager {
   static KafkaContainer kafka =
       new CustomKafkaContainer(
           DockerImageName.parse("quay.io/cloudservices/cp-kafka")
-              .asCompatibleSubstituteFor("confluentinc/cp-kafka")).withKraft();
+              .asCompatibleSubstituteFor("confluentinc/cp-kafka"));
 
   @Override
   public Map<String, String> start() {
