@@ -67,7 +67,7 @@ public class EventRecord {
       event.setEventId(UUID.randomUUID());
     }
     this.eventId = event.getEventId();
-    this.spanId = event.getSpanId();
+    this.meteringBatchId = event.getMeteringBatchId();
     this.event = event;
     this.accountNumber = event.getAccountNumber();
     this.orgId = event.getOrgId();
@@ -99,8 +99,8 @@ public class EventRecord {
   @Column(name = "instance_id")
   private String instanceId;
 
-  @Column(name = "span_id")
-  private String spanId;
+  @Column(name = "metering_batch_id")
+  private UUID meteringBatchId;
 
   @Id private OffsetDateTime timestamp;
 

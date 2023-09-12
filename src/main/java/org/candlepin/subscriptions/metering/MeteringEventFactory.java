@@ -24,6 +24,7 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.BillingProvider;
 import org.candlepin.subscriptions.json.Event.Role;
@@ -76,7 +77,7 @@ public class MeteringEventFactory {
       MetricId measuredMetric,
       Double measuredValue,
       String productTag,
-      String spanId) {
+      UUID meteringBatchId) {
     Event event = new Event();
     updateMetricEvent(
         event,
@@ -94,7 +95,7 @@ public class MeteringEventFactory {
         measuredMetric,
         measuredValue,
         productTag,
-        spanId);
+        meteringBatchId);
     return event;
   }
 
@@ -106,16 +107,21 @@ public class MeteringEventFactory {
    * @param eventType the event type.
    * @param start the start time window.
    * @param end the end time window.
+   * @param meteringBatchId Metering batch ID that identifies which process generated the event.
    * @return a populated Event instance.
    */
   public static Event createCleanUpEvent(
-      String orgId, String eventType, OffsetDateTime start, OffsetDateTime end, String spanId) {
+      String orgId,
+      String eventType,
+      OffsetDateTime start,
+      OffsetDateTime end,
+      UUID meteringBatchId) {
     Event event = new Event();
     event.setOrgId(orgId);
     event.setEventSource(MeteringEventFactory.EVENT_SOURCE);
     event.setEventType(eventType);
     event.setAction(Event.Action.CLEANUP);
-    event.setSpanId(spanId);
+    event.setMeteringBatchId(meteringBatchId);
     event.setStart(start);
     event.setEnd(end);
     return event;
@@ -138,7 +144,7 @@ public class MeteringEventFactory {
       MetricId measuredMetric,
       Double measuredValue,
       String productTag,
-      String spanId) {
+      UUID meteringBatchId) {
     toUpdate
         .withEventSource(EVENT_SOURCE)
         .withEventType(MeteringEventFactory.getEventType(measuredMetric.getValue(), productTag))
@@ -157,7 +163,7 @@ public class MeteringEventFactory {
             List.of(new Measurement().withUom(measuredMetric.getValue()).withValue(measuredValue)))
         .withRole(getRole(role, accountNumber, instanceId))
         .withAction(Event.Action.ADD)
-        .withSpanId(spanId);
+        .withMeteringBatchId(meteringBatchId);
   }
 
   public static String getEventType(String metricId, String productTag) {

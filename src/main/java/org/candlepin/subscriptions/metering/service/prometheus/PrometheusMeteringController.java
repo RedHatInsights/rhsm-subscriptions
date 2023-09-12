@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.json.Event;
@@ -81,7 +82,7 @@ public class PrometheusMeteringController {
       PrometheusEventsProducer eventsProducer,
       @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetry,
       OptInController optInController,
-      @Qualifier("prometheusMeteringSpanGenerator") SpanGenerator spanGenerator) {
+      @Qualifier("meteringBatchIdGenerator") SpanGenerator spanGenerator) {
     this.clock = clock;
     this.metricProperties = metricProperties;
     this.prometheusService = service;
@@ -117,7 +118,7 @@ public class PrometheusMeteringController {
 
     // Span ID is used to identify all the events that have been triggered by the same process.
     // This is specially useful to allow deleting stale events with a different span ID.
-    String spanId = spanGenerator.generate();
+    UUID meteringBatchId = spanGenerator.generate();
 
     // Get the instance key from the prometheus query params.
     String instanceKey = getPrometheusInstanceKeyFromMetric(tag, tagMetric.get());
@@ -150,7 +151,7 @@ public class PrometheusMeteringController {
                             eventsSent,
                             tag,
                             orgId,
-                            spanId,
+                            meteringBatchId,
                             tagMetric.get(),
                             subDefOptional.get()));
 
@@ -169,7 +170,7 @@ public class PrometheusMeteringController {
                 tagMetric.get(),
                 startDate.minusSeconds(metricProperties.getStep()),
                 end,
-                spanId);
+                meteringBatchId);
 
             return null;
           } catch (Exception e) {
@@ -190,7 +191,7 @@ public class PrometheusMeteringController {
       Set<EventKey> eventsSent,
       String productTag,
       String orgId,
-      String spanId,
+      UUID meteringBatchId,
       Metric tagMetric,
       SubscriptionDefinition subscriptionDefinition) {
     Map<String, String> labels = item.getMetric();
@@ -242,7 +243,7 @@ public class PrometheusMeteringController {
               MetricId.fromString(tagMetric.getId()),
               value,
               productTag,
-              spanId);
+              meteringBatchId);
       // Send if and only if it has not been sent yet.
       // Related to https://github.com/RedHatInsights/rhsm-subscriptions/pull/374.
       if (eventsSent.add(EventKey.fromEvent(event))) {
@@ -257,14 +258,14 @@ public class PrometheusMeteringController {
       Metric tagMetric,
       OffsetDateTime start,
       OffsetDateTime end,
-      String spanId) {
+      UUID meteringBatchId) {
     eventsProducer.produce(
         createCleanUpEvent(
             orgId,
             MeteringEventFactory.getEventType(tagMetric.getId(), productTag),
             start,
             end,
-            spanId));
+            meteringBatchId));
   }
 
   private void ensureOptIn(String orgId) {
@@ -293,7 +294,7 @@ public class PrometheusMeteringController {
       MetricId metric,
       BigDecimal value,
       String productTag,
-      String spanId) {
+      UUID meteringBatchId) {
     Event event = new Event();
     MeteringEventFactory.updateMetricEvent(
         event,
@@ -311,7 +312,7 @@ public class PrometheusMeteringController {
         metric,
         value.doubleValue(),
         productTag,
-        spanId);
+        meteringBatchId);
     return event;
   }
 

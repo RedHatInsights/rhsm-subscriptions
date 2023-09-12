@@ -39,9 +39,9 @@ public class SpanGenerator {
    *
    * @return the generated span ID.
    */
-  public String generate() {
-    String spanId = UUID.randomUUID().toString();
-    MDC.put(name, spanId);
+  public UUID generate() {
+    UUID spanId = UUID.randomUUID();
+    MDC.put(name, spanId.toString());
     return spanId;
   }
 }

@@ -7,10 +7,10 @@
     <changeSet id="202309081416-1" author="jcarvaja">
         <comment>Add events.span_id column.</comment>
         <addColumn tableName="events">
-            <column name="span_id" type="VARCHAR(50)"/>
+            <column name="metering_batch_id" type="UUID"/>
         </addColumn>
         <rollback>
-            <dropColumn tableName="events" columnName="span_id"/>
+            <dropColumn tableName="events" columnName="metering_batch_id"/>
         </rollback>
     </changeSet>
 

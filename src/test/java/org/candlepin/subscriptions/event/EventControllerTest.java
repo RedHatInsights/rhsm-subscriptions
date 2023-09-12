@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.security.OptInController;
@@ -173,7 +174,7 @@ class EventControllerTest {
                    "org_id": "7",
                    "start": "2023-05-02T00:00:00Z",
                    "end": "2023-05-02T01:00:00Z",
-                   "span_id": "123",
+                   "metering_batch_id": "e3a62bd1-fd00-405c-9401-f2288808588d",
                    "event_type": "snapshot_redhat.com:openshift_dedicated:cluster_hour",
                    "event_source": "prometheus",
                    "action": "cleanup"
@@ -232,7 +233,7 @@ class EventControllerTest {
             eq("7"),
             eq("prometheus"),
             eq("snapshot_redhat.com:openshift_dedicated:cluster_hour"),
-            eq("123"),
+            eq(UUID.fromString("e3a62bd1-fd00-405c-9401-f2288808588d")),
             any(),
             any());
   }

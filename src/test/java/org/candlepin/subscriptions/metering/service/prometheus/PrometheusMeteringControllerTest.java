@@ -32,6 +32,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
@@ -103,7 +104,7 @@ class PrometheusMeteringControllerTest {
   private final String expectedBillingAccountId = "mktp-account";
   private final MetricId expectedMetricId = MetricIdUtils.getCores();
   private final String expectedProductTag = "OpenShift-metrics";
-  private final String expectedSpanId = "123";
+  private final UUID expectedSpanId = UUID.randomUUID();
   private PrometheusMeteringController controller;
   private QueryHelper queries;
 

@@ -121,7 +121,7 @@ public class EventController {
                   cleanUpEvent.getOrgId(),
                   cleanUpEvent.getEventSource(),
                   cleanUpEvent.getEventType(),
-                  cleanUpEvent.getSpanId(),
+                  cleanUpEvent.getMeteringBatchId(),
                   cleanUpEvent.getStart(),
                   cleanUpEvent.getEnd());
           log.info(

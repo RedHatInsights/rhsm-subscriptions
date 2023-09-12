@@ -178,9 +178,10 @@ properties:
       - add
       - cleanup
     required: false
-  span_id:
-    description: Span that identifies which process generated the event.
+  metering_batch_id:
+    description: Metering batch ID that identifies which process generated the event.
     type: string
+    format: uuid
     required: false
   start:
     description: (Only used when action is `cleanup`). Start time range used to query events to clean up.

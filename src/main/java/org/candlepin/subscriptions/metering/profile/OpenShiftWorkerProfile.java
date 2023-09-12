@@ -132,9 +132,9 @@ public class OpenShiftWorkerProfile {
     return new PrometheusEventsProducer(eventsTopicProperties, prometheusUsageKafkaTemplate);
   }
 
-  @Bean(name = "prometheusMeteringSpanGenerator")
+  @Bean(name = "meteringBatchIdGenerator")
   public SpanGenerator prometheusSpanGenerator() {
-    return new SpanGenerator("prometheus-span-id");
+    return new SpanGenerator("metering-batch-id");
   }
 
   @SuppressWarnings("java:S107")
@@ -147,7 +147,7 @@ public class OpenShiftWorkerProfile {
       PrometheusEventsProducer prometheusEventsProducer,
       @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetryTemplate,
       OptInController optInController,
-      @Qualifier("prometheusMeteringSpanGenerator") SpanGenerator spanGenerator) {
+      @Qualifier("meteringBatchIdGenerator") SpanGenerator spanGenerator) {
     return new PrometheusMeteringController(
         clock,
         mProps,
