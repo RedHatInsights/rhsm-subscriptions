@@ -62,5 +62,13 @@ public class KafkaResource implements QuarkusTestResourceLifecycleManager {
     public void copyFileToContainer(Transferable transferable, String containerPath) {
       super.copyFileToContainer(transferable, "/tmp" + containerPath);
     }
+
+    protected String commandZookeeper() {
+      String command = "echo 'clientPort=" + ZOOKEEPER_PORT + "' > /tmp/zookeeper.properties\n";
+      command += "echo 'dataDir=/var/lib/zookeeper/data' >> /tmp/zookeeper.properties\n";
+      command += "echo 'dataLogDir=/var/lib/zookeeper/log' >> /tmp/zookeeper.properties\n";
+      command += "zookeeper-server-start /tmp/zookeeper.properties &\n";
+      return command;
+    }
   }
 }
