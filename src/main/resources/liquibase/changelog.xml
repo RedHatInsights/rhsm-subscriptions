@@ -101,19 +101,17 @@
     <include file="liquibase/202212161446-add-derived-sku-to-offering.xml"/>
     <include file="liquibase/202301311609-update-tally-instance-view-default-num-of-guest-add-subscription_manager_id.xml"/>
     <include file="liquibase/202302141154-add-basilisk-product.xml"/>
-    <include file="/liquibase/202302151544-remove-uuid-cast-on-instance-id-in-tally-instance-view.xml"/>
-    <include file="/liquibase/202305231003-update-remittance-table-for-history.xml"/>
+    <include file="liquibase/202302151544-remove-uuid-cast-on-instance-id-in-tally-instance-view.xml"/>
+    <include file="liquibase/202305231003-update-remittance-table-for-history.xml"/>
     <!--    <include file="/liquibase/202305261600-rollback-update-remittance-table-for-history.xml" />-->
-    <include file="/liquibase/202305231247-update-host-pk-for-dup-violation.xml"/>
+    <include file="liquibase/202305231247-update-host-pk-for-dup-violation.xml"/>
     <include file="liquibase/202305031403-create-subscription-measurements-table.xml"/>
     <include file="liquibase/202306201611-add-subscription-id-index-for-measurements.xml"/>
-    <!-- Uncomment once subscription-measurements has been verified -->
-    <!-- <include file="liquibase/202305251412-drop-subscription-capacity-table.xml"/> -->
     <include file="liquibase/202306151541-add-sku-foreign-key-to-subscription.xml"/>
     <include file="liquibase/202306291611-add-extra-index-for-product-ids.xml"/>
     <include file="liquibase/202307131511-drop-trigger-on-subscription.xml"/>
     <include file="liquibase/202307171013-add-indexes-for-tally-instance-view-queries.xml"/>
-    <include file="/liquibase/202307131456-remove-granularity-from-billable-usage-remittance.xml"/>
+    <include file="liquibase/202307131456-remove-granularity-from-billable-usage-remittance.xml"/>
     <include file="liquibase/202307051132-rename-instance_id-to-host_id.xml"/>
     <!-- Uncomment once the above changeset has landed in prod -->
     <!-- <include file="liquibase/202307051245-drop-instance_id-columns.xml"/> -->
@@ -125,5 +123,6 @@
     <include file="liquibase/202308210906-drop-uom-column-instance-measurements.xml"/>
     <include file="liquibase/202308231356-add-metric-id-tally-measurements.xml"/>
     <include file="liquibase/202308231456-drop-uom-column-tally-measurements.xml"/>
+    <include file="liquibase/202309111412-drop-subscription-capacity-table.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
