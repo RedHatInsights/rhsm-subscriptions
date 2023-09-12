@@ -26,6 +26,8 @@ import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
@@ -63,10 +65,6 @@ public class EventRecord {
   @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
   public EventRecord(Event event) {
     Objects.requireNonNull(event, "event must not be null");
-    if (event.getEventId() == null) {
-      event.setEventId(UUID.randomUUID());
-    }
-    this.eventId = event.getEventId();
     this.meteringBatchId = event.getMeteringBatchId();
     this.event = event;
     this.accountNumber = event.getAccountNumber();
@@ -108,6 +106,26 @@ public class EventRecord {
   @Column(name = "data")
   @Convert(converter = EventRecordConverter.class)
   private Event event;
+
+  @PrePersist
+  public void populateEventId() {
+    if (event == null) {
+      return;
+    }
+
+    if (event.getEventId() == null) {
+      event.setEventId(UUID.randomUUID());
+    }
+
+    this.eventId = event.getEventId();
+  }
+
+  @PreUpdate
+  public void syncEventId() {
+    if (event != null && event.getEventId() != null && !event.getEventId().equals(this.eventId)) {
+      this.eventId = event.getEventId();
+    }
+  }
 
   @Override
   public boolean equals(Object o) {

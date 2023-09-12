@@ -124,7 +124,7 @@ class EventRecordRepositoryTest {
             .collect(Collectors.toList());
 
     assertEquals(1, found.size());
-    assertEquals(currentEvent.getEventId(), found.get(0).getEventId());
+    assertEquals(currentEvent.getEvent().getEventId(), found.get(0).getEventId());
   }
 
   @SuppressWarnings({"linelength", "indentation"})

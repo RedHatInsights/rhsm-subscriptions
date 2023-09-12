@@ -112,11 +112,14 @@ class MeteringMetricsFromPrometheusToDatabaseIT {
     // all insert
     whenCollectMetrics();
     verifyAllEventsAreStoredInDatabase();
+    // store existing events to assert that event ID didn't change.
+    List<UUID> snapshotOfExistingEvents = getEventIDsFromRepository();
 
     // all update
     prometheusServer.resetScenario();
     whenCollectMetrics();
     verifyAllEventsAreStoredInDatabase();
+    assertEquals(snapshotOfExistingEvents, getEventIDsFromRepository());
   }
 
   private void givenExistingEventWithinSameTimeWindow() {
@@ -198,6 +201,10 @@ class MeteringMetricsFromPrometheusToDatabaseIT {
 
   private void verifyExistingEventBeforeTimeWindowWasNotDeleted() {
     assertTrue(repository.existsById(toEventKey(existingEventBeforeTimeWindow)));
+  }
+
+  private List<UUID> getEventIDsFromRepository() {
+    return repository.findAll().stream().map(EventRecord::getEventId).toList();
   }
 
   private static EventKey toEventKey(EventRecord eventRecord) {
