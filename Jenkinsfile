@@ -24,6 +24,8 @@ pipeline {
                     memory: '6Gi'
               - name: kubedock
                 image: quay.io/kahowell/kubedock
+                cmd: [server]
+                args: ['--port-forward']
             '''
             defaultContainer 'openjdk17'
         }
