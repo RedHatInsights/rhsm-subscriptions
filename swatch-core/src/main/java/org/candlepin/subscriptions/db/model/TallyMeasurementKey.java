@@ -48,7 +48,7 @@ public class TallyMeasurementKey implements Serializable {
 
   public TallyMeasurementKey(HardwareMeasurementType hardwareMeasurementType, String metricId) {
     this.measurementType = hardwareMeasurementType;
-    this.metricId = metricId;
+    this.metricId = metricId.toUpperCase();
   }
 
   @Override
