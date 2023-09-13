@@ -156,8 +156,7 @@ public interface TallyInstanceViewRepository
   static Specification<TallyInstanceView> uomEquals(MetricId effectiveUom) {
     return (root, query, builder) -> {
       var key = root.get(TallyInstanceView_.key);
-      return builder.equal(
-          key.get(TallyInstanceViewKey_.metricId), effectiveUom.toUpperCase());
+      return builder.equal(key.get(TallyInstanceViewKey_.metricId), effectiveUom.toUpperCase());
     };
   }
 
