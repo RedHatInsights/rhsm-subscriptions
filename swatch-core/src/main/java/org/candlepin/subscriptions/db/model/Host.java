@@ -161,11 +161,11 @@ public class Host implements Serializable {
   }
 
   public Double getMeasurement(String metricId) {
-    return measurements.get(metricId);
+    return measurements.get(metricId.toUpperCase());
   }
 
   public void setMeasurement(String metricId, Double value) {
-    measurements.put(metricId, value);
+    measurements.put(metricId.toUpperCase(), value);
   }
 
   public HostTallyBucket addBucket( // NOSONAR
@@ -218,12 +218,7 @@ public class Host implements Serializable {
   }
 
   public Double getMonthlyTotal(String monthId, MetricId metricId) {
-    var key = new InstanceMonthlyTotalKey(monthId, metricId.toString());
-    return monthlyTotals.get(key);
-  }
-
-  public Double getMonthlyTotal(OffsetDateTime reference, MetricId metricId) {
-    var key = new InstanceMonthlyTotalKey(reference, metricId.toString());
+    var key = new InstanceMonthlyTotalKey(monthId, metricId.getValue());
     return monthlyTotals.get(key);
   }
 

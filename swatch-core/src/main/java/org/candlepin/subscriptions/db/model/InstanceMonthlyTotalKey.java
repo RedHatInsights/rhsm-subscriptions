@@ -25,14 +25,12 @@ import jakarta.persistence.Embeddable;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /** Key for instance monthly totals */
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 @Embeddable
 public class InstanceMonthlyTotalKey implements Serializable {
   private static final DateTimeFormatter MONTH_ID_FORMATTER =
@@ -49,8 +47,13 @@ public class InstanceMonthlyTotalKey implements Serializable {
     return reference.format(MONTH_ID_FORMATTER);
   }
 
+  public InstanceMonthlyTotalKey(String month, String metricId) {
+    this.month = month;
+    this.metricId = metricId.toUpperCase();
+  }
+
   public InstanceMonthlyTotalKey(OffsetDateTime reference, String metricId) {
     this.month = formatMonthId(reference);
-    this.metricId = metricId;
+    this.metricId = metricId.toUpperCase();
   }
 }
