@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.event;
 
 import static org.candlepin.subscriptions.metering.MeteringEventFactory.EVENT_SOURCE;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.Collection;
@@ -36,8 +37,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
-import org.candlepin.subscriptions.db.model.EventRecordConverter;
 import org.candlepin.subscriptions.db.model.config.OptInType;
+import org.candlepin.subscriptions.json.BaseEvent;
+import org.candlepin.subscriptions.json.CleanUpEvent;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.security.OptInController;
 import org.springframework.stereotype.Service;
@@ -48,15 +50,13 @@ import org.springframework.util.StringUtils;
 @Slf4j
 public class EventController {
   private final EventRecordRepository repo;
-  private final EventRecordConverter eventRecordConverter;
+  private final ObjectMapper objectMapper;
   private final OptInController optInController;
 
   public EventController(
-      EventRecordRepository repo,
-      EventRecordConverter eventRecordConverter,
-      OptInController optInController) {
+      EventRecordRepository repo, ObjectMapper objectMapper, OptInController optInController) {
     this.repo = repo;
-    this.eventRecordConverter = eventRecordConverter;
+    this.objectMapper = objectMapper;
     this.optInController = optInController;
   }
 
@@ -137,22 +137,23 @@ public class EventController {
     eventJsonList.forEach(
         eventJson -> {
           try {
-            Event event = eventRecordConverter.convertToEntityAttribute(eventJson);
-            if (!EVENT_SOURCE.equals(event.getEventSource())) {
-              log.info("Event processing in batch: " + event);
+            BaseEvent baseEvent = objectMapper.readValue(eventJson, BaseEvent.class);
+            if (!EVENT_SOURCE.equals(baseEvent.getEventSource())) {
+              log.info("Event processing in batch: " + baseEvent);
             }
 
-            if (StringUtils.hasText(event.getOrgId())) {
+            if (StringUtils.hasText(baseEvent.getOrgId())) {
               log.debug(
-                  "Ensuring orgId={} has been set up for syncing/reporting.", event.getOrgId());
-              ensureOptIn(event.getOrgId());
+                  "Ensuring orgId={} has been set up for syncing/reporting.", baseEvent.getOrgId());
+              ensureOptIn(baseEvent.getOrgId());
             }
 
-            if (event.getAction() != null && event.getAction() == Event.Action.CLEANUP) {
-              log.debug("Processing clean up event for: " + event);
-              result.cleanUpEvents.add(event);
-            } else if (event.getAction() == null || event.getAction() == Event.Action.ADD) {
-              result.eventsMap.putIfAbsent(EventKey.fromEvent(event), event);
+            if (baseEvent instanceof Event) {
+              result.addEvent((Event) baseEvent);
+            } else if (baseEvent instanceof CleanUpEvent) {
+              CleanUpEvent cleanUpEvent = (CleanUpEvent) baseEvent;
+              log.debug("Processing clean up event for: " + cleanUpEvent);
+              result.addCleanUpEvent(cleanUpEvent);
             }
 
           } catch (Exception e) {
@@ -175,6 +176,14 @@ public class EventController {
 
   private static class ServiceInstancesResult {
     private final Map<EventKey, Event> eventsMap = new HashMap<>();
-    private final Set<Event> cleanUpEvents = new HashSet<>();
+    private final Set<CleanUpEvent> cleanUpEvents = new HashSet<>();
+
+    private void addEvent(Event event) {
+      eventsMap.putIfAbsent(EventKey.fromEvent(event), event);
+    }
+
+    public void addCleanUpEvent(CleanUpEvent cleanUpEvent) {
+      cleanUpEvents.add(cleanUpEvent);
+    }
   }
 }

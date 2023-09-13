@@ -36,6 +36,7 @@ import java.util.UUID;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
+import org.candlepin.subscriptions.json.BaseEvent;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
@@ -81,7 +82,7 @@ class PrometheusMeteringControllerTest {
 
   @Autowired private QueryBuilder queryBuilder;
 
-  @Captor private ArgumentCaptor<Event> eventsSent;
+  @Captor private ArgumentCaptor<BaseEvent> eventsSent;
 
   @MockBean private OptInController optInController;
 
@@ -221,7 +222,7 @@ class PrometheusMeteringControllerTest {
     OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = start.plusDays(1);
 
-    List<Event> expectedEvents =
+    List<BaseEvent> expectedEvents =
         List.of(
             MeteringEventFactory.createMetricEvent(
                 expectedAccount,
@@ -312,7 +313,7 @@ class PrometheusMeteringControllerTest {
             expectedProductTag,
             expectedSpanId);
 
-    List<Event> expectedEvents =
+    List<BaseEvent> expectedEvents =
         List.of(
             updatedEvent,
             MeteringEventFactory.createMetricEvent(
@@ -397,7 +398,7 @@ class PrometheusMeteringControllerTest {
             expectedProductTag,
             expectedSpanId);
 
-    List<Event> expectedEvents =
+    List<BaseEvent> expectedEvents =
         List.of(
             updatedEvent,
             MeteringEventFactory.createCleanUpEvent(

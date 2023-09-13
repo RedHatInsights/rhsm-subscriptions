@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.metering.profile;
 import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getProducerProperties;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.BaseEvent;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusEventsProducer;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
@@ -99,9 +99,9 @@ public class OpenShiftWorkerProfile {
   }
 
   @Bean
-  public ProducerFactory<String, Event> prometheusUsageProducerFactory(
+  public ProducerFactory<String, BaseEvent> prometheusUsageProducerFactory(
       KafkaProperties kafkaProperties, ObjectMapper objectMapper) {
-    DefaultKafkaProducerFactory<String, Event> factory =
+    DefaultKafkaProducerFactory<String, BaseEvent> factory =
         new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
     /*
     Use our customized ObjectMapper. Notably, the spring-kafka default ObjectMapper writes dates as
@@ -112,9 +112,9 @@ public class OpenShiftWorkerProfile {
   }
 
   @Bean
-  public KafkaTemplate<String, Event> prometheusUsageKafkaTemplate(
+  public KafkaTemplate<String, BaseEvent> prometheusUsageKafkaTemplate(
       @Qualifier("prometheusUsageProducerFactory")
-          ProducerFactory<String, Event> prometheusUsageProducerFactory) {
+          ProducerFactory<String, BaseEvent> prometheusUsageProducerFactory) {
     return new KafkaTemplate<>(prometheusUsageProducerFactory);
   }
 
@@ -128,7 +128,7 @@ public class OpenShiftWorkerProfile {
   @Bean
   public PrometheusEventsProducer prometheusEventsProducer(
       @Qualifier("eventsTopicProperties") TaskQueueProperties eventsTopicProperties,
-      KafkaTemplate<String, Event> prometheusUsageKafkaTemplate) {
+      KafkaTemplate<String, BaseEvent> prometheusUsageKafkaTemplate) {
     return new PrometheusEventsProducer(eventsTopicProperties, prometheusUsageKafkaTemplate);
   }
 

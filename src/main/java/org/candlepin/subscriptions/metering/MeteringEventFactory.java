@@ -25,6 +25,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.candlepin.subscriptions.json.CleanUpEvent;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.BillingProvider;
 import org.candlepin.subscriptions.json.Event.Role;
@@ -110,17 +111,16 @@ public class MeteringEventFactory {
    * @param meteringBatchId Metering batch ID that identifies which process generated the event.
    * @return a populated Event instance.
    */
-  public static Event createCleanUpEvent(
+  public static CleanUpEvent createCleanUpEvent(
       String orgId,
       String eventType,
       OffsetDateTime start,
       OffsetDateTime end,
       UUID meteringBatchId) {
-    Event event = new Event();
+    CleanUpEvent event = new CleanUpEvent();
     event.setOrgId(orgId);
     event.setEventSource(MeteringEventFactory.EVENT_SOURCE);
     event.setEventType(eventType);
-    event.setAction(Event.Action.CLEANUP);
     event.setMeteringBatchId(meteringBatchId);
     event.setStart(start);
     event.setEnd(end);
@@ -146,12 +146,8 @@ public class MeteringEventFactory {
       String productTag,
       UUID meteringBatchId) {
     toUpdate
-        .withEventSource(EVENT_SOURCE)
-        .withEventType(MeteringEventFactory.getEventType(measuredMetric.getValue(), productTag))
         .withServiceType(serviceType)
         .withAccountNumber(accountNumber)
-        .withOrgId(orgId)
-        .withInstanceId(instanceId)
         .withTimestamp(measuredTime)
         .withExpiration(Optional.of(expired))
         .withDisplayName(Optional.of(instanceId))
@@ -162,7 +158,10 @@ public class MeteringEventFactory {
         .withMeasurements(
             List.of(new Measurement().withUom(measuredMetric.getValue()).withValue(measuredValue)))
         .withRole(getRole(role, accountNumber, instanceId))
-        .withAction(Event.Action.ADD)
+        .withEventSource(EVENT_SOURCE)
+        .withEventType(MeteringEventFactory.getEventType(measuredMetric.getValue(), productTag))
+        .withOrgId(orgId)
+        .withInstanceId(instanceId)
         .withMeteringBatchId(meteringBatchId);
   }
 

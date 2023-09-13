@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally.admin;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
@@ -83,10 +84,7 @@ public class InternalTallyDataController {
     Collection<Event> events;
 
     try {
-      events =
-          objectMapper.readValue(
-              jsonListOfEvents,
-              objectMapper.getTypeFactory().constructCollectionType(List.class, Event.class));
+      events = objectMapper.readValue(jsonListOfEvents, new TypeReference<List<Event>>() {});
 
     } catch (Exception e) {
       log.warn("Error parsing request body");

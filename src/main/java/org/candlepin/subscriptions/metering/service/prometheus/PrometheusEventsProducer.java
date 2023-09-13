@@ -21,6 +21,8 @@
 package org.candlepin.subscriptions.metering.service.prometheus;
 
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.json.BaseEvent;
+import org.candlepin.subscriptions.json.CleanUpEvent;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,23 +35,28 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class PrometheusEventsProducer {
   private final String topic;
-  private final KafkaTemplate<String, Event> template;
+  private final KafkaTemplate<String, BaseEvent> template;
 
   @Autowired
   public PrometheusEventsProducer(
       @Qualifier("serviceInstanceTopicProperties")
           TaskQueueProperties taskServiceInstanceTopicProperties,
-      @Qualifier("prometheusUsageKafkaTemplate") KafkaTemplate<String, Event> template) {
+      @Qualifier("prometheusUsageKafkaTemplate") KafkaTemplate<String, BaseEvent> template) {
     this.topic = taskServiceInstanceTopicProperties.getTopic();
     this.template = template;
   }
 
-  public void produce(Event event) {
-    log.debug(
-        "Sending event {} for organization {} to topic {}",
-        event.getEventId(),
-        event.getOrgId(),
-        topic);
+  public void produce(BaseEvent event) {
+    if (event instanceof Event eventToSend) {
+      log.debug(
+          "Sending event {} for organization {} to topic {}",
+          eventToSend.getEventId(),
+          event.getOrgId(),
+          topic);
+    } else if (event instanceof CleanUpEvent) {
+      log.debug("Sending clean-up event for organization {} to topic {}", event.getOrgId(), topic);
+    }
+
     template.send(topic, event.getOrgId(), event);
   }
 }
