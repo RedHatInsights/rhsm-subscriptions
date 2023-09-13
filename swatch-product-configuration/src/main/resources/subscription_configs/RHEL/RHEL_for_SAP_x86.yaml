@@ -1,0 +1,17 @@
+---
+platform: RHEL
+
+id: rhel-for-sap-x86
+
+variants:
+  - tag: rhel-for-sap-x86
+    engineeringIds:
+      - 388 # RHEL for SAP Update Services for SAP Solutions
+      - 241 # Red Hat Enterprise Linux 8 for x86_64 - SAP Solutions
+      - 146 # Red Hat Enterprise Linux for SAP
+
+defaults:
+  variant: rhel-for-sap-x86
+
+metrics:
+  - id: Sockets
