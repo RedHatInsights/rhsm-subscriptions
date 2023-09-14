@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
+import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
@@ -59,13 +60,17 @@ public class MetricUsageCollector {
   private final EventController eventController;
   private final ApplicationClock clock;
 
+  private final HostRepository hostRepository;
+
   public MetricUsageCollector(
       AccountServiceInventoryRepository accountServiceInventoryRepository,
       EventController eventController,
-      ApplicationClock clock) {
+      ApplicationClock clock,
+      HostRepository hostRepository) {
     this.accountServiceInventoryRepository = accountServiceInventoryRepository;
     this.eventController = eventController;
     this.clock = clock;
+    this.hostRepository = hostRepository;
   }
 
   @Transactional
@@ -78,17 +83,16 @@ public class MetricUsageCollector {
               range.getStartString(), range.getEndString()));
     }
 
-    if (!eventController.hasEventsInTimeRange(
-        orgId, serviceType, range.getStartDate(), range.getEndDate())) {
+    Optional<OffsetDateTime> firstEventTimestampInRange =
+        eventController.findFirstEventTimestampInRange(
+            orgId, serviceType, range.getStartDate(), range.getEndDate());
+
+    if (firstEventTimestampInRange.isEmpty()) {
       log.info("No event metrics to process for service type {} in range: {}", serviceType, range);
       return null;
     }
 
     log.info("Event exists for org {} of service type {} in range: {}", orgId, serviceType, range);
-
-    Optional<OffsetDateTime> firstUntalliedEventDate =
-        eventController.findFirstUntalliedEvent(orgId, serviceType);
-
     /* load the latest accountServiceInventory state, so we can update host records conveniently */
     AccountServiceInventoryId inventoryId =
         AccountServiceInventoryId.builder().orgId(orgId).serviceType(serviceType).build();
@@ -105,6 +109,8 @@ public class MetricUsageCollector {
     the product profile we're working on
     */
     Map<String, Host> existingInstances = new HashMap<>();
+    Optional<OffsetDateTime> minLastSeenTimestamp =
+        hostRepository.findMaxLastSeenDate(orgId, serviceType);
     for (Host host : accountServiceInventory.getServiceInstances().values()) {
       existingInstances.put(host.getInstanceId(), host);
     }
@@ -121,8 +127,8 @@ public class MetricUsageCollector {
     the end of current hour. Otherwise, the start date is same as the beginning of the untallied record_date,
     it extends until the specified passed end date.
      */
-    if (firstUntalliedEventDate.isEmpty()
-        || firstUntalliedEventDate.get().isAfter(range.getStartDate())) {
+    if (minLastSeenTimestamp.isEmpty()
+        || !firstEventTimestampInRange.get().isAfter(minLastSeenTimestamp.get())) {
       effectiveStartDateTime = clock.startOfMonth(range.getStartDate());
       effectiveEndDateTime = clock.endOfCurrentHour();
       log.info(
@@ -133,7 +139,7 @@ public class MetricUsageCollector {
           effectiveEndDateTime);
       isRecalculating = true;
     } else {
-      effectiveStartDateTime = firstUntalliedEventDate.get();
+      effectiveStartDateTime = range.getStartDate();
       effectiveEndDateTime = range.getEndDate();
       log.info(
           "New tally! Adjusting start and end from [{} : {}] to [{} : {}]",
@@ -155,11 +161,8 @@ public class MetricUsageCollector {
 
     Map<OffsetDateTime, AccountUsageCalculation> accountCalcs =
         collectHourlyCalculations(
-            accountServiceInventory, effectiveStartDateTime, effectiveEndDateTime);
+            accountServiceInventory, effectiveStartDateTime, effectiveEndDateTime, isRecalculating);
     accountServiceInventoryRepository.save(accountServiceInventory);
-
-    eventController.updateLastSeenTallyEvents(
-        effectiveStartDateTime, effectiveEndDateTime, orgId, serviceType, OffsetDateTime.now());
 
     return new CollectionResult(
         new DateRange(effectiveStartDateTime, effectiveEndDateTime), accountCalcs, isRecalculating);
@@ -168,13 +171,14 @@ public class MetricUsageCollector {
   private Map<OffsetDateTime, AccountUsageCalculation> collectHourlyCalculations(
       AccountServiceInventory accountServiceInventory,
       OffsetDateTime effectiveStartDateTime,
-      OffsetDateTime effectiveEndDateTime) {
+      OffsetDateTime effectiveEndDateTime,
+      boolean isRecalculating) {
     Map<OffsetDateTime, AccountUsageCalculation> accountCalcs = new HashMap<>();
     for (OffsetDateTime offset = effectiveStartDateTime;
         offset.isBefore(effectiveEndDateTime);
         offset = offset.plusHours(1)) {
       AccountUsageCalculation accountUsageCalculation =
-          collectHour(accountServiceInventory, offset);
+          collectHour(accountServiceInventory, offset, isRecalculating);
 
       if (accountUsageCalculation != null) {
         // The associated account number for a calculation has already been determined from the
@@ -194,7 +198,9 @@ public class MetricUsageCollector {
 
   @Transactional
   public AccountUsageCalculation collectHour(
-      AccountServiceInventory accountServiceInventory, OffsetDateTime startDateTime) {
+      AccountServiceInventory accountServiceInventory,
+      OffsetDateTime startDateTime,
+      boolean isRecalculating) {
     OffsetDateTime endDateTime = startDateTime.plusHours(1);
 
     Map<String, List<Event>> eventToHostMapping =
@@ -203,7 +209,8 @@ public class MetricUsageCollector {
                 accountServiceInventory.getOrgId(),
                 accountServiceInventory.getServiceType(),
                 startDateTime,
-                endDateTime)
+                endDateTime,
+                isRecalculating)
             // We group fetched events by instanceId so that we can clear the measurements
             // on first access, if the instance already exists for the accountServiceInventory.
             .collect(Collectors.groupingBy(Event::getInstanceId));

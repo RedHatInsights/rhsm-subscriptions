@@ -31,6 +31,7 @@ import jakarta.persistence.criteria.MapJoin;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.validation.constraints.NotNull;
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.*;
@@ -528,6 +529,12 @@ public interface HostRepository
           + "h2.instanceId = :instanceId)")
   Page<Host> getGuestHostsByHypervisorInstanceId(
       @Param("orgId") String orgId, @Param("instanceId") String instanceId, Pageable pageable);
+
+  @Query(
+      value =
+          "select max(h.lastSeen) from Host h where h.orgId=:orgId and h.instanceType=:serviceType")
+  Optional<OffsetDateTime> findMaxLastSeenDate(
+      @Param("orgId") String orgId, @Param("serviceType") String serviceType);
 
   List<Host> findByAccountNumber(String accountNumber);
 

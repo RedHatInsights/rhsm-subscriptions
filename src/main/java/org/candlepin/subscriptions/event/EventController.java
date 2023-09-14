@@ -78,10 +78,20 @@ public class EventController {
   }
 
   public Stream<Event> fetchEventsInTimeRangeByServiceType(
-      String orgId, String serviceType, OffsetDateTime begin, OffsetDateTime end) {
-    return repo.findByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
-            orgId, serviceType, begin, end)
-        .map(EventRecord::getEvent);
+      String orgId,
+      String serviceType,
+      OffsetDateTime begin,
+      OffsetDateTime end,
+      boolean isRecalculating) {
+    if (isRecalculating) {
+      return repo.findByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+              orgId, serviceType, begin, end)
+          .map(EventRecord::getEvent);
+    } else {
+      return repo.findByOrgIdAndServiceTypeAndRecordDateGreaterThanEqualAndRecordDateLessThanOrderByTimestamp(
+              orgId, serviceType, begin, end)
+          .map(EventRecord::getEvent);
+    }
   }
 
   @SuppressWarnings({"linelength", "indentation"})
@@ -153,20 +163,11 @@ public class EventController {
   }
 
   @Transactional
-  public Optional<OffsetDateTime> findFirstUntalliedEvent(String orgId, String serviceType) {
-    return Optional.ofNullable(repo.findFirstUntalliedEvent(orgId, serviceType))
+  public Optional<OffsetDateTime> findFirstEventTimestampInRange(
+      String orgId, String serviceType, OffsetDateTime startDate, OffsetDateTime endDate) {
+    return Optional.ofNullable(
+            repo.findFirstEventTimestampInRange(orgId, serviceType, startDate, endDate))
         .map(dateTime -> dateTime.atOffset(ZoneOffset.UTC));
-  }
-
-  @Transactional
-  public void updateLastSeenTallyEvents(
-      OffsetDateTime effectiveStartDateTime,
-      OffsetDateTime effectiveEndDateTime,
-      String orgId,
-      String serviceType,
-      OffsetDateTime updatedTimestamp) {
-    repo.updateLastSeenTallyEvents(
-        effectiveStartDateTime, effectiveEndDateTime, orgId, serviceType, updatedTimestamp);
   }
 
   @Transactional

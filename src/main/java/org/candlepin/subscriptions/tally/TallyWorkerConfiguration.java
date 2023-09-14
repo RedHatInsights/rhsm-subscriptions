@@ -28,6 +28,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
+import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
 import org.candlepin.subscriptions.json.TallySummary;
@@ -150,8 +151,10 @@ public class TallyWorkerConfiguration {
   public MetricUsageCollector metricUsageCollector(
       AccountServiceInventoryRepository accountServiceInventoryRepository,
       EventController eventController,
-      ApplicationClock clock) {
-    return new MetricUsageCollector(accountServiceInventoryRepository, eventController, clock);
+      ApplicationClock clock,
+      HostRepository hostRepository) {
+    return new MetricUsageCollector(
+        accountServiceInventoryRepository, eventController, clock, hostRepository);
   }
 
   @Bean

@@ -110,29 +110,6 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
   void deleteInBulkEventRecordsByTimestampBefore(OffsetDateTime cutoffDate);
 
   /**
-   * This method is responsible for updating the update_date field for events during the hourly
-   * tally. This update serves the purpose of maintaining a record of whether these events have
-   * already been tallied or not.
-   *
-   * @param effectiveStartDateTime
-   * @param effectiveEndDateTime
-   * @param orgId
-   * @param serviceType
-   * @param updatedTimestamp
-   */
-  @Modifying
-  @Query(
-      nativeQuery = true,
-      value =
-          "update events set update_date=:updatedTimestamp where record_date>=:effectiveStartDateTime and record_date<:effectiveEndDateTime and org_id=:orgId and data->>'service_type'=:serviceType")
-  void updateLastSeenTallyEvents(
-      @Param("effectiveStartDateTime") OffsetDateTime effectiveStartDateTime,
-      @Param("effectiveEndDateTime") OffsetDateTime effectiveEndDateTime,
-      @Param("orgId") String orgId,
-      @Param("serviceType") String serviceType,
-      @Param("updatedTimestamp") OffsetDateTime updatedTimestamp);
-
-  /**
    * Check if any Events exist for the specified org and service type during the specified range.
    *
    * @param orgId
@@ -172,20 +149,26 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
           @Param("begin") OffsetDateTime begin,
           @Param("end") OffsetDateTime end);
 
-  void deleteByOrgId(String orgId);
-
-  /**
-   * This method is used in hourly tally to only fetch minimum record_date from events that have not
-   * been seen and tallied at least once.
-   *
-   * @param orgId
-   * @param serviceType
-   * @return timestamp
-   */
   @Query(
       nativeQuery = true,
       value =
-          "select min(record_date) from events where org_id=:orgId and data->>'service_type'=:serviceType and update_date is null")
-  Instant findFirstUntalliedEvent(
-      @Param("orgId") String orgId, @Param("serviceType") String serviceType);
+          "select * from events where org_id=:orgId and data->>'service_type'=:serviceType and record_date >= :begin and record_date < :end order by timestamp")
+  Stream<EventRecord>
+      findByOrgIdAndServiceTypeAndRecordDateGreaterThanEqualAndRecordDateLessThanOrderByTimestamp(
+          @Param("orgId") String orgId,
+          @Param("serviceType") String serviceType,
+          @Param("begin") OffsetDateTime begin,
+          @Param("end") OffsetDateTime end);
+
+  void deleteByOrgId(String orgId);
+
+  @Query(
+      nativeQuery = true,
+      value =
+          "select min(timestamp) from events where org_id=:orgId and data->>'service_type'=:serviceType and record_date >= :begin and record_date < :end")
+  Instant findFirstEventTimestampInRange(
+      @Param("orgId") String orgId,
+      @Param("serviceType") String serviceType,
+      @Param("begin") OffsetDateTime begin,
+      @Param("end") OffsetDateTime end);
 }
