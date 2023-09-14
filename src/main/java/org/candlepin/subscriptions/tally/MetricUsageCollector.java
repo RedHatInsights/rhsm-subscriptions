@@ -91,6 +91,7 @@ public class MetricUsageCollector {
       log.info("No event metrics to process for service type {} in range: {}", serviceType, range);
       return null;
     }
+    OffsetDateTime firstEventTimestamp = firstEventTimestampInRange.get();
 
     log.info("Event exists for org {} of service type {} in range: {}", orgId, serviceType, range);
     /* load the latest accountServiceInventory state, so we can update host records conveniently */
@@ -122,14 +123,20 @@ public class MetricUsageCollector {
     cleared and re-updated for each host record
     Evaluate latest state to determine if we are doing a recalculation.
     This condition serves a dual purpose: First, it validates the presence of untallied events.
-    Additionally, it assesses whether the earliest untallied record_date is after the specified start date range.
-    If this condition holds true, the effectiveStartDateTime is adjusted from the first day of the month to
-    the end of current hour. Otherwise, the start date is same as the beginning of the untallied record_date,
+    Additionally, it assesses whether the first event timestamp is after the host last seen.
+    If this condition holds false, then the effectiveStartDateTime is adjusted from the first day of the month to
+    the end of current hour. Otherwise, the start date is same as the beginning of the user start range,
     it extends until the specified passed end date.
      */
     if (minLastSeenTimestamp.isEmpty()
-        || !firstEventTimestampInRange.get().isAfter(minLastSeenTimestamp.get())) {
-      effectiveStartDateTime = clock.startOfMonth(range.getStartDate());
+        || !firstEventTimestamp.isAfter(minLastSeenTimestamp.get())) {
+      int eventLastMonth =
+          firstEventTimestamp.getMonth().getValue() - OffsetDateTime.now().getMonth().getValue();
+      if (eventLastMonth < 0) {
+        effectiveStartDateTime = clock.startOfMonth(firstEventTimestamp);
+      } else {
+        effectiveStartDateTime = clock.startOfMonth(range.getStartDate());
+      }
       effectiveEndDateTime = clock.endOfCurrentHour();
       log.info(
           "We appear to be retallying; adjusting start and end from [{} : {}] to [{} : {}]",
@@ -139,7 +146,7 @@ public class MetricUsageCollector {
           effectiveEndDateTime);
       isRecalculating = true;
     } else {
-      effectiveStartDateTime = range.getStartDate();
+      effectiveStartDateTime = firstEventTimestamp;
       effectiveEndDateTime = range.getEndDate();
       log.info(
           "New tally! Adjusting start and end from [{} : {}] to [{} : {}]",
@@ -161,7 +168,7 @@ public class MetricUsageCollector {
 
     Map<OffsetDateTime, AccountUsageCalculation> accountCalcs =
         collectHourlyCalculations(
-            accountServiceInventory, effectiveStartDateTime, effectiveEndDateTime, isRecalculating);
+            accountServiceInventory, effectiveStartDateTime, effectiveEndDateTime);
     accountServiceInventoryRepository.save(accountServiceInventory);
 
     return new CollectionResult(
@@ -171,14 +178,13 @@ public class MetricUsageCollector {
   private Map<OffsetDateTime, AccountUsageCalculation> collectHourlyCalculations(
       AccountServiceInventory accountServiceInventory,
       OffsetDateTime effectiveStartDateTime,
-      OffsetDateTime effectiveEndDateTime,
-      boolean isRecalculating) {
+      OffsetDateTime effectiveEndDateTime) {
     Map<OffsetDateTime, AccountUsageCalculation> accountCalcs = new HashMap<>();
     for (OffsetDateTime offset = effectiveStartDateTime;
         offset.isBefore(effectiveEndDateTime);
         offset = offset.plusHours(1)) {
       AccountUsageCalculation accountUsageCalculation =
-          collectHour(accountServiceInventory, offset, isRecalculating);
+          collectHour(accountServiceInventory, offset);
 
       if (accountUsageCalculation != null) {
         // The associated account number for a calculation has already been determined from the
@@ -198,9 +204,7 @@ public class MetricUsageCollector {
 
   @Transactional
   public AccountUsageCalculation collectHour(
-      AccountServiceInventory accountServiceInventory,
-      OffsetDateTime startDateTime,
-      boolean isRecalculating) {
+      AccountServiceInventory accountServiceInventory, OffsetDateTime startDateTime) {
     OffsetDateTime endDateTime = startDateTime.plusHours(1);
 
     Map<String, List<Event>> eventToHostMapping =
@@ -209,8 +213,7 @@ public class MetricUsageCollector {
                 accountServiceInventory.getOrgId(),
                 accountServiceInventory.getServiceType(),
                 startDateTime,
-                endDateTime,
-                isRecalculating)
+                endDateTime)
             // We group fetched events by instanceId so that we can clear the measurements
             // on first access, if the instance already exists for the accountServiceInventory.
             .collect(Collectors.groupingBy(Event::getInstanceId));

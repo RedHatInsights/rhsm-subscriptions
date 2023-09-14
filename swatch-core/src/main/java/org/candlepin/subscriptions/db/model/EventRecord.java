@@ -101,13 +101,11 @@ public class EventRecord {
   @Column(name = "metering_batch_id")
   private UUID meteringBatchId;
 
-
   @Id private OffsetDateTime timestamp;
 
-    /*
+  /*
   Since we have a bitemporal pattern, the "timestamp" and "actual_date" means the same.
-  Accordingly, "record_date" refers to the date when we entered the activity into our system,
-  "update_date" refers to the date when we made any changes to the record.
+  Accordingly, "record_date" refers to the date when we entered the activity into our system.
 
   For reference: https://martinfowler.com/articles/bitemporal-history.html#TheTwoDimensions
   */
@@ -115,9 +113,6 @@ public class EventRecord {
   @CreationTimestamp
   @Column(name = "record_date")
   private OffsetDateTime recordDate;
-
-  @Column(name = "update_date")
-  private OffsetDateTime updateDate;
 
   @Valid
   @Column(name = "data")
@@ -159,20 +154,12 @@ public class EventRecord {
         && Objects.equals(eventSource, that.eventSource)
         && Objects.equals(instanceId, that.instanceId)
         && Objects.equals(timestamp, that.timestamp)
-        && Objects.equals(recordDate, that.recordDate)
-        && Objects.equals(updateDate, that.updateDate);
+        && Objects.equals(recordDate, that.recordDate);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
-        accountNumber,
-        orgId,
-        eventType,
-        eventSource,
-        instanceId,
-        timestamp,
-        recordDate,
-        updateDate);
+        accountNumber, orgId, eventType, eventSource, instanceId, timestamp, recordDate);
   }
 }

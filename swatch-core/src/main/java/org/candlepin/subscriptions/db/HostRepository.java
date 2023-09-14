@@ -539,6 +539,14 @@ public interface HostRepository
   Page<Host> getGuestHostsByHypervisorInstanceId(
       @Param("orgId") String orgId, @Param("instanceId") String instanceId, Pageable pageable);
 
+  /**
+   * We want to obtain the max last seen host record for the hourly tally. This helps in determining
+   * whether we need to reevaluate the earlier event measurements.
+   *
+   * @param orgId
+   * @param serviceType
+   * @return
+   */
   @Query(
       value =
           "select max(h.lastSeen) from Host h where h.orgId=:orgId and h.instanceType=:serviceType")

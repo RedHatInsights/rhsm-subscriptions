@@ -4,18 +4,16 @@
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
-  <changeSet id="202309051456-1" author="karshah">
+  <changeSet id="202309181256-1" author="karshah">
     <comment>Add column for tracking hourly tally lastseen to events table</comment>
     <addColumn tableName="events">
       <column name="record_date" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="CURRENT_TIMESTAMP"/>
-      <column name="update_date" type="TIMESTAMP WITH TIME ZONE"/>
     </addColumn>
   </changeSet>
 
-  <changeSet id="202309051456-2" author="karshah">
+  <changeSet id="202309181256-2" author="karshah">
     <update tableName="events">
       <column name="record_date" valueComputed="timestamp"/>
-      <column name="update_date" valueComputed="timestamp"/>
     </update>
   </changeSet>
 </databaseChangeLog>
