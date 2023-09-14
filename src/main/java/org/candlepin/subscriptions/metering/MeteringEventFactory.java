@@ -24,6 +24,8 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import org.candlepin.subscriptions.json.CleanUpEvent;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.BillingProvider;
 import org.candlepin.subscriptions.json.Event.Role;
@@ -75,7 +77,8 @@ public class MeteringEventFactory {
       String billingAccountId,
       MetricId measuredMetric,
       Double measuredValue,
-      String productTag) {
+      String productTag,
+      UUID meteringBatchId) {
     Event event = new Event();
     updateMetricEvent(
         event,
@@ -92,7 +95,35 @@ public class MeteringEventFactory {
         billingAccountId,
         measuredMetric,
         measuredValue,
-        productTag);
+        productTag,
+        meteringBatchId);
+    return event;
+  }
+
+  /**
+   * Creates an event with type "cleanup" which is a special type that triggers the deletion of
+   * stale events.
+   *
+   * @param orgId the organization id.
+   * @param eventType the event type.
+   * @param start the start time window.
+   * @param end the end time window.
+   * @param meteringBatchId Metering batch ID that identifies which process generated the event.
+   * @return a populated Event instance.
+   */
+  public static CleanUpEvent createCleanUpEvent(
+      String orgId,
+      String eventType,
+      OffsetDateTime start,
+      OffsetDateTime end,
+      UUID meteringBatchId) {
+    CleanUpEvent event = new CleanUpEvent();
+    event.setOrgId(orgId);
+    event.setEventSource(MeteringEventFactory.EVENT_SOURCE);
+    event.setEventType(eventType);
+    event.setMeteringBatchId(meteringBatchId);
+    event.setStart(start);
+    event.setEnd(end);
     return event;
   }
 
@@ -112,14 +143,11 @@ public class MeteringEventFactory {
       String billingAccountId,
       MetricId measuredMetric,
       Double measuredValue,
-      String productTag) {
+      String productTag,
+      UUID meteringBatchId) {
     toUpdate
-        .withEventSource(EVENT_SOURCE)
-        .withEventType(MeteringEventFactory.getEventType(measuredMetric.getValue(), productTag))
         .withServiceType(serviceType)
         .withAccountNumber(accountNumber)
-        .withOrgId(orgId)
-        .withInstanceId(instanceId)
         .withTimestamp(measuredTime)
         .withExpiration(Optional.of(expired))
         .withDisplayName(Optional.of(instanceId))
@@ -129,7 +157,12 @@ public class MeteringEventFactory {
         .withBillingAccountId(Optional.ofNullable(billingAccountId))
         .withMeasurements(
             List.of(new Measurement().withUom(measuredMetric.getValue()).withValue(measuredValue)))
-        .withRole(getRole(role, accountNumber, instanceId));
+        .withRole(getRole(role, accountNumber, instanceId))
+        .withEventSource(EVENT_SOURCE)
+        .withEventType(MeteringEventFactory.getEventType(measuredMetric.getValue(), productTag))
+        .withOrgId(orgId)
+        .withInstanceId(instanceId)
+        .withMeteringBatchId(meteringBatchId);
   }
 
   public static String getEventType(String metricId, String productTag) {

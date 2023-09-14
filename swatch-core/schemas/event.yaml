@@ -1,34 +1,19 @@
 $schema: http://json-schema.org/draft-07/schema#
 title: Event
+extends:
+  $ref: base_event.yaml
 properties:
   event_id:
     description: UUID for the event, will be generated upon ingestion if not specified.
     type: string
     format: uuid
     required: false
-  event_source:
-    description: Identifier for the system that captured the event.
-    type: string
-    required: true
-  event_type:
-    description: Source-specific identifier for the type of event we use lower Kebab case (e.g. snapshot, delete, descriptive-variable-name). This allows
-      the source to encode a special semantic for the event.
-    type: string
-    required: true
   account_number:
     description: Account identifier for the relevant account.
     type: string
     required: false
-  org_id:
-    description: Organization identifier associated with this event.
-    type: string
-    required: true
   service_type:
     description: Identifier for the type of service being measured. (E.g. RHEL System, OpenShift Cluster)
-    type: string
-    required: true
-  instance_id:
-    description: Primary identifier for the instance of the service, according to the event producer.
     type: string
     required: true
   timestamp:

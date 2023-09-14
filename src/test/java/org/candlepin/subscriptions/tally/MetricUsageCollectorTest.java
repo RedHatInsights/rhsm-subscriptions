@@ -91,11 +91,10 @@ class MetricUsageCollectorTest {
     Measurement measurement =
         new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
-        new Event()
+        createEvent()
             .withEventId(UUID.randomUUID())
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
-            .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
             .withBillingProvider(Event.BillingProvider.RED_HAT)
             .withBillingAccountId(Optional.of("sellerAcct"));
@@ -113,12 +112,11 @@ class MetricUsageCollectorTest {
     Measurement measurement =
         new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
-        new Event()
+        createEvent()
             .withEventId(UUID.randomUUID())
             .withRole(Event.Role.OSD)
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
-            .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
             .withBillingProvider(Event.BillingProvider.RED_HAT)
             .withBillingAccountId(Optional.of("sellerAcct"));
@@ -148,13 +146,12 @@ class MetricUsageCollectorTest {
   @EnumSource(Event.HardwareType.class)
   void testCollectHandlesAllHardwareTypes(Event.HardwareType hardwareType) {
     Event event =
-        new Event()
+        createEvent()
             .withEventId(UUID.randomUUID())
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
             .withHardwareType(hardwareType)
-            .withCloudProvider(Event.CloudProvider.__EMPTY__)
-            .withInstanceId(UUID.randomUUID().toString());
+            .withCloudProvider(Event.CloudProvider.__EMPTY__);
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
     when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
         .thenReturn(Stream.of(event));
@@ -176,13 +173,12 @@ class MetricUsageCollectorTest {
   @EnumSource(Event.CloudProvider.class)
   void testCollectHandlesAllCloudProviders(Event.CloudProvider cloudProvider) {
     Event event =
-        new Event()
+        createEvent()
             .withEventId(UUID.randomUUID())
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
             .withHardwareType(Event.HardwareType.CLOUD)
-            .withCloudProvider(cloudProvider)
-            .withInstanceId(UUID.randomUUID().toString());
+            .withCloudProvider(cloudProvider);
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
     when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
         .thenReturn(Stream.of(event));
@@ -196,12 +192,11 @@ class MetricUsageCollectorTest {
     Measurement measurement =
         new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
-        new Event()
+        createEvent()
             .withEventId(UUID.randomUUID())
             .withProductIds(List.of(RHEL_ENG_ID))
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
-            .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
             .withSla(Event.Sla.PREMIUM)
             .withBillingProvider(Event.BillingProvider.RED_HAT)
@@ -251,12 +246,11 @@ class MetricUsageCollectorTest {
     Measurement measurement =
         new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
-        new Event()
+        createEvent()
             .withEventId(UUID.randomUUID())
             .withRole(Event.Role.OSD)
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
-            .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
             .withSla(Event.Sla.PREMIUM)
             .withBillingProvider(Event.BillingProvider.RED_HAT)
@@ -288,12 +282,11 @@ class MetricUsageCollectorTest {
     Measurement measurement =
         new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
-        new Event()
+        createEvent()
             .withEventId(UUID.randomUUID())
             .withRole(Event.Role.OSD)
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
-            .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION)
             .withBillingProvider(Event.BillingProvider.RED_HAT)
@@ -325,16 +318,16 @@ class MetricUsageCollectorTest {
     Measurement measurement =
         new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
-        new Event()
-            .withEventId(UUID.randomUUID())
-            .withEventType("snapshot_" + OSD_METRIC_ID)
-            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
-            .withServiceType(SERVICE_TYPE)
-            .withInstanceId(UUID.randomUUID().toString())
-            .withMeasurements(Collections.singletonList(measurement))
-            .withUsage(Event.Usage.PRODUCTION)
-            .withBillingProvider(Event.BillingProvider.RED_HAT)
-            .withRole(Role.OSD);
+        (Event)
+            createEvent()
+                .withEventId(UUID.randomUUID())
+                .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+                .withServiceType(SERVICE_TYPE)
+                .withMeasurements(Collections.singletonList(measurement))
+                .withUsage(Event.Usage.PRODUCTION)
+                .withBillingProvider(Event.BillingProvider.RED_HAT)
+                .withRole(Role.OSD)
+                .withEventType("snapshot_" + OSD_METRIC_ID);
 
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
     when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
@@ -371,10 +364,9 @@ class MetricUsageCollectorTest {
     Measurement measurement =
         new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
-        new Event()
+        createEvent()
             .withEventId(UUID.randomUUID())
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
-            .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION)
             .withBillingProvider(Event.BillingProvider.RED_HAT)
@@ -421,12 +413,11 @@ class MetricUsageCollectorTest {
   void testHandlesDuplicateEvents(MetricId metricId) {
     Measurement measurement = new Measurement().withUom(metricId.toString()).withValue(42.0);
     Event event =
-        new Event()
+        createEvent()
             .withEventId(UUID.randomUUID())
             .withRole(Event.Role.OSD)
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
-            .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION)
             .withBillingProvider(Event.BillingProvider.RED_HAT)
@@ -466,22 +457,20 @@ class MetricUsageCollectorTest {
         new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
     String instanceId = UUID.randomUUID().toString();
     Event event =
-        new Event()
+        createEvent(instanceId)
             .withEventId(UUID.randomUUID())
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
-            .withInstanceId(instanceId)
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION);
 
     Measurement instanceHoursMeasurement =
         new Measurement().withUom(MetricIdUtils.getInstanceHours().toString()).withValue(43.0);
     Event instanceHoursEvent =
-        new Event()
+        createEvent(instanceId)
             .withEventId(UUID.randomUUID())
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
-            .withInstanceId(instanceId)
             .withMeasurements(Collections.singletonList(instanceHoursMeasurement))
             .withUsage(Event.Usage.PRODUCTION);
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
@@ -505,11 +494,10 @@ class MetricUsageCollectorTest {
     String instanceId = UUID.randomUUID().toString();
     OffsetDateTime eventDate = clock.startOfCurrentHour();
     Event event =
-        new Event()
+        createEvent(instanceId)
             .withEventId(UUID.randomUUID())
             .withTimestamp(eventDate)
             .withServiceType(SERVICE_TYPE)
-            .withInstanceId(instanceId)
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION);
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
@@ -551,11 +539,10 @@ class MetricUsageCollectorTest {
     String instanceId = UUID.randomUUID().toString();
     OffsetDateTime eventDate = clock.startOfCurrentHour();
     Event event =
-        new Event()
+        createEvent(instanceId)
             .withEventId(UUID.randomUUID())
             .withTimestamp(eventDate)
             .withServiceType(SERVICE_TYPE)
-            .withInstanceId(instanceId)
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION);
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
@@ -605,11 +592,10 @@ class MetricUsageCollectorTest {
     String instanceId = UUID.randomUUID().toString();
     OffsetDateTime eventDate = clock.startOfCurrentHour();
     Event event =
-        new Event()
+        createEvent(instanceId)
             .withEventId(UUID.randomUUID())
             .withTimestamp(eventDate)
             .withServiceType(SERVICE_TYPE)
-            .withInstanceId(instanceId)
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION);
 
@@ -654,7 +640,6 @@ class MetricUsageCollectorTest {
 
   @Test
   void collectHourClearsAllMeasurementsForInstanceBeforeApplyingEvents() {
-    String accountNumber = "account123";
     String instanceId = UUID.randomUUID().toString();
     OffsetDateTime eventDate = clock.startOfCurrentHour();
     double expectedCoresMeasurement = 150.0;
@@ -675,11 +660,10 @@ class MetricUsageCollectorTest {
             .withUom(MetricIdUtils.getCores().toString())
             .withValue(expectedCoresMeasurement);
     Event coresEvent =
-        new Event()
+        createEvent(instanceId)
             .withEventId(UUID.randomUUID())
             .withTimestamp(eventDate)
             .withServiceType(SERVICE_TYPE)
-            .withInstanceId(instanceId)
             .withMeasurements(Collections.singletonList(coresMeasurement))
             .withUsage(Event.Usage.PRODUCTION);
 
@@ -713,11 +697,10 @@ class MetricUsageCollectorTest {
     Measurement measurement =
         new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
-        new Event()
+        createEvent()
             .withEventId(UUID.randomUUID())
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
-            .withInstanceId(UUID.randomUUID().toString())
             .withBillingAccountId(Optional.empty())
             .withDisplayName(Optional.empty())
             .withHypervisorUuid(Optional.empty())
@@ -738,11 +721,10 @@ class MetricUsageCollectorTest {
     Measurement measurement =
         new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
-        new Event()
+        createEvent()
             .withEventId(UUID.randomUUID())
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
-            .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement))
             .withBillingAccountId(Optional.of("sellerAcct"));
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
@@ -760,13 +742,9 @@ class MetricUsageCollectorTest {
     Measurement measurement =
         new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event =
-        new Event()
-            .withEventId(UUID.randomUUID())
-            .withAccountNumber("account123")
-            .withOrgId("test-org")
+        createEvent()
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
-            .withInstanceId(UUID.randomUUID().toString())
             .withMeasurements(Collections.singletonList(measurement));
 
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
@@ -777,5 +755,18 @@ class MetricUsageCollectorTest {
     Host instance = accountServiceInventory.getServiceInstances().get(event.getInstanceId());
     assertNotNull(instance);
     assertEquals("test-org", instance.getOrgId());
+  }
+
+  private static Event createEvent() {
+    return createEvent(UUID.randomUUID().toString());
+  }
+
+  private static Event createEvent(String instanceId) {
+    return (Event)
+        new Event()
+            .withEventId(UUID.randomUUID())
+            .withAccountNumber("account123")
+            .withOrgId("test-org")
+            .withInstanceId(instanceId);
   }
 }

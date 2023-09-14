@@ -42,9 +42,16 @@ import org.junit.jupiter.api.extension.*;
  * <p>The test classes need to configure the prometheus url to use `localhost:9000`. Example:
  * {@code @SpringBootTest(properties =
  * "rhsm-subscriptions.metering.prometheus.client.url=http://localhost:${WIREMOCK_PORT:8101}")}
+ *
+ * <p>Or use the provided PROM_URL field instead:
+ *
+ * <p>{@code @SpringBootTest(properties = PrometheusQueryWiremockExtension.PROM_URL}
  */
 public class PrometheusQueryWiremockExtension
     implements BeforeAllCallback, AfterEachCallback, BeforeEachCallback, ParameterResolver {
+
+  public static final String PROM_URL =
+      "rhsm-subscriptions.metering.prometheus.client.url=http://localhost:${WIREMOCK_PORT:8101}";
   private static final String PROMETHEUS_DEFAULT_PORT = "8101";
   private static final String WIREMOCK_PORT = "WIREMOCK_PORT";
   private static final String QUERY_PATH = "/query";
@@ -178,6 +185,10 @@ public class PrometheusQueryWiremockExtension
               .withQueryParam(START_PARAM, equalTo(Long.toString(start.toEpochSecond())))
               .withQueryParam(END_PARAM, equalTo(Long.toString(end.toEpochSecond())))
               .withQueryParam(STEP_PARAM, equalTo(String.valueOf(step))));
+    }
+
+    public void resetScenario() {
+      extension.prometheusServer.resetScenarios();
     }
   }
 }

@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.db;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -36,7 +37,7 @@ import org.springframework.data.repository.query.Param;
  * @see org.candlepin.subscriptions.json.Event
  */
 @SuppressWarnings({"linelength", "indentation"})
-public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> {
+public interface EventRecordRepository extends JpaRepository<EventRecord, EventKey> {
 
   /**
    * Fetch a stream of events for a given account for a given time range.
@@ -109,6 +110,33 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
   void deleteInBulkEventRecordsByTimestampBefore(OffsetDateTime cutoffDate);
 
   /**
+   * Delete old event records given a cutoff date and an organization id.
+   *
+   * @param orgId The organization id
+   * @param eventSource The event source
+   * @param eventType The event type
+   * @param meteringBatchId The metering batch ID to exclude.
+   * @param begin Start time window to query events to delete.
+   * @param end End time window to query events to delete.
+   */
+  @Modifying
+  @Query(
+      "DELETE FROM EventRecord e "
+          + "WHERE e.orgId=:orgId "
+          + "AND e.eventSource=:eventSource "
+          + "AND e.eventType=:eventType "
+          + "AND (e.meteringBatchId IS NULL OR e.meteringBatchId != :meteringBatchId)"
+          + "AND e.timestamp>=:begin "
+          + "AND e.timestamp<:end ")
+  int deleteStaleEvents(
+      String orgId,
+      String eventSource,
+      String eventType,
+      UUID meteringBatchId,
+      OffsetDateTime begin,
+      OffsetDateTime end);
+
+  /**
    * Check if any Events exist for the specified org and service type during the specified range.
    *
    * @param orgId
@@ -149,4 +177,6 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, UUID> 
           @Param("end") OffsetDateTime end);
 
   void deleteByOrgId(String orgId);
+
+  void deleteByEventId(UUID eventId);
 }

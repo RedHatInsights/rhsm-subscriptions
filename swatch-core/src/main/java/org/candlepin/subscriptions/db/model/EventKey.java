@@ -20,19 +20,22 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.candlepin.subscriptions.json.Event;
 
 /**
- * Defines the unique constraints for an EventRecord. This object is primarily used for creating
- * lookup tables while processing Events pulled from the DB.
+ * Defines the unique constraints for an {@link EventRecord}. This object is primarily used for
+ * creating lookup tables while processing {@link Event} instances pulled from the DB.
  */
 @Getter
 @EqualsAndHashCode
-public class EventKey {
+@NoArgsConstructor
+public class EventKey implements Serializable {
 
   private String orgId;
   private String eventType;

@@ -1,5 +1,5 @@
 METERING_TASK_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.metering-tasks')].name:platform.rhsm-subscriptions.metering-tasks}
-
+SERVICE_INSTANCE_INGRESS_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.service-instance-ingress')].name:platform.rhsm-subscriptions.service-instance-ingress}
 rhsm-subscriptions:
   # Use Spring Resource notation for this (e.g. "classpath:" or "file:")
   account-list-resource-location: ${ACCOUNT_LIST_RESOURCE_LOCATION:}
@@ -26,3 +26,9 @@ rhsm-subscriptions:
       kafka-group-id: ${METERING_TASK_GROUP_ID:metering-task-processor}
       seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
       seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
+    events:
+      topic: ${SERVICE_INSTANCE_INGRESS_TOPIC}
+      kafka-group-id: swatch-instance-ingress
+      seek-override-end: ${SERVICE_INSTANCE_INGRESS_KAFKA_SEEK_OVERRIDE_END:false}
+      seek-override-timestamp: ${SERVICE_INSTANCE_INGRESS_KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
+      max-poll-records: ${SERVICE_INSTANCE_INGRESS_KAFKA_MAX_POLL_RECORDS:500}

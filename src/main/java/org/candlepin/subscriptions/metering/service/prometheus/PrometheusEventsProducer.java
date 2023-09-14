@@ -18,44 +18,45 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.tally.billing;
+package org.candlepin.subscriptions.metering.service.prometheus;
 
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.event.EventController;
+import org.candlepin.subscriptions.json.BaseEvent;
+import org.candlepin.subscriptions.json.CleanUpEvent;
+import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
-import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
-import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+/** Component that produces Map<EventKey, Event> events based on prometheus metrics. */
 @Service
 @Slf4j
-public class ServiceInstanceMessageConsumer extends SeekableKafkaConsumer {
-
-  private final EventController eventController;
+public class PrometheusEventsProducer {
+  private final String topic;
+  private final KafkaTemplate<String, BaseEvent> template;
 
   @Autowired
-  public ServiceInstanceMessageConsumer(
+  public PrometheusEventsProducer(
       @Qualifier("serviceInstanceTopicProperties")
           TaskQueueProperties taskServiceInstanceTopicProperties,
-      KafkaConsumerRegistry kafkaConsumerRegistry,
-      EventController eventController) {
-    super(taskServiceInstanceTopicProperties, kafkaConsumerRegistry);
-    this.eventController = eventController;
+      @Qualifier("prometheusUsageKafkaTemplate") KafkaTemplate<String, BaseEvent> template) {
+    this.topic = taskServiceInstanceTopicProperties.getTopic();
+    this.template = template;
   }
 
-  @KafkaListener(
-      id = "#{__listener.groupId}",
-      topics = "#{__listener.topic}",
-      containerFactory = "kafkaServiceInstanceListenerContainerFactory")
-  @Transactional(noRollbackFor = RuntimeException.class)
-  public void receive(@Payload Set<String> events) {
-    log.info("Events received w/ event list size={}. Consuming events.", events.size());
-    eventController.persistServiceInstances(events);
+  public void produce(BaseEvent event) {
+    if (event instanceof Event eventToSend) {
+      log.debug(
+          "Sending event {} for organization {} to topic {}",
+          eventToSend.getEventId(),
+          event.getOrgId(),
+          topic);
+    } else if (event instanceof CleanUpEvent) {
+      log.debug("Sending clean-up event for organization {} to topic {}", event.getOrgId(), topic);
+    }
+
+    template.send(topic, event.getOrgId(), event);
   }
 }

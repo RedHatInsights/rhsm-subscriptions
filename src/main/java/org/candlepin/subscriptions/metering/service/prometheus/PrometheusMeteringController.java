@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
+import static org.candlepin.subscriptions.metering.MeteringEventFactory.createCleanUpEvent;
+
 import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
@@ -27,30 +29,31 @@ import io.micrometer.core.annotation.Timed;
 import jakarta.ws.rs.BadRequestException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.Collection;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.config.OptInType;
-import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
 import org.candlepin.subscriptions.metering.MeteringException;
 import org.candlepin.subscriptions.metering.service.prometheus.model.QuerySummaryResult;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescriptor;
+import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.SpanGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 /** A controller class that defines the business logic related to any metrics that are gathered. */
@@ -61,11 +64,13 @@ public class PrometheusMeteringController {
   private static final String PROMETHEUS_QUERY_PARAM_INSTANCE_KEY = "instanceKey";
 
   private final PrometheusService prometheusService;
-  private final EventController eventController;
+  private final PrometheusEventsProducer eventsProducer;
   private final ApplicationClock clock;
   private final MetricProperties metricProperties;
   private final RetryTemplate openshiftRetry;
   private final OptInController optInController;
+
+  private final SpanGenerator spanGenerator;
   private final QueryBuilder prometheusQueryBuilder;
 
   @SuppressWarnings("java:S107")
@@ -74,16 +79,18 @@ public class PrometheusMeteringController {
       MetricProperties metricProperties,
       PrometheusService service,
       QueryBuilder queryBuilder,
-      EventController eventController,
+      PrometheusEventsProducer eventsProducer,
       @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetry,
-      OptInController optInController) {
+      OptInController optInController,
+      @Qualifier("meteringBatchIdGenerator") SpanGenerator spanGenerator) {
     this.clock = clock;
     this.metricProperties = metricProperties;
     this.prometheusService = service;
     this.prometheusQueryBuilder = queryBuilder;
-    this.eventController = eventController;
+    this.eventsProducer = eventsProducer;
     this.openshiftRetry = openshiftRetry;
     this.optInController = optInController;
+    this.spanGenerator = spanGenerator;
   }
 
   // Suppressing this sonar issue because we need to log plus throw an exception on retry
@@ -91,7 +98,6 @@ public class PrometheusMeteringController {
   // are exhausted.
   @SuppressWarnings("java:S2139")
   @Timed("rhsm-subscriptions.metering.openshift")
-  @Transactional
   public void collectMetrics(
       String tag, MetricId metric, String orgId, OffsetDateTime start, OffsetDateTime end) {
     var subDefOptional = SubscriptionDefinition.lookupSubscriptionByTag(tag);
@@ -110,6 +116,10 @@ public class PrometheusMeteringController {
           String.format("Unable to determine service type for tag %s.", tag));
     }
 
+    // Span ID is used to identify all the events that have been triggered by the same process.
+    // This is specially useful to allow deleting stale events with a different span ID.
+    UUID meteringBatchId = spanGenerator.generate();
+
     // Get the instance key from the prometheus query params.
     String instanceKey = getPrometheusInstanceKeyFromMetric(tag, tagMetric.get());
 
@@ -126,27 +136,8 @@ public class PrometheusMeteringController {
     openshiftRetry.execute(
         context -> {
           try {
-
             log.info("Collecting metrics for orgId={}: {} {}", orgId, tag, metric);
-
-            Map<EventKey, Event> events = new HashMap<>();
-            Map<EventKey, Event> existing =
-                eventController.mapEventsInTimeRange(
-                    orgId,
-                    MeteringEventFactory.EVENT_SOURCE,
-                    MeteringEventFactory.getEventType(tagMetric.get().getId(), tag),
-                    // We need to shift the start and end dates by the step, to account for the
-                    // shift in the event start date when it is created. See note about eventDate
-                    // below.
-                    startDate.minusSeconds(metricProperties.getStep()),
-                    end);
-
-            log.debug(
-                "Looking for events in range [{}, {})",
-                startDate.minusSeconds(metricProperties.getStep()),
-                end);
-            log.debug("Found {} existing events.", existing.size());
-
+            Set<EventKey> eventsSent = new HashSet<>();
             QuerySummaryResult metricData =
                 prometheusService.runRangeQuery(
                     buildPromQLForMetering(orgId, tagMetric.get()),
@@ -154,61 +145,15 @@ public class PrometheusMeteringController {
                     end,
                     metricProperties.getStep(),
                     metricProperties.getQueryTimeout(),
-                    item -> {
-                      Map<String, String> labels = item.getMetric();
-                      String clusterId = labels.get(instanceKey);
-                      String sla = labels.get("support");
-                      String usage = labels.get("usage");
-
-                      // These were added as an edge case with RHODS as it doesn't have product as a
-                      // label in prometheus
-                      String product = labels.get("product");
-                      String resourceName = labels.get("resource_name");
-
-                      // NOTE: Role comes from the product label despite its name. The values set
-                      // here are NOT engineering or swatch product IDs. They map to the roles in
-                      // the swatch-product-configuration library. For openshift, the values will
-                      // be 'ocp' or 'osd'.
-                      String role = product == null ? resourceName : product;
-                      String billingProvider = labels.get("billing_marketplace");
-                      String billingAccountId = labels.get("billing_marketplace_account");
-                      String account = labels.get("ebs_account");
-
-                      // For the openshift metrics, we expect our results to be a 'matrix'
-                      // vector [(instant_time,value), ...] so we only look at the result's
-                      // getValues() data.
-                      for (List<BigDecimal> measurement : item.getValues()) {
-                        BigDecimal time = measurement.get(0);
-                        BigDecimal value = measurement.get(1);
-
-                        OffsetDateTime eventTermDate = clock.dateFromUnix(time);
-                        // Need to subtract the step because we are averaging and the metric value
-                        // actually represents the end of the measured period. The start of the
-                        // event should be at the beginning.
-                        OffsetDateTime eventDate =
-                            eventTermDate.minusSeconds(metricProperties.getStep());
-
-                        Event event =
-                            createOrUpdateEvent(
-                                existing,
-                                account,
-                                orgId,
-                                tagMetric.get().getId(),
-                                clusterId,
-                                sla,
-                                usage,
-                                role,
-                                eventDate,
-                                eventTermDate,
-                                subDefOptional.get().getServiceType(),
-                                billingProvider,
-                                billingAccountId,
-                                MetricId.fromString(tagMetric.get().getId()),
-                                value,
-                                tag);
-                        events.putIfAbsent(EventKey.fromEvent(event), event);
-                      }
-                    });
+                    item ->
+                        sendEventFromData(
+                            item,
+                            eventsSent,
+                            tag,
+                            orgId,
+                            meteringBatchId,
+                            tagMetric.get(),
+                            subDefOptional.get()));
 
             if (StatusType.ERROR.equals(metricData.getStatus())) {
               throw new MeteringException(
@@ -217,11 +162,16 @@ public class PrometheusMeteringController {
                       tag, instanceKey, metric, metricData.getError()));
             }
 
-            eventController.saveAll(events.values());
-            log.info("Persisted {} events for {} {} metrics.", events.size(), tag, metric);
+            log.info("Sent {} events for {} {} metrics.", eventsSent.size(), tag, metric);
+            // Send event to delete any stale events found during the period
+            sendCleanUpEvent(
+                tag,
+                orgId,
+                tagMetric.get(),
+                startDate.minusSeconds(metricProperties.getStep()),
+                end,
+                meteringBatchId);
 
-            // Delete any stale events found during the period.
-            deleteStaleEvents(existing.values());
             return null;
           } catch (Exception e) {
             log.warn(
@@ -236,6 +186,88 @@ public class PrometheusMeteringController {
         });
   }
 
+  private void sendEventFromData(
+      QueryResultDataResultInner item,
+      Set<EventKey> eventsSent,
+      String productTag,
+      String orgId,
+      UUID meteringBatchId,
+      Metric tagMetric,
+      SubscriptionDefinition subscriptionDefinition) {
+    Map<String, String> labels = item.getMetric();
+    String clusterId = labels.get(getPrometheusInstanceKeyFromMetric(productTag, tagMetric));
+    String sla = labels.get("support");
+    String usage = labels.get("usage");
+
+    // These were added as an edge case with RHODS as it doesn't have product as a
+    // label in prometheus
+    String product = labels.get("product");
+    String resourceName = labels.get("resource_name");
+
+    // NOTE: Role comes from the product label despite its name. The values set
+    // here are NOT engineering or swatch product IDs. They map to the roles in
+    // the swatch-product-configuration library. For openshift, the values will
+    // be 'ocp' or 'osd'.
+    String role = product == null ? resourceName : product;
+    String billingProvider = labels.get("billing_marketplace");
+    String billingAccountId = labels.get("billing_marketplace_account");
+    String account = labels.get("ebs_account");
+
+    // For the openshift metrics, we expect our results to be a 'matrix'
+    // vector [(instant_time,value), ...] so we only look at the result's
+    // getValues() data.
+    for (List<BigDecimal> measurement : item.getValues()) {
+      BigDecimal time = measurement.get(0);
+      BigDecimal value = measurement.get(1);
+
+      OffsetDateTime eventTermDate = clock.dateFromUnix(time);
+      // Need to subtract the step because we are averaging and the metric value
+      // actually represents the end of the measured period. The start of the
+      // event should be at the beginning.
+      OffsetDateTime eventDate = eventTermDate.minusSeconds(metricProperties.getStep());
+
+      Event event =
+          createOrUpdateEvent(
+              account,
+              orgId,
+              tagMetric.getId(),
+              clusterId,
+              sla,
+              usage,
+              role,
+              eventDate,
+              eventTermDate,
+              subscriptionDefinition.getServiceType(),
+              billingProvider,
+              billingAccountId,
+              MetricId.fromString(tagMetric.getId()),
+              value,
+              productTag,
+              meteringBatchId);
+      // Send if and only if it has not been sent yet.
+      // Related to https://github.com/RedHatInsights/rhsm-subscriptions/pull/374.
+      if (eventsSent.add(EventKey.fromEvent(event))) {
+        eventsProducer.produce(event);
+      }
+    }
+  }
+
+  private void sendCleanUpEvent(
+      String productTag,
+      String orgId,
+      Metric tagMetric,
+      OffsetDateTime start,
+      OffsetDateTime end,
+      UUID meteringBatchId) {
+    eventsProducer.produce(
+        createCleanUpEvent(
+            orgId,
+            MeteringEventFactory.getEventType(tagMetric.getId(), productTag),
+            start,
+            end,
+            meteringBatchId));
+  }
+
   private void ensureOptIn(String orgId) {
     try {
       optInController.optInByOrgId(orgId, OptInType.PROMETHEUS);
@@ -247,7 +279,6 @@ public class PrometheusMeteringController {
 
   @SuppressWarnings("java:S107")
   private Event createOrUpdateEvent(
-      Map<EventKey, Event> existing,
       String account,
       String orgId,
       String metricId,
@@ -262,18 +293,9 @@ public class PrometheusMeteringController {
       String billingAccountId,
       MetricId metric,
       BigDecimal value,
-      String productTag) {
-    EventKey lookupKey =
-        new EventKey(
-            orgId,
-            MeteringEventFactory.EVENT_SOURCE,
-            MeteringEventFactory.getEventType(metricId, productTag), // NOSONAR
-            instanceId,
-            measuredDate);
-    Event event = existing.remove(lookupKey);
-    if (event == null) {
-      event = new Event();
-    }
+      String productTag,
+      UUID meteringBatchId) {
+    Event event = new Event();
     MeteringEventFactory.updateMetricEvent(
         event,
         account,
@@ -289,15 +311,9 @@ public class PrometheusMeteringController {
         billingAccountId,
         metric,
         value.doubleValue(),
-        productTag);
+        productTag,
+        meteringBatchId);
     return event;
-  }
-
-  private void deleteStaleEvents(Collection<Event> toDelete) {
-    if (!toDelete.isEmpty()) {
-      log.info("Deleting {} stale metric events.", toDelete.size());
-      eventController.deleteEvents(toDelete);
-    }
   }
 
   private String buildPromQLForMetering(String orgId, Metric tagMetric) {
