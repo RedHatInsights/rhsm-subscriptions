@@ -34,7 +34,6 @@ import java.util.List;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.TallyMeasurement;
-import org.candlepin.subscriptions.json.TallyMeasurement.Uom;
 import org.candlepin.subscriptions.json.TallySnapshot;
 import org.candlepin.subscriptions.json.TallySnapshot.BillingProvider;
 import org.candlepin.subscriptions.json.TallySnapshot.Granularity;
@@ -49,6 +48,8 @@ import org.junit.jupiter.api.Test;
 class BillableUsageMapperTest {
   private static SubscriptionDefinitionRegistry originalReference;
   private SubscriptionDefinitionRegistry subscriptionDefinitionRegistry;
+
+  private static String STORAGE_GIBIBYTES = "Storage-gibibytes";
 
   @BeforeAll
   static void setupClass() throws Exception {
@@ -192,7 +193,7 @@ class BillableUsageMapperTest {
             .withSla(BillableUsage.Sla.STANDARD)
             .withBillingProvider(BillableUsage.BillingProvider.AWS)
             .withBillingAccountId("bill123")
-            .withUom(BillableUsage.Uom.STORAGE_GIBIBYTES)
+            .withUom("Storage-gibibytes")
             .withValue(42.0);
     assertEquals(
         expected,
@@ -221,7 +222,7 @@ class BillableUsageMapperTest {
             .withSla(BillableUsage.Sla.STANDARD)
             .withBillingProvider(BillableUsage.BillingProvider.AWS)
             .withBillingAccountId("bill123")
-            .withUom(BillableUsage.Uom.STORAGE_GIBIBYTES)
+            .withUom("Storage-gibibytes")
             .withValue(42.0);
     assertEquals(
         expected,
@@ -288,12 +289,12 @@ class BillableUsageMapperTest {
                     .withTallyMeasurements(
                         List.of(
                             new TallyMeasurement()
-                                .withUom(Uom.STORAGE_GIBIBYTES)
+                                .withUom(STORAGE_GIBIBYTES)
                                 .withHardwareMeasurementType(
                                     HardwareMeasurementType.PHYSICAL.toString())
                                 .withValue(42.0),
                             new TallyMeasurement()
-                                .withUom(Uom.STORAGE_GIBIBYTES)
+                                .withUom(STORAGE_GIBIBYTES)
                                 .withHardwareMeasurementType(
                                     HardwareMeasurementType.TOTAL.toString())
                                 .withValue(42.0)))
@@ -321,12 +322,12 @@ class BillableUsageMapperTest {
                     .withTallyMeasurements(
                         List.of(
                             new TallyMeasurement()
-                                .withUom(Uom.STORAGE_GIBIBYTES)
+                                .withUom(STORAGE_GIBIBYTES)
                                 .withHardwareMeasurementType(
                                     HardwareMeasurementType.PHYSICAL.toString())
                                 .withValue(42.0),
                             new TallyMeasurement()
-                                .withUom(Uom.STORAGE_GIBIBYTES)
+                                .withUom(STORAGE_GIBIBYTES)
                                 .withHardwareMeasurementType(
                                     HardwareMeasurementType.TOTAL.toString())
                                 .withValue(42.0)))

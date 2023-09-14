@@ -1,5 +1,5 @@
 METERING_TASK_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.metering-tasks')].name:platform.rhsm-subscriptions.metering-tasks}
-
+SERVICE_INSTANCE_INGRESS_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.service-instance-ingress')].name:platform.rhsm-subscriptions.service-instance-ingress}
 rhsm-subscriptions:
   # Use Spring Resource notation for this (e.g. "classpath:" or "file:")
   account-list-resource-location: ${ACCOUNT_LIST_RESOURCE_LOCATION:}
@@ -11,11 +11,11 @@ rhsm-subscriptions:
         queryTemplates:
           default: >-
             #{metric.prometheus.queryParams[metric]}
-            * on(_id) group_right
+            * on(#{metric.prometheus.queryParams[instanceKey]}) group_right
             min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{product="#{metric.prometheus.queryParams[product]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
           addonSamples: >-
             #{metric.prometheus.queryParams[metric]}
-            * on(_id) group_right
+            * on(#{metric.prometheus.queryParams[instanceKey]}) group_right
             min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{resource_type="addon",resource_name="#{metric.prometheus.queryParams[resourceName]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
         maxAttempts: ${OPENSHIFT_MAX_ATTEMPTS:50}
         backOffMaxInterval: ${OPENSHIFT_BACK_OFF_MAX_INTERVAL:50000}
@@ -26,3 +26,9 @@ rhsm-subscriptions:
       kafka-group-id: ${METERING_TASK_GROUP_ID:metering-task-processor}
       seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
       seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
+    events:
+      topic: ${SERVICE_INSTANCE_INGRESS_TOPIC}
+      kafka-group-id: swatch-instance-ingress
+      seek-override-end: ${SERVICE_INSTANCE_INGRESS_KAFKA_SEEK_OVERRIDE_END:false}
+      seek-override-timestamp: ${SERVICE_INSTANCE_INGRESS_KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
+      max-poll-records: ${SERVICE_INSTANCE_INGRESS_KAFKA_MAX_POLL_RECORDS:500}

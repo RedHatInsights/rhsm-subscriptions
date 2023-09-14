@@ -110,6 +110,7 @@ public class StubRhsmApi extends RhsmApi {
     }
     if (orgId.equals(GCP_ORG_ID)) {
       consumer.getFacts().remove("azure_offer");
+      consumer.getFacts().put("dmi.bios.vendor", "Google");
       consumer.getFacts().put("gcp_license_codes", "7883559014960410759");
     }
   }

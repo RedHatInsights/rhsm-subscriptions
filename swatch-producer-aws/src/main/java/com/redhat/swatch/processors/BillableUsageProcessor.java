@@ -270,7 +270,7 @@ public class BillableUsageProcessor {
 
     Optional<Metric> metric =
         Variant.findByTag(billableUsage.getProductId()).stream()
-            .map(v -> v.getSubscription().getMetric(billableUsage.getUom().value()).orElse(null))
+            .map(v -> v.getSubscription().getMetric(billableUsage.getUom()).orElse(null))
             .filter(Objects::nonNull)
             .findFirst();
 

@@ -65,6 +65,7 @@ dependencies {
     testImplementation "org.springframework.security:spring-security-test"
     testImplementation "org.springframework.kafka:spring-kafka-test"
     testImplementation libraries["wiremock"]
+    testImplementation libraries["awaitility"]
     testImplementation project(':swatch-core-test')
 
     runtimeOnly "org.hsqldb:hsqldb"
@@ -388,6 +389,14 @@ project(":api") {
             dateLibrary: "java8",
             useJakartaEe: "true",
         ]
+        importMappings = [
+            "MetricId": "com.redhat.swatch.configuration.registry.MetricId",
+            "ProductId": "com.redhat.swatch.configuration.registry.ProductId",
+        ]
+        typeMappings = [
+            "string+MetricId": "MetricId",
+            "string+ProductId": "ProductId",
+        ]
     }
 
     tasks.register("validateApiSpec", ValidateTask) {
@@ -416,6 +425,7 @@ project(":api") {
     }
 
     dependencies {
+        implementation project(":swatch-product-configuration")
         implementation "jakarta.annotation:jakarta.annotation-api"
         implementation "com.fasterxml.jackson.core:jackson-annotations"
         implementation "jakarta.validation:jakarta.validation-api"

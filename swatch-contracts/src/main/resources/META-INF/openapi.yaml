@@ -19,13 +19,13 @@ paths:
         in: path
         required: true
         schema:
-          $ref: '#/components/schemas/ProductId'
+          $ref: "#/components/schemas/ProductId"
         description: "The ID for the product we wish to query"
       - name: metric_id
         in: path
         required: true
         schema:
-          $ref: '#/components/schemas/MetricId'
+          $ref: "#/components/schemas/MetricId"
         description: "The metric ID for the product we wish to query"
       - name: offset
         in: query
@@ -520,36 +520,6 @@ components:
           type: string
         message:
           type: string
-    ProductId:
-      type: string
-      enum:
-        - OpenShift Container Platform
-        - RHEL Compute Node
-        - RHEL for ARM
-        - RHEL for IBM Power
-        - RHEL for IBM z
-        - RHEL for x86
-        - RHEL Workstation
-        - Satellite Capsule
-        - Satellite Server
-        - OpenShift-metrics
-        - OpenShift-dedicated-metrics
-        - rhosak
-        - rhacs
-        - rhods
-        - BASILISK
-        - rosa
-    MetricId:
-      type: string
-      enum:
-        # Cores is the same as core-hours
-        - Cores
-        - Sockets
-        - Core-seconds
-        - Instance-hours
-        - Storage-gibibyte-months
-        - Storage-gibibytes
-        - Transfer-gibibytes
     # Schemas ending in "Type" are intentionally named to prevent naming conflicts with db model classes
     GranularityType:
       description: "Describes the significance of each date in the snapshot list. For example if the
@@ -588,9 +558,9 @@ components:
             count:
               type: integer
             product:
-              $ref: '#/components/schemas/ProductId'
+              type: string
             metric_id:
-              $ref: '#/components/schemas/MetricId'
+              type: string
             granularity:
               $ref: '#/components/schemas/GranularityType'
             service_level:
@@ -637,6 +607,12 @@ components:
       required:
         - first
         - last
+    ProductId:
+      type: string
+      format: ProductId
+    MetricId:
+      type: string
+      format: MetricId
   responses:
     ErrorResponse:
       description: "Error handling request"

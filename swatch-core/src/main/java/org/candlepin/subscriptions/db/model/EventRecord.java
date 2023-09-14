@@ -25,6 +25,9 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
@@ -50,6 +53,7 @@ import org.hibernate.annotations.CreationTimestamp;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@IdClass(EventKey.class)
 public class EventRecord {
 
   /**
@@ -62,10 +66,7 @@ public class EventRecord {
   @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
   public EventRecord(Event event) {
     Objects.requireNonNull(event, "event must not be null");
-    if (event.getEventId() == null) {
-      event.setEventId(UUID.randomUUID());
-    }
-    this.id = event.getEventId();
+    this.meteringBatchId = event.getMeteringBatchId();
     this.event = event;
     this.accountNumber = event.getAccountNumber();
     this.orgId = event.getOrgId();
@@ -75,32 +76,41 @@ public class EventRecord {
     this.timestamp = event.getTimestamp();
   }
 
-  @Id private UUID id;
+  @Column(name = "event_id")
+  private UUID eventId;
 
   @Column(name = "account_number")
   private String accountNumber;
 
+  @Id
   @Column(name = "org_id")
   private String orgId;
 
+  @Id
   @Column(name = "event_type")
   private String eventType;
 
+  @Id
   @Column(name = "event_source")
   private String eventSource;
 
+  @Id
   @Column(name = "instance_id")
   private String instanceId;
 
-  /*
+  @Column(name = "metering_batch_id")
+  private UUID meteringBatchId;
+
+
+  @Id private OffsetDateTime timestamp;
+
+    /*
   Since we have a bitemporal pattern, the "timestamp" and "actual_date" means the same.
   Accordingly, "record_date" refers to the date when we entered the activity into our system,
   "update_date" refers to the date when we made any changes to the record.
 
   For reference: https://martinfowler.com/articles/bitemporal-history.html#TheTwoDimensions
   */
-
-  private OffsetDateTime timestamp;
 
   @CreationTimestamp
   @Column(name = "record_date")
@@ -113,6 +123,26 @@ public class EventRecord {
   @Column(name = "data")
   @Convert(converter = EventRecordConverter.class)
   private Event event;
+
+  @PrePersist
+  public void populateEventId() {
+    if (event == null) {
+      return;
+    }
+
+    if (event.getEventId() == null) {
+      event.setEventId(UUID.randomUUID());
+    }
+
+    this.eventId = event.getEventId();
+  }
+
+  @PreUpdate
+  public void syncEventId() {
+    if (event != null && event.getEventId() != null && !event.getEventId().equals(this.eventId)) {
+      this.eventId = event.getEventId();
+    }
+  }
 
   @Override
   public boolean equals(Object o) {

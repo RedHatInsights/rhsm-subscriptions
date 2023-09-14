@@ -34,25 +34,46 @@ public enum HardwareMeasurementType {
   // integration
   @Deprecated
   AWS_CLOUDIGRADE,
-  GOOGLE,
+  GOOGLE("GCP"),
   ALIBABA,
   AZURE,
   EMPTY;
+
+  private final String[] aliases;
+
+  HardwareMeasurementType() {
+    this.aliases = new String[0];
+  }
+
+  HardwareMeasurementType(String... aliases) {
+    this.aliases = aliases;
+  }
 
   public static boolean isSupportedCloudProvider(String name) {
     if (name == null || name.isEmpty()) {
       return false;
     }
 
-    try {
-      return getCloudProviderTypes().contains(HardwareMeasurementType.valueOf(name.toUpperCase()));
-    } catch (IllegalArgumentException e) {
-      // Passed an invalid type string, consider it not supported.
-      return false;
-    }
+    return getCloudProviderTypes().contains(fromString(name));
   }
 
   public static List<HardwareMeasurementType> getCloudProviderTypes() {
     return Arrays.asList(AWS, GOOGLE, AZURE, ALIBABA);
+  }
+
+  public static HardwareMeasurementType fromString(String name) {
+    for (HardwareMeasurementType measurementType : HardwareMeasurementType.values()) {
+      if (measurementType.name().equalsIgnoreCase(name)) {
+        return measurementType;
+      }
+
+      for (String alias : measurementType.aliases) {
+        if (alias.equalsIgnoreCase(name)) {
+          return measurementType;
+        }
+      }
+    }
+
+    return null;
   }
 }

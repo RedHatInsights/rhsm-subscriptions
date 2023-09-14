@@ -35,7 +35,6 @@ import com.redhat.swatch.exception.DefaultApiException;
 import com.redhat.swatch.exception.SubscriptionRecentlyTerminatedException;
 import com.redhat.swatch.openapi.model.BillableUsage;
 import com.redhat.swatch.openapi.model.BillableUsage.BillingProviderEnum;
-import com.redhat.swatch.openapi.model.BillableUsage.UomEnum;
 import com.redhat.swatch.openapi.model.Error;
 import com.redhat.swatch.openapi.model.Errors;
 import com.redhat.swatch.processors.AwsMarketplaceMeteringClientFactory;
@@ -64,12 +63,15 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResu
 @ExtendWith(MockitoExtension.class)
 class BillableUsageProcessorTest {
 
+  private static final String INSTANCE_HOURS = "Instance-hours";
+  private static final String STORAGE_GIBIBYTE_MONTHS = "Storage-gibibyte-months";
+
   private static final BillableUsage RHOSAK_INSTANCE_HOURS_RECORD =
       new BillableUsage()
           .productId("rhosak")
           .snapshotDate(OffsetDateTime.MAX)
           .billingProvider(BillingProviderEnum.AWS)
-          .uom(UomEnum.INSTANCE_HOURS)
+          .uom(INSTANCE_HOURS)
           .value(new BigDecimal("42.0"));
 
   private static final BillableUsage RHOSAK_STORAGE_GIB_MONTHS_RECORD =
@@ -77,7 +79,7 @@ class BillableUsageProcessorTest {
           .productId("rhosak")
           .snapshotDate(OffsetDateTime.MAX)
           .billingProvider(BillingProviderEnum.AWS)
-          .uom(UomEnum.STORAGE_GIBIBYTE_MONTHS)
+          .uom(STORAGE_GIBIBYTE_MONTHS)
           .value(new BigDecimal("42.0"));
 
   public static final AwsUsageContext MOCK_AWS_USAGE_CONTEXT =
@@ -151,7 +153,7 @@ class BillableUsageProcessorTest {
         new BillableUsage()
             .productId("rhosak")
             .billingProvider(BillingProviderEnum.AWS)
-            .uom(UomEnum.INSTANCE_HOURS)
+            .uom(INSTANCE_HOURS)
             .value(new BigDecimal("42.0"));
     when(internalSubscriptionsApi.getAwsUsageContext(
             any(), any(), any(), any(), any(), any(), any()))
@@ -166,7 +168,7 @@ class BillableUsageProcessorTest {
         new BillableUsage()
             .productId("foobar")
             .billingProvider(BillingProviderEnum.AWS)
-            .uom(UomEnum.INSTANCE_HOURS)
+            .uom(INSTANCE_HOURS)
             .value(new BigDecimal("42.0"));
     processor.process(usage);
     verifyNoInteractions(internalSubscriptionsApi, meteringClient);

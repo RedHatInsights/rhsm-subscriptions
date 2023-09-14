@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.resource;
 
-import static org.candlepin.subscriptions.utilization.api.model.ProductId.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -29,6 +28,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.ProductId;
 import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -43,10 +44,10 @@ import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.TallyInstanceViewKey;
-import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.candlepin.subscriptions.utilization.api.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,6 +63,8 @@ import org.springframework.test.context.ActiveProfiles;
 @WithMockRedHatPrincipal("123456")
 class InstancesResourceTest {
 
+  private static final ProductId RHOSAK = ProductId.fromString("rhosak");
+  private static final ProductId RHEL_FOR_X86 = ProductId.fromString("RHEL for x86");
   @MockBean TallyInstanceViewRepository repository;
   @MockBean HostRepository hostRepository;
   @MockBean PageLinkCreator pageLinkCreator;
@@ -86,7 +89,7 @@ class InstancesResourceTest {
     tallyInstanceView.getKey().setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
     tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
-    tallyInstanceView.getKey().setUom(Measurement.Uom.SOCKETS);
+    tallyInstanceView.getKey().setMetricId(MetricIdUtils.getSockets().toString());
 
     Mockito.when(
             repository.findAllBy(
@@ -112,8 +115,7 @@ class InstancesResourceTest {
     String month = InstanceMonthlyTotalKey.formatMonthId(tallyInstanceView.getLastSeen());
     for (String uom : expectUom) {
       expectedMeasurement.add(
-          Optional.ofNullable(
-                  tallyInstanceView.getMonthlyTotal(month, Measurement.Uom.fromValue(uom)))
+          Optional.ofNullable(tallyInstanceView.getMonthlyTotal(month, MetricId.fromString(uom)))
               .orElse(0.0));
     }
     var data = new InstanceData();
@@ -128,7 +130,7 @@ class InstancesResourceTest {
 
     var meta = new InstanceMeta();
     meta.setCount(1);
-    meta.setProduct(ProductId.RHOSAK);
+    meta.setProduct(RHOSAK.toString());
     meta.setServiceLevel(ServiceLevelType.PREMIUM);
     meta.setUsage(UsageType.PRODUCTION);
     meta.setMeasurements(expectUom);
@@ -170,7 +172,7 @@ class InstancesResourceTest {
     tallyInstanceViewPhysical.getKey().setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
     tallyInstanceViewPhysical.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceViewPhysical.getKey().setMeasurementType(HardwareMeasurementType.PHYSICAL);
-    tallyInstanceViewPhysical.getKey().setUom(Measurement.Uom.SOCKETS);
+    tallyInstanceViewPhysical.getKey().setMetricId(MetricIdUtils.getSockets().toString());
     tallyInstanceViewPhysical.setValue(4.0);
     // Measurement should come from sockets value
     tallyInstanceViewPhysical.setSockets(2);
@@ -183,7 +185,7 @@ class InstancesResourceTest {
     tallyInstanceViewHypervisor.getKey().setInstanceId("d6214a0bb3444778831cd53dcacb2da3");
     tallyInstanceViewHypervisor.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceViewHypervisor.getKey().setMeasurementType(HardwareMeasurementType.HYPERVISOR);
-    tallyInstanceViewHypervisor.getKey().setUom(Measurement.Uom.SOCKETS);
+    tallyInstanceViewHypervisor.getKey().setMetricId(MetricIdUtils.getSockets().toString());
     tallyInstanceViewHypervisor.setValue(8.0);
     // Measurement should come from sockets value
     tallyInstanceViewHypervisor.setSockets(4);
@@ -226,7 +228,7 @@ class InstancesResourceTest {
 
     var meta = new InstanceMeta();
     meta.setCount(2);
-    meta.setProduct(RHEL_FOR_X86);
+    meta.setProduct(RHEL_FOR_X86.toString());
     meta.setServiceLevel(ServiceLevelType.PREMIUM);
     meta.setUsage(UsageType.PRODUCTION);
     meta.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
@@ -268,13 +270,14 @@ class InstancesResourceTest {
     tallyInstanceView.getKey().setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
     tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.AWS);
-    tallyInstanceView.getKey().setUom(Measurement.Uom.CORE_SECONDS);
+    tallyInstanceView.getKey().setMetricId(MetricIdUtils.getCores().getValue());
 
     String month = InstanceMonthlyTotalKey.formatMonthId(tallyInstanceView.getLastSeen());
 
     // Measurement should come from instance_monthly_totals
     var monthlyTotalMap = new HashMap<InstanceMonthlyTotalKey, Double>();
-    monthlyTotalMap.put(new InstanceMonthlyTotalKey(month, Measurement.Uom.INSTANCE_HOURS), 5.0);
+    monthlyTotalMap.put(
+        new InstanceMonthlyTotalKey(month, MetricIdUtils.getInstanceHours().toString()), 5.0);
     tallyInstanceView.setMonthlyTotals(monthlyTotalMap);
 
     Mockito.when(
@@ -315,7 +318,7 @@ class InstancesResourceTest {
 
     var meta = new InstanceMeta();
     meta.setCount(1);
-    meta.setProduct(ProductId.RHOSAK);
+    meta.setProduct(RHOSAK.toString());
     meta.setServiceLevel(ServiceLevelType.PREMIUM);
     meta.setUsage(UsageType.PRODUCTION);
     meta.setMeasurements(expectUom);
@@ -371,7 +374,7 @@ class InstancesResourceTest {
     tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
     tallyInstanceView.getKey().setProductId("RHEL");
-    tallyInstanceView.getKey().setUom(Measurement.Uom.SOCKETS);
+    tallyInstanceView.getKey().setMetricId(MetricIdUtils.getSockets().getValue());
 
     Mockito.when(
             repository.findAllBy(
@@ -470,7 +473,7 @@ class InstancesResourceTest {
     tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
     tallyInstanceView.getKey().setProductId("RHEL");
-    tallyInstanceView.getKey().setUom(Measurement.Uom.CORES);
+    tallyInstanceView.getKey().setMetricId(MetricIdUtils.getCores().getValue());
 
     Mockito.when(
             repository.findAllBy(
@@ -495,7 +498,7 @@ class InstancesResourceTest {
         null,
         ServiceLevelType.PREMIUM,
         UsageType.PRODUCTION,
-        MetricId.CORES,
+        "Cores",
         BillingProviderType.RED_HAT,
         null,
         null,
@@ -535,7 +538,7 @@ class InstancesResourceTest {
     tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
     tallyInstanceView.getKey().setProductId("RHEL");
-    tallyInstanceView.getKey().setUom(Measurement.Uom.SOCKETS);
+    tallyInstanceView.getKey().setMetricId(MetricIdUtils.getSockets().getValue());
 
     Mockito.when(
             repository.findAllBy(
@@ -560,7 +563,7 @@ class InstancesResourceTest {
         null,
         ServiceLevelType.PREMIUM,
         UsageType.PRODUCTION,
-        MetricId.SOCKETS,
+        "Sockets",
         BillingProviderType.RED_HAT,
         null,
         null,
@@ -585,5 +588,27 @@ class InstancesResourceTest {
             any(),
             any(),
             any());
+  }
+
+  @Test()
+  void testGetInstancesByProductThrowsExceptionForUnknownMetricId() {
+    assertThrows(
+        BadRequestException.class,
+        () ->
+            resource.getInstancesByProduct(
+                RHOSAK,
+                null,
+                null,
+                ServiceLevelType.PREMIUM,
+                UsageType.PRODUCTION,
+                "NotAMetricId",
+                BillingProviderType.RED_HAT,
+                null,
+                null,
+                null,
+                null,
+                null,
+                InstanceReportSort.DISPLAY_NAME,
+                null));
   }
 }

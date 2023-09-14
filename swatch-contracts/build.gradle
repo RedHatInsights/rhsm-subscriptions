@@ -46,6 +46,7 @@ dependencies {
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-amqp'
     implementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'
     implementation project(':clients:quarkus:rbac-client')
+    implementation project(':swatch-product-configuration')
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
     annotationProcessor "org.hibernate.orm:hibernate-jpamodelgen"
     testImplementation 'io.quarkus:quarkus-junit5'
@@ -90,6 +91,14 @@ openApiGenerate {
                      useJakartaEE: "true",
     ]
     additionalProperties = [disableMultipart: "true", // see https://github.com/OpenAPITools/openapi-generator/pull/4713#issuecomment-633906581
+    ]
+    importMappings = [
+        "MetricId": "com.redhat.swatch.configuration.registry.MetricId",
+        "ProductId": "com.redhat.swatch.configuration.registry.ProductId",
+    ]
+    typeMappings = [
+        "string+MetricId": "MetricId",
+        "string+ProductId": "ProductId",
     ]
 }
 

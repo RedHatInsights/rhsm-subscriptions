@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -46,8 +47,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.json.Measurement.Uom;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 
 /** Model object to represent pieces of tally data. */
 @ToString
@@ -102,17 +102,17 @@ public class TallySnapshot implements Serializable {
   @Builder.Default
   private Map<TallyMeasurementKey, Double> tallyMeasurements = new HashMap<>();
 
-  public int getMeasurementAsInteger(HardwareMeasurementType type, Measurement.Uom uom) {
+  public int getMeasurementAsInteger(HardwareMeasurementType type, MetricId uom) {
     return Optional.ofNullable(getMeasurement(type, uom)).map(Double::intValue).orElse(0);
   }
 
-  public Double getMeasurement(HardwareMeasurementType type, Measurement.Uom uom) {
-    TallyMeasurementKey key = new TallyMeasurementKey(type, uom);
+  public Double getMeasurement(HardwareMeasurementType type, MetricId metricId) {
+    TallyMeasurementKey key = new TallyMeasurementKey(type, metricId.getValue());
     return getTallyMeasurements().get(key);
   }
 
-  public void setMeasurement(HardwareMeasurementType type, Measurement.Uom uom, Double value) {
-    TallyMeasurementKey key = new TallyMeasurementKey(type, uom);
+  public void setMeasurement(HardwareMeasurementType type, MetricId metricId, Double value) {
+    TallyMeasurementKey key = new TallyMeasurementKey(type, metricId.getValue());
     tallyMeasurements.put(key, value);
   }
 
@@ -121,17 +121,21 @@ public class TallySnapshot implements Serializable {
         new org.candlepin.subscriptions.utilization.api.model.TallySnapshot();
 
     snapshot.setDate(this.getSnapshotDate());
-    snapshot.setCores(this.getMeasurementAsInteger(HardwareMeasurementType.TOTAL, Uom.CORES));
-    snapshot.setSockets(this.getMeasurementAsInteger(HardwareMeasurementType.TOTAL, Uom.SOCKETS));
+    snapshot.setCores(
+        this.getMeasurementAsInteger(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores()));
+    snapshot.setSockets(
+        this.getMeasurementAsInteger(HardwareMeasurementType.TOTAL, MetricIdUtils.getSockets()));
     snapshot.setInstanceCount(
-        this.getMeasurementAsInteger(HardwareMeasurementType.TOTAL, Uom.INSTANCES));
+        this.getMeasurementAsInteger(
+            HardwareMeasurementType.TOTAL, MetricIdUtils.getInstanceHours()));
 
     snapshot.setPhysicalCores(
-        this.getMeasurementAsInteger(HardwareMeasurementType.PHYSICAL, Uom.CORES));
+        this.getMeasurementAsInteger(HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores()));
     snapshot.setPhysicalSockets(
-        this.getMeasurementAsInteger(HardwareMeasurementType.PHYSICAL, Uom.SOCKETS));
+        this.getMeasurementAsInteger(HardwareMeasurementType.PHYSICAL, MetricIdUtils.getSockets()));
     snapshot.setPhysicalInstanceCount(
-        this.getMeasurementAsInteger(HardwareMeasurementType.PHYSICAL, Uom.INSTANCES));
+        this.getMeasurementAsInteger(
+            HardwareMeasurementType.PHYSICAL, MetricIdUtils.getInstanceHours()));
 
     // Sum "HYPERVISOR" and "VIRTUAL" records in the short term
     int totalVirtualCores = 0;
@@ -139,23 +143,31 @@ public class TallySnapshot implements Serializable {
     int totalVirtualInstanceCount = 0;
 
     totalVirtualCores +=
-        Optional.ofNullable(this.getMeasurement(HardwareMeasurementType.HYPERVISOR, Uom.CORES))
+        Optional.ofNullable(
+                this.getMeasurement(HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getCores()))
             .orElse(0.0);
     totalVirtualSockets +=
-        Optional.ofNullable(this.getMeasurement(HardwareMeasurementType.HYPERVISOR, Uom.SOCKETS))
+        Optional.ofNullable(
+                this.getMeasurement(HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getSockets()))
             .orElse(0.0);
     totalVirtualInstanceCount +=
-        Optional.ofNullable(this.getMeasurement(HardwareMeasurementType.HYPERVISOR, Uom.INSTANCES))
+        Optional.ofNullable(
+                this.getMeasurement(
+                    HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getInstanceHours()))
             .orElse(0.0);
 
     totalVirtualCores +=
-        Optional.ofNullable(this.getMeasurement(HardwareMeasurementType.VIRTUAL, Uom.CORES))
+        Optional.ofNullable(
+                this.getMeasurement(HardwareMeasurementType.VIRTUAL, MetricIdUtils.getCores()))
             .orElse(0.0);
     totalVirtualSockets +=
-        Optional.ofNullable(this.getMeasurement(HardwareMeasurementType.VIRTUAL, Uom.SOCKETS))
+        Optional.ofNullable(
+                this.getMeasurement(HardwareMeasurementType.VIRTUAL, MetricIdUtils.getSockets()))
             .orElse(0.0);
     totalVirtualInstanceCount +=
-        Optional.ofNullable(this.getMeasurement(HardwareMeasurementType.VIRTUAL, Uom.INSTANCES))
+        Optional.ofNullable(
+                this.getMeasurement(
+                    HardwareMeasurementType.VIRTUAL, MetricIdUtils.getInstanceHours()))
             .orElse(0.0);
 
     snapshot.setHypervisorCores(totalVirtualCores);
@@ -168,16 +180,20 @@ public class TallySnapshot implements Serializable {
     int cloudCores = 0;
     int cloudSockets = 0;
     for (HardwareMeasurementType type : HardwareMeasurementType.getCloudProviderTypes()) {
-      Double measurement = getMeasurement(type, Uom.SOCKETS);
+      Double measurement = getMeasurement(type, MetricIdUtils.getSockets());
       if (measurement != null) {
         cloudInstances +=
-            Optional.ofNullable(getMeasurement(type, Uom.INSTANCES))
+            Optional.ofNullable(getMeasurement(type, MetricIdUtils.getInstanceHours()))
                 .map(Double::intValue)
                 .orElse(0);
         cloudCores +=
-            Optional.ofNullable(getMeasurement(type, Uom.CORES)).map(Double::intValue).orElse(0);
+            Optional.ofNullable(getMeasurement(type, MetricIdUtils.getCores()))
+                .map(Double::intValue)
+                .orElse(0);
         cloudSockets +=
-            Optional.ofNullable(getMeasurement(type, Uom.SOCKETS)).map(Double::intValue).orElse(0);
+            Optional.ofNullable(getMeasurement(type, MetricIdUtils.getSockets()))
+                .map(Double::intValue)
+                .orElse(0);
       }
     }
     snapshot.setCloudInstanceCount(cloudInstances);
@@ -185,10 +201,13 @@ public class TallySnapshot implements Serializable {
     snapshot.setCloudSockets(cloudSockets);
 
     snapshot.setCoreHours(
-        tallyMeasurements.get(new TallyMeasurementKey(HardwareMeasurementType.TOTAL, Uom.CORES)));
+        tallyMeasurements.get(
+            new TallyMeasurementKey(
+                HardwareMeasurementType.TOTAL, MetricIdUtils.getCores().getValue())));
     snapshot.setInstanceHours(
         tallyMeasurements.get(
-            new TallyMeasurementKey(HardwareMeasurementType.TOTAL, Uom.INSTANCE_HOURS)));
+            new TallyMeasurementKey(
+                HardwareMeasurementType.TOTAL, MetricIdUtils.getInstanceHours().getValue())));
 
     snapshot.setHasData(id != null);
     return snapshot;

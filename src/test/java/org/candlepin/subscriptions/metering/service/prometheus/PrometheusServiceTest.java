@@ -37,9 +37,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest(
-    properties =
-        "rhsm-subscriptions.metering.prometheus.client.url=http://localhost:${WIREMOCK_PORT:8101}")
+@SpringBootTest(properties = PrometheusQueryWiremockExtension.PROM_URL)
 @ActiveProfiles({"openshift-metering-worker", "test"})
 @ExtendWith(PrometheusQueryWiremockExtension.class)
 class PrometheusServiceTest {

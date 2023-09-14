@@ -35,7 +35,6 @@ import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.BillableUsage.Sla;
 import org.candlepin.subscriptions.json.BillableUsage.Usage;
-import org.candlepin.subscriptions.json.TallyMeasurement.Uom;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageMeasurement;
@@ -175,10 +174,8 @@ public class RhMarketplacePayloadMapper {
    */
   protected UsageMeasurement produceUsageMeasurement(BillableUsage billableUsage) {
 
-    Uom uom = Uom.fromValue(billableUsage.getUom().value());
-
     String rhmMarketplaceMetricId =
-        SubscriptionDefinition.getRhmMetricId(billableUsage.getProductId(), uom.toString());
+        SubscriptionDefinition.getRhmMetricId(billableUsage.getProductId(), billableUsage.getUom());
 
     Double value = billableUsage.getValue();
 

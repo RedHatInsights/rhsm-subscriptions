@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.resource;
 
 import static org.mockito.Mockito.*;
 
+import com.redhat.swatch.configuration.registry.ProductId;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
@@ -33,7 +34,6 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
-import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.SortDirection;
 import org.candlepin.subscriptions.utilization.api.model.Uom;
 import org.junit.jupiter.api.Assertions;
@@ -53,10 +53,10 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles({"api", "test"})
 @WithMockRedHatPrincipal("123456")
 class HostsResourceTest {
-
   static final Sort.Order IMPLICIT_ORDER = new Sort.Order(Sort.Direction.ASC, "id");
   private static final String SANITIZED_MISSING_DISPLAY_NAME = "";
   private static final OffsetDateTime NULL_BEGINNING_ENDING_PARAM = null;
+  private static final ProductId RHEL_FOR_X86 = ProductId.fromString("RHEL for x86");
 
   @MockBean HostRepository repository;
   @MockBean PageLinkCreator pageLinkCreator;
@@ -77,7 +77,7 @@ class HostsResourceTest {
   @SuppressWarnings("indentation")
   void testShouldMapDisplayNameAppropriately() {
     resource.getHosts(
-        ProductId.RHEL_FOR_X86,
+        RHEL_FOR_X86,
         0,
         1,
         null,
@@ -92,7 +92,7 @@ class HostsResourceTest {
     verify(repository, only())
         .getTallyHostViews(
             "owner123456",
-            ProductId.RHEL_FOR_X86.toString(),
+            RHEL_FOR_X86.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -112,7 +112,7 @@ class HostsResourceTest {
   @Test
   void testShouldMapCoresAppropriately() {
     resource.getHosts(
-        ProductId.RHEL_FOR_X86,
+        RHEL_FOR_X86,
         0,
         1,
         null,
@@ -127,7 +127,7 @@ class HostsResourceTest {
     verify(repository, only())
         .getTallyHostViews(
             "owner123456",
-            ProductId.RHEL_FOR_X86.toString(),
+            RHEL_FOR_X86.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -146,7 +146,7 @@ class HostsResourceTest {
   @Test
   void testShouldMapSocketsAppropriately() {
     resource.getHosts(
-        ProductId.RHEL_FOR_X86,
+        RHEL_FOR_X86,
         0,
         1,
         null,
@@ -161,7 +161,7 @@ class HostsResourceTest {
     verify(repository, only())
         .getTallyHostViews(
             "owner123456",
-            ProductId.RHEL_FOR_X86.toString(),
+            RHEL_FOR_X86.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -181,7 +181,7 @@ class HostsResourceTest {
   @Test
   void testShouldMapLastSeenAppropriately() {
     resource.getHosts(
-        ProductId.RHEL_FOR_X86,
+        RHEL_FOR_X86,
         0,
         1,
         null,
@@ -196,7 +196,7 @@ class HostsResourceTest {
     verify(repository, only())
         .getTallyHostViews(
             "owner123456",
-            ProductId.RHEL_FOR_X86.toString(),
+            RHEL_FOR_X86.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -216,7 +216,7 @@ class HostsResourceTest {
   @Test
   void testShouldMapHardwareTypeAppropriately() {
     resource.getHosts(
-        ProductId.RHEL_FOR_X86,
+        RHEL_FOR_X86,
         0,
         1,
         null,
@@ -231,7 +231,7 @@ class HostsResourceTest {
     verify(repository, only())
         .getTallyHostViews(
             "owner123456",
-            ProductId.RHEL_FOR_X86.toString(),
+            RHEL_FOR_X86.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -251,7 +251,7 @@ class HostsResourceTest {
   @Test
   void testShouldDefaultToImplicitOrder() {
     resource.getHosts(
-        ProductId.RHEL_FOR_X86,
+        RHEL_FOR_X86,
         0,
         1,
         null,
@@ -266,7 +266,7 @@ class HostsResourceTest {
     verify(repository, only())
         .getTallyHostViews(
             "owner123456",
-            ProductId.RHEL_FOR_X86.toString(),
+            RHEL_FOR_X86.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -280,7 +280,7 @@ class HostsResourceTest {
   @Test
   void testShouldDefaultToAscending() {
     resource.getHosts(
-        ProductId.RHEL_FOR_X86,
+        RHEL_FOR_X86,
         0,
         1,
         null,
@@ -295,7 +295,7 @@ class HostsResourceTest {
     verify(repository, only())
         .getTallyHostViews(
             "owner123456",
-            ProductId.RHEL_FOR_X86.toString(),
+            RHEL_FOR_X86.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -315,7 +315,7 @@ class HostsResourceTest {
   @Test
   void testShouldUseMinCoresWhenUomIsCores() {
     resource.getHosts(
-        ProductId.RHEL_FOR_X86,
+        RHEL_FOR_X86,
         0,
         1,
         null,
@@ -329,7 +329,7 @@ class HostsResourceTest {
     verify(repository, only())
         .getTallyHostViews(
             "owner123456",
-            ProductId.RHEL_FOR_X86.toString(),
+            RHEL_FOR_X86.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,
@@ -343,7 +343,7 @@ class HostsResourceTest {
   @Test
   void testShouldUseMinSocketsWhenUomIsSockets() {
     resource.getHosts(
-        ProductId.RHEL_FOR_X86,
+        RHEL_FOR_X86,
         0,
         1,
         null,
@@ -358,7 +358,7 @@ class HostsResourceTest {
     verify(repository, only())
         .getTallyHostViews(
             "owner123456",
-            ProductId.RHEL_FOR_X86.toString(),
+            RHEL_FOR_X86.toString(),
             ServiceLevel._ANY,
             Usage._ANY,
             BillingProvider._ANY,

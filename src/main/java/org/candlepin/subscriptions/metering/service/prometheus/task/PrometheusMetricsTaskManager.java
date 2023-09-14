@@ -20,13 +20,13 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus.task;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskDescriptor.TaskDescriptorBuilder;
@@ -34,6 +34,7 @@ import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -87,23 +88,17 @@ public class PrometheusMetricsTaskManager {
 
   public void updateMetricsForOrgId(
       String orgId, String productTag, OffsetDateTime start, OffsetDateTime end) {
-    var subDefOptional = SubscriptionDefinition.lookupSubscriptionByTag(productTag);
-    subDefOptional.ifPresent(
-        subDef ->
-            subDef
-                .getMetricIds() // No null check required here since metrics will always be present
-                .forEach(
-                    metric -> {
-                      log.info(
-                          "Queuing {} {} metric updates for orgId={}.", productTag, metric, orgId);
-                      queueMetricUpdateForOrgId(
-                          orgId, productTag, Uom.fromValue(metric), start, end);
-                      log.info("Done queuing updates of {} {} metric", productTag, metric);
-                    }));
+    MetricIdUtils.getMetricIdsFromConfigForTag(productTag)
+        .forEach(
+            metricId -> {
+              log.info("Queuing {} {} metric updates for orgId={}.", productTag, metricId, orgId);
+              queueMetricUpdateForOrgId(orgId, productTag, metricId, start, end);
+              log.info("Done queuing updates of {} {} metric", productTag, metricId);
+            });
   }
 
   private void queueMetricUpdateForOrgId(
-      String orgId, String productTag, Uom metric, OffsetDateTime start, OffsetDateTime end) {
+      String orgId, String productTag, MetricId metric, OffsetDateTime start, OffsetDateTime end) {
     log.info(
         "Queuing {} {} metric update for orgId={} for range [{}, {})",
         productTag,
@@ -137,13 +132,13 @@ public class PrometheusMetricsTaskManager {
                         retry.execute(
                             context -> {
                               queueMetricUpdateForAllAccounts(
-                                  productTag, Uom.fromValue(metric), start, end);
+                                  productTag, MetricId.fromString(metric), start, end);
                               return null;
                             })));
   }
 
   private void queueMetricUpdateForAllAccounts(
-      String productTag, Uom metric, OffsetDateTime start, OffsetDateTime end) {
+      String productTag, MetricId metric, OffsetDateTime start, OffsetDateTime end) {
     try (Stream<String> orgIdStream =
         accountSource.getMarketplaceAccounts(productTag, metric, start, end).stream()) {
       log.info("Queuing {} {} metric updates for all configured accounts.", productTag, metric);
@@ -154,14 +149,14 @@ public class PrometheusMetricsTaskManager {
   }
 
   private TaskDescriptor createMetricsTask(
-      String orgId, String productTag, Uom metric, OffsetDateTime start, OffsetDateTime end) {
+      String orgId, String productTag, MetricId metric, OffsetDateTime start, OffsetDateTime end) {
     log.info(
         "ORGID: {} TAG: {} METRIC: {} START: {} END: {}", orgId, productTag, metric, start, end);
     TaskDescriptorBuilder builder =
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, topic, orgId)
             .setSingleValuedArg("orgId", orgId)
             .setSingleValuedArg("productTag", productTag)
-            .setSingleValuedArg("metric", metric.value())
+            .setSingleValuedArg("metric", metric.getValue())
             .setSingleValuedArg("start", start.toString());
 
     if (end != null) {

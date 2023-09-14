@@ -28,6 +28,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -41,9 +42,9 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.json.TallySummary;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -88,7 +89,7 @@ class SnapshotSummaryProducerTest {
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
                 BillingProvider.RED_HAT,
-                Uom.CORES,
+                MetricIdUtils.getCores().getValue(),
                 20.4)));
     updateMap.put(
         "org2",
@@ -101,7 +102,7 @@ class SnapshotSummaryProducerTest {
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
                 BillingProvider.AWS,
-                Uom.CORES,
+                MetricIdUtils.getCores().getValue(),
                 22.2)));
     producer.produceTallySummaryMessages(updateMap);
     verify(kafka, times(2)).send(eq(props.getTopic()), any(), summaryCaptor.capture());
@@ -118,7 +119,7 @@ class SnapshotSummaryProducerTest {
         Granularity.HOURLY,
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
-        Uom.CORES,
+        MetricIdUtils.getCores(),
         20.4);
     assertSummary(
         results,
@@ -128,7 +129,7 @@ class SnapshotSummaryProducerTest {
         Granularity.HOURLY,
         ServiceLevel.PREMIUM,
         Usage.PRODUCTION,
-        Uom.CORES,
+        MetricIdUtils.getCores(),
         22.2);
   }
 
@@ -140,7 +141,7 @@ class SnapshotSummaryProducerTest {
       Granularity granularity,
       ServiceLevel sla,
       Usage usage,
-      Uom uom,
+      MetricId uom,
       double value) {
     assertTrue(results.containsKey(account));
     List<TallySummary> accountSummaries = results.get(account);
@@ -179,7 +180,7 @@ class SnapshotSummaryProducerTest {
                 ServiceLevel.PREMIUM,
                 Usage.PRODUCTION,
                 BillingProvider.RED_HAT,
-                Uom.CORES,
+                MetricIdUtils.getCores().getValue(),
                 20.4)));
     updateMap.get("a1").get(0).getTallyMeasurements().clear();
     producer.produceTallySummaryMessages(updateMap);
@@ -189,7 +190,7 @@ class SnapshotSummaryProducerTest {
   void assertMeasurement(
       Map<String, List<TallyMeasurement>> measurements,
       String hardwareType,
-      Uom uom,
+      MetricId metricId,
       double value) {
     Optional<List<TallyMeasurement>> optionalTotal =
         Optional.ofNullable(measurements.get(hardwareType));
@@ -198,7 +199,7 @@ class SnapshotSummaryProducerTest {
     TallyMeasurement measurement = optionalTotal.get().get(0);
 
     assertEquals(hardwareType, measurement.getHardwareMeasurementType());
-    assertEquals(uom.value(), measurement.getUom().value());
+    assertEquals(metricId.getValue(), measurement.getUom());
     assertEquals(value, measurement.getValue());
   }
 
@@ -210,11 +211,11 @@ class SnapshotSummaryProducerTest {
       ServiceLevel sla,
       Usage usage,
       BillingProvider billingProvider,
-      Uom uom,
+      String metricId,
       double val) {
     Map<TallyMeasurementKey, Double> measurements = new HashMap<>();
-    measurements.put(new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, uom), val);
-    measurements.put(new TallyMeasurementKey(HardwareMeasurementType.TOTAL, uom), val);
+    measurements.put(new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, metricId), val);
+    measurements.put(new TallyMeasurementKey(HardwareMeasurementType.TOTAL, metricId), val);
     return TallySnapshot.builder()
         .accountNumber(account)
         .orgId(orgId)

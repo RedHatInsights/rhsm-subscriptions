@@ -187,8 +187,7 @@ public class FactNormalizer {
       NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
     String cloudProvider = hostFacts.getCloudProvider();
     if (HardwareMeasurementType.isSupportedCloudProvider(cloudProvider)) {
-      normalizedFacts.setCloudProviderType(
-          HardwareMeasurementType.valueOf(cloudProvider.toUpperCase()));
+      normalizedFacts.setCloudProviderType(HardwareMeasurementType.fromString(cloudProvider));
     }
     if (hostFacts.getSystemProfileSockets() != 0) {
       normalizedFacts.setSockets(hostFacts.getSystemProfileSockets());

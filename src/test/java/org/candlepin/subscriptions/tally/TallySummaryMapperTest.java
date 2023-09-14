@@ -35,8 +35,8 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.json.TallySummary;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.Test;
 
 class TallySummaryMapperTest {
@@ -54,7 +54,7 @@ class TallySummaryMapperTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider.AWS,
-            Uom.STORAGE_GIBIBYTE_MONTHS,
+            "Storage-gibibytes",
             2);
     TallySnapshot rhel =
         buildSnapshot(
@@ -65,7 +65,7 @@ class TallySummaryMapperTest {
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider.RED_HAT,
-            Uom.SOCKETS,
+            MetricIdUtils.getSockets().getValue(),
             24);
 
     var snapshots = List.of(rhosak, rhel);
@@ -105,8 +105,7 @@ class TallySummaryMapperTest {
         m -> {
           HardwareMeasurementType type =
               HardwareMeasurementType.valueOf(m.getHardwareMeasurementType());
-          Uom uom = Uom.fromValue(m.getUom().value());
-          TallyMeasurementKey key = new TallyMeasurementKey(type, uom);
+          TallyMeasurementKey key = new TallyMeasurementKey(type, m.getUom());
           assertTrue(expectedMeasurements.containsKey(key));
           Double expectedValue = expectedMeasurements.get(key);
           assertEquals(expectedValue, m.getValue());
@@ -121,11 +120,11 @@ class TallySummaryMapperTest {
       ServiceLevel sla,
       Usage usage,
       BillingProvider billingProvider,
-      Uom uom,
+      String metricId,
       double val) {
     Map<TallyMeasurementKey, Double> measurements = new HashMap<>();
-    measurements.put(new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, uom), val);
-    measurements.put(new TallyMeasurementKey(HardwareMeasurementType.TOTAL, uom), val);
+    measurements.put(new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, metricId), val);
+    measurements.put(new TallyMeasurementKey(HardwareMeasurementType.TOTAL, metricId), val);
 
     return TallySnapshot.builder()
         .accountNumber(account)

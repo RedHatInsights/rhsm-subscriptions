@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinitionGranularity;
 import com.redhat.swatch.configuration.registry.Variant;
 import jakarta.validation.constraints.Min;
@@ -53,9 +55,7 @@ import org.candlepin.subscriptions.utilization.api.model.CapacityReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshotByMetricId;
 import org.candlepin.subscriptions.utilization.api.model.GranularityType;
-import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.candlepin.subscriptions.utilization.api.model.PageLinks;
-import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
@@ -71,8 +71,8 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class CapacityResource implements CapacityApi {
 
-  public static final String SOCKETS = MetricId.SOCKETS.toString();
-  public static final String CORES = MetricId.CORES.toString();
+  public static final String SOCKETS = "Sockets";
+  public static final String CORES = "Cores";
   public static final String PHYSICAL = HardwareMeasurementType.PHYSICAL.toString().toUpperCase();
   public static final String HYPERVISOR =
       HardwareMeasurementType.HYPERVISOR.toString().toUpperCase();
@@ -108,7 +108,6 @@ public class CapacityResource implements CapacityApi {
       @Min(1) Integer limit,
       ServiceLevelType sla,
       UsageType usage) {
-
     // capacity records do not include _ANY rows
     ServiceLevel sanitizedServiceLevel = ResourceUtils.sanitizeServiceLevel(sla);
     if (sanitizedServiceLevel == ServiceLevel._ANY) {
@@ -149,7 +148,7 @@ public class CapacityResource implements CapacityApi {
     report.setData(data);
     report.setMeta(new CapacityReportMeta());
     report.getMeta().setGranularity(granularityType);
-    report.getMeta().setProduct(productId);
+    report.getMeta().setProduct(productId.toString());
     report.getMeta().setCount(report.getData().size());
 
     if (sanitizedServiceLevel != null) {
@@ -232,8 +231,8 @@ public class CapacityResource implements CapacityApi {
     report.setMeta(new CapacityReportByMetricIdMeta());
     var meta = report.getMeta();
     meta.setGranularity(granularityType);
-    meta.setProduct(productId);
-    meta.setMetricId(metricId);
+    meta.setProduct(productId.toString());
+    meta.setMetricId(metricId.toString());
     meta.setCategory(reportCategory);
     meta.setCount(report.getData().size());
 

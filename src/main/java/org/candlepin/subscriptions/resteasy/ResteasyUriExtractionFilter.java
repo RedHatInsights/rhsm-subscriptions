@@ -33,19 +33,17 @@ import java.nio.file.Paths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.web.servlet.HandlerMapping;
 
 /**
- * Hack to get URI populated by micrometer.
+ * Stores the resource method's URI as a request attribute.
  *
- * <p>This uses internal knowledge of how MVC requests are providing URI to micrometer, found by
- * reading the source.
+ * @see ResteasyRequestObservationConvention
  */
 @Component
 @Provider
-public class MicrometerUriHackFilter implements ContainerRequestFilter {
-
-  private static final Logger log = LoggerFactory.getLogger(MicrometerUriHackFilter.class);
+public class ResteasyUriExtractionFilter implements ContainerRequestFilter {
+  public static final String JAXRS_URI = "JAXRS_URI";
+  private static final Logger log = LoggerFactory.getLogger(ResteasyUriExtractionFilter.class);
 
   @Context HttpServletRequest request;
 
@@ -64,6 +62,6 @@ public class MicrometerUriHackFilter implements ContainerRequestFilter {
     } catch (Exception e) {
       log.debug("Unable to determine templated resource path, falling back to absolute path", e);
     }
-    request.setAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE, path);
+    request.setAttribute(JAXRS_URI, path);
   }
 }

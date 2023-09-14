@@ -61,15 +61,6 @@ properties:
         uom:
           description: Preferred unit of measure for the subject (for products with multiple possible UOM).
           type: string
-          enum:
-            - ''  # UNSPECIFIED
-            - Cores
-            - Sockets
-            - Instance-hours
-            - Storage-gibibytes
-            - Transfer-gibibytes
-            - Storage-gibibyte-months
-            - Instances
         value:
           description: Measurement value.
           type: number

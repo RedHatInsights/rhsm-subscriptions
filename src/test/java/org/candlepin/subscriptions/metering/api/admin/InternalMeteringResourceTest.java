@@ -27,12 +27,12 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.ResourceUtil;
 import org.candlepin.subscriptions.metering.retention.EventRecordsRetentionProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
@@ -156,7 +156,8 @@ class InternalMeteringResourceTest {
     OffsetDateTime startDate = endDate.minusMinutes(120);
     resource.meterProductForOrgIdAndRange(VALID_PRODUCT, "org1", endDate, 120, true);
     verify(controller)
-        .collectMetrics(VALID_PRODUCT, Uom.INSTANCE_HOURS, "org1", startDate, endDate);
+        .collectMetrics(
+            VALID_PRODUCT, MetricId.fromString("Instance-hours"), "org1", startDate, endDate);
     verifyNoInteractions(tasks);
   }
 

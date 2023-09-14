@@ -106,6 +106,10 @@ parameters:
     value: '3'
   - name: KAFKA_METERING_TASKS_PARTITIONS
     value: '3'
+  - name: KAFKA_SERVICE_INSTANCE_REPLICAS
+    value: '3'
+  - name: KAFKA_SERVICE_INSTANCE_PARTITIONS
+    value: '3'
   - name: ENABLE_SYNCHRONOUS_OPERATIONS
     value: 'false'
   - name: OTEL_SERVICE_NAME
@@ -135,6 +139,9 @@ objects:
         - replicas: ${{KAFKA_METERING_TASKS_REPLICAS}}
           partitions: ${{KAFKA_METERING_TASKS_PARTITIONS}}
           topicName: platform.rhsm-subscriptions.metering-tasks
+        - replicas: ${{KAFKA_SERVICE_INSTANCE_REPLICAS}}
+          partitions: ${{KAFKA_SERVICE_INSTANCE_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.service-instance-ingress
 
       pullSecrets:
         name: ${IMAGE_PULL_SECRET}

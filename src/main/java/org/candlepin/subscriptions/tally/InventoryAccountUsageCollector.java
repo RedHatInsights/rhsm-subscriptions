@@ -43,11 +43,11 @@ import org.candlepin.subscriptions.db.HostTallyBucketRepository;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.inventory.db.InventoryDatabaseOperations;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
-import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -340,12 +340,13 @@ public class InventoryAccountUsageCollector {
     host.setHypervisorUuid(normalizedFacts.getHypervisorUuid());
 
     if (normalizedFacts.getCores() != null) {
-      host.getMeasurements().put(Measurement.Uom.CORES, normalizedFacts.getCores().doubleValue());
+      host.getMeasurements()
+          .put(MetricIdUtils.getCores().getValue(), normalizedFacts.getCores().doubleValue());
     }
 
     if (normalizedFacts.getSockets() != null) {
       host.getMeasurements()
-          .put(Measurement.Uom.SOCKETS, normalizedFacts.getSockets().doubleValue());
+          .put(MetricIdUtils.getSockets().getValue(), normalizedFacts.getSockets().doubleValue());
     }
 
     host.setHypervisor(normalizedFacts.isHypervisor());

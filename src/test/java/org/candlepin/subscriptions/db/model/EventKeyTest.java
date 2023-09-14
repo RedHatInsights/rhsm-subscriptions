@@ -65,12 +65,13 @@ class EventKeyTest {
   }
 
   private Event eventForInstanceId(String instanceId) {
-    return new Event()
-        .withOrgId("org")
-        .withAccountNumber("account")
-        .withEventType("type")
-        .withEventSource("source")
-        .withInstanceId(instanceId)
-        .withTimestamp(clock.now());
+    return (Event)
+        new Event()
+            .withAccountNumber("account")
+            .withTimestamp(clock.now())
+            .withOrgId("org")
+            .withEventType("type")
+            .withEventSource("source")
+            .withInstanceId(instanceId);
   }
 }

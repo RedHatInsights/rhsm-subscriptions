@@ -20,26 +20,27 @@
  */
 package org.candlepin.subscriptions.event;
 
-import jakarta.persistence.EntityNotFoundException;
+import static org.candlepin.subscriptions.metering.MeteringEventFactory.EVENT_SOURCE;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
-import org.candlepin.subscriptions.db.model.EventRecordConverter;
 import org.candlepin.subscriptions.db.model.config.OptInType;
+import org.candlepin.subscriptions.json.BaseEvent;
+import org.candlepin.subscriptions.json.CleanUpEvent;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.security.OptInController;
 import org.springframework.stereotype.Service;
@@ -50,15 +51,13 @@ import org.springframework.util.StringUtils;
 @Slf4j
 public class EventController {
   private final EventRecordRepository repo;
-  private final EventRecordConverter eventRecordConverter;
+  private final ObjectMapper objectMapper;
   private final OptInController optInController;
 
   public EventController(
-      EventRecordRepository repo,
-      EventRecordConverter eventRecordConverter,
-      OptInController optInController) {
+      EventRecordRepository repo, ObjectMapper objectMapper, OptInController optInController) {
     this.repo = repo;
-    this.eventRecordConverter = eventRecordConverter;
+    this.objectMapper = objectMapper;
     this.optInController = optInController;
   }
 
@@ -94,30 +93,6 @@ public class EventController {
     }
   }
 
-  @SuppressWarnings({"linelength", "indentation"})
-  public Map<EventKey, Event> mapEventsInTimeRange(
-      String orgId,
-      String eventSource,
-      String eventType,
-      OffsetDateTime begin,
-      OffsetDateTime end) {
-    return repo.findEventRecordsByCriteria(orgId, eventSource, eventType, begin, end)
-        .map(EventRecord::getEvent)
-        .collect(Collectors.toMap(EventKey::fromEvent, Function.identity()));
-  }
-
-  /**
-   * Validates and saves event JSON in the DB.
-   *
-   * @param event the event to save
-   * @return the event ID
-   */
-  @Transactional
-  public Event saveEvent(Event event) {
-    EventRecord eventRecord = new EventRecord(event);
-    return repo.save(eventRecord).getEvent();
-  }
-
   /**
    * Validates and saves a list of event JSON objects in the DB.
    *
@@ -125,34 +100,14 @@ public class EventController {
    */
   @Transactional
   public List<Event> saveAll(Collection<Event> events) {
-    return repo.saveAll(events.stream().map(EventRecord::new).collect(Collectors.toList())).stream()
+    return repo.saveAll(events.stream().map(EventRecord::new).toList()).stream()
         .map(EventRecord::getEvent)
-        .collect(Collectors.toList());
-  }
-
-  /**
-   * Fetch a single Event by its ID.
-   *
-   * @param eventId Event id as a UUID
-   * @return Event if present, otherwise Optional.empty()
-   */
-  @Transactional
-  public Optional<Event> getEvent(UUID eventId) {
-    try {
-      return Optional.of(repo.getOne(eventId).getEvent());
-    } catch (EntityNotFoundException e) {
-      return Optional.empty();
-    }
-  }
-
-  @Transactional
-  public void deleteEvents(Collection<Event> toDelete) {
-    repo.deleteInBatch(toDelete.stream().map(EventRecord::new).collect(Collectors.toList()));
+        .toList();
   }
 
   @Transactional
   public void deleteEvent(UUID eventId) {
-    repo.deleteById(eventId);
+    repo.deleteByEventId(eventId);
   }
 
   @Transactional
@@ -172,23 +127,54 @@ public class EventController {
 
   @Transactional
   public void persistServiceInstances(Set<String> eventJsonList) {
-    Map<EventKey, Event> eventsMap = parseEventRecordsToEventsEntityMap(eventJsonList);
-    saveAll(eventsMap.values());
+    ServiceInstancesResult result = parseServiceInstancesResult(eventJsonList);
+    if (!result.eventsMap.isEmpty()) {
+      int updated = saveAll(result.eventsMap.values()).size();
+      log.debug("Adding/Updating {} metric events", updated);
+    }
+
+    result.cleanUpEvents.forEach(
+        cleanUpEvent -> {
+          int deleted =
+              repo.deleteStaleEvents(
+                  cleanUpEvent.getOrgId(),
+                  cleanUpEvent.getEventSource(),
+                  cleanUpEvent.getEventType(),
+                  cleanUpEvent.getMeteringBatchId(),
+                  cleanUpEvent.getStart(),
+                  cleanUpEvent.getEnd());
+          log.info(
+              "Deleting {} stale metric events for orgId={} and {} metrics",
+              deleted,
+              cleanUpEvent.getOrgId(),
+              cleanUpEvent.getEventType());
+        });
   }
 
-  private Map<EventKey, Event> parseEventRecordsToEventsEntityMap(Set<String> eventJsonList) {
-    Map<EventKey, Event> eventsMap = new HashMap<>();
+  private ServiceInstancesResult parseServiceInstancesResult(Set<String> eventJsonList) {
+    ServiceInstancesResult result = new ServiceInstancesResult();
     eventJsonList.forEach(
         eventJson -> {
           try {
-            Event event = eventRecordConverter.convertToEntityAttribute(eventJson);
-            log.info("Event processing in batch: " + event);
-            if (StringUtils.hasText(event.getOrgId())) {
-              log.debug(
-                  "Ensuring orgId={} has been set up for syncing/reporting.", event.getOrgId());
-              ensureOptIn(event.getOrgId());
+            BaseEvent baseEvent = objectMapper.readValue(eventJson, BaseEvent.class);
+            if (!EVENT_SOURCE.equals(baseEvent.getEventSource())) {
+              log.info("Event processing in batch: " + baseEvent);
             }
-            eventsMap.putIfAbsent(EventKey.fromEvent(event), event);
+
+            if (StringUtils.hasText(baseEvent.getOrgId())) {
+              log.debug(
+                  "Ensuring orgId={} has been set up for syncing/reporting.", baseEvent.getOrgId());
+              ensureOptIn(baseEvent.getOrgId());
+            }
+
+            if (baseEvent instanceof Event) {
+              result.addEvent((Event) baseEvent);
+            } else if (baseEvent instanceof CleanUpEvent) {
+              CleanUpEvent cleanUpEvent = (CleanUpEvent) baseEvent;
+              log.debug("Processing clean up event for: " + cleanUpEvent);
+              result.addCleanUpEvent(cleanUpEvent);
+            }
+
           } catch (Exception e) {
             log.warn(
                 String.format(
@@ -196,7 +182,7 @@ public class EventController {
                     e.getCause()));
           }
         });
-    return eventsMap;
+    return result;
   }
 
   private void ensureOptIn(String orgId) {
@@ -204,6 +190,19 @@ public class EventController {
       optInController.optInByOrgId(orgId, OptInType.PROMETHEUS);
     } catch (Exception e) {
       log.error("Error while attempting to automatically opt-in for orgId={} ", orgId, e);
+    }
+  }
+
+  private static class ServiceInstancesResult {
+    private final Map<EventKey, Event> eventsMap = new HashMap<>();
+    private final Set<CleanUpEvent> cleanUpEvents = new HashSet<>();
+
+    private void addEvent(Event event) {
+      eventsMap.putIfAbsent(EventKey.fromEvent(event), event);
+    }
+
+    public void addCleanUpEvent(CleanUpEvent cleanUpEvent) {
+      cleanUpEvents.add(cleanUpEvent);
     }
   }
 }

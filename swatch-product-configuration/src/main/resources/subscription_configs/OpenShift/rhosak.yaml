@@ -24,6 +24,7 @@ metrics:
     prometheus:
       queryKey: default
       queryParams:
+        instanceKey: _id
         product: rhosak
         metric: kafka_id:haproxy_server_bytes_in_out_total:rate1h_gibibytes
         metadataMetric: ocm_subscription
@@ -33,6 +34,7 @@ metrics:
     prometheus:
       queryKey: default
       queryParams:
+        instanceKey: _id
         product: rhosak
         metric: kafka_id:strimzi_resource_state:max_over_time1h
         metadataMetric: ocm_subscription
@@ -42,6 +44,7 @@ metrics:
     prometheus:
       queryKey: default
       queryParams:
+        instanceKey: _id
         product: rhosak
         metric: kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibyte_months
         metadataMetric: ocm_subscription
@@ -50,6 +53,7 @@ metrics:
     prometheus:
       queryKey: default
       queryParams:
+        instanceKey: _id
         product: rhosak
         metric: kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibytes
         metadataMetric: ocm_subscription

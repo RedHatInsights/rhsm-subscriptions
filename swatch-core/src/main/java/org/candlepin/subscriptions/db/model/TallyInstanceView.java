@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -35,7 +36,6 @@ import java.util.HashMap;
 import java.util.Map;
 import lombok.Getter;
 import lombok.Setter;
-import org.candlepin.subscriptions.json.Measurement;
 import org.springframework.data.annotation.Immutable;
 
 @Setter
@@ -90,8 +90,8 @@ public class TallyInstanceView implements Serializable {
     key = new TallyInstanceViewKey();
   }
 
-  public Double getMonthlyTotal(String monthId, Measurement.Uom uom) {
-    var totalKey = new InstanceMonthlyTotalKey(monthId, uom);
+  public Double getMonthlyTotal(String monthId, MetricId metricId) {
+    var totalKey = new InstanceMonthlyTotalKey(monthId, metricId.toString());
     return monthlyTotals.get(totalKey);
   }
 }
