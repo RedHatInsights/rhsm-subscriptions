@@ -230,7 +230,8 @@ public interface TallyInstanceViewRepository
       if (StringUtils.hasText(month)) {
         searchCriteria =
             searchCriteria.and(
-                monthlyKeyEquals(new InstanceMonthlyTotalKey(month, effectiveUom.toString())));
+                monthlyKeyEquals(
+                    new InstanceMonthlyTotalKey(month, effectiveUom.toString().toUpperCase())));
       }
     }
     if (!ObjectUtils.isEmpty(hardwareMeasurementTypes)) {
