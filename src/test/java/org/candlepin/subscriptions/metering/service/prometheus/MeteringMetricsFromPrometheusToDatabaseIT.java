@@ -44,29 +44,17 @@ import org.candlepin.subscriptions.prometheus.model.QueryResultData;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.ResultType;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
+import org.candlepin.subscriptions.test.BaseIT;
 import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest(
-    properties = {
-      PrometheusQueryWiremockExtension.PROM_URL,
-      "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}",
-      // In tests, messages may be sent before the listener has been assigned the topic
-      // so we ensure that when the listener comes online it starts from first message.
-      "spring.kafka.consumer.auto-offset-reset=earliest"
-    })
-@ActiveProfiles({"openshift-metering-worker", "worker", "test"})
-@ExtendWith(PrometheusQueryWiremockExtension.class)
-@EmbeddedKafka(
-    partitions = 1,
-    topics = {"${rhsm-subscriptions.service-instance-ingress.incoming.topic}"})
-class MeteringMetricsFromPrometheusToDatabaseIT {
+@SpringBootTest
+@ActiveProfiles({"openshift-metering-worker", "worker", "test-inventory"})
+class MeteringMetricsFromPrometheusToDatabaseIT extends BaseIT {
 
   private static final int NUM_METRICS_TO_SEND = 5;
   private static final Duration TIMEOUT_TO_WAIT_FOR_METRICS = Duration.ofSeconds(5);

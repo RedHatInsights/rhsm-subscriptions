@@ -62,7 +62,10 @@ pipeline {
                 // The build task includes check, test, and assemble.  Linting happens during the check
                 // task and uses the spotless gradle plugin.
                 echo "The ci value is ${env.CI}"
-                sh "./gradlew --no-daemon build"
+                // Integration tests require Docker environment which is not supported by our Jenkins environment yet
+                // The actual problem is that the podman socket is not listening.
+                // We need to run "systemctl --user enable podman.socket --now" when spawning the node.
+                sh "./gradlew --no-daemon build -DexcludeTags=integration"
             }
         }
 
