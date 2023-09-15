@@ -26,6 +26,8 @@ import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.NamedAttributeNode;
+import jakarta.persistence.NamedEntityGraph;
 import jakarta.persistence.Table;
 import java.io.Serializable;
 import java.util.HashSet;
@@ -54,6 +56,10 @@ import lombok.ToString;
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor
+// graph fetches all associations to avoid LazyInitializationException
+@NamedEntityGraph(
+    name = "graph.offering",
+    attributeNodes = {@NamedAttributeNode("childSkus"), @NamedAttributeNode("productIds")})
 public class Offering implements Serializable {
 
   /**
