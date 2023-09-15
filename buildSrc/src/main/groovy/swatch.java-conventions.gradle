@@ -48,7 +48,17 @@ compileTestJava {
 }
 
 test {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        String iTags = System.getProperty("includeTags")
+        if (iTags != null) {
+            includeTags(iTags)
+        }
+
+        String eTags = System.getProperty("excludeTags")
+        if (eTags != null) {
+            excludeTags(eTags)
+        }
+    }
     if (System.getenv("DOCKER_HOST") == null) {
         String UID = 'id -u'.execute().text.strip()
         environment "DOCKER_HOST", "unix:///run/user/$UID/podman/podman.sock"

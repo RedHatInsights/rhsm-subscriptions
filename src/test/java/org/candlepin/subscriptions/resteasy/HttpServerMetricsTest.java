@@ -26,7 +26,6 @@ import static org.candlepin.subscriptions.security.IdentityHeaderAuthenticationF
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.charset.StandardCharsets;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -48,7 +47,6 @@ import org.springframework.test.context.ActiveProfiles;
       // use a random port in management server
       "management.server.port=0",
     })
-@Tag("integration")
 @ActiveProfiles({"api", "test"})
 class HttpServerMetricsTest {
 

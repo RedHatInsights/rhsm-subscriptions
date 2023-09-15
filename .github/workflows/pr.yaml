@@ -1,0 +1,24 @@
+# Integration tests require Docker environment which is not supported by our Jenkins environment yet
+# So, we need to run the integration tests in GitHub.
+# To be deleted once the Jenkins environment support Docker.
+name: "PR build"
+on:
+  - pull_request
+jobs:
+  integration-tests:
+    name: Verify integration tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [ 17 ]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install JDK ${{ matrix.java }}
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
+          cache: 'gradle'
+      - name: Build and Run integration tests
+        run: |
+          ./gradlew clean build -DincludeTags=integration
