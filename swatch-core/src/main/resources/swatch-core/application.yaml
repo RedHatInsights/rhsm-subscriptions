@@ -153,8 +153,6 @@ rhsm-subscriptions:
 logging:
   level:
     org:
-      hibernate:
-        type: trace
       candlepin:
         subscriptions:
           resteasy:
