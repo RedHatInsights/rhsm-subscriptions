@@ -122,7 +122,8 @@ class TallySnapshotControllerIT extends BaseIT {
   }
 
   private void whenProduceHourlySnapshotsForOrg() {
-    controller.produceHourlySnapshotsForOrg(ORG_ID, new DateRange(start, end));
+    controller.produceHourlySnapshotsForOrg(
+        ORG_ID, new DateRange(clock.startOfCurrentHour(), clock.startOfCurrentHour().plusHours(1)));
   }
 
   private void assertTallyReportData() {
