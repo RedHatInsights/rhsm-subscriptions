@@ -43,11 +43,12 @@ public class MetricId {
    */
   public static MetricId fromString(String value) {
     // NOTE: if the volume of data becomes large enough, we can pre-cache these values.
+    String formattedValue = value.replace('_', '-');
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .map(SubscriptionDefinition::getMetrics)
         .flatMap(Collection::stream)
         .map(Metric::getId)
-        .filter(metricId -> metricId.equalsIgnoreCase(value))
+        .filter(metricId -> metricId.equalsIgnoreCase(formattedValue))
         .map(MetricId::new)
         .findFirst()
         .orElseThrow(
@@ -71,7 +72,7 @@ public class MetricId {
     return getValue();
   }
 
-  public String toUpperCase() {
-    return getValue().toUpperCase();
+  public String toUpperCaseFormatted() {
+    return getValue().toUpperCase().replace("-", "_");
   }
 }

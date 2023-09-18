@@ -21,6 +21,7 @@
 package com.redhat.swatch.configuration.registry;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
@@ -34,5 +35,20 @@ class MetricIdTest {
   @Test
   void validValueAcceptedAndAccessible() {
     assertEquals("Sockets", MetricId.fromString("SOCKETS").getValue());
+  }
+
+  @Test
+  void validValueWithUnderscore() {
+    assertEquals("Instance-hours", MetricId.fromString("INSTANCE_HOURS").getValue());
+  }
+
+  @Test
+  void testToUpperCaseFormattedReplacesUnderscoreWithHyphen() {
+    assertEquals("INSTANCE_HOURS", MetricId.fromString("Instance-hours").toUpperCaseFormatted());
+  }
+
+  @Test
+  void testGetAll() {
+    assertFalse(MetricId.getAll().isEmpty());
   }
 }
