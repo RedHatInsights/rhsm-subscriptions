@@ -128,5 +128,6 @@
     <!-- Uncomment once the above changeset has landed in prod -->
     <!-- <include file="liquibase/202309011416-drop-id-event-record.xml"/> -->
     <include file="liquibase/202309081416-add-span-id-event-record.xml"/>
+    <include file="liquibase/202309181629-fix-measurement-metric-id-formatting.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

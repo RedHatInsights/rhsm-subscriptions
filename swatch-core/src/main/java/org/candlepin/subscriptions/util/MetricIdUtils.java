@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 public class MetricIdUtils {
+
   private MetricIdUtils() {
     /* intentionally empty */
   }
@@ -55,5 +56,9 @@ public class MetricIdUtils {
         .flatMap(Collection::stream)
         .map(Metric::getId)
         .map(MetricId::fromString);
+  }
+
+  public static String toUpperCaseFormatted(String metricId) {
+    return metricId.toUpperCase().replace('-', '_');
   }
 }
