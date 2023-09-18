@@ -51,41 +51,6 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Subscription"
-  /search/criteria;oracle_account_number={accountNumber}/options;products=ALL;showExternalReferences=true;firstResultIndex={index};maxResults={pageSize}/:
-    description: "Search subscriptions on owner, index, and pageSize"
-    parameters:
-      - name: accountNumber
-        required: true
-        in: path
-        description: "The oracle account number of the organization"
-        schema:
-          type: string
-      - name: index
-        required: true
-        in: path
-        description: "The starting index of results"
-        schema:
-          type: integer
-      - name: pageSize
-        required: true
-        in: path
-        description: "The number of results per page"
-        schema:
-          type: integer
-    get:
-      summary: "List the requested data"
-      operationId: "SearchSubscriptionsByAccountNumber"
-      tags:
-        - search
-      responses:
-        '200':
-          description: "The operation completed successfully"
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Subscription"
   /search/criteria;web_customer_id={orgId}/options;products=ALL;showExternalReferences=true;firstResultIndex={index};maxResults={pageSize}/:
     description: "Search subscriptions on owner, index, and pageSize"
     parameters:
@@ -139,8 +104,6 @@ components:
         quantity:
           type: integer
         webCustomerId:
-          type: integer
-        oracleAccountNumber:
           type: integer
         effectiveStartDate:
           type: integer

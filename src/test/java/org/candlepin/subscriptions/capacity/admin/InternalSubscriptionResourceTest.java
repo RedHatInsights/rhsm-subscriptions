@@ -20,9 +20,10 @@
  */
 package org.candlepin.subscriptions.capacity.admin;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -113,13 +114,13 @@ class InternalSubscriptionResourceTest {
             capacityReconciliationController,
             metricMapper,
             applicationProperties);
-    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
+    when(syncController.findSubscriptions(any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
     assertThrows(
         NotFoundException.class,
         () ->
             resource.getAwsUsageContext(
-                null, defaultLookUpDate, "rhosak", "account123", "Premium", "Production", "123"));
+                null, defaultLookUpDate, "rhosak", "Premium", "Production", "123"));
     Counter counter = meterRegistry.counter("swatch_missing_aws_subscription");
     assertEquals(1.0, counter.count());
   }
@@ -137,46 +138,15 @@ class InternalSubscriptionResourceTest {
             capacityReconciliationController,
             metricMapper,
             applicationProperties);
-    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
+    when(syncController.findSubscriptions(any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
     assertThrows(
         NotFoundException.class,
         () ->
             resource.getAwsUsageContext(
-                "org123", defaultLookUpDate, "rhosak", null, "Premium", "Production", "123"));
+                "org123", defaultLookUpDate, "rhosak", "Premium", "Production", "123"));
     Counter counter = meterRegistry.counter("swatch_missing_aws_subscription");
     assertEquals(1.0, counter.count());
-  }
-
-  @Test
-  void incrementsAmbiguousCounter_WhenAccounNumberPresent() {
-    SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
-    InternalSubscriptionResource resource =
-        new InternalSubscriptionResource(
-            meterRegistry,
-            syncController,
-            properties,
-            subscriptionPruneController,
-            offeringSync,
-            capacityReconciliationController,
-            metricMapper,
-            applicationProperties);
-    Subscription sub1 = new Subscription();
-    sub1.setBillingProviderId("foo1;foo2;foo3");
-    sub1.setEndDate(defaultEndDate);
-    Subscription sub2 = new Subscription();
-    sub2.setBillingProviderId("bar1;bar2;bar3");
-    sub2.setEndDate(defaultEndDate);
-    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
-        .thenReturn(List.of(sub1, sub2));
-    AwsUsageContext awsUsageContext =
-        resource.getAwsUsageContext(
-            null, defaultLookUpDate, "rhosak", "account123", "Premium", "Production", "123");
-    Counter counter = meterRegistry.counter("swatch_ambiguous_aws_subscription");
-    assertEquals(1.0, counter.count());
-    assertEquals("foo1", awsUsageContext.getProductCode());
-    assertEquals("foo2", awsUsageContext.getCustomerId());
-    assertEquals("foo3", awsUsageContext.getAwsSellerAccountId());
   }
 
   @Test
@@ -198,11 +168,11 @@ class InternalSubscriptionResourceTest {
     Subscription sub2 = new Subscription();
     sub2.setBillingProviderId("bar1;bar2;bar3");
     sub2.setEndDate(defaultEndDate);
-    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
+    when(syncController.findSubscriptions(any(), any(), any(), any()))
         .thenReturn(List.of(sub1, sub2));
     AwsUsageContext awsUsageContext =
         resource.getAwsUsageContext(
-            "org123", defaultLookUpDate, "rhosak", null, "Premium", "Production", "123");
+            "org123", defaultLookUpDate, "rhosak", "Premium", "Production", "123");
     Counter counter = meterRegistry.counter("swatch_ambiguous_aws_subscription");
     assertEquals(1.0, counter.count());
     assertEquals("foo1", awsUsageContext.getProductCode());
@@ -211,36 +181,12 @@ class InternalSubscriptionResourceTest {
   }
 
   @Test
-  void shouldThrowSubscriptionsExceptionForTerminatedSubscription_WhenAccounNumberPresent() {
-    var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
-    Subscription sub1 = new Subscription();
-    sub1.setBillingProviderId("foo1;foo2;foo3");
-    sub1.setEndDate(endDate);
-    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
-        .thenReturn(List.of(sub1));
-
-    var lookupDate = endDate.plusMinutes(30);
-    var exception =
-        assertThrows(
-            SubscriptionsException.class,
-            () -> {
-              resource.getAwsUsageContext(
-                  null, lookupDate, "rhosak", "account123", "Premium", "Production", "123");
-            });
-
-    assertEquals(
-        ErrorCode.SUBSCRIPTION_RECENTLY_TERMINATED.getDescription(),
-        exception.getCode().getDescription());
-  }
-
-  @Test
   void shouldThrowSubscriptionsExceptionForTerminatedSubscription_WhenOrgIdPresent() {
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
     sub1.setEndDate(endDate);
-    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
-        .thenReturn(List.of(sub1));
+    when(syncController.findSubscriptions(any(), any(), any(), any())).thenReturn(List.of(sub1));
 
     var lookupDate = endDate.plusMinutes(30);
     var exception =
@@ -248,32 +194,12 @@ class InternalSubscriptionResourceTest {
             SubscriptionsException.class,
             () -> {
               resource.getAwsUsageContext(
-                  "org123", lookupDate, "rhosak", null, "Premium", "Production", "123");
+                  "org123", lookupDate, "rhosak", "Premium", "Production", "123");
             });
 
     assertEquals(
         ErrorCode.SUBSCRIPTION_RECENTLY_TERMINATED.getDescription(),
         exception.getCode().getDescription());
-  }
-
-  @Test
-  void shouldReturnActiveSubscriptionAndNotTerminated_WhenAccounNumberPresent() {
-    var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
-    Subscription sub1 = new Subscription();
-    sub1.setBillingProviderId("foo1;foo2;foo3");
-    sub1.setEndDate(endDate);
-    Subscription sub2 = new Subscription();
-    sub2.setBillingProviderId("bar1;bar2;bar3");
-    sub2.setEndDate(endDate.plusMinutes(45));
-    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
-        .thenReturn(List.of(sub1, sub2));
-    var lookupDate = endDate.plusMinutes(30);
-    AwsUsageContext awsUsageContext =
-        resource.getAwsUsageContext(
-            null, lookupDate, "rhosak", null, "Premium", "Production", "123");
-    assertEquals("bar1", awsUsageContext.getProductCode());
-    assertEquals("bar2", awsUsageContext.getCustomerId());
-    assertEquals("bar3", awsUsageContext.getAwsSellerAccountId());
   }
 
   @Test
@@ -285,12 +211,11 @@ class InternalSubscriptionResourceTest {
     Subscription sub2 = new Subscription();
     sub2.setBillingProviderId("bar1;bar2;bar3");
     sub2.setEndDate(endDate.plusMinutes(45));
-    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
+    when(syncController.findSubscriptions(any(), any(), any(), any()))
         .thenReturn(List.of(sub1, sub2));
     var lookupDate = endDate.plusMinutes(30);
     AwsUsageContext awsUsageContext =
-        resource.getAwsUsageContext(
-            "org123", lookupDate, "rhosak", null, "Premium", "Production", "123");
+        resource.getAwsUsageContext("org123", lookupDate, "rhosak", "Premium", "Production", "123");
     assertEquals("bar1", awsUsageContext.getProductCode());
     assertEquals("bar2", awsUsageContext.getCustomerId());
     assertEquals("bar3", awsUsageContext.getAwsSellerAccountId());
@@ -337,7 +262,7 @@ class InternalSubscriptionResourceTest {
             metricMapper,
             applicationProperties);
 
-    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
+    when(syncController.findSubscriptions(any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
 
     OffsetDateTime now = OffsetDateTime.now();
@@ -346,7 +271,7 @@ class InternalSubscriptionResourceTest {
     assertThrows(
         NotFoundException.class,
         () -> {
-          resource.getRhmUsageContext("org123", now, "productId", "", sla, usage);
+          resource.getRhmUsageContext("org123", now, "productId", sla, usage);
         });
 
     Counter counter = meterRegistry.counter("rhsm-subscriptions.marketplace.missing.subscription");
@@ -377,7 +302,7 @@ class InternalSubscriptionResourceTest {
     sub2.setStartDate(OffsetDateTime.now());
     sub2.setEndDate(sub2.getStartDate().plusMonths(1));
 
-    when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
+    when(syncController.findSubscriptions(any(), any(), any(), any()))
         .thenReturn(List.of(sub1, sub2));
 
     RhmUsageContext rhmUsageContext =
@@ -385,7 +310,6 @@ class InternalSubscriptionResourceTest {
             "org123",
             OffsetDateTime.now(),
             "productId",
-            "",
             ServiceLevel.PREMIUM.toString(),
             Usage.PRODUCTION.toString());
 

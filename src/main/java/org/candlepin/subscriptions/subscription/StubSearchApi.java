@@ -48,12 +48,6 @@ public class StubSearchApi extends SearchApi {
   }
 
   @Override
-  public List<Subscription> searchSubscriptionsByAccountNumber(
-      String accountNumber, Integer index, Integer pageSize) throws ApiException {
-    return List.of(createData(), createAwsBillingProviderData());
-  }
-
-  @Override
   public List<Subscription> searchSubscriptionsByOrgId(
       String orgId, Integer index, Integer pageSize) throws ApiException {
     return List.of(createData(), createAwsBillingProviderData(), createRhelData());
@@ -64,7 +58,6 @@ public class StubSearchApi extends SearchApi {
         .id(235251)
         .subscriptionNumber("2253591")
         .webCustomerId(123)
-        .oracleAccountNumber(123)
         .quantity(1)
         .effectiveStartDate(OffsetDateTime.parse(START_DATE).toEpochSecond() * 1000L)
         .effectiveEndDate(OffsetDateTime.parse(END_DATE).toEpochSecond() * 1000L)
@@ -76,7 +69,6 @@ public class StubSearchApi extends SearchApi {
         .id(235255)
         .subscriptionNumber("2253594")
         .webCustomerId(123)
-        .oracleAccountNumber(123)
         .quantity(1)
         .effectiveStartDate(OffsetDateTime.parse(START_DATE).toEpochSecond() * 1000L)
         .effectiveEndDate(OffsetDateTime.parse(END_DATE).toEpochSecond() * 1000L)
@@ -93,7 +85,6 @@ public class StubSearchApi extends SearchApi {
         .id(235252)
         .quantity(1)
         .webCustomerId(123)
-        .oracleAccountNumber(123)
         .subscriptionNumber("4243626")
         .effectiveStartDate(OffsetDateTime.parse(START_DATE).toEpochSecond() * 1000L)
         .effectiveEndDate(OffsetDateTime.parse(END_DATE).toEpochSecond() * 1000L)
