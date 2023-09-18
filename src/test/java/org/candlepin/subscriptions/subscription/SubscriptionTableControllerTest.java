@@ -966,7 +966,7 @@ class SubscriptionTableControllerTest {
 
       SubscriptionMeasurementKey key = new SubscriptionMeasurementKey();
       key.setMeasurementType(type);
-      key.setMetricId(metric.toUpperCase());
+      key.setMetricId(metric.toUpperCaseFormatted());
 
       return Map.of(key, value);
     }

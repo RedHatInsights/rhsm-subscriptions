@@ -161,11 +161,11 @@ public class Host implements Serializable {
   }
 
   public Double getMeasurement(String metricId) {
-    return measurements.get(metricId.toUpperCase());
+    return measurements.get(MetricIdUtils.toUpperCaseFormatted(metricId));
   }
 
   public void setMeasurement(String metricId, Double value) {
-    measurements.put(metricId.toUpperCase(), value);
+    measurements.put(MetricIdUtils.toUpperCaseFormatted(metricId), value);
   }
 
   public HostTallyBucket addBucket( // NOSONAR
