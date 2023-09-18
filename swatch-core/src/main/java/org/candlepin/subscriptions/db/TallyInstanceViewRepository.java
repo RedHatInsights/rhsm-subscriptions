@@ -156,7 +156,8 @@ public interface TallyInstanceViewRepository
   static Specification<TallyInstanceView> uomEquals(MetricId effectiveUom) {
     return (root, query, builder) -> {
       var key = root.get(TallyInstanceView_.key);
-      return builder.equal(key.get(TallyInstanceViewKey_.metricId), effectiveUom.toUpperCase());
+      return builder.equal(
+          key.get(TallyInstanceViewKey_.metricId), effectiveUom.toUpperCaseFormatted());
     };
   }
 
@@ -230,8 +231,7 @@ public interface TallyInstanceViewRepository
       if (StringUtils.hasText(month)) {
         searchCriteria =
             searchCriteria.and(
-                monthlyKeyEquals(
-                    new InstanceMonthlyTotalKey(month, effectiveUom.toString().toUpperCase())));
+                monthlyKeyEquals(new InstanceMonthlyTotalKey(month, effectiveUom.toString())));
       }
     }
     if (!ObjectUtils.isEmpty(hardwareMeasurementTypes)) {

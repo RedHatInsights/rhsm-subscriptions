@@ -199,7 +199,7 @@ class SnapshotSummaryProducerTest {
     TallyMeasurement measurement = optionalTotal.get().get(0);
 
     assertEquals(hardwareType, measurement.getHardwareMeasurementType());
-    assertEquals(metricId.toUpperCase(), measurement.getUom());
+    assertEquals(metricId.toUpperCaseFormatted(), measurement.getUom());
     assertEquals(value, measurement.getValue());
   }
 

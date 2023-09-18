@@ -28,6 +28,7 @@ import java.io.Serializable;
 import java.util.Objects;
 import lombok.Getter;
 import lombok.Setter;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 
 /** Model object to the key for a given tally measurement */
 @Embeddable
@@ -48,7 +49,7 @@ public class TallyMeasurementKey implements Serializable {
 
   public TallyMeasurementKey(HardwareMeasurementType hardwareMeasurementType, String metricId) {
     this.measurementType = hardwareMeasurementType;
-    this.metricId = metricId.toUpperCase();
+    this.metricId = MetricIdUtils.toUpperCaseFormatted(metricId);
   }
 
   @Override

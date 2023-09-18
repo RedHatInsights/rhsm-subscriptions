@@ -27,6 +27,7 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 
 /** Key for instance monthly totals */
 @Data
@@ -49,11 +50,11 @@ public class InstanceMonthlyTotalKey implements Serializable {
 
   public InstanceMonthlyTotalKey(String month, String metricId) {
     this.month = month;
-    this.metricId = metricId.toUpperCase();
+    this.metricId = MetricIdUtils.toUpperCaseFormatted(metricId);
   }
 
   public InstanceMonthlyTotalKey(OffsetDateTime reference, String metricId) {
     this.month = formatMonthId(reference);
-    this.metricId = metricId.toUpperCase();
+    this.metricId = MetricIdUtils.toUpperCaseFormatted(metricId);
   }
 }
