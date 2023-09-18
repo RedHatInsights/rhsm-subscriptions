@@ -341,12 +341,13 @@ public class InventoryAccountUsageCollector {
 
     if (normalizedFacts.getCores() != null) {
       host.getMeasurements()
-          .put(MetricIdUtils.getCores().getValue(), normalizedFacts.getCores().doubleValue());
+          .put(MetricIdUtils.getCores().toUpperCase(), normalizedFacts.getCores().doubleValue());
     }
 
     if (normalizedFacts.getSockets() != null) {
       host.getMeasurements()
-          .put(MetricIdUtils.getSockets().getValue(), normalizedFacts.getSockets().doubleValue());
+          .put(
+              MetricIdUtils.getSockets().toUpperCase(), normalizedFacts.getSockets().doubleValue());
     }
 
     host.setHypervisor(normalizedFacts.isHypervisor());

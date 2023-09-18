@@ -70,4 +70,8 @@ public class MetricId {
   public String toString() {
     return getValue();
   }
+
+  public String toUpperCase() {
+    return getValue().toUpperCase();
+  }
 }

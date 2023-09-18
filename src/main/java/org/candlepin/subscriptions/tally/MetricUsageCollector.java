@@ -44,7 +44,6 @@ import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
 import org.slf4j.Logger;
@@ -233,7 +232,7 @@ public class MetricUsageCollector {
 
                 if (event.getMeasurements() != null) {
                   event.getMeasurements().stream()
-                      .map(Measurement::getUom)
+                      .map(measurement -> measurement.getUom().toUpperCase())
                       .forEach(seenMetricIds::add);
                 }
               });

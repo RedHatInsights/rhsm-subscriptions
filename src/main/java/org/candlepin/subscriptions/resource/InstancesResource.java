@@ -170,10 +170,10 @@ public class InstancesResource implements InstancesApi {
 
     int minCores = 0;
     int minSockets = 0;
-    if (metricIdOptional.map(metricId -> metricId.getValue().equals("Cores")).orElse(false)) {
+    if (metricIdOptional.map(metricId -> metricId.equals(MetricIdUtils.getCores())).orElse(false)) {
       minCores = 1;
     } else if (metricIdOptional
-        .map(metricId -> metricId.getValue().equals("Sockets"))
+        .map(metricId -> metricId.equals(MetricIdUtils.getSockets()))
         .orElse(false)) {
       minSockets = 1;
     }
@@ -312,7 +312,7 @@ public class InstancesResource implements InstancesApi {
     for (String metric : measurements) {
       if (MetricIdUtils.getSockets().equals(MetricId.fromString(metric))) {
         measurementList.add(Double.valueOf(tallyInstanceView.getSockets()));
-      } else if (!isPAYG && tallyInstanceView.getKey().getMetricId().equals(metric)) {
+      } else if (!isPAYG && tallyInstanceView.getKey().getMetricId().equalsIgnoreCase(metric)) {
         measurementList.add(Optional.ofNullable(tallyInstanceView.getValue()).orElse(0.0));
       } else {
         measurementList.add(

@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.Offering;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -35,6 +36,10 @@ public interface OfferingRepository extends JpaRepository<Offering, String> {
   List<Offering> findByProductName(String productName);
 
   List<Offering> findBySkuIn(Set<String> skus);
+
+  @EntityGraph(value = "graph.offering")
+  @Query(value = "select o from Offering o where o.sku = :sku order by o.sku")
+  Offering findOfferingBySku(@Param("sku") String sku);
 
   @Query(value = "select sku from Offering where :sku member of childSkus")
   Stream<String> findSkusForChildSku(@Param("sku") String sku);

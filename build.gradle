@@ -64,6 +64,8 @@ dependencies {
 
     testImplementation "org.springframework.security:spring-security-test"
     testImplementation "org.springframework.kafka:spring-kafka-test"
+    testImplementation 'org.testcontainers:postgresql'
+    testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation libraries["wiremock"]
     testImplementation libraries["awaitility"]
     testImplementation project(':swatch-core-test')
