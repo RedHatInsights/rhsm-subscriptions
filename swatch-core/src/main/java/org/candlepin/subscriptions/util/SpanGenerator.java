@@ -18,33 +18,30 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.registry;
+package org.candlepin.subscriptions.util;
 
-import java.util.HashSet;
-import java.util.Set;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import java.util.UUID;
+import org.slf4j.MDC;
 
-/** Represents marketplace metric features, including swatch product IDs. */
-@Getter
-@Setter
-@ToString
-@EqualsAndHashCode
-public class MarketplaceMetric {
-  private String metricId;
-  private String uom;
-  private Set<String> swatchProductIds;
+/**
+ * Utilities to generate a span identifier in a standard way. The generated span ID will be
+ * configured in MDC automatically.
+ */
+public class SpanGenerator {
+  private final String name;
 
-  public MarketplaceMetric() {
-    this.swatchProductIds = new HashSet<>();
+  public SpanGenerator(String name) {
+    this.name = name;
   }
 
-  public MarketplaceMetric(String metricId, String uom, Set<String> swatchProductIds) {
-    this();
-    this.metricId = metricId;
-    this.uom = uom;
-    this.swatchProductIds = swatchProductIds;
+  /**
+   * This method generates the span ID and puts it on MDC.
+   *
+   * @return the generated span ID.
+   */
+  public UUID generate() {
+    UUID spanId = UUID.randomUUID();
+    MDC.put(name, spanId.toString());
+    return spanId;
   }
 }

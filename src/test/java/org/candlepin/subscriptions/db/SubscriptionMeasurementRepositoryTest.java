@@ -24,6 +24,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.HashSet;
@@ -36,7 +37,6 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,11 +54,13 @@ class SubscriptionMeasurementRepositoryTest {
       OffsetDateTime.of(2021, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
   private static final OffsetDateTime END =
       OffsetDateTime.of(2022, 2, 2, 0, 0, 0, 0, ZoneOffset.UTC);
+
+  private static final String CORES = "Cores";
   @Autowired private SubscriptionRepository subscriptionRepository;
   @Autowired private OfferingRepository offeringRepository;
   private Subscription subscription;
   private SubscriptionMeasurementKey physicalCores =
-      createMeasurementKey("PHYSICAL", MetricId.CORES);
+      createMeasurementKey("PHYSICAL", MetricId.fromString(CORES));
 
   private Subscription createTestSubscription(String subscriptionId) {
     TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
@@ -255,14 +257,14 @@ class SubscriptionMeasurementRepositoryTest {
   void testMetricsCriteriaForPhysical() {
     var hypervisorSub = createTestSubscription("hyp");
     hypervisorSub.getSubscriptionMeasurements().clear();
-    var hypervisorCores = createMeasurementKey("HYPERVISOR", MetricId.CORES);
+    var hypervisorCores = createMeasurementKey("HYPERVISOR", MetricId.fromString(CORES));
     hypervisorSub.getSubscriptionMeasurements().put(hypervisorCores, 3.0);
     subscriptionRepository.saveAndFlush(hypervisorSub);
     var specification =
         SubscriptionRepository.buildSearchSpecification(
             DbReportCriteria.builder()
                 .hypervisorReportCategory(HypervisorReportCategory.NON_HYPERVISOR)
-                .metricId(MetricId.CORES.toString())
+                .metricId(CORES)
                 .build());
     var result = subscriptionRepository.findAll(specification);
     assertThat(result, not(contains(hypervisorSub)));
@@ -273,14 +275,14 @@ class SubscriptionMeasurementRepositoryTest {
   void testMetricsCriteriaForHypervisor() {
     var hypervisorSub = createTestSubscription("hyp");
     hypervisorSub.getSubscriptionMeasurements().clear();
-    var hypervisorCores = createMeasurementKey("HYPERVISOR", MetricId.CORES);
+    var hypervisorCores = createMeasurementKey("HYPERVISOR", MetricId.fromString(CORES));
     hypervisorSub.getSubscriptionMeasurements().put(hypervisorCores, 3.0);
     subscriptionRepository.saveAndFlush(hypervisorSub);
     var specification =
         SubscriptionRepository.buildSearchSpecification(
             DbReportCriteria.builder()
                 .hypervisorReportCategory(HypervisorReportCategory.HYPERVISOR)
-                .metricId(MetricId.CORES.toString())
+                .metricId(CORES)
                 .build());
     var result = subscriptionRepository.findAll(specification);
     assertThat(result, contains(hypervisorSub));
@@ -291,14 +293,14 @@ class SubscriptionMeasurementRepositoryTest {
   void testMetricsCriteriaFiltersByCategory() {
     var hypervisorSub = createTestSubscription("hyp");
     hypervisorSub.getSubscriptionMeasurements().clear();
-    var hypervisorCores = createMeasurementKey("HYPERVISOR", MetricId.CORES);
+    var hypervisorCores = createMeasurementKey("HYPERVISOR", MetricId.fromString(CORES));
     hypervisorSub.getSubscriptionMeasurements().put(hypervisorCores, 3.0);
     subscriptionRepository.saveAndFlush(hypervisorSub);
     var specification =
         SubscriptionRepository.buildSearchSpecification(
             DbReportCriteria.builder()
                 .hypervisorReportCategory(HypervisorReportCategory.NON_HYPERVISOR)
-                .metricId(MetricId.CORES.toString())
+                .metricId(CORES)
                 .build());
     var result = subscriptionRepository.findAll(specification);
     assertThat(result, contains(subscription));

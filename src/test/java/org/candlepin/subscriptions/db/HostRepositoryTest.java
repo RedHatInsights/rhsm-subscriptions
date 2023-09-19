@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.db;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -36,12 +37,11 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.model.*;
-import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.resource.HostsResource;
 import org.candlepin.subscriptions.resource.InstancesResource;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
 import org.candlepin.subscriptions.utilization.api.model.InstanceReportSort;
 import org.junit.jupiter.api.AfterAll;
@@ -111,7 +111,7 @@ class HostRepositoryTest {
     Host host9 = createHost("inventory9", "account123");
     Host host10 = createHost("inventory10", "account123");
 
-    for (Uom uom : Uom.values()) {
+    for (MetricId uom : MetricId.getAll()) {
       host8.addToMonthlyTotal(
           OffsetDateTime.of(LocalDateTime.of(2021, 1, 1, 0, 0, 0), ZoneOffset.UTC), uom, 100.0);
       host9.addToMonthlyTotal(
@@ -187,8 +187,8 @@ class HostRepositoryTest {
     host.setNumOfGuests(expGuests);
     host.setDisplayName(expDisplayName);
     host.setLastSeen(expLastSeen);
-    host.setMeasurement(Uom.CORES, 12.0);
-    host.setMeasurement(Uom.SOCKETS, 12.0);
+    host.setMeasurement(MetricIdUtils.getCores().toString(), 12.0);
+    host.setMeasurement(MetricIdUtils.getSockets().toString(), 12.0);
     host.setHypervisor(expIsHypervisor);
     host.setUnmappedGuest(expUnmappedGuest);
     host.setCloudProvider(expCloudProvider);
@@ -255,17 +255,17 @@ class HostRepositoryTest {
         4,
         2,
         HardwareMeasurementType.PHYSICAL);
-    host.setMeasurement(Measurement.Uom.CORES, 4.0);
+    host.setMeasurement(MetricIdUtils.getCores().toString(), 4.0);
     host.addToMonthlyTotal(
-        OffsetDateTime.parse("2021-02-26T01:00:00Z"), Measurement.Uom.CORES, 5.0);
+        OffsetDateTime.parse("2021-02-26T01:00:00Z"), MetricIdUtils.getCores(), 5.0);
     host = persistHosts(host).get(0);
 
     Optional<Host> result = repo.findById(host.getId());
     assertTrue(result.isPresent());
     Host saved = result.get();
     assertEquals(1, saved.getBuckets().size());
-    assertEquals(4.0, saved.getMeasurement(Measurement.Uom.CORES));
-    assertEquals(5.0, saved.getMonthlyTotal("2021-02", Measurement.Uom.CORES));
+    assertEquals(4.0, saved.getMeasurement(MetricIdUtils.getCores().toString()));
+    assertEquals(5.0, saved.getMonthlyTotal("2021-02", MetricIdUtils.getCores()));
   }
 
   @Transactional
@@ -273,13 +273,13 @@ class HostRepositoryTest {
   void testUpdate() {
     Host host = new Host("INV1", "HOST1", "my_acct", "my_org", "sub_id");
     host.setDisplayName(DEFAULT_DISPLAY_NAME);
-    host.setMeasurement(Uom.SOCKETS, 1.0);
-    host.setMeasurement(Uom.CORES, 1.0);
-    host.setMeasurement(Measurement.Uom.CORES, 2.0);
+    host.setMeasurement(MetricIdUtils.getSockets().toString(), 1.0);
+    host.setMeasurement(MetricIdUtils.getCores().toString(), 1.0);
+    host.setMeasurement(MetricIdUtils.getCores().toString(), 2.0);
     host.addToMonthlyTotal(
-        OffsetDateTime.parse("2021-02-26T01:00:00Z"), Measurement.Uom.CORES, 3.0);
+        OffsetDateTime.parse("2021-02-26T01:00:00Z"), MetricIdUtils.getCores(), 3.0);
     host.addToMonthlyTotal(
-        OffsetDateTime.parse("2021-01-26T01:00:00Z"), Measurement.Uom.SOCKETS, 10.0);
+        OffsetDateTime.parse("2021-01-26T01:00:00Z"), MetricIdUtils.getSockets(), 10.0);
 
     host.addBucket(
         "RHEL",
@@ -309,8 +309,8 @@ class HostRepositoryTest {
     assertEquals(2, toUpdate.getBuckets().size());
 
     toUpdate.setAccountNumber("updated_acct_num");
-    toUpdate.setMeasurement(Uom.SOCKETS, 4.0);
-    toUpdate.setMeasurement(Uom.CORES, 8.0);
+    toUpdate.setMeasurement(MetricIdUtils.getSockets().toString(), 4.0);
+    toUpdate.setMeasurement(MetricIdUtils.getCores().toString(), 8.0);
     toUpdate.setDisplayName(DEFAULT_DISPLAY_NAME);
 
     HostTallyBucket rhelBucket =
@@ -324,9 +324,9 @@ class HostRepositoryTest {
             .findFirst()
             .orElse(null);
     toUpdate.removeBucket(rhelBucket);
-    toUpdate.setMeasurement(Measurement.Uom.CORES, 8.0);
+    toUpdate.setMeasurement(MetricIdUtils.getCores().toString(), 8.0);
     toUpdate.addToMonthlyTotal(
-        OffsetDateTime.parse("2021-02-26T01:00:00Z"), Measurement.Uom.CORES, 4.0);
+        OffsetDateTime.parse("2021-02-26T01:00:00Z"), MetricIdUtils.getCores(), 4.0);
     toUpdate.clearMonthlyTotal(OffsetDateTime.parse("2021-01-02T00:00:00Z"));
     persistHosts(toUpdate);
 
@@ -334,13 +334,13 @@ class HostRepositoryTest {
     assertTrue(updateResult.isPresent());
     Host updated = updateResult.get();
     assertEquals("updated_acct_num", updated.getAccountNumber());
-    assertEquals(4, updated.getMeasurement(Uom.SOCKETS).intValue());
-    assertEquals(8, updated.getMeasurement(Uom.CORES).intValue());
+    assertEquals(4, updated.getMeasurement(MetricIdUtils.getSockets().toString()).intValue());
+    assertEquals(8, updated.getMeasurement(MetricIdUtils.getCores().toString()).intValue());
     assertEquals(1, updated.getBuckets().size());
     assertTrue(updated.getBuckets().contains(satelliteBucket));
-    assertEquals(8.0, updated.getMeasurement(Measurement.Uom.CORES));
-    assertEquals(7.0, updated.getMonthlyTotal("2021-02", Measurement.Uom.CORES));
-    assertNull(updated.getMonthlyTotal("2021-02", Measurement.Uom.SOCKETS));
+    assertEquals(8.0, updated.getMeasurement(MetricIdUtils.getCores().toString()));
+    assertEquals(7.0, updated.getMonthlyTotal("2021-02", MetricIdUtils.getCores()));
+    assertNull(updated.getMonthlyTotal("2021-02", MetricIdUtils.getSockets()));
   }
 
   @Transactional
@@ -680,8 +680,8 @@ class HostRepositoryTest {
   @Test
   void testGetHostViews() {
     Host host1 = new Host("INV1", "HOST1", "my_acct", "my_org", "sub_id");
-    host1.setMeasurement(Uom.SOCKETS, 1.0);
-    host1.setMeasurement(Uom.CORES, 1.0);
+    host1.setMeasurement(MetricIdUtils.getSockets().toString(), 1.0);
+    host1.setMeasurement(MetricIdUtils.getCores().toString(), 1.0);
     host1.setNumOfGuests(4);
 
     host1.addBucket(
@@ -793,8 +793,8 @@ class HostRepositoryTest {
   void testNullNumGuests() {
     Host host = new Host("INV1", "HOST1", "my_acct", "my_org", "sub_id");
     host.setDisplayName(DEFAULT_DISPLAY_NAME);
-    host.setMeasurement(Uom.SOCKETS, 1.0);
-    host.setMeasurement(Uom.CORES, 1.0);
+    host.setMeasurement(MetricIdUtils.getSockets().toString(), 1.0);
+    host.setMeasurement(MetricIdUtils.getCores().toString(), 1.0);
 
     host.addBucket(
         "RHEL",
@@ -842,8 +842,8 @@ class HostRepositoryTest {
   void testShouldFilterSockets() {
     Host coreHost = new Host("INV1", "HOST1", "my_acct", "my_org", "sub_id");
     coreHost.setDisplayName(DEFAULT_DISPLAY_NAME);
-    coreHost.setMeasurement(Uom.SOCKETS, 0.0);
-    coreHost.setMeasurement(Uom.CORES, 1.0);
+    coreHost.setMeasurement(MetricIdUtils.getSockets().toString(), 0.0);
+    coreHost.setMeasurement(MetricIdUtils.getCores().toString(), 1.0);
     coreHost.addBucket(
         "RHEL",
         ServiceLevel.PREMIUM,
@@ -857,8 +857,8 @@ class HostRepositoryTest {
 
     Host socketHost = new Host("INV2", "HOST2", "my_acct", "my_org", "sub_id");
     socketHost.setDisplayName(DEFAULT_DISPLAY_NAME);
-    socketHost.setMeasurement(Uom.SOCKETS, 1.0);
-    socketHost.setMeasurement(Uom.CORES, 0.0);
+    socketHost.setMeasurement(MetricIdUtils.getSockets().toString(), 1.0);
+    socketHost.setMeasurement(MetricIdUtils.getCores().toString(), 0.0);
     socketHost.addBucket(
         "RHEL",
         ServiceLevel.PREMIUM,
@@ -904,8 +904,8 @@ class HostRepositoryTest {
   void testShouldFilterCores() {
     Host coreHost = new Host("INV1", "HOST1", "my_acct", "my_org", "sub_id");
     coreHost.setDisplayName(DEFAULT_DISPLAY_NAME);
-    coreHost.setMeasurement(Uom.SOCKETS, 0.0);
-    coreHost.setMeasurement(Uom.CORES, 1.0);
+    coreHost.setMeasurement(MetricIdUtils.getSockets().toString(), 0.0);
+    coreHost.setMeasurement(MetricIdUtils.getCores().toString(), 1.0);
     coreHost.addBucket(
         "RHEL",
         ServiceLevel.PREMIUM,
@@ -919,8 +919,8 @@ class HostRepositoryTest {
 
     Host socketHost = new Host("INV2", "HOST2", "my_acct", "my_org", "sub_id");
     socketHost.setDisplayName(DEFAULT_DISPLAY_NAME);
-    socketHost.setMeasurement(Uom.SOCKETS, 1.0);
-    socketHost.setMeasurement(Uom.CORES, 0.0);
+    socketHost.setMeasurement(MetricIdUtils.getSockets().toString(), 1.0);
+    socketHost.setMeasurement(MetricIdUtils.getCores().toString(), 0.0);
     socketHost.addBucket(
         "RHEL",
         ServiceLevel.PREMIUM,
@@ -1270,8 +1270,8 @@ class HostRepositoryTest {
             account,
             "ORG_" + account,
             "SUBMAN_" + inventoryId);
-    host.setMeasurement(Uom.SOCKETS, 1.0);
-    host.setMeasurement(Uom.CORES, 1.0);
+    host.setMeasurement(MetricIdUtils.getSockets().toString(), 1.0);
+    host.setMeasurement(MetricIdUtils.getCores().toString(), 1.0);
     return host;
   }
 

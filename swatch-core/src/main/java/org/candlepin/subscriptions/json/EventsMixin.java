@@ -18,9 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.registry;
+package org.candlepin.subscriptions.json;
 
-public enum BillingWindow {
-  HOURLY,
-  MONTHLY
-}
+import static com.fasterxml.jackson.annotation.JsonTypeInfo.Id.DEDUCTION;
+
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
+@JsonTypeInfo(use = DEDUCTION) // Deserialize based on available fields
+@JsonSubTypes({@JsonSubTypes.Type(Event.class), @JsonSubTypes.Type(CleanUpEvent.class)})
+public interface EventsMixin {}

@@ -20,27 +20,34 @@
  */
 package com.redhat.swatch.configuration.registry;
 
+import com.google.common.collect.MoreCollectors;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Subscription is an offering with one or more variants. Defines a specific metering model. Has a
  * single technical fingerprint. Defines a set of metrics.
  */
 @Data
+@Slf4j
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class SubscriptionDefinition {
+  public static final List<String> ORDERED_GRANULARITY =
+      List.of("HOURLY", "DAILY", "WEEKLY", "MONTHLY", "QUARTERLY", "YEARLY");
 
   /**
    * A family of solutions that is logically related, having one or more subscriptions distinguished
@@ -68,15 +75,26 @@ public class SubscriptionDefinition {
   private Defaults defaults;
   private boolean contractEnabled;
 
+  public Optional<Variant> findVariantForEngId(String engId) {
+    return getVariants().stream()
+        .filter(v -> v.getEngineeringIds().contains(engId))
+        .collect(MoreCollectors.toOptional());
+  }
+
+  public Optional<Variant> findVariantForRole(String role) {
+    return getVariants().stream()
+        .filter(v -> v.getRoles().contains(role))
+        .collect(MoreCollectors.toOptional());
+  }
+
   /**
    * @param serviceType
    * @return Optional<Subscription>
    */
-  public static Optional<SubscriptionDefinition> findByServiceType(String serviceType) {
-
+  public static List<SubscriptionDefinition> findByServiceType(String serviceType) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .filter(subscription -> Objects.equals(subscription.getServiceType(), serviceType))
-        .findFirst();
+        .toList();
   }
 
   public List<String> getMetricIds() {
@@ -87,13 +105,15 @@ public class SubscriptionDefinition {
   }
 
   public Optional<Metric> getMetric(String metricId) {
-    return this.getMetrics().stream().filter(x -> Objects.equals(x.getId(), metricId)).findFirst();
+    return this.getMetrics().stream()
+        .filter(x -> Objects.equals(x.getId(), metricId))
+        .collect(MoreCollectors.toOptional());
   }
 
   public static Optional<SubscriptionDefinition> findById(String id) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .filter(subscription -> Objects.equals(subscription.getId(), id))
-        .findFirst();
+        .collect(MoreCollectors.toOptional());
   }
 
   /**
@@ -107,7 +127,6 @@ public class SubscriptionDefinition {
   }
 
   public boolean isPrometheusEnabled() {
-
     return this.getMetrics().stream().anyMatch(metric -> Objects.nonNull(metric.getPrometheus()));
   }
 
@@ -119,7 +138,6 @@ public class SubscriptionDefinition {
   }
 
   public List<SubscriptionDefinitionGranularity> getSupportedGranularity() {
-
     List<SubscriptionDefinitionGranularity> granularity =
         new ArrayList<>(List.of(SubscriptionDefinitionGranularity.values()));
 
@@ -130,9 +148,29 @@ public class SubscriptionDefinition {
     return granularity;
   }
 
-  public boolean isPaygEnabled() {
-    return metrics.stream()
-        .anyMatch(metric -> metric.getRhmMetricId() != null || metric.getAwsDimension() != null);
+  public static boolean supportsGranularity(SubscriptionDefinition sub, String granularity) {
+    return sub.getSupportedGranularity().stream()
+        .map(x -> x.toString().toLowerCase())
+        .toList()
+        .contains(granularity.toLowerCase());
+  }
+
+  public static boolean variantSupportsGranularity(String tag, String granularity) {
+    return lookupSubscriptionByTag(tag)
+        .map(subscription -> supportsGranularity(subscription, granularity))
+        .orElseGet(
+            () -> {
+              log.warn("Granularity requested for missing subscription variant: {}", tag);
+              return false;
+            });
+  }
+
+  public static Set<String> getAllTags() {
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
+        .map(SubscriptionDefinition::getVariants)
+        .flatMap(Collection::stream)
+        .map(Variant::getTag)
+        .collect(Collectors.toUnmodifiableSet());
   }
 
   /**
@@ -149,24 +187,24 @@ public class SubscriptionDefinition {
             subscription ->
                 subscription.getVariants().stream()
                     .anyMatch(variant -> variant.getEngineeringIds().contains(engProductId)))
-        .findFirst();
+        .collect(MoreCollectors.toOptional());
   }
 
   /**
    * Looks for productName matching a variant
    *
-   * @param productName
-   * @return Optional<Subscription>
+   * @param productName a product name string
+   * @return List<Subscription> multiple SubscriptionDefinitions can have the same product names:
+   *     e.g. rosa and Openshift-dedicated-metrics
    */
-  public static Optional<SubscriptionDefinition> lookupSubscriptionByProductName(
-      String productName) {
+  public static List<SubscriptionDefinition> lookupSubscriptionByProductName(String productName) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .filter(subscription -> !subscription.getVariants().isEmpty())
         .filter(
             subscription ->
                 subscription.getVariants().stream()
                     .anyMatch(variant -> variant.getProductNames().contains(productName)))
-        .findFirst();
+        .collect(Collectors.toList());
   }
 
   /**
@@ -182,7 +220,7 @@ public class SubscriptionDefinition {
             subscription ->
                 subscription.getVariants().stream()
                     .anyMatch(variant -> variant.getRoles().contains(role)))
-        .findFirst();
+        .collect(MoreCollectors.toOptional());
   }
 
   /**
@@ -200,7 +238,7 @@ public class SubscriptionDefinition {
             subscription ->
                 subscription.getVariants().stream()
                     .anyMatch(variant -> Objects.equals(tag, variant.getTag())))
-        .findFirst();
+        .collect(MoreCollectors.toOptional());
   }
 
   public static boolean isContractEnabled(@NotNull @NotEmpty String tag) {
@@ -226,5 +264,9 @@ public class SubscriptionDefinition {
         .flatMap(subscriptionDefinition -> subscriptionDefinition.getMetric(metricId))
         .map(com.redhat.swatch.configuration.registry.Metric::getRhmMetricId)
         .orElse(null);
+  }
+
+  public static List<SubscriptionDefinition> getSubscriptionDefinitions() {
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions();
   }
 }

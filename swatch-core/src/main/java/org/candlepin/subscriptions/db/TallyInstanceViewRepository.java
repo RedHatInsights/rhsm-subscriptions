@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.db;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import jakarta.persistence.criteria.JoinType;
 import java.util.List;
 import java.util.Objects;
@@ -33,8 +34,7 @@ import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.TallyInstanceViewKey_;
 import org.candlepin.subscriptions.db.model.TallyInstanceView_;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.json.Measurement.Uom;
-import org.candlepin.subscriptions.util.UomUtils;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -76,7 +76,7 @@ public interface TallyInstanceViewRepository
       int minCores,
       int minSockets,
       String month,
-      Uom referenceUom,
+      MetricId referenceUom,
       BillingProvider billingProvider,
       String billingAccountId,
       List<HardwareMeasurementType> hardwareMeasurementTypes,
@@ -153,10 +153,11 @@ public interface TallyInstanceViewRepository
     };
   }
 
-  static Specification<TallyInstanceView> uomEquals(Uom effectiveUom) {
+  static Specification<TallyInstanceView> uomEquals(MetricId effectiveUom) {
     return (root, query, builder) -> {
       var key = root.get(TallyInstanceView_.key);
-      return builder.equal(key.get(TallyInstanceViewKey_.uom), effectiveUom);
+      return builder.equal(
+          key.get(TallyInstanceViewKey_.metricId), effectiveUom.toUpperCaseFormatted());
     };
   }
 
@@ -191,11 +192,12 @@ public interface TallyInstanceViewRepository
       int minCores,
       int minSockets,
       String month,
-      Uom referenceUom,
+      MetricId referenceUom,
       BillingProvider billingProvider,
       String billingAccountId,
       List<HardwareMeasurementType> hardwareMeasurementTypes) {
-    Uom effectiveUom = Optional.ofNullable(referenceUom).orElse(getDefaultUomForProduct(productId));
+    MetricId effectiveUom =
+        Optional.ofNullable(referenceUom).orElse(getDefaultMetricIdForProduct(productId));
 
     /* The where call allows us to build a Specification object to operate on even if the
      * first specification method we call returns null which is does because we're using the
@@ -228,7 +230,8 @@ public interface TallyInstanceViewRepository
       searchCriteria = searchCriteria.and(uomEquals(effectiveUom));
       if (StringUtils.hasText(month)) {
         searchCriteria =
-            searchCriteria.and(monthlyKeyEquals(new InstanceMonthlyTotalKey(month, effectiveUom)));
+            searchCriteria.and(
+                monthlyKeyEquals(new InstanceMonthlyTotalKey(month, effectiveUom.toString())));
       }
     }
     if (!ObjectUtils.isEmpty(hardwareMeasurementTypes)) {
@@ -238,7 +241,7 @@ public interface TallyInstanceViewRepository
     return searchCriteria;
   }
 
-  default Uom getDefaultUomForProduct(String productId) {
-    return UomUtils.getUomsFromConfigForTag(productId).findFirst().orElse(null);
+  default MetricId getDefaultMetricIdForProduct(String productId) {
+    return MetricIdUtils.getMetricIdsFromConfigForTag(productId).findFirst().orElse(null);
   }
 }

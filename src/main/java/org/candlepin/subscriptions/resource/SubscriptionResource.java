@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.resource;
 
+import com.redhat.swatch.configuration.registry.ProductId;
 import jakarta.validation.constraints.Min;
 import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;

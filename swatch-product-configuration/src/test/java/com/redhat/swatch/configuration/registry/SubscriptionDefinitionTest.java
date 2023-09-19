@@ -37,7 +37,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 class SubscriptionDefinitionTest {
   @Test
   void testFindServiceTypeMatch() {
-    var rosaSub = SubscriptionDefinition.findByServiceType("rosa Instance").get();
+    var rosaSub = SubscriptionDefinition.findByServiceType("rosa Instance").get(0);
 
     var expected = "rosa";
     var actual = rosaSub.getId();
@@ -47,10 +47,8 @@ class SubscriptionDefinitionTest {
 
   @Test
   void testFindServiceTypeNoMatch() {
-    var expected = Optional.empty();
     var actual = SubscriptionDefinition.findByServiceType("bananas");
-
-    assertEquals(expected, actual);
+    assertTrue(actual.isEmpty());
   }
 
   @Test
@@ -71,7 +69,7 @@ class SubscriptionDefinitionTest {
 
   @Test
   void testGetMetricIds() {
-    var basiliskSub = SubscriptionDefinition.findById("basilisk-test").get();
+    var basiliskSub = SubscriptionDefinition.findById("basilisk-test").orElseThrow();
 
     var actual = basiliskSub.getMetricIds();
     var expected = List.of("Transfer-gibibytes", "Instance-hours", "Storage-gibibyte-months");
@@ -81,7 +79,7 @@ class SubscriptionDefinitionTest {
 
   @Test
   void testGetMetricNoMatch() {
-    var basiliskSub = SubscriptionDefinition.findById("basilisk-test").get();
+    var basiliskSub = SubscriptionDefinition.findById("basilisk-test").orElseThrow();
 
     var expected = Optional.empty();
     var actual = basiliskSub.getMetric("bananas");
@@ -91,7 +89,7 @@ class SubscriptionDefinitionTest {
 
   @Test
   void testGetMetric() {
-    var basiliskSub = SubscriptionDefinition.findById("basilisk-test").get();
+    var basiliskSub = SubscriptionDefinition.findById("basilisk-test").orElseThrow();
 
     var metric = new Metric();
     metric.setId("Instance-hours");
@@ -102,6 +100,8 @@ class SubscriptionDefinitionTest {
     prometheusMetric.setQueryKey("default");
     prometheusMetric.setQueryParams(
         Map.of(
+            "instanceKey",
+            "_id",
             "product",
             "BASILISK",
             "metric",
@@ -119,7 +119,7 @@ class SubscriptionDefinitionTest {
   @Test
   void testGetMetricIdsUom() {
     var openshiftContainerPlatformSub =
-        SubscriptionDefinition.findById("openshift-container-platform").get();
+        SubscriptionDefinition.findById("openshift-container-platform").orElseThrow();
 
     var expected = List.of("Sockets", "Cores");
     var actual = openshiftContainerPlatformSub.getMetricIds();
@@ -129,7 +129,7 @@ class SubscriptionDefinitionTest {
 
   @Test
   void testFindById() {
-    var basiliskSub = SubscriptionDefinition.findById("basilisk-test").get();
+    var basiliskSub = SubscriptionDefinition.findById("basilisk-test").orElseThrow();
 
     var expected = "basilisk-test";
     var actual = basiliskSub.getId();
@@ -140,7 +140,7 @@ class SubscriptionDefinitionTest {
   @ParameterizedTest
   @CsvSource({"basilisk-test,true", "rhel-for-arm,false"})
   void testIsPrometheusEnabled(String input, boolean expected) {
-    var subscription = SubscriptionDefinition.findById(input).get();
+    var subscription = SubscriptionDefinition.findById(input).orElseThrow();
 
     assertEquals(subscription.isPrometheusEnabled(), expected);
   }
@@ -149,8 +149,7 @@ class SubscriptionDefinitionTest {
   @MethodSource("generateFinestGranularityCases")
   void testGetFinestGranularity(
       String subscriptionDefinitionId, SubscriptionDefinitionGranularity expected) {
-    var subscription = SubscriptionDefinition.findById(subscriptionDefinitionId).get();
-
+    var subscription = SubscriptionDefinition.findById(subscriptionDefinitionId).orElseThrow();
     assertEquals(subscription.getFinestGranularity(), expected);
   }
 
@@ -162,7 +161,7 @@ class SubscriptionDefinitionTest {
 
   @Test
   void testGetSupportedGranularityProm() {
-    var basiliskSub = SubscriptionDefinition.findById("basilisk-test").get();
+    var basiliskSub = SubscriptionDefinition.findById("basilisk-test").orElseThrow();
 
     var actual = basiliskSub.getSupportedGranularity();
     var expected =
@@ -179,7 +178,7 @@ class SubscriptionDefinitionTest {
 
   @Test
   void testGetSupportedGranularityNonProm() {
-    var rhelForArmSub = SubscriptionDefinition.findById("rhel-for-arm").get();
+    var rhelForArmSub = SubscriptionDefinition.findById("rhel-for-arm").orElseThrow();
 
     var actual = rhelForArmSub.getSupportedGranularity();
     var expected =
@@ -198,7 +197,7 @@ class SubscriptionDefinitionTest {
     var satelliteCapsule = SubscriptionDefinition.lookupSubscriptionByEngId("269");
 
     var expected = "satellite-capsule";
-    var actual = satelliteCapsule.get().getId();
+    var actual = satelliteCapsule.orElseThrow().getId();
 
     assertEquals(expected, actual);
   }
@@ -208,7 +207,7 @@ class SubscriptionDefinitionTest {
     var rhelForX86 = SubscriptionDefinition.lookupSubscriptionByEngId("76");
 
     var expected = "rhel-for-x86";
-    var actual = rhelForX86.get().getId();
+    var actual = rhelForX86.orElseThrow().getId();
 
     assertEquals(expected, actual);
   }
@@ -219,7 +218,7 @@ class SubscriptionDefinitionTest {
         SubscriptionDefinition.lookupSubscriptionByProductName("OpenShift Container Platform");
 
     var expected = "OpenShift-metrics";
-    var actual = openshiftContainerPlatform.get().getId();
+    var actual = openshiftContainerPlatform.get(0).getId();
 
     assertEquals(expected, actual);
   }
@@ -229,7 +228,7 @@ class SubscriptionDefinitionTest {
     var rosa = SubscriptionDefinition.lookupSubscriptionByRole("moa-hostedcontrolplane");
 
     var expected = "rosa";
-    var actual = rosa.get().getId();
+    var actual = rosa.orElseThrow().getId();
 
     assertEquals(expected, actual);
   }

@@ -18,24 +18,13 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.registry;
+package org.candlepin.subscriptions.tally.filler;
 
-import java.io.IOException;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ResourceLoader;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
+import java.time.OffsetDateTime;
+import org.candlepin.subscriptions.utilization.api.model.TallyReportDataPoint;
 
-/** Configuration that provides the product ID to product map. */
-@Configuration
-@ComponentScan(basePackages = "org.candlepin.subscriptions.registry")
-public class RegistryConfiguration {
-
-  @Bean
-  public TagProfile tagProfile(ResourceLoader resourceLoader) throws IOException {
-    Yaml parser = new Yaml(new Constructor(TagProfile.class));
-    return parser.load(resourceLoader.getResource("classpath:tag_profile.yaml").getInputStream());
+public record UnroundedTallyReportDataPoint(OffsetDateTime date, Double value, Boolean hasData) {
+  public TallyReportDataPoint toRoundedDataPoint() {
+    return new TallyReportDataPoint().hasData(hasData).date(date).value((int) Math.ceil(value));
   }
 }

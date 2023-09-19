@@ -27,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 
 import java.time.OffsetDateTime;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.task.MetricsTask;
 import org.candlepin.subscriptions.task.Task;
@@ -35,6 +34,7 @@ import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -79,7 +79,7 @@ class PrometheusMeteringTaskFactoryTest {
     assertTrue(task instanceof MetricsTask);
 
     task.execute();
-    verify(controller).collectMetrics("OpenShift", Uom.CORES, "12234", start, end);
+    verify(controller).collectMetrics("OpenShift", MetricIdUtils.getCores(), "12234", start, end);
   }
 
   @Test

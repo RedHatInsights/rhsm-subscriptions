@@ -58,6 +58,9 @@ rhsm-subscriptions:
           default: >-
             ${OPENSHIFT_ENABLED_ACCOUNT_PROMQL:group(min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{product='#{metric.prometheus.queryParams[product]}', external_organization != '', billing_model='marketplace'}[1h]))
             by (external_organization)}
+          addonSamples: >-
+            ${OPENSHIFT_ENABLED_ACCOUNT_PROMQL:group(min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{resource_type="addon", resource_name='#{metric.prometheus.queryParams[resourceName]}', external_organization != '', billing_model='marketplace'}[1h]))
+            by (external_organization)}
   prometheus-latency-duration: ${PROMETHEUS_LATENCY_DURATION:0h}
   hourly-tally-offset: ${HOURLY_TALLY_OFFSET:60m}
   metric-lookup-range-duration: ${METRIC_LOOKUP_RANGE:1h}

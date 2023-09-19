@@ -23,10 +23,13 @@ package org.candlepin.subscriptions.product;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationConfiguration;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
+import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
+import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
@@ -35,7 +38,15 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 @Profile("capacity-ingress")
-@ComponentScan(basePackages = "org.candlepin.subscriptions.product")
+@ComponentScan(
+    basePackages = "org.candlepin.subscriptions.product",
+    // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
+    excludeFilters = {
+      @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+      @ComponentScan.Filter(
+          type = FilterType.CUSTOM,
+          classes = AutoConfigurationExcludeFilter.class)
+    })
 @Import({ProductConfiguration.class, CapacityReconciliationConfiguration.class})
 @Configuration
 public class OfferingWorkerConfiguration {

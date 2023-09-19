@@ -44,11 +44,12 @@ import org.candlepin.subscriptions.exception.ExternalServiceException;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
 import org.candlepin.subscriptions.json.BillableUsage.Sla;
-import org.candlepin.subscriptions.json.BillableUsage.Uom;
 import org.candlepin.subscriptions.json.BillableUsage.Usage;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -57,15 +58,31 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class ContractsControllerTest {
-
   private static final String CONTRACT_METRIC_ID = "four_vcpu_0";
   private static final String CONTRACT_CONTROL_PLANE_METRIC_ID = "control_plane_0";
+
+  private static SubscriptionDefinitionRegistry originalReference;
 
   @Mock DefaultApi contractsApi;
   @Mock ContractsClientProperties contractsClientProperties;
   private SubscriptionDefinitionRegistry subscriptionDefinitionRegistry;
   private ApplicationClock clock;
   private ContractsController controller;
+
+  @BeforeAll
+  static void setupClass() throws Exception {
+    Field instance = SubscriptionDefinitionRegistry.class.getDeclaredField("instance");
+    instance.setAccessible(true);
+    originalReference =
+        (SubscriptionDefinitionRegistry) instance.get(SubscriptionDefinitionRegistry.class);
+  }
+
+  @AfterAll
+  static void tearDown() throws Exception {
+    Field instance = SubscriptionDefinitionRegistry.class.getDeclaredField("instance");
+    instance.setAccessible(true);
+    instance.set(instance, originalReference);
+  }
 
   @BeforeEach
   void setupTest() {
@@ -181,11 +198,13 @@ class ContractsControllerTest {
 
     // Make sure product is contract enabled.
     var variant = Variant.builder().tag(usage.getProductId()).build();
+    var metric = new com.redhat.swatch.configuration.registry.Metric();
+    metric.setId(usage.getUom());
     var subscriptionDefinition =
         SubscriptionDefinition.builder()
             .contractEnabled(true)
             .variants(List.of(variant))
-            .metrics(new ArrayList<>())
+            .metrics(List.of(metric))
             .build();
     variant.setSubscription(subscriptionDefinition);
     when(subscriptionDefinitionRegistry.getSubscriptions())
@@ -359,7 +378,7 @@ class ContractsControllerTest {
         .withBillingAccountId("ba123")
         .withSla(Sla.PREMIUM)
         .withBillingProvider(BillingProvider.AWS)
-        .withUom(Uom.CORES)
+        .withUom("Cores")
         .withVendorProductCode("vendor_product_code")
         .withSnapshotDate(clock.now());
   }

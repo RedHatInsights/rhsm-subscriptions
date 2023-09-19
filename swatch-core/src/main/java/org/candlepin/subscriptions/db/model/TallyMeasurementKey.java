@@ -28,7 +28,7 @@ import java.io.Serializable;
 import java.util.Objects;
 import lombok.Getter;
 import lombok.Setter;
-import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 
 /** Model object to the key for a given tally measurement */
 @Embeddable
@@ -40,16 +40,16 @@ public class TallyMeasurementKey implements Serializable {
   @Column(name = "measurement_type")
   private HardwareMeasurementType measurementType;
 
-  @Enumerated(EnumType.STRING)
-  private Measurement.Uom uom;
+  @Column(name = "metric_id")
+  private String metricId;
 
   public TallyMeasurementKey() {
     /* intentionally left empty */
   }
 
-  public TallyMeasurementKey(HardwareMeasurementType hardwareMeasurementType, Measurement.Uom uom) {
+  public TallyMeasurementKey(HardwareMeasurementType hardwareMeasurementType, String metricId) {
     this.measurementType = hardwareMeasurementType;
-    this.uom = uom;
+    this.metricId = MetricIdUtils.toUpperCaseFormatted(metricId);
   }
 
   @Override
@@ -61,16 +61,21 @@ public class TallyMeasurementKey implements Serializable {
       return false;
     }
     TallyMeasurementKey that = (TallyMeasurementKey) o;
-    return measurementType == that.measurementType && uom == that.uom;
+    return measurementType == that.measurementType && Objects.equals(metricId, that.metricId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(measurementType, uom);
+    return Objects.hash(measurementType, metricId);
   }
 
   @Override
   public String toString() {
-    return "TallyMeasurementKey{" + "measurementType=" + measurementType + ", uom=" + uom + '}';
+    return "TallyMeasurementKey{"
+        + "measurementType="
+        + measurementType
+        + ", uom="
+        + metricId
+        + '}';
   }
 }

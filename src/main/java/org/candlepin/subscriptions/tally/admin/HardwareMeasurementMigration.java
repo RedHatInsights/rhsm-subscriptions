@@ -39,19 +39,19 @@ public class HardwareMeasurementMigration extends DataMigration {
       new SqlRowSetResultSetExtractor();
 
   public static final String INSERT_SQL =
-      "insert into tally_measurements(snapshot_id, measurement_type, uom, value)\n"
+      "insert into tally_measurements(snapshot_id, measurement_type, metric_id, value)\n"
           + "values (?, ?, ?, ?)";
 
   public static final String UPDATE_SQL =
-      "update tally_measurements set value=? where snapshot_id=? and measurement_type=? and uom=?";
+      "update tally_measurements set value=? where snapshot_id=? and measurement_type=? and metric_id=?";
 
   private static final String HARDWARE_MEASUREMENT_QUERY =
       "select h.snapshot_id, h.measurement_type, sockets, cores, s.value as s_value, c.value as c_value\n"
           + "from hardware_measurements h\n"
           + "         left join tally_measurements s\n"
-          + "                   on s.snapshot_id = h.snapshot_id and s.measurement_type = h.measurement_type and s.uom = 'SOCKETS'\n"
+          + "                   on s.snapshot_id = h.snapshot_id and s.measurement_type = h.measurement_type and s.metric_id = 'SOCKETS'\n"
           + "         left join tally_measurements c\n"
-          + "                   on c.snapshot_id = h.snapshot_id and c.measurement_type = h.measurement_type and c.uom = 'CORES'\n"
+          + "                   on c.snapshot_id = h.snapshot_id and c.measurement_type = h.measurement_type and c.metric_id = 'CORES'\n"
           + "where ?::uuid is null\n"
           + "   or h.snapshot_id > ?::uuid\n"
           + "order by h.snapshot_id\n"

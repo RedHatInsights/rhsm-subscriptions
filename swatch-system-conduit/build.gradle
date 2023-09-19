@@ -91,8 +91,8 @@ dependencies {
     implementation "org.yaml:snakeyaml"
     implementation "org.postgresql:postgresql"
     implementation "org.hibernate.validator:hibernate-validator"
-    implementation "org.webjars:swagger-ui"
-    implementation "org.webjars:webjars-locator"
+    implementation libraries["swagger-ui"]
+    implementation libraries["webjars-locator"]
     implementation libraries["resilience4j-spring-boot2"]
 
     testImplementation "org.springframework.security:spring-security-test"
@@ -100,7 +100,7 @@ dependencies {
     testImplementation project(':swatch-core-test')
 
     runtimeOnly "org.hsqldb:hsqldb"
-    runtimeOnly "org.jboss.resteasy:resteasy-jackson2-provider"
+    runtimeOnly libraries["resteasy-jackson2-provider"]
 
     javaagent  libraries["splunk-otel-agent"]
 }

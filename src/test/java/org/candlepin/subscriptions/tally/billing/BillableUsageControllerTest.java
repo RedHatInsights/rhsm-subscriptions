@@ -58,11 +58,12 @@ import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
 import org.candlepin.subscriptions.json.BillableUsage.Sla;
-import org.candlepin.subscriptions.json.BillableUsage.Uom;
 import org.candlepin.subscriptions.json.BillableUsage.Usage;
-import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.util.MetricIdUtils;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -76,9 +77,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @Slf4j
 @ExtendWith(MockitoExtension.class)
 class BillableUsageControllerTest {
-
+  private static SubscriptionDefinitionRegistry originalReference;
   private static ApplicationClock CLOCK = new TestClockConfiguration().adjustableClock();
   private static final String AWS_METRIC_ID = "aws_metric";
+
+  private static String CORES = "CORES";
 
   @Mock BillingProducer producer;
   @Mock BillableUsageRemittanceRepository remittanceRepo;
@@ -89,6 +92,21 @@ class BillableUsageControllerTest {
   private SubscriptionDefinitionRegistry subscriptionDefinitionRegistry;
   private BillableUsageController controller;
   private ContractsController contractsController;
+
+  @BeforeAll
+  static void setupClass() throws Exception {
+    Field instance = SubscriptionDefinitionRegistry.class.getDeclaredField("instance");
+    instance.setAccessible(true);
+    originalReference =
+        (SubscriptionDefinitionRegistry) instance.get(SubscriptionDefinitionRegistry.class);
+  }
+
+  @AfterAll
+  static void tearDown() throws Exception {
+    Field instance = SubscriptionDefinitionRegistry.class.getDeclaredField("instance");
+    instance.setAccessible(true);
+    instance.set(instance, originalReference);
+  }
 
   @BeforeEach
   void setup() {
@@ -150,7 +168,7 @@ class BillableUsageControllerTest {
   void monthlyWindowRemittanceMultipleOfBillingFactor() {
     BillableUsage usage = billable(CLOCK.startOfCurrentMonth(), 68.103);
     usage.setProductId("osd");
-    usage.setUom(Uom.CORES);
+    usage.setUom(CORES);
     List<RemittanceSummaryProjection> summaries = new ArrayList<>();
     summaries.add(RemittanceSummaryProjection.builder().totalRemittedPendingValue(996.0).build());
 
@@ -167,7 +185,7 @@ class BillableUsageControllerTest {
     BillableUsage expectedUsage = billable(usage.getSnapshotDate(), 18.0);
     expectedUsage.setId(usage.getId()); // Id will be regenerated above.
     expectedUsage.setProductId("osd");
-    expectedUsage.setUom(Uom.CORES);
+    expectedUsage.setUom(MetricIdUtils.getCores().getValue());
     expectedUsage.setBillingFactor(0.25);
     verify(remittanceRepo).save(expectedRemittance);
     verify(producer).produce(expectedUsage);
@@ -191,13 +209,13 @@ class BillableUsageControllerTest {
   void billingFactorAppliedInRecalculationEvenNumber() {
     BillableUsage usage = billable(CLOCK.startOfCurrentMonth(), 8.0);
     usage.setProductId("osd");
-    usage.setUom(Uom.CORES);
+    usage.setUom(CORES);
     List<RemittanceSummaryProjection> summaries = new ArrayList<>();
     summaries.add(RemittanceSummaryProjection.builder().totalRemittedPendingValue(6.0).build());
 
     when(remittanceRepo.getRemittanceSummaries(any())).thenReturn(summaries);
 
-    createSubscriptionDefinition("osd", usage.getUom().toString(), 0.25, false);
+    createSubscriptionDefinition("osd", usage.getUom(), 0.25, false);
 
     mockCurrentSnapshotMeasurementTotal(usage, 16.0);
     controller.submitBillableUsage(usage);
@@ -216,7 +234,7 @@ class BillableUsageControllerTest {
   void billingFactorAppliedInRecalculation() {
     BillableUsage usage = billable(CLOCK.startOfCurrentMonth(), 8.0);
     usage.setProductId("osd");
-    usage.setUom(Uom.CORES);
+    usage.setUom(CORES);
 
     List<RemittanceSummaryProjection> summaries = new ArrayList<>();
     summaries.add(RemittanceSummaryProjection.builder().totalRemittedPendingValue(6.0).build());
@@ -487,7 +505,7 @@ class BillableUsageControllerTest {
         .withOrgId("org123")
         .withProductId("rhosak")
         .withSla(Sla.STANDARD)
-        .withUom(Uom.STORAGE_GIBIBYTES)
+        .withUom("Storage-gibibytes")
         .withSnapshotDate(date)
         .withValue(value);
   }
@@ -501,7 +519,7 @@ class BillableUsageControllerTest {
         .billingAccountId(billableUsage.getBillingAccountId())
         .productId(billableUsage.getProductId())
         .sla(billableUsage.getSla().value())
-        .metricId(billableUsage.getUom().value())
+        .metricId(billableUsage.getUom())
         .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(billableUsage.getSnapshotDate()))
         .remittancePendingDate(remittedDate)
         .build();
@@ -509,8 +527,7 @@ class BillableUsageControllerTest {
 
   private void mockCurrentSnapshotMeasurementTotal(BillableUsage usage, Double sum) {
     TallyMeasurementKey measurementKey =
-        new TallyMeasurementKey(
-            HardwareMeasurementType.PHYSICAL, Measurement.Uom.fromValue(usage.getUom().value()));
+        new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, usage.getUom());
     when(snapshotRepo.sumMeasurementValueForPeriod(
             usage.getOrgId(),
             usage.getProductId(),
@@ -636,7 +653,7 @@ class BillableUsageControllerTest {
   void usageIsSentWhenContractIsMissingWithinWindow() throws Exception {
     BillableUsage usage = billable(OffsetDateTime.now(), 1.0);
     usage.setSnapshotDate(OffsetDateTime.now());
-    usage.setUom(Uom.CORES);
+    usage.setUom(CORES);
     createSubscriptionDefinition(usage.getProductId(), usage.getUom().toString(), 1.0, true);
     when(contractsApi.getContract(any(), any(), any(), any(), any(), any())).thenReturn(List.of());
 

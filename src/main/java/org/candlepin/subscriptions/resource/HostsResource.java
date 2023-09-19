@@ -21,6 +21,8 @@
 package org.candlepin.subscriptions.resource;
 
 import com.google.common.collect.ImmutableMap;
+import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import jakarta.validation.constraints.Max;
@@ -43,7 +45,6 @@ import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyHostView;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.utilization.api.model.HostReport;
@@ -52,7 +53,6 @@ import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
 import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReport;
 import org.candlepin.subscriptions.utilization.api.model.MetaCount;
 import org.candlepin.subscriptions.utilization.api.model.PageLinks;
-import org.candlepin.subscriptions.utilization.api.model.ProductId;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.SortDirection;
 import org.candlepin.subscriptions.utilization.api.model.Uom;
@@ -88,26 +88,27 @@ public class HostsResource implements HostsApi {
           .putAll(getUomSorts())
           .build();
 
-  public static final Map<HostReportSort, Measurement.Uom> SORT_TO_UOM_MAP =
-      ImmutableMap.copyOf(getSortToUomMap());
+  public static final Map<HostReportSort, MetricId> SORT_TO_METRIC_ID_MAP =
+      ImmutableMap.copyOf(getSortToMetricIdMap());
   public static final String BILLING_ACCOUNT_ID = "_ANY";
 
-  private static Map<HostReportSort, Measurement.Uom> getSortToUomMap() {
-    return Arrays.stream(Measurement.Uom.values())
+  private static Map<HostReportSort, MetricId> getSortToMetricIdMap() {
+    return MetricId.getAll().stream()
         .filter(
-            uom ->
+            metricId ->
                 Arrays.stream(HostReportSort.values())
                     .map(HostReportSort::toString)
                     .collect(Collectors.toSet())
-                    .contains(uom.value().toLowerCase().replace('-', '_')))
+                    .contains(metricId.getValue().toLowerCase().replace('-', '_')))
         .collect(
             Collectors.toMap(
-                uom -> HostReportSort.fromValue(uom.value().toLowerCase().replace('-', '_')),
+                metricId ->
+                    HostReportSort.fromValue(metricId.getValue().toLowerCase().replace('-', '_')),
                 Function.identity()));
   }
 
   private static Map<HostReportSort, String> getUomSorts() {
-    return getSortToUomMap().keySet().stream()
+    return getSortToMetricIdMap().keySet().stream()
         .collect(Collectors.toMap(Function.identity(), key -> "monthlyTotals"));
   }
 
@@ -184,7 +185,7 @@ public class HostsResource implements HostsApi {
       // the selected month. This is also used for sorting purposes (same join). See
       // org.candlepin.subscriptions.db.HostSpecification#toPredicate and
       // org.candlepin.subscriptions.db.HostRepository#findAllBy.
-      Measurement.Uom referenceUom = SORT_TO_UOM_MAP.get(sort);
+      MetricId referenceMetricId = SORT_TO_METRIC_ID_MAP.get(sort);
       hosts =
           repository.findAllBy(
               orgId,
@@ -195,7 +196,7 @@ public class HostsResource implements HostsApi {
               minCores,
               minSockets,
               month,
-              referenceUom,
+              referenceMetricId,
               BillingProvider._ANY,
               BILLING_ACCOUNT_ID,
               null,
@@ -241,7 +242,7 @@ public class HostsResource implements HostsApi {
         .meta(
             new HostReportMeta()
                 .count((int) hosts.getTotalElements())
-                .product(productId)
+                .product(productId.toString())
                 .serviceLevel(sla)
                 .usage(usage)
                 .uom(uom))

@@ -27,7 +27,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.tally.roller.BaseSnapshotRoller;
 import org.candlepin.subscriptions.tally.roller.DailySnapshotRoller;
 import org.candlepin.subscriptions.tally.roller.HourlySnapshotRoller;
@@ -60,15 +59,14 @@ public class MaxSeenSnapshotStrategy {
   public MaxSeenSnapshotStrategy(
       TallySnapshotRepository tallyRepo,
       ApplicationClock clock,
-      TagProfile tagProfile,
       SnapshotSummaryProducer summaryProducer) {
     this.summaryProducer = summaryProducer;
-    hourlyRoller = new HourlySnapshotRoller(tallyRepo, clock, tagProfile);
-    dailyRoller = new DailySnapshotRoller(tallyRepo, clock, tagProfile);
-    weeklyRoller = new WeeklySnapshotRoller(tallyRepo, clock, tagProfile);
-    monthlyRoller = new MonthlySnapshotRoller(tallyRepo, clock, tagProfile);
-    yearlyRoller = new YearlySnapshotRoller(tallyRepo, clock, tagProfile);
-    quarterlyRoller = new QuarterlySnapshotRoller(tallyRepo, clock, tagProfile);
+    hourlyRoller = new HourlySnapshotRoller(tallyRepo, clock);
+    dailyRoller = new DailySnapshotRoller(tallyRepo, clock);
+    weeklyRoller = new WeeklySnapshotRoller(tallyRepo, clock);
+    monthlyRoller = new MonthlySnapshotRoller(tallyRepo, clock);
+    yearlyRoller = new YearlySnapshotRoller(tallyRepo, clock);
+    quarterlyRoller = new QuarterlySnapshotRoller(tallyRepo, clock);
   }
 
   @Transactional

@@ -20,6 +20,11 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import com.google.common.collect.MoreCollectors;
+import com.google.common.collect.Sets;
+import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,12 +43,9 @@ import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.json.Measurement.Uom;
-import org.candlepin.subscriptions.registry.TagMetaData;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,17 +58,14 @@ public class MetricUsageCollector {
   private final AccountServiceInventoryRepository accountServiceInventoryRepository;
   private final EventController eventController;
   private final ApplicationClock clock;
-  private final TagProfile tagProfile;
 
   public MetricUsageCollector(
-      TagProfile tagProfile,
       AccountServiceInventoryRepository accountServiceInventoryRepository,
       EventController eventController,
       ApplicationClock clock) {
     this.accountServiceInventoryRepository = accountServiceInventoryRepository;
     this.eventController = eventController;
     this.clock = clock;
-    this.tagProfile = tagProfile;
   }
 
   @Transactional
@@ -188,8 +187,6 @@ public class MetricUsageCollector {
   @Transactional
   public AccountUsageCalculation collectHour(
       AccountServiceInventory accountServiceInventory, OffsetDateTime startDateTime) {
-    Optional<TagMetaData> serviceTypeMeta =
-        tagProfile.getTagMetaDataByServiceType(accountServiceInventory.getServiceType());
     OffsetDateTime endDateTime = startDateTime.plusHours(1);
 
     Map<String, List<Event>> eventToHostMapping =
@@ -206,7 +203,7 @@ public class MetricUsageCollector {
     Map<String, Host> thisHoursInstances = new HashMap<>();
     eventToHostMapping.forEach(
         (instanceId, events) -> {
-          Set<Uom> seenUoms = new HashSet<>();
+          Set<String> seenMetricIds = new HashSet<>();
           Host existing = accountServiceInventory.getServiceInstances().get(instanceId);
           Host host = existing == null ? new Host() : existing;
           thisHoursInstances.put(instanceId, host);
@@ -214,17 +211,19 @@ public class MetricUsageCollector {
 
           events.forEach(
               event -> {
-                updateInstanceFromEvent(event, host, serviceTypeMeta);
+                updateInstanceFromEvent(event, host, accountServiceInventory.getServiceType());
 
                 if (event.getMeasurements() != null) {
-                  event.getMeasurements().stream().map(Measurement::getUom).forEach(seenUoms::add);
+                  event.getMeasurements().stream()
+                      .map(measurement -> MetricIdUtils.toUpperCaseFormatted(measurement.getUom()))
+                      .forEach(seenMetricIds::add);
                 }
               });
 
           // clear any measurements that we don't have events for
-          Set<Uom> staleMeasurements =
+          Set<String> staleMeasurements =
               host.getMeasurements().keySet().stream()
-                  .filter(k -> !seenUoms.contains(k))
+                  .filter(k -> !seenMetricIds.contains(k))
                   .collect(Collectors.toSet());
           staleMeasurements.forEach(host.getMeasurements()::remove);
         });
@@ -257,11 +256,11 @@ public class MetricUsageCollector {
                         instance
                             .getMeasurements()
                             .forEach(
-                                (uom, value) ->
+                                (metricId, value) ->
                                     accountUsageCalculation.addUsage(
                                         usageKey,
                                         getHardwareMeasurementType(instance),
-                                        uom,
+                                        MetricId.fromString(metricId),
                                         value));
                       });
 
@@ -275,8 +274,7 @@ public class MetricUsageCollector {
     return accountUsageCalculation;
   }
 
-  private void updateInstanceFromEvent(
-      Event event, Host instance, Optional<TagMetaData> serviceTypeMeta) {
+  private void updateInstanceFromEvent(Event event, Host instance, String serviceType) {
     // fields that we expect to always be present
     instance.setAccountNumber(event.getAccountNumber());
     instance.setOrgId(event.getOrgId());
@@ -306,9 +304,11 @@ public class MetricUsageCollector {
             measurement -> {
               instance.setMeasurement(measurement.getUom(), measurement.getValue());
               instance.addToMonthlyTotal(
-                  event.getTimestamp(), measurement.getUom(), measurement.getValue());
+                  event.getTimestamp(),
+                  MetricId.fromString(measurement.getUom()),
+                  measurement.getValue());
             });
-    addBucketsFromEvent(instance, event, serviceTypeMeta);
+    addBucketsFromEvent(instance, event, serviceType);
   }
 
   /**
@@ -347,61 +347,40 @@ public class MetricUsageCollector {
   }
 
   private HostHardwareType getHostHardwareType(Event.HardwareType hardwareType) {
-    switch (hardwareType) {
-      case __EMPTY__:
-        return null;
-      case PHYSICAL:
-        return HostHardwareType.PHYSICAL;
-      case VIRTUAL:
-        return HostHardwareType.VIRTUALIZED;
-      case CLOUD:
-        return HostHardwareType.CLOUD;
-      default:
-        throw new IllegalArgumentException(
-            String.format("Unsupported hardware type: %s", hardwareType));
-    }
+    return switch (hardwareType) {
+      case __EMPTY__ -> null;
+      case PHYSICAL -> HostHardwareType.PHYSICAL;
+      case VIRTUAL -> HostHardwareType.VIRTUALIZED;
+      case CLOUD -> HostHardwareType.CLOUD;
+    };
   }
 
   private HardwareMeasurementType getHardwareMeasurementType(Host instance) {
     if (instance.getHardwareType() == null) {
       return HardwareMeasurementType.PHYSICAL;
     }
-    switch (instance.getHardwareType()) {
-      case CLOUD:
-        return getCloudProvider(instance);
-      case VIRTUALIZED:
-        return HardwareMeasurementType.VIRTUAL;
-      case PHYSICAL:
-        return HardwareMeasurementType.PHYSICAL;
-      default:
-        throw new IllegalArgumentException(
-            String.format("Unsupported hardware type: %s", instance.getHardwareType()));
-    }
+    return switch (instance.getHardwareType()) {
+      case CLOUD -> getCloudProvider(instance);
+      case VIRTUALIZED -> HardwareMeasurementType.VIRTUAL;
+      case PHYSICAL -> HardwareMeasurementType.PHYSICAL;
+    };
   }
 
   private HardwareMeasurementType getCloudProvider(Host instance) {
     if (instance.getCloudProvider() == null) {
       throw new IllegalArgumentException("Hardware type cloud, but no cloud provider specified");
     }
-    return HardwareMeasurementType.valueOf(instance.getCloudProvider());
+    return HardwareMeasurementType.fromString(instance.getCloudProvider());
   }
 
   private HardwareMeasurementType getCloudProvider(Event.CloudProvider cloudProvider) {
-    switch (cloudProvider) {
-      case __EMPTY__:
-        return null;
-      case AWS:
-        return HardwareMeasurementType.AWS;
-      case AZURE:
-        return HardwareMeasurementType.AZURE;
-      case ALIBABA:
-        return HardwareMeasurementType.ALIBABA;
-      case GOOGLE:
-        return HardwareMeasurementType.GOOGLE;
-      default:
-        throw new IllegalArgumentException(
-            String.format("Unsupported value for cloud provider: %s", cloudProvider.value()));
-    }
+    return switch (cloudProvider) {
+      case __EMPTY__ -> null;
+      case AWS -> HardwareMeasurementType.AWS;
+      case AZURE -> HardwareMeasurementType.AZURE;
+      case ALIBABA -> HardwareMeasurementType.ALIBABA;
+      case GOOGLE -> HardwareMeasurementType.GOOGLE;
+    };
   }
 
   private String getCloudProviderAsString(Event.CloudProvider cloudProvider) {
@@ -413,36 +392,43 @@ public class MetricUsageCollector {
   }
 
   private BillingProvider getBillingProvider(Event.BillingProvider billingProvider) {
-    switch (billingProvider) {
-      case __EMPTY__:
-        return null;
-      case AWS:
-        return BillingProvider.AWS;
-      case AZURE:
-        return BillingProvider.AZURE;
-      case ORACLE:
-        return BillingProvider.ORACLE;
-      case GCP:
-        return BillingProvider.GCP;
-      case RED_HAT:
-        return BillingProvider.RED_HAT;
-      default:
-        throw new IllegalArgumentException(
-            String.format("Unsupported value for billing provider: %s", billingProvider.value()));
-    }
+    return switch (billingProvider) {
+      case __EMPTY__ -> null;
+      case AWS -> BillingProvider.AWS;
+      case AZURE -> BillingProvider.AZURE;
+      case ORACLE -> BillingProvider.ORACLE;
+      case GCP -> BillingProvider.GCP;
+      case RED_HAT -> BillingProvider.RED_HAT;
+    };
   }
 
-  private void addBucketsFromEvent(Host host, Event event, Optional<TagMetaData> serviceTypeMeta) {
+  private void addBucketsFromEvent(Host host, Event event, String serviceType) {
+    // We have multiple SubscriptionDefinitions that can have the same serviceType (OpenShift
+    // Cluster).  The SLA and usage for these definitions should be the same (if defined), so we
+    // need to collect them all, deduplicate, and then verify via MoreCollectors.toOptional that we
+    // have only one or zero choices.
+    var subDefinitions = SubscriptionDefinition.findByServiceType(serviceType);
+    Optional<String> sla =
+        subDefinitions.stream()
+            .map(x -> x.getDefaults().getSla().toString())
+            .distinct()
+            .collect(MoreCollectors.toOptional());
+    Optional<String> usage =
+        subDefinitions.stream()
+            .map(x -> x.getDefaults().getUsage().toString())
+            .distinct()
+            .collect(MoreCollectors.toOptional());
+
     ServiceLevel effectiveSla =
         Optional.ofNullable(event.getSla())
             .map(Event.Sla::toString)
             .map(ServiceLevel::fromString)
-            .orElse(serviceTypeMeta.map(TagMetaData::getDefaultSla).orElse(ServiceLevel.EMPTY));
+            .orElse(sla.map(ServiceLevel::fromString).orElse(ServiceLevel.EMPTY));
     Usage effectiveUsage =
         Optional.ofNullable(event.getUsage())
             .map(Event.Usage::toString)
             .map(Usage::fromString)
-            .orElse(serviceTypeMeta.map(TagMetaData::getDefaultUsage).orElse(Usage.EMPTY));
+            .orElse(usage.map(Usage::fromString).orElse(Usage.EMPTY));
     BillingProvider effectiveProvider =
         Optional.ofNullable(event.getBillingProvider())
             .map(Event.BillingProvider::toString)
@@ -451,33 +437,50 @@ public class MetricUsageCollector {
     String effectiveBillingAcctId =
         Optional.ofNullable(event.getBillingAccountId()).orElse(Optional.empty()).orElse("");
     Set<String> productIds = getProductIds(event);
-    Set<String> billingAcctIds = getBillingAccountIds(effectiveBillingAcctId);
+    Set<ServiceLevel> slas = Set.of(effectiveSla, ServiceLevel._ANY);
+    Set<Usage> usages = Set.of(effectiveUsage, Usage._ANY);
+    Set<BillingProvider> billingProviders = Set.of(effectiveProvider, BillingProvider._ANY);
+    Set<String> billingAccountIds = getBillingAccountIds(effectiveBillingAcctId);
 
-    for (String productId : productIds) {
-      for (ServiceLevel sla : Set.of(effectiveSla, ServiceLevel._ANY)) {
-        for (Usage usage : Set.of(effectiveUsage, Usage._ANY)) {
-          for (BillingProvider billingProvider : Set.of(effectiveProvider, BillingProvider._ANY)) {
-            for (String billingAccountId : billingAcctIds) {
-              HostTallyBucket bucket = new HostTallyBucket();
-              bucket.setKey(
-                  new HostBucketKey(
-                      host, productId, sla, usage, billingProvider, billingAccountId, false));
-              host.addBucket(bucket);
-            }
-          }
-        }
-      }
-    }
+    Set<List<Object>> bucketTuples =
+        Sets.cartesianProduct(productIds, slas, usages, billingProviders, billingAccountIds);
+    bucketTuples.forEach(
+        tuple -> {
+          String productId = (String) tuple.get(0);
+          ServiceLevel slaBucket = (ServiceLevel) tuple.get(1);
+          Usage usageBucket = (Usage) tuple.get(2);
+          BillingProvider billingProvider = (BillingProvider) tuple.get(3);
+          String billingAccountId = (String) tuple.get(4);
+          HostTallyBucket bucket = new HostTallyBucket();
+          bucket.setKey(
+              new HostBucketKey(
+                  host,
+                  productId,
+                  slaBucket,
+                  usageBucket,
+                  billingProvider,
+                  billingAccountId,
+                  false));
+          host.addBucket(bucket);
+        });
   }
 
   private Set<String> getProductIds(Event event) {
     Set<String> productIds = new HashSet<>();
-    productIds.addAll(tagProfile.getTagsByRole(event.getRole()));
 
-    Optional.ofNullable(event.getProductIds()).orElse(Collections.emptyList()).stream()
-        .map(tagProfile::getTagsByEngProduct)
-        .filter(Objects::nonNull)
-        .forEach(productIds::addAll);
+    if (Objects.nonNull(event.getRole())) {
+      String role = event.getRole().toString();
+      SubscriptionDefinition.lookupSubscriptionByRole(role)
+          .flatMap(s -> s.findVariantForRole(role).map(Variant::getTag))
+          .ifPresent(productIds::add);
+    }
+
+    var engIds = Optional.ofNullable(event.getProductIds()).orElse(Collections.emptyList());
+    for (String engId : engIds) {
+      SubscriptionDefinition.lookupSubscriptionByEngId(engId)
+          .flatMap(s -> s.findVariantForEngId(engId).map(Variant::getTag))
+          .ifPresent(productIds::add);
+    }
 
     return productIds;
   }

@@ -24,11 +24,14 @@ import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConf
 
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
+import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
@@ -40,6 +43,13 @@ import org.springframework.kafka.core.ProducerFactory;
       "org.candlepin.subscriptions.product",
       "org.candlepin.subscriptions.capacity.files",
       "org.candlepin.subscriptions.task.queue.kafka"
+    },
+    // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
+    excludeFilters = {
+      @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+      @ComponentScan.Filter(
+          type = FilterType.CUSTOM,
+          classes = AutoConfigurationExcludeFilter.class)
     })
 public class ProductConfiguration {
   @Bean

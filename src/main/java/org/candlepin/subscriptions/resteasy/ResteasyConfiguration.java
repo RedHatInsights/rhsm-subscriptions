@@ -21,8 +21,11 @@
 package org.candlepin.subscriptions.resteasy;
 
 import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
+import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -38,6 +41,13 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
     basePackages = {
       "org.candlepin.subscriptions.exception.mapper",
       "org.candlepin.subscriptions.resteasy"
+    },
+    // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
+    excludeFilters = {
+      @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+      @ComponentScan.Filter(
+          type = FilterType.CUSTOM,
+          classes = AutoConfigurationExcludeFilter.class)
     })
 public class ResteasyConfiguration implements WebMvcConfigurer {
   @Override

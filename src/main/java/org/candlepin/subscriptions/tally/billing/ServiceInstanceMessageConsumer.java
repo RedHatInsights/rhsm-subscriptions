@@ -54,8 +54,8 @@ public class ServiceInstanceMessageConsumer extends SeekableKafkaConsumer {
       topics = "#{__listener.topic}",
       containerFactory = "kafkaServiceInstanceListenerContainerFactory")
   @Transactional(noRollbackFor = RuntimeException.class)
-  public void receive(@Payload Set<String> eventRecords) {
-    log.info("Events received w/ event list size={}. Consuming events.", eventRecords.size());
-    eventController.persistServiceInstances(eventRecords);
+  public void receive(@Payload Set<String> events) {
+    log.info("Events received w/ event list size={}. Consuming events.", events.size());
+    eventController.persistServiceInstances(events);
   }
 }

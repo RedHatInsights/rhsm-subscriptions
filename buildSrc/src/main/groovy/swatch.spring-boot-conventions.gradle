@@ -23,11 +23,11 @@ dependencies {
     implementation "org.springframework.retry:spring-retry"
     implementation "org.springframework:spring-context-support"
     implementation "io.micrometer:micrometer-registry-prometheus"
-    runtimeOnly("org.jboss.resteasy:resteasy-validator-provider") {
+    runtimeOnly(libraries["resteasy-validator-provider"]) {
         exclude group: "org.hibernate" // exclude older hibernate validator
     }
-    implementation "org.webjars:swagger-ui"
-    implementation "org.webjars:webjars-locator"
+    implementation libraries["swagger-ui"]
+    implementation libraries["webjars-locator"]
     implementation "org.hibernate.validator:hibernate-validator"
     implementation "org.yaml:snakeyaml"
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"

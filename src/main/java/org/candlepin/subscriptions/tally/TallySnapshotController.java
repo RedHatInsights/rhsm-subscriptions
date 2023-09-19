@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.annotation.Timed;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -30,7 +32,6 @@ import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.util.DateRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,30 +54,24 @@ public class TallySnapshotController {
   private final MaxSeenSnapshotStrategy maxSeenSnapshotStrategy;
   private final CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy;
   private final RetryTemplate retryTemplate;
-  private final Set<String> applicableProducts;
-  private final TagProfile tagProfile;
   private final SnapshotSummaryProducer summaryProducer;
 
   @Autowired
   public TallySnapshotController(
       AccountConfigRepository accountRepo,
-      @Qualifier("applicableProducts") Set<String> applicableProducts,
       InventoryAccountUsageCollector usageCollector,
       MaxSeenSnapshotStrategy maxSeenSnapshotStrategy,
       @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
       MetricUsageCollector metricUsageCollector,
       CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy,
-      TagProfile tagProfile,
       SnapshotSummaryProducer summaryProducer) {
 
     this.accountRepo = accountRepo;
-    this.applicableProducts = applicableProducts;
     this.usageCollector = usageCollector;
     this.maxSeenSnapshotStrategy = maxSeenSnapshotStrategy;
     this.retryTemplate = retryTemplate;
     this.metricUsageCollector = metricUsageCollector;
     this.combiningRollupSnapshotStrategy = combiningRollupSnapshotStrategy;
-    this.tagProfile = tagProfile;
     this.summaryProducer = summaryProducer;
   }
 
@@ -113,66 +108,73 @@ public class TallySnapshotController {
 
     String accountNumber = accountRepo.findAccountNumberByOrgId(orgId);
     log.info("Producing snapshots for Org ID {} with Account {}.", orgId, accountNumber);
-    tagProfile
-        .getServiceTypes()
-        .forEach(
-            serviceType -> {
-              log.info(
-                  "Producing hourly snapshots for orgId {} for service type {} "
-                      + "between startDateTime {} and endDateTime {}",
-                  orgId,
-                  serviceType,
-                  snapshotRange.getStartString(),
-                  snapshotRange.getEndString());
-              try {
-                var result =
-                    retryTemplate.execute(
-                        context ->
-                            metricUsageCollector.collect(
-                                serviceType, accountNumber, orgId, snapshotRange));
-                if (result == null) {
-                  return;
-                }
+    List<String> serviceTypes = SubscriptionDefinition.getAllServiceTypes();
+    for (String serviceType : serviceTypes) {
+      log.info(
+          "Producing hourly snapshots for orgId {} for service type {} "
+              + "between startDateTime {} and endDateTime {}",
+          orgId,
+          serviceType,
+          snapshotRange.getStartString(),
+          snapshotRange.getEndString());
+      try {
+        var result =
+            retryTemplate.execute(
+                context ->
+                    metricUsageCollector.collect(serviceType, accountNumber, orgId, snapshotRange));
+        if (result == null) {
+          continue;
+        }
 
-                var applicableUsageCalculations =
-                    result.getCalculations().entrySet().stream()
-                        .filter(this::isCombiningRollupStrategySupported)
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-                Map<String, List<TallySnapshot>> totalSnapshots =
-                    combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
-                        orgId,
-                        result.getRange(),
-                        tagProfile.getTagsForServiceType(serviceType),
-                        applicableUsageCalculations,
-                        Granularity.HOURLY,
-                        Double::sum);
+        var applicableUsageCalculations =
+            result.getCalculations().entrySet().stream()
+                .filter(this::isCombiningRollupStrategySupported)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-                summaryProducer.produceTallySummaryMessages(totalSnapshots);
-                log.info(
-                    "Finished producing hourly snapshots for account {} with orgId {}",
-                    accountNumber,
-                    orgId);
-              } catch (Exception e) {
-                log.error(
-                    "Could not collect metrics and/or produce snapshots for account {} with orgId {}",
-                    accountNumber,
-                    orgId,
-                    e);
-              }
-            });
+        Set<String> tags =
+            SubscriptionDefinition.findByServiceType(serviceType).stream()
+                .map(SubscriptionDefinition::getVariants)
+                .flatMap(List::stream)
+                .map(Variant::getTag)
+                .collect(Collectors.toSet());
+
+        Map<String, List<TallySnapshot>> totalSnapshots =
+            combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
+                orgId,
+                result.getRange(),
+                tags,
+                applicableUsageCalculations,
+                Granularity.HOURLY,
+                Double::sum);
+
+        summaryProducer.produceTallySummaryMessages(totalSnapshots);
+        log.info(
+            "Finished producing hourly snapshots for account {} with orgId {}",
+            accountNumber,
+            orgId);
+      } catch (Exception e) {
+        log.error(
+            "Could not collect metrics and/or produce snapshots for account {} with orgId {}",
+            accountNumber,
+            orgId,
+            e);
+      }
+    }
   }
 
   private boolean isCombiningRollupStrategySupported(
       Map.Entry<OffsetDateTime, AccountUsageCalculation> usageCalculations) {
 
     var calculatedProducts = usageCalculations.getValue().getProducts();
-    return calculatedProducts.stream().anyMatch(tagProfile::isProductPAYGEligible);
+    return calculatedProducts.stream()
+        .map(SubscriptionDefinition::lookupSubscriptionByTag)
+        .anyMatch(x -> x.map(SubscriptionDefinition::isPaygEligible).orElse(false));
   }
 
   private AccountUsageCalculation performTally(String orgId) {
     retryTemplate.execute(
         context -> {
-          usageCollector.reconcileSystemDataWithHbi(orgId, this.applicableProducts);
+          usageCollector.reconcileSystemDataWithHbi(orgId, SubscriptionDefinition.getAllTags());
           return null;
         });
     return usageCollector.tally(orgId);

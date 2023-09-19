@@ -46,6 +46,7 @@ dependencies {
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-amqp'
     implementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'
     implementation project(':clients:quarkus:rbac-client')
+    implementation project(':swatch-product-configuration')
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
     annotationProcessor "org.hibernate.orm:hibernate-jpamodelgen"
     testImplementation 'io.quarkus:quarkus-junit5'
@@ -58,7 +59,7 @@ dependencies {
     testImplementation 'org.testcontainers:testcontainers'
     testImplementation 'io.quarkus:quarkus-test-security'
     testImplementation libraries["junit-jupiter"]
-    testImplementation libraries["wiremock-jre8"]
+    testImplementation libraries["wiremock"]
     implementation("io.quarkus:quarkus-liquibase")
     implementation("io.quarkus:quarkus-jdbc-postgresql")
     testImplementation("io.quarkus:quarkus-jdbc-h2")
@@ -90,6 +91,14 @@ openApiGenerate {
                      useJakartaEE: "true",
     ]
     additionalProperties = [disableMultipart: "true", // see https://github.com/OpenAPITools/openapi-generator/pull/4713#issuecomment-633906581
+    ]
+    importMappings = [
+        "MetricId": "com.redhat.swatch.configuration.registry.MetricId",
+        "ProductId": "com.redhat.swatch.configuration.registry.ProductId",
+    ]
+    typeMappings = [
+        "string+MetricId": "MetricId",
+        "string+ProductId": "ProductId",
     ]
 }
 

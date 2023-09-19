@@ -21,16 +21,12 @@
 package org.candlepin.subscriptions.metering.job;
 
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.Set;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,7 +40,6 @@ import org.springframework.retry.support.RetryTemplate;
 class MeteringJobTest {
 
   @Mock private PrometheusMetricsTaskManager tasks;
-  @Mock private TagProfile tagProfile;
   @Mock private RetryTemplate retryTemplate;
 
   private ApplicationClock clock;
@@ -61,9 +56,7 @@ class MeteringJobTest {
     appProps.setPrometheusLatencyDuration(Duration.ofHours(6L));
 
     clock = new TestClockConfiguration().adjustableClock();
-    job = new MeteringJob(tasks, tagProfile, metricProps, retryTemplate);
-
-    when(tagProfile.getTagsWithPrometheusEnabledLookup()).thenReturn(Set.of("OpenShift-metrics"));
+    job = new MeteringJob(tasks, metricProps, retryTemplate);
   }
 
   @Test
@@ -74,9 +67,7 @@ class MeteringJobTest {
     // NOW: 2019-05-24T12:35Z
     // Metric Period: 2019-05-24T03:00Z -> 2019-05-24T06:00Z
     OffsetDateTime expStartDate = clock.startOfHour(clock.now().minus(latency).minusMinutes(range));
-    OffsetDateTime expEndDate =
-        clock.endOfHour(
-            expStartDate.plusMinutes(range).truncatedTo(ChronoUnit.HOURS).minusMinutes(1));
+
     job.run();
 
     verify(tasks).updateMetricsForAllAccounts("OpenShift-metrics", range, retryTemplate);

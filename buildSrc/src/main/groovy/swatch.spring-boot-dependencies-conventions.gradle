@@ -1,10 +1,13 @@
 // Plugin: swatch.spring-boot-dependencies-conventions
-// uses spring dependency-management to apply spring boot dependencies bom and other constraints
-plugins {
-    id "io.spring.dependency-management"
+// uses enforcedPlatform-management to apply spring boot dependencies bom and other constraints
+repositories {
+    mavenCentral()
 }
 
 dependencies {
+    annotationProcessor enforcedPlatform(libraries["spring-boot-dependencies"])
+    implementation enforcedPlatform(libraries["spring-boot-dependencies"])
+
     // common testing deps, junit + mockito + hamcrest
     testImplementation "org.junit.jupiter:junit-jupiter-api"
     testImplementation "org.junit.jupiter:junit-jupiter-params"
@@ -12,26 +15,4 @@ dependencies {
     testImplementation "org.mockito:mockito-junit-jupiter"
     testImplementation "org.hamcrest:hamcrest"
     testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
-}
-
-// Define all versions here so that all projects will use the same versions.
-dependencyManagement {
-    imports {
-        // See https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-dependencies to
-        // get listings of the contents of this BOM
-        mavenBom libraries["spring-boot-dependencies"]
-    }
-    // adding a library here locks it to a specific version, and allows it to be referenced without
-    // version; this section can also be used to override the spring-boot-dependencies BOM
-    dependencies{
-        dependency libraries["jakarta-ws-rs"]
-        dependency libraries["swagger-annotations"]
-        dependency libraries["swagger-ui"]
-        dependency libraries["webjars-locator"]
-        dependency libraries["resteasy-validator-provider"]
-        dependency libraries["resteasy-jackson2-provider"]
-        dependency libraries["guava"]
-        dependency libraries["splunk-library-javalogging"]
-        dependency libraries["janino"]
-    }
 }

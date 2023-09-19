@@ -28,15 +28,14 @@ import liquibase.database.Database;
 import liquibase.exception.CustomChangeException;
 import liquibase.exception.DatabaseException;
 import liquibase.exception.RollbackImpossibleException;
-import org.candlepin.subscriptions.utilization.api.model.MetricId;
 
 /**
  * This class is responsible for moving the various cores/sockets columns from subscription_capacity
  * to subscription_measurements.
  */
 public class PopulateSubscriptionMeasurements extends LiquibaseCustomTask {
-  private static final String SOCKETS = MetricId.SOCKETS.toString().toUpperCase();
-  private static final String CORES = MetricId.CORES.toString().toUpperCase();
+  private static final String SOCKETS = "SOCKETS";
+  private static final String CORES = "CORES";
 
   public static final String CAPACITY = "subscription_capacity sc";
   /* Join against subscription to avoid FK errors.  Capacity records without a subscription will

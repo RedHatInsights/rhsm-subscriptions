@@ -24,14 +24,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
 import java.util.Optional;
+import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.BillingProvider;
 import org.candlepin.subscriptions.json.Event.Sla;
 import org.candlepin.subscriptions.json.Event.Usage;
 import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.json.Measurement.Uom;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.Test;
 
 class MeteringEventFactoryTest {
@@ -39,7 +41,7 @@ class MeteringEventFactoryTest {
   private final String productTag = "OpenShift-dedicated-metrics";
 
   @Test
-  void testOpenShiftClusterCoresEventCreation() throws Exception {
+  void testOpenShiftClusterCoresEventCreation() {
     String account = "my-account";
     String orgId = "my-org";
     String clusterId = "my-cluster";
@@ -48,17 +50,16 @@ class MeteringEventFactoryTest {
     String role = "ocp";
     String serviceType = "cluster-service-type";
     String billingProvider = "red hat";
-    String metricId = "cluster_metric_id";
+    UUID meteringBatchId = UUID.randomUUID();
     OffsetDateTime expiry = OffsetDateTime.now();
     OffsetDateTime measuredTime = expiry.minusHours(1);
     Double measuredValue = 23.0;
-    Uom uom = Uom.CORES;
+    MetricId uom = MetricIdUtils.getCores();
 
     Event event =
         MeteringEventFactory.createMetricEvent(
             account,
             orgId,
-            metricId,
             clusterId,
             sla,
             usage,
@@ -70,7 +71,8 @@ class MeteringEventFactoryTest {
             null,
             uom,
             measuredValue,
-            productTag);
+            productTag,
+            meteringBatchId);
 
     assertEquals(account, event.getAccountNumber());
     assertEquals(orgId, event.getOrgId());
@@ -81,21 +83,22 @@ class MeteringEventFactoryTest {
     assertEquals(Sla.PREMIUM, event.getSla());
     assertEquals(Usage.PRODUCTION, event.getUsage());
     assertEquals(MeteringEventFactory.EVENT_SOURCE, event.getEventSource());
-    assertEquals(MeteringEventFactory.getEventType(uom.value(), productTag), event.getEventType());
+    assertEquals(
+        MeteringEventFactory.getEventType(uom.getValue(), productTag), event.getEventType());
     assertEquals(serviceType, event.getServiceType());
+    assertEquals(meteringBatchId, event.getMeteringBatchId());
     assertEquals(1, event.getMeasurements().size());
     Measurement measurement = event.getMeasurements().get(0);
-    assertEquals(uom, measurement.getUom());
+    assertEquals(uom.toString(), measurement.getUom());
     assertEquals(measuredValue, measurement.getValue());
   }
 
   @Test
-  void testOpenShiftClusterCoresHandlesNullServiceLevel() throws Exception {
+  void testOpenShiftClusterCoresHandlesNullServiceLevel() {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             null,
             "Production",
@@ -105,19 +108,19 @@ class MeteringEventFactoryTest {
             "service_type",
             "red hat",
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            UUID.randomUUID());
     assertNull(event.getSla());
   }
 
   @Test
-  void testOpenShiftClusterCoresSlaSetToEmptyForSlaValueNone() throws Exception {
+  void testOpenShiftClusterCoresSlaSetToEmptyForSlaValueNone() {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "None",
             "Production",
@@ -127,19 +130,19 @@ class MeteringEventFactoryTest {
             "service_type",
             "red hat",
             "null",
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            UUID.randomUUID());
     assertEquals(Sla.__EMPTY__, event.getSla());
   }
 
   @Test
-  void testOpenShiftClusterCoresInvalidSlaWillNotBeSetOnEvent() throws Exception {
+  void testOpenShiftClusterCoresInvalidSlaWillNotBeSetOnEvent() {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "UNKNOWN_SLA",
             "Production",
@@ -149,19 +152,19 @@ class MeteringEventFactoryTest {
             "service_type",
             "red hat",
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            UUID.randomUUID());
     assertNull(event.getSla());
   }
 
   @Test
-  void testOpenShiftClusterCoresInvalidUsageSetsNullValue() throws Exception {
+  void testOpenShiftClusterCoresInvalidUsageSetsNullValue() {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "Premium",
             "UNKNOWN_USAGE",
@@ -171,19 +174,19 @@ class MeteringEventFactoryTest {
             "service_type",
             "red hat",
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            UUID.randomUUID());
     assertNull(event.getUsage());
   }
 
   @Test
-  void testOpenShiftClusterCoresHandlesNullUsage() throws Exception {
+  void testOpenShiftClusterCoresHandlesNullUsage() {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "Premium",
             null,
@@ -193,9 +196,10 @@ class MeteringEventFactoryTest {
             "service_type",
             "red hat",
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            UUID.randomUUID());
     assertNull(event.getUsage());
   }
 
@@ -205,7 +209,6 @@ class MeteringEventFactoryTest {
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "Premium",
             "Production",
@@ -215,9 +218,10 @@ class MeteringEventFactoryTest {
             "service_type",
             "red hat",
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            UUID.randomUUID());
     assertNull(event.getRole());
   }
 
@@ -227,7 +231,6 @@ class MeteringEventFactoryTest {
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "Premium",
             "Production",
@@ -237,19 +240,19 @@ class MeteringEventFactoryTest {
             "service_type",
             "red hat",
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            UUID.randomUUID());
     assertNull(event.getRole());
   }
 
   @Test
-  void testHandlesValidBillingData() throws Exception {
+  void testHandlesValidBillingData() {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "Premium",
             "Production",
@@ -259,21 +262,21 @@ class MeteringEventFactoryTest {
             "service_type",
             "aws",
             "aws_account_123",
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            UUID.randomUUID());
     assertEquals(BillingProvider.AWS, event.getBillingProvider());
     assertTrue(event.getBillingAccountId().isPresent());
     assertEquals("aws_account_123", event.getBillingAccountId().get());
   }
 
   @Test
-  void testHandlesNullBillingData() throws Exception {
+  void testHandlesNullBillingData() {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "Premium",
             "Production",
@@ -283,20 +286,20 @@ class MeteringEventFactoryTest {
             "service_type",
             null,
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            UUID.randomUUID());
     assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());
     assertTrue(event.getBillingAccountId().isEmpty());
   }
 
   @Test
-  void testBillingProviderEmptyForBillingProviderValueNoneToDefaultRedHat() throws Exception {
+  void testBillingProviderEmptyForBillingProviderValueNoneToDefaultRedHat() {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "Premium",
             "Production",
@@ -306,19 +309,19 @@ class MeteringEventFactoryTest {
             "service_type",
             "",
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            UUID.randomUUID());
     assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());
   }
 
   @Test
-  void testInvalidBillingProviderWillNotBeSetOnEvent() throws Exception {
+  void testInvalidBillingProviderWillNotBeSetOnEvent() {
     Event event =
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "Premium",
             "Production",
@@ -328,9 +331,10 @@ class MeteringEventFactoryTest {
             "service_type",
             "invalid provider",
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            UUID.randomUUID());
     assertNull(event.getBillingProvider());
   }
 
@@ -340,7 +344,6 @@ class MeteringEventFactoryTest {
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "Premium",
             "Production",
@@ -350,9 +353,10 @@ class MeteringEventFactoryTest {
             "service_type",
             "red hat",
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            UUID.randomUUID());
     assertEquals("snapshot_openshift-dedicated-metrics_cores", event.getEventType());
   }
 
@@ -370,7 +374,6 @@ class MeteringEventFactoryTest {
         MeteringEventFactory.createMetricEvent(
             "my-account",
             "my-org",
-            "metric-id",
             "cluster-id",
             "Premium",
             "Production",
@@ -380,9 +383,10 @@ class MeteringEventFactoryTest {
             "service_type",
             "rhm",
             null,
-            Uom.CORES,
+            MetricIdUtils.getCores(),
             12.5,
-            productTag);
+            productTag,
+            UUID.randomUUID());
     assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());
   }
 }

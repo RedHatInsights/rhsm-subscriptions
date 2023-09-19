@@ -22,8 +22,8 @@ package org.candlepin.subscriptions.tally.roller;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -35,17 +35,16 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.json.Measurement;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Totals;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.springframework.data.domain.PageRequest;
 
 /** Since the roller tests are very similar, this class provides some common test scenarios. */
 @SuppressWarnings("linelength")
 public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
-  private String testProduct = "RHEL";
+  private String testProduct = "RHEL for x86";
 
   private TallySnapshotRepository repository;
   private R roller;
@@ -321,9 +320,9 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
             HardwareMeasurementType.HYPERVISOR)
         .forEach(
             type -> {
-              productCalc.add(type, Measurement.Uom.CORES, (double) totalCores);
-              productCalc.add(type, Measurement.Uom.SOCKETS, (double) totalSockets);
-              productCalc.add(type, Uom.INSTANCES, (double) totalInstances);
+              productCalc.add(type, MetricIdUtils.getCores(), (double) totalCores);
+              productCalc.add(type, MetricIdUtils.getSockets(), (double) totalSockets);
+              productCalc.add(type, MetricIdUtils.getInstanceHours(), (double) totalInstances);
             });
 
     AccountUsageCalculation calc = new AccountUsageCalculation(orgId);
@@ -341,15 +340,14 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
 
     for (HardwareMeasurementType type : HardwareMeasurementType.values()) {
       Totals expectedTotal = expectedVals.getTotals(type);
-      Arrays.stream(Measurement.Uom.values())
+      MetricId.getAll()
           .forEach(
-              uom -> {
-                assertEquals(
-                    Optional.ofNullable(expectedTotal)
-                        .map(totals -> totals.getMeasurement(uom))
-                        .orElse(null),
-                    snapshot.getMeasurement(type, uom));
-              });
+              uom ->
+                  assertEquals(
+                      Optional.ofNullable(expectedTotal)
+                          .map(totals -> totals.getMeasurement(uom))
+                          .orElse(null),
+                      snapshot.getMeasurement(type, uom)));
     }
   }
 }

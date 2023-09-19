@@ -66,7 +66,7 @@ class InternalBillingControllerTest {
     BillableUsageRemittanceEntity remittance3 =
         remittance(
             "org123", "product1", BillingProvider.RED_HAT, 12.0, clock.startOfCurrentMonth());
-    remittance3.getKey().setMetricId(BillableUsage.Uom.TRANSFER_GIBIBYTES.value());
+    remittance3.getKey().setMetricId("Transfer-gibibytes");
     BillableUsageRemittanceEntity remittance4 =
         remittance("org345", "product2", BillingProvider.RED_HAT, 8.0, clock.startOfCurrentMonth());
     BillableUsageRemittanceEntity remittance5 =
@@ -95,7 +95,7 @@ class InternalBillingControllerTest {
             BillableUsageRemittanceFilter.builder().productId("product1").orgId("111").build());
     assertFalse(response.isEmpty());
     assertEquals(24.0, response.get(0).getRemittedValue());
-    assertEquals(BillableUsage.Uom.INSTANCE_HOURS.value(), response.get(0).getMetricId());
+    assertEquals("Instance-hours", response.get(0).getMetricId());
   }
 
   @Test
@@ -115,13 +115,13 @@ class InternalBillingControllerTest {
             BillableUsageRemittanceFilter.builder()
                 .orgId("org123")
                 .productId("product1")
-                .metricId(BillableUsage.Uom.TRANSFER_GIBIBYTES.value())
+                .metricId("Transfer-gibibytes")
                 .build());
 
     assertFalse(response.isEmpty());
     assertEquals(1, response.size());
     assertEquals(12.0, response.get(0).getRemittedValue());
-    assertEquals(BillableUsage.Uom.TRANSFER_GIBIBYTES.value(), response.get(0).getMetricId());
+    assertEquals("Transfer-gibibytes", response.get(0).getMetricId());
   }
 
   @Test
@@ -131,13 +131,13 @@ class InternalBillingControllerTest {
             BillableUsageRemittanceFilter.builder()
                 .orgId("org123")
                 .productId("product1")
-                .metricId(BillableUsage.Uom.INSTANCE_HOURS.value())
+                .metricId("Instance-hours")
                 .build());
     assertEquals(1, response.size());
     MonthlyRemittance result = response.get(0);
     assertEquals("product1", result.getProductId());
     assertEquals("org123", result.getOrgId());
-    assertEquals(BillableUsage.Uom.INSTANCE_HOURS.value(), result.getMetricId());
+    assertEquals("Instance-hours", result.getMetricId());
     assertEquals(12, result.getRemittedValue());
     assertEquals(BillingProvider.AWS.value(), result.getBillingProvider());
   }
@@ -148,7 +148,7 @@ class InternalBillingControllerTest {
         controller.process(
             BillableUsageRemittanceFilter.builder()
                 .productId("product1")
-                .metricId(BillableUsage.Uom.INSTANCE_HOURS.value())
+                .metricId("Instance-hours")
                 .build());
     assertTrue(response.isEmpty());
   }
@@ -200,7 +200,7 @@ class InternalBillingControllerTest {
             .billingAccountId(String.format("%s_%s_ba", orgId, productId))
             .productId(productId)
             .sla(BillableUsage.Sla.PREMIUM.value())
-            .metricId(BillableUsage.Uom.INSTANCE_HOURS.value())
+            .metricId("Instance-hours")
             .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(remittanceDate))
             .remittancePendingDate(remittanceDate)
             .build();

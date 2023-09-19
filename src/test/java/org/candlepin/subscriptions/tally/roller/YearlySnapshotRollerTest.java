@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.tally.roller;
 
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
-import org.candlepin.subscriptions.registry.TagProfile;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,7 +43,6 @@ import org.springframework.transaction.annotation.Transactional;
 class YearlySnapshotRollerTest {
 
   @Autowired private TallySnapshotRepository repository;
-  @Autowired private TagProfile tagProfile;
   @Autowired private ApplicationClock clock;
 
   private SnapshotRollerTester<YearlySnapshotRoller> tester;
@@ -52,8 +50,7 @@ class YearlySnapshotRollerTest {
   @BeforeEach
   void setupTest() {
     this.tester =
-        new SnapshotRollerTester<>(
-            repository, new YearlySnapshotRoller(repository, clock, tagProfile));
+        new SnapshotRollerTester<>(repository, new YearlySnapshotRoller(repository, clock));
   }
 
   @Test

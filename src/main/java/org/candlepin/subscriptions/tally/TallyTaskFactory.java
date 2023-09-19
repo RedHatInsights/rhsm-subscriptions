@@ -66,13 +66,9 @@ public class TallyTaskFactory implements TaskFactory {
   @Override
   public Task build(TaskDescriptor taskDescriptor) {
     if (taskDescriptor.getTaskType() == TaskType.UPDATE_SNAPSHOTS) {
-      if (taskDescriptor.hasArg("orgs")) {
-        log.debug("Task created for processing orgs");
-        return new UpdateOrgSnapshotsTask(snapshotController, taskDescriptor.getArg("orgs"));
-      } else {
-        log.error("Task descriptor with argument orgs is missing {}", taskDescriptor);
-        throw new IllegalArgumentException("Incorrect task descriptor");
-      }
+      // We can assume that the task messages will have orgs arg going forward.
+      log.debug("Task created for processing orgs");
+      return new UpdateOrgSnapshotsTask(snapshotController, taskDescriptor.getArg("orgs"));
     }
 
     if (taskDescriptor.getTaskType() == TaskType.UPDATE_HOURLY_SNAPSHOTS) {

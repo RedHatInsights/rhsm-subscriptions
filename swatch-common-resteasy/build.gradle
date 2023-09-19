@@ -3,9 +3,11 @@ plugins {
 }
 
 dependencies {
+    // Intentionally marked as platform rather than enforcedPlatform as this project is a library
     compileOnly platform(libraries["quarkus-bom"])
-    compileOnly 'jakarta.ws.rs:jakarta.ws.rs-api'
+    compileOnly libraries["jakarta-ws-rs"]
     compileOnly 'org.slf4j:slf4j-api'
+    implementation project(":swatch-product-configuration")
 }
 
 description = 'SWATCH common library for RESTEasy configuration & utilities'

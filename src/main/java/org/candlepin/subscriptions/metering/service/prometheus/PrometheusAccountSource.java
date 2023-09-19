@@ -21,13 +21,13 @@
 package org.candlepin.subscriptions.metering.service.prometheus;
 
 import com.redhat.swatch.configuration.registry.Metric;
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.json.Measurement.Uom;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescriptor;
 import org.springframework.util.StringUtils;
@@ -48,7 +48,7 @@ public class PrometheusAccountSource {
   }
 
   public Set<String> getMarketplaceAccounts(
-      String productTag, Uom metric, OffsetDateTime start, OffsetDateTime end) {
+      String productTag, MetricId metric, OffsetDateTime start, OffsetDateTime end) {
     log.debug("Querying for active accounts for range [{}, {})", start, end);
     Set<String> accounts = new HashSet<>();
     service.runRangeQuery(
@@ -69,12 +69,13 @@ public class PrometheusAccountSource {
     return accounts;
   }
 
-  private String buildQuery(String productTag, Uom metric) {
+  private String buildQuery(String productTag, MetricId metricId) {
     var subDefOptional = SubscriptionDefinition.lookupSubscriptionByTag(productTag);
-    Optional<Metric> tagMetric = subDefOptional.flatMap(subDef -> subDef.getMetric(metric.value()));
+    Optional<Metric> tagMetric =
+        subDefOptional.flatMap(subDef -> subDef.getMetric(metricId.getValue()));
     if (tagMetric.isEmpty()) {
       throw new IllegalArgumentException(
-          String.format("Could not find tag %s and metric %s!", productTag, metric));
+          String.format("Could not find tag %s and metric %s!", productTag, metricId));
     }
 
     return queryBuilder.buildAccountLookupQuery(new QueryDescriptor(tagMetric.get()));

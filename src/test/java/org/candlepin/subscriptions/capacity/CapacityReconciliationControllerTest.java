@@ -40,7 +40,6 @@ import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey;
 import org.candlepin.subscriptions.resource.ResourceUtils;
-import org.candlepin.subscriptions.utilization.api.model.MetricId;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,8 +53,8 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles({"capacity-ingress", "test"})
 class CapacityReconciliationControllerTest {
-  private static final String SOCKETS = MetricId.SOCKETS.toString();
-  private static final String CORES = MetricId.CORES.toString();
+  private static final String SOCKETS = "Sockets";
+  private static final String CORES = "Cores";
 
   private static final OffsetDateTime NOW = OffsetDateTime.now();
 

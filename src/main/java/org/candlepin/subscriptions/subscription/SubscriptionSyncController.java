@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.subscription;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.google.common.collect.MoreCollectors;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.annotation.Timed;
@@ -31,6 +32,7 @@ import io.micrometer.core.instrument.Timer;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Response;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -38,6 +40,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -67,7 +70,6 @@ import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.umb.CanonicalMessage;
 import org.candlepin.subscriptions.umb.SubscriptionProductStatus;
 import org.candlepin.subscriptions.umb.UmbSubscription;
-import org.candlepin.subscriptions.user.AccountService;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTags;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,7 +96,6 @@ public class SubscriptionSyncController {
   private SubscriptionServiceProperties properties;
   private Timer enqueueAllTimer;
   private KafkaTemplate<String, SyncSubscriptionsTask> syncSubscriptionsByOrgKafkaTemplate;
-  private final AccountService accountService;
   private String syncSubscriptionsTopic;
   private final ObjectMapper objectMapper;
   private final ProductDenylist productDenylist;
@@ -115,7 +116,6 @@ public class SubscriptionSyncController {
       ProductDenylist productDenylist,
       ObjectMapper objectMapper,
       @Qualifier("syncSubscriptionTasks") TaskQueueProperties props,
-      AccountService accountService,
       EntityManager entityManager) {
     this.subscriptionRepository = subscriptionRepository;
     this.orgRepository = orgRepository;
@@ -130,7 +130,6 @@ public class SubscriptionSyncController {
     this.objectMapper = objectMapper;
     this.syncSubscriptionsTopic = props.getTopic();
     this.syncSubscriptionsByOrgKafkaTemplate = syncSubscriptionsByOrgKafkaTemplate;
-    this.accountService = accountService;
     this.entityManager = entityManager;
   }
 
@@ -272,7 +271,8 @@ public class SubscriptionSyncController {
       var subscriptionDefinition =
           SubscriptionDefinition.lookupSubscriptionByProductName(
               subscription.getOffering().getProductName());
-      if (subscriptionDefinition.isPresent() && subscriptionDefinition.get().isPaygEnabled()) {
+      if (!subscriptionDefinition.isEmpty()
+          && subscriptionDefinition.stream().anyMatch(SubscriptionDefinition::isPaygEligible)) {
         log.warn(
             "PAYG eligible subscription with subscriptionId:{} has no billing provider.",
             subscription.getSubscriptionId());
@@ -473,6 +473,8 @@ public class SubscriptionSyncController {
     return org.candlepin.subscriptions.db.model.Subscription.builder()
         .subscriptionId(String.valueOf(subscription.getId()))
         .subscriptionNumber(subscription.getSubscriptionNumber())
+        .subscriptionProductIds(
+            new HashSet<>(Collections.singleton(SubscriptionDtoUtil.extractSku(subscription))))
         .orgId(subscription.getWebCustomerId().toString())
         .accountNumber(String.valueOf(subscription.getOracleAccountNumber()))
         .quantity(subscription.getQuantity())
@@ -552,12 +554,29 @@ public class SubscriptionSyncController {
           .forEach(
               subscription -> {
                 if (reconcileCapacity) {
+                  determineSubscriptionOffering(subscription);
                   capacityReconciliationController.reconcileCapacityForSubscription(subscription);
                 }
                 subscriptionRepository.save(subscription);
               });
     } catch (JsonProcessingException e) {
       throw new IllegalArgumentException("Error parsing subscriptionsJson", e);
+    }
+  }
+
+  private void determineSubscriptionOffering(
+      org.candlepin.subscriptions.db.model.Subscription subscription) {
+    // should look up the offering and set it before additional processing
+    var offer =
+        offeringRepository.findOfferingBySku(
+            subscription.getSubscriptionProductIds().stream()
+                .collect(MoreCollectors.toOptional())
+                .orElse(null));
+    if (Objects.nonNull(offer)) {
+      // should only be one offering per subscription
+      subscription.setOffering(offer);
+    } else {
+      throw new BadRequestException("Error offering doesn't exist");
     }
   }
 
@@ -600,10 +619,12 @@ public class SubscriptionSyncController {
     // between the two temporals. For example, the amount in hours between the times 11:30 and
     // 12:29 will zero hours as it is one minute short of an hour.
     var delta = Math.abs(ChronoUnit.HOURS.between(terminationDate, now));
-    var subDefinition =
+    var subDefinitions =
         SubscriptionDefinition.lookupSubscriptionByProductName(
             subscription.getOffering().getProductName());
-    if (subDefinition.isPresent() && subDefinition.get().isPaygEnabled() && delta > 0) {
+    if (!subDefinitions.isEmpty()
+        && subDefinitions.stream().anyMatch(SubscriptionDefinition::isPaygEligible)
+        && delta > 0) {
       var msg =
           String.format(
               "Subscription %s terminated at %s with out of range termination date %s.",
@@ -632,13 +653,12 @@ public class SubscriptionSyncController {
   }
 
   @Transactional
-  public List<org.candlepin.subscriptions.db.model.Subscription> findSubscriptionsAndSyncIfNeeded(
+  public List<org.candlepin.subscriptions.db.model.Subscription> findSubscriptions(
       String accountNumber,
       Optional<String> orgId,
       Key usageKey,
       OffsetDateTime rangeStart,
-      OffsetDateTime rangeEnd,
-      boolean paygOnly) {
+      OffsetDateTime rangeEnd) {
     Assert.isTrue(Usage._ANY != usageKey.getUsage(), "Usage cannot be _ANY");
     Assert.isTrue(ServiceLevel._ANY != usageKey.getSla(), "Service Level cannot be _ANY");
 
@@ -672,19 +692,6 @@ public class SubscriptionSyncController {
             subscriptionCriteria, Sort.by(Subscription_.START_DATE).descending());
 
     if (result.isEmpty()) {
-      /* If we are missing the subscription, call out to the RhMarketplaceSubscriptionCollector
-      to fetch from Marketplace.  Sync all those subscriptions. Query again. */
-      if (orgId.isEmpty()) {
-        orgId = Optional.of(accountService.lookupOrgId(accountNumber));
-      }
-      log.info("Syncing subscriptions for account {} using orgId {}", accountNumber, orgId.get());
-      forceSyncSubscriptionsForOrg(orgId.get(), paygOnly);
-      result =
-          subscriptionRepository.findByCriteria(
-              subscriptionCriteria, Sort.by(Subscription_.START_DATE).descending());
-    }
-
-    if (result.isEmpty()) {
       log.error(
           "No subscription found for account {} with criteria {}",
           accountNumber,
@@ -697,9 +704,9 @@ public class SubscriptionSyncController {
   /**
    * This will allow any service to look up the swatch product(s) associated with a given SKU. (This
    * lookup will use the offering information already stored in the database) and map the
-   * `product_name` to a swatch `product_tag` via info in `tag_profile.yaml` If the offering does
-   * not exist then return 404. If it does exist, then return an empty list if there are no tags
-   * found for that particular offering.
+   * `product_name` to a swatch `product_tag` via info from `swatch-product-configuration` library.
+   * If the offering does not exist then return 404. If it does exist, then return an empty list if
+   * there are no tags found for that particular offering.
    *
    * @param sku
    * @return OfferingProductTags

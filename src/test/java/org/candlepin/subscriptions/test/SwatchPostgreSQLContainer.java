@@ -18,15 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.files;
+package org.candlepin.subscriptions.test;
 
-import lombok.Data;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
 
-/** Tag metric fields needed by swatch-producer-aws. */
-@Data
-public class TagMetricYaml {
-  private String tag;
-  private Double billingFactor;
-  private String uom; // NOTE: we plan to rename uom to metricId in ENT-4336
-  private String awsDimension;
+public class SwatchPostgreSQLContainer extends PostgreSQLContainer<SwatchPostgreSQLContainer> {
+
+  /**
+   * This image is a replacement for the official one "docker.io/library/postgres:13" but in Quay.io
+   * to avoid Docker Hub exceed limit issues.
+   */
+  private static final String IMAGE = "quay.io/jcarvaja/postgres:13";
+
+  private static final String DATABASE = "rhsm-subscriptions";
+
+  public SwatchPostgreSQLContainer() {
+    super(DockerImageName.parse(IMAGE).asCompatibleSubstituteFor("postgres"));
+    withEnv("POSTGRES_HOST_AUTH_METHOD", "trust");
+    withDatabaseName(DATABASE);
+    withUsername(DATABASE);
+    withPassword(DATABASE);
+  }
 }

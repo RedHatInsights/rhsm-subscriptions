@@ -26,6 +26,32 @@ pipeline {
             when {
                 beforeInput true
                 expression { env.CHANGE_FORK }
+                not {
+                  anyOf {
+                    // Kevin Howell
+                    changeRequest author: "kahowell"
+                    // Lindsey Burnett
+                    changeRequest author: "lindseyburnett"
+                    // Alex Wood
+                    changeRequest author: "awood"
+                    // Michael Stead
+                    changeRequest author: "mstead"
+                    // Kevin Flaherty
+                    changeRequest author: "kflahert"
+                    // Barnaby Court
+                    changeRequest author: "barnabycourt"
+                    // Nikhil Kathole
+                    changeRequest author: "ntkathole"
+                    // Jose Carvajal
+                    changeRequest author: "Sgitario"
+                    // Kenny Synvrit
+                    changeRequest author: "ksynvrit"
+                    // Kartik Shah
+                    changeRequest author: "kartikshahc"
+                    // Vanessa Busch
+                    changeRequest author: "vbusch"
+                  }
+               }
             }
             steps {
                 input 'ok to test?'
@@ -36,7 +62,10 @@ pipeline {
                 // The build task includes check, test, and assemble.  Linting happens during the check
                 // task and uses the spotless gradle plugin.
                 echo "The ci value is ${env.CI}"
-                sh "./gradlew --no-daemon build"
+                // Integration tests require Docker environment which is not supported by our Jenkins environment yet
+                // The actual problem is that the podman socket is not listening.
+                // We need to run "systemctl --user enable podman.socket --now" when spawning the node.
+                sh "./gradlew --no-daemon build -DexcludeTags=integration"
             }
         }
 

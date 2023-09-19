@@ -3,6 +3,7 @@ plugins {
 }
 
 dependencies {
+    // Intentionally marked as platform rather than enforcedPlatform as this project is a library
     implementation platform(libraries["quarkus-bom"])
     implementation 'org.eclipse.microprofile.config:microprofile-config-api'
 }

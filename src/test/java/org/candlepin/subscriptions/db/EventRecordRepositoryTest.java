@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
@@ -36,7 +37,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,8 +57,7 @@ class EventRecordRepositoryTest {
     event.setTimestamp(OffsetDateTime.now(CLOCK));
     event.setInstanceId("instanceId");
     event.setServiceType("RHEL System");
-    UUID eventId = UUID.randomUUID();
-    event.setEventId(eventId);
+    event.setEventId(UUID.randomUUID());
     event.setEventSource("eventSource");
     event.setDisplayName(Optional.empty());
     event.setEventType("Prometheus");
@@ -66,7 +65,7 @@ class EventRecordRepositoryTest {
     EventRecord record = new EventRecord(event);
     repository.saveAndFlush(record);
 
-    EventRecord found = repository.getOne(eventId);
+    EventRecord found = repository.getReferenceById(EventKey.fromEvent(event));
     assertNull(found.getEvent().getInventoryId());
     assertNotNull(found.getEvent().getDisplayName());
     assertFalse(found.getEvent().getDisplayName().isPresent());
@@ -96,7 +95,7 @@ class EventRecordRepositoryTest {
             .collect(Collectors.toList());
 
     assertEquals(1, found.size());
-    assertEquals(currentEvent.getEventId(), found.get(0).getId());
+    assertEquals(currentEvent.getEventId(), found.get(0).getEventId());
   }
 
   @Test
@@ -125,7 +124,7 @@ class EventRecordRepositoryTest {
             .collect(Collectors.toList());
 
     assertEquals(1, found.size());
-    assertEquals(currentEvent.getId(), found.get(0).getId());
+    assertEquals(currentEvent.getEvent().getEventId(), found.get(0).getEventId());
   }
 
   @SuppressWarnings({"linelength", "indentation"})
@@ -180,46 +179,27 @@ class EventRecordRepositoryTest {
   }
 
   @Test
-  void testUniqueConstraints() {
-    EventRecord e1 =
-        new EventRecord(
-            event(
-                "account123",
-                "org123",
-                "ANOTHER_SOURCE",
-                "TYPE",
-                "INSTANCE",
-                OffsetDateTime.now(CLOCK)));
-
-    repository.saveAndFlush(e1);
-
-    EventRecord e2 =
-        new EventRecord(
-            event(
-                "account123",
-                "org123",
-                "ANOTHER_SOURCE",
-                "TYPE",
-                "INSTANCE",
-                OffsetDateTime.now(CLOCK)));
-
-    assertThrows(DataIntegrityViolationException.class, () -> repository.saveAndFlush(e2));
-  }
-
-  @Test
   void testDeleteByTimestamp() {
     var now = OffsetDateTime.now();
 
     EventRecord event =
         EventRecord.builder()
-            .id(UUID.randomUUID())
+            .eventId(UUID.randomUUID())
             .accountNumber("bananas1")
+            .orgId("org123")
+            .eventSource("source")
+            .eventType("type")
+            .instanceId("instance")
             .timestamp(now.minusDays(91L))
             .build();
     EventRecord event2 =
         EventRecord.builder()
-            .id(UUID.randomUUID())
+            .eventId(UUID.randomUUID())
             .accountNumber("bananas1")
+            .orgId("org123")
+            .eventSource("source")
+            .eventType("type")
+            .instanceId("instance")
             .timestamp(now.minusDays(1L))
             .build();
 

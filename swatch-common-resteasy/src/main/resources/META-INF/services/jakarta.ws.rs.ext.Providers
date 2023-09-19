@@ -1,2 +1,4 @@
 com.redhat.swatch.common.resteasy.EnumParamConverterProvider
+com.redhat.swatch.common.resteasy.MetricIdParamConverterProvider
 com.redhat.swatch.common.resteasy.OffsetDateTimeParamConverterProvider
+com.redhat.swatch.common.resteasy.ProductIdParamConverterProvider

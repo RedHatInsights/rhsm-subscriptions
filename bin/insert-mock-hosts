@@ -186,6 +186,10 @@ parser.add_argument('--num-aws',
                     type=int,
                     default=0,
                     help='Insert a number of mock aws instances')
+parser.add_argument('--num-gcp',
+                    type=int,
+                    default=0,
+                    help='Insert a number of mock gcp instances')
 parser.add_argument('--unmapped-guests',
                     default=False,
                     help='Are the guests to be created unmapped?')
@@ -253,13 +257,14 @@ if args.clear:
 for i in range(args.num_accounts):
     if args.num_accounts > 1:
         account = f'{args.account}{i}'
+        org = f'{args.org}{i}'
     else:
         account = args.account
+        org = args.org
     if args.opt_in:
         _generate_insert('account_config',
                          account_number=account,
-                         sync_enabled=True,
-                         reporting_enabled=True,
+                         org_id=org,
                          opt_in_type='API',
                          created='2021-01-01',
                          updated='2021-01-01'
@@ -272,6 +277,14 @@ for i in range(args.num_accounts):
                       product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
                       is_hbi=args.is_hbi, num_of_guests=args.num_guests,
                       cloud_provider='AWS', is_marketplace=args.is_marketplace, host_type=args.host_type,
+                      billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,
+                      uom=args.uom)
+
+    for i in range(args.num_gcp):
+        generate_host(account_number=account, org_id=args.org, hardware_type='VIRTUALIZED', measurement_type='GOOGLE',
+                      product=args.product, sla=args.sla, usage=args.usage, cores=args.cores, sockets=args.sockets,
+                      is_hbi=args.is_hbi, num_of_guests=args.num_guests,
+                      cloud_provider='GCP', is_marketplace=args.is_marketplace, host_type=args.host_type,
                       billing_provider=args.billing_provider, billing_account_id=args.billing_account_id,
                       uom=args.uom)
 

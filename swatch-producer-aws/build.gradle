@@ -40,7 +40,7 @@ dependencies {
     testImplementation 'org.testcontainers:postgresql'
     testImplementation 'org.testcontainers:testcontainers'
     testImplementation libraries["junit-jupiter"]
-    testImplementation libraries["wiremock-jre8"]
+    testImplementation libraries["wiremock"]
 
 }
 
@@ -66,13 +66,6 @@ openApiGenerate {
     additionalProperties = [
             disableMultipart: "true", // see https://github.com/OpenAPITools/openapi-generator/pull/4713#issuecomment-633906581
     ]
-}
-
-processResources {
-    // copy tag profile into the project
-    from("../swatch-core/src/main/resources") {
-        include "tag_profile.yaml"
-    }
 }
 
 // Let gradle know that if billable_usage.yaml changes, openApiGenerate should run
