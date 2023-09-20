@@ -65,7 +65,8 @@ pipeline {
                 // Integration tests require Docker environment which is not supported by our Jenkins environment yet
                 // The actual problem is that the podman socket is not listening.
                 // We need to run "systemctl --user enable podman.socket --now" when spawning the node.
-                sh "./gradlew --no-daemon build -DexcludeTags=integration"
+                // TODO: https://issues.redhat.com/browse/SWATCH-1750
+                sh "./gradlew --no-daemon build jacocoTestReport -DexcludeTags=integration"
             }
         }
 
@@ -75,7 +76,7 @@ pipeline {
             }
             steps {
                 withSonarQubeEnv('sonarcloud.io') {
-                    sh "./gradlew --no-daemon sonar -x test -Duser.home=/tmp -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_AUTH_TOKEN} -Dsonar.pullrequest.key=${CHANGE_ID} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.branch=${BRANCH_NAME} -Dsonar.organization=rhsm -Dsonar.projectKey=rhsm-subscriptions"
+                    sh "./gradlew --no-daemon sonar -Duser.home=/tmp -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_AUTH_TOKEN} -Dsonar.pullrequest.key=${CHANGE_ID} -Dsonar.pullrequest.base=${CHANGE_TARGET} -Dsonar.pullrequest.branch=${BRANCH_NAME} -Dsonar.organization=rhsm -Dsonar.projectKey=rhsm-subscriptions"
                 }
             }
         }
@@ -87,7 +88,7 @@ pipeline {
             }
             steps {
                 withSonarQubeEnv('sonarcloud.io') {
-                    sh "./gradlew --no-daemon sonarqube -Duser.home=/tmp -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_AUTH_TOKEN} -Dsonar.branch.name=${BRANCH_NAME} -Dsonar.organization=rhsm -Dsonar.projectKey=rhsm-subscriptions"
+                    sh "./gradlew --no-daemon sonar -Duser.home=/tmp -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_AUTH_TOKEN} -Dsonar.branch.name=${BRANCH_NAME} -Dsonar.organization=rhsm -Dsonar.projectKey=rhsm-subscriptions"
                 }
             }
         }

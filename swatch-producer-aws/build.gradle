@@ -2,6 +2,7 @@ plugins {
     id 'swatch.java-conventions'
     id 'io.quarkus'
     id 'org.openapi.generator'
+    id 'jacoco'
 }
 
 dependencies {
@@ -30,9 +31,9 @@ dependencies {
     implementation project(":clients:swatch-internal-subscription-client")
     implementation project(":swatch-common-resteasy")
     implementation project(":swatch-product-configuration")
-    testImplementation 'io.quarkus:quarkus-jacoco'
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.quarkus:quarkus-junit5-mockito'
+    testImplementation 'io.quarkus:quarkus-jacoco'
     testImplementation 'io.rest-assured:rest-assured'
     testImplementation 'org.mockito:mockito-junit-jupiter'
     testImplementation 'org.testcontainers:junit-jupiter'
@@ -87,3 +88,9 @@ tasks.register("wiremock", JavaExec) {
 
 quarkusDev.dependsOn(configureQuarkusBuild)
 quarkusBuild.dependsOn(configureQuarkusBuild)
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+    }
+}

@@ -120,3 +120,9 @@ tasks.register("wiremock", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "com.redhat.swatch.contract.resource.WireMockResource"
 }
+
+sonarqube {
+    properties {
+        property 'sonar.coverage.jacoco.xmlReportPaths', "${projectDir}/build/jacoco-report/jacoco.xml"
+    }
+}

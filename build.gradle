@@ -126,9 +126,6 @@ jacocoTestReport {
     }
 }
 
-project.tasks["sonarqube"].dependsOn "test"
-project.tasks["sonarqube"].dependsOn "jacocoTestReport"
-
 /* TODO - The directives below to generate the API classes are duplicates of the
  * the directives we use for the api module.  We need to DRY this up but that is
  * going to require a little Gradle-fu that I don't currently possess.
