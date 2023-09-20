@@ -189,7 +189,7 @@ public class TallyWorkerConfiguration {
   @Qualifier("serviceInstanceConsumerFactory")
   ConsumerFactory<String, String> serviceInstanceConsumerFactory(
       KafkaProperties kafkaProperties,
-      @Qualifier("tallyTaskQueueProperties") TaskQueueProperties taskQueueProperties) {
+      @Qualifier("serviceInstanceTopicProperties") TaskQueueProperties taskQueueProperties) {
     var props = kafkaProperties.buildConsumerProperties();
     props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, taskQueueProperties.getMaxPollRecords());
     return new DefaultKafkaConsumerFactory<>(
