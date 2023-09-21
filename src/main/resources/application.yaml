@@ -40,7 +40,6 @@ spring:
 rhsm-subscriptions:
   jobs:
     capture-hourly-snapshot-schedule: ${CAPTURE_HOURLY_SNAPSHOT_SCHEDULE:0 0 * * * ?}
-    capture-snapshot-schedule: ${CAPTURE_SNAPSHOT_SCHEDULE:0 0 1 * * ?}
     purge-snapshot-schedule: ${PURGE_SNAPSHOT-SCHEDULE:0 0 1 * * ?}
     purge-events-schedule: ${PURGE_EVENTS_SCHEDULE:0 0 1 * * ?}
     metering-schedule: ${METERING_SCHEDULE:0 30 * * * ?}

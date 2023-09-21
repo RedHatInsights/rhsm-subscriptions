@@ -454,107 +454,28 @@ objects:
         successfulJobsHistoryLimit: 2
         restartPolicy: Never
         podSpec:
-          image: ${IMAGE}:${IMAGE_TAG}
-          initContainers:
-            - env:
-                - name: JAVA_DEBUG
-                  value: ${JAVA_DEBUG}
-                - name: SPRING_PROFILES_ACTIVE
-                  value: liquibase-only
-              inheritEnv: true
-              resources:
-                requests:
-                  cpu: ${CPU_REQUEST}
-                  memory: ${JOB_MEMORY_REQUEST}
-                limits:
-                  cpu: ${CPU_LIMIT}
-                  memory: ${JOB_MEMORY_LIMIT}
+          image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+          command:
+            - /usr/bin/bash
+            - -c
+            - >
+              /usr/bin/curl --fail -H "Origin: https://swatch-tally-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-tally-service:8000/api/rhsm-subscriptions/v1/internal/rpc/tally/all-org-snapshots"
           env:
-            - name: JAVA_DEBUG
-              value: ${JAVA_DEBUG}
-            - name: ENABLE_SPLUNK_HEC
-              value: ${ENABLE_SPLUNK_HEC}
-            - name: SPLUNKMETA_namespace
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.namespace
-            - name: SPLUNKMETA_host
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.name
-            - name: SPLUNK_HEC_URL
-              value: ${SPLUNK_HEC_URL}
-            - name: SPLUNK_HEC_TOKEN
+            - name: SWATCH_SELF_PSK
               valueFrom:
                 secretKeyRef:
-                  name: splunk-hec-external
-                  key: token
-            - name: SPLUNK_SOURCE
-              value: ${SPLUNK_SOURCE}
-            - name: SPLUNK_SOURCE_TYPE
-              value: ${SPLUNK_SOURCE_TYPE}
-            - name: SPLUNK_MESSAGE_FORMAT
-              value: ${SPLUNK_MESSAGE_FORMAT}
-            - name: SPLUNK_HEC_CONNECT_TIMEOUT
-              value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
-            - name: SPLUNK_HEC_BATCH_SIZE
-              value: ${SPLUNK_HEC_BATCH_SIZE}
-            - name: SPLUNK_HEC_TERMINATION_TIMEOUT
-              value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
+                  name: swatch-psks
+                  key: self
+            # This env property is necessary to pass the test check.
             - name: SPRING_PROFILES_ACTIVE
-              value: capture-snapshots,kafka-queue
-            - name: JAVA_MAX_MEM_RATIO
-              value: '85'
-            - name: GC_MAX_METASPACE_SIZE
-              value: '256'
-            - name: LOG_FILE
-              value: /logs/server.log
-            - name: LOGGING_LEVEL_ROOT
-              value: ${LOGGING_LEVEL_ROOT}
-            - name: LOGGING_LEVEL_ORG_CANDLEPIN
-              value: ${LOGGING_LEVEL}
-            - name: INVENTORY_DATABASE_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: ${INVENTORY_SECRET_KEY_NAME}
-                  key: db.host
-            - name: INVENTORY_DATABASE_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: ${INVENTORY_SECRET_KEY_NAME}
-                  key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}name
-            - name: INVENTORY_DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: ${INVENTORY_SECRET_KEY_NAME}
-                  key: db.user
-            - name: INVENTORY_DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: ${INVENTORY_SECRET_KEY_NAME}
-                  key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
-            - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
-            - name: OTEL_SERVICE_NAME
-              value: ${OTEL_SERVICE_NAME}
-            - name: OTEL_JAVAAGENT_ENABLED
-              value: ${OTEL_JAVAAGENT_ENABLED}
+              value: capture-snapshots
           resources:
             requests:
-              cpu: ${CPU_REQUEST}
-              memory: ${JOB_MEMORY_REQUEST}
+              cpu: ${CURL_CRON_CPU_REQUEST}
+              memory: ${CURL_CRON_MEMORY_REQUEST}
             limits:
-              cpu: ${CPU_LIMIT}
-              memory: ${JOB_MEMORY_LIMIT}
-          volumeMounts:
-            - name: logs
-              mountPath: /logs
-          volumes:
-            - name: logs
-              emptyDir:
-          machinePool: ${JOB_MACHINE_POOL}
+              cpu: ${CURL_CRON_CPU_LIMIT}
+              memory: ${CURL_CRON_MEMORY_LIMIT}
 
       - name: hourly
         schedule: ${CAPTURE_HOURLY_SNAPSHOT_SCHEDULE}
