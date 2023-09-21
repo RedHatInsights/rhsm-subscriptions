@@ -46,6 +46,7 @@ import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
@@ -232,7 +233,7 @@ public class MetricUsageCollector {
 
                 if (event.getMeasurements() != null) {
                   event.getMeasurements().stream()
-                      .map(measurement -> measurement.getUom().toUpperCase())
+                      .map(measurement -> MetricIdUtils.toUpperCaseFormatted(measurement.getUom()))
                       .forEach(seenMetricIds::add);
                 }
               });
