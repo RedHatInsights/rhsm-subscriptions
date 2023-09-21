@@ -4,6 +4,7 @@ kind: Template
 metadata:
   name: swatch-metrics
 parameters:
+  - name: NAMESPACE
   - name: JAVA_DEBUG
     # Set to "true" to enable remote debugging
     value: ''
@@ -97,7 +98,7 @@ parameters:
     value: '60'
   - name: HOURLY_TALLY_OFFSET
     value: '60'
-# nonprod secret keys have different syntax than prod/stage
+  # nonprod secret keys have different syntax than prod/stage
   - name: INVENTORY_SECRET_KEY_NAME
     value: 'host-inventory-db'
   - name: INVENTORY_SECRET_KEY_NAME_PREFIX
@@ -126,8 +127,7 @@ objects:
       name: swatch-metrics
       labels:
         prometheus: rhsm
-    spec:
-      # The name of the ClowdEnvironment providing the services
+    spec: # The name of the ClowdEnvironment providing the services
       envName: ${ENV_NAME}
 
       database:
@@ -530,7 +530,54 @@ objects:
             limits:
               cpu: ${CURL_CRON_CPU_LIMIT}
               memory: ${CURL_CRON_MEMORY_LIMIT}
-
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdEnvironment
+    metadata:
+      name: ${ENV_NAME}
+    spec:
+      providers:
+        objectStore:
+          mode: none
+        serviceMesh: { }
+        metrics:
+          mode: operator
+          path: /metrics
+          port: 9000
+          prometheus:
+            deploy: true
+        inMemoryDb:
+          mode: none
+        deployment: { }
+        kafka:
+          mode: none
+        featureFlags:
+          mode: none
+        web:
+          ingressClass: openshift-default
+          mode: local
+          port: 8000
+          privatePort: 10000
+        sidecars:
+          tokenRefresher:
+            enabled: true
+        autoScaler: { }
+        db:
+          mode: local
+        pullSecrets:
+          - name: quay-cloudservices-pull
+            namespace: ephemeral-base
+        logging:
+          mode: none
+      resourceDefaults:
+        limits:
+          cpu: 300m
+          memory: 256Mi
+        requests:
+          cpu: 30m
+          memory: 128Mi
+      serviceConfig:
+        type: ''
+      targetNamespace: ${NAMESPACE}
 
   - apiVersion: v1
     kind: Secret
