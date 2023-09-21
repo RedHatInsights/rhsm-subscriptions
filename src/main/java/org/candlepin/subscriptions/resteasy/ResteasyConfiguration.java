@@ -20,13 +20,11 @@
  */
 package org.candlepin.subscriptions.resteasy;
 
-import org.jboss.resteasy.springboot.ResteasyAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
-import org.springframework.context.annotation.Import;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -36,7 +34,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * <p>Should be imported by any component that needs to serve an API.
  */
 @Configuration
-@Import(ResteasyAutoConfiguration.class)
 @ComponentScan(
     basePackages = {
       "org.candlepin.subscriptions.exception.mapper",

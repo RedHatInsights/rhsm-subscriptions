@@ -27,14 +27,18 @@ import org.candlepin.subscriptions.utilization.api.model.Error;
 import org.jboss.resteasy.spi.BadRequestException;
 import org.springframework.stereotype.Component;
 
-/** This handler catches RESTEasy BadRequestException. */
+/**
+ * This handler catches RESTEasy BadRequestException. Note that {@link
+ * jakarta.ws.rs.BadRequestException} (which is what our application code generally throws) is
+ * <em>not</em> handled by this mapper but instead by the WebApplicationExceptionMapper.
+ */
 @Component
 @Provider
 public class BadRequestExceptionMapper extends BaseExceptionMapper<BadRequestException> {
   @Override
   protected Error buildError(BadRequestException exception) {
     return new Error()
-        .code(ErrorCode.VALIDATION_FAILED_ERROR.getCode())
+        .code(ErrorCode.REQUEST_PROCESSING_ERROR.getCode())
         .status(String.valueOf(Response.Status.BAD_REQUEST.getStatusCode()))
         .title("Bad Request")
         .detail(exception.getCause().getMessage());
