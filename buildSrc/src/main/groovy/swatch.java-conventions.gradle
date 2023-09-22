@@ -4,6 +4,7 @@ plugins {
     id "java"
     id "com.diffplug.spotless"
     id 'com.adarshr.test-logger'
+    id 'jacoco'
 }
 
 repositories {
@@ -72,4 +73,10 @@ test {
 tasks.withType(Jar).configureEach {
     // Here to address https://youtrack.jetbrains.com/issue/IDEA-305759
     duplicatesStrategy = DuplicatesStrategy.WARN
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = true
+    }
 }
