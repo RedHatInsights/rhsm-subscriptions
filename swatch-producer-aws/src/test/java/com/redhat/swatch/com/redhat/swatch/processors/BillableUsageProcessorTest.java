@@ -64,8 +64,8 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResu
 @QuarkusTest
 class BillableUsageProcessorTest {
 
-  private static final String INSTANCE_HOURS = "Instance-hours";
-  private static final String STORAGE_GIBIBYTE_MONTHS = "Storage-gibibyte-months";
+  private static final String INSTANCE_HOURS = "INSTANCE_HOURS";
+  private static final String STORAGE_GIBIBYTE_MONTHS = "STORAGE_GIBIBYTE_MONTHS";
 
   private static final BillableUsage RHOSAK_INSTANCE_HOURS_RECORD =
       new BillableUsage()
