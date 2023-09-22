@@ -74,7 +74,7 @@ preferred development workflow.
 
 ### Prerequisites
 
-First, ensure you have podman-compose, podman and java 11 installed:
+First, ensure you have podman-compose, podman and java 17 installed:
 
 ```
 sudo dnf install -y podman-compose podman java-17-openjdk-devel
