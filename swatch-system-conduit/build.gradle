@@ -4,7 +4,6 @@ plugins {
     id "swatch.spring-boot-conventions"
     id "org.openapi.generator"
     id 'jsonschema2pojo'
-    id "jacoco"
 }
 
 configurations {
@@ -119,12 +118,6 @@ jsonSchema2Pojo {
     includeSetters = true
     inclusionLevel = 'USE_DEFAULTS'
     useJakartaValidation = true
-}
-
-jacocoTestReport {
-    reports {
-        xml.required = true
-    }
 }
 
 springBoot {

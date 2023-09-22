@@ -1,17 +1,12 @@
 plugins {
-    id 'swatch.java-conventions'
-    id 'io.quarkus'
+    id 'swatch.quarkus-conventions'
     id 'org.openapi.generator'
 }
 
 dependencies {
     compileOnly libraries["lombok"]
-    implementation enforcedPlatform(libraries["quarkus-bom"])
     implementation platform(libraries["awssdk-bom"])
-    implementation 'io.quarkus:quarkus-arc'
-    implementation 'io.quarkus:quarkus-config-yaml'
     implementation 'io.quarkus:quarkus-hibernate-validator'
-    implementation 'io.quarkus:quarkus-jacoco'
     implementation 'io.quarkus:quarkus-jsonb'
     implementation 'io.quarkus:quarkus-logging-json'
     implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
@@ -31,8 +26,6 @@ dependencies {
     implementation project(":clients:swatch-internal-subscription-client")
     implementation project(":swatch-common-resteasy")
     implementation project(":swatch-product-configuration")
-    testImplementation 'io.quarkus:quarkus-junit5'
-    testImplementation 'io.quarkus:quarkus-junit5-mockito'
     testImplementation 'io.rest-assured:rest-assured'
     testImplementation 'org.mockito:mockito-junit-jupiter'
     testImplementation 'org.testcontainers:junit-jupiter'

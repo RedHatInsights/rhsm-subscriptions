@@ -1,0 +1,30 @@
+// Plugin: swatch.quarkus-conventions
+// gradle config common to any swatch component implemented as a Quarkus app
+plugins {
+    id "swatch.java-conventions"
+    id 'io.quarkus'
+}
+
+dependencies {
+    implementation enforcedPlatform(libraries["quarkus-bom"])
+    implementation 'io.quarkus:quarkus-arc'
+    implementation 'io.quarkus:quarkus-config-yaml'
+    testImplementation 'io.quarkus:quarkus-junit5'
+    testImplementation 'io.quarkus:quarkus-junit5-mockito'
+    testImplementation 'io.quarkus:quarkus-jacoco'
+}
+
+test {
+    finalizedBy jacocoTestReport
+    jacoco {
+        excludeClassLoaders = ["*QuarkusClassLoader"]
+        destinationFile = layout.buildDirectory.file("jacoco-quarkus.exec").get().asFile
+    }
+    jacocoTestReport.enabled = false
+}
+
+sonarqube {
+    properties {
+        property 'sonar.coverage.jacoco.xmlReportPaths', "${projectDir}/build/jacoco-report/jacoco.xml"
+    }
+}
