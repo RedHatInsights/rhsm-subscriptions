@@ -26,7 +26,7 @@ Preferred Package Structure
 # Build
 
 Requirements to build the repository are:
-- Gradle 7.4+
+- Gradle
 - Java 17
 - Podman with socket listening (instructions [here](#podman-installation-instructions)) / or Docker installed
 
@@ -47,7 +47,7 @@ and set _Class count to use import with '\*'_ to `999`. Do the same with _Names 
 -------------
 # Formatting
 
-Before submit pull requests, remember to format your changes using:
+Before submitting pull requests, remember to format your changes using:
 
 ```shell
 ./gradlew spotlessApply
@@ -116,4 +116,10 @@ $ podman info | grep -A2 'remoteSocket'
 
 remoteSocket:
   path: /path/to/podman.sock
+```
+
+Finally, you need to configure the DOCKER_HOST environment property, so Testcontainers use it:
+
+```shell
+export DOCKER_HOST=unix:///run/user/${UID}/podman/podman.sock
 ```
