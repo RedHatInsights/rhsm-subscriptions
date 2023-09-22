@@ -35,7 +35,7 @@ ext.plugins = [
 ]
 
 // BOMs
-libraries["quarkus-bom"] = "io.quarkus.platform:quarkus-bom:3.3.3"
+libraries["quarkus-bom"] = "io.quarkus.platform:quarkus-bom:3.4.1"
 libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-dependencies:3.1.4"
 
 // Individual libraries
