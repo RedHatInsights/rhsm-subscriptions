@@ -46,7 +46,7 @@ class SubscriptionDefinitionRegistryTest {
   void testLoadAllTheThings() {
 
     var actual = subscriptionDefinitionRegistry.getSubscriptions().size();
-    var expected = 14;
+    var expected = 15;
 
     assertEquals(actual, expected);
   }

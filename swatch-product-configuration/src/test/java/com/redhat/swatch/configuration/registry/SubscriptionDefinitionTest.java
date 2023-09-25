@@ -61,7 +61,8 @@ class SubscriptionDefinitionTest {
             "Rhacs Cluster",
             "Rhods Cluster",
             "Kafka Cluster",
-            "rosa Instance");
+            "rosa Instance",
+            "RHEL System");
     var actual = SubscriptionDefinition.getAllServiceTypes();
 
     assertThat(actual, Matchers.containsInAnyOrder(expected.toArray()));

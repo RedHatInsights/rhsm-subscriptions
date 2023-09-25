@@ -65,6 +65,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class MetricUsageCollectorTest {
 
   public static final String RHEL_ENG_ID = "69";
+  public static final String RHEL_EUS_PAG_ENG_ID = "70";
   MetricUsageCollector metricUsageCollector;
 
   @Mock AccountServiceInventoryRepository accountRepo;
@@ -75,6 +76,8 @@ class MetricUsageCollectorTest {
 
   static final String SERVICE_TYPE = "OpenShift Cluster";
   static final String RHEL_FOR_X86 = "RHEL for x86";
+  static final String RHEL_FOR_X86_EUS_PAYG = "RHEL for x86 EUS Payg";
+
   static final String RHEL_WORKSTATION_SWATCH_PRODUCT_ID = "RHEL Workstation";
   static final String RHEL_COMPUTE_NODE_SWATCH_PRODUCT_ID = "RHEL Compute Node";
   static final String OSD_PRODUCT_ID = "OpenShift-dedicated-metrics";
@@ -194,9 +197,9 @@ class MetricUsageCollectorTest {
     Event event =
         createEvent()
             .withEventId(UUID.randomUUID())
-            .withProductIds(List.of(RHEL_ENG_ID))
+            .withProductIds(List.of(RHEL_FOR_X86, RHEL_EUS_PAG_ENG_ID))
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
-            .withServiceType(SERVICE_TYPE)
+            .withServiceType("RHEL System")
             .withMeasurements(Collections.singletonList(measurement))
             .withSla(Event.Sla.PREMIUM)
             .withBillingProvider(Event.BillingProvider.RED_HAT)
@@ -227,7 +230,7 @@ class MetricUsageCollectorTest {
           String billingAccountId = (String) tuple.get(3);
 
           HostBucketKey key = new HostBucketKey();
-          key.setProductId(RHEL_FOR_X86);
+          key.setProductId(RHEL_FOR_X86_EUS_PAYG);
           key.setSla(sla);
           key.setBillingProvider(billingProvider);
           key.setBillingAccountId(billingAccountId);
@@ -370,7 +373,7 @@ class MetricUsageCollectorTest {
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION)
             .withBillingProvider(Event.BillingProvider.RED_HAT)
-            .withProductIds(List.of(RHEL_ENG_ID));
+            .withProductIds(List.of(RHEL_ENG_ID, RHEL_EUS_PAG_ENG_ID));
 
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
     when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
@@ -382,8 +385,16 @@ class MetricUsageCollectorTest {
 
     UsageCalculation.Key engIdKey =
         new UsageCalculation.Key(
-            RHEL_FOR_X86, ServiceLevel.PREMIUM, Usage._ANY, BillingProvider.RED_HAT, "_ANY");
+            RHEL_FOR_X86_EUS_PAYG,
+            ServiceLevel.PREMIUM,
+            Usage._ANY,
+            BillingProvider.RED_HAT,
+            "_ANY");
     assertTrue(accountUsageCalculation.containsCalculation(engIdKey));
+    UsageCalculation.Key engIdKey1 =
+        new UsageCalculation.Key(
+            RHEL_FOR_X86, ServiceLevel.PREMIUM, Usage._ANY, BillingProvider.RED_HAT, "_ANY");
+    assertFalse(accountUsageCalculation.containsCalculation(engIdKey1));
     assertEquals(
         Double.valueOf(42.0),
         accountUsageCalculation

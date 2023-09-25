@@ -1,0 +1,27 @@
+---
+platform: RHEL
+
+id: rhel-for-x86-eus-payg
+
+includedSubscriptions:
+  - rhel-for-x86
+
+variants:
+  - tag: RHEL for x86 EUS Payg
+    engineeringIds:
+      - 70
+    productNames:
+      - RHEL EUS COST PLACEHOLDER # when external service creates a sku offering manager definition. This is to differentiate between skus.
+
+defaults:
+  variant: rhel-for-x86-eus-payg
+  sla: PREMIUM
+  usage: PRODUCTION
+
+serviceType: RHEL System
+
+contractEnabled: true #test to see when they create aws listing
+
+metrics:
+  - id: vCPUs
+    awsDimension: vCPU_Hour # PLACEHOLDER when external service sends an aws dimension
