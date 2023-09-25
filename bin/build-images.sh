@@ -52,31 +52,21 @@ fi
 
 # Exit script if a podman command fails
 trap build_failed ERR
-# Remove any jars from build/libs. Having multiple JARS here will confuse s2i/run
-./gradlew clean
 
 for p in "${projects[@]}"; do
   case "$p" in
     "rhsm")
-      ./gradlew :assemble
-      podman build . -t quay.io/$quay_user/rhsm-subscriptions:$tag --label "git-commit=${commit}"
+      podman build . -t quay.io/$quay_user/rhsm-subscriptions:$tag --label  "git-commit=${commit}" --ulimit nofile=2048:2048
       ;;
     "conduit")
-      ./gradlew swatch-system-conduit:assemble
       podman build . -f swatch-system-conduit/Dockerfile \
-        -t quay.io/$quay_user/swatch-system-conduit:$tag --label "git-commit=${commit}"
+        -t quay.io/$quay_user/swatch-system-conduit:$tag --label "git-commit=${commit}" --ulimit nofile=2048:2048
       ;;
     "swatch-producer-aws")
-      ./gradlew :swatch-producer-aws:assemble
-      pushd swatch-producer-aws
-      podman build . -f src/main/docker/Dockerfile.jvm -t quay.io/$quay_user/swatch-producer-aws:$tag --label "git-commit=${commit}"
-      popd
+      podman build . -f swatch-producer-aws/src/main/docker/Dockerfile.jvm -t quay.io/$quay_user/swatch-producer-aws:$tag --label "git-commit=${commit}" --ulimit nofile=2048:2048
       ;;
     "swatch-contracts")
-      ./gradlew :swatch-contracts:assemble
-      pushd swatch-contracts
-      podman build . -f src/main/docker/Dockerfile.jvm -t quay.io/$quay_user/swatch-contracts:$tag --label "git-commit=${commit}"
-      popd
+      podman build . -f swatch-contracts/src/main/docker/Dockerfile.jvm -t quay.io/$quay_user/swatch-contracts:$tag --label "git-commit=${commit}" --ulimit nofile=2048:2048
       ;;
     *) echo "Please use values from the set \"rhsm\", \"conduit\", \"swatch-producer-aws\", \"swatch-contracts\"";;
   esac

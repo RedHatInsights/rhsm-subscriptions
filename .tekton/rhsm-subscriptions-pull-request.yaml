@@ -201,31 +201,6 @@ spec:
       workspaces:
       - name: source
         workspace: workspace
-    - name: gradle-build
-      runAfter:
-      - prefetch-dependencies
-      taskSpec:
-        steps:
-          - name: gradle-build
-            image: registry.access.redhat.com/ubi9/openjdk-17
-            workingDir: "/workspace/source/"
-            command:
-              - ./gradlew
-            args:
-              - assemble
-            resources:
-              requests:
-                memory: 2Gi
-                cpu: 2
-              limits:
-                memory: 6Gi
-                cpu: 6
-        workspaces:
-        - name: source
-          workspace: workspace
-      workspaces:
-      - name: source
-        workspace: workspace
     - name: build-container
       params:
       - name: IMAGE
@@ -243,7 +218,7 @@ spec:
       - name: COMMIT_SHA
         value: $(tasks.clone-repository.results.commit)
       runAfter:
-      - gradle-build
+      - prefetch-dependencies
       taskRef:
         params:
         - name: name
