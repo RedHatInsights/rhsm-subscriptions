@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
+import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
@@ -59,13 +60,17 @@ public class MetricUsageCollector {
   private final EventController eventController;
   private final ApplicationClock clock;
 
+  private final HostRepository hostRepository;
+
   public MetricUsageCollector(
       AccountServiceInventoryRepository accountServiceInventoryRepository,
       EventController eventController,
-      ApplicationClock clock) {
+      ApplicationClock clock,
+      HostRepository hostRepository) {
     this.accountServiceInventoryRepository = accountServiceInventoryRepository;
     this.eventController = eventController;
     this.clock = clock;
+    this.hostRepository = hostRepository;
   }
 
   @Transactional
@@ -78,11 +83,15 @@ public class MetricUsageCollector {
               range.getStartString(), range.getEndString()));
     }
 
-    if (!eventController.hasEventsInTimeRange(
-        orgId, serviceType, range.getStartDate(), range.getEndDate())) {
+    Optional<OffsetDateTime> firstEventTimestampInRange =
+        eventController.findFirstEventTimestampInRange(
+            orgId, serviceType, range.getStartDate(), range.getEndDate());
+
+    if (firstEventTimestampInRange.isEmpty()) {
       log.info("No event metrics to process for service type {} in range: {}", serviceType, range);
       return null;
     }
+    OffsetDateTime firstEventTimestamp = firstEventTimestampInRange.get();
 
     log.info("Event exists for org {} of service type {} in range: {}", orgId, serviceType, range);
     /* load the latest accountServiceInventory state, so we can update host records conveniently */
@@ -101,13 +110,10 @@ public class MetricUsageCollector {
     the product profile we're working on
     */
     Map<String, Host> existingInstances = new HashMap<>();
-    OffsetDateTime newestInstanceTimestamp = OffsetDateTime.MIN;
+    Optional<OffsetDateTime> minLastSeenTimestamp =
+        hostRepository.findMaxLastSeenDate(orgId, serviceType);
     for (Host host : accountServiceInventory.getServiceInstances().values()) {
       existingInstances.put(host.getInstanceId(), host);
-      newestInstanceTimestamp =
-          newestInstanceTimestamp.isAfter(host.getLastSeen())
-              ? newestInstanceTimestamp
-              : host.getLastSeen();
     }
     OffsetDateTime effectiveStartDateTime;
     OffsetDateTime effectiveEndDateTime;
@@ -115,10 +121,22 @@ public class MetricUsageCollector {
     /*
     We need to recalculate several things if we are re-tallying, namely monthly totals need to be
     cleared and re-updated for each host record
+    Evaluate latest state to determine if we are doing a recalculation.
+    This condition serves a dual purpose: First, it validates the presence of untallied events.
+    Additionally, it assesses whether the first event timestamp is after the host last seen.
+    If this condition holds false, then the effectiveStartDateTime is adjusted from the first day of the month to
+    the end of current hour. Otherwise, the start date is same as the beginning of the user start range,
+    it extends until the specified passed end date.
      */
-    if (newestInstanceTimestamp.isAfter(range.getStartDate())
-        || newestInstanceTimestamp.isEqual(range.getStartDate())) {
-      effectiveStartDateTime = clock.startOfMonth(range.getStartDate());
+    if (minLastSeenTimestamp.isEmpty()
+        || !firstEventTimestamp.isAfter(minLastSeenTimestamp.get())) {
+      int eventLastMonth =
+          firstEventTimestamp.getMonth().getValue() - OffsetDateTime.now().getMonth().getValue();
+      if (eventLastMonth < 0) {
+        effectiveStartDateTime = clock.startOfMonth(firstEventTimestamp);
+      } else {
+        effectiveStartDateTime = clock.startOfMonth(range.getStartDate());
+      }
       effectiveEndDateTime = clock.endOfCurrentHour();
       log.info(
           "We appear to be retallying; adjusting start and end from [{} : {}] to [{} : {}]",
@@ -128,7 +146,7 @@ public class MetricUsageCollector {
           effectiveEndDateTime);
       isRecalculating = true;
     } else {
-      effectiveStartDateTime = range.getStartDate();
+      effectiveStartDateTime = firstEventTimestamp;
       effectiveEndDateTime = range.getEndDate();
       log.info(
           "New tally! Adjusting start and end from [{} : {}] to [{} : {}]",

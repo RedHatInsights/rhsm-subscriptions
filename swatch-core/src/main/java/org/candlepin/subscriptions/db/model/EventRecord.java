@@ -39,6 +39,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.candlepin.subscriptions.json.Event;
+import org.hibernate.annotations.CreationTimestamp;
 
 /**
  * DB entity for an event record.
@@ -102,6 +103,17 @@ public class EventRecord {
 
   @Id private OffsetDateTime timestamp;
 
+  /*
+  Since we have a bitemporal pattern, the "timestamp" and "actual_date" means the same.
+  Accordingly, "record_date" refers to the date when we entered the activity into our system.
+
+  For reference: https://martinfowler.com/articles/bitemporal-history.html#TheTwoDimensions
+  */
+
+  @CreationTimestamp
+  @Column(name = "record_date")
+  private OffsetDateTime recordDate;
+
   @Valid
   @Column(name = "data")
   @Convert(converter = EventRecordConverter.class)
@@ -141,11 +153,13 @@ public class EventRecord {
         && Objects.equals(eventType, that.eventType)
         && Objects.equals(eventSource, that.eventSource)
         && Objects.equals(instanceId, that.instanceId)
-        && Objects.equals(timestamp, that.timestamp);
+        && Objects.equals(timestamp, that.timestamp)
+        && Objects.equals(recordDate, that.recordDate);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(accountNumber, orgId, eventType, eventSource, instanceId, timestamp);
+    return Objects.hash(
+        accountNumber, orgId, eventType, eventSource, instanceId, timestamp, recordDate);
   }
 }

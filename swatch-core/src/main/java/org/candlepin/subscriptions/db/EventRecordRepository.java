@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.db;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -179,4 +180,44 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, EventK
   void deleteByOrgId(String orgId);
 
   void deleteByEventId(UUID eventId);
+
+  /**
+   * If there is no recalculation then we compare the user range to record date
+   *
+   * @param orgId
+   * @param serviceType
+   * @param begin
+   * @param end
+   * @return
+   */
+  @Query(
+      nativeQuery = true,
+      value =
+          "select * from events where org_id=:orgId and data->>'service_type'=:serviceType and record_date >= :begin and record_date < :end order by timestamp")
+  Stream<EventRecord>
+      findByOrgIdAndServiceTypeAndRecordDateGreaterThanEqualAndRecordDateLessThanOrderByTimestamp(
+          @Param("orgId") String orgId,
+          @Param("serviceType") String serviceType,
+          @Param("begin") OffsetDateTime begin,
+          @Param("end") OffsetDateTime end);
+
+  /**
+   * We want to obtain the first event record for the hourly tally based on timestamp actual_date.
+   * This helps in determining whether we need to recalculate the earlier events.
+   *
+   * @param orgId
+   * @param serviceType
+   * @param begin
+   * @param end
+   * @return
+   */
+  @Query(
+      nativeQuery = true,
+      value =
+          "select min(timestamp) from events where org_id=:orgId and data->>'service_type'=:serviceType and record_date >= :begin and record_date < :end")
+  Instant findFirstEventTimestampInRange(
+      @Param("orgId") String orgId,
+      @Param("serviceType") String serviceType,
+      @Param("begin") OffsetDateTime begin,
+      @Param("end") OffsetDateTime end);
 }

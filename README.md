@@ -74,13 +74,11 @@ preferred development workflow.
 
 ### Prerequisites
 
-First, ensure you have podman-compose, podman and java 11 installed:
+First, ensure you have podman-compose, podman and java 17 installed:
 
 ```
 sudo dnf install -y podman-compose podman java-17-openjdk-devel
 ```
-
-*NOTE*: You can also use docker if don't want to or are unable to use podman. Make sure docker and docker-compose are installed.
 
 Ensure the checkout has the HBI submodule initialized:
 
@@ -92,27 +90,9 @@ git submodule update --init --recursive
 
 NOTE: in order to deploy insights-inventory (not always useful), you'll need to login to quay.io first.
 
-*NOTE*: To run any of the following commands using docker,
-
-replace podman-compose with
-
-```
-docker compose
-```
-
-replace podman with
-
-```
-docker
-```
-
 Start via:
 ```
 podman-compose up -d
-```
-If using docker, start via
-```
-docker compose up -d
 ```
 
 *NOTE*: if the DB hasn't finished starting up (likely), HBI will fail to
@@ -485,7 +465,7 @@ Cluster" page in the Cloud-dot documentation, but here are some essentials:
 
 * Create an account on `quay.io` and create an image repository for each
   component (Currently, one for rhsm-subscriptions and one for
-  swatch-system-conduit).  Use `podman login` or `docker login` so that you
+  swatch-system-conduit).  Use `podman login` so that you
   can build and push your test images there.
 
 * You can do the builds with the script in `bin/build-images.sh`.
