@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally.billing;
 
 import com.redhat.swatch.configuration.registry.Metric;
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Variant;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -38,7 +39,10 @@ public class BillingUnit implements Unit {
     var metricOptional =
         Variant.findByTag(usage.getProductId())
             .map(Variant::getSubscription)
-            .flatMap(subscriptionDefinition -> subscriptionDefinition.getMetric(usage.getUom()));
+            .flatMap(
+                subscriptionDefinition ->
+                    subscriptionDefinition.getMetric(
+                        MetricId.fromString(usage.getUom()).getValue()));
     billingFactor =
         metricOptional
             .map(Metric::getBillingFactor)

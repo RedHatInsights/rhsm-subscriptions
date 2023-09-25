@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.rhmarketplace;
 import com.redhat.swatch.clients.internal.subscriptions.api.client.ApiException;
 import com.redhat.swatch.clients.internal.subscriptions.api.model.RhmUsageContext;
 import com.redhat.swatch.clients.internal.subscriptions.api.resources.InternalSubscriptionsApi;
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -175,7 +176,8 @@ public class RhMarketplacePayloadMapper {
   protected UsageMeasurement produceUsageMeasurement(BillableUsage billableUsage) {
 
     String rhmMarketplaceMetricId =
-        SubscriptionDefinition.getRhmMetricId(billableUsage.getProductId(), billableUsage.getUom());
+        SubscriptionDefinition.getRhmMetricId(
+            billableUsage.getProductId(), MetricId.fromString(billableUsage.getUom()).getValue());
 
     Double value = billableUsage.getValue();
 

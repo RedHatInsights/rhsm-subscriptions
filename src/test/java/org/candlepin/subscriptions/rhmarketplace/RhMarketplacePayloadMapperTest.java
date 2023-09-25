@@ -99,7 +99,7 @@ class RhMarketplacePayloadMapperTest {
             .withProductId("OpenShift-metrics")
             .withSnapshotDate(snapshotDate)
             .withUsage(Usage.PRODUCTION)
-            .withUom(MetricIdUtils.getCores().getValue())
+            .withUom(MetricIdUtils.getCores().toUpperCaseFormatted())
             .withValue(36.0)
             .withSla(Sla.PREMIUM)
             .withBillingProvider(BillingProvider.RED_HAT)
