@@ -100,6 +100,7 @@ management:
 spring:
   # general hibernate configurations
   jpa:
+    open-in-view: false
     properties:
       hibernate:
         jdbc:
@@ -153,8 +154,6 @@ rhsm-subscriptions:
 logging:
   level:
     org:
-      hibernate:
-        type: trace
       candlepin:
         subscriptions:
           resteasy:

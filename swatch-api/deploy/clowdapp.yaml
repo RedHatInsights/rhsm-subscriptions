@@ -30,9 +30,9 @@ parameters:
   - name: REPLICAS
     value: '1'
   - name: MEMORY_REQUEST
-    value: 256Mi
+    value: 800Mi
   - name: MEMORY_LIMIT
-    value: 500Mi
+    value: 800Mi
   - name: CPU_REQUEST
     value: 200m
   - name: CPU_LIMIT

@@ -1,7 +1,6 @@
 plugins {
-    id 'swatch.java-conventions'
+    id 'swatch.quarkus-conventions'
     id 'swatch.liquibase-conventions'
-    id 'io.quarkus'
     id 'org.openapi.generator'
 }
 
@@ -21,11 +20,7 @@ liquibase {
 
 dependencies {
     compileOnly libraries["lombok"]
-    implementation enforcedPlatform(libraries["quarkus-bom"])
-    implementation 'io.quarkus:quarkus-arc'
-    implementation 'io.quarkus:quarkus-config-yaml'
     implementation 'io.quarkus:quarkus-hibernate-validator'
-    implementation 'io.quarkus:quarkus-jacoco'
     implementation 'io.quarkus:quarkus-jsonb'
     implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
     implementation 'io.quarkus:quarkus-openshift'
@@ -49,8 +44,6 @@ dependencies {
     implementation project(':swatch-product-configuration')
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
     annotationProcessor "org.hibernate.orm:hibernate-jpamodelgen"
-    testImplementation 'io.quarkus:quarkus-junit5'
-    testImplementation 'io.quarkus:quarkus-junit5-mockito'
     testImplementation 'io.rest-assured:rest-assured'
     testImplementation 'org.mockito:mockito-junit-jupiter'
     testImplementation 'org.testcontainers:junit-jupiter'

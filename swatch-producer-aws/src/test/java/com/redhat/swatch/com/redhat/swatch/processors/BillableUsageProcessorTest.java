@@ -23,6 +23,7 @@ package com.redhat.swatch.com.redhat.swatch.processors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -41,17 +42,17 @@ import com.redhat.swatch.processors.AwsMarketplaceMeteringClientFactory;
 import com.redhat.swatch.processors.BillableUsageProcessor;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.quarkus.test.InjectMock;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Optional;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.marketplacemetering.MarketplaceMeteringClient;
 import software.amazon.awssdk.services.marketplacemetering.model.BatchMeterUsageRequest;
 import software.amazon.awssdk.services.marketplacemetering.model.BatchMeterUsageResponse;
@@ -60,11 +61,11 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecord;
 import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResult;
 import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResultStatus;
 
-@ExtendWith(MockitoExtension.class)
+@QuarkusTest
 class BillableUsageProcessorTest {
 
-  private static final String INSTANCE_HOURS = "Instance-hours";
-  private static final String STORAGE_GIBIBYTE_MONTHS = "Storage-gibibyte-months";
+  private static final String INSTANCE_HOURS = "INSTANCE_HOURS";
+  private static final String STORAGE_GIBIBYTE_MONTHS = "STORAGE_GIBIBYTE_MONTHS";
 
   private static final BillableUsage RHOSAK_INSTANCE_HOURS_RECORD =
       new BillableUsage()
@@ -101,23 +102,20 @@ class BillableUsageProcessorTest {
                   .build())
           .build();
 
-  @Mock InternalSubscriptionsApi internalSubscriptionsApi;
-  @Mock AwsMarketplaceMeteringClientFactory clientFactory;
-  @Mock MarketplaceMeteringClient meteringClient;
+  @InjectMock @RestClient InternalSubscriptionsApi internalSubscriptionsApi;
+  @InjectMock AwsMarketplaceMeteringClientFactory clientFactory;
+  MarketplaceMeteringClient meteringClient;
 
-  MeterRegistry meterRegistry;
+  @Inject MeterRegistry meterRegistry;
   Counter acceptedCounter;
   Counter rejectedCounter;
-  BillableUsageProcessor processor;
+  @Inject BillableUsageProcessor processor;
 
   @BeforeEach
   void setup() {
-    meterRegistry = new SimpleMeterRegistry();
     acceptedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_rejected_total");
-    processor =
-        new BillableUsageProcessor(
-            meterRegistry, internalSubscriptionsApi, clientFactory, Optional.of(false));
+    meteringClient = mock(MarketplaceMeteringClient.class);
   }
 
   @Test
@@ -198,6 +196,7 @@ class BillableUsageProcessorTest {
 
   @Test
   void shouldIncrementFailureCounterIfUnprocessed() throws ApiException {
+    double current = rejectedCounter.count();
     when(internalSubscriptionsApi.getAwsUsageContext(
             any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
@@ -208,11 +207,12 @@ class BillableUsageProcessorTest {
                 .unprocessedRecords(UsageRecord.builder().build())
                 .build());
     processor.process(RHOSAK_INSTANCE_HOURS_RECORD);
-    assertEquals(1.0, rejectedCounter.count());
+    assertEquals(current + 1, rejectedCounter.count());
   }
 
   @Test
   void shouldIncrementFailureCounterOnError() throws ApiException {
+    double current = rejectedCounter.count();
     when(internalSubscriptionsApi.getAwsUsageContext(
             any(), any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
@@ -220,7 +220,7 @@ class BillableUsageProcessorTest {
     when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
         .thenThrow(MarketplaceMeteringException.class);
     processor.process(RHOSAK_INSTANCE_HOURS_RECORD);
-    assertEquals(1.0, rejectedCounter.count());
+    assertEquals(current + 1, rejectedCounter.count());
   }
 
   @Test

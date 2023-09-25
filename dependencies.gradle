@@ -22,26 +22,26 @@ ext.plugins = [
         "com.adarshr:gradle-test-logger-plugin:3.2.0",
         "com.diffplug.spotless:spotless-plugin-gradle:6.21.0",
         "com.netflix.nebula:nebula-release-plugin:17.2.2",
-        "io.quarkus:gradle-application-plugin:3.4.0",
+        "io.quarkus:gradle-application-plugin:3.4.1",
         // swagger-parser manually upgraded for compatibility with snakeyaml 2.0
         // see https://github.com/OpenAPITools/openapi-generator/issues/15876
         "io.swagger.parser.v3:swagger-parser:2.1.16",
         "org.jsonschema2pojo:jsonschema2pojo-gradle-plugin:1.2.1",
         "org.liquibase:liquibase-gradle-plugin:2.2.0",
         "org.kordamp.gradle:jandex-gradle-plugin:1.1.0",
-        "org.openapitools:openapi-generator-gradle-plugin:7.0.0",
-        "org.springframework.boot:spring-boot-gradle-plugin:3.1.3",
+        "org.openapitools:openapi-generator-gradle-plugin:7.0.1",
+        "org.springframework.boot:spring-boot-gradle-plugin:3.1.4",
         "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:4.3.1.3277",
 ]
 
 // BOMs
-libraries["quarkus-bom"] = "io.quarkus.platform:quarkus-bom:3.3.3"
-libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-dependencies:3.1.3"
+libraries["quarkus-bom"] = "io.quarkus.platform:quarkus-bom:3.4.1"
+libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-dependencies:3.1.4"
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:2.1.1"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.20.151"
-libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:1.5.0"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.20.153"
+libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.0.0"
 libraries["guava"] = "com.google.guava:guava:32.1.2-jre"
 libraries["hamcrest-all"] = "org.hamcrest:hamcrest-all:1.3"
 libraries["jackson-databind-nullable"] = "org.openapitools:jackson-databind-nullable:0.2.6"
@@ -50,7 +50,7 @@ libraries["jakarta-ws-rs"] = "jakarta.ws.rs:jakarta.ws.rs-api:3.1.0"
 libraries["jgit"] = "org.eclipse.jgit:org.eclipse.jgit:6.7.0.202309050840-r"
 libraries["jsr305"] = "com.google.code.findbugs:jsr305:3.0.2"
 libraries["junit-jupiter"] = "org.junit.jupiter:junit-jupiter:5.10.0"
-libraries["lombok"] = "org.projectlombok:lombok:1.18.28"
+libraries["lombok"] = "org.projectlombok:lombok:1.18.30"
 libraries["lombok-mapstruct-binding"] = "org.projectlombok:lombok-mapstruct-binding:0.2.0"
 libraries["mapstruct"] = "org.mapstruct:mapstruct:1.5.5.Final"
 libraries["mapstruct-processor"] = "org.mapstruct:mapstruct-processor:1.5.5.Final"
@@ -64,7 +64,7 @@ libraries["resteasy-spring-boot-starter"] = "org.jboss.resteasy:resteasy-servlet
 libraries["resteasy-validator-provider"] = "org.jboss.resteasy:resteasy-validator-provider:6.2.5.Final"
 libraries["splunk-library-javalogging"] = "com.splunk.logging:splunk-library-javalogging:1.11.8"
 libraries["swagger-annotations"] = "io.swagger:swagger-annotations:1.6.11"
-libraries["swagger-ui"] = "org.webjars:swagger-ui:5.6.1"
+libraries["swagger-ui"] = "org.webjars:swagger-ui:5.7.2"
 libraries["webjars-locator"] = "org.webjars:webjars-locator:0.47"
 libraries["wiremock"] = "com.github.tomakehurst:wiremock-standalone:3.0.1"
 libraries["awaitility"] = "org.awaitility:awaitility:4.2.0"

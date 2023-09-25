@@ -21,6 +21,7 @@
 package com.redhat.swatch.configuration.registry;
 
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.AccessLevel;
@@ -43,6 +44,9 @@ public class MetricId {
    */
   public static MetricId fromString(String value) {
     // NOTE: if the volume of data becomes large enough, we can pre-cache these values.
+    if (Objects.isNull(value)) {
+      throw new IllegalArgumentException("Value can not be null.");
+    }
     String formattedValue = value.replace('_', '-');
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .map(SubscriptionDefinition::getMetrics)

@@ -24,6 +24,7 @@ import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AwsUsage
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
 import com.redhat.swatch.configuration.registry.Metric;
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.exception.AwsDimensionNotConfiguredException;
 import com.redhat.swatch.exception.AwsMissingCredentialsException;
@@ -270,7 +271,11 @@ public class BillableUsageProcessor {
 
     Optional<Metric> metric =
         Variant.findByTag(billableUsage.getProductId()).stream()
-            .map(v -> v.getSubscription().getMetric(billableUsage.getUom()).orElse(null))
+            .map(
+                v ->
+                    v.getSubscription()
+                        .getMetric(MetricId.fromString(billableUsage.getUom()).getValue())
+                        .orElse(null))
             .filter(Objects::nonNull)
             .findFirst();
 

@@ -16,7 +16,6 @@ export IQE_CJI_TIMEOUT="30m"  # This is the time to wait for smoke test to compl
 export IQE_IMAGE_TAG="rhsm-subscriptions"
 # NOTE: workaround for frontend deployment not being ready yet below
 export IQE_LOG_LEVEL="debug"
-export IQE_IBUTSU_SOURCE="rhsm-ephemeral-${IMAGE_TAG}"
 export IQE_RP_ARGS="true"
 export IQE_PARALLEL_ENABLED="false"
 
@@ -43,7 +42,7 @@ for service in $SERVICES; do
 done
 
 APP_ROOT=$PWD
-
+export IQE_IBUTSU_SOURCE="rhsm-ephemeral-${IMAGE_TAG}"
 # NOTE: uncomment the following line to test authenticated kafka
 #NAMESPACE_POOL="managed-kafka"
 EXTRA_DEPLOY_ARGS="--timeout 1800 ${IMAGES}"

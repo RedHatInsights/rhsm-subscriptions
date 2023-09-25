@@ -39,5 +39,8 @@ public class SwatchPostgreSQLContainer extends PostgreSQLContainer<SwatchPostgre
     withDatabaseName(DATABASE);
     withUsername(DATABASE);
     withPassword(DATABASE);
+    // SMELL: Workaround for https://github.com/testcontainers/testcontainers-java/issues/7539
+    // This is because testcontainers randomly fails to start a container when using Podman socket.
+    withStartupAttempts(3);
   }
 }
