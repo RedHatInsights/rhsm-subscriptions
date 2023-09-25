@@ -1,0 +1,28 @@
+---
+# Cleanup this file in SWATCH-1690 with accurate and more information
+platform: RHEL
+
+id: rhel-for-x86-eus-payg
+
+variants:
+  - tag: RHEL Workstation PLACEHOLDER
+    engineeringIds:
+      - 4791 #Temp placeholder cleanup in SWATCH-1690
+      - 70
+    roles:
+      - Red Hat Enterprise Linux Workstation PLACEHOLDER
+    productNames:
+      - RHEL EUS Placeholder # when external service creates a sku
+
+defaults:
+  variant: rhel-for-x86-eus-payg
+  sla: PREMIUM
+  usage: PRODUCTION # we won't meter for a Development/Test config since that may not be sold
+
+serviceType: RHEL System
+
+contractEnabled: true #test to see when they create aws listing
+
+metrics:
+  - id: vCPUs
+    #awsDimension: Placeholder # when external service sends an aws dimension

@@ -25,11 +25,13 @@ import static org.candlepin.subscriptions.metering.MeteringEventFactory.EVENT_SO
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -104,6 +106,14 @@ public class EventController {
       String orgId, String serviceType, OffsetDateTime startDate, OffsetDateTime endDate) {
     return repo.existsByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThan(
         orgId, serviceType, startDate, endDate);
+  }
+
+  @Transactional
+  public Optional<OffsetDateTime> findFirstEventTimestampInRange(
+      String orgId, String serviceType, OffsetDateTime startDate, OffsetDateTime endDate) {
+    return Optional.ofNullable(
+            repo.findFirstEventTimestampInRange(orgId, serviceType, startDate, endDate))
+        .map(dateTime -> dateTime.atOffset(ZoneOffset.UTC));
   }
 
   @Transactional

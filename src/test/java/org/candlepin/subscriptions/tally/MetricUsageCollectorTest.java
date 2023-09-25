@@ -27,6 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Sets;
@@ -40,6 +42,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
+import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
@@ -69,6 +72,8 @@ class MetricUsageCollectorTest {
 
   @Mock AccountServiceInventoryRepository accountRepo;
 
+  @Mock HostRepository hostRepository;
+
   @Mock EventController eventController;
 
   ApplicationClock clock = new TestClockConfiguration().adjustableClock();
@@ -83,7 +88,8 @@ class MetricUsageCollectorTest {
 
   @BeforeEach
   void setup() {
-    metricUsageCollector = new MetricUsageCollector(accountRepo, eventController, clock);
+    metricUsageCollector =
+        new MetricUsageCollector(accountRepo, eventController, clock, hostRepository);
   }
 
   @Test
@@ -511,6 +517,8 @@ class MetricUsageCollectorTest {
 
     String monthId = InstanceMonthlyTotalKey.formatMonthId(instanceDate);
     when(accountRepo.findById(any())).thenReturn(Optional.of(accountServiceInventory));
+    when(eventController.findFirstEventTimestampInRange(any(), any(), any(), any()))
+        .thenReturn(Optional.of(eventDate));
     when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
         .thenAnswer(
             m -> {
@@ -521,7 +529,6 @@ class MetricUsageCollectorTest {
               }
               return Stream.of();
             });
-    when(eventController.hasEventsInTimeRange(any(), any(), any(), any())).thenReturn(true);
 
     metricUsageCollector.collect(
         SERVICE_TYPE,
@@ -563,6 +570,8 @@ class MetricUsageCollectorTest {
     accountServiceInventory.getServiceInstances().put(staleInstance.getInstanceId(), staleInstance);
 
     when(accountRepo.findById(any())).thenReturn(Optional.of(accountServiceInventory));
+    when(eventController.findFirstEventTimestampInRange(any(), any(), any(), any()))
+        .thenReturn(Optional.of(eventDate));
     when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any()))
         .thenAnswer(
             m -> {
@@ -573,13 +582,15 @@ class MetricUsageCollectorTest {
               }
               return Stream.of();
             });
-    when(eventController.hasEventsInTimeRange(any(), any(), any(), any())).thenReturn(true);
 
     metricUsageCollector.collect(
         SERVICE_TYPE,
         "account123",
         "org123",
         new DateRange(instanceDate.minusHours(1), instanceDate.plusHours(1)));
+    verify(eventController, times(1))
+        .findFirstEventTimestampInRange(
+            "org123", SERVICE_TYPE, instanceDate.minusHours(1), instanceDate.plusHours(1));
     assertEquals(
         Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, MetricIdUtils.getCores()));
     assertEquals(0.0, staleInstance.getMonthlyTotal(monthId, MetricIdUtils.getCores()));
@@ -622,8 +633,8 @@ class MetricUsageCollectorTest {
               return Stream.of();
             });
 
-    when(eventController.hasEventsInTimeRange(any(), any(), any(), any())).thenReturn(true);
-
+    when(eventController.findFirstEventTimestampInRange(any(), any(), any(), any()))
+        .thenReturn(Optional.of(eventDate));
     metricUsageCollector.collect(
         SERVICE_TYPE, "account123", "org123", new DateRange(eventDate, eventDate.plusHours(1)));
     assertEquals(
@@ -681,7 +692,6 @@ class MetricUsageCollectorTest {
 
   @Test
   void testAccountRepoNotTouchedIfNoEventsExist() {
-    when(eventController.hasEventsInTimeRange(any(), any(), any(), any())).thenReturn(false);
     metricUsageCollector.collect(
         SERVICE_TYPE,
         "account123",
