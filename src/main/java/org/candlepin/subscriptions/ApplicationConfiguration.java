@@ -51,7 +51,6 @@ import org.candlepin.subscriptions.security.SecurityConfiguration;
 import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration;
 import org.candlepin.subscriptions.subscription.SubscriptionWorkerConfiguration;
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
-import org.candlepin.subscriptions.tally.job.CaptureHourlySnapshotsConfiguration;
 import org.candlepin.subscriptions.tally.job.OfferingSyncConfiguration;
 import org.candlepin.subscriptions.tally.job.SubscriptionSyncConfiguration;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -75,7 +74,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Import({
   ApiConfiguration.class,
   CapacityIngressConfiguration.class,
-  CaptureHourlySnapshotsConfiguration.class,
   LiquibaseUpdateOnlyConfiguration.class,
   TallyWorkerConfiguration.class,
   RhMarketplaceWorkerConfiguration.class,

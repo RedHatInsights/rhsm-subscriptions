@@ -147,7 +147,6 @@ We have a number of profiles. Each profile activates a subset of components in t
 
 - `api`: Run the user-facing API
 - `capacity-ingress`: Run the internal only capacity ingress API
-- `capture-hourly-snapshots`: Run the tally job for hourly snapshots
 - `kafka-queue`: Run with a kafka queue (instead of the default in-memory queue)
 - `liquibase-only`: Run the Liquibase migrations and stop
 - `rh-marketplace`: Run the worker responsible for processing tally summaries and
@@ -647,7 +646,6 @@ Service that syncs system data from Hosted Candlepin into HBI.
 | worker                    | platform.rhsm-subscriptions.billable-usage           | swatch-tally                        |
 | worker                    | platform.rhsm-subscriptions.service-instance-ingress | swatch-tally                        |
 | purge-snapshots           |                                                      |                                     |
-| capture-hourly-snapshots  | platform.rhsm-subscriptions.tasks                    | swatch-tally-hourly                 |
 | rh-marketplace            | platform.rhsm-subscriptions.billable-usage           | swatch-producer-red-hat-marketplace |
 |                           | platform.rhsm-subscriptions.billable-usage           | swatch-producer-aws                 |
 | subscription-sync         | platform.rhsm-subscriptions.subscription-sync        | swatch-subscription-sync-sync       |
