@@ -81,7 +81,7 @@ class MetricUsageCollectorTest {
 
   static final String SERVICE_TYPE = "OpenShift Cluster";
   static final String RHEL_FOR_X86 = "RHEL for x86";
-  static final String RHEL_FOR_X86_EUS_PAYG = "RHEL for x86 EUS Payg";
+  static final String RHEL_FOR_X86_EUS_PAYG = "rhel-for-x86-eus-payg";
 
   static final String RHEL_WORKSTATION_SWATCH_PRODUCT_ID = "RHEL Workstation";
   static final String RHEL_COMPUTE_NODE_SWATCH_PRODUCT_ID = "RHEL Compute Node";

@@ -7,7 +7,7 @@ includedSubscriptions:
   - rhel-for-x86
 
 variants:
-  - tag: RHEL for x86 EUS Payg
+  - tag: rhel-for-x86-eus-payg
     engineeringIds:
       - 70
     productNames:
