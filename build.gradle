@@ -68,6 +68,7 @@ dependencies {
     testImplementation libraries["wiremock"]
     testImplementation libraries["awaitility"]
     testImplementation project(':swatch-core-test')
+    testImplementation project(':swatch-common-testcontainers')
 
     runtimeOnly "org.hsqldb:hsqldb"
 

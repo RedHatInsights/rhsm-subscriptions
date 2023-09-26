@@ -40,5 +40,5 @@ public class TaskQueueProperties {
   private boolean enabled = true;
 
   /** Batch size number of records * */
-  private String maxPollRecords = "15";
+  private String maxPollRecords = "500";
 }

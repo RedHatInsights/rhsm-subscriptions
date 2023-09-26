@@ -14,19 +14,19 @@ fi
 get_dockerfile() {
   component=$1
   if [[ -f $component/src/main/docker/Dockerfile.jvm ]]; then
-    echo "src/main/docker/Dockerfile.jvm"
+    echo "$component/src/main/docker/Dockerfile.jvm"
   else
-    echo "./Dockerfile"
+    if [ "$component" == "rhsm-subscriptions" ]; then
+        echo "./Dockerfile"
+      else
+        echo "$component/Dockerfile"
+      fi
   fi
 }
 
 get_approot() {
   component=$1
-  if [ "$component" == "rhsm-subscriptions" ]; then
-    echo "$PWD"
-  else
-    echo "$PWD/$component"
-  fi
+  echo "$PWD"
 }
 
 # First sed removes leading ".", second sed removes leading "/"

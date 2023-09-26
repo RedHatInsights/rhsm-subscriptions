@@ -2,7 +2,7 @@
 # NOTE: if you need to debug this file, use DRY_RUN=true to echo docker/podman/oc commands without running them
 
 # before we run common consoledot builds, prepare the binary artifacts for quarkus style builds
-./podman_run.sh ./gradlew assemble
+./podman_run.sh
 
 source cicd_common.sh
 

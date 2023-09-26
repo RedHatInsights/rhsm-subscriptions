@@ -56,6 +56,7 @@ dependencies {
     implementation("io.quarkus:quarkus-liquibase")
     implementation("io.quarkus:quarkus-jdbc-postgresql")
     testImplementation("io.quarkus:quarkus-jdbc-h2")
+    testImplementation project(':swatch-common-testcontainers')
     implementation("io.quarkus:quarkus-hibernate-orm-panache")
     implementation libraries["mapstruct"]
     annotationProcessor libraries["mapstruct-processor"]
