@@ -34,6 +34,12 @@ class TopicReference:
     def __repr__(self):
         return f"{self.topic} clowdapp={self.clowdapp_template} properties={self.properties_path}"
 
+    def __eq__(self, other):
+        return str(self) == str(other)
+
+    def __hash__(self):
+        return hash(str(self))
+
 
 def find_clowdapp_templates():
     templates = []
