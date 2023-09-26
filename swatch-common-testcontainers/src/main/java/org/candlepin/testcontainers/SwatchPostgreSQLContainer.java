@@ -18,29 +18,41 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.test;
+package org.candlepin.testcontainers;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
 import org.testcontainers.utility.DockerImageName;
 
 public class SwatchPostgreSQLContainer extends PostgreSQLContainer<SwatchPostgreSQLContainer> {
-
-  /**
-   * This image is a replacement for the official one "docker.io/library/postgres:13" but in Quay.io
-   * to avoid Docker Hub exceed limit issues.
-   */
-  private static final String IMAGE = "quay.io/jcarvaja/postgres:13";
+  private static final String POSTGRESQL_IMAGE = "quay.io/centos7/postgresql-13-centos7";
 
   private static final String DATABASE = "rhsm-subscriptions";
 
   public SwatchPostgreSQLContainer() {
-    super(DockerImageName.parse(IMAGE).asCompatibleSubstituteFor("postgres"));
-    withEnv("POSTGRES_HOST_AUTH_METHOD", "trust");
+    super(DockerImageName.parse(POSTGRESQL_IMAGE).asCompatibleSubstituteFor("postgres"));
+    setWaitStrategy(
+        new LogMessageWaitStrategy()
+            .withRegEx(".*Starting server.*")
+            .withTimes(1)
+            .withStartupTimeout(Duration.of(60, ChronoUnit.SECONDS)));
+    setCommand("run-postgresql");
+
     withDatabaseName(DATABASE);
     withUsername(DATABASE);
     withPassword(DATABASE);
     // SMELL: Workaround for https://github.com/testcontainers/testcontainers-java/issues/7539
     // This is because testcontainers randomly fails to start a container when using Podman socket.
     withStartupAttempts(3);
+  }
+
+  @Override
+  protected void configure() {
+    super.configure();
+    addEnv("POSTGRESQL_USER", getUsername());
+    addEnv("POSTGRESQL_PASSWORD", getPassword());
+    addEnv("POSTGRESQL_DATABASE", getDatabaseName());
   }
 }

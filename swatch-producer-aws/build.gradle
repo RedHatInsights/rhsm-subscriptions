@@ -34,7 +34,7 @@ dependencies {
     testImplementation 'org.testcontainers:testcontainers'
     testImplementation libraries["junit-jupiter"]
     testImplementation libraries["wiremock"]
-
+    testImplementation project(':swatch-common-testcontainers')
 }
 
 compileJava.dependsOn tasks.openApiGenerate
