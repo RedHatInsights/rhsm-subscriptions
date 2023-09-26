@@ -23,15 +23,11 @@ package com.redhat.swatch.contract.resource;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import java.util.Collections;
 import java.util.Map;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.candlepin.testcontainers.SwatchPostgreSQLContainer;
 
 public class PostgresResource implements QuarkusTestResourceLifecycleManager {
 
-  static PostgreSQLContainer<?> db =
-      new CentosPostgreSQLContainer()
-          .withDatabaseName("rhsm-subscriptions")
-          .withUsername("rhsm-subscriptions")
-          .withPassword("rhsm-subscriptions");
+  static SwatchPostgreSQLContainer db = new SwatchPostgreSQLContainer();
 
   @Override
   public Map<String, String> start() {

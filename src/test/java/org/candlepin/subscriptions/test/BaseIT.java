@@ -24,6 +24,7 @@ import static org.awaitility.Awaitility.await;
 
 import org.awaitility.core.ThrowingRunnable;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusQueryWiremockExtension;
+import org.candlepin.testcontainers.SwatchPostgreSQLContainer;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;

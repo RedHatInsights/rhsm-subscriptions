@@ -5,20 +5,41 @@ pipeline {
     }
     agent {
         kubernetes {
-            label 'swatch-17' // this value + unique identifier becomes the pod name
+            label 'swatch-17-kubedock' // this value + unique identifier becomes the pod name
             idleMinutes 5  // how long the pod will live after no jobs have run on it
-            containerTemplate {
-                name 'openjdk17'
-                image 'registry.access.redhat.com/ubi9/openjdk-17-runtime'
-                command 'sleep'
-                args '99d'
-                resourceRequestCpu '2'
-                resourceLimitCpu '6'
-                resourceRequestMemory '2Gi'
-                resourceLimitMemory '6Gi'
-            }
-
             defaultContainer 'openjdk17'
+            yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: kubedock
+      image: quay.io/cloudservices/kubedock:123efe0
+      tty: true
+      args:
+       - server
+       - --port-forward
+       # Verbosity level which is helpful to troubleshot issues when starting up containers
+       - -v
+       - 10
+    - name: openjdk17
+      image: registry.access.redhat.com/ubi9/openjdk-17-runtime
+      command:
+      - sleep
+      tty: true
+      args:
+      - 99d
+      resources:
+        requests:
+          memory: "2Gi"
+          cpu: "2"
+        limits:
+          memory: "6Gi"
+          cpu: "6"
+      env:
+      - name: DOCKER_HOST
+        value: tcp://127.0.0.1:2475
+"""
         }
     }
     stages {
@@ -62,11 +83,7 @@ pipeline {
                 // The build task includes check, test, and assemble.  Linting happens during the check
                 // task and uses the spotless gradle plugin.
                 echo "The ci value is ${env.CI}"
-                // Integration tests require Docker environment which is not supported by our Jenkins environment yet
-                // The actual problem is that the podman socket is not listening.
-                // We need to run "systemctl --user enable podman.socket --now" when spawning the node.
-                // TODO: https://issues.redhat.com/browse/SWATCH-1750
-                sh "./gradlew --no-daemon build jacocoTestReport -DexcludeTags=integration"
+                sh "./gradlew --no-daemon build jacocoTestReport"
             }
         }
 
@@ -116,6 +133,7 @@ pipeline {
     }
     post {
         always {
+            containerLog "kubedock"
             junit '**/build/test-results/test/*.xml'
         }
     }
