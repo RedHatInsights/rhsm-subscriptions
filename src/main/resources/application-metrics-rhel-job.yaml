@@ -1,0 +1,14 @@
+METERING_RHEL_TASK_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.metering-rhel-tasks')].name:platform.rhsm-subscriptions.metering-rhel-tasks}
+
+rhsm-subscriptions:
+  account-batch-size: 1
+  metering:
+    prometheus:
+      metric:
+        rangeInMinutes: ${METRICS_RHEL_METERING_RANGE:60}
+        jobMaxAttempts: 3
+        jobBackOffMaxInterval: 50000
+        jobBackOffInitialInterval: 1000
+        backOffMultiplier: 1.5
+    tasks:
+      topic: ${METERING_RHEL_TASK_TOPIC}

@@ -39,7 +39,7 @@ import org.springframework.retry.support.RetryTemplateBuilder;
 
 /** Defines the beans for the metering-job profile. */
 @Configuration
-@Profile("metering-job")
+@Profile({"metering-job", "metrics-rhel-job"})
 @Import({
   PrometheusServiceConfiguration.class,
   MeteringTasksConfiguration.class,
