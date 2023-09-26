@@ -1,0 +1,12 @@
+plugins {
+    id 'swatch.java-library-conventions'
+}
+
+dependencies {
+    implementation enforcedPlatform(libraries["quarkus-bom"])
+    implementation 'io.quarkus:quarkus-core'
+    implementation 'io.quarkus.arc:arc'
+    implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+}
+
+description = 'Shared logic for resteasy-clients'

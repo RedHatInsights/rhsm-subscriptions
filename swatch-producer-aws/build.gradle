@@ -26,6 +26,8 @@ dependencies {
     implementation project(":clients:swatch-internal-subscription-client")
     implementation project(":swatch-common-resteasy")
     implementation project(":swatch-product-configuration")
+    implementation project(":swatch-common-kafka")
+    implementation project(":swatch-common-resteasy-client")
     testImplementation 'io.rest-assured:rest-assured'
     testImplementation 'org.mockito:mockito-junit-jupiter'
     testImplementation 'org.testcontainers:junit-jupiter'

@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.kafka;
 
-import com.redhat.swatch.openapi.model.KafkaSeekPosition;
 import io.smallrye.common.annotation.Identifier;
 import io.smallrye.reactive.messaging.kafka.KafkaClientService;
 import io.smallrye.reactive.messaging.kafka.KafkaConsumerRebalanceListener;
@@ -46,7 +45,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @Slf4j
 @Default
 @ApplicationScoped
-@Identifier("swatch-producer-aws")
+@Identifier("swatch-kafka-seek-helper")
 public class KafkaSeekHelper implements KafkaConsumerRebalanceListener {
 
   private final KafkaClientService kafkaClientService;
@@ -193,5 +192,10 @@ public class KafkaSeekHelper implements KafkaConsumerRebalanceListener {
                         })
                     .subscribe()
                     .asCompletionStage());
+  }
+
+  public enum KafkaSeekPosition {
+    BEGINNING,
+    END
   }
 }

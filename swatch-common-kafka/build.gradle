@@ -1,0 +1,10 @@
+plugins {
+    id 'swatch.java-library-conventions'
+}
+
+dependencies {
+    implementation enforcedPlatform(libraries["quarkus-bom"])
+    implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
+}
+
+description = 'Shared kafka logic for swatch services'

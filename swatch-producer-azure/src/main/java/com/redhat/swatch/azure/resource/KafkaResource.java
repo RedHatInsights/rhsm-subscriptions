@@ -18,25 +18,20 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.resource;
+package com.redhat.swatch.azure.resource;
 
+import com.redhat.swatch.azure.openapi.model.KafkaSeekPosition;
+import com.redhat.swatch.azure.openapi.resource.KafkaApi;
 import com.redhat.swatch.kafka.KafkaSeekHelper;
-import com.redhat.swatch.openapi.model.KafkaSeekPosition;
-import com.redhat.swatch.openapi.resource.KafkaApi;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.ProcessingException;
 import java.time.OffsetDateTime;
 
 public class KafkaResource implements KafkaApi {
-  private final KafkaSeekHelper kafkaSeekHelper;
-
-  @Inject
-  KafkaResource(KafkaSeekHelper kafkaSeekHelper) {
-    this.kafkaSeekHelper = kafkaSeekHelper;
-  }
+  @Inject KafkaSeekHelper kafkaSeekHelper;
 
   @Override
-  public void kakfaSeekPosition(KafkaSeekPosition position) throws ProcessingException {
+  public void kafkaSeekPosition(KafkaSeekPosition position) throws ProcessingException {
     var seekHelperPosition =
         switch (position) {
           case BEGINNING -> KafkaSeekHelper.KafkaSeekPosition.BEGINNING;
@@ -46,7 +41,7 @@ public class KafkaResource implements KafkaApi {
   }
 
   @Override
-  public void kakfaSeekTimestamp(String timestamp) throws ProcessingException {
+  public void kafkaSeekTimestamp(String timestamp) throws ProcessingException {
     kafkaSeekHelper.seekToTimestamp(OffsetDateTime.parse(timestamp));
   }
 }

@@ -42,6 +42,7 @@ if [ ${#projects[@]} -eq 0 ]; then
   projects[1]="conduit"
   projects[2]="swatch-producer-aws"
   projects[3]="swatch-contracts"
+  projects[3]="swatch-producer-azure"
 fi
 
 quay_user=$(podman login --get-login quay.io)
@@ -68,7 +69,10 @@ for p in "${projects[@]}"; do
     "swatch-contracts")
       podman build . -f swatch-contracts/src/main/docker/Dockerfile.jvm -t quay.io/$quay_user/swatch-contracts:$tag --label "git-commit=${commit}" --ulimit nofile=2048:2048
       ;;
-    *) echo "Please use values from the set \"rhsm\", \"conduit\", \"swatch-producer-aws\", \"swatch-contracts\"";;
+    "swatch-producer-azure")
+      podman build . -f swatch-producer-azure/src/main/docker/Dockerfile.jvm -t quay.io/$quay_user/swatch-producer-azure:$tag --label "git-commit=${commit}" --ulimit nofile=2048:2048
+      ;;
+    *) echo "Please use values from the set \"rhsm\", \"conduit\", \"swatch-producer-aws\", \"swatch-contracts\", \"swatch-producer-azure\"";;
   esac
 done
 

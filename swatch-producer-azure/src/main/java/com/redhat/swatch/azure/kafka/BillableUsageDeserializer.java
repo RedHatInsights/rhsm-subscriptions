@@ -18,27 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.rest;
+package com.redhat.swatch.azure.kafka;
 
-import io.quarkus.arc.Unremovable;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.ws.rs.client.ClientRequestContext;
-import jakarta.ws.rs.client.ClientRequestFilter;
-import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import com.redhat.swatch.azure.openapi.model.BillableUsage;
+import io.quarkus.kafka.client.serialization.JsonbDeserializer;
 
-@Slf4j
-// NOTE: without @Unremovable quarkus attempts to optimize this bean out because it's only
-// referenced in application.properties
-@Unremovable
-@ApplicationScoped
-public class SwatchPskHeaderFilter implements ClientRequestFilter {
+/** Provides quarkus a hint that we want to use JSON-B to deserialize BillableUsage objects */
+public class BillableUsageDeserializer extends JsonbDeserializer<BillableUsage> {
 
-  @ConfigProperty(name = "SWATCH_SELF_PSK")
-  String psk;
-
-  @Override
-  public void filter(ClientRequestContext requestContext) {
-    requestContext.getHeaders().add("x-rh-swatch-psk", psk);
+  public BillableUsageDeserializer() {
+    super(BillableUsage.class);
   }
 }

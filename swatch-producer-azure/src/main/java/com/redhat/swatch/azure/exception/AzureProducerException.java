@@ -18,27 +18,31 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.config;
+package com.redhat.swatch.azure.exception;
 
-import io.quarkus.arc.Unremovable;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.ws.rs.client.ClientRequestContext;
-import jakarta.ws.rs.client.ClientRequestFilter;
-import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import lombok.Getter;
 
-@Slf4j
-// NOTE: without @Unremovable quarkus attempts to optimize this bean out because it's only
-// referenced in application.properties
-@Unremovable
-@ApplicationScoped
-public class SwatchPskHeaderFilter implements ClientRequestFilter {
+@Getter
+public class AzureProducerException extends RuntimeException {
+  private final ErrorCode code;
 
-  @ConfigProperty(name = "SWATCH_SELF_PSK")
-  String psk;
+  public AzureProducerException(ErrorCode code, String message, Throwable cause) {
+    super(buildMessage(code, message), cause);
+    this.code = code;
+  }
 
-  @Override
-  public void filter(ClientRequestContext requestContext) {
-    requestContext.getHeaders().add("x-rh-swatch-psk", psk);
+  public AzureProducerException(ErrorCode code, String message) {
+    this(code, message, null);
+  }
+
+  public AzureProducerException(ErrorCode code, Throwable cause) {
+    this(code, null, cause);
+  }
+
+  private static String buildMessage(ErrorCode code, String message) {
+    if (message != null) {
+      return String.format("%s: %s", code.toString(), message);
+    }
+    return code.toString();
   }
 }
