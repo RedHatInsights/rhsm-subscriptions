@@ -98,5 +98,8 @@ for p in "${projects[@]}"; do
     "swatch-contracts")
       push_and_clean "quay.io/$quay_user/swatch-contracts:$tag"
       ;;
+    "swatch-producer-azure")
+      push_and_clean "quay.io/$quay_user/swatch-producer-azure:$tag"
+      ;;
   esac
 done
