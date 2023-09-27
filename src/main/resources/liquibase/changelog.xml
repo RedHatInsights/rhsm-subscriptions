@@ -136,5 +136,6 @@
     <include file="/liquibase/202310251600-replace-account-config-table.xml"/>
     <include file="/liquibase/202311161207-drop-account-config-table.xml"/>
     <include file="liquibase/202309271135-add-event-lookup-index.xml" />
+    <include file="/liquibase/202309271140-create-tally-state-table.xml" />
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
