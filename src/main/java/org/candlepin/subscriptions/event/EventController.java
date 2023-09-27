@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.event;
 
-import static org.candlepin.subscriptions.metering.MeteringEventFactory.EVENT_SOURCE;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
@@ -51,6 +49,8 @@ import org.springframework.util.StringUtils;
 @Service
 @Slf4j
 public class EventController {
+
+  private static final String PROMETHEUS = "prometheus";
   private final EventRecordRepository repo;
   private final ObjectMapper objectMapper;
   private final OptInController optInController;
@@ -148,7 +148,7 @@ public class EventController {
         eventJson -> {
           try {
             BaseEvent baseEvent = objectMapper.readValue(eventJson, BaseEvent.class);
-            if (!EVENT_SOURCE.equals(baseEvent.getEventSource())) {
+            if (!PROMETHEUS.equals(baseEvent.getEventSource())) {
               log.info("Event processing in batch: " + baseEvent);
             }
 

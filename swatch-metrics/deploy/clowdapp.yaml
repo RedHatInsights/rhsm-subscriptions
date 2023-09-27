@@ -113,6 +113,8 @@ parameters:
     value: '30 4 * * *'
   - name: EVENT_RECORD_RETENTION
     value: '90d'
+  - name: EVENT_SOURCE
+    value: 'prometheus'
   - name: OPENSHIFT_METERING_RANGE
     value: '60'
   - name: HOURLY_TALLY_OFFSET
@@ -305,6 +307,8 @@ objects:
                   secretKeyRef:
                     name: ${INVENTORY_SECRET_KEY_NAME}
                     key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
+              - name: EVENT_SOURCE
+                value: ${EVENT_SOURCE}
               - name: PROM_URL
                 value: ${PROM_URL}
               - name: EVENT_RECORD_RETENTION
@@ -501,6 +505,8 @@ objects:
                   secretKeyRef:
                     name: ${INVENTORY_SECRET_KEY_NAME}
                     key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
+              - name: EVENT_SOURCE
+                value: ${EVENT_SOURCE}
               - name: PROM_URL
                 value: ${PROM_URL}
               - name: OTEL_EXPORTER_OTLP_ENDPOINT
