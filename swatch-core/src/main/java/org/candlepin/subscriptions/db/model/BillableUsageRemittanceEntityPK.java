@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import java.io.Serializable;
@@ -73,7 +74,7 @@ public class BillableUsageRemittanceEntityPK implements Serializable {
         .billingAccountId(billableUsage.getBillingAccountId())
         .productId(billableUsage.getProductId())
         .sla(billableUsage.getSla().value())
-        .metricId(billableUsage.getUom())
+        .metricId(MetricId.fromString(billableUsage.getUom()).getValue())
         .accumulationPeriod(getAccumulationPeriod(billableUsage.getSnapshotDate()))
         .remittancePendingDate(remittancePendingDate)
         .build();
