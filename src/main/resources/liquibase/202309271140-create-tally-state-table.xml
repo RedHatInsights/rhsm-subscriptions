@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202309271140-1" author="mstead">
+    <comment>Create tally_state table</comment>
+
+    <createTable tableName="tally_state">
+      <column name="org_id" type="VARCHAR(32)"/>
+      <column name="service_type" type="VARCHAR(32)"/>
+      <column name="latest_event_record_date" type="TIMESTAMP WITH TIME ZONE"/>
+    </createTable>
+
+    <addPrimaryKey constraintName="tally_state_pkey"
+      tableName="tally_state"
+      columnNames="org_id, service_type"/>
+
+  </changeSet>
+
+  <changeSet id="202309271140-2" author="mstead" dbms="postgresql">
+    <comment>Initialize the tally_state table from each org/service_type combo from the current events.</comment>
+    <sql>
+        insert into tally_state
+        select distinct org_id, data->>'service_type' as service_type, NOW() as last_event_record_date
+        from events
+        group by org_id, service_type;
+    </sql>
+  </changeSet>
+</databaseChangeLog>

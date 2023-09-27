@@ -142,5 +142,6 @@
     <include file="/liquibase/202402151211-add-sku-product-tag-table.xml"/>
     <include file="/liquibase/202403131500-change-pk-from-billable-usage-remittance.xml"/>
     <include file="liquibase/202309271135-add-event-lookup-index.xml" />
+    <include file="/liquibase/202309271140-create-tally-state-table.xml" />
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
