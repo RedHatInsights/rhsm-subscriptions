@@ -18,31 +18,28 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.task;
+package org.candlepin.subscriptions.util;
 
-import java.time.OffsetDateTime;
-import lombok.Data;
+import jakarta.transaction.Transactional;
+import jakarta.transaction.Transactional.TxType;
+import java.util.function.Supplier;
+import org.springframework.stereotype.Service;
 
-/** Settings particular to the task queue framework. */
-@Data
-public class TaskQueueProperties {
+/**
+ * TransactionHandler service is used as a work around to Spring AOP's limitation of not being able
+ * to call a Transactional method within the same class as the calling method. See:
+ * https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html
+ */
+@Service
+public class TransactionHandler {
 
-  private String kafkaGroupId;
+  @Transactional()
+  public <T> T runInTransaction(Supplier<T> supplier) {
+    return supplier.get();
+  }
 
-  private String topic;
-
-  private int executorTaskQueueThreadLimit = 20;
-
-  private OffsetDateTime seekOverrideTimestamp = null;
-
-  private boolean seekOverrideEnd = false;
-
-  private boolean enabled = true;
-
-  /** Batch size number of records * */
-  private String maxPollRecords = "500";
-
-  private int retryAttempts = 2;
-
-  private long retryBackOffMillis = 5000L;
+  @Transactional(TxType.REQUIRES_NEW)
+  public <T> T runInNewTransaction(Supplier<T> supplier) {
+    return supplier.get();
+  }
 }
