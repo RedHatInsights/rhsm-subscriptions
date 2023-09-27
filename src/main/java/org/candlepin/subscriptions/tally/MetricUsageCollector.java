@@ -485,10 +485,12 @@ public class MetricUsageCollector {
 
   private Set<String> getProductIds(Event event) {
     Set<String> productIds = new HashSet<>();
+    // Filter tags that are paygEligible for hourly tally
 
     if (Objects.nonNull(event.getRole())) {
       String role = event.getRole().toString();
       SubscriptionDefinition.lookupSubscriptionByRole(role)
+          .filter(SubscriptionDefinition::isPaygEligible)
           .flatMap(s -> s.findVariantForRole(role).map(Variant::getTag))
           .ifPresent(productIds::add);
     }
@@ -496,6 +498,7 @@ public class MetricUsageCollector {
     var engIds = Optional.ofNullable(event.getProductIds()).orElse(Collections.emptyList());
     for (String engId : engIds) {
       SubscriptionDefinition.lookupSubscriptionByEngId(engId)
+          .filter(SubscriptionDefinition::isPaygEligible)
           .flatMap(s -> s.findVariantForEngId(engId).map(Variant::getTag))
           .ifPresent(productIds::add);
     }
