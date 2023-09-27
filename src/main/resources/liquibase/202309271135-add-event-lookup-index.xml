@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202309271135-1" author="mstead" dbms="postgresql">
+    <comment>
+      Add an additional index to the events table to improve lookup time during hourly tally.
+
+      NOTES:
+        - Liquibase does not support using JSONB syntax while creating an index.
+        - This index will only be applied to postgres databases since HSQLDB does not
+          support the JSONB syntax, and the index isn't really important for testing
+          purposes.
+    </comment>
+    <sql>
+      create index orgid_servicetype_record_date_idx
+          on events using btree (org_id, (data->>'service_type'), record_date);
+    </sql>
+  </changeSet>
+</databaseChangeLog>
+<!-- vim: set expandtab sts=4 sw=4 ai: -->
