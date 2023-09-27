@@ -27,7 +27,7 @@ import org.candlepin.testcontainers.SwatchPostgreSQLContainer;
 
 public class PostgresResource implements QuarkusTestResourceLifecycleManager {
 
-  static SwatchPostgreSQLContainer db = new SwatchPostgreSQLContainer();
+  static SwatchPostgreSQLContainer db = new SwatchPostgreSQLContainer("rhsm-subscriptions");
 
   @Override
   public Map<String, String> start() {

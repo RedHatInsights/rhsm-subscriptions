@@ -46,13 +46,13 @@ import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.ResultType;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.candlepin.subscriptions.security.OptInController;
+import org.candlepin.subscriptions.test.ExtendWithPrometheusWiremock;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.candlepin.subscriptions.util.SpanGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,8 +71,7 @@ import org.springframework.test.context.ActiveProfiles;
     })
 @ActiveProfiles({"openshift-metering-worker", "test"})
 @Import(TestClockConfiguration.class)
-@ExtendWith(PrometheusQueryWiremockExtension.class)
-class PrometheusMeteringControllerTest {
+class PrometheusMeteringControllerWiremock implements ExtendWithPrometheusWiremock {
 
   static final String PROMETHEUS = "prometheus";
 

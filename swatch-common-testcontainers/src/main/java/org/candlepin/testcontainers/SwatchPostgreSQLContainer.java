@@ -22,16 +22,16 @@ package org.candlepin.testcontainers;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import lombok.EqualsAndHashCode;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
 import org.testcontainers.utility.DockerImageName;
 
+@EqualsAndHashCode(callSuper = true)
 public class SwatchPostgreSQLContainer extends PostgreSQLContainer<SwatchPostgreSQLContainer> {
   private static final String POSTGRESQL_IMAGE = "quay.io/centos7/postgresql-13-centos7";
 
-  private static final String DATABASE = "rhsm-subscriptions";
-
-  public SwatchPostgreSQLContainer() {
+  public SwatchPostgreSQLContainer(String database) {
     super(DockerImageName.parse(POSTGRESQL_IMAGE).asCompatibleSubstituteFor("postgres"));
     setWaitStrategy(
         new LogMessageWaitStrategy()
@@ -40,9 +40,9 @@ public class SwatchPostgreSQLContainer extends PostgreSQLContainer<SwatchPostgre
             .withStartupTimeout(Duration.of(60, ChronoUnit.SECONDS)));
     setCommand("run-postgresql");
 
-    withDatabaseName(DATABASE);
-    withUsername(DATABASE);
-    withPassword(DATABASE);
+    withDatabaseName(database);
+    withUsername(database);
+    withPassword(database);
     // SMELL: Workaround for https://github.com/testcontainers/testcontainers-java/issues/7539
     // This is because testcontainers randomly fails to start a container when using Podman socket.
     withStartupAttempts(3);

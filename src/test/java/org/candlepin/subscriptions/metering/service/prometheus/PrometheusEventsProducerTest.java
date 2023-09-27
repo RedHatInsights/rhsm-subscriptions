@@ -33,6 +33,7 @@ import java.util.UUID;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -40,25 +41,15 @@ import org.mockito.Captor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest(
-    properties = {
-      "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}",
-      // In tests, messages may be sent before the listener has been assigned the topic
-      // so we ensure that when the listener comes online it starts from first message.
-      "spring.kafka.consumer.auto-offset-reset=earliest"
-    })
+@SpringBootTest
 @DirtiesContext
 // We need the "worker" profile here to consume the events that are produced by the
 // profile "openshift-metering-worker".
 @ActiveProfiles({"openshift-metering-worker", "worker", "test"})
-@EmbeddedKafka(
-    partitions = 1,
-    topics = {"${rhsm-subscriptions.service-instance-ingress.incoming.topic}"})
-class PrometheusEventsProducerTest {
+class PrometheusEventsProducerTest implements ExtendWithEmbeddedKafka {
 
   @Autowired PrometheusEventsProducer eventsProducer;
   @MockBean EventRecordRepository eventRepository;
