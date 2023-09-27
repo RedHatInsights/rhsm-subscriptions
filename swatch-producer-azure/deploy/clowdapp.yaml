@@ -1,0 +1,7 @@
+---
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: swatch-producer-azure
+parameters: []
+objects: []
