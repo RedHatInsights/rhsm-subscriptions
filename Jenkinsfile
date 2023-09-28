@@ -112,7 +112,7 @@ spec:
         stage('SonarQube Quality Gate') {
             steps {
                 withSonarQubeEnv('sonarcloud.io') {
-                    echo "SonarQube scan results will be visible at: ${SONAR_HOST_URL}/summary/new_code?id=rhsm-subscriptions${CHANGE_ID ? '&pullRequest=' + CHANGE_ID : ''}"
+                    echo "SonarQube scan results will be visible at: ${SONAR_HOST_URL}/summary/new_code?id=rhsm-subscriptions${env.CHANGE_ID != null ? '&pullRequest=' + env.CHANGE_ID : ''}"
                 }
                 retry(4) {
                     script {
