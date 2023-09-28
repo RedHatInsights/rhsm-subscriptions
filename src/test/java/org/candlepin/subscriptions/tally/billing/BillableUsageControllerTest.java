@@ -31,6 +31,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinitionRegistry;
 import com.redhat.swatch.configuration.registry.Variant;
@@ -116,6 +117,9 @@ class BillableUsageControllerTest {
             CLOCK, producer, remittanceRepo, snapshotRepo, contractsController);
     subscriptionDefinitionRegistry = mock(SubscriptionDefinitionRegistry.class);
     setMock(subscriptionDefinitionRegistry);
+    var usage = billable(CLOCK.startOfCurrentMonth(), 0.0);
+    createSubscriptionDefinition(
+        usage.getProductId(), "Storage-gibibytes", usage.getBillingFactor(), false);
   }
 
   private void setMock(SubscriptionDefinitionRegistry mock) {
@@ -174,7 +178,7 @@ class BillableUsageControllerTest {
 
     when(remittanceRepo.getRemittanceSummaries(any())).thenReturn(summaries);
 
-    createSubscriptionDefinition("osd", usage.getUom().toString(), 0.25, false);
+    createSubscriptionDefinition("osd", usage.getUom(), 0.25, false);
 
     mockCurrentSnapshotMeasurementTotal(usage, 1064.104);
     controller.submitBillableUsage(usage);
@@ -505,7 +509,7 @@ class BillableUsageControllerTest {
         .withOrgId("org123")
         .withProductId("rhosak")
         .withSla(Sla.STANDARD)
-        .withUom("Storage-gibibytes")
+        .withUom("STORAGE_GIBIBYTES")
         .withSnapshotDate(date)
         .withValue(value);
   }
@@ -519,7 +523,7 @@ class BillableUsageControllerTest {
         .billingAccountId(billableUsage.getBillingAccountId())
         .productId(billableUsage.getProductId())
         .sla(billableUsage.getSla().value())
-        .metricId(billableUsage.getUom())
+        .metricId(MetricId.fromString(billableUsage.getUom()).getValue())
         .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(billableUsage.getSnapshotDate()))
         .remittancePendingDate(remittedDate)
         .build();
@@ -673,6 +677,7 @@ class BillableUsageControllerTest {
 
   private void createSubscriptionDefinition(
       String tag, String uom, double billingFactor, boolean contractEnabled) {
+    uom = uom.replace('_', '-');
     var variant = Variant.builder().tag(tag).build();
     var awsMetric =
         com.redhat.swatch.configuration.registry.Metric.builder()
