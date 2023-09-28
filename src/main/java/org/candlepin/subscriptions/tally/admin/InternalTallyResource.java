@@ -46,12 +46,10 @@ import org.candlepin.subscriptions.tally.admin.api.model.TallyResponse;
 import org.candlepin.subscriptions.tally.admin.api.model.UuidList;
 import org.candlepin.subscriptions.tally.events.EventRecordsRetentionProperties;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
-import org.candlepin.subscriptions.util.DateRange;
 import org.candlepin.subscriptions.util.LogUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 /** This resource is for exposing administrator REST endpoints for Tally. */
 @Component
@@ -102,24 +100,15 @@ public class InternalTallyResource implements InternalApi {
   }
 
   @Override
-  public void performHourlyTallyForOrg(
-      String orgId, OffsetDateTime start, OffsetDateTime end, Boolean xRhSwatchSynchronousRequest) {
-    DateRange range = new DateRange(start, end);
-    if (!clock.isHourlyRange(start, end)) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Start/End times must be at the top of the hour: [%s -> %s]",
-              range.getStartString(), range.getEndString()));
-    }
-
+  public void performHourlyTallyForOrg(String orgId, Boolean xRhSwatchSynchronousRequest) {
     if (ResourceUtils.sanitizeBoolean(xRhSwatchSynchronousRequest, false)) {
       if (!applicationProperties.isEnableSynchronousOperations()) {
         throw new BadRequestException("Synchronous tally operations are not enabled.");
       }
-      log.info("Synchronous hourly tally requested for orgId {}: {}", orgId, range);
-      tallySnapshotController.produceHourlySnapshotsForOrg(orgId, range);
+      log.info("Synchronous hourly tally requested for orgId {}", orgId);
+      tallySnapshotController.produceHourlySnapshotsForOrg(orgId);
     } else {
-      snapshotsTaskManager.tallyOrgByHourly(orgId, range);
+      snapshotsTaskManager.tallyOrgByHourly(orgId);
     }
   }
 
@@ -291,38 +280,13 @@ public class InternalTallyResource implements InternalApi {
     return getDefaultResponse(SUCCESS_STATUS);
   }
 
-  /**
-   * Trigger hourly tally for all configured orgs for the specified range. The 'start' and 'end'
-   * parameters MUST be specified as a pair to complete a range. If they are left empty, a date
-   * range is used based on NOW with the configured offsets applied (identical to if the job was
-   * run)
-   *
-   * @param start
-   * @param end
-   * @throws IllegalArgumentException
-   */
+  /** Trigger hourly tally for all configured orgs. */
   @Override
-  public DefaultResponse tallyAllOrgsByHourly(String start, String end)
-      throws IllegalArgumentException {
+  public DefaultResponse tallyAllOrgsByHourly() {
+    log.info(
+        "Hourly tally for all accounts triggered over API by {}", ResourceUtils.getPrincipal());
 
-    DateRange range = null;
-    if (StringUtils.hasText(start) || StringUtils.hasText(end)) {
-      try {
-        range = DateRange.fromStrings(start, end);
-        log.info(
-            "Hourly tally for all orgs triggered for range {} over API by {}",
-            range,
-            ResourceUtils.getPrincipal());
-      } catch (Exception e) {
-        throw new IllegalArgumentException(
-            "Both startDateTime and endDateTime must be set to " + "valid date Strings.");
-      }
-    } else {
-      log.info(
-          "Hourly tally for all accounts triggered over API by {}", ResourceUtils.getPrincipal());
-    }
-
-    internalTallyDataController.tallyAllOrgsByHourly(range);
+    internalTallyDataController.tallyAllOrgsByHourly();
     return getDefaultResponse(SUCCESS_STATUS);
   }
 

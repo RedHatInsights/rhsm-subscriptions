@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,8 +32,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Represents the latest event record date during the last hourly tally
- * that was run for an org/service_type combination.
+ * Represents the latest event record date during the last hourly tally that was run for an
+ * org/service_type combination.
  */
 @Data
 @NoArgsConstructor

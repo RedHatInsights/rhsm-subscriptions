@@ -20,13 +20,8 @@
  */
 package org.candlepin.subscriptions.tally.job;
 
-import java.time.Duration;
-import java.time.OffsetDateTime;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
-import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.tally.TallyTaskQueueConfiguration;
 import org.candlepin.subscriptions.task.TaskDescriptor;
@@ -35,7 +30,6 @@ import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
-import org.candlepin.subscriptions.util.DateRange;
 import org.candlepin.subscriptions.util.LogUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,25 +49,18 @@ import org.springframework.transaction.annotation.Transactional;
 public class CaptureSnapshotsTaskManager {
   private static final Logger log = LoggerFactory.getLogger(CaptureSnapshotsTaskManager.class);
 
-  private final ApplicationProperties appProperties;
   private final TaskQueueProperties taskQueueProperties;
   private final TaskQueue queue;
-  private final ApplicationClock applicationClock;
-
   private final OrgConfigRepository orgRepo;
 
   @Autowired
   public CaptureSnapshotsTaskManager(
-      ApplicationProperties appProperties,
       @Qualifier("tallyTaskQueueProperties") TaskQueueProperties tallyTaskQueueProperties,
       TaskQueue queue,
-      ApplicationClock applicationClock,
       OrgConfigRepository orgRepo) {
 
-    this.appProperties = appProperties;
     this.taskQueueProperties = tallyTaskQueueProperties;
     this.queue = queue;
-    this.applicationClock = applicationClock;
     this.orgRepo = orgRepo;
   }
 
@@ -121,64 +108,26 @@ public class CaptureSnapshotsTaskManager {
     }
   }
 
-  public void tallyOrgByHourly(String orgId, DateRange tallyRange) {
+  public void tallyOrgByHourly(String orgId) {
     LogUtils.addOrgIdToMdc(orgId);
-    if (!applicationClock.isHourlyRange(tallyRange.getStartDate(), tallyRange.getEndDate())) {
-      log.error(
-          "Hourly snapshot production for orgId {} will not be queued. "
-              + "Invalid start/end times specified.",
-          orgId);
-      throw new IllegalArgumentException(
-          String.format(
-              "Start/End times must be at the top of the hour: [%s -> %s]",
-              tallyRange.getStartString(), tallyRange.getEndString()));
-    }
-
-    log.info(
-        "Queuing hourly snapshot production for orgId {} between {} and {}",
-        orgId,
-        tallyRange.getStartString(),
-        tallyRange.getEndString());
-
+    log.info("Queuing hourly snapshot production for orgId {}", orgId);
     queue.enqueue(
         TaskDescriptor.builder(
                 TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic(), orgId)
             .setSingleValuedArg("orgId", orgId)
-            .setSingleValuedArg("startDateTime", tallyRange.getStartString())
-            .setSingleValuedArg("endDateTime", tallyRange.getEndString())
             .build());
     LogUtils.clearOrgIdFromMdc();
   }
 
   @Transactional
-  public void updateHourlySnapshotsForAllOrgs(Optional<DateRange> dateRange) {
+  public void updateHourlySnapshotsForAllOrgs() {
     try (Stream<String> orgStream = orgRepo.findSyncEnabledOrgs()) {
       AtomicInteger count = new AtomicInteger(0);
-
-      OffsetDateTime startDateTime;
-      OffsetDateTime endDateTime;
-      if (dateRange.isEmpty()) {
-        // Default to NOW.
-        Duration metricRange = appProperties.getMetricLookupRangeDuration();
-        Duration prometheusLatencyDuration = appProperties.getPrometheusLatencyDuration();
-        Duration hourlyTallyOffsetMinutes = appProperties.getHourlyTallyOffset();
-
-        endDateTime =
-            adjustTimeForLatency(
-                applicationClock.startOfHour(
-                    applicationClock.now().minus(hourlyTallyOffsetMinutes)),
-                prometheusLatencyDuration);
-        startDateTime = applicationClock.startOfHour(endDateTime.minus(metricRange));
-      } else {
-        startDateTime = applicationClock.startOfHour(dateRange.get().getStartDate());
-        endDateTime = applicationClock.startOfHour(dateRange.get().getEndDate());
-      }
-
       log.info("Queuing all org hourly snapshot in batches of size one");
 
       orgStream.forEach(
           orgId -> {
-            tallyOrgByHourly(orgId, new DateRange(startDateTime, endDateTime));
+            tallyOrgByHourly(orgId);
             count.addAndGet(1);
           });
 
@@ -187,14 +136,5 @@ public class CaptureSnapshotsTaskManager {
     } catch (Exception e) {
       throw new TaskManagerException("Could not list orgs for update snapshot task generation", e);
     }
-  }
-
-  protected OffsetDateTime adjustTimeForLatency(
-      OffsetDateTime dateTime, Duration adjustmentAmount) {
-    // Convert to a ZonedDateTime before subtracting the duration.  A ZonedDateTime will hold the
-    // offset
-    // rules around a specific time zone.  If the subtracted amount crosses a change in the zone's
-    // offset (e.g. Daylight Saving Time), the ZonedDateTime.minus method will handle that properly.
-    return dateTime.toZonedDateTime().minus(adjustmentAmount).toOffsetDateTime();
   }
 }

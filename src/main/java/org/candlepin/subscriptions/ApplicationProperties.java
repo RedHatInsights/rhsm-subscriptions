@@ -169,4 +169,7 @@ public class ApplicationProperties {
    * the new system profile facts to the OpenShift Container products.
    */
   private boolean useCpuSystemFactsToAllProducts = true;
+
+  /** Defines the number of Events to process in a batch during the hourly tally. */
+  private int hourlyTallyEventBatchSize = 16000;
 }

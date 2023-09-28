@@ -27,6 +27,7 @@ import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
+import org.candlepin.subscriptions.db.TallyStateRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -39,6 +40,7 @@ public class AccountResetService {
   private final AccountServiceInventoryRepository accountServiceInventoryRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final BillableUsageRemittanceRepository remittanceRepository;
+  private final TallyStateRepository tallyStateRepository;
 
   @Autowired
   public AccountResetService(
@@ -47,13 +49,15 @@ public class AccountResetService {
       TallySnapshotRepository tallySnapshotRepository,
       AccountServiceInventoryRepository accountServiceInventoryRepository,
       SubscriptionRepository subscriptionRepository,
-      BillableUsageRemittanceRepository remittanceRepository) {
+      BillableUsageRemittanceRepository remittanceRepository,
+      TallyStateRepository tallyStateRepository) {
     this.eventRecordRepo = eventRecordRepo;
     this.hostRepo = hostRepo;
     this.tallySnapshotRepository = tallySnapshotRepository;
     this.accountServiceInventoryRepository = accountServiceInventoryRepository;
     this.subscriptionRepository = subscriptionRepository;
     this.remittanceRepository = remittanceRepository;
+    this.tallyStateRepository = tallyStateRepository;
   }
 
   @Transactional
@@ -64,5 +68,6 @@ public class AccountResetService {
     tallySnapshotRepository.deleteByOrgId(orgId);
     subscriptionRepository.deleteByOrgId(orgId);
     remittanceRepository.deleteByKeyOrgId(orgId);
+    tallyStateRepository.deleteByOrgId(orgId);
   }
 }
