@@ -692,6 +692,8 @@ objects:
                 value: ${DATABASE_CONNECTION_TIMEOUT_MS}
               - name: DATABASE_MAX_POOL_SIZE
                 value: ${DATABASE_MAX_POOL_SIZE}
+              - name: EVENT_SOURCE
+                value: 'rhelemeter'
               - name: PROM_URL
                 value: ${PROM_URL}
               - name: OPENSHIFT_BILLING_MODEL_FILTER
