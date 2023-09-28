@@ -50,7 +50,8 @@ import org.springframework.util.StringUtils;
 @Slf4j
 public class EventController {
 
-  private static final String PROMETHEUS = "prometheus";
+  private static final Set<String> EXCLUDE_LOG_FOR_EVENT_SOURCES =
+      Set.of("prometheus", "rhelemeter");
   private final EventRecordRepository repo;
   private final ObjectMapper objectMapper;
   private final OptInController optInController;
@@ -148,7 +149,7 @@ public class EventController {
         eventJson -> {
           try {
             BaseEvent baseEvent = objectMapper.readValue(eventJson, BaseEvent.class);
-            if (!PROMETHEUS.equals(baseEvent.getEventSource())) {
+            if (!EXCLUDE_LOG_FOR_EVENT_SOURCES.contains(baseEvent.getEventSource())) {
               log.info("Event processing in batch: " + baseEvent);
             }
 
