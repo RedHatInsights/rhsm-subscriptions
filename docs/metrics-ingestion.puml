@@ -1,0 +1,38 @@
+@startuml "Usage Data Ingestion"
+
+skin rose
+
+title Usage Data Ingestion
+
+frame "observatorium" {
+    [swatch-metrics-service]as MetricsService
+    [swatch-metrics-sync] as TelemeterJob
+    [swatch-metrics-rhel-service]as MetricsRhelService
+    [swatch-metrics-rhel-sync] as RhelemeterJob
+}
+
+frame "HBI" as HBI {
+    [swatch-tally-service] as TallyService
+}
+
+actor "Cost Management" as Cost
+
+queue "platform.rhsm-subscriptions.metering-tasks" as MeteringTasksQ
+queue "platform.rhsm-subscriptions.metering-rhel-tasks" as RhelMeteringTasksQ
+queue "platform.rhsm-subscriptions.service-instance-ingress" as ServiceInstanceIngressQ
+
+TelemeterJob -u-> MeteringTasksQ
+RhelemeterJob -u-> RhelMeteringTasksQ
+
+MeteringTasksQ -d-> MetricsService
+RhelMeteringTasksQ -d-> MetricsRhelService
+
+MetricsService -d->  ServiceInstanceIngressQ
+MetricsRhelService -d-> ServiceInstanceIngressQ
+
+
+
+Cost -> ServiceInstanceIngressQ
+ServiceInstanceIngressQ -d-> TallyService
+
+@enduml
