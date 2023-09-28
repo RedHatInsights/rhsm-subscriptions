@@ -60,7 +60,7 @@ import org.springframework.retry.support.RetryTemplate;
 /** Defines the beans for the openshift-metering-worker profile. */
 @EnableRetry
 @Configuration
-@Profile("openshift-metering-worker")
+@Profile({"openshift-metering-worker", "metrics-rhel"})
 @Import({
   PrometheusServiceConfiguration.class,
   TaskConsumerConfiguration.class,
