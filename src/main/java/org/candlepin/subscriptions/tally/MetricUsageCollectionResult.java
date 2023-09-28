@@ -18,20 +18,18 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db.model;
+package org.candlepin.subscriptions.tally;
 
-import jakarta.persistence.Embeddable;
-import java.io.Serializable;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import java.time.OffsetDateTime;
+import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import org.candlepin.subscriptions.util.DateRange;
 
-@NoArgsConstructor
-@RequiredArgsConstructor
-@Data
-@Embeddable
-public class TallyStateKey implements Serializable {
-  @NonNull private String orgId;
-  @NonNull private String serviceType;
+@AllArgsConstructor
+@Getter
+public class MetricUsageCollectionResult {
+  private DateRange range;
+  private Map<OffsetDateTime, AccountUsageCalculation> calculations;
+  private boolean wasRecalculated;
 }

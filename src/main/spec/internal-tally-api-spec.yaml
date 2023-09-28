@@ -75,20 +75,6 @@ paths:
           schema:
             type: string
           description: "The orgId to tally."
-        - name: start
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date-time
-            description: "The start date for the tally (e.g. 22-05-03T10:00:00Z). Must be specified along with the end parameter."
-        - name: end
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date-time
-            description: "The end date for the tally (e.g. 22-05-03T10:00:00Z). Must be specified along with the start parameter."
         - name: x-rh-swatch-use-thread-pool-executor
           in: header
           required: false
@@ -323,25 +309,9 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [internalTally]
   /internal/rpc/tally/snapshots:
-    description: Trigger hourly tally for all configured orgs for the specified range. The 'start' and "
-       'end' parameters MUST be specified as a pair to complete a range. If they are left empty, 
-       a date range is used based on NOW with the configured offsets applied (identical to if
-      the job was run).
+    description: Trigger hourly tally for all configured orgs for the specified range.
     put:
       operationId: tallyAllOrgsByHourly
-      parameters:
-        - name: begin
-          in: query
-          schema:
-            description: The start date for the tally (e.g. 2022-05-03T10:00:00Z). Must be specified along with the end parameter.
-            type: string
-            example: 2022-01-01T00:00:00Z
-        - name: end
-          in: query
-          schema:
-            description: The end date for the tally (e.g. 2022-05-03T16:00:00Z). Must be specified along with the start parameter.
-            type: string
-            example: 2023-03-01T00:00:00Z
       responses:
         '200':
           description: Updated snapshots for the orgs.

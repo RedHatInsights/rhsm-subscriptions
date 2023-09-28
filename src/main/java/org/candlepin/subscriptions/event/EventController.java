@@ -22,9 +22,7 @@ package org.candlepin.subscriptions.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
-import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,6 +34,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -52,6 +51,7 @@ import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.util.TransactionHandler;
 import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 /** Encapsulates interaction with event store. */
@@ -109,6 +109,14 @@ public class EventController {
         .map(EventRecord::getEvent);
   }
 
+  @Transactional(readOnly = true)
+  public List<Event> fetchEventsInBatch(
+      String orgId, String serviceType, OffsetDateTime begin, int batchSize) {
+    return repo.fetchEventsInBatchByRecordDate(orgId, serviceType, begin, batchSize)
+        .map(EventRecord::getEvent)
+        .collect(Collectors.toList());
+  }
+
   /**
    * Validates and saves a list of event JSON objects in the DB.
    *
@@ -133,14 +141,6 @@ public class EventController {
   @Transactional
   public void deleteEvent(UUID eventId) {
     repo.deleteByEventId(eventId);
-  }
-
-  @Transactional
-  public Optional<OffsetDateTime> findFirstEventTimestampInRange(
-      String orgId, String serviceType, OffsetDateTime startDate, OffsetDateTime endDate) {
-    return Optional.ofNullable(
-            repo.findFirstEventTimestampInRange(orgId, serviceType, startDate, endDate))
-        .map(dateTime -> dateTime.atOffset(ZoneOffset.UTC));
   }
 
   /**

@@ -20,6 +20,9 @@
       create index orgid_servicetype_record_date_idx
           on events using btree (org_id, (data->>'service_type'), record_date);
     </sql>
+    <rollback>
+      <dropIndex tableName="events" indexName="orgid_servicetype_record_date_idx" />
+    </rollback>
   </changeSet>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

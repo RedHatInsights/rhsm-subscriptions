@@ -28,8 +28,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -38,7 +40,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.candlepin.subscriptions.json.Event;
-import org.hibernate.annotations.CreationTimestamp;
 
 /**
  * DB entity for an event record.
@@ -52,7 +53,7 @@ import org.hibernate.annotations.CreationTimestamp;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@IdClass(EventKey.class)
+@IdClass(EventRecordId.class)
 public class EventRecord {
 
   /**
@@ -72,6 +73,7 @@ public class EventRecord {
     this.eventSource = event.getEventSource();
     this.instanceId = event.getInstanceId();
     this.timestamp = event.getTimestamp();
+    this.recordDate = event.getRecordDate();
   }
 
   @Column(name = "event_id", updatable = false)
@@ -105,7 +107,7 @@ public class EventRecord {
   For reference: https://martinfowler.com/articles/bitemporal-history.html#TheTwoDimensions
   */
 
-  @CreationTimestamp
+  @Id
   @Column(name = "record_date", updatable = false)
   private OffsetDateTime recordDate;
 
@@ -116,9 +118,12 @@ public class EventRecord {
 
   @PrePersist
   public void populateEventId() {
+    this.recordDate = OffsetDateTime.now(ZoneId.of("UTC"));
+
     if (event == null) {
       return;
     }
+    this.event.setRecordDate(recordDate);
 
     if (event.getEventId() == null) {
       event.setEventId(UUID.randomUUID());
@@ -147,5 +152,21 @@ public class EventRecord {
   @Override
   public int hashCode() {
     return Objects.hash(orgId, eventType, eventSource, instanceId, timestamp, recordDate);
+  }
+
+  /**
+   * Provides a convenient way to fetch the embedded record ID as an Object.
+   *
+   * @return the EventRecordId for this event object.
+   */
+  @Transient
+  public EventRecordId getEventRecordId() {
+    return new EventRecordId(
+        this.orgId,
+        this.eventType,
+        this.eventSource,
+        this.instanceId,
+        this.timestamp,
+        this.recordDate);
   }
 }

@@ -228,7 +228,7 @@ class ClockConfigurationTest {
   @Test
   void testEndOfCurrentHour() {
     // 2019-5-24 12:35:00 UTC
-    assertDate(2019, 5, 24, 12, 59, 59, 999_999_999, clock.endOfCurrentHour());
+    assertDate(2019, 5, 24, 12, 59, 59, 999_999_000, clock.endOfCurrentHour());
   }
 
   @Test

@@ -19,6 +19,9 @@
       tableName="tally_state"
       columnNames="org_id, service_type"/>
 
+    <rollback>
+      <dropTable tableName="tally_state" />
+    </rollback>
   </changeSet>
 
   <changeSet id="202309271140-2" author="mstead" dbms="postgresql">
@@ -29,5 +32,8 @@
         from events
         group by org_id, service_type;
     </sql>
+    <rollback>
+      <sql>truncate table tally_state</sql>
+    </rollback>
   </changeSet>
 </databaseChangeLog>

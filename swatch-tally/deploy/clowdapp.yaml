@@ -169,6 +169,8 @@ parameters:
     value: '1024'
   - name: USE_CPU_SYSTEM_FACTS_TO_ALL_PRODUCTS
     value: 'true'
+  - name: HOURLY_TALLY_EVENT_BATCH_SIZE
+    value: '16000'
   - name: MACHINE_POOL
     value: '' # don't restrict to a specific machine pool by default
   - name: JOB_MACHINE_POOL
@@ -411,6 +413,8 @@ objects:
               value: ${ENABLE_SYNCHRONOUS_OPERATIONS}
             - name: TALLY_MAX_HBI_ACCOUNT_SIZE
               value: ${TALLY_MAX_HBI_ACCOUNT_SIZE}
+            - name: HOURLY_TALLY_EVENT_BATCH_SIZE
+              value: ${HOURLY_TALLY_EVENT_BATCH_SIZE}
             - name: HBI_RECONCILIATION_FLUSH_INTERVAL
               value: ${HBI_RECONCILIATION_FLUSH_INTERVAL}
             - name: USE_CPU_SYSTEM_FACTS_TO_ALL_PRODUCTS

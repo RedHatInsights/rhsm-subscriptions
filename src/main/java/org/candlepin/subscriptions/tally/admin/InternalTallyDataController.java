@@ -28,7 +28,6 @@ import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.model.config.OptInType;
@@ -39,7 +38,6 @@ import org.candlepin.subscriptions.tally.AccountResetService;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.tally.billing.ContractsController;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
-import org.candlepin.subscriptions.util.DateRange;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
 import org.springframework.stereotype.Component;
 
@@ -128,8 +126,8 @@ public class InternalTallyDataController {
     return objectMapper.writeValueAsString(events);
   }
 
-  public void tallyAllOrgsByHourly(DateRange range) throws IllegalArgumentException {
-    tasks.updateHourlySnapshotsForAllOrgs(Optional.ofNullable(range));
+  public void tallyAllOrgsByHourly() throws IllegalArgumentException {
+    tasks.updateHourlySnapshotsForAllOrgs();
   }
 
   public String createOrUpdateOptInConfig(String orgId, OptInType api) {
