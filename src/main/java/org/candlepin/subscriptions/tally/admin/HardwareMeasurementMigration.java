@@ -46,16 +46,16 @@ public class HardwareMeasurementMigration extends DataMigration {
       "update tally_measurements set value=? where snapshot_id=? and measurement_type=? and metric_id=?";
 
   private static final String HARDWARE_MEASUREMENT_QUERY =
-      "select h.snapshot_id, h.measurement_type, sockets, cores, s.value as s_value, c.value as c_value\n"
-          + "from hardware_measurements h\n"
-          + "         left join tally_measurements s\n"
-          + "                   on s.snapshot_id = h.snapshot_id and s.measurement_type = h.measurement_type and s.metric_id = 'SOCKETS'\n"
-          + "         left join tally_measurements c\n"
-          + "                   on c.snapshot_id = h.snapshot_id and c.measurement_type = h.measurement_type and c.metric_id = 'CORES'\n"
-          + "where ?::uuid is null\n"
-          + "   or h.snapshot_id > ?::uuid\n"
-          + "order by h.snapshot_id\n"
-          + "limit ?";
+      """
+      select h.snapshot_id, h.measurement_type, sockets, cores, s.value as s_value, c.value as c_value
+      from hardware_measurements h
+      left join tally_measurements s
+      on s.snapshot_id = h.snapshot_id and s.measurement_type = h.measurement_type and s.metric_id = 'SOCKETS'
+      left join tally_measurements c
+      on c.snapshot_id = h.snapshot_id and c.measurement_type = h.measurement_type and c.metric_id = 'CORES'
+      where ?::uuid is null or h.snapshot_id > ?::uuid
+      order by h.snapshot_id
+      limit ?""";
 
   private final Counter counter;
 
