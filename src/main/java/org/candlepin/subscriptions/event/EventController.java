@@ -98,11 +98,9 @@ public class EventController {
    * @param events the event JSON objects to save.
    */
   public List<Event> saveAll(Collection<Event> events) {
-    var results =
-        repo.saveAll(events.stream().map(EventRecord::new).toList()).stream()
-            .map(EventRecord::getEvent)
-            .toList();
-    return results;
+    return repo.saveAll(events.stream().map(EventRecord::new).toList()).stream()
+        .map(EventRecord::getEvent)
+        .toList();
   }
 
   /**
