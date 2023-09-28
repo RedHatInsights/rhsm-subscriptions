@@ -153,4 +153,7 @@ public class ApplicationProperties {
    */
   @DurationUnit(ChronoUnit.DAYS)
   private Duration hourlyTallyDurationLimitDays;
+
+  /** Defines the number of Events to process in a batch during the hourly tally. */
+  private int hourlyTallyEventBatchSize = 1024;
 }

@@ -22,14 +22,16 @@ package org.candlepin.subscriptions.db;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
+import org.candlepin.subscriptions.db.model.EventRecordId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * DB repository for Event records.
@@ -38,7 +40,7 @@ import org.springframework.data.repository.query.Param;
  * @see org.candlepin.subscriptions.json.Event
  */
 @SuppressWarnings({"linelength", "indentation"})
-public interface EventRecordRepository extends JpaRepository<EventRecord, EventKey> {
+public interface EventRecordRepository extends JpaRepository<EventRecord, EventRecordId> {
 
   /**
    * Fetch a stream of events for a given account for a given time range.
@@ -180,6 +182,34 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, EventK
   void deleteByOrgId(String orgId);
 
   void deleteByEventId(UUID eventId);
+
+  /**
+   * Fetch all Events in a batch, where the recordDate is after the specified date, and before the
+   * cutoff date.
+   *
+   * @param orgId
+   * @param serviceType
+   * @param after
+   * @param cutoff
+   * @return
+   */
+  @Query(
+      nativeQuery = true,
+      value =
+          """
+          select * from events
+            where org_id=:orgId and data->>'service_type'=:serviceType and
+              record_date > :after and record_date < :cutoff
+              order by id, timestamp
+              limit :limit
+          """)
+  @Transactional(readOnly = true)
+  List<EventRecord> fetchEventsInBatchByRecordDate(
+      @Param("orgId") String orgId,
+      @Param("serviceType") String serviceType,
+      @Param("after") OffsetDateTime after,
+      @Param("cutoff") OffsetDateTime cutoff,
+      @Param("limit") int limit);
 
   /**
    * We want to obtain the first event record for the hourly tally based on timestamp actual_date.

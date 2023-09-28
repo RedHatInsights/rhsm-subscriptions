@@ -6,6 +6,7 @@ SERVICE_INSTANCE_INGRESS_DEAD_LETTER_TOPIC: ${clowder.kafka.topics[?(@.requested
 
 rhsm-subscriptions:
   hourlyTallyDurationLimitDays: 90d
+  hourlyTallyEventBatchSize: ${HOURLY_TALLY_EVENT_BATCH_SIZE:1024}
   inventory-service:
     datasource:
       url: jdbc:postgresql://${INVENTORY_DATABASE_HOST:localhost}/${INVENTORY_DATABASE_DATABASE:insights}

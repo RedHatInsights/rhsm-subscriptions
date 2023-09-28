@@ -20,18 +20,40 @@
  */
 package org.candlepin.subscriptions.db.model;
 
-import jakarta.persistence.Embeddable;
 import java.io.Serializable;
-import lombok.Data;
+import java.time.OffsetDateTime;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 
+/** Represents the PK to be used for an {@link EventRecord} */
+@Getter
+@Setter
+@EqualsAndHashCode
 @NoArgsConstructor
-@RequiredArgsConstructor
-@Data
-@Embeddable
-public class TallyStateKey implements Serializable {
-  @NonNull private String orgId;
-  @NonNull private String serviceType;
+@AllArgsConstructor
+public class EventRecordId implements Serializable {
+
+  private String orgId;
+  private String eventType;
+  private String eventSource;
+  private String instanceId;
+  private OffsetDateTime timestamp;
+  private OffsetDateTime recordDate;
+
+  public EventRecordId(
+      String orgId,
+      String eventType,
+      String eventSource,
+      String instanceId,
+      OffsetDateTime timestamp) {
+    // NOTE: recordDate is left out because it is generated on persist.
+    this.orgId = orgId;
+    this.eventType = eventType;
+    this.eventSource = eventSource;
+    this.instanceId = instanceId;
+    this.timestamp = timestamp;
+  }
 }

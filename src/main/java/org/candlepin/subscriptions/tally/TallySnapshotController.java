@@ -24,13 +24,17 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.annotation.Timed;
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.db.TallyStateRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.tally.MetricUsageCollector.CollectionResult;
 import org.candlepin.subscriptions.util.DateRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +57,8 @@ public class TallySnapshotController {
   private final CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy;
   private final RetryTemplate retryTemplate;
   private final SnapshotSummaryProducer summaryProducer;
+  private final TallyStateRepository tallyStateRepository;
+  private final ApplicationClock clock;
 
   @Autowired
   public TallySnapshotController(
@@ -61,7 +67,9 @@ public class TallySnapshotController {
       @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
       MetricUsageCollector metricUsageCollector,
       CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy,
-      SnapshotSummaryProducer summaryProducer) {
+      SnapshotSummaryProducer summaryProducer,
+      TallyStateRepository tallyStateRepository,
+      ApplicationClock clock) {
 
     this.usageCollector = usageCollector;
     this.maxSeenSnapshotStrategy = maxSeenSnapshotStrategy;
@@ -69,6 +77,8 @@ public class TallySnapshotController {
     this.metricUsageCollector = metricUsageCollector;
     this.combiningRollupSnapshotStrategy = combiningRollupSnapshotStrategy;
     this.summaryProducer = summaryProducer;
+    this.tallyStateRepository = tallyStateRepository;
+    this.clock = clock;
   }
 
   @Timed("rhsm-subscriptions.snapshots.single")
@@ -116,10 +126,34 @@ public class TallySnapshotController {
           serviceType,
           snapshotRange.getStartString(),
           snapshotRange.getEndString());
+
+      // TODO [mstead] Need to figure out what to do about the start/end dates.
+
       try {
+        Map<OffsetDateTime, AccountUsageCalculation> currentCalcs = new HashMap<>();
         var result =
             retryTemplate.execute(
-                context -> metricUsageCollector.collect(serviceType, orgId, snapshotRange));
+                context -> {
+                  boolean collect = true;
+                  while (collect) {
+                    int processed =
+                        metricUsageCollector.collectEventCalculations(
+                            orgId, serviceType, currentCalcs);
+                    collect = processed > 0;
+                  }
+
+                  if (currentCalcs.isEmpty()) {
+                    return null;
+                  }
+
+                  // TODO [MSTEAD] The collection result should be passed above so that we do not
+                  //               have to track via the map.
+                  return new CollectionResult(
+                      getDateRangeFromResult(currentCalcs), currentCalcs, false);
+                  //                  return metricUsageCollector.collect(serviceType,
+                  // accountNumber, orgId, snapshotRange);
+                });
+
         if (result == null) {
           continue;
         }
@@ -170,5 +204,17 @@ public class TallySnapshotController {
           return null;
         });
     return usageCollector.tally(orgId);
+  }
+
+  private DateRange getDateRangeFromResult(Map<OffsetDateTime, AccountUsageCalculation> calcs) {
+    OffsetDateTime effectiveStart =
+        calcs.keySet().stream().min(OffsetDateTime::compareTo).orElseThrow();
+
+    OffsetDateTime effectiveEnd =
+        calcs.keySet().stream().max(OffsetDateTime::compareTo).orElseThrow();
+
+    // During a tally, the end date is not included in the overall existing tally
+    // query, therefor we need the range to end 1h after the last calculation.
+    return new DateRange(effectiveStart, effectiveEnd.plusHours(1));
   }
 }

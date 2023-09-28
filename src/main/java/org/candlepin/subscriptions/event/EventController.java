@@ -107,6 +107,11 @@ public class EventController {
         .map(EventRecord::getEvent);
   }
 
+  public List<EventRecord> fetchEventsInBatch(
+      String orgId, String serviceType, OffsetDateTime begin, OffsetDateTime end, int batchSize) {
+    return repo.fetchEventsInBatchByRecordDate(orgId, serviceType, begin, end, batchSize);
+  }
+
   /**
    * Validates and saves a list of event JSON objects in the DB.
    *

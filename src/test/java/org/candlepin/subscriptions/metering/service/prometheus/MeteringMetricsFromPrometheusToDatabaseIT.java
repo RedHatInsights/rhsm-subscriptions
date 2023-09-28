@@ -37,8 +37,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.EventRecordRepository;
-import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
@@ -68,6 +68,7 @@ class MeteringMetricsFromPrometheusToDatabaseIT
   private static final MetricId METRIC = MetricIdUtils.getCores();
   private static final String ORG_ID = "1111";
 
+  @Autowired private ApplicationClock clock;
   @Autowired private PrometheusMeteringController controller;
   @Autowired private EventRecordRepository repository;
   @Autowired private MetricProperties metricProperties;
@@ -79,7 +80,7 @@ class MeteringMetricsFromPrometheusToDatabaseIT
 
   @BeforeEach
   public void setup() {
-    this.start = OffsetDateTime.now().minusHours(5);
+    this.start = clock.now().minusHours(5);
     this.end = start.plusHours(1);
     this.existingEventSameTimeWindow = null;
     this.existingEventBeforeTimeWindow = null;
@@ -156,7 +157,9 @@ class MeteringMetricsFromPrometheusToDatabaseIT
       data.values(
           List.of(
               List.of(
-                  new BigDecimal(timestamp.plusSeconds(100).toEpochSecond()), new BigDecimal(1))));
+                  new BigDecimal(clock.now().plusSeconds(100).toEpochSecond()),
+                  new BigDecimal(1))));
+
       Map<String, String> labels = new HashMap<>();
       labels.put("_id", "id" + i);
       labels.put("product", "ocp");
@@ -214,23 +217,15 @@ class MeteringMetricsFromPrometheusToDatabaseIT
     await()
         .atMost(TIMEOUT_TO_WAIT_FOR_METRICS)
         .untilAsserted(
-            () -> assertFalse(repository.existsById(toEventKey(existingEventSameTimeWindow))));
+            () ->
+                assertFalse(repository.existsById(existingEventSameTimeWindow.getEventRecordId())));
   }
 
   private void verifyExistingEventBeforeTimeWindowWasNotDeleted() {
-    assertTrue(repository.existsById(toEventKey(existingEventBeforeTimeWindow)));
+    assertTrue(repository.existsById(existingEventBeforeTimeWindow.getEventRecordId()));
   }
 
   private List<UUID> getEventIDsFromRepository() {
     return repository.findAll().stream().map(EventRecord::getEventId).toList();
-  }
-
-  private static EventKey toEventKey(EventRecord eventRecord) {
-    return new EventKey(
-        eventRecord.getOrgId(),
-        eventRecord.getEventSource(),
-        eventRecord.getEventType(),
-        eventRecord.getInstanceId(),
-        eventRecord.getTimestamp());
   }
 }

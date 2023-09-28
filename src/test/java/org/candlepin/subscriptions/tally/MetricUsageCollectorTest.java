@@ -43,8 +43,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
+import org.candlepin.subscriptions.db.TallySnapshotRepository;
+import org.candlepin.subscriptions.db.TallyStateRepository;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
@@ -77,6 +80,9 @@ class MetricUsageCollectorTest {
 
   @Mock EventController eventController;
 
+  @Mock TallyStateRepository tallyStateRepository;
+  @Mock TallySnapshotRepository tallySnapshotRepository;
+
   ApplicationClock clock = new TestClockConfiguration().adjustableClock();
 
   static final String SERVICE_TYPE = "OpenShift Cluster";
@@ -92,7 +98,14 @@ class MetricUsageCollectorTest {
   @BeforeEach
   void setup() {
     metricUsageCollector =
-        new MetricUsageCollector(accountRepo, eventController, clock, hostRepository);
+        new MetricUsageCollector(
+            new ApplicationProperties(),
+            accountRepo,
+            eventController,
+            clock,
+            hostRepository,
+            tallyStateRepository,
+            tallySnapshotRepository);
   }
 
   @Test
