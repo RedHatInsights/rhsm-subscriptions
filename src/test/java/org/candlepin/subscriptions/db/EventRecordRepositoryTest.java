@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
@@ -64,11 +63,11 @@ class EventRecordRepositoryTest {
     EventRecord record = new EventRecord(event);
     repository.saveAndFlush(record);
 
-    EventRecord found = repository.getReferenceById(EventKey.fromEvent(event));
+    EventRecord found = repository.getReferenceById(record.getEventRecordId());
     assertNull(found.getEvent().getInventoryId());
     assertNotNull(found.getEvent().getDisplayName());
     assertFalse(found.getEvent().getDisplayName().isPresent());
-    record.setRecordDate(found.getRecordDate());
+    //    record.setRecordDate(found.getRecordDate());
     assertEquals(record, found);
   }
 

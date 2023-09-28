@@ -1,0 +1,14 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202309011316-1" author="jcarvaja" dbms="postgresql">
+    <comment>Include the record_id column in the PK.</comment>
+    <dropPrimaryKey tableName="events" />
+    <addPrimaryKey constraintName="events_pkey"
+      tableName="events"
+      columnNames="org_id,event_type,event_source,instance_id,record_date,timestamp"/>
+  </changeSet>
+</databaseChangeLog>

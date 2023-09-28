@@ -549,4 +549,7 @@ public interface HostRepository
   Optional<Host> findById(UUID id);
 
   void deleteByOrgId(String orgId);
+
+  @Query
+  Stream<Host> findAllByOrgIdAndInstanceIdIn(String orgId, Set<String> instanceIds);
 }

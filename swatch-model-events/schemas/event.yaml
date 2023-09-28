@@ -17,6 +17,11 @@ properties:
     type: string
     format: date-time
     required: true
+  record_date:
+    description: The date that the EventRecord was persisted (NOTE Automatically set when persisted)
+    type: string
+    format: date-time
+    required: false
   expiration:
     description: End of the range for the event (exclusive).
     type: string

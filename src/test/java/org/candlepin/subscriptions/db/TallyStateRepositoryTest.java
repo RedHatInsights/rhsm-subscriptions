@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,10 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.model.TallyState;
 import org.candlepin.subscriptions.db.model.TallyStateKey;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -43,11 +43,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Import(TestClockConfiguration.class)
 class TallyStateRepositoryTest {
 
-  @Autowired
-  TallyStateRepository repo;
+  @Autowired TallyStateRepository repo;
 
-  @Autowired
-  ApplicationClock clock;
+  @Autowired ApplicationClock clock;
 
   @Test
   @Transactional

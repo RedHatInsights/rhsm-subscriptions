@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.candlepin.subscriptions.metering.MeteringEventFactory.getEventType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,8 +36,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.EventRecordRepository;
-import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
@@ -68,6 +67,7 @@ class MeteringMetricsFromPrometheusToDatabaseIT
   private static final MetricId METRIC = MetricIdUtils.getCores();
   private static final String ORG_ID = "1111";
 
+  @Autowired private ApplicationClock clock;
   @Autowired private PrometheusMeteringController controller;
   @Autowired private EventRecordRepository repository;
   @Autowired private MetricProperties metricProperties;
@@ -79,7 +79,7 @@ class MeteringMetricsFromPrometheusToDatabaseIT
 
   @BeforeEach
   public void setup() {
-    this.start = OffsetDateTime.now().minusHours(5);
+    this.start = clock.now().minusHours(5);
     this.end = start.plusHours(1);
     this.existingEventSameTimeWindow = null;
     this.existingEventBeforeTimeWindow = null;
@@ -100,7 +100,7 @@ class MeteringMetricsFromPrometheusToDatabaseIT
   }
 
   @Test
-  void testCreateNewMetricsAndUpdateExistingEvents(
+  void testCreateNewMetrics(
       PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer) {
     OffsetDateTime timestampForEvents = OffsetDateTime.now();
 
@@ -110,16 +110,15 @@ class MeteringMetricsFromPrometheusToDatabaseIT
     // all insert
     whenCollectMetrics();
     verifyAllEventsAreStoredInDatabaseWithUsage(Event.Usage.DEVELOPMENT_TEST);
-    // store existing events to assert that event ID didn't change.
-    List<UUID> snapshotOfExistingEvents = getEventIDsFromRepository();
+    verifyAllEventsUseEventSourcePrometheus();
 
-    // all update
+    // Metering over the same range will yield net new events with new usage value.
     givenMetricsInPrometheusWithUsage(prometheusServer, timestampForEvents, Event.Usage.PRODUCTION);
     whenCollectMetrics();
     verifyAllEventsAreStoredInDatabaseWithUsage(Event.Usage.PRODUCTION);
     verifyAllEventsUseEventSourcePrometheus();
-    assertThat(snapshotOfExistingEvents)
-        .containsExactlyInAnyOrderElementsOf(getEventIDsFromRepository());
+
+    assertEquals(NUM_METRICS_TO_SEND * 2, repository.findAll().size());
   }
 
   private void givenExistingEventWithinSameTimeWindow() {
@@ -156,7 +155,9 @@ class MeteringMetricsFromPrometheusToDatabaseIT
       data.values(
           List.of(
               List.of(
-                  new BigDecimal(timestamp.plusSeconds(100).toEpochSecond()), new BigDecimal(1))));
+                  new BigDecimal(clock.now().plusSeconds(100).toEpochSecond()),
+                  new BigDecimal(1))));
+
       Map<String, String> labels = new HashMap<>();
       labels.put("_id", "id" + i);
       labels.put("product", "ocp");
@@ -193,11 +194,12 @@ class MeteringMetricsFromPrometheusToDatabaseIT
         .atMost(TIMEOUT_TO_WAIT_FOR_METRICS)
         .untilAsserted(
             () -> {
-              assertEquals(NUM_METRICS_TO_SEND, repository.count());
-              assertTrue(repository.findAll().stream().allMatch(e -> e.getRecordDate() != null));
-              assertTrue(
+              var existing =
                   repository.findAll().stream()
-                      .allMatch(e -> expectedUsage == e.getEvent().getUsage()));
+                      .filter(e -> expectedUsage == e.getEvent().getUsage())
+                      .toList();
+              assertEquals(NUM_METRICS_TO_SEND, existing.size());
+              assertTrue(existing.stream().allMatch(e -> e.getRecordDate() != null));
             });
   }
 
@@ -214,23 +216,11 @@ class MeteringMetricsFromPrometheusToDatabaseIT
     await()
         .atMost(TIMEOUT_TO_WAIT_FOR_METRICS)
         .untilAsserted(
-            () -> assertFalse(repository.existsById(toEventKey(existingEventSameTimeWindow))));
+            () ->
+                assertFalse(repository.existsById(existingEventSameTimeWindow.getEventRecordId())));
   }
 
   private void verifyExistingEventBeforeTimeWindowWasNotDeleted() {
-    assertTrue(repository.existsById(toEventKey(existingEventBeforeTimeWindow)));
-  }
-
-  private List<UUID> getEventIDsFromRepository() {
-    return repository.findAll().stream().map(EventRecord::getEventId).toList();
-  }
-
-  private static EventKey toEventKey(EventRecord eventRecord) {
-    return new EventKey(
-        eventRecord.getOrgId(),
-        eventRecord.getEventSource(),
-        eventRecord.getEventType(),
-        eventRecord.getInstanceId(),
-        eventRecord.getTimestamp());
+    assertTrue(repository.existsById(existingEventBeforeTimeWindow.getEventRecordId()));
   }
 }

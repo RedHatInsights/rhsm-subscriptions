@@ -39,7 +39,6 @@ import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.tally.events.EventRecordsRetentionProperties;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.candlepin.subscriptions.util.DateRange;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -83,62 +82,26 @@ class InternalTallyResourceTest {
   }
 
   @Test
-  void ensurePerformHourlyTallyForOrgValidatesDateRange() {
-    OffsetDateTime start = clock.startOfCurrentHour();
-    OffsetDateTime end = start.plusMinutes(5L);
-    // asynchronous
-    IllegalArgumentException iae1 =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> resource.performHourlyTallyForOrg("org1", start, end, false));
-    assertEquals(
-        "Start/End times must be at the top of the hour: [2019-05-24T12:00:00Z -> 2019-05-24T12:05:00Z]",
-        iae1.getMessage());
-
-    resource.performHourlyTallyForOrg("org1", start, clock.startOfHour(end.plusHours(1)), false);
-
-    // synchronous
-    IllegalArgumentException iae2 =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> resource.performHourlyTallyForOrg("org1", start, end, true));
-    assertEquals(
-        "Start/End times must be at the top of the hour: [2019-05-24T12:00:00Z -> 2019-05-24T12:05:00Z]",
-        iae2.getMessage());
-
-    // Avoid additional exception by enabling synchronous operations.
-    appProps.setEnableSynchronousOperations(true);
-    resource.performHourlyTallyForOrg("org1", start, clock.startOfHour(end.plusHours(1)), true);
-  }
-
-  @Test
   void preventSynchronousHourlyTallyForOrgWhenSynchronousOperationsDisabled() {
-    OffsetDateTime start = clock.startOfCurrentHour();
-    OffsetDateTime end = start.plusHours(1L);
     BadRequestException e =
         assertThrows(
-            BadRequestException.class,
-            () -> resource.performHourlyTallyForOrg("org1", start, end, true));
+            BadRequestException.class, () -> resource.performHourlyTallyForOrg("org1", true));
     assertEquals("Synchronous tally operations are not enabled.", e.getMessage());
   }
 
   @Test
   void allowSynchronousHourlyTallyForOrgWhenSynchronousOperationsEnabled() {
     appProps.setEnableSynchronousOperations(true);
-    OffsetDateTime start = clock.startOfCurrentHour();
-    OffsetDateTime end = start.plusHours(1L);
-    resource.performHourlyTallyForOrg("org1", start, end, true);
-    verify(snapshotController).produceHourlySnapshotsForOrg("org1", new DateRange(start, end));
+    resource.performHourlyTallyForOrg("org1", true);
+    verify(snapshotController).produceHourlySnapshotsForOrg("org1");
     verifyNoInteractions(snapshotTaskManager);
   }
 
   @Test
   void performAsyncHourlyTallyForOrgWhenSynchronousOperationsEnabled() {
     appProps.setEnableSynchronousOperations(true);
-    OffsetDateTime start = clock.startOfCurrentHour();
-    OffsetDateTime end = start.plusHours(1L);
-    resource.performHourlyTallyForOrg("org1", start, end, false);
-    verify(snapshotTaskManager).tallyOrgByHourly("org1", new DateRange(start, end));
+    resource.performHourlyTallyForOrg("org1", false);
+    verify(snapshotTaskManager).tallyOrgByHourly("org1");
     verifyNoInteractions(snapshotController);
   }
 
@@ -146,8 +109,8 @@ class InternalTallyResourceTest {
   void performAsyncHourlyTallyForOrgWhenSynchronousOperationsDisabled() {
     OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = start.plusHours(1L);
-    resource.performHourlyTallyForOrg("org1", start, end, false);
-    verify(snapshotTaskManager).tallyOrgByHourly("org1", new DateRange(start, end));
+    resource.performHourlyTallyForOrg("org1", false);
+    verify(snapshotTaskManager).tallyOrgByHourly("org1");
     verifyNoInteractions(snapshotController);
   }
 

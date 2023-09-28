@@ -29,9 +29,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.db.TallyStateRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
-import org.candlepin.subscriptions.util.DateRange;
+import org.candlepin.subscriptions.db.model.TallyState;
+import org.candlepin.subscriptions.db.model.TallyStateKey;
+import org.candlepin.subscriptions.event.EventController;
+import org.candlepin.subscriptions.json.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,28 +53,39 @@ public class TallySnapshotController {
 
   private static final Logger log = LoggerFactory.getLogger(TallySnapshotController.class);
 
+  private final ApplicationProperties appProps;
   private final InventoryAccountUsageCollector usageCollector;
+  private final EventController eventController;
   private final MetricUsageCollector metricUsageCollector;
   private final MaxSeenSnapshotStrategy maxSeenSnapshotStrategy;
   private final CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy;
   private final RetryTemplate retryTemplate;
   private final SnapshotSummaryProducer summaryProducer;
+  private final TallyStateRepository tallyStateRepository;
+  private final ApplicationClock clock;
 
   @Autowired
   public TallySnapshotController(
+      ApplicationProperties appProps,
       InventoryAccountUsageCollector usageCollector,
+      EventController eventController,
       MaxSeenSnapshotStrategy maxSeenSnapshotStrategy,
       @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
       MetricUsageCollector metricUsageCollector,
       CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy,
-      SnapshotSummaryProducer summaryProducer) {
-
+      SnapshotSummaryProducer summaryProducer,
+      TallyStateRepository tallyStateRepository,
+      ApplicationClock clock) {
+    this.appProps = appProps;
     this.usageCollector = usageCollector;
+    this.eventController = eventController;
     this.maxSeenSnapshotStrategy = maxSeenSnapshotStrategy;
     this.retryTemplate = retryTemplate;
     this.metricUsageCollector = metricUsageCollector;
     this.combiningRollupSnapshotStrategy = combiningRollupSnapshotStrategy;
     this.summaryProducer = summaryProducer;
+    this.tallyStateRepository = tallyStateRepository;
+    this.clock = clock;
   }
 
   @Timed("rhsm-subscriptions.snapshots.single")
@@ -97,7 +114,7 @@ public class TallySnapshotController {
   // from within an existing DB transaction, an exception will be thrown.
   @Transactional(propagation = Propagation.NEVER)
   @Timed("rhsm-subscriptions.snapshots.single.hourly")
-  public void produceHourlySnapshotsForOrg(String orgId, DateRange snapshotRange) {
+  public void produceHourlySnapshotsForOrg(String orgId) {
     if (Objects.isNull(orgId)) {
       throw new IllegalArgumentException("A non-null orgId is required for tally operations.");
     }
@@ -109,23 +126,48 @@ public class TallySnapshotController {
     // fetched by service type just once.
     Set<String> serviceTypes = SubscriptionDefinition.getAllServiceTypes();
     for (String serviceType : serviceTypes) {
-      log.info(
-          "Producing hourly snapshots for orgId {} for service type {} "
-              + "between startDateTime {} and endDateTime {}",
-          orgId,
-          serviceType,
-          snapshotRange.getStartString(),
-          snapshotRange.getEndString());
+      log.info("Producing hourly snapshots for orgId {} for service type {} ", orgId, serviceType);
+
       try {
-        var result =
-            retryTemplate.execute(
-                context -> metricUsageCollector.collect(serviceType, orgId, snapshotRange));
-        if (result == null) {
+        TallyState currentState =
+            tallyStateRepository
+                .findById(new TallyStateKey(orgId, serviceType))
+                .orElseGet(
+                    () ->
+                        tallyStateRepository.save(
+                            new TallyState(orgId, serviceType, clock.startOfCurrentHour())));
+
+        AccountUsageCalculationCache calcCache = new AccountUsageCalculationCache();
+        while (true) {
+          // If calculations exist, the hosts have been updated. Host updates are idempotent
+          // but the calculations will still occur during a retry on error.
+          List<Event> events =
+              eventController.fetchEventsInBatch(
+                  orgId,
+                  serviceType,
+                  currentState.getLatestEventRecordDate(),
+                  appProps.getHourlyTallyEventBatchSize());
+
+          if (events.isEmpty()) {
+            break;
+          }
+
+          retryTemplate.execute(
+              context -> {
+                metricUsageCollector.updateHosts(orgId, serviceType, events);
+                metricUsageCollector.calculateUsage(events, calcCache);
+                currentState.setLatestEventRecordDate(
+                    events.get(events.size() - 1).getRecordDate());
+                return null;
+              });
+        }
+
+        if (calcCache.isEmpty()) {
           continue;
         }
 
         var applicableUsageCalculations =
-            result.getCalculations().entrySet().stream()
+            calcCache.getCalculations().entrySet().stream()
                 .filter(this::isCombiningRollupStrategySupported)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
@@ -139,12 +181,13 @@ public class TallySnapshotController {
         Map<String, List<TallySnapshot>> totalSnapshots =
             combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
                 orgId,
-                result.getRange(),
+                calcCache.getCalculationRange(),
                 tags,
                 applicableUsageCalculations,
                 Granularity.HOURLY,
                 Double::sum);
 
+        tallyStateRepository.update(currentState);
         summaryProducer.produceTallySummaryMessages(totalSnapshots);
         log.info("Finished producing hourly snapshots for orgId {}", orgId);
       } catch (Exception e) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Red Hat, Inc.
+ * Copyright Red Hat, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,12 @@ package org.candlepin.subscriptions.db;
 import org.candlepin.subscriptions.db.model.TallyState;
 import org.candlepin.subscriptions.db.model.TallyStateKey;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface TallyStateRepository extends JpaRepository<TallyState, TallyStateKey> {
 
+  @Transactional
+  default TallyState update(TallyState state) {
+    return save(state);
+  }
 }

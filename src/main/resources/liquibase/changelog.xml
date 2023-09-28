@@ -137,5 +137,7 @@
     <include file="/liquibase/202311161207-drop-account-config-table.xml"/>
     <include file="liquibase/202309271135-add-event-lookup-index.xml" />
     <include file="/liquibase/202309271140-create-tally-state-table.xml" />
+    <include file="/liquibase/202309281140-add-record-date-to-events-pk.xml" />
+    <include file="/liquibase/202311221520-add-last_applied_event_record_date-column-to-hosts.xml" />
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

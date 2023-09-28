@@ -23,12 +23,8 @@ package org.candlepin.subscriptions.tally.job;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.*;
 
-import java.time.Duration;
-import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
@@ -39,10 +35,7 @@ import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskQueue;
 import org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskQueueConsumerFactory;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.candlepin.subscriptions.util.DateRange;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -149,29 +142,12 @@ class CaptureSnapshotsTaskManagerTest {
     verify(queue, never()).enqueue(any());
   }
 
-  /**
-   * Test hourly snapshots using the minutes offset. The offset is designed to ensure the snapshot
-   * includes as many finished tallies as possible, and allows an additional hour for them to
-   * finish.
-   *
-   * @throws Exception
-   */
   @Test
-  void testHourlySnapshotTallyOffset() {
+  void testHourlySnapshotForAllAccounts() throws Exception {
     List<String> expectedOrgs = Arrays.asList("o1", "o2");
     when(orgRepo.findSyncEnabledOrgs()).thenReturn(expectedOrgs.stream());
 
-    Duration metricRange = appProperties.getMetricLookupRangeDuration();
-    Duration prometheusLatencyDuration = appProperties.getPrometheusLatencyDuration();
-    Duration hourlyTallyOffsetMinutes = appProperties.getHourlyTallyOffset();
-
-    OffsetDateTime endDateTime =
-        adjustTimeForLatency(
-            applicationClock.now().minus(hourlyTallyOffsetMinutes).truncatedTo(ChronoUnit.HOURS),
-            prometheusLatencyDuration);
-    OffsetDateTime startDateTime = endDateTime.minus(metricRange);
-
-    manager.updateHourlySnapshotsForAllOrgs(Optional.empty());
+    manager.updateHourlySnapshotsForAllOrgs();
 
     expectedOrgs.forEach(
         orgId -> {
@@ -180,34 +156,6 @@ class CaptureSnapshotsTaskManagerTest {
                   TaskDescriptor.builder(
                           TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic(), null)
                       .setSingleValuedArg("orgId", orgId)
-                      // 2019-05-24T12:35Z truncated to top of the hour - 1 hour tally range
-                      .setSingleValuedArg("startDateTime", "2019-05-24T10:00:00Z")
-                      .setSingleValuedArg("endDateTime", "2019-05-24T11:00:00Z")
-                      .build());
-        });
-  }
-
-  @Test
-  void testHourlySnapshotForAllAccountsForDateRange() throws Exception {
-    List<String> expectedOrgs = Arrays.asList("o1", "o2");
-    when(orgRepo.findSyncEnabledOrgs()).thenReturn(expectedOrgs.stream());
-
-    DateRange range =
-        new DateRange(applicationClock.now().minusDays(10L), applicationClock.now().minusDays(5L));
-
-    manager.updateHourlySnapshotsForAllOrgs(Optional.of(range));
-
-    expectedOrgs.forEach(
-        orgId -> {
-          verify(queue, times(1))
-              .enqueue(
-                  TaskDescriptor.builder(
-                          TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic(), null)
-                      .setSingleValuedArg("orgId", orgId)
-                      // 10 days less than the test clock at the top of the hour.
-                      .setSingleValuedArg("startDateTime", "2019-05-14T12:00:00Z")
-                      // 5 days less than the test clock at the top of the hour.
-                      .setSingleValuedArg("endDateTime", "2019-05-19T12:00:00Z")
                       .build());
         });
   }
@@ -230,27 +178,5 @@ class CaptureSnapshotsTaskManagerTest {
     return TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic(), null)
         .setArg("orgs", orgs)
         .build();
-  }
-
-  protected OffsetDateTime adjustTimeForLatency(
-      OffsetDateTime dateTime, Duration adjustmentAmount) {
-    return dateTime.toZonedDateTime().minus(adjustmentAmount).toOffsetDateTime();
-  }
-
-  @ParameterizedTest(name = "testAdjustTimeForLatency[{index}] {arguments}")
-  @CsvSource({
-    "2021-02-01T00:00:00Z, PT0H, 2021-02-01T00:00:00Z",
-    "2021-02-01T00:00:00Z, PT1H, 2021-01-31T23:00:00Z",
-    "2021-02-01T00:00:00Z, PT25H, 2021-01-30T23:00:00Z",
-    "2021-02-01T00:00:00Z, PT-1H, 2021-02-01T01:00:00Z",
-    "2021-02-01T00:00:00Z, PT1M, 2021-01-31T23:59:00Z",
-    "2021-02-01T00:00:00Z, P1D, 2021-01-31T00:00:00Z"
-  })
-  void testAdjustTimeForLatency(
-      OffsetDateTime originalDateTime, Duration latencyDuration, OffsetDateTime adjustedDateTime) {
-
-    OffsetDateTime actual = manager.adjustTimeForLatency(originalDateTime, latencyDuration);
-
-    assertEquals(adjustedDateTime, actual);
   }
 }

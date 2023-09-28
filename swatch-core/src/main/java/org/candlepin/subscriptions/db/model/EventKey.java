@@ -29,8 +29,8 @@ import lombok.NoArgsConstructor;
 import org.candlepin.subscriptions.json.Event;
 
 /**
- * Defines the unique constraints for an {@link EventRecord}. This object is primarily used for
- * creating lookup tables while processing {@link Event} instances pulled from the DB.
+ * Defines the unique constraints for an {@link Event}. This object is primarily used for creating
+ * lookup tables while processing {@link Event} instances.
  */
 @Getter
 @EqualsAndHashCode

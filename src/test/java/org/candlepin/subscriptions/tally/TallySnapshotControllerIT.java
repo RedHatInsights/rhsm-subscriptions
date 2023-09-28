@@ -33,25 +33,29 @@ import com.redhat.swatch.configuration.registry.ProductId;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.HostTallyBucketRepository;
+import org.candlepin.subscriptions.db.TallyStateRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
+import org.candlepin.subscriptions.db.model.TallyState;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.resource.OptInResource;
+import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.resource.TallyResource;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
 import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
-import org.candlepin.subscriptions.util.DateRange;
 import org.candlepin.subscriptions.utilization.api.model.GranularityType;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportData;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,6 +86,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   @Autowired EventRecordRepository eventRecordRepository;
   @Autowired OptInResource optInResource;
   @Autowired HostTallyBucketRepository hostTallyBucketRepository;
+  @Autowired TallyStateRepository tallyStateRepository;
 
   @MockBean(answer = Answers.CALLS_REAL_METHODS)
   InventoryRepository inventoryRepository;
@@ -89,9 +94,11 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   OffsetDateTime start;
   OffsetDateTime end;
   List<Event> events = new ArrayList<>();
+  ExpectedReport expectedReport = new ExpectedReport();
 
   @BeforeEach
   public void setup() {
+    expectedReport.clear();
     events.clear();
   }
 
@@ -106,6 +113,16 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
 
     whenProduceHourlySnapshotsForOrg();
 
+    assertTallyReportData();
+
+    givenEventAtDay(4, 10.0);
+    whenProduceHourlySnapshotsForOrg();
+    assertTallyReportData();
+
+    // Process an amendment.
+    givenEventAtDay(1, -78.4390);
+    givenEventAtDay(1, 100.0);
+    whenProduceHourlySnapshotsForOrg();
     assertTallyReportData();
   }
 
@@ -158,6 +175,8 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
 
   private void givenOrgAndAccountInConfig() {
     optInResource.putOptInConfig();
+    tallyStateRepository.save(
+        new TallyState(ResourceUtils.getOrgId(), "rosa Instance", clock.now()));
   }
 
   private void givenEventAtDay(int dayAt, double value) {
@@ -176,9 +195,10 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
     event.setBillingProvider(Event.BillingProvider.AWS);
     event.setBillingAccountId(Optional.of("mktp-123"));
 
-    eventRecordRepository.save(new EventRecord(event));
+    EventRecord save = eventRecordRepository.save(new EventRecord(event));
 
     events.add(event);
+    expectedReport.applyEvent(event);
   }
 
   private void whenProduceSnapshotsForOrg() {
@@ -186,8 +206,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   }
 
   private void whenProduceHourlySnapshotsForOrg() {
-    controller.produceHourlySnapshotsForOrg(
-        ORG_ID, new DateRange(clock.startOfCurrentHour(), clock.startOfCurrentHour().plusHours(1)));
+    controller.produceHourlySnapshotsForOrg(ORG_ID);
   }
 
   private void assertTallyReportData() {
@@ -207,31 +226,8 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
             null,
             true,
             null);
-    // assert events
-    double accumulatedValue = 0;
-    for (var point : report.getData()) {
-      for (Event event : events) {
-        if (point.getDate().toLocalDate().equals(event.getTimestamp().toLocalDate())) {
-          for (var measurement : event.getMeasurements()) {
-            accumulatedValue += measurement.getValue();
-          }
-        }
-      }
 
-      int expectedValue = (int) Math.ceil(accumulatedValue);
-      assertEquals(
-          expectedValue,
-          point.getValue(),
-          "Unexpected value in data point at '"
-              + point.getDate()
-              + "'. Expected was "
-              + expectedValue
-              + ". Report was: "
-              + report);
-    }
-
-    // assert days, end day is inclusive, so we need to add one day more.
-    assertEquals((int) Duration.between(start, end).toDays() + 1, report.getMeta().getCount());
+    expectedReport.assertReport(report);
   }
 
   private Measurement measurement(Double value) {
@@ -239,5 +235,45 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
     measurement.setUom(METRIC);
     measurement.setValue(value);
     return measurement;
+  }
+
+  private class ExpectedReport {
+    private final Map<OffsetDateTime, Measurement> measurementsByDate = new HashMap<>();
+
+    public void applyEvent(Event event) {
+      // For now tests are against Daily report, so track by start of day.
+      OffsetDateTime timestamp = clock.startOfDay(event.getTimestamp());
+      Measurement current = measurementsByDate.getOrDefault(timestamp, measurement(0.0));
+      measurementsByDate.put(timestamp, current);
+      event.getMeasurements().stream()
+          .filter(m -> m.getUom().equals(METRIC))
+          .forEach(m -> current.setValue(current.getValue() + m.getValue()));
+    }
+
+    public void assertReport(TallyReportData report) {
+      int nextValue = 0;
+      for (var point : report.getData()) {
+        if (measurementsByDate.containsKey(point.getDate())) {
+          nextValue =
+              nextValue + (int) Math.ceil(measurementsByDate.get(point.getDate()).getValue());
+        }
+        assertEquals(
+            nextValue,
+            point.getValue(),
+            "Unexpected value in data point at '"
+                + point.getDate()
+                + "'. Expected was "
+                + nextValue
+                + ". Report was: "
+                + report);
+      }
+
+      // assert days, end day is inclusive, so we need to add one day more.
+      assertEquals((int) Duration.between(start, end).toDays() + 1, report.getMeta().getCount());
+    }
+
+    public void clear() {
+      measurementsByDate.clear();
+    }
   }
 }
