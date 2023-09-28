@@ -42,7 +42,7 @@ if [ ${#projects[@]} -eq 0 ]; then
   projects[1]="conduit"
   projects[2]="swatch-producer-aws"
   projects[3]="swatch-contracts"
-  projects[3]="swatch-producer-azure"
+  projects[4]="swatch-producer-azure"
 fi
 
 quay_user=$(podman login --get-login quay.io)
