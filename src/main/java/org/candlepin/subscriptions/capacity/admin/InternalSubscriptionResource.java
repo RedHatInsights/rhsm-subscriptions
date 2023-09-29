@@ -27,6 +27,7 @@ import jakarta.ws.rs.NotFoundException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Subscription;
@@ -55,6 +56,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class InternalSubscriptionResource implements InternalApi {
 
+  private static final String SUCCESS_STATUS = "Success";
+
   private final SubscriptionSyncController subscriptionSyncController;
   private final SubscriptionPruneController subscriptionPruneController;
   private final OfferingSyncController offeringSync;
@@ -64,7 +67,8 @@ public class InternalSubscriptionResource implements InternalApi {
   private final UsageContextSubscriptionProvider awsSubscriptionProvider;
   private final UsageContextSubscriptionProvider rhmSubscriptionProvider;
   private final MetricMapper metricMapper;
-  private static final String SUCCESS_STATUS = "Success";
+
+  private final ApplicationProperties applicationProperties;
 
   public static final String FEATURE_NOT_ENABLED_MESSSAGE =
       "This feature is not currently enabled.";
@@ -77,7 +81,8 @@ public class InternalSubscriptionResource implements InternalApi {
       SubscriptionPruneController subscriptionPruneController,
       OfferingSyncController offeringSync,
       CapacityReconciliationController capacityReconciliationController,
-      MetricMapper metricMapper) {
+      MetricMapper metricMapper,
+      ApplicationProperties applicationProperties) {
     this.meterRegistry = meterRegistry;
     this.subscriptionSyncController = subscriptionSyncController;
     this.properties = properties;
@@ -97,6 +102,7 @@ public class InternalSubscriptionResource implements InternalApi {
     this.offeringSync = offeringSync;
     this.capacityReconciliationController = capacityReconciliationController;
     this.metricMapper = metricMapper;
+    this.applicationProperties = applicationProperties;
   }
 
   /**
@@ -128,7 +134,13 @@ public class InternalSubscriptionResource implements InternalApi {
 
   /** Enqueue all sync-enabled orgs to sync their subscriptions with upstream. */
   @Override
-  public DefaultResponse syncAllSubscriptions() {
+  public DefaultResponse syncAllSubscriptions(Boolean forceSync) {
+    if (!forceSync && !applicationProperties.isSubscriptionSyncEnabled()) {
+      log.info(
+          "Will not sync subscriptions for all opted-in orgs even though job was scheduled because subscriptionSyncEnabled=false.");
+      return getDefaultResponse(FEATURE_NOT_ENABLED_MESSSAGE);
+    }
+
     Object principal = ResourceUtils.getPrincipal();
     log.info("Sync for all sync enabled orgs triggered by {}", principal);
     subscriptionSyncController.syncAllSubscriptionsForAllOrgs();

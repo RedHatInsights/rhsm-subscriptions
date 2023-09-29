@@ -1,6 +1,0 @@
-OFFERING_SYNC_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.offering-sync')].name:platform.rhsm-subscriptions.offering-sync}
-
-rhsm-subscriptions:
-  product:
-    tasks:
-      topic: ${OFFERING_SYNC_TOPIC}
