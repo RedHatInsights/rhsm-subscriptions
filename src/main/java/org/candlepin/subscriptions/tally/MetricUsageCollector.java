@@ -110,7 +110,7 @@ public class MetricUsageCollector {
     the product profile we're working on
     */
     Map<String, Host> existingInstances = new HashMap<>();
-    Optional<OffsetDateTime> minLastSeenTimestamp =
+    Optional<OffsetDateTime> maxLastSeenTimestamp =
         hostRepository.findMaxLastSeenDate(orgId, serviceType);
     for (Host host : accountServiceInventory.getServiceInstances().values()) {
       existingInstances.put(host.getInstanceId(), host);
@@ -128,8 +128,8 @@ public class MetricUsageCollector {
     the end of current hour. Otherwise, the start date is same as the beginning of the user start range,
     it extends until the specified passed end date.
      */
-    if (minLastSeenTimestamp.isEmpty()
-        || !firstEventTimestamp.isAfter(minLastSeenTimestamp.get())) {
+    if (maxLastSeenTimestamp.isEmpty()
+        || !firstEventTimestamp.isAfter(maxLastSeenTimestamp.get())) {
       int eventLastMonth =
           firstEventTimestamp.getMonth().getValue() - OffsetDateTime.now().getMonth().getValue();
       if (eventLastMonth < 0) {
@@ -137,7 +137,7 @@ public class MetricUsageCollector {
       } else {
         effectiveStartDateTime = clock.startOfMonth(range.getStartDate());
       }
-      effectiveEndDateTime = clock.endOfCurrentHour();
+      effectiveEndDateTime = range.getEndDate();
       log.info(
           "We appear to be retallying; adjusting start and end from [{} : {}] to [{} : {}]",
           range.getStartString(),
