@@ -657,11 +657,14 @@ public class InventoryController {
         return Optional.empty();
       }
       ConduitFacts facts = transformHostTimer.recordCallable(() -> getFactsFromConsumer(consumer));
+      if (facts == null) {
+        return Optional.empty();
+      }
       facts.setAccountNumber(consumer.getAccountNumber());
 
       Set<ConstraintViolation<ConduitFacts>> violations =
           validateHostTimer.recordCallable(() -> validator.validate(facts));
-      if (violations.isEmpty()) {
+      if (violations == null || violations.isEmpty()) {
         return Optional.of(facts);
       } else {
         if (log.isInfoEnabled()) {

@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.clowder;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import io.micrometer.core.instrument.util.StringUtils;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -66,7 +65,7 @@ public class RdsSslBeanPostProcessor implements BeanPostProcessor, Ordered {
     if (bean instanceof DataSourceProperties && beanName.equals("rhsmDataSourceProperties")) {
       String sslMode = environment.getProperty("DATABASE_SSL_MODE");
       // if ssl is disabled no need to change url
-      if (StringUtils.isBlank(sslMode) || sslMode.equals("disable")) {
+      if (sslMode == null || sslMode.isEmpty() || sslMode.equals("disable")) {
         log.info("Connecting to database with SSL Mode: disable");
         return bean;
       }
