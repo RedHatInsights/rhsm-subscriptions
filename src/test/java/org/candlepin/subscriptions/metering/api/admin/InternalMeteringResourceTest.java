@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.metering.api.admin;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -31,7 +30,6 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.metering.ResourceUtil;
 import org.candlepin.subscriptions.metering.retention.EventRecordsRetentionProperties;
@@ -54,7 +52,6 @@ class InternalMeteringResourceTest {
 
   @Mock private PrometheusMetricsTaskManager tasks;
   @Mock private PrometheusMeteringController controller;
-  @Mock private AccountConfigRepository accountConfigRepository;
   @Mock private EventRecordsRetentionProperties eventRecordsRetentionProperties;
   @Mock private EventRecordRepository eventRecordRepository;
 
@@ -69,7 +66,6 @@ class InternalMeteringResourceTest {
     appProps = new ApplicationProperties();
     clock = new TestClockConfiguration().adjustableClock();
     util = new ResourceUtil(clock);
-    lenient().when(accountConfigRepository.findOrgByAccountNumber("account1")).thenReturn("org1");
 
     metricProps = new MetricProperties();
     metricProps.setRangeInMinutes(60);

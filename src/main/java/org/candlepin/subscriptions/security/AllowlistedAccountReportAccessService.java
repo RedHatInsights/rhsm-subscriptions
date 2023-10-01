@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.security;
 
-import org.candlepin.subscriptions.db.AccountConfigRepository;
+import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -35,14 +35,14 @@ import org.springframework.stereotype.Service;
 @Service("reportAccessService")
 public class AllowlistedAccountReportAccessService {
 
-  private final AccountConfigRepository accountConfigRepository;
+  private final OrgConfigRepository orgConfigRepository;
 
-  public AllowlistedAccountReportAccessService(AccountConfigRepository accountConfigRepository) {
-    this.accountConfigRepository = accountConfigRepository;
+  public AllowlistedAccountReportAccessService(OrgConfigRepository orgConfigRepository) {
+    this.orgConfigRepository = orgConfigRepository;
   }
 
   public boolean providesAccessTo(Authentication auth) {
     InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
-    return accountConfigRepository.existsByOrgId(principal.getOrgId());
+    return orgConfigRepository.existsByOrgId(principal.getOrgId());
   }
 }

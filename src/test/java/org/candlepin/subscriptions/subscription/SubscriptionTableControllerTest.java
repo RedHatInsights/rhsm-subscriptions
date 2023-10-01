@@ -32,7 +32,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.core.Response;
 import java.time.OffsetDateTime;
 import java.util.*;
-import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.DbReportCriteria;
@@ -64,7 +63,6 @@ class SubscriptionTableControllerTest {
   private static final ProductId RHEL_FOR_X86 = ProductId.fromString("RHEL for x86");
   @MockBean SubscriptionRepository subscriptionRepository;
   @MockBean OfferingRepository offeringRepository;
-  @MockBean AccountListSource accountListSource;
   @Autowired ApplicationClock clock;
   @Autowired SubscriptionTableController subscriptionTableController;
 
@@ -72,7 +70,6 @@ class SubscriptionTableControllerTest {
   void setup() throws AccountListSourceException {
     // The @ReportingAccessRequired annotation checks if the org of the user is allowlisted
     // to receive reports or not. This org will be used throughout most tests.
-    when(accountListSource.containsReportingAccount("account123456")).thenReturn(true);
   }
 
   private static final MeasurementSpec RH0180191 =

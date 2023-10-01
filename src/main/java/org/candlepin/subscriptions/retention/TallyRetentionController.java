@@ -23,9 +23,9 @@ package org.candlepin.subscriptions.retention;
 import io.micrometer.core.annotation.Timed;
 import java.time.OffsetDateTime;
 import java.util.stream.Stream;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,16 +39,16 @@ public class TallyRetentionController {
   private static final Logger log = LoggerFactory.getLogger(TallyRetentionController.class);
 
   private final TallySnapshotRepository tallySnapshotRepository;
-  private final AccountConfigRepository accountConfigRepository;
+  private final OrgConfigRepository orgConfigRepository;
   private final TallyRetentionPolicy policy;
 
   @Autowired
   public TallyRetentionController(
       TallySnapshotRepository tallySnapshotRepository,
-      AccountConfigRepository accountConfigRepository,
+      OrgConfigRepository orgConfigRepository,
       TallyRetentionPolicy policy) {
     this.tallySnapshotRepository = tallySnapshotRepository;
-    this.accountConfigRepository = accountConfigRepository;
+    this.orgConfigRepository = orgConfigRepository;
     this.policy = policy;
   }
 
@@ -58,7 +58,7 @@ public class TallyRetentionController {
   public void purgeSnapshotsAsync() {
     try {
       log.info("Starting tally snapshot purge.");
-      try (Stream<String> orgList = accountConfigRepository.findSyncEnabledOrgs()) {
+      try (Stream<String> orgList = orgConfigRepository.findSyncEnabledOrgs()) {
         orgList.forEach(this::cleanStaleSnapshotsForOrgId);
       }
       log.info("Tally snapshot purge completed successfully.");

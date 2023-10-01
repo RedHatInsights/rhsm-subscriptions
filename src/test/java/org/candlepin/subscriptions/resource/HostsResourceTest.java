@@ -25,9 +25,9 @@ import static org.mockito.Mockito.*;
 import com.redhat.swatch.configuration.registry.ProductId;
 import java.time.OffsetDateTime;
 import java.util.Collections;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyHostView;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -60,7 +60,7 @@ class HostsResourceTest {
 
   @MockBean HostRepository repository;
   @MockBean PageLinkCreator pageLinkCreator;
-  @MockBean AccountConfigRepository accountConfigRepo;
+  @MockBean OrgConfigRepository orgConfigRepo;
   @Autowired HostsResource resource;
 
   @BeforeEach
@@ -69,8 +69,7 @@ class HostsResourceTest {
     when(repository.getTallyHostViews(
             any(), any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any()))
         .thenReturn(mockPage);
-    when(accountConfigRepo.findOrgByAccountNumber("owner123456")).thenReturn("owner123456");
-    when(accountConfigRepo.existsByOrgId("owner123456")).thenReturn(true);
+    when(orgConfigRepo.existsByOrgId("owner123456")).thenReturn(true);
   }
 
   @Test
