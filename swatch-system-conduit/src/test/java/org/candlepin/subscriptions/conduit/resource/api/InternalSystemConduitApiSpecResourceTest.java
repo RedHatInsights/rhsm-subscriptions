@@ -18,23 +18,28 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.deployment;
+package org.candlepin.subscriptions.conduit.resource.api;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import org.candlepin.subscriptions.SystemConduitApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest(useMainMethod = SpringBootTest.UseMainMethod.ALWAYS)
+@SpringBootTest
 @ActiveProfiles({"test"})
-class SystemConduitDeploymentTest {
-  @Autowired SystemConduitApplication configuration;
+class InternalSystemConduitApiSpecResourceTest {
+
+  @Autowired InternalSystemConduitApiSpecResource resource;
 
   @Test
-  void testDeployment() {
-    assertNotNull(configuration);
+  void testGetOpenApiJson() {
+    assertNotNull(resource.getOpenApiJson());
+  }
+
+  @Test
+  void testGetOpenApiYaml() {
+    assertNotNull(resource.getOpenApiYaml());
   }
 }
