@@ -143,6 +143,10 @@ parameters:
     value: '3'
   - name: KAFKA_SERVICE_INSTANCE_PARTITIONS
     value: '3'
+  - name: KAFKA_SERVICE_INSTANCE_DEAD_LETTER_REPLICAS
+    value: '3'
+  - name: KAFKA_SERVICE_INSTANCE_DEAD_LETTER_PARTITIONS
+    value: '3'
   - name: KAFKA_TALLY_REPLICAS
     value: '3'
   - name: KAFKA_TALLY_PARTITIONS
@@ -234,6 +238,9 @@ objects:
       - replicas: ${{KAFKA_SERVICE_INSTANCE_REPLICAS}}
         partitions: ${{KAFKA_SERVICE_INSTANCE_PARTITIONS}}
         topicName: platform.rhsm-subscriptions.service-instance-ingress
+      - replicas: ${{KAFKA_SERVICE_INSTANCE_DEAD_LETTER_REPLICAS}}
+        partitions: ${{KAFKA_SERVICE_INSTANCE_DEAD_LETTER_PARTITIONS}}
+        topicName: platform.rhsm-subscriptions.service-instance-ingress.DLT
 
     database:
       # Must specify both a name and a major postgres version
