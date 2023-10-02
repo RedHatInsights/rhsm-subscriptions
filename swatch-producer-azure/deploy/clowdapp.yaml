@@ -3,5 +3,143 @@ apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   name: swatch-producer-azure
-parameters: []
-objects: []
+parameters:
+  - name: JAVA_DEBUG
+    # Set to "true" to enable remote debugging
+    value: ''
+  - name: IMAGE_PULL_SECRET
+    value: quay-cloudservices-pull
+  - name: MEMORY_REQUEST
+    value: 512Mi
+  - name: MEMORY_LIMIT
+    value: 512Mi
+  - name: CPU_REQUEST
+    value: 200m
+  - name: CPU_LIMIT
+    value: '1'
+  - name: ENV_NAME
+    value: env-swatch-producer-azure
+  - name: REPLICAS
+    value: '1'
+  - name: IMAGE
+    value: quay.io/cloudservices/swatch-producer-azure
+  - name: IMAGE_TAG
+    value: latest
+  - name: LOGGING_LEVEL_ROOT
+    value: 'INFO'
+  - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
+    value: 'INFO'
+  - name: KAFKA_SEEK_OVERRIDE_END
+    value: 'false'
+  - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
+    value: ''
+  - name: KAFKA_BILLABLE_USAGE_REPLICAS
+    value: '3'
+  - name: KAFKA_BILLABLE_USAGE_PARTITIONS
+    value: '3'
+  - name: QUARKUS_PROFILE
+    value: prod
+
+objects:
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdApp
+  metadata:
+    name: swatch-producer-azure
+    labels:
+      # NOTE: There's no need to define annotations for prometheus when prometheus is
+      # configured via servicemonitor.
+      #
+      # See: https://github.com/prometheus-operator/prometheus-operator/issues/1547#issuecomment-401092041
+      prometheus: quarkus
+  spec:
+    envName: ${ENV_NAME}
+
+    kafkaTopics:
+      - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}
+        partitions: ${{KAFKA_BILLABLE_USAGE_PARTITIONS}}
+        topicName: platform.rhsm-subscriptions.billable-usage
+
+    pullSecrets:
+      name: ${IMAGE_PULL_SECRET}
+
+    deployments:
+      - name: service
+        replicas: ${{REPLICAS}}
+        webServices:
+          public:
+            enabled: true
+        podSpec:
+          image: ${IMAGE}:${IMAGE_TAG}
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /q/health/live
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /q/health/ready
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: ${CPU_REQUEST}
+              memory: ${MEMORY_REQUEST}
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+          env:
+            - name: JAVA_DEBUG
+              value: ${JAVA_DEBUG}
+            - name: LOGGING_LEVEL_ROOT
+              value: ${LOGGING_LEVEL_ROOT}
+            - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
+              value: ${LOGGING_LEVEL_COM_REDHAT_SWATCH}
+            - name: SPLUNKMETA_namespace
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: SPLUNKMETA_host
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: SPLUNK_HEC_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: splunk-hec-external
+                  key: token
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
+            - name: KAFKA_SEEK_OVERRIDE_END
+              value: ${KAFKA_SEEK_OVERRIDE_END}
+            - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
+              value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
+            - name: QUARKUS_PROFILE
+              value: ${QUARKUS_PROFILE}
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+          volumes:
+            - name: logs
+              emptyDir:
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: swatch-psks
+  data:
+    self: cGxhY2Vob2xkZXI=

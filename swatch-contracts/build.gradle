@@ -42,6 +42,7 @@ dependencies {
     implementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'
     implementation project(':clients:quarkus:rbac-client')
     implementation project(':swatch-product-configuration')
+    implementation project(':swatch-common-resteasy-client')
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
     annotationProcessor "org.hibernate.orm:hibernate-jpamodelgen"
     testImplementation 'io.rest-assured:rest-assured'

@@ -1,0 +1,33 @@
+METERING_RHEL_TASK_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.metering-rhel-tasks')].name:platform.rhsm-subscriptions.metering-rhel-tasks}
+SERVICE_INSTANCE_INGRESS_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.service-instance-ingress')].name:platform.rhsm-subscriptions.service-instance-ingress}
+
+rhsm-subscriptions:
+  account-batch-size: 1
+
+  metering:
+    prometheus:
+      metric:
+        queryTemplates:
+          default: >-
+            #{metric.prometheus.queryParams[metric]}
+            * on(#{metric.prometheus.queryParams[instanceKey]}) group_right
+            min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{product="#{metric.prometheus.queryParams[product]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
+          addonSamples: >-
+            #{metric.prometheus.queryParams[metric]}
+            * on(#{metric.prometheus.queryParams[instanceKey]}) group_right
+            min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{resource_type="addon",resource_name="#{metric.prometheus.queryParams[resourceName]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
+        maxAttempts: 50
+        backOffMaxInterval: 50000
+        backOffInitialInterval: 1000
+        backOffMultiplier: 1.5
+    tasks:
+      topic: ${METERING_RHEL_TASK_TOPIC}
+      kafka-group-id: swatch-metrics-rhel
+      seek-override-end: ${METRICS_RHEL_KAFKA_SEEK_OVERRIDE_END:false}
+      seek-override-timestamp: ${METRICS_RHEL_KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
+    events:
+      topic: ${SERVICE_INSTANCE_INGRESS_TOPIC}
+      kafka-group-id: swatch-instance-ingress
+      seek-override-end: false
+      seek-override-timestamp:
+      max-poll-records: 500

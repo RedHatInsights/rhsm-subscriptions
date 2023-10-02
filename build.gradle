@@ -12,6 +12,8 @@ plugins {
     id "org.sonarqube"
     id "com.netflix.nebula.release"
     id 'swatch.liquibase-conventions'
+    id 'jacoco-report-aggregation'
+    id 'jvm-test-suite'
 }
 
 configurations {
@@ -73,6 +75,13 @@ dependencies {
     runtimeOnly "org.hsqldb:hsqldb"
 
     javaagent  libraries["splunk-otel-agent"]
+
+    subprojects.findAll { !Set.of(
+            project(':clients'),
+            project(':clients:quarkus')
+    ).contains(it)}.each {
+        jacocoAggregation it
+    }
 }
 
 allprojects {
@@ -430,4 +439,12 @@ project(":api") {
 
     sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
     compileJava.dependsOn tasks.openApiGenerate
+}
+
+tasks.check.dependsOn tasks.testCodeCoverageReport
+
+sonarqube {
+    properties {
+        property "sonar.coverage.jacoco.xmlReportPaths", "${rootProject.projectDir}/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml"
+    }
 }

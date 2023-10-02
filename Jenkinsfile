@@ -83,7 +83,7 @@ spec:
                 // The build task includes check, test, and assemble.  Linting happens during the check
                 // task and uses the spotless gradle plugin.
                 echo "The ci value is ${env.CI}"
-                sh "./gradlew --no-daemon build jacocoTestReport"
+                sh "./gradlew --no-daemon build testCodeCoverageReport"
             }
         }
 

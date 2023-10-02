@@ -1,0 +1,112 @@
+---
+openapi: 3.0.2
+info:
+  title: Swatch Producer Azure Internal API
+  version: 1.0.0
+  description: Internal APIs for Swatch Producer - Azure
+  contact:
+    name: SWATCH Dev
+    url: https://github.com/RedHatInsights/rhsm-subscriptions
+paths:
+  /api/swatch-producer-azure/internal/azure/billable_usage:
+    post:
+      summary: Send `BillableUsage` usage data to Azure.
+      requestBody:
+        description: A given `BillableUsage` to have usage data forwarded to Azure.
+        content:
+          application/json:
+            schema:
+              $ref: '../../../../../swatch-core/schemas/billable_usage.yaml'
+        required: false
+      responses:
+        '202':
+          description: "BillableUsage queued for sending to AWS."
+      operationId: submitBillableUsage
+      description: Only available when `AZURE_MANUAL_SUBMISSION_ENABLED=true`
+  /api/swatch-producer-azure/internal/kafka_seek_position:
+    post:
+      summary: Seek Kafka consumer to a relative position
+      tags:
+        - kafka
+      parameters:
+        - name: position
+          in: query
+          schema:
+            $ref: '#/components/schemas/KafkaSeekPosition'
+      responses:
+        '202':
+          description: "Kafka queue seeked successfully for all partitions."
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+      operationId: kafkaSeekPosition
+      description: >
+        Seek the kafka consumer manually to the specified position (for
+        debugging/support purposes)
+  /api/swatch-producer-azure/internal/kafka_seek_timestamp:
+    post:
+      summary: Seek Kafka consumer to a specific timestamp
+      tags:
+        - kafka
+      parameters:
+        - name: timestamp
+          in: query
+          schema:
+            type: string
+      responses:
+        '202':
+          description: "Kafka queue seeked successfully for all partitions."
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+      operationId: kafkaSeekTimestamp
+      description: >
+        Seek the kafka consumer manually to the specified timestamp (for
+        debugging/support purposes).
+components:
+  schemas:
+    Error:
+      required:
+        - status
+        - code
+        - title
+      properties:
+        status:
+          type: string
+        code:
+          type: string
+        title:
+          type: string
+        detail:
+          type: string
+    KafkaSeekPosition:
+      enum:
+        - beginning
+        - end
+  responses:
+    ErrorResponse:
+      description: "Error handling request"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  securitySchemes:
+    customer:
+      type: apiKey
+      description: customer facing API
+      name: x-rh-identity
+      in: header
+    support:
+      type: apiKey
+      description: API is available for support operations
+      name: x-rh-identity
+      in: header
+    service:
+      type: apiKey
+      description: API is available for services
+      name: x-rh-swatch-psk
+      in: header
+    test:
+      type: apiKey
+      description: API is available for testing purposes (pre-production environments
+        only)
+      name: x-rh-swatch-psk
+      in: header

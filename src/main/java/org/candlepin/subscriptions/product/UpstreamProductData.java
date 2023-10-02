@@ -199,13 +199,14 @@ class UpstreamProductData {
           umbData.children);
       return offeringFromUpstream(product.getSku(), productDataSource);
     }
-    if (!Objects.equals(
-        umbData.attrs.get(Attr.DERIVED_SKU), existingProductData.attrs.get(Attr.DERIVED_SKU))) {
+    String umbDerivedSku = umbData.attrs.get(Attr.DERIVED_SKU);
+    String existingDerivedSku = existingProductData.attrs.get(Attr.DERIVED_SKU);
+    if (!Objects.equals(umbDerivedSku, existingDerivedSku)) {
       LOGGER.debug(
           "Must sync SKU={} from data source because derived SKU changed from {} to {}",
           product.getSku(),
-          existingProductData.attrs.get(Attr.DERIVED_SKU),
-          umbData.attrs.get(Attr.DERIVED_SKU));
+          existingDerivedSku,
+          umbDerivedSku);
       return offeringFromUpstream(product.getSku(), productDataSource);
     }
     existingProductData.attrs.forEach(umbData::putIfNoConflict);
