@@ -169,9 +169,9 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, EventK
   @Query(
       nativeQuery = true,
       value =
-          "select * from events where org_id=:orgId and data->>'service_type'=:serviceType and timestamp >= :begin and timestamp < :end order by timestamp")
+          "select * from events where org_id=:orgId and data->>'service_type'=:serviceType and timestamp >= :begin and record_date < :end order by timestamp")
   Stream<EventRecord>
-      findByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+      findByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndRecordDateLessThanOrderByTimestamp(
           @Param("orgId") String orgId,
           @Param("serviceType") String serviceType,
           @Param("begin") OffsetDateTime begin,
@@ -180,26 +180,6 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, EventK
   void deleteByOrgId(String orgId);
 
   void deleteByEventId(UUID eventId);
-
-  /**
-   * If there is no recalculation then we compare the user range to record date
-   *
-   * @param orgId
-   * @param serviceType
-   * @param begin
-   * @param end
-   * @return
-   */
-  @Query(
-      nativeQuery = true,
-      value =
-          "select * from events where org_id=:orgId and data->>'service_type'=:serviceType and record_date >= :begin and record_date < :end order by timestamp")
-  Stream<EventRecord>
-      findByOrgIdAndServiceTypeAndRecordDateGreaterThanEqualAndRecordDateLessThanOrderByTimestamp(
-          @Param("orgId") String orgId,
-          @Param("serviceType") String serviceType,
-          @Param("begin") OffsetDateTime begin,
-          @Param("end") OffsetDateTime end);
 
   /**
    * We want to obtain the first event record for the hourly tally based on timestamp actual_date.
