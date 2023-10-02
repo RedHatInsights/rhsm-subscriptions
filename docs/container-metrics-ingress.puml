@@ -12,12 +12,24 @@ Person_Ext(customer, "Red Hat Customer")
 
 Boundary(crc, console.redhat.com) {
   Boundary(swatch, "Subscription watch") {
-    System_Boundary(metrics_ingress, "Metrics Ingress") {
-      Container(metrics_job, "Metering CronJob", "Java, Container", "CronJobs for metrics syncing.")
+    System_Boundary(telemeter_ingress, "Metrics Ingress from OpenShift telemeter tenant") {
+      Container(metrics_job, "swatch-metrics-sync", "Java, Container", "CronJobs for metrics syncing.")
       ContainerQueue(metrics_tasks, "platform.rhsm-subscriptions.metering-tasks", "Kafka Topic")
-      Container(metrics_worker, "Metering Worker", "Java, Container", "Worker that handles gathering metrics from Prometheus.")
+      Container(metrics_worker, "swatch-metrics-service", "Java, Container", "Worker that handles gathering metrics from OpenShift observatorium tenant.")
     }
-    ContainerDb(db, "Database", "Postgres Database", "Stores subscription and usage information.")
+
+    System_Boundary(rhelemeter_ingress, "Metrics Ingress from RHEL telemeter tenant") {
+      Container(metrics_rhel_job, "swatch-metrics-rhel-sync", "Java, Container", "CronJobs for metrics syncing.")
+      ContainerQueue(metrics_rhel_tasks, "platform.rhsm-subscriptions.metering-rhel-tasks", "Kafka Topic")
+      Container(metrics_rhel_service, "swatch-metrics-rhel-service", "Java, Container", "Worker that handles gathering metrics from RHEL observatorium tenant.")
+    }
+
+    System_Boundary(swatch_tally, "(Simplified) Swatch Tally") {
+      ContainerQueue(service_instance_ingress, "platform.rhsm-subscriptions.service-instance-ingress", "Kafka Topic")
+      ContainerQueue(metrics_rhel_tasks, "platform.rhsm-subscriptions.metering-rhel-tasks", "Kafka Topic")
+      Container(swatch_tally_service, "swatch-tally-service", "Java, Container", "Aggregates usage metrics into snapshots")
+      ContainerDb(db, "Database", "Postgres Database", "Stores subscription and usage information.")
+    }
   }
 }
 
@@ -26,12 +38,25 @@ System_Ext(observatorium, "Observatorium", "Prometheus/Thanos based service for 
 
 
 ' external dataflows
-Rel(customer, customer_system, "Provisions/Uses")
-Rel(customer_system, observatorium, "Reports to")
+
+customer -d-> customer_system: "Provisions/Uses"
+customer_system -d-> observatorium: "Reports to"
 
 ' metering dataflow
-Rel(metrics_job, metrics_tasks, "Produces to")
-Rel_Back(metrics_tasks, metrics_worker, "Consumes from")
-Rel_Back(observatorium, metrics_worker, "Syncs from")
-Rel(metrics_worker, db, "Reads from and writes to", "JDBC")
+
+metrics_job -d-> metrics_tasks: "Produces to"
+metrics_tasks <-d- metrics_worker: "Consumes from"
+observatorium <-d- metrics_worker: "Syncs from openshift tenant"
+metrics_worker -d-> service_instance_ingress: "Produces to"
+
+metrics_rhel_job -d-> metrics_rhel_tasks: "Produces to"
+metrics_rhel_tasks <-d- metrics_rhel_service: "Consumes from"
+observatorium <-d- metrics_rhel_service: "Syncs from rhel tenant"
+metrics_rhel_service -d-> service_instance_ingress: "Produces to"
+
+'
+service_instance_ingress <-d-  swatch_tally_service: "Consumes from"
+swatch_tally_service <-> db: "Reads and writes to"
+
+
 @enduml
