@@ -1,3 +1,4 @@
+set -x
 if command -v podman && [[ -z "$USE_DOCKER" ]]; then
   TEMPSOCKET=$(mktemp)
   export SOCKET=$TEMPSOCKET
@@ -41,3 +42,4 @@ if [[ -n "$TEMPSOCKET" ]]; then
   rm -f $TEMPSOCKET
 fi
 exit $RETURN_CODE
+set +x
