@@ -79,7 +79,7 @@ public class EventController {
 
   public Stream<Event> fetchEventsInTimeRangeByServiceType(
       String orgId, String serviceType, OffsetDateTime begin, OffsetDateTime end) {
-    return repo.findByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
+    return repo.findByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndRecordDateLessThanOrderByTimestamp(
             orgId, serviceType, begin, end)
         .map(EventRecord::getEvent);
   }
