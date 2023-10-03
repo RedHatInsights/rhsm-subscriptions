@@ -43,7 +43,9 @@ import org.candlepin.subscriptions.prometheus.model.QueryResultData;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.ResultType;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
-import org.candlepin.subscriptions.test.BaseIT;
+import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
+import org.candlepin.subscriptions.test.ExtendWithPrometheusWiremock;
+import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
 import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,7 +55,8 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest(properties = "EVENT_SOURCE=" + MeteringMetricsFromPrometheusToDatabaseIT.PROMETHEUS)
 @ActiveProfiles({"openshift-metering-worker", "worker", "test-inventory"})
-class MeteringMetricsFromPrometheusToDatabaseIT extends BaseIT {
+class MeteringMetricsFromPrometheusToDatabaseIT
+    implements ExtendWithPrometheusWiremock, ExtendWithEmbeddedKafka, ExtendWithSwatchDatabase {
 
   static final String PROMETHEUS = "prometheus";
 

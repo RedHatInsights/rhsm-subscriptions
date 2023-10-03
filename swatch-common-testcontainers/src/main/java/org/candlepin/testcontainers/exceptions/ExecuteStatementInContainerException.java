@@ -18,25 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.resource;
+package org.candlepin.testcontainers.exceptions;
 
-import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
-import java.util.Collections;
-import java.util.Map;
-import org.candlepin.testcontainers.SwatchPostgreSQLContainer;
-
-public class PostgresResource implements QuarkusTestResourceLifecycleManager {
-
-  static SwatchPostgreSQLContainer db = new SwatchPostgreSQLContainer("rhsm-subscriptions");
-
-  @Override
-  public Map<String, String> start() {
-    db.start();
-    return Collections.singletonMap("quarkus.datasource.jdbc.url", db.getJdbcUrl());
+public class ExecuteStatementInContainerException extends RuntimeException {
+  public ExecuteStatementInContainerException(String message) {
+    super(message);
   }
 
-  @Override
-  public void stop() {
-    db.stop();
+  public ExecuteStatementInContainerException(String message, Throwable error) {
+    super(message, error);
   }
 }
