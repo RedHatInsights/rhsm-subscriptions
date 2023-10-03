@@ -659,7 +659,6 @@ Service that syncs system data from Hosted Candlepin into HBI.
 | purge-snapshots           |                                                      |                                     |
 | rh-marketplace            | platform.rhsm-subscriptions.billable-usage           | swatch-producer-red-hat-marketplace |
 |                           | platform.rhsm-subscriptions.billable-usage           | swatch-producer-aws                 |
-| subscription-sync         | platform.rhsm-subscriptions.subscription-sync        | swatch-subscription-sync-sync       |
 | capacity-ingress          | platform.rhsm-subscriptions.subscription-sync        | swatch-subscriptions-sync           |
 | capacity-ingress          | platform.rhsm-subscriptions.offering-sync            | swatch-subscriptions-sync           |
 | capacity-ingress          | platform.rhsm-subscriptions.capacity-reconcile       | swatch-subscriptions-sync           |

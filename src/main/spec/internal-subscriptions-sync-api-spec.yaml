@@ -64,6 +64,13 @@ paths:
       operationId: syncAllSubscriptions
       tags:
         - internalSubscriptions
+      parameters:
+        - name: forceSync
+          in: query
+          schema:
+            type: boolean
+            default: "false"
+            description: "When true, it will trigger a sync of all subscription even when it was explicitly disabled via configuration."
       responses:
         '200':
           description: The request for syncing all subscriptions is successful.
