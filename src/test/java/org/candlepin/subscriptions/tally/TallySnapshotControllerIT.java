@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import static org.candlepin.subscriptions.metering.MeteringEventFactory.EVENT_SOURCE;
 import static org.candlepin.subscriptions.metering.MeteringEventFactory.getEventType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -53,6 +52,7 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest(properties = "CONTRACT_USE_STUB=true")
 @ActiveProfiles(value = {"worker", "kafka-queue", "api", "test-inventory"})
 class TallySnapshotControllerIT extends BaseIT {
+  static final String PROMETHEUS = "prometheus";
   static final String METRIC = "Cores";
   static final String USER_ID = "123";
   static final String ORG_ID = "owner" + USER_ID;
@@ -108,8 +108,8 @@ class TallySnapshotControllerIT extends BaseIT {
     event.setRole(Event.Role.MOA_HOSTEDCONTROLPLANE);
     event.setOrgId(ORG_ID);
     event.setEventType(getEventType(METRIC, PRODUCT_TAG));
-    event.setInstanceId("test");
-    event.setEventSource(EVENT_SOURCE);
+    event.setInstanceId(PROMETHEUS);
+    event.setEventSource("any");
     event.setExpiration(Optional.of(event.getTimestamp().plusHours(5)));
     event.setMeasurements(List.of(measurement(value)));
     event.setServiceType("rosa Instance");

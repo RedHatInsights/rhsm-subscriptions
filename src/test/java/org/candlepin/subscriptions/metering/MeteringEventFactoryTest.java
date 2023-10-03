@@ -38,6 +38,8 @@ import org.junit.jupiter.api.Test;
 
 class MeteringEventFactoryTest {
 
+  private static final String EVENT_SOURCE = "any";
+
   private final String productTag = "OpenShift-dedicated-metrics";
 
   @Test
@@ -64,6 +66,7 @@ class MeteringEventFactoryTest {
             sla,
             usage,
             role,
+            EVENT_SOURCE,
             measuredTime,
             expiry,
             serviceType,
@@ -82,7 +85,7 @@ class MeteringEventFactoryTest {
     assertEquals(Optional.of(clusterId), event.getDisplayName());
     assertEquals(Sla.PREMIUM, event.getSla());
     assertEquals(Usage.PRODUCTION, event.getUsage());
-    assertEquals(MeteringEventFactory.EVENT_SOURCE, event.getEventSource());
+    assertEquals(EVENT_SOURCE, event.getEventSource());
     assertEquals(
         MeteringEventFactory.getEventType(uom.getValue(), productTag), event.getEventType());
     assertEquals(serviceType, event.getServiceType());
@@ -103,6 +106,7 @@ class MeteringEventFactoryTest {
             null,
             "Production",
             "ocp",
+            EVENT_SOURCE,
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",
@@ -125,6 +129,7 @@ class MeteringEventFactoryTest {
             "None",
             "Production",
             "ocp",
+            EVENT_SOURCE,
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",
@@ -147,6 +152,7 @@ class MeteringEventFactoryTest {
             "UNKNOWN_SLA",
             "Production",
             "ocp",
+            EVENT_SOURCE,
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",
@@ -169,6 +175,7 @@ class MeteringEventFactoryTest {
             "Premium",
             "UNKNOWN_USAGE",
             "ocp",
+            EVENT_SOURCE,
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",
@@ -191,6 +198,7 @@ class MeteringEventFactoryTest {
             "Premium",
             null,
             "ocp",
+            EVENT_SOURCE,
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",
@@ -213,6 +221,7 @@ class MeteringEventFactoryTest {
             "Premium",
             "Production",
             "UNKNOWN_ROLE",
+            EVENT_SOURCE,
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",
@@ -235,6 +244,7 @@ class MeteringEventFactoryTest {
             "Premium",
             "Production",
             null,
+            EVENT_SOURCE,
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",
@@ -257,6 +267,7 @@ class MeteringEventFactoryTest {
             "Premium",
             "Production",
             "ocp",
+            EVENT_SOURCE,
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",
@@ -281,6 +292,7 @@ class MeteringEventFactoryTest {
             "Premium",
             "Production",
             "ocp",
+            EVENT_SOURCE,
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",
@@ -304,6 +316,7 @@ class MeteringEventFactoryTest {
             "Premium",
             "Production",
             "ocp",
+            EVENT_SOURCE,
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",
@@ -326,6 +339,7 @@ class MeteringEventFactoryTest {
             "Premium",
             "Production",
             "ocp",
+            EVENT_SOURCE,
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",
@@ -348,6 +362,7 @@ class MeteringEventFactoryTest {
             "Premium",
             "Production",
             null,
+            EVENT_SOURCE,
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",
@@ -378,6 +393,7 @@ class MeteringEventFactoryTest {
             "Premium",
             "Production",
             "ocp",
+            EVENT_SOURCE,
             OffsetDateTime.now(),
             OffsetDateTime.now(),
             "service_type",

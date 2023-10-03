@@ -64,11 +64,17 @@ import org.springframework.retry.backoff.NoBackOffPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest(properties = PrometheusQueryWiremockExtension.PROM_URL)
+@SpringBootTest(
+    properties = {
+      PrometheusQueryWiremockExtension.PROM_URL,
+      "EVENT_SOURCE=" + PrometheusMeteringControllerTest.PROMETHEUS
+    })
 @ActiveProfiles({"openshift-metering-worker", "test"})
 @Import(TestClockConfiguration.class)
 @ExtendWith(PrometheusQueryWiremockExtension.class)
 class PrometheusMeteringControllerTest {
+
+  static final String PROMETHEUS = "prometheus";
 
   @MockBean private PrometheusEventsProducer eventsProducer;
 
@@ -231,6 +237,7 @@ class PrometheusMeteringControllerTest {
                 expectedSla,
                 expectedUsage,
                 expectedRole,
+                PROMETHEUS,
                 clock.dateFromUnix(time1).minusSeconds(metricProperties.getStep()),
                 clock.dateFromUnix(time1),
                 expectedServiceType,
@@ -247,6 +254,7 @@ class PrometheusMeteringControllerTest {
                 expectedSla,
                 expectedUsage,
                 expectedRole,
+                PROMETHEUS,
                 clock.dateFromUnix(time2).minusSeconds(metricProperties.getStep()),
                 clock.dateFromUnix(time2),
                 expectedServiceType,
@@ -259,6 +267,7 @@ class PrometheusMeteringControllerTest {
             MeteringEventFactory.createCleanUpEvent(
                 expectedOrgId,
                 getEventType(expectedMetricId.toString(), expectedProductTag),
+                PROMETHEUS,
                 start,
                 end,
                 expectedSpanId));
@@ -303,6 +312,7 @@ class PrometheusMeteringControllerTest {
             expectedSla,
             expectedUsage,
             expectedRole,
+            PROMETHEUS,
             clock.dateFromUnix(time1).minusSeconds(metricProperties.getStep()),
             clock.dateFromUnix(time1),
             expectedServiceType,
@@ -323,6 +333,7 @@ class PrometheusMeteringControllerTest {
                 expectedSla,
                 expectedUsage,
                 expectedRole,
+                PROMETHEUS,
                 clock.dateFromUnix(time2).minusSeconds(metricProperties.getStep()),
                 clock.dateFromUnix(time2),
                 expectedServiceType,
@@ -335,6 +346,7 @@ class PrometheusMeteringControllerTest {
             MeteringEventFactory.createCleanUpEvent(
                 expectedOrgId,
                 getEventType(expectedMetricId.toString(), expectedProductTag),
+                PROMETHEUS,
                 start,
                 end,
                 expectedSpanId));
@@ -388,6 +400,7 @@ class PrometheusMeteringControllerTest {
             "Standard",
             expectedUsage,
             expectedRole,
+            PROMETHEUS,
             clock.dateFromUnix(1616787308L).minusSeconds(metricProperties.getStep()),
             clock.dateFromUnix(1616787308L),
             expectedServiceType,
@@ -404,6 +417,7 @@ class PrometheusMeteringControllerTest {
             MeteringEventFactory.createCleanUpEvent(
                 expectedOrgId,
                 getEventType(expectedMetricId.toString(), expectedProductTag),
+                PROMETHEUS,
                 start,
                 end,
                 expectedSpanId));

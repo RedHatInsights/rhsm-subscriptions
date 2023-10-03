@@ -40,8 +40,6 @@ import org.springframework.util.StringUtils;
 public class MeteringEventFactory {
 
   private static final Logger log = LoggerFactory.getLogger(MeteringEventFactory.class);
-
-  public static final String EVENT_SOURCE = "prometheus";
   private static final String EVENT_TYPE = "snapshot";
 
   private MeteringEventFactory() {
@@ -70,6 +68,7 @@ public class MeteringEventFactory {
       String serviceLevel,
       String usage,
       String role,
+      String eventSource,
       OffsetDateTime measuredTime,
       OffsetDateTime expired,
       String serviceType,
@@ -88,6 +87,7 @@ public class MeteringEventFactory {
         serviceLevel,
         usage,
         role,
+        eventSource,
         measuredTime,
         expired,
         serviceType,
@@ -106,6 +106,7 @@ public class MeteringEventFactory {
    *
    * @param orgId the organization id.
    * @param eventType the event type.
+   * @param eventSource the event source.
    * @param start the start time window.
    * @param end the end time window.
    * @param meteringBatchId Metering batch ID that identifies which process generated the event.
@@ -114,12 +115,13 @@ public class MeteringEventFactory {
   public static CleanUpEvent createCleanUpEvent(
       String orgId,
       String eventType,
+      String eventSource,
       OffsetDateTime start,
       OffsetDateTime end,
       UUID meteringBatchId) {
     CleanUpEvent event = new CleanUpEvent();
     event.setOrgId(orgId);
-    event.setEventSource(MeteringEventFactory.EVENT_SOURCE);
+    event.setEventSource(eventSource);
     event.setEventType(eventType);
     event.setMeteringBatchId(meteringBatchId);
     event.setStart(start);
@@ -136,6 +138,7 @@ public class MeteringEventFactory {
       String serviceLevel,
       String usage,
       String role,
+      String eventSource,
       OffsetDateTime measuredTime,
       OffsetDateTime expired,
       String serviceType,
@@ -158,7 +161,7 @@ public class MeteringEventFactory {
         .withMeasurements(
             List.of(new Measurement().withUom(measuredMetric.getValue()).withValue(measuredValue)))
         .withRole(getRole(role, accountNumber, instanceId))
-        .withEventSource(EVENT_SOURCE)
+        .withEventSource(eventSource)
         .withEventType(MeteringEventFactory.getEventType(measuredMetric.getValue(), productTag))
         .withOrgId(orgId)
         .withInstanceId(instanceId)
