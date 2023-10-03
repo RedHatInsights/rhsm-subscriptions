@@ -64,8 +64,7 @@ import org.springframework.test.context.ActiveProfiles;
 class SubscriptionTableControllerOnDemandTest {
 
   private static final ProductId RHOSAK = ProductId.fromString("rhosak");
-  private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
-  private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
+  private static final String OFFERING_DESCRIPTION_SUFFIX = " test description";
 
   @MockBean SubscriptionRepository subscriptionRepository;
   @MockBean OfferingRepository offeringRepository;
@@ -410,6 +409,7 @@ class SubscriptionTableControllerOnDemandTest {
     assertEquals(1, actual.getData().size(), "Wrong number of items returned");
     SkuCapacity actualItem = actual.getData().get(0);
     assertTrue(actualItem.getHasInfiniteQuantity(), "HasInfiniteQuantity should be true");
+    assertEquals(actualItem.getSku() + OFFERING_DESCRIPTION_SUFFIX, actualItem.getProductName());
   }
 
   @Test
@@ -634,6 +634,7 @@ class SubscriptionTableControllerOnDemandTest {
           .serviceLevel(this.serviceLevel)
           .usage(this.usage)
           .hasUnlimitedUsage(this.hasUnlimitedUsage)
+          .description(this.sku + OFFERING_DESCRIPTION_SUFFIX)
           .build();
     }
   }

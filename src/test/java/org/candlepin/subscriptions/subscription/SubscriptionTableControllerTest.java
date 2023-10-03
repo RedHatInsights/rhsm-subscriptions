@@ -62,6 +62,8 @@ import org.springframework.test.context.ActiveProfiles;
 class SubscriptionTableControllerTest {
 
   private static final ProductId RHEL_FOR_X86 = ProductId.fromString("RHEL for x86");
+  private static final String OFFERING_DESCRIPTION_SUFFIX = " test description";
+
   @MockBean SubscriptionRepository subscriptionRepository;
   @MockBean OfferingRepository offeringRepository;
   @MockBean AccountListSource accountListSource;
@@ -846,6 +848,7 @@ class SubscriptionTableControllerTest {
     assertEquals(expectedCap, actual.getCapacity(), "Wrong Standard Capacity");
     assertEquals(expectedHypCap, actual.getHypervisorCapacity(), "Wrong Hypervisor Capacity");
     assertEquals(expectedCap + expectedHypCap, actual.getTotalCapacity(), "Wrong Total Capacity");
+    assertEquals(actual.getSku() + OFFERING_DESCRIPTION_SUFFIX, actual.getProductName());
   }
 
   private static void assertSubscription(Subscription expectedSub, SkuCapacitySubscription actual) {
@@ -1016,6 +1019,7 @@ class SubscriptionTableControllerTest {
           .serviceLevel(serviceLevel)
           .usage(usage)
           .productName(productName)
+          .description(sku + OFFERING_DESCRIPTION_SUFFIX)
           .build();
     }
 
