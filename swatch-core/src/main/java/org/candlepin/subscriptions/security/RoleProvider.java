@@ -20,9 +20,10 @@
  */
 package org.candlepin.subscriptions.security;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Builds roles based on the provided RBAC permission list. The intent of this class is to process
@@ -42,19 +43,23 @@ public class RoleProvider {
     this.devModeEnabled = devModeEnabled;
   }
 
-  public List<String> getRoles(Collection<String> permissions) {
-    List<String> roles = new ArrayList<>();
+  public Collection<String> getRoles(Collection<String> permissions) {
     if (permissions == null) {
-      return roles;
+      return List.of();
     }
 
+    Set<String> roles = new HashSet<>();
     // By default, we look for the subscriptions:*:* permission (unless
     // configured otherwise).
-    if (devModeEnabled || permissions.contains(rulePrefix + ":*:*")) {
+    if (permissions.contains(rulePrefix + ":*:*")) {
       roles.add(SWATCH_ADMIN_ROLE);
     }
     if (permissions.contains(rulePrefix + ":reports:read")) {
       roles.add(SWATCH_REPORT_READER);
+    }
+    if (devModeEnabled) {
+      roles.add(SWATCH_ADMIN_ROLE);
+      roles.add(ROLE_INTERNAL);
     }
     return roles;
   }
