@@ -23,6 +23,7 @@ package org.candlepin.testcontainers;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.EqualsAndHashCode;
@@ -47,7 +48,7 @@ public class SwatchPostgreSQLContainer extends PostgreSQLContainer<SwatchPostgre
     withDatabaseName(database);
     withUsername(database);
     withPassword(database);
-    withNetworkAliases(database);
+    withNetworkAliases(UUID.randomUUID().toString());
     // SMELL: Workaround for https://github.com/testcontainers/testcontainers-java/issues/7539
     // This is because testcontainers randomly fails to start a container when using Podman socket.
     withStartupAttempts(3);
