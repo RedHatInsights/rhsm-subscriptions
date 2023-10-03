@@ -34,7 +34,7 @@ import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
-import org.candlepin.subscriptions.db.model.OrgConfigRepository;
+import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

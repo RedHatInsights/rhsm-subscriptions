@@ -30,7 +30,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.db.model.OrgConfigRepository;
+import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskManagerException;
 import org.candlepin.subscriptions.task.TaskQueueProperties;

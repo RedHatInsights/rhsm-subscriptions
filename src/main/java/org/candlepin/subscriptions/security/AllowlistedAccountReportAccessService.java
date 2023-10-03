@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.security;
 
-import org.candlepin.subscriptions.db.model.OrgConfigRepository;
+import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;

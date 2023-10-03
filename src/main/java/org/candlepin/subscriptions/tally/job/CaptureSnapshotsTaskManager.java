@@ -26,7 +26,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.db.model.OrgConfigRepository;
+import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.tally.TallyTaskQueueConfiguration;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskManagerException;

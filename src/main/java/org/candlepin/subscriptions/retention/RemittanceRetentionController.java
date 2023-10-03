@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.retention;
 import java.time.OffsetDateTime;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
-import org.candlepin.subscriptions.db.model.OrgConfigRepository;
+import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
