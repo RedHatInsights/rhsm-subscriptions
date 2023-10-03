@@ -64,14 +64,10 @@ import org.springframework.retry.backoff.NoBackOffPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest(
-    properties = {
-      PrometheusQueryWiremockExtension.PROM_URL,
-      "EVENT_SOURCE=" + PrometheusMeteringControllerTest.PROMETHEUS
-    })
+@SpringBootTest(properties = "EVENT_SOURCE=" + PrometheusMeteringControllerTest.PROMETHEUS)
 @ActiveProfiles({"openshift-metering-worker", "test"})
 @Import(TestClockConfiguration.class)
-class PrometheusMeteringControllerWiremock implements ExtendWithPrometheusWiremock {
+class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
 
   static final String PROMETHEUS = "prometheus";
 

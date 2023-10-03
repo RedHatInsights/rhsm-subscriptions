@@ -39,7 +39,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles({"openshift-metering-worker", "test"})
-class PrometheusServiceWiremock implements ExtendWithPrometheusWiremock {
+class PrometheusServiceTest implements ExtendWithPrometheusWiremock {
 
   @Autowired private PrometheusService service;
 

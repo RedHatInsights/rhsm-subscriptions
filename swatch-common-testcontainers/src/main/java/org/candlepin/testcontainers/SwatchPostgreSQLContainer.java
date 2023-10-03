@@ -20,9 +20,13 @@
  */
 package org.candlepin.testcontainers;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.EqualsAndHashCode;
+import org.candlepin.testcontainers.exceptions.ExecuteStatementInContainerException;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
 import org.testcontainers.utility.DockerImageName;
@@ -43,9 +47,26 @@ public class SwatchPostgreSQLContainer extends PostgreSQLContainer<SwatchPostgre
     withDatabaseName(database);
     withUsername(database);
     withPassword(database);
+    withNetworkAliases(database);
     // SMELL: Workaround for https://github.com/testcontainers/testcontainers-java/issues/7539
     // This is because testcontainers randomly fails to start a container when using Podman socket.
     withStartupAttempts(3);
+  }
+
+  public void deleteAllRows(String table) {
+    executeStatement("DELETE FROM " + table);
+  }
+
+  public void insertRow(String table, String[] columns, String[] values) {
+    executeStatement(
+        "INSERT INTO "
+            + table
+            + "("
+            + String.join(",", columns)
+            + ") "
+            + "VALUES ("
+            + arrayToString(values)
+            + ")");
   }
 
   @Override
@@ -54,5 +75,36 @@ public class SwatchPostgreSQLContainer extends PostgreSQLContainer<SwatchPostgre
     addEnv("POSTGRESQL_USER", getUsername());
     addEnv("POSTGRESQL_PASSWORD", getPassword());
     addEnv("POSTGRESQL_DATABASE", getDatabaseName());
+  }
+
+  private void executeStatement(String statement) {
+    try {
+      ExecResult result =
+          execInContainer(
+              "psql",
+              "-h",
+              "localhost",
+              "-U",
+              getUsername(),
+              "-d",
+              getDatabaseName(),
+              "-c",
+              statement + ";");
+      if (result.getExitCode() != 0) {
+        throw new ExecuteStatementInContainerException(
+            "Fail to execute statement " + statement + ". Output: " + result.getStderr());
+      }
+    } catch (IOException e) {
+      throw new ExecuteStatementInContainerException(
+          "Fail to execute statement in " + getContainerId(), e);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ExecuteStatementInContainerException(
+          "Fail to execute statement in " + getContainerId(), e);
+    }
+  }
+
+  private String arrayToString(String[] array) {
+    return Stream.of(array).map(v -> "'" + v + "'").collect(Collectors.joining(","));
   }
 }
