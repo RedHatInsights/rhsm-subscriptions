@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.event;
 
-import static org.candlepin.subscriptions.metering.MeteringEventFactory.EVENT_SOURCE;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
@@ -54,6 +52,9 @@ import org.springframework.util.StringUtils;
 @Service
 @Slf4j
 public class EventController {
+
+  private static final Set<String> EXCLUDE_LOG_FOR_EVENT_SOURCES =
+      Set.of("prometheus", "rhelemeter");
   private final EventRecordRepository repo;
   private final ObjectMapper objectMapper;
   private final OptInController optInController;
@@ -211,10 +212,9 @@ public class EventController {
     for (int index = 0; index < eventJsonList.size(); index++) {
       try {
         BaseEvent baseEvent = objectMapper.readValue(eventJsonList.get(index), BaseEvent.class);
-        if (!EVENT_SOURCE.equals(baseEvent.getEventSource())) {
+        if (!EXCLUDE_LOG_FOR_EVENT_SOURCES.contains(baseEvent.getEventSource())) {
           log.info("Event processing in batch: " + baseEvent);
         }
-
         if (StringUtils.hasText(baseEvent.getOrgId())) {
           log.debug(
               "Ensuring orgId={} has been set up for syncing/reporting.", baseEvent.getOrgId());

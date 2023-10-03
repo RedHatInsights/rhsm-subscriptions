@@ -20,7 +20,7 @@ ext {
 // buildSrc/build.gradle adds them to the gradle classpath
 ext.plugins = [
         "com.adarshr:gradle-test-logger-plugin:3.2.0",
-        "com.diffplug.spotless:spotless-plugin-gradle:6.21.0",
+        "com.diffplug.spotless:spotless-plugin-gradle:6.22.0",
         "com.netflix.nebula:nebula-release-plugin:17.2.2",
         "io.quarkus:gradle-application-plugin:3.4.1",
         // swagger-parser manually upgraded for compatibility with snakeyaml 2.0
@@ -69,4 +69,4 @@ libraries["webjars-locator"] = "org.webjars:webjars-locator:0.47"
 libraries["wiremock"] = "com.github.tomakehurst:wiremock-standalone:3.0.1"
 libraries["awaitility"] = "org.awaitility:awaitility:4.2.0"
 libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:1.28.0'
-libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.19.0'
+libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.19.1'

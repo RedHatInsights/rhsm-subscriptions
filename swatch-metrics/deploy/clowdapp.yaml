@@ -305,6 +305,8 @@ objects:
                   secretKeyRef:
                     name: ${INVENTORY_SECRET_KEY_NAME}
                     key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
+              - name: EVENT_SOURCE
+                value: 'prometheus'
               - name: PROM_URL
                 value: ${PROM_URL}
               - name: EVENT_RECORD_RETENTION
