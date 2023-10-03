@@ -169,9 +169,9 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, EventK
   @Query(
       nativeQuery = true,
       value =
-          "select * from events where org_id=:orgId and data->>'service_type'=:serviceType and timestamp >= :begin and record_date < :end order by timestamp")
+          "select * from events where org_id=:orgId and data->>'service_type'=:serviceType and timestamp >= :begin and timestamp < :end order by timestamp")
   Stream<EventRecord>
-      findByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndRecordDateLessThanOrderByTimestamp(
+      findByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
           @Param("orgId") String orgId,
           @Param("serviceType") String serviceType,
           @Param("begin") OffsetDateTime begin,

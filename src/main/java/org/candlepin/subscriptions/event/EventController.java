@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -78,9 +79,17 @@ public class EventController {
   }
 
   public Stream<Event> fetchEventsInTimeRangeByServiceType(
-      String orgId, String serviceType, OffsetDateTime begin, OffsetDateTime end) {
-    return repo.findByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndRecordDateLessThanOrderByTimestamp(
+      String orgId,
+      String serviceType,
+      OffsetDateTime begin,
+      OffsetDateTime end,
+      OffsetDateTime processEndDateTime) {
+    return repo.findByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
             orgId, serviceType, begin, end)
+        .filter(
+            eventRecord ->
+                Objects.isNull(processEndDateTime)
+                    || eventRecord.getRecordDate().isBefore(processEndDateTime))
         .map(EventRecord::getEvent);
   }
 
