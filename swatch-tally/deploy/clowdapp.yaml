@@ -240,7 +240,7 @@ objects:
         topicName: platform.rhsm-subscriptions.service-instance-ingress
       - replicas: ${{KAFKA_SERVICE_INSTANCE_DEAD_LETTER_REPLICAS}}
         partitions: ${{KAFKA_SERVICE_INSTANCE_DEAD_LETTER_PARTITIONS}}
-        topicName: platform.rhsm-subscriptions.service-instance-ingress.DLT
+        topicName: platform.rhsm-subscriptions.service-instance-ingress.dlt
 
     database:
       # Must specify both a name and a major postgres version

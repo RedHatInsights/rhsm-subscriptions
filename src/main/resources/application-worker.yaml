@@ -2,7 +2,7 @@ TASKS_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscrip
 TALLY_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.tally')].name:platform.rhsm-subscriptions.tally}
 BILLABLE_USAGE_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.billable-usage')].name:platform.rhsm-subscriptions.billable-usage}
 SERVICE_INSTANCE_INGRESS_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.service-instance-ingress')].name:platform.rhsm-subscriptions.service-instance-ingress}
-SERVICE_INSTANCE_INGRESS_DEAD_LETTER_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.service-instance-ingress.DLT')].name:platform.rhsm-subscriptions.service-instance-ingress.DLT}
+SERVICE_INSTANCE_INGRESS_DEAD_LETTER_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.service-instance-ingress.dlt')].name:platform.rhsm-subscriptions.service-instance-ingress.dlt}
 
 rhsm-subscriptions:
   hourlyTallyDurationLimitDays: 90d
