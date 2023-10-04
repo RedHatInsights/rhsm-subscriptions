@@ -542,9 +542,7 @@ class MetricUsageCollectorTest {
             });
 
     metricUsageCollector.collect(
-        SERVICE_TYPE,
-        "org123",
-        new DateRange(eventDate, eventDate.plusHours(1)));
+        SERVICE_TYPE, "org123", new DateRange(eventDate, eventDate.plusHours(1)));
     assertEquals(
         Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, MetricIdUtils.getCores()));
   }
@@ -594,9 +592,7 @@ class MetricUsageCollectorTest {
             });
 
     metricUsageCollector.collect(
-        SERVICE_TYPE,
-        "org123",
-        new DateRange(eventDate, eventDate.plusHours(1)));
+        SERVICE_TYPE, "org123", new DateRange(eventDate, eventDate.plusHours(1)));
     verify(eventController, times(1))
         .findFirstEventTimestampInRange("org123", SERVICE_TYPE, eventDate, eventDate.plusHours(1));
     assertEquals(
