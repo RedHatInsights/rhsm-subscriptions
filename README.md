@@ -151,7 +151,6 @@ We have a number of profiles. Each profile activates a subset of components in t
 - `liquibase-only`: Run the Liquibase migrations and stop
 - `rh-marketplace`: Run the worker responsible for processing tally summaries and
   emitting usage to Red Hat Marketplace.
-- `metering-job`: Create metering jobs and place them on the job queue
 - `openshift-metering-worker`: Process OpenShift metering jobs off the job queue
 - `purge-snapshots`: Run the retention job and exit
 - `worker`: Process jobs off the job queue
@@ -648,7 +647,8 @@ Service that syncs system data from Hosted Candlepin into HBI.
 |---------------------------|------------------------------------------------------|-------------------------------------|
 | openshift-metering-worker | platform.rhsm-subscriptions.metering-tasks           | swatch-metrics                      |
 | openshift-metering-worker | platform.rhsm-subscriptions.service-instance-ingress | swatch-metrics                      |
-| metering-job              | platform.rhsm-subscriptions.metering-tasks           | swatch-metrics-sync                 |
+| metrics-rhel              | platform.rhsm-subscriptions.metering-rhel-tasks      | swatch-metrics-rhel                 |
+| metrics-rhel              | platform.rhsm-subscriptions.service-instance-ingress | swatch-metrics-rhel                 |
 | orgsync                   | platform.rhsm-conduit.tasks                          | swatch-system-conduit-sync          |
 | orgsync                   | platform.rhsm-conduit.tasks                          | swatch-system-conduit               |
 |                           | platform.inventory.host-ingress                      | swatch-system-conduit               |
@@ -659,7 +659,6 @@ Service that syncs system data from Hosted Candlepin into HBI.
 | purge-snapshots           |                                                      |                                     |
 | rh-marketplace            | platform.rhsm-subscriptions.billable-usage           | swatch-producer-red-hat-marketplace |
 |                           | platform.rhsm-subscriptions.billable-usage           | swatch-producer-aws                 |
-| subscription-sync         | platform.rhsm-subscriptions.subscription-sync        | swatch-subscription-sync-sync       |
 | capacity-ingress          | platform.rhsm-subscriptions.subscription-sync        | swatch-subscriptions-sync           |
 | capacity-ingress          | platform.rhsm-subscriptions.offering-sync            | swatch-subscriptions-sync           |
 | capacity-ingress          | platform.rhsm-subscriptions.capacity-reconcile       | swatch-subscriptions-sync           |

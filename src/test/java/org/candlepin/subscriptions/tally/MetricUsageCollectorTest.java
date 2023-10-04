@@ -542,7 +542,9 @@ class MetricUsageCollectorTest {
             });
 
     metricUsageCollector.collect(
-        SERVICE_TYPE, "account123", "org123", new DateRange(eventDate, eventDate.plusHours(1)));
+        SERVICE_TYPE,
+        "org123",
+        new DateRange(eventDate, eventDate.plusHours(1)));
     assertEquals(
         Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, MetricIdUtils.getCores()));
   }
@@ -592,7 +594,9 @@ class MetricUsageCollectorTest {
             });
 
     metricUsageCollector.collect(
-        SERVICE_TYPE, "account123", "org123", new DateRange(eventDate, eventDate.plusHours(1)));
+        SERVICE_TYPE,
+        "org123",
+        new DateRange(eventDate, eventDate.plusHours(1)));
     verify(eventController, times(1))
         .findFirstEventTimestampInRange("org123", SERVICE_TYPE, eventDate, eventDate.plusHours(1));
     assertEquals(
@@ -640,7 +644,7 @@ class MetricUsageCollectorTest {
     when(eventController.findFirstEventTimestampInRange(any(), any(), any(), any()))
         .thenReturn(Optional.of(eventDate));
     metricUsageCollector.collect(
-        SERVICE_TYPE, "account123", "org123", new DateRange(eventDate, eventDate.plusHours(1)));
+        SERVICE_TYPE, "org123", new DateRange(eventDate, eventDate.plusHours(1)));
     assertEquals(
         Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, MetricIdUtils.getCores()));
   }
@@ -650,7 +654,7 @@ class MetricUsageCollectorTest {
     DateRange range = new DateRange(clock.startOfCurrentHour(), clock.now());
     assertThrows(
         IllegalArgumentException.class,
-        () -> metricUsageCollector.collect(SERVICE_TYPE, "account123", "org123", range));
+        () -> metricUsageCollector.collect(SERVICE_TYPE, "org123", range));
   }
 
   @Test
@@ -698,7 +702,6 @@ class MetricUsageCollectorTest {
   void testAccountRepoNotTouchedIfNoEventsExist() {
     metricUsageCollector.collect(
         SERVICE_TYPE,
-        "account123",
         "org123",
         new DateRange(
             clock.startOfCurrentHour().minusHours(1), clock.startOfCurrentHour().plusHours(1)));

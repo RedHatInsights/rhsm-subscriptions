@@ -93,7 +93,9 @@ class IdentityHeaderAuthenticationDetailsServiceTest {
 
   @Test
   void testDevModeGrantsAllRoles() {
-    assertThat(extractRoles(true), Matchers.contains(RoleProvider.SWATCH_ADMIN_ROLE));
+    assertThat(
+        extractRoles(true),
+        Matchers.containsInAnyOrder(RoleProvider.SWATCH_ADMIN_ROLE, RoleProvider.ROLE_INTERNAL));
   }
 
   private Collection<String> extractRoles(boolean devMode) {

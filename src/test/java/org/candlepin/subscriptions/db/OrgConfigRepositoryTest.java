@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
-import org.candlepin.subscriptions.db.model.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.db.model.config.OrgConfig;
 import org.candlepin.subscriptions.test.TestClockConfiguration;

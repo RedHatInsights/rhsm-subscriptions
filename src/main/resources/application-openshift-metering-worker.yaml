@@ -21,6 +21,11 @@ rhsm-subscriptions:
         backOffMaxInterval: ${OPENSHIFT_BACK_OFF_MAX_INTERVAL:50000}
         backOffInitialInterval: ${OPENSHIFT_BACK_OFF_INITIAL_INTERVAL:1000}
         backOffMultiplier: ${OPENSHIFT_BACK_OFF_MULTIPLIER:1.5}
+        eventSource: ${EVENT_SOURCE}
+        rangeInMinutes: ${OPENSHIFT_METERING_RANGE:60}
+        jobMaxAttempts: ${METERING_JOB_MAX_ATTEMPTS:3}
+        jobBackOffMaxInterval: ${METERING_JOB_BACK_OFF_MAX_INTERVAL:50000}
+        jobBackOffInitialInterval: ${METERING_JOB_BACK_OFF_INITIAL_INTERVAL:1000}
     tasks:
       topic: ${METERING_TASK_TOPIC}
       kafka-group-id: ${METERING_TASK_GROUP_ID:metering-task-processor}

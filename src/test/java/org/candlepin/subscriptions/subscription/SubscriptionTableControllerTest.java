@@ -20,22 +20,26 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import static java.util.Arrays.asList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
-import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.core.Response;
 import java.time.OffsetDateTime;
-import java.util.*;
-import org.candlepin.subscriptions.db.AccountListSource;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
-import org.candlepin.subscriptions.db.model.DbReportCriteria;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
@@ -46,7 +50,16 @@ import org.candlepin.subscriptions.resource.SubscriptionTableController;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.util.ApplicationClock;
-import org.candlepin.subscriptions.utilization.api.model.*;
+import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
+import org.candlepin.subscriptions.utilization.api.model.SkuCapacity;
+import org.candlepin.subscriptions.utilization.api.model.SkuCapacityReport;
+import org.candlepin.subscriptions.utilization.api.model.SkuCapacityReportSort;
+import org.candlepin.subscriptions.utilization.api.model.SkuCapacitySubscription;
+import org.candlepin.subscriptions.utilization.api.model.SortDirection;
+import org.candlepin.subscriptions.utilization.api.model.SubscriptionEventType;
+import org.candlepin.subscriptions.utilization.api.model.SubscriptionType;
+import org.candlepin.subscriptions.utilization.api.model.Uom;
+import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -62,9 +75,10 @@ import org.springframework.test.context.ActiveProfiles;
 class SubscriptionTableControllerTest {
 
   private static final ProductId RHEL_FOR_X86 = ProductId.fromString("RHEL for x86");
+  private static final String OFFERING_DESCRIPTION_SUFFIX = " test description";
+
   @MockBean SubscriptionRepository subscriptionRepository;
   @MockBean OfferingRepository offeringRepository;
-  @MockBean AccountListSource accountListSource;
   @Autowired ApplicationClock clock;
   @Autowired SubscriptionTableController subscriptionTableController;
 
@@ -72,7 +86,6 @@ class SubscriptionTableControllerTest {
   void setup() throws AccountListSourceException {
     // The @ReportingAccessRequired annotation checks if the org of the user is allowlisted
     // to receive reports or not. This org will be used throughout most tests.
-    when(accountListSource.containsReportingAccount("account123456")).thenReturn(true);
   }
 
   private static final MeasurementSpec RH0180191 =
@@ -134,10 +147,6 @@ class SubscriptionTableControllerTest {
       this.orgId = orgId;
       this.accountNumber = accountNumber;
     }
-
-    public String orgId() {
-      return orgId;
-    }
   }
 
   /**
@@ -183,10 +192,9 @@ class SubscriptionTableControllerTest {
     var productId = RHEL_FOR_X86;
     var expectedSub = stubSubscription("1234", "1235", 4);
     var spec = RH0180191.withSub(expectedSub);
-    givenCapacities(Org.STANDARD, productId, spec);
 
-    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
-        .thenReturn(List.of(expectedSub));
+    givenCapacities(Org.STANDARD, productId, spec);
+    givenSubscriptionsInRepository(expectedSub);
     mockOfferings(spec);
     expectedSub.setOffering(spec.createOffering());
     // When requesting a SKU capacity report for the eng product,
@@ -220,9 +228,7 @@ class SubscriptionTableControllerTest {
     var spec2 = RH0180191.withSub(expectedNewerSub);
 
     givenCapacities(Org.STANDARD, productId, spec1, spec2);
-
-    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
-        .thenReturn(List.of(expectedOlderSub, expectedNewerSub));
+    givenSubscriptionsInRepository(expectedOlderSub, expectedNewerSub);
 
     mockOfferings(spec1); // spec2 is the same offering
 
@@ -266,10 +272,9 @@ class SubscriptionTableControllerTest {
     var expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
     var spec1 = RH0180191.withSub(expectedNewerSub);
     var spec2 = RH00604F5.withSub(expectedOlderSub);
-    givenCapacities(Org.STANDARD, productId, spec1, spec2);
 
-    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
-        .thenReturn(List.of(expectedNewerSub, expectedOlderSub));
+    givenCapacities(Org.STANDARD, productId, spec1, spec2);
+    givenSubscriptionsInRepository(expectedNewerSub, expectedOlderSub);
 
     mockOfferings(spec1, spec2);
 
@@ -328,8 +333,7 @@ class SubscriptionTableControllerTest {
   void testGetSkuCapacityReportNoSub() {
     // Given an org with no active subs,
 
-    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
-        .thenReturn(Collections.emptyList());
+    givenSubscriptionsInRepository();
 
     // When requesting a SKU capacity report for an eng product,
     SkuCapacityReport actual =
@@ -349,9 +353,7 @@ class SubscriptionTableControllerTest {
     var spec2 = RH0180191.withSub(expectedNewerSub);
 
     givenCapacities(Org.STANDARD, RHEL_FOR_X86, spec1, spec2);
-
-    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
-        .thenReturn(List.of(expectedNewerSub, expectedOlderSub));
+    givenSubscriptionsInRepository(expectedNewerSub, expectedOlderSub);
 
     mockOfferings(spec1); // spec2 is the same offering
 
@@ -380,7 +382,7 @@ class SubscriptionTableControllerTest {
     var spec2 = RH0180191.withSub(expectedNewerSub);
     givenCapacities(Org.STANDARD, productId, spec1, spec2);
 
-    when(subscriptionRepository.findAll(Mockito.any(Specification.class))).thenReturn(List.of());
+    givenSubscriptionsInRepository();
 
     mockOfferings(spec1); // spec2 is the same offering
 
@@ -399,8 +401,7 @@ class SubscriptionTableControllerTest {
             null);
     assertEquals(0, reportForUnmatchedSLA.getData().size());
 
-    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
-        .thenReturn(List.of(expectedNewerSub));
+    givenSubscriptionsInRepository(expectedNewerSub);
     SkuCapacityReport reportForMatchingSLA =
         subscriptionTableController.capacityReportBySku(
             productId,
@@ -426,7 +427,7 @@ class SubscriptionTableControllerTest {
     var spec2 = RH0180191.withSub(expectedNewerSub);
     givenCapacities(Org.STANDARD, productId, spec1, spec2);
 
-    when(subscriptionRepository.findAll(Mockito.any(Specification.class))).thenReturn(List.of());
+    givenSubscriptionsInRepository();
 
     mockOfferings(spec1); // spec2 is the same offering
 
@@ -445,8 +446,7 @@ class SubscriptionTableControllerTest {
             null);
     assertEquals(0, reportForUnmatchedUsage.getData().size());
 
-    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
-        .thenReturn(List.of(expectedNewerSub));
+    givenSubscriptionsInRepository(expectedNewerSub);
     SkuCapacityReport reportForMatchingUsage =
         subscriptionTableController.capacityReportBySku(
             productId,
@@ -507,14 +507,12 @@ class SubscriptionTableControllerTest {
 
     givenCapacities(Org.STANDARD, productId, spec1, spec2, rh00604f6, rh00604f7, rh0060192);
 
-    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
-        .thenReturn(
-            List.of(
-                spec1.subscription,
-                spec2.subscription,
-                rh00604f6.subscription,
-                rh00604f7.subscription,
-                rh0060192.subscription));
+    givenSubscriptionsInRepository(
+        spec1.subscription,
+        spec2.subscription,
+        rh00604f6.subscription,
+        rh00604f7.subscription,
+        rh0060192.subscription);
 
     mockOfferings(spec1, spec2, rh00604f6, rh00604f7, rh0060192);
 
@@ -541,14 +539,9 @@ class SubscriptionTableControllerTest {
     mockOfferings(socketsSpec1, socketsSpec2);
 
     givenCapacities(Org.STANDARD, productId, coresSpec1, coresSpec2);
-
     givenCapacities(Org.STANDARD, productId, socketsSpec1, socketsSpec2);
-
-    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
-        .thenReturn(List.of(coresSpec1.subscription, coresSpec2.subscription));
-
-    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
-        .thenReturn(List.of(socketsSpec1.subscription, socketsSpec2.subscription));
+    givenSubscriptionsInRepository(coresSpec1.subscription, coresSpec2.subscription);
+    givenSubscriptionsInRepository(socketsSpec1.subscription, socketsSpec2.subscription);
 
     SkuCapacityReport reportForMatchingCoresUom =
         subscriptionTableController.capacityReportBySku(
@@ -605,8 +598,7 @@ class SubscriptionTableControllerTest {
   @Test
   void testShouldPopulateAnnualSubscriptionType() {
 
-    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
-        .thenReturn(Collections.emptyList());
+    givenSubscriptionsInRepository();
 
     SkuCapacityReport report =
         subscriptionTableController.capacityReportBySku(
@@ -628,8 +620,7 @@ class SubscriptionTableControllerTest {
   @Test
   void testShouldPopulateOnDemandSubscriptionType() {
 
-    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
-        .thenReturn(Collections.emptyList());
+    givenSubscriptionsInRepository();
 
     SkuCapacityReport report =
         subscriptionTableController.capacityReportBySku(
@@ -655,10 +646,9 @@ class SubscriptionTableControllerTest {
     var productId = RHEL_FOR_X86;
     var expectedSub = stubSubscription("1234", "1235", 4);
     var unlimitedSpec = RH0180195_UNLIMITED_USAGE.withSub(expectedSub);
-    givenCapacities(Org.STANDARD, productId, unlimitedSpec);
 
-    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
-        .thenReturn(List.of(expectedSub));
+    givenCapacities(Org.STANDARD, productId, unlimitedSpec);
+    givenSubscriptionsInRepository(expectedSub);
 
     when(subscriptionRepository.findUnlimited(any()))
         .thenReturn(List.of(unlimitedSpec.subscription));
@@ -676,18 +666,6 @@ class SubscriptionTableControllerTest {
     assertTrue(actualItem.getHasInfiniteQuantity(), "HasInfiniteQuantity should be true");
   }
 
-  @NotNull
-  private static Specification<Subscription> buildDefaultSpec(ProductId productId) {
-    var dbReportCriteria =
-        DbReportCriteria.builder()
-            .productId(productId.toString())
-            .serviceLevel(ServiceLevel._ANY)
-            .usage(Usage._ANY)
-            .build();
-
-    return SubscriptionRepository.buildSearchSpecification(dbReportCriteria);
-  }
-
   @Test
   void testShouldSortUnlimitedLastAscending() {
     // Given an org with two active subs with different quantities for different SKUs,
@@ -698,10 +676,9 @@ class SubscriptionTableControllerTest {
     var expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
     var spec1 = RH0180191.withSub(expectedNewerSub);
     var unlimitedSpec = RH0180195_UNLIMITED_USAGE.withSub(expectedOlderSub);
-    givenCapacities(Org.STANDARD, productId, spec1, unlimitedSpec);
 
-    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
-        .thenReturn(List.of(expectedNewerSub, expectedOlderSub));
+    givenCapacities(Org.STANDARD, productId, spec1, unlimitedSpec);
+    givenSubscriptionsInRepository(expectedNewerSub, expectedOlderSub);
 
     when(subscriptionRepository.findUnlimited(any()))
         .thenReturn(List.of(unlimitedSpec.subscription));
@@ -747,10 +724,9 @@ class SubscriptionTableControllerTest {
     var expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
     var spec1 = RH0180191.withSub(expectedNewerSub);
     var unlimitedSpec = RH0180195_UNLIMITED_USAGE.withSub(expectedOlderSub);
-    givenCapacities(Org.STANDARD, productId, spec1, unlimitedSpec);
 
-    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
-        .thenReturn(List.of(expectedNewerSub, expectedOlderSub));
+    givenCapacities(Org.STANDARD, productId, spec1, unlimitedSpec);
+    givenSubscriptionsInRepository(expectedNewerSub, expectedOlderSub);
 
     when(subscriptionRepository.findUnlimited(any()))
         .thenReturn(List.of(unlimitedSpec.subscription));
@@ -793,10 +769,9 @@ class SubscriptionTableControllerTest {
     var productId = RHEL_FOR_X86;
     var expectedSub = stubSubscription("1234", "1235", 4);
     var spec1 = RH0180196_HYPERVISOR_SOCKETS.withSub(expectedSub);
-    givenCapacities(Org.STANDARD, productId, spec1);
 
-    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
-        .thenReturn(List.of(expectedSub));
+    givenCapacities(Org.STANDARD, productId, spec1);
+    givenSubscriptionsInRepository(expectedSub);
 
     mockOfferings(spec1);
 
@@ -820,10 +795,9 @@ class SubscriptionTableControllerTest {
     var productId = RHEL_FOR_X86;
     var expectedSub = stubSubscription("1234", "1235", 4);
     var spec1 = RH0180197_HYPERVISOR_CORES.withSub(expectedSub);
-    givenCapacities(Org.STANDARD, productId, spec1);
 
-    when(subscriptionRepository.findAll(Mockito.any(Specification.class)))
-        .thenReturn(List.of(expectedSub));
+    givenCapacities(Org.STANDARD, productId, spec1);
+    givenSubscriptionsInRepository(expectedSub);
 
     mockOfferings(spec1);
 
@@ -840,12 +814,18 @@ class SubscriptionTableControllerTest {
     assertCapacities(0, 8, Uom.CORES, actualItem);
   }
 
+  private void givenSubscriptionsInRepository(Subscription... subs) {
+    when(subscriptionRepository.findAll(Mockito.<Specification<Subscription>>any()))
+        .thenReturn(asList(subs));
+  }
+
   private static void assertCapacities(
       int expectedCap, int expectedHypCap, Uom expectedUom, SkuCapacity actual) {
     assertEquals(expectedUom, actual.getUom(), "Wrong UOM");
     assertEquals(expectedCap, actual.getCapacity(), "Wrong Standard Capacity");
     assertEquals(expectedHypCap, actual.getHypervisorCapacity(), "Wrong Hypervisor Capacity");
     assertEquals(expectedCap + expectedHypCap, actual.getTotalCapacity(), "Wrong Total Capacity");
+    assertEquals(actual.getSku() + OFFERING_DESCRIPTION_SUFFIX, actual.getProductName());
   }
 
   private static void assertSubscription(Subscription expectedSub, SkuCapacitySubscription actual) {
@@ -1016,6 +996,7 @@ class SubscriptionTableControllerTest {
           .serviceLevel(serviceLevel)
           .usage(usage)
           .productName(productName)
+          .description(sku + OFFERING_DESCRIPTION_SUFFIX)
           .build();
     }
 

@@ -20,13 +20,11 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus.task;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -52,8 +50,6 @@ class PrometheusMetricsTaskManagerTest {
 
   @Mock private PrometheusAccountSource accountSource;
 
-  @Mock private AccountConfigRepository accountConfigRepository;
-
   private PrometheusMetricsTaskManager manager;
 
   @BeforeEach
@@ -62,31 +58,24 @@ class PrometheusMetricsTaskManagerTest {
     ApplicationClock clock = new TestClockConfiguration().adjustableClock();
     manager =
         new PrometheusMetricsTaskManager(
-            queue,
-            queueProperties,
-            accountSource,
-            accountConfigRepository,
-            clock,
-            new ApplicationProperties());
+            queue, queueProperties, accountSource, clock, new ApplicationProperties());
   }
 
   @Test
-  void updateForSingleAccount() throws Exception {
-    String orgId = "single-account";
+  void updateForOrgId() throws Exception {
+    String orgId = "org123";
     OffsetDateTime end = OffsetDateTime.now();
     OffsetDateTime start = end.minusDays(1);
 
-    when(accountConfigRepository.findOrgByAccountNumber(any())).thenReturn("single-account-orgId");
-
     TaskDescriptor expectedTask =
         TaskDescriptor.builder(TaskType.METRICS_COLLECTION, TASK_TOPIC, null)
-            .setSingleValuedArg("orgId", "single-account-orgId")
+            .setSingleValuedArg("orgId", orgId)
             .setSingleValuedArg("productTag", TEST_PROFILE_ID)
             .setSingleValuedArg("metric", "Cores")
             .setSingleValuedArg("start", start.toString())
             .setSingleValuedArg("end", end.toString())
             .build();
-    manager.updateMetricsForAccount(orgId, TEST_PROFILE_ID, start, end);
+    manager.updateMetricsForOrgId(orgId, TEST_PROFILE_ID, start, end);
     verify(queue).enqueue(expectedTask);
   }
 }

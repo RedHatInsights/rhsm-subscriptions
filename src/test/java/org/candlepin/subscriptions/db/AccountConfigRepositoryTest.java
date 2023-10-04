@@ -26,8 +26,6 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.model.config.AccountConfig;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
@@ -90,22 +88,6 @@ class AccountConfigRepositoryTest {
   }
 
   @Test
-  void testFindAccountsWithEnabledSync() {
-    repository.saveAll(
-        Arrays.asList(
-            createConfig("A1", "O1"),
-            createConfig("A2", "O2"),
-            createConfig("A3", "O3"),
-            createConfig("A4", "O4")));
-    repository.flush();
-
-    List<String> accountsWithSync =
-        repository.findSyncEnabledAccounts().collect(Collectors.toList());
-    assertEquals(4, accountsWithSync.size());
-    assertTrue(accountsWithSync.containsAll(Arrays.asList("A1", "A2", "A3", "A4")));
-  }
-
-  @Test
   void testOptInCount() {
     OffsetDateTime begin = OffsetDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC).minusSeconds(1);
     OffsetDateTime end = begin.plusDays(1);
@@ -132,20 +114,6 @@ class AccountConfigRepositoryTest {
     assertEquals(2, count);
   }
 
-  @Test
-  void testLookupOrgIdByAccountNumber() {
-    AccountConfig expectedConfig = createConfig("A2", "O2");
-    repository.saveAll(
-        Arrays.asList(
-            createConfig("A1", "O1"),
-            expectedConfig,
-            createConfig("A3", "O3"),
-            createConfig("A4", "O4")));
-    repository.flush();
-
-    assertEquals("O2", repository.findOrgByAccountNumber("A2"));
-  }
-
   private AccountConfig createConfig(String account, String orgId) {
     AccountConfig config = new AccountConfig();
     config.setAccountNumber(account);
@@ -154,11 +122,5 @@ class AccountConfigRepositoryTest {
     config.setCreated(clock.now());
     config.setUpdated(config.getCreated().plusDays(1));
     return config;
-  }
-
-  @Test
-  void testFindAccountNumberByOrgId() {
-    String account = repository.findAccountNumberByOrgId("12344444");
-    assertNull(account);
   }
 }

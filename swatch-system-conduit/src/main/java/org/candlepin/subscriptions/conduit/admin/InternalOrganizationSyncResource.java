@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.conduit.InventoryController;
 import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
-import org.candlepin.subscriptions.db.model.OrgConfigRepository;
+import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OrgConfig;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;

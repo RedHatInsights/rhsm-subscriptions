@@ -22,8 +22,8 @@ package org.candlepin.subscriptions.retention;
 
 import java.time.OffsetDateTime;
 import java.util.stream.Stream;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
+import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,16 +37,16 @@ public class RemittanceRetentionController {
   private static final Logger log = LoggerFactory.getLogger(RemittanceRetentionController.class);
 
   private final BillableUsageRemittanceRepository remittanceRepository;
-  private final AccountConfigRepository accountConfigRepository;
+  private final OrgConfigRepository orgConfigRepository;
   private final RemittanceRetentionPolicy policy;
 
   @Autowired
   public RemittanceRetentionController(
       BillableUsageRemittanceRepository remittanceRepository,
-      AccountConfigRepository accountConfigRepository,
+      OrgConfigRepository orgConfigRepository,
       RemittanceRetentionPolicy policy) {
     this.remittanceRepository = remittanceRepository;
-    this.accountConfigRepository = accountConfigRepository;
+    this.orgConfigRepository = orgConfigRepository;
     this.policy = policy;
   }
 
@@ -55,7 +55,7 @@ public class RemittanceRetentionController {
   public void purgeRemittancesAsync() {
     try {
       log.info("Starting remittances purge.");
-      try (Stream<String> orgList = accountConfigRepository.findSyncEnabledOrgs()) {
+      try (Stream<String> orgList = orgConfigRepository.findSyncEnabledOrgs()) {
         orgList.forEach(this::cleanStaleRemittancesForOrgId);
       }
       log.info("Remittance purge completed successfully.");

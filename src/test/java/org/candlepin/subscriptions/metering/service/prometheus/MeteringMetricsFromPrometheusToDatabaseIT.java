@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.metering.service.prometheus;
 
 import static org.awaitility.Awaitility.await;
-import static org.candlepin.subscriptions.metering.MeteringEventFactory.EVENT_SOURCE;
 import static org.candlepin.subscriptions.metering.MeteringEventFactory.getEventType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -44,7 +43,9 @@ import org.candlepin.subscriptions.prometheus.model.QueryResultData;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.ResultType;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
-import org.candlepin.subscriptions.test.BaseIT;
+import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
+import org.candlepin.subscriptions.test.ExtendWithPrometheusWiremock;
+import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
 import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,9 +53,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest
+@SpringBootTest(properties = "EVENT_SOURCE=" + MeteringMetricsFromPrometheusToDatabaseIT.PROMETHEUS)
 @ActiveProfiles({"openshift-metering-worker", "worker", "test-inventory"})
-class MeteringMetricsFromPrometheusToDatabaseIT extends BaseIT {
+class MeteringMetricsFromPrometheusToDatabaseIT
+    implements ExtendWithPrometheusWiremock, ExtendWithEmbeddedKafka, ExtendWithSwatchDatabase {
+
+  static final String PROMETHEUS = "prometheus";
 
   private static final int NUM_METRICS_TO_SEND = 5;
   private static final Duration TIMEOUT_TO_WAIT_FOR_METRICS = Duration.ofSeconds(5);
@@ -64,6 +68,7 @@ class MeteringMetricsFromPrometheusToDatabaseIT extends BaseIT {
 
   @Autowired private PrometheusMeteringController controller;
   @Autowired private EventRecordRepository repository;
+  @Autowired private MetricProperties metricProperties;
 
   private OffsetDateTime start;
   private OffsetDateTime end;
@@ -107,6 +112,7 @@ class MeteringMetricsFromPrometheusToDatabaseIT extends BaseIT {
     prometheusServer.resetScenario();
     whenCollectMetrics();
     verifyAllEventsAreStoredInDatabase();
+    verifyAllEventsUseEventSourcePrometheus();
     assertEquals(snapshotOfExistingEvents, getEventIDsFromRepository());
   }
 
@@ -123,7 +129,7 @@ class MeteringMetricsFromPrometheusToDatabaseIT extends BaseIT {
     event.setEventId(UUID.randomUUID());
     event.setEventType(getEventType(METRIC.toString(), PRODUCT_TAG));
     event.setOrgId(ORG_ID);
-    event.setEventSource(EVENT_SOURCE);
+    event.setEventSource(metricProperties.getEventSource());
     event.setTimestamp(timestamp);
     event.setInstanceId("test");
     return repository.save(event);
@@ -178,6 +184,15 @@ class MeteringMetricsFromPrometheusToDatabaseIT extends BaseIT {
     await()
         .atMost(TIMEOUT_TO_WAIT_FOR_METRICS)
         .untilAsserted(() -> assertEquals(NUM_METRICS_TO_SEND, repository.count()));
+  }
+
+  private void verifyAllEventsUseEventSourcePrometheus() {
+    repository
+        .findAll()
+        .forEach(
+            event -> {
+              assertEquals(PROMETHEUS, event.getEventSource());
+            });
   }
 
   private void verifyExistingEventWithinSameTimeWindowWasDeleted() {

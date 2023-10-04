@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.conduit.job;
 
 import java.util.stream.Stream;
-import org.candlepin.subscriptions.db.model.OrgConfigRepository;
+import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OrgConfig;
 import org.springframework.stereotype.Component;
 

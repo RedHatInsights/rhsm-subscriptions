@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.db.model;
+package org.candlepin.subscriptions.db;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;

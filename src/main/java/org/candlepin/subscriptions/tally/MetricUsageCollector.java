@@ -74,8 +74,7 @@ public class MetricUsageCollector {
   }
 
   @Transactional
-  public CollectionResult collect(
-      String serviceType, String accountNumber, String orgId, DateRange range) {
+  public CollectionResult collect(String serviceType, String orgId, DateRange range) {
     if (!clock.isHourlyRange(range)) {
       throw new IllegalArgumentException(
           String.format(
@@ -102,9 +101,6 @@ public class MetricUsageCollector {
             .findById(inventoryId)
             .orElse(new AccountServiceInventory(inventoryId));
 
-    if (accountNumber != null) {
-      accountServiceInventory.setAccountNumber(accountNumber);
-    }
     /*
     Evaluate latest state to determine if we are doing a recalculation and filter to host records for only
     the product profile we're working on

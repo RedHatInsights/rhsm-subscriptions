@@ -263,6 +263,7 @@ public class PrometheusMeteringController {
         createCleanUpEvent(
             orgId,
             MeteringEventFactory.getEventType(tagMetric.getId(), productTag),
+            metricProperties.getEventSource(),
             start,
             end,
             meteringBatchId));
@@ -304,6 +305,7 @@ public class PrometheusMeteringController {
         sla,
         usage,
         role,
+        metricProperties.getEventSource(),
         measuredDate,
         expired,
         serviceType,

@@ -21,7 +21,11 @@
 package org.candlepin.subscriptions.conduit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.BDDMockito.any;
 import static org.mockito.BDDMockito.anyString;
 import static org.mockito.BDDMockito.eq;
@@ -307,7 +311,7 @@ class InventoryControllerTest {
     assertThat(
         conduitFacts.getMacAddresses(),
         Matchers.contains("00:00:00:00:00:00", "ff:ff:ff:ff:ff:ff"));
-    assertEquals(new Integer(2), conduitFacts.getCpuSockets());
+    assertEquals(Integer.valueOf(2), conduitFacts.getCpuSockets());
     assertEquals("x86_64", conduitFacts.getArchitecture());
     assertEquals(true, conduitFacts.getIsVirtual());
     assertEquals("Sockets", conduitFacts.getSysPurposeUnits());
@@ -324,8 +328,8 @@ class InventoryControllerTest {
 
     ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
 
-    assertEquals(new Integer(8), conduitFacts.getCpuCores());
-    assertEquals(new Integer(4), conduitFacts.getCoresPerSocket());
+    assertEquals(Integer.valueOf(8), conduitFacts.getCpuCores());
+    assertEquals(Integer.valueOf(4), conduitFacts.getCoresPerSocket());
   }
 
   @Test
@@ -337,8 +341,8 @@ class InventoryControllerTest {
 
     ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
 
-    assertEquals(new Long(32), conduitFacts.getMemory());
-    assertEquals(new Long(33543999488L), conduitFacts.getSystemMemoryBytes());
+    assertEquals(Long.valueOf(32), conduitFacts.getMemory());
+    assertEquals(Long.valueOf(33543999488L), conduitFacts.getSystemMemoryBytes());
   }
 
   @Test
@@ -362,8 +366,8 @@ class InventoryControllerTest {
 
     ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
 
-    assertEquals(new Long(31L), conduitFacts.getMemory());
-    assertEquals(new Long(33489100800L), conduitFacts.getSystemMemoryBytes());
+    assertEquals(Long.valueOf(31L), conduitFacts.getMemory());
+    assertEquals(Long.valueOf(33489100800L), conduitFacts.getSystemMemoryBytes());
   }
 
   @Test
