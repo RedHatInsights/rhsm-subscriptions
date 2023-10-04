@@ -35,7 +35,6 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import java.util.List;
 import java.util.Set;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -57,7 +56,6 @@ class RbacRolesAugmentorTest {
     augmentor.accessApi = rbacApi;
   }
 
-  @NotNull
   private RbacRolesAugmentor getRbacRolesAugmentor() {
     var augmentor = new RbacRolesAugmentor();
     augmentor.accessApi = rbacApi;

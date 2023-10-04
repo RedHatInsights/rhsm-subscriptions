@@ -36,7 +36,7 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@QuarkusTestResource(value = WireMockResource.class)
+@QuarkusTestResource(value = WireMockResource.class, restrictToAnnotatedClass = true)
 class RhPartnerClientIntegrationTest {
   @Inject @RestClient PartnerApi partnerApi;
 
