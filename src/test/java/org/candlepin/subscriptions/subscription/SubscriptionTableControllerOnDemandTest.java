@@ -30,7 +30,6 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -67,7 +66,6 @@ class SubscriptionTableControllerOnDemandTest {
 
   @MockBean SubscriptionRepository subscriptionRepository;
   @MockBean OfferingRepository offeringRepository;
-  @MockBean AccountListSource accountListSource;
   @Autowired ApplicationClock clock;
 
   @Autowired SubscriptionTableController subscriptionTableController;
@@ -76,10 +74,6 @@ class SubscriptionTableControllerOnDemandTest {
   void setup() throws AccountListSourceException {
     // The @ReportingAccessRequired annotation checks if the org of the user is allowlisted
     // to receive reports or not. This org will be used throughout most tests.
-    when(accountListSource.containsReportingAccount("account123456")).thenReturn(true);
-    when(offeringRepository.findByProductName(any()))
-        .thenReturn(
-            Arrays.asList(MW01882.toOffering(), MW01882RN.toOffering(), MW01882S.toOffering()));
   }
 
   private static final SubCapSpec MW01882 =

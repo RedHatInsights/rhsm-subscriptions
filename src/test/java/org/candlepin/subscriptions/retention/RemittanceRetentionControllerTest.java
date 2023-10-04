@@ -33,8 +33,8 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
+import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -54,7 +54,7 @@ class RemittanceRetentionControllerTest {
 
   @MockBean private RemittanceRetentionPolicy policy;
   @MockBean private BillableUsageRemittanceRepository repository;
-  @MockBean private AccountConfigRepository accountConfigRepository;
+  @MockBean private OrgConfigRepository orgConfigRepository;
 
   @Autowired private RemittanceRetentionController controller;
 
@@ -80,7 +80,7 @@ class RemittanceRetentionControllerTest {
     when(policy.getCutoffDate()).thenReturn(cutoff);
 
     List<String> testList = Arrays.asList("1", "2", "3", "4");
-    when(accountConfigRepository.findSyncEnabledOrgs()).thenReturn(testList.stream());
+    when(orgConfigRepository.findSyncEnabledOrgs()).thenReturn(testList.stream());
 
     controller.purgeRemittancesAsync();
 

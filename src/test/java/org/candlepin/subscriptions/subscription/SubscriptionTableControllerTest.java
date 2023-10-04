@@ -38,7 +38,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.candlepin.subscriptions.db.AccountListSource;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Offering;
@@ -80,7 +79,6 @@ class SubscriptionTableControllerTest {
 
   @MockBean SubscriptionRepository subscriptionRepository;
   @MockBean OfferingRepository offeringRepository;
-  @MockBean AccountListSource accountListSource;
   @Autowired ApplicationClock clock;
   @Autowired SubscriptionTableController subscriptionTableController;
 
@@ -88,7 +86,6 @@ class SubscriptionTableControllerTest {
   void setup() throws AccountListSourceException {
     // The @ReportingAccessRequired annotation checks if the org of the user is allowlisted
     // to receive reports or not. This org will be used throughout most tests.
-    when(accountListSource.containsReportingAccount("account123456")).thenReturn(true);
   }
 
   private static final MeasurementSpec RH0180191 =

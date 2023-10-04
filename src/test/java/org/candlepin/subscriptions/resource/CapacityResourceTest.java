@@ -33,8 +33,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.HypervisorReportCategory;
+import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.DbReportCriteria;
 import org.candlepin.subscriptions.db.model.Granularity;
@@ -81,13 +81,13 @@ class CapacityResourceTest {
 
   @MockBean SubscriptionRepository subscriptionRepository;
   @MockBean PageLinkCreator pageLinkCreator;
-  @MockBean AccountConfigRepository accountConfigRepository;
+  @MockBean OrgConfigRepository orgConfigRepository;
 
   @Autowired CapacityResource resource;
 
   @BeforeEach
   public void setupTests() {
-    when(accountConfigRepository.existsByOrgId("owner123456")).thenReturn(true);
+    when(orgConfigRepository.existsByOrgId("owner123456")).thenReturn(true);
   }
 
   private static Subscription datedSubscription(OffsetDateTime start, OffsetDateTime end) {

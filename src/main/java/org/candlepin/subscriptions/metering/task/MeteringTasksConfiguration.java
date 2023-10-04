@@ -74,8 +74,7 @@ public class MeteringTasksConfiguration {
       AccountConfigRepository accountConfigRepository,
       ApplicationClock clock,
       ApplicationProperties appProps) {
-    return new PrometheusMetricsTaskManager(
-        queue, queueProps, accountSource, accountConfigRepository, clock, appProps);
+    return new PrometheusMetricsTaskManager(queue, queueProps, accountSource, clock, appProps);
   }
 
   // The following beans are defined for the worker profile only allowing

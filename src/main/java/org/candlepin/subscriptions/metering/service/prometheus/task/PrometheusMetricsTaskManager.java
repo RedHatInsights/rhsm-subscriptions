@@ -26,7 +26,6 @@ import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskDescriptor.TaskDescriptorBuilder;
@@ -47,7 +46,6 @@ import org.springframework.stereotype.Component;
 public class PrometheusMetricsTaskManager {
 
   private static final Logger log = LoggerFactory.getLogger(PrometheusMetricsTaskManager.class);
-  private final AccountConfigRepository accountConfigRepository;
 
   private String topic;
 
@@ -64,26 +62,14 @@ public class PrometheusMetricsTaskManager {
       TaskQueue queue,
       @Qualifier("meteringTaskQueueProperties") TaskQueueProperties queueProps,
       PrometheusAccountSource accountSource,
-      AccountConfigRepository accountConfigRepository,
       ApplicationClock clock,
       ApplicationProperties appProps) {
-    this.accountConfigRepository = accountConfigRepository;
     log.info("Initializing metering manager. Topic: {}", queueProps.getTopic());
     this.queue = queue;
     this.topic = queueProps.getTopic();
     this.accountSource = accountSource;
     this.clock = clock;
     this.appProps = appProps;
-  }
-
-  public void updateMetricsForAccount(
-      String account, String productTag, OffsetDateTime start, OffsetDateTime end) {
-    String orgId = accountConfigRepository.findOrgByAccountNumber(account);
-    if (orgId == null) {
-      throw new IllegalArgumentException(
-          String.format("Could not find orgId for accountNumber: %s", account));
-    }
-    updateMetricsForOrgId(orgId, productTag, start, end);
   }
 
   public void updateMetricsForOrgId(

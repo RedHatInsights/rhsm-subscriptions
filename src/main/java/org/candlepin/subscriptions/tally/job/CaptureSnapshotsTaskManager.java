@@ -26,7 +26,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
+import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.tally.TallyTaskQueueConfiguration;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskManagerException;
@@ -59,7 +59,7 @@ public class CaptureSnapshotsTaskManager {
   private final TaskQueue queue;
   private final ApplicationClock applicationClock;
 
-  private final AccountConfigRepository accountRepo;
+  private final OrgConfigRepository orgRepo;
 
   @Autowired
   public CaptureSnapshotsTaskManager(
@@ -67,13 +67,13 @@ public class CaptureSnapshotsTaskManager {
       @Qualifier("tallyTaskQueueProperties") TaskQueueProperties tallyTaskQueueProperties,
       TaskQueue queue,
       ApplicationClock applicationClock,
-      AccountConfigRepository accountRepo) {
+      OrgConfigRepository orgRepo) {
 
     this.appProperties = appProperties;
     this.taskQueueProperties = tallyTaskQueueProperties;
     this.queue = queue;
     this.applicationClock = applicationClock;
-    this.accountRepo = accountRepo;
+    this.orgRepo = orgRepo;
   }
 
   /**
@@ -96,7 +96,7 @@ public class CaptureSnapshotsTaskManager {
    */
   @Transactional
   public void updateSnapshotsForAllOrg() {
-    try (Stream<String> orgStream = accountRepo.findSyncEnabledOrgs()) {
+    try (Stream<String> orgStream = orgRepo.findSyncEnabledOrgs()) {
       log.info("Queuing all org snapshot production in batches of size one");
 
       AtomicInteger count = new AtomicInteger(0);
@@ -145,7 +145,7 @@ public class CaptureSnapshotsTaskManager {
 
   @Transactional
   public void updateHourlySnapshotsForAllOrgs(Optional<DateRange> dateRange) {
-    try (Stream<String> orgStream = accountRepo.findSyncEnabledOrgs()) {
+    try (Stream<String> orgStream = orgRepo.findSyncEnabledOrgs()) {
       AtomicInteger count = new AtomicInteger(0);
 
       OffsetDateTime startDateTime;

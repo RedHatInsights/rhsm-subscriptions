@@ -22,28 +22,14 @@ package org.candlepin.subscriptions.db;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
-import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.config.AccountConfig;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.util.StringUtils;
 
 /** Defines all operations for storing account config entries. */
 public interface AccountConfigRepository extends JpaRepository<AccountConfig, String> {
-
-  @Query("select distinct c.accountNumber from AccountConfig c")
-  Stream<String> findSyncEnabledAccounts();
-
-  @Query("select distinct c.orgId from AccountConfig c")
-  Stream<String> findSyncEnabledOrgs();
-
-  @Query("select distinct c.orgId from AccountConfig c where c.accountNumber = :account")
-  String findOrgByAccountNumber(@Param("account") String accountNumber);
-
-  @Query("select distinct c.accountNumber from AccountConfig c where c.orgId = :orgId")
-  String findAccountNumberByOrgId(@Param("orgId") String orgId);
 
   @Query(
       "select count(c) from AccountConfig c "
