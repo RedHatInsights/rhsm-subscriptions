@@ -34,25 +34,32 @@ import org.springframework.core.io.ResourceLoader;
 class CertInfoEndpointTest {
   public static final char[] STORE_PASSWORD = "password".toCharArray();
 
+  private final ResourceLoader rl = new DefaultResourceLoader();
   private RhsmApiProperties config;
+  private CertInfoEndpoint endpoint;
+
+  private Map<String, Map<String, String>> infoMap;
 
   @BeforeEach
-  private void setUp() {
-    ResourceLoader rl = new DefaultResourceLoader();
+  void setUp() {
+    infoMap = null;
+
     config = new RhsmApiProperties();
-    config.setKeystore(rl.getResource("classpath:client.jks"));
-    config.setKeystorePassword(STORE_PASSWORD);
-    config.setTruststore(rl.getResource("classpath:test-ca.jks"));
-    config.setTruststorePassword(STORE_PASSWORD);
+    endpoint = new CertInfoEndpoint(config);
   }
 
   @Test
-  void loadStoreInfo() throws Exception {
-    CertInfoEndpoint endpoint = new CertInfoEndpoint(config);
-    Map<String, Map<String, String>> infoMap = endpoint.keystoreInfo();
+  void testThrowExceptionWhenNoCertificateKeystoreInfo() {
+    givenKeystoreDoesNotExistInConfig();
+    assertThrows(IllegalStateException.class, this::whenCallKeystoreInfo);
+  }
 
+  @Test
+  void testKeystoreInfo() {
+    givenKeystoreExistsInConfig();
+    whenCallKeystoreInfo();
+    // assertions
     assertThat(infoMap, Matchers.hasKey("client"));
-
     Map<String, String> certInfo = infoMap.get("client");
     assertAll(
         "Certificate",
@@ -65,5 +72,59 @@ class CertInfoEndpointTest {
                 "5253AE7B787839DF9F1C1A0E5FECB5F1C1868FAF",
                 certInfo.get("SHA-1 Fingerprint").toUpperCase()),
         () -> assertEquals("CN=Test CA", certInfo.get("Issuer Distinguished Name")));
+  }
+
+  @Test
+  void testThrowExceptionWhenNoCertificateTruststoreInfo() {
+    givenTruststoreDoesNotExistInConfig();
+    assertThrows(IllegalStateException.class, this::whenCallTruststoreInfo);
+  }
+
+  @Test
+  void testTruststoreInfo() {
+    givenTruststoreExistsInConfig();
+    whenCallTruststoreInfo();
+    // assertions
+    assertThat(infoMap, Matchers.hasKey("test ca"));
+    Map<String, String> certInfo = infoMap.get("test ca");
+    assertAll(
+        "Certificate",
+        () -> assertEquals("CN=Test CA", certInfo.get("Distinguished Name")),
+        () ->
+            assertEquals(
+                "409546735888018136828579902447384591449143398997", certInfo.get("Serial Number")),
+        () ->
+            assertEquals(
+                "FCD529E0354E4D862E1641840D97279E7098C668",
+                certInfo.get("SHA-1 Fingerprint").toUpperCase()),
+        () -> assertEquals("CN=Test CA", certInfo.get("Issuer Distinguished Name")));
+  }
+
+  private void givenKeystoreDoesNotExistInConfig() {
+    config.setKeystore(rl.getResource("classpath:not-exist"));
+    config.setKeystorePassword(STORE_PASSWORD);
+  }
+
+  private void givenKeystoreExistsInConfig() {
+    config.setKeystore(rl.getResource("classpath:client.jks"));
+    config.setKeystorePassword(STORE_PASSWORD);
+  }
+
+  private void givenTruststoreDoesNotExistInConfig() {
+    config.setTruststore(rl.getResource("classpath:not-exist"));
+    config.setTruststorePassword(STORE_PASSWORD);
+  }
+
+  private void givenTruststoreExistsInConfig() {
+    config.setTruststore(rl.getResource("classpath:test-ca.jks"));
+    config.setTruststorePassword(STORE_PASSWORD);
+  }
+
+  private void whenCallKeystoreInfo() {
+    infoMap = endpoint.keystoreInfo();
+  }
+
+  private void whenCallTruststoreInfo() {
+    infoMap = endpoint.truststoreInfo();
   }
 }

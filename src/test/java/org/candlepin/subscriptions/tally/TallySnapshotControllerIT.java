@@ -38,7 +38,8 @@ import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.resource.OptInResource;
 import org.candlepin.subscriptions.resource.TallyResource;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.test.BaseIT;
+import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
+import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
 import org.candlepin.subscriptions.utilization.api.model.GranularityType;
@@ -51,7 +52,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest(properties = "CONTRACT_USE_STUB=true")
 @ActiveProfiles(value = {"worker", "kafka-queue", "api", "test-inventory"})
-class TallySnapshotControllerIT extends BaseIT {
+class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithEmbeddedKafka {
   static final String PROMETHEUS = "prometheus";
   static final String METRIC = "Cores";
   static final String USER_ID = "123";
@@ -78,7 +79,7 @@ class TallySnapshotControllerIT extends BaseIT {
 
   @WithMockRedHatPrincipal(value = USER_ID)
   @Test
-  void test() throws Exception {
+  void testProduceHourlySnapshotsForOrg() {
     givenOrgAndAccountInConfig();
     givenFiveDaysOfRangeForReport();
 

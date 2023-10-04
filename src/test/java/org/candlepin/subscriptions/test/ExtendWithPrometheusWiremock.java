@@ -18,26 +18,20 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.deployment;
+package org.candlepin.subscriptions.test;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusQueryWiremockExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
-import org.candlepin.subscriptions.metering.profile.MeteringJobProfile;
-import org.candlepin.subscriptions.spring.JobRunner;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.ActiveProfiles;
+@ExtendWith(PrometheusQueryWiremockExtension.class)
+public interface ExtendWithPrometheusWiremock {
 
-@SpringBootTest
-@ActiveProfiles({"metering-job", "kafka-queue", "test"})
-class MeteringJobDeploymentTest {
-  @MockBean JobRunner jobRunner;
-  @Autowired MeteringJobProfile configuration;
-
-  @Test
-  void testDeployment() {
-    assertNotNull(configuration);
+  @DynamicPropertySource
+  static void registerPrometheusProperties(DynamicPropertyRegistry registry) {
+    registry.add(
+        "rhsm-subscriptions.metering.prometheus.client.url",
+        () -> "http://localhost:${WIREMOCK_PORT:8101}");
   }
 }

@@ -18,26 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.deployment;
+package org.candlepin.testcontainers.exceptions;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+public class ExecuteStatementInContainerException extends RuntimeException {
+  public ExecuteStatementInContainerException(String message) {
+    super(message);
+  }
 
-import org.candlepin.subscriptions.spring.JobRunner;
-import org.candlepin.subscriptions.tally.job.SubscriptionSyncConfiguration;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.ActiveProfiles;
-
-@SpringBootTest
-@ActiveProfiles({"subscription-sync", "kafka-queue", "test"})
-class SubscriptionSyncJobDeploymentTest {
-  @MockBean JobRunner jobRunner;
-  @Autowired SubscriptionSyncConfiguration configuration;
-
-  @Test
-  void testDeployment() {
-    assertNotNull(configuration);
+  public ExecuteStatementInContainerException(String message, Throwable error) {
+    super(message, error);
   }
 }

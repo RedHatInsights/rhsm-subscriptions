@@ -30,7 +30,6 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -63,8 +62,7 @@ import org.springframework.test.context.ActiveProfiles;
 class SubscriptionTableControllerOnDemandTest {
 
   private static final ProductId RHOSAK = ProductId.fromString("rhosak");
-  private final OffsetDateTime min = OffsetDateTime.now().minusDays(4);
-  private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
+  private static final String OFFERING_DESCRIPTION_SUFFIX = " test description";
 
   @MockBean SubscriptionRepository subscriptionRepository;
   @MockBean OfferingRepository offeringRepository;
@@ -139,26 +137,22 @@ class SubscriptionTableControllerOnDemandTest {
    * @param specs specifies what sub capacities to return
    * @return a list of subscription capacity views
    */
-  private List<Subscription> givenSubscriptions(Org org, ProductId productId, SubCapSpec... specs) {
-    return Arrays.stream(specs)
-        .map(s -> s.createSubscription(org, productId))
-        .collect(Collectors.toUnmodifiableList());
+  private List<Subscription> givenSubscriptions(Org org, SubCapSpec... specs) {
+    return Arrays.stream(specs).map(s -> s.createSubscription(org)).toList();
   }
 
   @Test
   void testGetSkuCapacityReportSingleSub() {
     // Given an org with one active sub with a quantity of 1
-    ProductId productId = RHOSAK;
     Sub expectedSub = Sub.sub("1234", MW01882.sku, "1235", 1);
-    List<Subscription> givenSubs =
-        givenSubscriptions(Org.STANDARD, productId, MW01882.withSub(expectedSub));
+    List<Subscription> givenSubs = givenSubscriptions(Org.STANDARD, MW01882.withSub(expectedSub));
 
     when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(givenSubs);
 
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, null, null, null, null, null);
+            RHOSAK, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the sub and appropriate
     // quantity and capacities.
@@ -179,23 +173,19 @@ class SubscriptionTableControllerOnDemandTest {
   void testGetSkuCapacityReportMultipleSubsSameSku() {
     // Given an org with two active subs with different quantities for the same SKU,
     // and the subs have different ending dates,
-    ProductId productId = RHOSAK;
     Sub expectedNewerSub = Sub.sub("1234", MW01882.sku, "1235", 1, BillingProvider.RED_HAT, 5, 7);
     Sub expectedOlderSub = Sub.sub("1236", MW01882.sku, "1237", 2, BillingProvider.RED_HAT, 6, 6);
 
     List<Subscription> givenSubs =
         givenSubscriptions(
-            Org.STANDARD,
-            productId,
-            MW01882.withSub(expectedNewerSub),
-            MW01882.withSub(expectedOlderSub));
+            Org.STANDARD, MW01882.withSub(expectedNewerSub), MW01882.withSub(expectedOlderSub));
 
     when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(givenSubs);
 
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, null, null, null, null, null);
+            RHOSAK, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the subs and appropriate
     // quantity and capacities.
@@ -219,24 +209,19 @@ class SubscriptionTableControllerOnDemandTest {
   void testGetSkuCapacityReportDifferentSkus() {
     // Given an org with two active subs with different quantities for different SKUs,
     // and the subs have different ending dates,
-
-    ProductId productId = RHOSAK;
     Sub expectedNewerSub = Sub.sub("1234", MW01882.sku, "1235", 4, BillingProvider.RED_HAT, 5, 7);
     Sub expectedOlderSub = Sub.sub("1236", MW01882RN.sku, "1237", 5, BillingProvider.RED_HAT, 6, 6);
 
     List<Subscription> givenSubs =
         givenSubscriptions(
-            Org.STANDARD,
-            productId,
-            MW01882.withSub(expectedNewerSub),
-            MW01882RN.withSub(expectedOlderSub));
+            Org.STANDARD, MW01882.withSub(expectedNewerSub), MW01882RN.withSub(expectedOlderSub));
 
     when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(givenSubs);
 
     // When requesting a SKU capacity report for the eng product, sorted by SKU
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId,
+            RHOSAK,
             null,
             null,
             null,
@@ -275,14 +260,12 @@ class SubscriptionTableControllerOnDemandTest {
   @Test
   void testGetSkuCapacityReportNoSub() {
     // Given an org with no active subs,
-    ProductId productId = RHOSAK;
-
     when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(Collections.emptyList());
 
     // When requesting a SKU capacity report for an eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, null, null, null, null, null);
+            RHOSAK, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains no inventory items.
     assertEquals(0, actual.getData().size(), "An empty inventory list should be returned.");
@@ -290,16 +273,12 @@ class SubscriptionTableControllerOnDemandTest {
 
   @Test
   void testShouldUseQueryBasedOnHeaderAndParameters() {
-    ProductId productId = RHOSAK;
     Sub expectedNewerSub = Sub.sub("1234", MW01882.sku, "1235", 1, BillingProvider.RED_HAT, 5, 7);
     Sub expectedOlderSub = Sub.sub("1236", MW01882.sku, "1237", 2, BillingProvider.RED_HAT, 6, 6);
 
     List<Subscription> givenSubs =
         givenSubscriptions(
-            Org.STANDARD,
-            productId,
-            MW01882.withSub(expectedNewerSub),
-            MW01882.withSub(expectedOlderSub));
+            Org.STANDARD, MW01882.withSub(expectedNewerSub), MW01882.withSub(expectedOlderSub));
 
     when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(givenSubs);
 
@@ -321,16 +300,12 @@ class SubscriptionTableControllerOnDemandTest {
 
   @Test
   void testShouldUseSlaQueryParam() {
-    ProductId productId = RHOSAK;
     Sub expectedNewerSub = Sub.sub("1234", MW01882.sku, "1235", 1, BillingProvider.RED_HAT, 5, 7);
     Sub expectedOlderSub = Sub.sub("1236", MW01882.sku, "1237", 2, BillingProvider.RED_HAT, 6, 6);
 
     List<Subscription> givenSubs =
         givenSubscriptions(
-            Org.STANDARD,
-            productId,
-            MW01882.withSub(expectedNewerSub),
-            MW01882.withSub(expectedOlderSub));
+            Org.STANDARD, MW01882.withSub(expectedNewerSub), MW01882.withSub(expectedOlderSub));
 
     when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(givenSubs);
 
@@ -352,17 +327,12 @@ class SubscriptionTableControllerOnDemandTest {
 
   @Test
   void testShouldUseUsageQueryParam() {
-
-    ProductId productId = RHOSAK;
     Sub expectedNewerSub = Sub.sub("1234", MW01882.sku, "1235", 1, BillingProvider.RED_HAT, 5, 7);
     Sub expectedOlderSub = Sub.sub("1236", MW01882.sku, "1237", 2, BillingProvider.RED_HAT, 6, 6);
 
     List<Subscription> givenSubs =
         givenSubscriptions(
-            Org.STANDARD,
-            productId,
-            MW01882.withSub(expectedNewerSub),
-            MW01882.withSub(expectedOlderSub));
+            Org.STANDARD, MW01882.withSub(expectedNewerSub), MW01882.withSub(expectedOlderSub));
 
     when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(givenSubs);
 
@@ -386,42 +356,39 @@ class SubscriptionTableControllerOnDemandTest {
   void testGetSkuCapacityReportUnlimitedQuantity() {
     // Given an org with one active sub with a quantity of 1 and has an eng product with unlimited
     // usage.
-    ProductId productId = RHOSAK;
     Sub expectedSub = Sub.sub("1234", MW01882RN.sku, "1235", 1);
 
-    List<Subscription> givenSubs =
-        givenSubscriptions(Org.STANDARD, productId, MW01882RN.withSub(expectedSub));
+    List<Subscription> givenSubs = givenSubscriptions(Org.STANDARD, MW01882RN.withSub(expectedSub));
 
     when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(givenSubs);
 
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, null, null, null, null, null);
+            RHOSAK, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the sub and HasInfiniteQuantity
     // should be true.
     assertEquals(1, actual.getData().size(), "Wrong number of items returned");
     SkuCapacity actualItem = actual.getData().get(0);
     assertTrue(actualItem.getHasInfiniteQuantity(), "HasInfiniteQuantity should be true");
+    assertEquals(actualItem.getSku() + OFFERING_DESCRIPTION_SUFFIX, actualItem.getProductName());
   }
 
   @Test
   void testOnDemandSkuPopulatesNextEvent() {
     // Given an org with one active sub with a quantity of 1 and has an eng product with unlimited
     // usage.
-    ProductId productId = RHOSAK;
     Sub expectedSub = Sub.sub("1234", MW01882RN.sku, "1235", 1);
 
-    List<Subscription> givenSubs =
-        givenSubscriptions(Org.STANDARD, productId, MW01882RN.withSub(expectedSub));
+    List<Subscription> givenSubs = givenSubscriptions(Org.STANDARD, MW01882RN.withSub(expectedSub));
 
     when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(givenSubs);
 
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, null, null, null, null, null);
+            RHOSAK, null, null, null, null, null, null, null, null, null, null);
     SkuCapacity actualItem = actual.getData().get(0);
 
     // Then the report should contain end date of the contributing subscription
@@ -432,16 +399,12 @@ class SubscriptionTableControllerOnDemandTest {
 
   @Test
   void testShouldGetUniqueResultPerBillingProviderSameSku() {
-    ProductId productId = RHOSAK;
     Sub expectedNewerSub = Sub.sub("1234", MW01882.sku, "1235", 1, BillingProvider.RED_HAT, 5, 7);
     Sub expectedOlderSub = Sub.sub("1236", MW01882.sku, "1237", 2, BillingProvider.AWS, 6, 6);
 
     List<Subscription> givenSubs =
         givenSubscriptions(
-            Org.STANDARD,
-            productId,
-            MW01882.withSub(expectedNewerSub),
-            MW01882.withSub(expectedOlderSub));
+            Org.STANDARD, MW01882.withSub(expectedNewerSub), MW01882.withSub(expectedOlderSub));
 
     when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(givenSubs);
 
@@ -460,9 +423,7 @@ class SubscriptionTableControllerOnDemandTest {
             null);
     assertEquals(2, reportForMatchingUsage.getData().size());
     var billingProvidersReturned =
-        reportForMatchingUsage.getData().stream()
-            .map(v -> v.getBillingProvider())
-            .collect(Collectors.toList());
+        reportForMatchingUsage.getData().stream().map(SkuCapacity::getBillingProvider).toList();
     assertTrue(billingProvidersReturned.contains(BillingProviderType.AWS));
     assertTrue(billingProvidersReturned.contains(BillingProviderType.RED_HAT));
   }
@@ -501,11 +462,6 @@ class SubscriptionTableControllerOnDemandTest {
 
     public static Sub sub(String id, String sku, String number, Integer quantity) {
       return sub(id, sku, number, quantity, BillingProvider.RED_HAT, 6, 6);
-    }
-
-    public static Sub sub(
-        String id, String sku, String number, Integer quantity, BillingProvider billingProvider) {
-      return sub(id, sku, number, quantity, billingProvider, 6, 6);
     }
 
     /* Also specifies the sub active timeframe, relative to now. */
@@ -607,7 +563,7 @@ class SubscriptionTableControllerOnDemandTest {
           sub);
     }
 
-    public Subscription createSubscription(Org org, ProductId productId) {
+    public Subscription createSubscription(Org org) {
       return Subscription.builder()
           .orgId(org.orgId())
           .subscriptionId(sub.id)
@@ -628,6 +584,7 @@ class SubscriptionTableControllerOnDemandTest {
           .serviceLevel(this.serviceLevel)
           .usage(this.usage)
           .hasUnlimitedUsage(this.hasUnlimitedUsage)
+          .description(this.sku + OFFERING_DESCRIPTION_SUFFIX)
           .build();
     }
   }

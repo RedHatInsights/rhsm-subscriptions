@@ -18,25 +18,28 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.resource;
+package org.candlepin.subscriptions.conduit.resource.api;
 
-import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
-import java.util.Collections;
-import java.util.Map;
-import org.candlepin.testcontainers.SwatchPostgreSQLContainer;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class PostgresResource implements QuarkusTestResourceLifecycleManager {
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
-  static SwatchPostgreSQLContainer db = new SwatchPostgreSQLContainer("rhsm-subscriptions");
+@SpringBootTest
+@ActiveProfiles({"test"})
+class InternalSystemConduitApiSpecResourceTest {
 
-  @Override
-  public Map<String, String> start() {
-    db.start();
-    return Collections.singletonMap("quarkus.datasource.jdbc.url", db.getJdbcUrl());
+  @Autowired InternalSystemConduitApiSpecResource resource;
+
+  @Test
+  void testGetOpenApiJson() {
+    assertNotNull(resource.getOpenApiJson());
   }
 
-  @Override
-  public void stop() {
-    db.stop();
+  @Test
+  void testGetOpenApiYaml() {
+    assertNotNull(resource.getOpenApiYaml());
   }
 }

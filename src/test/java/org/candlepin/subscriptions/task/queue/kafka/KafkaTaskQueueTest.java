@@ -22,24 +22,18 @@ package org.candlepin.subscriptions.task.queue.kafka;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
+import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @DirtiesContext
 @ActiveProfiles({"worker", "test", "kafka-test"})
-@EmbeddedKafka(
-    partitions = 1,
-    topics = {
-      "${rhsm-subscriptions.tasks.topic}",
-      "${rhsm-subscriptions.subscription.tasks.topic}"
-    })
-class KafkaTaskQueueTest extends KafkaTaskQueueTester {
+class KafkaTaskQueueTest extends KafkaTaskQueueTester implements ExtendWithEmbeddedKafka {
   @Test
-  void testSendAndReceiveTaskMessageWithOrg() throws InterruptedException {
+  void testSendAndReceiveTaskMessageWithOrg() {
     assertDoesNotThrow(() -> runSendAndReceiveTaskMessageTestWithOrg());
   }
 }

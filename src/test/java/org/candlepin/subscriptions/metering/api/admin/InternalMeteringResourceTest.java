@@ -44,6 +44,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.retry.support.RetryTemplate;
 
 @ExtendWith(MockitoExtension.class)
 class InternalMeteringResourceTest {
@@ -60,6 +61,7 @@ class InternalMeteringResourceTest {
   private ApplicationClock clock;
   private InternalMeteringResource resource;
   private MetricProperties metricProps;
+  private RetryTemplate retryTemplate;
 
   @BeforeEach
   void setupTest() {
@@ -70,6 +72,8 @@ class InternalMeteringResourceTest {
     metricProps = new MetricProperties();
     metricProps.setRangeInMinutes(60);
 
+    retryTemplate = new RetryTemplate();
+
     resource =
         new InternalMeteringResource(
             util,
@@ -78,7 +82,8 @@ class InternalMeteringResourceTest {
             tasks,
             controller,
             eventRecordRepository,
-            metricProps);
+            metricProps,
+            retryTemplate);
   }
 
   @Test
@@ -197,5 +202,14 @@ class InternalMeteringResourceTest {
             IllegalArgumentException.class,
             () -> resource.meterProductForOrgIdAndRange(VALID_PRODUCT, "org1", endDate, 13, false));
     assertThat(ie.getMessage(), Matchers.matchesRegex(".*produces time not at top of the hour.*"));
+  }
+
+  @Test
+  void testSyncMetricsForAllAccounts() {
+    int range = metricProps.getRangeInMinutes();
+
+    resource.syncMetricsForAllAccounts();
+
+    verify(tasks).updateMetricsForAllAccounts("OpenShift-metrics", range, retryTemplate);
   }
 }

@@ -31,7 +31,7 @@ ext.plugins = [
         "org.kordamp.gradle:jandex-gradle-plugin:1.1.0",
         "org.openapitools:openapi-generator-gradle-plugin:7.0.1",
         "org.springframework.boot:spring-boot-gradle-plugin:3.1.4",
-        "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:4.4.0.3356",
+        "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:4.4.1.3373",
 ]
 
 // BOMs
@@ -40,7 +40,7 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:2.1.1"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.20.157"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.20.159"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.0.0"
 libraries["guava"] = "com.google.guava:guava:32.1.2-jre"
 libraries["hamcrest-all"] = "org.hamcrest:hamcrest-all:1.3"
