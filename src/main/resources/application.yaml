@@ -41,7 +41,6 @@ rhsm-subscriptions:
   jobs:
     purge-snapshot-schedule: ${PURGE_SNAPSHOT-SCHEDULE:0 0 1 * * ?}
     purge-events-schedule: ${PURGE_EVENTS_SCHEDULE:0 0 1 * * ?}
-    metering-schedule: ${METERING_SCHEDULE:0 30 * * * ?}
   account-batch-size: ${ACCOUNT_BATCH_SIZE:1}
   product-denylist-resource-location: ${PRODUCT_DENYLIST_RESOURCE_LOCATION:}
   metering:
