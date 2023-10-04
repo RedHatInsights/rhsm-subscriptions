@@ -38,6 +38,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.HypervisorReportCategory;
 import org.candlepin.subscriptions.db.OfferingRepository;
@@ -62,6 +64,8 @@ public class SubscriptionTableController {
 
   private static final String CORES = "Cores";
   private static final String SOCKETS = "Sockets";
+  private static final BillingProvider NO_BILLING_PROVIDER = null;
+  private static final Uom NO_UOM = null;
   private final SubscriptionRepository subscriptionRepository;
   private final OfferingRepository offeringRepository;
   private final ApplicationClock clock;
@@ -255,26 +259,7 @@ public class SubscriptionTableController {
     Map<String, SkuCapacity> capacityTemplates = new HashMap<>();
     for (Offering offering : offeringRepository.findBySkuIn(skus)) {
       // No information specific to an engineering product within an offering is added.
-      var inventory = new SkuCapacity();
-      inventory.setSku(offering.getSku());
-      inventory.setProductName(offering.getDescription());
-      inventory.setServiceLevel(
-          Optional.ofNullable(offering.getServiceLevel())
-              .orElse(ServiceLevel.EMPTY)
-              .asOpenApiEnum());
-      inventory.setUsage(
-          Optional.ofNullable(offering.getUsage()).orElse(Usage.EMPTY).asOpenApiEnum());
-
-      // When uom param is set, force all inventories to report capacities for that UoM
-      // (Some products have both sockets and cores)
-      if (uom != null) {
-        inventory.setUom(uom);
-      }
-      inventory.setQuantity(0);
-      inventory.setCapacity(0);
-      inventory.setHypervisorCapacity(0);
-      inventory.setTotalCapacity(0);
-      inventory.setSubscriptions(new ArrayList<>());
+      var inventory = initializeSkuCapacity(offering, NO_BILLING_PROVIDER, uom);
       capacityTemplates.put(offering.getSku(), inventory);
     }
     return capacityTemplates;
@@ -328,28 +313,36 @@ public class SubscriptionTableController {
           final SkuCapacity inventory =
               inventories.computeIfAbsent(
                   String.format("%s:%s", sku, sub.getBillingProvider()),
-                  key -> initializeOnDemandSkuCapacity(sub));
+                  key ->
+                      initializeSkuCapacity(sub.getOffering(), sub.getBillingProvider(), NO_UOM));
           addOnDemandSubscriptionInformation(sub, inventory);
         });
     return inventories.values();
   }
 
-  public SkuCapacity initializeOnDemandSkuCapacity(Subscription subscription) {
-    var offering = subscription.getOffering();
-    var inv = new SkuCapacity();
-    inv.setSubscriptions(new ArrayList<>());
-    inv.setSku(offering.getSku());
-    inv.setProductName(offering.getProductName());
-    inv.setServiceLevel(
+  public SkuCapacity initializeSkuCapacity(
+      @Nonnull Offering offering, @Nullable BillingProvider billingProvider, @Nullable Uom uom) {
+    var inventory = new SkuCapacity();
+    inventory.setSubscriptions(new ArrayList<>());
+    inventory.setSku(offering.getSku());
+    inventory.setProductName(offering.getDescription());
+    inventory.setServiceLevel(
         Optional.ofNullable(offering.getServiceLevel()).orElse(ServiceLevel.EMPTY).asOpenApiEnum());
-    inv.setUsage(Optional.ofNullable(offering.getUsage()).orElse(Usage.EMPTY).asOpenApiEnum());
-    inv.setHasInfiniteQuantity(offering.getHasUnlimitedUsage());
-    inv.setBillingProvider(
-        Optional.ofNullable(subscription.getBillingProvider())
-            .orElse(BillingProvider.EMPTY)
-            .asOpenApiEnum());
-    inv.setQuantity(0);
-    return inv;
+    inventory.setUsage(
+        Optional.ofNullable(offering.getUsage()).orElse(Usage.EMPTY).asOpenApiEnum());
+    inventory.setHasInfiniteQuantity(offering.getHasUnlimitedUsage());
+    inventory.setBillingProvider(
+        Optional.ofNullable(billingProvider).orElse(BillingProvider.EMPTY).asOpenApiEnum());
+    inventory.setQuantity(0);
+    inventory.setCapacity(0);
+    inventory.setHypervisorCapacity(0);
+    inventory.setTotalCapacity(0);
+    // When uom param is set, force all inventories to report capacities for that UoM
+    // (Some products have both sockets and cores)
+    if (uom != null) {
+      inventory.setUom(uom);
+    }
+    return inventory;
   }
 
   public void calculateNextEvent(
