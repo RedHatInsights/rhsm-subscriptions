@@ -33,4 +33,4 @@ metrics:
         instanceKey: _id
         product: rhel-for-x86-eus-payg-placeholder-role
         metric: system_cpu_logical_count
-        metadataMetric: subscription_labels
+        metadataMetric: system_cpu_logical_count
