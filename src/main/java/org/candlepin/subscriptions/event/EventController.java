@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -79,9 +80,19 @@ public class EventController {
   }
 
   public Stream<Event> fetchEventsInTimeRangeByServiceType(
-      String orgId, String serviceType, OffsetDateTime begin, OffsetDateTime end) {
+      String orgId,
+      String serviceType,
+      OffsetDateTime begin,
+      OffsetDateTime end,
+      OffsetDateTime asOfDateTime) {
+    // asOfDateTime is used to ignore events that are recorded outside a given hourly tally's
+    // window. Those events will be processed during the next hourly tally, and filtering them out
+    // here ensures they won't be processed twice hence we don't have to retally again.
     return repo.findByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
             orgId, serviceType, begin, end)
+        .filter(
+            eventRecord ->
+                Objects.isNull(asOfDateTime) || eventRecord.getRecordDate().isBefore(asOfDateTime))
         .map(EventRecord::getEvent);
   }
 
