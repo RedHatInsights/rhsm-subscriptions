@@ -103,7 +103,11 @@ public class TallySnapshotController {
     }
 
     log.info("Producing snapshots for Org ID {}.", orgId);
-    List<String> serviceTypes = SubscriptionDefinition.getAllServiceTypes();
+    // Because we would have already seen the events once by service type, the loop will result in a
+    // retally if we fetch duplicate service types and loop through again, which is why we must use
+    // Set in this situation rather than List. Set enables us to guarantee that each event is
+    // fetched by service type just once.
+    Set<String> serviceTypes = SubscriptionDefinition.getAllServiceTypes();
     for (String serviceType : serviceTypes) {
       log.info(
           "Producing hourly snapshots for orgId {} for service type {} "
