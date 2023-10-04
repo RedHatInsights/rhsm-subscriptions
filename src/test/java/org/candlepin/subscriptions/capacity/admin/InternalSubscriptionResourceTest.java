@@ -35,6 +35,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
@@ -76,6 +77,7 @@ class InternalSubscriptionResourceTest {
   @Autowired WebApplicationContext context;
   @Autowired InternalSubscriptionResource resource;
   @Autowired MeterRegistry meterRegistry;
+  @Autowired ApplicationProperties applicationProperties;
 
   private MockMvc mvc;
   private static final String SYNC_ORG_123 = "/internal/subscriptions/sync/org/123";
@@ -109,7 +111,8 @@ class InternalSubscriptionResourceTest {
             subscriptionPruneController,
             offeringSync,
             capacityReconciliationController,
-            metricMapper);
+            metricMapper,
+            applicationProperties);
     when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
     assertThrows(
@@ -132,7 +135,8 @@ class InternalSubscriptionResourceTest {
             subscriptionPruneController,
             offeringSync,
             capacityReconciliationController,
-            metricMapper);
+            metricMapper,
+            applicationProperties);
     when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
     assertThrows(
@@ -155,7 +159,8 @@ class InternalSubscriptionResourceTest {
             subscriptionPruneController,
             offeringSync,
             capacityReconciliationController,
-            metricMapper);
+            metricMapper,
+            applicationProperties);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
     sub1.setEndDate(defaultEndDate);
@@ -185,7 +190,8 @@ class InternalSubscriptionResourceTest {
             subscriptionPruneController,
             offeringSync,
             capacityReconciliationController,
-            metricMapper);
+            metricMapper,
+            applicationProperties);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
     sub1.setEndDate(defaultEndDate);
@@ -328,7 +334,8 @@ class InternalSubscriptionResourceTest {
             subscriptionPruneController,
             offeringSync,
             capacityReconciliationController,
-            metricMapper);
+            metricMapper,
+            applicationProperties);
 
     when(syncController.findSubscriptions(any(), any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
@@ -357,7 +364,8 @@ class InternalSubscriptionResourceTest {
             subscriptionPruneController,
             offeringSync,
             capacityReconciliationController,
-            metricMapper);
+            metricMapper,
+            applicationProperties);
 
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("account123");

@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.metering.api.admin;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.annotation.Timed;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.Min;
@@ -41,6 +42,8 @@ import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
 import org.candlepin.subscriptions.resource.ResourceUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -53,6 +56,7 @@ public class InternalMeteringResource implements InternalApi {
   private final EventRecordsRetentionProperties eventRecordsRetentionProperties;
   private final EventRecordRepository eventRecordRepository;
   private final MetricProperties metricProperties;
+  private final RetryTemplate retryTemplate;
 
   public InternalMeteringResource(
       ResourceUtil util,
@@ -61,7 +65,8 @@ public class InternalMeteringResource implements InternalApi {
       PrometheusMetricsTaskManager tasks,
       PrometheusMeteringController controller,
       EventRecordRepository eventRecordRepository,
-      MetricProperties metricProperties) {
+      MetricProperties metricProperties,
+      @Qualifier("meteringJobRetryTemplate") RetryTemplate retryTemplate) {
     this.util = util;
     this.applicationProperties = applicationProperties;
     this.eventRecordsRetentionProperties = eventRecordsRetentionProperties;
@@ -69,6 +74,7 @@ public class InternalMeteringResource implements InternalApi {
     this.controller = controller;
     this.eventRecordRepository = eventRecordRepository;
     this.metricProperties = metricProperties;
+    this.retryTemplate = retryTemplate;
   }
 
   @Override
@@ -83,6 +89,25 @@ public class InternalMeteringResource implements InternalApi {
     log.info("Purging event records older than {}", cutoffDate);
     eventRecordRepository.deleteInBulkEventRecordsByTimestampBefore(cutoffDate);
     log.info("Event record purge completed successfully");
+  }
+
+  @Override
+  public void syncMetricsForAllAccounts() {
+    int range = metricProperties.getRangeInMinutes();
+
+    SubscriptionDefinition.getSubscriptionDefinitions().stream()
+        .filter(SubscriptionDefinition::isPrometheusEnabled)
+        .flatMap(subDef -> subDef.getVariants().stream())
+        .map(Variant::getTag)
+        .forEach(
+            productTag -> {
+              try {
+                tasks.updateMetricsForAllAccounts(productTag, range, retryTemplate);
+              } catch (Exception e) {
+                log.error(
+                    "Error updating metrics of product tag {} for all accounts. ", productTag, e);
+              }
+            });
   }
 
   @Override

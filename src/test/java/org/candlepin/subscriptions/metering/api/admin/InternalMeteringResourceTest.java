@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.metering.api.admin;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -31,7 +30,6 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.metering.ResourceUtil;
 import org.candlepin.subscriptions.metering.retention.EventRecordsRetentionProperties;
@@ -46,6 +44,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.retry.support.RetryTemplate;
 
 @ExtendWith(MockitoExtension.class)
 class InternalMeteringResourceTest {
@@ -54,7 +53,6 @@ class InternalMeteringResourceTest {
 
   @Mock private PrometheusMetricsTaskManager tasks;
   @Mock private PrometheusMeteringController controller;
-  @Mock private AccountConfigRepository accountConfigRepository;
   @Mock private EventRecordsRetentionProperties eventRecordsRetentionProperties;
   @Mock private EventRecordRepository eventRecordRepository;
 
@@ -63,16 +61,18 @@ class InternalMeteringResourceTest {
   private ApplicationClock clock;
   private InternalMeteringResource resource;
   private MetricProperties metricProps;
+  private RetryTemplate retryTemplate;
 
   @BeforeEach
   void setupTest() {
     appProps = new ApplicationProperties();
     clock = new TestClockConfiguration().adjustableClock();
     util = new ResourceUtil(clock);
-    lenient().when(accountConfigRepository.findOrgByAccountNumber("account1")).thenReturn("org1");
 
     metricProps = new MetricProperties();
     metricProps.setRangeInMinutes(60);
+
+    retryTemplate = new RetryTemplate();
 
     resource =
         new InternalMeteringResource(
@@ -82,7 +82,8 @@ class InternalMeteringResourceTest {
             tasks,
             controller,
             eventRecordRepository,
-            metricProps);
+            metricProps,
+            retryTemplate);
   }
 
   @Test
@@ -201,5 +202,14 @@ class InternalMeteringResourceTest {
             IllegalArgumentException.class,
             () -> resource.meterProductForOrgIdAndRange(VALID_PRODUCT, "org1", endDate, 13, false));
     assertThat(ie.getMessage(), Matchers.matchesRegex(".*produces time not at top of the hour.*"));
+  }
+
+  @Test
+  void testSyncMetricsForAllAccounts() {
+    int range = metricProps.getRangeInMinutes();
+
+    resource.syncMetricsForAllAccounts();
+
+    verify(tasks).updateMetricsForAllAccounts("OpenShift-metrics", range, retryTemplate);
   }
 }

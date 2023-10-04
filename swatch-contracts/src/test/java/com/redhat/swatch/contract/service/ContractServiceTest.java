@@ -42,7 +42,9 @@ import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionRepository;
+import com.redhat.swatch.contract.resource.WireMockResource;
 import io.quarkus.test.InjectMock;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
@@ -56,6 +58,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 
 @QuarkusTest
+@QuarkusTestResource(value = WireMockResource.class, restrictToAnnotatedClass = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ContractServiceTest extends BaseUnitTest {
   @Inject ContractService contractService;

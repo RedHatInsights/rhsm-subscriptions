@@ -18,25 +18,20 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.contract.resource;
+package org.candlepin.subscriptions.test;
 
-import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
-import java.util.Collections;
-import java.util.Map;
-import org.candlepin.testcontainers.SwatchPostgreSQLContainer;
+import org.candlepin.subscriptions.metering.service.prometheus.PrometheusQueryWiremockExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
-public class PostgresResource implements QuarkusTestResourceLifecycleManager {
+@ExtendWith(PrometheusQueryWiremockExtension.class)
+public interface ExtendWithPrometheusWiremock {
 
-  static SwatchPostgreSQLContainer db = new SwatchPostgreSQLContainer();
-
-  @Override
-  public Map<String, String> start() {
-    db.start();
-    return Collections.singletonMap("quarkus.datasource.jdbc.url", db.getJdbcUrl());
-  }
-
-  @Override
-  public void stop() {
-    db.stop();
+  @DynamicPropertySource
+  static void registerPrometheusProperties(DynamicPropertyRegistry registry) {
+    registry.add(
+        "rhsm-subscriptions.metering.prometheus.client.url",
+        () -> "http://localhost:${WIREMOCK_PORT:8101}");
   }
 }

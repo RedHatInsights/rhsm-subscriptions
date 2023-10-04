@@ -21,6 +21,10 @@ rhsm-subscriptions:
         backOffInitialInterval: 1000
         backOffMultiplier: 1.5
         eventSource: ${EVENT_SOURCE}
+        rangeInMinutes: ${METRICS_RHEL_METERING_RANGE:60}
+        jobMaxAttempts: 3
+        jobBackOffMaxInterval: 50000
+        jobBackOffInitialInterval: 1000
     tasks:
       topic: ${METERING_RHEL_TASK_TOPIC}
       kafka-group-id: swatch-metrics-rhel
