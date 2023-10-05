@@ -135,7 +135,7 @@ public class InternalSubscriptionResource implements InternalApi {
   /** Enqueue all sync-enabled orgs to sync their subscriptions with upstream. */
   @Override
   public DefaultResponse syncAllSubscriptions(Boolean forceSync) {
-    if (!forceSync && !applicationProperties.isSubscriptionSyncEnabled()) {
+    if (Boolean.FALSE.equals(forceSync) && !applicationProperties.isSubscriptionSyncEnabled()) {
       log.info(
           "Will not sync subscriptions for all opted-in orgs even though job was scheduled because subscriptionSyncEnabled=false.");
       return getDefaultResponse(FEATURE_NOT_ENABLED_MESSSAGE);
