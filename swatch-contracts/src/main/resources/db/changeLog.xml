@@ -8,5 +8,6 @@
 
   <include file="db/202302030707_create_contracts_table.xml"/>
   <include file="db/202304061624_add_vendorproductcode_to_contracts_table.xml"/>
+  <include file="db/202310091227_fix_contract_metrics_for_rosa.xml"/>
 
 </databaseChangeLog>

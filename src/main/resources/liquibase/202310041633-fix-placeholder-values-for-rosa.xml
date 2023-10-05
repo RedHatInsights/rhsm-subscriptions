@@ -1,0 +1,23 @@
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="202310041633-1" author="ksynvrit">
+        <comment>Change four_vcpu_hour to Cores on subscription_measurements.</comment>
+        <update tableName="subscription_measurements">
+            <column name="metric_id" value="Cores"/>
+            <where>metric_id='four_vcpu_hour'</where>
+        </update>
+    </changeSet>
+
+    <changeSet id="202310041633-2" author="ksynvrit">
+        <comment>Change control_plane to Instance-hours on subscription_measurements.</comment>
+        <update tableName="subscription_measurements">
+            <column name="metric_id" value="Instance-hours"/>
+            <where>metric_id='control_plane'</where>
+        </update>
+    </changeSet>
+
+</databaseChangeLog>
