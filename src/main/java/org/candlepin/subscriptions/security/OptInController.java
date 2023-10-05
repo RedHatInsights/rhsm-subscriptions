@@ -74,7 +74,7 @@ public class OptInController {
   // updates
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void optInByOrgId(String orgId, OptInType optInType) {
-    if (Boolean.FALSE.equals(orgConfigRepository.existsByOrgId(orgId))) {
+    if (!orgConfigRepository.existsByOrgId(orgId)) {
       log.info("Opting in orgId={}", orgId);
       // NOTE Passing null here should be cleaned up once account number
       // support is completely removed from opt-in.
