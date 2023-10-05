@@ -49,7 +49,7 @@ class QueryBuilderTest {
   void testBuildQuery() {
     String templateKey = "default";
     String template =
-        "Account: #{runtime[account]} Metric ID: #{metric.id} P1: #{metric.prometheus.queryParams[metadataMetric]}";
+        "Account: #{runtime[account]} Metric ID: #{metric.id} P1: #{metric.prometheus.queryParams[metadataMetric]} ${SYSTEM_PROPERTY:default}";
 
     String id = "Cores";
     String account = "12345";
@@ -69,7 +69,7 @@ class QueryBuilderTest {
 
     QueryBuilder builder = new QueryBuilder(props);
     assertEquals(
-        String.format("Account: %s Metric ID: %s P1: %s", account, id, param1),
+        String.format("Account: %s Metric ID: %s P1: %s default", account, id, param1),
         builder.build(queryDesc));
   }
 
