@@ -496,10 +496,11 @@ public class MetricUsageCollector {
 
     var engIds = Optional.ofNullable(event.getProductIds()).orElse(Collections.emptyList());
     for (String engId : engIds) {
-      SubscriptionDefinition.lookupSubscriptionByEngId(engId)
-          .filter(SubscriptionDefinition::isPaygEligible)
-          .flatMap(s -> s.findVariantForEngId(engId).map(Variant::getTag))
-          .ifPresent(productIds::add);
+      productIds.addAll(
+          SubscriptionDefinition.lookupSubscriptionByEngId(engId).stream()
+              .filter(SubscriptionDefinition::isPaygEligible)
+              .flatMap(s -> s.findVariantForEngId(engId).map(Variant::getTag).stream())
+              .toList());
     }
 
     return productIds;

@@ -24,6 +24,7 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -245,10 +246,13 @@ public class FactNormalizer {
 
     for (String productId : productIds) {
       try {
-        var subscription = SubscriptionDefinition.lookupSubscriptionByEngId(productId);
-        if (subscription.isPresent()) {
-          var variant = subscription.get().findVariantForEngId(productId);
-          variant.ifPresent(v -> normalizedFacts.getProducts().add(v.getTag()));
+        var subscriptions = SubscriptionDefinition.lookupSubscriptionByEngId(productId);
+        if (Objects.nonNull(subscriptions)) {
+          subscriptions.forEach(
+              subscriptionDefinition ->
+                  subscriptionDefinition
+                      .findVariantForEngId(productId)
+                      .ifPresent(v -> normalizedFacts.getProducts().add(v.getTag())));
         }
       } catch (NumberFormatException e) {
         log.debug("Skipping non-numeric productId: {}", productId);
