@@ -28,11 +28,6 @@ paths:
   /internal/remittance/accountRemittances:
     description: 'Operations to get specific account remittances'
     parameters:
-      - name: accountNumber
-        in: query
-        required: false
-        schema:
-          type: string
       - name: productId
         in: query
         required: true
@@ -102,8 +97,6 @@ components:
     MonthlyRemittance:
       description: Encapsulates all Monthly remittance
       properties:
-        accountNumber:
-          type: string
         orgId:
           type: string
         productId:

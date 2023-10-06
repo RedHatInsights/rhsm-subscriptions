@@ -37,7 +37,6 @@ import lombok.Setter;
 @EqualsAndHashCode
 public class BillableUsageRemittanceFilter {
   private String productId;
-  private String account;
   private String orgId;
   private String usage;
   private String sla;

@@ -44,8 +44,4 @@ public class BillableUsageRemittanceEntity implements Serializable {
   @Basic
   @Column(name = "remitted_pending_value", nullable = false, precision = 0)
   private Double remittedPendingValue;
-
-  @Basic
-  @Column(name = "account_number", nullable = true)
-  private String accountNumber;
 }

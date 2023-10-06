@@ -52,7 +52,6 @@ class EventRecordRepositoryTest {
   @Test
   void saveAndUpdate() {
     Event event = new Event();
-    event.setAccountNumber("account123");
     event.setOrgId("org123");
     event.setTimestamp(OffsetDateTime.now(CLOCK));
     event.setInstanceId("instanceId");
@@ -76,15 +75,8 @@ class EventRecordRepositoryTest {
   @Test
   void testFindBeginInclusive() {
     Event oldEvent =
-        event(
-            "account123",
-            "org123",
-            "SOURCE",
-            "TYPE",
-            "INSTANCE",
-            OffsetDateTime.now(CLOCK).minusSeconds(1));
-    Event currentEvent =
-        event("account123", "org123", "SOURCE", "TYPE", "INSTANCE", OffsetDateTime.now(CLOCK));
+        event("org123", "SOURCE", "TYPE", "INSTANCE", OffsetDateTime.now(CLOCK).minusSeconds(1));
+    Event currentEvent = event("org123", "SOURCE", "TYPE", "INSTANCE", OffsetDateTime.now(CLOCK));
 
     repository.saveAll(Arrays.asList(new EventRecord(oldEvent), new EventRecord(currentEvent)));
     repository.flush();
@@ -102,18 +94,12 @@ class EventRecordRepositoryTest {
   @Test
   void testFindEndExclusive() {
     EventRecord futureEvent =
-        new EventRecord(
-            event("account123", "org123", "SOURCE", "TYPE", "INSTANCE", OffsetDateTime.now(CLOCK)));
+        new EventRecord(event("org123", "SOURCE", "TYPE", "INSTANCE", OffsetDateTime.now(CLOCK)));
 
     EventRecord currentEvent =
         new EventRecord(
             event(
-                "account123",
-                "org123",
-                "SOURCE",
-                "TYPE",
-                "INSTANCE",
-                OffsetDateTime.now(CLOCK).minusSeconds(1)));
+                "org123", "SOURCE", "TYPE", "INSTANCE", OffsetDateTime.now(CLOCK).minusSeconds(1)));
 
     repository.saveAll(Arrays.asList(futureEvent, currentEvent));
     repository.flush();
@@ -132,12 +118,10 @@ class EventRecordRepositoryTest {
   @Test
   void findBySourceAndType() {
     EventRecord e1 =
-        new EventRecord(
-            event("account123", "org123", "SOURCE", "TYPE", "INSTANCE", OffsetDateTime.now(CLOCK)));
+        new EventRecord(event("org123", "SOURCE", "TYPE", "INSTANCE", OffsetDateTime.now(CLOCK)));
     EventRecord e2 =
         new EventRecord(
             event(
-                "account123",
                 "org123",
                 "ANOTHER_SOURCE",
                 "ANOTHER_TYPE",
@@ -145,22 +129,10 @@ class EventRecordRepositoryTest {
                 OffsetDateTime.now(CLOCK).minusSeconds(1)));
     EventRecord e3 =
         new EventRecord(
-            event(
-                "account123",
-                "org123",
-                "SOURCE",
-                "ANOTHER_TYPE",
-                "INSTANCE",
-                OffsetDateTime.now(CLOCK)));
+            event("org123", "SOURCE", "ANOTHER_TYPE", "INSTANCE", OffsetDateTime.now(CLOCK)));
     EventRecord e4 =
         new EventRecord(
-            event(
-                "account123",
-                "org123",
-                "ANOTHER_SOURCE",
-                "TYPE",
-                "INSTANCE",
-                OffsetDateTime.now(CLOCK)));
+            event("org123", "ANOTHER_SOURCE", "TYPE", "INSTANCE", OffsetDateTime.now(CLOCK)));
 
     repository.saveAll(List.of(e1, e2, e3, e4));
     repository.flush();
@@ -187,7 +159,6 @@ class EventRecordRepositoryTest {
     EventRecord event =
         EventRecord.builder()
             .eventId(UUID.randomUUID())
-            .accountNumber("bananas1")
             .orgId("org123")
             .eventSource("source")
             .eventType("type")
@@ -197,7 +168,6 @@ class EventRecordRepositoryTest {
     EventRecord event2 =
         EventRecord.builder()
             .eventId(UUID.randomUUID())
-            .accountNumber("bananas1")
             .orgId("org123")
             .eventSource("source")
             .eventType("type")
@@ -215,16 +185,10 @@ class EventRecordRepositoryTest {
   }
 
   private Event event(
-      String account,
-      String orgId,
-      String source,
-      String type,
-      String instanceId,
-      OffsetDateTime time) {
+      String orgId, String source, String type, String instanceId, OffsetDateTime time) {
     UUID eventId = UUID.randomUUID();
     Event event = new Event();
     event.setEventId(eventId);
-    event.setAccountNumber(account);
     event.setOrgId(orgId);
     event.setTimestamp(time);
     event.setInstanceId(instanceId);

@@ -68,7 +68,6 @@ public class EventRecord {
     Objects.requireNonNull(event, "event must not be null");
     this.meteringBatchId = event.getMeteringBatchId();
     this.event = event;
-    this.accountNumber = event.getAccountNumber();
     this.orgId = event.getOrgId();
     this.eventType = event.getEventType();
     this.eventSource = event.getEventSource();
@@ -78,9 +77,6 @@ public class EventRecord {
 
   @Column(name = "event_id")
   private UUID eventId;
-
-  @Column(name = "account_number")
-  private String accountNumber;
 
   @Id
   @Column(name = "org_id")
@@ -148,8 +144,7 @@ public class EventRecord {
       return false;
     }
     EventRecord that = (EventRecord) o;
-    return Objects.equals(accountNumber, that.accountNumber)
-        && Objects.equals(orgId, that.getOrgId())
+    return Objects.equals(orgId, that.getOrgId())
         && Objects.equals(eventType, that.eventType)
         && Objects.equals(eventSource, that.eventSource)
         && Objects.equals(instanceId, that.instanceId)
@@ -159,7 +154,6 @@ public class EventRecord {
 
   @Override
   public int hashCode() {
-    return Objects.hash(
-        accountNumber, orgId, eventType, eventSource, instanceId, timestamp, recordDate);
+    return Objects.hash(orgId, eventType, eventSource, instanceId, timestamp, recordDate);
   }
 }

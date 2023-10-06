@@ -41,7 +41,6 @@ public class InternalBillingResource implements InternalApi {
 
   public List<MonthlyRemittance> getRemittances(
       String productId,
-      String accountNumber,
       String orgId,
       String metricId,
       String billingProvider,
@@ -49,9 +48,8 @@ public class InternalBillingResource implements InternalApi {
       OffsetDateTime beginning,
       OffsetDateTime ending) {
 
-    if (Objects.isNull(accountNumber) && Objects.isNull(orgId)) {
-      throw new BadRequestException(
-          "Must provide either 'accountNumber' or 'orgId' query parameters.");
+    if (Objects.isNull(orgId)) {
+      throw new BadRequestException("Must provide 'orgId' query parameters.");
     }
 
     if (Objects.nonNull(beginning) && Objects.nonNull(ending) && beginning.isAfter(ending)) {
@@ -60,7 +58,6 @@ public class InternalBillingResource implements InternalApi {
 
     BillableUsageRemittanceFilter filter =
         BillableUsageRemittanceFilter.builder()
-            .account(accountNumber)
             .orgId(orgId)
             .productId(productId)
             .metricId(metricId)

@@ -88,7 +88,6 @@ class RhMarketplacePayloadMapperTest {
     OffsetDateTime snapshotDate =
         OffsetDateTime.ofInstant(Instant.ofEpochMilli(snapshotDateLong), ZoneId.of("UTC"));
 
-    String account = "test123";
     String orgId = "org123";
     var usage =
         new BillableUsage()
