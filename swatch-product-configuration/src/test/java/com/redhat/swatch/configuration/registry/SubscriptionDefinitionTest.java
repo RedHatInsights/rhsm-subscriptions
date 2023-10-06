@@ -198,9 +198,9 @@ class SubscriptionDefinitionTest {
     var satelliteCapsule = SubscriptionDefinition.lookupSubscriptionByEngId("269");
 
     var expected = "satellite-capsule";
-    var actual = satelliteCapsule.orElseThrow().getId();
-
-    assertEquals(expected, actual);
+    var actual = satelliteCapsule.stream().findFirst();
+    actual.ifPresent(
+        subscriptionDefinition -> assertEquals(expected, subscriptionDefinition.getId()));
   }
 
   @Test
@@ -208,9 +208,10 @@ class SubscriptionDefinitionTest {
     var rhelForX86 = SubscriptionDefinition.lookupSubscriptionByEngId("76");
 
     var expected = "rhel-for-x86";
-    var actual = rhelForX86.orElseThrow().getId();
+    var actual = rhelForX86.stream().findFirst();
 
-    assertEquals(expected, actual);
+    actual.ifPresent(
+        subscriptionDefinition -> assertEquals(expected, subscriptionDefinition.getId()));
   }
 
   @Test

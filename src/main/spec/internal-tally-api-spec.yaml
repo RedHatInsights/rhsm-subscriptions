@@ -344,12 +344,6 @@ paths:
     put:
       operationId: createOrUpdateOptInConfig
       parameters:
-        - name: account_number
-          in: query
-          schema:
-            description: Red Hat Account Number
-            type: string
-          required: true
         - name: org_id
           in: query
           schema:

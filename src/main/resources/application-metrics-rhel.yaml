@@ -9,11 +9,11 @@ rhsm-subscriptions:
       metric:
         queryTemplates:
           default: >-
-            #{metric.prometheus.queryParams[metric]}
+            max(#{metric.prometheus.queryParams[metric]}) by (#{metric.prometheus.queryParams[instanceKey]})
             * on(#{metric.prometheus.queryParams[instanceKey]}) group_right
             min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{product="#{metric.prometheus.queryParams[product]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
           addonSamples: >-
-            #{metric.prometheus.queryParams[metric]}
+            max(#{metric.prometheus.queryParams[metric]}) by (#{metric.prometheus.queryParams[instanceKey]})
             * on(#{metric.prometheus.queryParams[instanceKey]}) group_right
             min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{resource_type="addon",resource_name="#{metric.prometheus.queryParams[resourceName]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
         maxAttempts: 50

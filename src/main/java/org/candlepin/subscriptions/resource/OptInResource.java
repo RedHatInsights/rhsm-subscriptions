@@ -49,7 +49,7 @@ public class OptInResource implements OptInApi {
   @SubscriptionWatchAdminOnly
   @Override
   public OptInConfig getOptInConfig() {
-    return controller.getOptInConfig(ResourceUtils.getAccountNumber(), validateOrgId());
+    return controller.getOptInConfig(validateOrgId());
   }
 
   @SubscriptionWatchAdminOnly
@@ -57,7 +57,7 @@ public class OptInResource implements OptInApi {
   public OptInConfig putOptInConfig() {
     // NOTE: All query params are defaulted to 'true' by the API definition, however we
     //       double check below.
-    return controller.optIn(ResourceUtils.getAccountNumber(), validateOrgId(), OptInType.API);
+    return controller.optIn(validateOrgId(), OptInType.API);
   }
 
   private String validateOrgId() {
