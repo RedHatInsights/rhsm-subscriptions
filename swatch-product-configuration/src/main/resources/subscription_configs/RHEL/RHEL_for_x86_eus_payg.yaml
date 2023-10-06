@@ -12,6 +12,8 @@ variants:
       - 70
     productNames:
       - RHEL EUS COST PLACEHOLDER # when external service creates a sku offering manager definition. This is to differentiate between skus.
+    roles:
+      - rhel-for-x86-eus-payg-placeholder-role
 
 defaults:
   variant: rhel-for-x86-eus-payg
@@ -25,3 +27,10 @@ contractEnabled: true #test to see when they create aws listing
 metrics:
   - id: vCPUs
     awsDimension: vCPU_Hour # PLACEHOLDER when external service sends an aws dimension
+    prometheus:
+      queryKey: default
+      queryParams:
+        instanceKey: _id
+        product: rhel-for-x86-eus-payg-placeholder-role
+        metric: system_cpu_logical_count
+        metadataMetric: system_cpu_logical_count
