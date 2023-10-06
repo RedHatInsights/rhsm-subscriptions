@@ -1,0 +1,3 @@
+[submodule "vendor/azure-marketplace"]
+	path = vendor/azure-marketplace
+	url = https://github.com/microsoft/commercial-marketplace-client-java.git

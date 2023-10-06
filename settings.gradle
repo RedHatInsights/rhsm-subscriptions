@@ -31,3 +31,7 @@ include ':swatch-product-configuration'
 include ':swatch-producer-azure'
 include ':swatch-common-kafka'
 include ':swatch-common-resteasy-client'
+include ':vendor:azure-marketplace'
+
+project(':vendor:azure-marketplace').projectDir = file('vendor/azure-marketplace/sdk')
+project(':vendor:azure-marketplace').buildFileName = "../../azure-marketplace.gradle"

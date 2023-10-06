@@ -5,6 +5,8 @@ plugins {
 
 dependencies {
     compileOnly libraries["lombok"]
+    implementation platform(libraries["azure-sdk-bom"])
+    implementation project(':vendor:azure-marketplace')
     implementation 'io.quarkus:quarkus-hibernate-validator'
     implementation 'io.quarkus:quarkus-jsonb'
     implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
