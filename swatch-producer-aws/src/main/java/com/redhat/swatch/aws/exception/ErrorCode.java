@@ -22,6 +22,7 @@ package com.redhat.swatch.aws.exception;
 
 import lombok.Getter;
 
+@Getter
 public enum ErrorCode {
   AWS_UNPROCESSED_RECORDS_ERROR(1000, "Some AWS UsageRecords were not processed"),
   AWS_DIMENSION_NOT_CONFIGURED(1001, "Aws Dimension not configured"),
@@ -33,8 +34,8 @@ public enum ErrorCode {
 
   private static final String CODE_PREFIX = "SWATCHAWS";
 
-  @Getter private final String code;
-  @Getter private final String description;
+  private final String code;
+  private final String description;
 
   ErrorCode(int intCode, String description) {
     this.code = CODE_PREFIX + intCode;

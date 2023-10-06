@@ -30,8 +30,12 @@ public class KafkaResource implements QuarkusTestResourceLifecycleManager {
 
   static KafkaContainer kafka =
       new KafkaContainer(
-          DockerImageName.parse("quay.io/cloudservices/cp-kafka")
-              .asCompatibleSubstituteFor("confluentinc/cp-kafka"));
+              DockerImageName.parse("quay.io/cloudservices/cp-kafka:latest-ubi8")
+                  .asCompatibleSubstituteFor("confluentinc/cp-kafka"))
+          // SMELL: Workaround for https://github.com/testcontainers/testcontainers-java/issues/7539
+          // This is because testcontainers randomly fails to start a container when using Podman
+          // socket.
+          .withStartupAttempts(3);
 
   @Override
   public Map<String, String> start() {

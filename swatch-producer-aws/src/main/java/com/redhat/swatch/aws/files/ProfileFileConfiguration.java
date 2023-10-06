@@ -18,20 +18,18 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.aws.exception;
+package com.redhat.swatch.aws.files;
 
-import lombok.Getter;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.Dependent;
+import jakarta.enterprise.inject.Produces;
+import software.amazon.awssdk.profiles.ProfileFile;
 
-@Getter
-public class AwsDimensionNotConfiguredException extends AwsProducerException {
-  private final String productId;
-  private final String uom;
-
-  public AwsDimensionNotConfiguredException(String productId, String uom) {
-    super(
-        ErrorCode.AWS_DIMENSION_NOT_CONFIGURED,
-        String.format("productId=%s and uom=%s", productId, uom));
-    this.productId = productId;
-    this.uom = uom;
+@Dependent
+public class ProfileFileConfiguration {
+  @ApplicationScoped
+  @Produces
+  public ProfileFile defaultProfileFile() {
+    return ProfileFile.defaultProfileFile();
   }
 }

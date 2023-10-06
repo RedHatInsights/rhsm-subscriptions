@@ -33,12 +33,10 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
 import java.util.List;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@Tag("integration")
-class ContractsHttpEndpointIntegrationTest {
+class ContractsHttpEndpointTest {
 
   @InjectMock ContractService contractService;
 
