@@ -190,7 +190,7 @@ class EventControllerTest {
     eventRecords.add(eventRecord2);
     eventRecords.add(eventRecord3);
     eventController.persistServiceInstances(eventRecords);
-    verify(optInController, times(3)).optInByOrgId(any(), any());
+    verify(optInController, times(2)).optInByOrgId(any(), any());
     when(eventRecordRepository.saveAll(any())).thenReturn(new ArrayList<>());
 
     verify(eventRecordRepository).saveAll(eventsSaved.capture());
@@ -211,7 +211,7 @@ class EventControllerTest {
         assertThrows(
             BatchListenerFailedException.class,
             () -> eventController.persistServiceInstances(eventRecords));
-    verify(optInController, times(3)).optInByOrgId(any(), any());
+    verify(optInController, times(2)).optInByOrgId(any(), any());
     when(eventRecordRepository.saveAll(any())).thenReturn(new ArrayList<>());
     verify(eventRecordRepository).saveAll(eventsSaved.capture());
     List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();

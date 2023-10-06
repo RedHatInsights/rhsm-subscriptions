@@ -27,6 +27,7 @@ import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -221,7 +222,7 @@ public class EventController {
 
   private ServiceInstancesResult parseServiceInstancesResult(List<String> eventJsonList) {
     ServiceInstancesResult result = new ServiceInstancesResult();
-    Map<String, Integer> eventIndexMap = mapEventsToBatchIndex(eventJsonList);
+    LinkedHashMap<String, Integer> eventIndexMap = mapEventsToBatchIndex(eventJsonList);
     for (Entry<String, Integer> eventIndex : eventIndexMap.entrySet()) {
       try {
         BaseEvent baseEvent = objectMapper.readValue(eventIndex.getKey(), BaseEvent.class);
@@ -255,12 +256,13 @@ public class EventController {
   }
 
   /**
-   * Deduplicate eventJsonList while preserving indexes of events in batch
+   * Deduplicate eventJsonList while preserving indexes of events in batch Returns a map ordered by
+   * the event record index.
    *
    * @param eventJsonList
    */
-  private Map<String, Integer> mapEventsToBatchIndex(List<String> eventJsonList) {
-    var result = new HashMap<String, Integer>();
+  private LinkedHashMap<String, Integer> mapEventsToBatchIndex(List<String> eventJsonList) {
+    var result = new LinkedHashMap<String, Integer>();
     for (int index = 0; index < eventJsonList.size(); index++) {
       result.putIfAbsent(eventJsonList.get(index), index);
     }
