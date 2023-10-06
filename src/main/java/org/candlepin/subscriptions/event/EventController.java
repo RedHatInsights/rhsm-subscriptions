@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -209,9 +210,10 @@ public class EventController {
 
   private ServiceInstancesResult parseServiceInstancesResult(List<String> eventJsonList) {
     ServiceInstancesResult result = new ServiceInstancesResult();
-    for (int index = 0; index < eventJsonList.size(); index++) {
+    Map<String, Integer> eventIndexMap = mapEventsToBatchIndex(eventJsonList);
+    for (Entry<String, Integer> eventIndex : eventIndexMap.entrySet()) {
       try {
-        BaseEvent baseEvent = objectMapper.readValue(eventJsonList.get(index), BaseEvent.class);
+        BaseEvent baseEvent = objectMapper.readValue(eventIndex.getKey(), BaseEvent.class);
         if (!EXCLUDE_LOG_FOR_EVENT_SOURCES.contains(baseEvent.getEventSource())) {
           log.info("Event processing in batch: " + baseEvent);
         }
@@ -222,7 +224,7 @@ public class EventController {
         }
 
         if (baseEvent instanceof Event eventToSave) {
-          result.addEvent(eventToSave, index);
+          result.addEvent(eventToSave, eventIndex.getValue());
         } else if (baseEvent instanceof CleanUpEvent cleanUpEvent) {
           log.debug("Processing clean up event for: " + cleanUpEvent);
           result.addCleanUpEvent(cleanUpEvent);
@@ -233,10 +235,23 @@ public class EventController {
             String.format(
                 "Issue found %s for the service instance json skipping to next ", e.getMessage()));
         if (result.failedOnIndex.isEmpty()) {
-          result.setFailedOnIndex(index);
+          result.setFailedOnIndex(eventIndex.getValue());
         }
         break;
       }
+    }
+    return result;
+  }
+
+  /**
+   * Deduplicate eventJsonList while preserving indexes of events in batch
+   *
+   * @param eventJsonList
+   */
+  private Map<String, Integer> mapEventsToBatchIndex(List<String> eventJsonList) {
+    var result = new HashMap<String, Integer>();
+    for (int index = 0; index < eventJsonList.size(); index++) {
+      result.putIfAbsent(eventJsonList.get(index), index);
     }
     return result;
   }

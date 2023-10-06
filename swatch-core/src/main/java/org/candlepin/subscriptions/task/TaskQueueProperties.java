@@ -42,7 +42,7 @@ public class TaskQueueProperties {
   /** Batch size number of records * */
   private String maxPollRecords = "500";
 
-  private int retryAttempts = 2;
+  private int retryAttempts = 1;
 
-  private long retryBackOffMillis = 5000L;
+  private long retryBackOffMillis = 0L;
 }
