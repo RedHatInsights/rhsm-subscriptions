@@ -25,6 +25,7 @@ import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConf
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.concurrent.Executor;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
@@ -58,6 +59,8 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.retry.backoff.FixedBackOffPolicy;
@@ -66,6 +69,7 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.util.backoff.FixedBackOff;
 
 /**
  * Configuration for the "worker" profile.
@@ -189,6 +193,41 @@ public class TallyWorkerConfiguration {
   }
 
   @Bean
+  public ProducerFactory<String, String> eventDeadLetterProducerFactory(
+      KafkaProperties kafkaProperties, ObjectMapper objectMapper) {
+    DefaultKafkaProducerFactory<String, String> factory =
+        new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties));
+    /*
+    Use our customized ObjectMapper. Notably, the spring-kafka default ObjectMapper writes dates as
+    timestamps, which produces messages not compatible with JSON-B deserialization.
+     */
+    factory.setValueSerializer(new JsonSerializer<>(objectMapper));
+    return factory;
+  }
+
+  @Bean
+  public KafkaTemplate<String, String> eventDeadLetterKafkaTemplate(
+      ProducerFactory<String, String> eventDeadLetterProducerFactory) {
+    return new KafkaTemplate<>(eventDeadLetterProducerFactory);
+  }
+
+  @Bean
+  @Qualifier("eventDeadLetterKafkaErrorHandler")
+  public DefaultErrorHandler eventDeadLetterKafkaErrorHandler(
+      KafkaTemplate<String, String> eventDeadLetterKafkaTemplate,
+      @Qualifier("serviceInstanceDeadLetterTopicProperties")
+          TaskQueueProperties taskQueueProperties) {
+    DeadLetterPublishingRecoverer recoverer =
+        new DeadLetterPublishingRecoverer(
+            eventDeadLetterKafkaTemplate,
+            (r, e) -> new TopicPartition(taskQueueProperties.getTopic(), r.partition()));
+    return new DefaultErrorHandler(
+        recoverer,
+        new FixedBackOff(
+            taskQueueProperties.getRetryBackOffMillis(), taskQueueProperties.getRetryAttempts()));
+  }
+
+  @Bean
   @Qualifier("serviceInstanceConsumerFactory")
   ConsumerFactory<String, String> serviceInstanceConsumerFactory(
       KafkaProperties kafkaProperties,
@@ -205,7 +244,9 @@ public class TallyWorkerConfiguration {
           @Qualifier("serviceInstanceConsumerFactory")
               ConsumerFactory<String, String> consumerFactory,
           KafkaProperties kafkaProperties,
-          KafkaConsumerRegistry registry) {
+          KafkaConsumerRegistry registry,
+          @Qualifier("eventDeadLetterKafkaErrorHandler")
+              DefaultErrorHandler deadLetterErrorHandler) {
 
     var factory = new ConcurrentKafkaListenerContainerFactory<String, String>();
     factory.setConsumerFactory(consumerFactory);
@@ -219,6 +260,7 @@ public class TallyWorkerConfiguration {
     }
     // hack to track the Kafka consumers, so SeekableKafkaConsumer can commit when needed
     factory.getContainerProperties().setConsumerRebalanceListener(registry);
+    factory.setCommonErrorHandler(deadLetterErrorHandler);
     return factory;
   }
 
@@ -226,6 +268,14 @@ public class TallyWorkerConfiguration {
   @Qualifier("serviceInstanceTopicProperties")
   @ConfigurationProperties(prefix = "rhsm-subscriptions.service-instance-ingress.incoming")
   public TaskQueueProperties serviceInstanceTopicProperties() {
+    return new TaskQueueProperties();
+  }
+
+  @Bean
+  @Qualifier("serviceInstanceDeadLetterTopicProperties")
+  @ConfigurationProperties(
+      prefix = "rhsm-subscriptions.service-instance-ingress-dead-letter.outgoing")
+  public TaskQueueProperties serviceInstanceDeadLetterTopicProperties() {
     return new TaskQueueProperties();
   }
 

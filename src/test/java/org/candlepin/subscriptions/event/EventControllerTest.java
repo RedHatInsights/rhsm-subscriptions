@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.event;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -29,9 +30,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
@@ -43,6 +42,7 @@ import org.mockito.Captor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
@@ -185,7 +185,7 @@ class EventControllerTest {
   @Test
   void testPersistServiceInstances_WhenValidPayload() {
 
-    Set<String> eventRecords = new HashSet<>();
+    List<String> eventRecords = new ArrayList<>();
     eventRecords.add(eventRecord1);
     eventRecords.add(eventRecord2);
     eventRecords.add(eventRecord3);
@@ -201,30 +201,101 @@ class EventControllerTest {
 
   @Test
   void testPersistServiceInstances_ProcessValidPayloadAndSkipInvalidPayload() {
-    Set<String> eventRecords = new HashSet<>();
+    List<String> eventRecords = new ArrayList<>();
     eventRecords.add(eventRecord1);
     eventRecords.add(eventRecord2);
     eventRecords.add(eventRecord3);
     eventRecords.add(eventRecord4);
     eventRecords.add(eventRecord5);
-    eventController.persistServiceInstances(eventRecords);
-    verify(optInController, times(3)).optInByOrgId(any(), any());
+    BatchListenerFailedException exception =
+        assertThrows(
+            BatchListenerFailedException.class,
+            () -> eventController.persistServiceInstances(eventRecords));
+    verify(optInController, times(2)).optInByOrgId(any(), any());
     when(eventRecordRepository.saveAll(any())).thenReturn(new ArrayList<>());
     verify(eventRecordRepository).saveAll(eventsSaved.capture());
     List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
-    assertEquals(3, events.size());
+    assertEquals(2, events.size());
     verifyDeletionOfStaleEventsIsNotDone();
   }
 
   @Test
   void testPersistServiceInstances_ProcessCleanUpEvent() {
-    Set<String> eventRecords = Set.of(eventRecord1, eventRecord2, cleanUpEvent);
+    List<String> eventRecords = List.of(eventRecord1, eventRecord2, cleanUpEvent);
     eventController.persistServiceInstances(eventRecords);
     verify(optInController, times(3)).optInByOrgId(any(), any());
     verify(eventRecordRepository).saveAll(eventsSaved.capture());
     List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
     assertEquals(2, events.size());
     verifyDeletionOfStaleEventsIsDone();
+  }
+
+  @Test
+  void testPersistServiceInstances_SkipBadEventJson() {
+    List<String> eventRecords = new ArrayList<>();
+    eventRecords.add(eventRecord1);
+    eventRecords.add(eventRecord2);
+    eventRecords.add("badData");
+    eventRecords.add(eventRecord3);
+
+    BatchListenerFailedException exception =
+        assertThrows(
+            BatchListenerFailedException.class,
+            () -> eventController.persistServiceInstances(eventRecords));
+
+    // Exception should be thrown at index 3, skipping the bad json record.
+    assertEquals(3, exception.getIndex());
+
+    verify(optInController, times(2)).optInByOrgId(any(), any());
+    when(eventRecordRepository.saveAll(any())).thenReturn(new ArrayList<>());
+
+    verify(eventRecordRepository).saveAll(eventsSaved.capture());
+    List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
+    // Should save first 2 successful events.
+    assertEquals(2, events.size());
+  }
+
+  @Test
+  void testPersistServiceInstances_SuccessfullyRetryFailedEventSave() {
+    List<String> eventRecords = new ArrayList<>();
+    eventRecords.add(eventRecord1);
+    eventRecords.add(eventRecord2);
+    eventRecords.add(eventRecord5);
+
+    when(eventRecordRepository.saveAll(any())).thenThrow(new RuntimeException());
+    when(eventRecordRepository.save(any())).thenReturn(new EventRecord());
+
+    // Error is caught and retry saving events individually.
+    eventController.persistServiceInstances(eventRecords);
+
+    // Since saveAll threw an Error we should try saving all records individually
+    verify(eventRecordRepository, times(3)).save(any());
+  }
+
+  @Test
+  void testPersistServiceInstances_RetryFailedEventsSavesUntilError() {
+    List<String> eventRecords = new ArrayList<>();
+    eventRecords.add(eventRecord1);
+    eventRecords.add(eventRecord2);
+    eventRecords.add(eventRecord5);
+
+    when(eventRecordRepository.saveAll(any())).thenThrow(new RuntimeException());
+    when(eventRecordRepository.save(any()))
+        .thenReturn(new EventRecord())
+        // Throw an exception on the second record we try to save
+        .thenThrow(new RuntimeException());
+
+    // First is caught and retry saving events individually. Second exception is raised as
+    // BatchListenerFailedException
+    BatchListenerFailedException exception =
+        assertThrows(
+            BatchListenerFailedException.class,
+            () -> eventController.persistServiceInstances(eventRecords));
+
+    // Index should be 1 since we want to retry failed second event in this case
+    assertEquals(1, exception.getIndex());
+    // Last event is never attempted to save since second event fails
+    verify(eventRecordRepository, times(2)).save(any());
   }
 
   private void verifyDeletionOfStaleEventsIsDone() {
