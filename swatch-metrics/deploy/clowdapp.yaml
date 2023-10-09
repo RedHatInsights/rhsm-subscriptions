@@ -148,6 +148,8 @@ parameters:
     value: 'false'
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: 'http://localhost:4317'
+  - name: DISABLE_SWATCH_METRICS_RHEL
+    value: 'false'
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
     kind: ClowdApp
@@ -447,6 +449,7 @@ objects:
               memory: ${CURL_CRON_MEMORY_LIMIT}
   - apiVersion: cloud.redhat.com/v1alpha1
     kind: ClowdApp
+    disabled: ${{DISABLE_SWATCH_METRICS_RHEL}}
     metadata:
       name: swatch-metrics-rhel
       labels:
