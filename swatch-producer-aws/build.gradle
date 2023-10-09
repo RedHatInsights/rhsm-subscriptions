@@ -37,6 +37,7 @@ dependencies {
     testImplementation libraries["wiremock"]
     testImplementation project(':swatch-common-testcontainers')
     testImplementation libraries["embeddedkafka"]
+    testImplementation 'org.apache.kafka:kafka-metadata:3.4.1'
 }
 
 compileJava.dependsOn tasks.openApiGenerate

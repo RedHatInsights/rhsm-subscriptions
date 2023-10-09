@@ -20,6 +20,8 @@
  */
 package com.redhat.swatch.aws;
 
+import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
+
 import io.github.embeddedkafka.EmbeddedK;
 import io.github.embeddedkafka.EmbeddedKafka;
 import io.github.embeddedkafka.EmbeddedKafkaConfig;
@@ -34,6 +36,8 @@ public class KafkaResource implements QuarkusTestResourceLifecycleManager {
   @Override
   public Map<String, String> start() {
     kafka = EmbeddedKafka.start(EmbeddedKafkaConfig.defaultConfig());
+    await()
+        .until(() -> kafka.broker().brokerState() == org.apache.kafka.metadata.BrokerState.RUNNING);
     return Collections.singletonMap(
         "kafka.bootstrap.servers", "PLAINTEXT://localhost:" + kafka.config().kafkaPort());
   }
