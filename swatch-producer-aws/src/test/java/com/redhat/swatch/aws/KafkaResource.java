@@ -44,8 +44,13 @@ public class KafkaResource implements QuarkusTestResourceLifecycleManager {
 
   @Override
   public void stop() {
-    if (kafka != null) {
-      kafka.stop(false);
+    try {
+      if (kafka != null) {
+        kafka.stop(true);
+        kafka = null;
+      }
+    } catch (Exception ignored) {
+
     }
   }
 }
