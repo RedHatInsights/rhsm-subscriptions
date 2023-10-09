@@ -78,7 +78,8 @@ dependencies {
 
     subprojects.findAll { !Set.of(
             project(':clients'),
-            project(':clients:quarkus')
+            project(':clients:quarkus'),
+            project(':vendor')
     ).contains(it)}.each {
         jacocoAggregation it
     }
