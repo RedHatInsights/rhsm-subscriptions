@@ -56,11 +56,12 @@ import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.retry.backoff.ExponentialBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
+import org.springframework.retry.support.RetryTemplateBuilder;
 
 /** Defines the beans for the openshift-metering-worker profile. */
 @EnableRetry
 @Configuration
-@Profile("openshift-metering-worker")
+@Profile({"openshift-metering-worker", "metrics-rhel"})
 @Import({
   PrometheusServiceConfiguration.class,
   TaskConsumerConfiguration.class,
@@ -96,6 +97,17 @@ public class OpenShiftWorkerProfile {
     retryTemplate.setBackOffPolicy(backOffPolicy);
 
     return retryTemplate;
+  }
+
+  @Bean(name = "meteringJobRetryTemplate")
+  public RetryTemplate meteringJobRetryTemplate(MetricProperties properties) {
+    return new RetryTemplateBuilder()
+        .maxAttempts(properties.getJobMaxAttempts())
+        .exponentialBackoff(
+            properties.getJobBackOffInitialInterval().toMillis(),
+            properties.getBackOffMultiplier(),
+            properties.getJobBackOffMaxInterval().toMillis())
+        .build();
   }
 
   @Bean

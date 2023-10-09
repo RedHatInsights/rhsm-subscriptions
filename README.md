@@ -151,7 +151,6 @@ We have a number of profiles. Each profile activates a subset of components in t
 - `liquibase-only`: Run the Liquibase migrations and stop
 - `rh-marketplace`: Run the worker responsible for processing tally summaries and
   emitting usage to Red Hat Marketplace.
-- `metering-job`: Create metering jobs and place them on the job queue
 - `openshift-metering-worker`: Process OpenShift metering jobs off the job queue
 - `purge-snapshots`: Run the retention job and exit
 - `worker`: Process jobs off the job queue
@@ -440,6 +439,14 @@ cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
       parameters:
         REPLICAS: 1
         swatch-contracts/IMAGE: quay.io/cloudservices/swatch-contracts
+
+    - name: swatch-producer-azure
+      host: local
+      repo: $(pwd)/rhsm-subscriptions/swatch-producer-azure
+      path: /deploy/clowdapp.yaml
+      parameters:
+        REPLICAS: 1
+        swatch-producer-azure/IMAGE: quay.io/cloudservices/swatch-producer-azure
 BONFIRE
 ```
 
@@ -616,6 +623,8 @@ Links to Swagger UI and API specs:
   ([source](swatch-contracts/src/main/resources/META-INF/openapi.yaml))
 * [Internal AWS Producer API][aws-api]
   ([source](swatch-producer-aws/src/main/resources/openapi.yaml))
+* [Internal Azure Producer API][azure-api]
+  ([source](swatch-producer-azure/src/main/resources/META-INF/openapi.yaml))
 * [Internal System Conduit API][conduit-api]
   ([source](swatch-system-conduit/src/main/spec/internal-organizations-sync-api-spec.yaml))
 
@@ -627,6 +636,7 @@ Links to Swagger UI and API specs:
 [contracts-api]:      https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-contracts/src/main/resources/META-INF/openapi.yaml
 [aws-api]:            https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-producer-aws/src/main/resources/openapi.yaml
 [conduit-api]:        https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-system-conduit/src/main/spec/internal-organizations-sync-api-spec.yaml
+[azure-api]:          https://petstore.swagger.io/?url=https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-producer-azure/src/main/resources/META-INF/openapi.yaml
 
 ## Kafka topics
 <details>
@@ -637,7 +647,8 @@ Service that syncs system data from Hosted Candlepin into HBI.
 |---------------------------|------------------------------------------------------|-------------------------------------|
 | openshift-metering-worker | platform.rhsm-subscriptions.metering-tasks           | swatch-metrics                      |
 | openshift-metering-worker | platform.rhsm-subscriptions.service-instance-ingress | swatch-metrics                      |
-| metering-job              | platform.rhsm-subscriptions.metering-tasks           | swatch-metrics-sync                 |
+| metrics-rhel              | platform.rhsm-subscriptions.metering-rhel-tasks      | swatch-metrics-rhel                 |
+| metrics-rhel              | platform.rhsm-subscriptions.service-instance-ingress | swatch-metrics-rhel                 |
 | orgsync                   | platform.rhsm-conduit.tasks                          | swatch-system-conduit-sync          |
 | orgsync                   | platform.rhsm-conduit.tasks                          | swatch-system-conduit               |
 |                           | platform.inventory.host-ingress                      | swatch-system-conduit               |
@@ -648,8 +659,6 @@ Service that syncs system data from Hosted Candlepin into HBI.
 | purge-snapshots           |                                                      |                                     |
 | rh-marketplace            | platform.rhsm-subscriptions.billable-usage           | swatch-producer-red-hat-marketplace |
 |                           | platform.rhsm-subscriptions.billable-usage           | swatch-producer-aws                 |
-| subscription-sync         | platform.rhsm-subscriptions.subscription-sync        | swatch-subscription-sync-sync       |
-| offering-sync             | platform.rhsm-subscriptions.offering-sync            | swatch-subscription-sync-offering   |
 | capacity-ingress          | platform.rhsm-subscriptions.subscription-sync        | swatch-subscriptions-sync           |
 | capacity-ingress          | platform.rhsm-subscriptions.offering-sync            | swatch-subscriptions-sync           |
 | capacity-ingress          | platform.rhsm-subscriptions.capacity-reconcile       | swatch-subscriptions-sync           |

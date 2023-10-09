@@ -85,6 +85,9 @@ public class MetricProperties {
   /** Retry backoff interval of the MeteringJob. */
   private Duration jobBackOffMaxInterval;
 
+  /** The event source type. */
+  private String eventSource;
+
   public Optional<String> getQueryTemplate(String templateKey) {
     return queryTemplates.containsKey(templateKey)
         ? Optional.of(queryTemplates.get(templateKey))

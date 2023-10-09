@@ -1,23 +1,24 @@
 ---
-# Cleanup this file in SWATCH-1690 with accurate and more information
 platform: RHEL
 
 id: rhel-for-x86-eus-payg
 
+includedSubscriptions:
+  - rhel-for-x86
+
 variants:
-  - tag: RHEL Workstation PLACEHOLDER
+  - tag: rhel-for-x86-eus-payg
     engineeringIds:
-      - 4791 #Temp placeholder cleanup in SWATCH-1690
       - 70
-    roles:
-      - Red Hat Enterprise Linux Workstation PLACEHOLDER
     productNames:
-      - RHEL EUS Placeholder # when external service creates a sku
+      - RHEL EUS COST PLACEHOLDER # when external service creates a sku offering manager definition. This is to differentiate between skus.
+    roles:
+      - rhel-for-x86-eus-payg-placeholder-role
 
 defaults:
   variant: rhel-for-x86-eus-payg
   sla: PREMIUM
-  usage: PRODUCTION # we won't meter for a Development/Test config since that may not be sold
+  usage: PRODUCTION
 
 serviceType: RHEL System
 
@@ -25,4 +26,11 @@ contractEnabled: true #test to see when they create aws listing
 
 metrics:
   - id: vCPUs
-    #awsDimension: Placeholder # when external service sends an aws dimension
+    awsDimension: vCPU_Hour # PLACEHOLDER when external service sends an aws dimension
+    prometheus:
+      queryKey: default
+      queryParams:
+        instanceKey: _id
+        product: rhel-for-x86-eus-payg-placeholder-role
+        metric: system_cpu_logical_count
+        metadataMetric: system_cpu_logical_count

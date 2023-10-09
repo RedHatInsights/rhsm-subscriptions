@@ -41,9 +41,6 @@ rhsm-subscriptions:
   jobs:
     purge-snapshot-schedule: ${PURGE_SNAPSHOT-SCHEDULE:0 0 1 * * ?}
     purge-events-schedule: ${PURGE_EVENTS_SCHEDULE:0 0 1 * * ?}
-    metering-schedule: ${METERING_SCHEDULE:0 30 * * * ?}
-    subscription-sync-schedule: ${SUBSCRIPTION_SYNC_SCHEDULE:0 0 10 * * ?}
-    offering-sync-schedule: ${OFFERING_SYNC_SCHEDULE:0 0 2 * * ?}
   account-batch-size: ${ACCOUNT_BATCH_SIZE:1}
   product-denylist-resource-location: ${PRODUCT_DENYLIST_RESOURCE_LOCATION:}
   metering:
@@ -93,3 +90,13 @@ management:
     jms:
       # disable activemq health checks when we're not actually using UMB
       enabled: ${UMB_ENABLED:false}
+
+#Current version of spring-kafka(3.0.10) has bug that logs incorrect warning: https://github.com/spring-projects/spring-kafka/issues/2784
+#TODO remove this. Fixed in next release
+logging:
+  level:
+    org:
+      springframework:
+        kafka:
+          listener:
+            DeadLetterPublishingRecoverer=error:

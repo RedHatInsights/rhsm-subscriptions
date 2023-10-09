@@ -1,0 +1,92 @@
+plugins {
+    id 'swatch.quarkus-conventions'
+    id 'org.openapi.generator'
+}
+
+dependencies {
+    compileOnly libraries["lombok"]
+    implementation 'io.quarkus:quarkus-hibernate-validator'
+    implementation 'io.quarkus:quarkus-jsonb'
+    implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
+    implementation 'io.quarkus:quarkus-opentelemetry'
+    implementation 'io.quarkus:quarkus-resteasy-reactive-jsonb'
+    implementation 'io.quarkus:quarkus-security'
+    implementation 'io.quarkus:quarkus-smallrye-fault-tolerance'
+    implementation 'io.quarkus:quarkus-smallrye-health'
+    implementation 'io.quarkus:quarkus-smallrye-openapi'
+    implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
+    implementation project(':clients:swatch-internal-subscription-client')
+    implementation project(':swatch-common-config-workaround')
+    implementation project(':swatch-common-resteasy')
+    implementation libraries["clowder-quarkus-config-source"]
+    implementation libraries["quarkus-logging-splunk"]
+    implementation libraries["splunk-library-javalogging"]
+    implementation project(':swatch-product-configuration')
+    implementation project(':swatch-common-kafka')
+    implementation project(':swatch-common-resteasy-client')
+    annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
+    testImplementation 'io.rest-assured:rest-assured'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:kafka'
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation 'io.quarkus:quarkus-test-security'
+    testImplementation libraries["junit-jupiter"]
+    testImplementation libraries["wiremock"]
+    testImplementation project(':swatch-common-testcontainers')
+    implementation libraries["mapstruct"]
+    annotationProcessor libraries["mapstruct-processor"]
+    testAnnotationProcessor libraries["mapstruct-processor"]
+    // if you are using mapstruct in test code
+    annotationProcessor libraries["lombok-mapstruct-binding"]
+}
+
+compileJava.dependsOn tasks.openApiGenerate
+
+openApiGenerate {
+    generatorName = "java"
+    inputSpec = "${projectDir}/src/main/resources/META-INF/openapi.yaml"
+    outputDir = "${buildDir}/generated"
+    apiPackage = "com.redhat.swatch.azure.openapi.resource"
+    modelPackage = "com.redhat.swatch.azure.openapi.model"
+    invokerPackage = "com.redhat.swatch.azure.openapi"
+    groupId = "com.redhat.swatch.azure"
+    configOptions = [sourceFolder     : "src/gen/java",
+                     interfaceOnly    : "true",
+                     library          : "microprofile",
+                     java8            : "true",
+                     dateLibrary      : "java8",
+                     useBeanValidation: "true",
+                     microprofileRestClientVersion: "3.0",
+                     useJakartaEE: "true",
+    ]
+    additionalProperties = [disableMultipart: "true", // see https://github.com/OpenAPITools/openapi-generator/pull/4713#issuecomment-633906581
+    ]
+    importMappings = [
+        "MetricId": "com.redhat.swatch.configuration.registry.MetricId",
+        "ProductId": "com.redhat.swatch.configuration.registry.ProductId",
+    ]
+    typeMappings = [
+        "string+MetricId": "MetricId",
+        "string+ProductId": "ProductId",
+    ]
+}
+
+sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
+
+
+tasks.register('configureQuarkusBuild') {
+    doLast {
+        System.setProperty("quarkus.container-image.tag", project.getVersion().toString().replace("+", "_"))
+    }
+}
+
+
+quarkusDev.dependsOn(configureQuarkusBuild)
+quarkusBuild.dependsOn(configureQuarkusBuild)
+
+tasks.register("wiremock", JavaExec) {
+    description = "Run mock REST services for this service"
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.redhat.swatch.azure.resource.WireMockResource"
+}

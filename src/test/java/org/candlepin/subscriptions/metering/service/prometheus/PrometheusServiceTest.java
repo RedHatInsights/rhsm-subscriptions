@@ -31,16 +31,15 @@ import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuild
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.model.ResultType;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
+import org.candlepin.subscriptions.test.ExtendWithPrometheusWiremock;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest(properties = PrometheusQueryWiremockExtension.PROM_URL)
+@SpringBootTest
 @ActiveProfiles({"openshift-metering-worker", "test"})
-@ExtendWith(PrometheusQueryWiremockExtension.class)
-class PrometheusServiceTest {
+class PrometheusServiceTest implements ExtendWithPrometheusWiremock {
 
   @Autowired private PrometheusService service;
 

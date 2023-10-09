@@ -132,6 +132,18 @@ parameters:
     value: '3'
   - name: KAFKA_SUBSCRIPTIONS_PRUNE_PARTITIONS
     value: '3'
+  - name: CURL_CRON_IMAGE
+    value: quay.io/app-sre/ubi8-ubi-minimal
+  - name: CURL_CRON_IMAGE_TAG
+    value: latest
+  - name: CURL_CRON_MEMORY_REQUEST
+    value: 500Mi
+  - name: CURL_CRON_MEMORY_LIMIT
+    value: 800Mi
+  - name: CURL_CRON_CPU_REQUEST
+    value: 350m
+  - name: CURL_CRON_CPU_LIMIT
+    value: 500m
   - name: OTEL_SERVICE_NAME
     value: swatch-subscription-sync
   - name: OTEL_JAVAAGENT_ENABLED
@@ -467,133 +479,28 @@ objects:
         successfulJobsHistoryLimit: 2
         restartPolicy: Never
         podSpec:
-          image: ${IMAGE}:${IMAGE_TAG}
-          initContainers:
-            - env:
-                - name: JAVA_DEBUG
-                  value: ${JAVA_DEBUG}
-                - name: SPRING_PROFILES_ACTIVE
-                  value: liquibase-only
-              inheritEnv: true
-              resources:
-                requests:
-                  cpu: ${CPU_REQUEST}
-                  memory: ${MEMORY_REQUEST}
-                limits:
-                  cpu: ${CPU_LIMIT}
-                  memory: ${MEMORY_LIMIT}
+          image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+          command:
+            - /usr/bin/bash
+            - -c
+            - >
+              /usr/bin/curl --fail -H "Origin: https://swatch-subscription-sync-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-subscription-sync-service:8000/api/rhsm-subscriptions/v1/internal/rpc/subscriptions/sync"
           env:
-            - name: JAVA_DEBUG
-              value: ${JAVA_DEBUG}
-            - name: ENABLE_SPLUNK_HEC
-              value: ${ENABLE_SPLUNK_HEC}
-            - name: SPLUNKMETA_namespace
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.namespace
-            - name: SPLUNKMETA_host
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.name
-            - name: SPLUNK_HEC_URL
-              value: ${SPLUNK_HEC_URL}
-            - name: SPLUNK_HEC_TOKEN
+            - name: SWATCH_SELF_PSK
               valueFrom:
                 secretKeyRef:
-                  name: splunk-hec-external
-                  key: token
-            - name: SPLUNK_SOURCE
-              value: ${SPLUNK_SOURCE}
-            - name: SPLUNK_SOURCE_TYPE
-              value: ${SPLUNK_SOURCE_TYPE}
-            - name: SPLUNK_MESSAGE_FORMAT
-              value: ${SPLUNK_MESSAGE_FORMAT}
-            - name: SPLUNK_HEC_CONNECT_TIMEOUT
-              value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
-            - name: SPLUNK_HEC_BATCH_SIZE
-              value: ${SPLUNK_HEC_BATCH_SIZE}
-            - name: SPLUNK_HEC_TERMINATION_TIMEOUT
-              value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
+                  name: swatch-psks
+                  key: self
+            # This env property is necessary to pass the test check.
             - name: SPRING_PROFILES_ACTIVE
-              value: subscription-sync,kafka-queue
-            - name: JAVA_MAX_MEM_RATIO
-              value: '85'
-            - name: GC_MAX_METASPACE_SIZE
-              value: '256'
-            - name: LOG_FILE
-              value: /logs/server.log
-            - name: LOGGING_LEVEL_ROOT
-              value: ${LOGGING_LEVEL_ROOT}
-            - name: LOGGING_LEVEL_ORG_CANDLEPIN
-              value: ${LOGGING_LEVEL}
-            - name: SUBSCRIPTION_SYNC_ENABLED
-              value: ${SUBSCRIPTION_SYNC_ENABLED}
-            - name: DATABASE_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: ${DB_POD}-db
-                  key: db.host
-            - name: DATABASE_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: ${DB_POD}-db
-                  key: db.port
-            - name: DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: ${DB_POD}-db
-                  key: db.user
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: ${DB_POD}-db
-                  key: db.password
-            - name: DATABASE_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: ${DB_POD}-db
-                  key: db.name
-            - name: INVENTORY_DATABASE_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: ${INVENTORY_SECRET_KEY_NAME}
-                  key: db.host
-            - name: INVENTORY_DATABASE_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: ${INVENTORY_SECRET_KEY_NAME}
-                  key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}name
-            - name: INVENTORY_DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: ${INVENTORY_SECRET_KEY_NAME}
-                  key: db.user
-            - name: INVENTORY_DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: ${INVENTORY_SECRET_KEY_NAME}
-                  key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
-            - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
-            - name: OTEL_SERVICE_NAME
-              value: ${OTEL_SERVICE_NAME}
-            - name: OTEL_JAVAAGENT_ENABLED
-              value: ${OTEL_JAVAAGENT_ENABLED}
+              value: subscription-sync
           resources:
             requests:
-              cpu: ${CPU_REQUEST}
-              memory: ${MEMORY_REQUEST}
+              cpu: ${CURL_CRON_CPU_REQUEST}
+              memory: ${CURL_CRON_MEMORY_REQUEST}
             limits:
-              cpu: ${CPU_LIMIT}
-              memory: ${MEMORY_LIMIT}
-          volumeMounts:
-            - name: logs
-              mountPath: /logs
-          volumes:
-            - name: logs
-              emptyDir:
+              cpu: ${CURL_CRON_CPU_LIMIT}
+              memory: ${CURL_CRON_MEMORY_LIMIT}
 
       - name: offering-sync
         schedule: ${OFFERING_SYNC_SCHEDULE}
@@ -601,134 +508,28 @@ objects:
         successfulJobsHistoryLimit: 2
         restartPolicy: Never
         podSpec:
-          image: ${IMAGE}:${IMAGE_TAG}
-          initContainers:
-            - env:
-                - name: SPRING_PROFILES_ACTIVE
-                  value: liquibase-only
-              inheritEnv: true
-              resources:
-                requests:
-                  cpu: ${CPU_REQUEST}
-                  memory: ${MEMORY_REQUEST}
-                limits:
-                  cpu: ${CPU_LIMIT}
-                  memory: ${MEMORY_LIMIT}
+          image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+          command:
+            - /usr/bin/bash
+            - -c
+            - >
+              /usr/bin/curl --fail -H "Origin: https://swatch-subscription-sync-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-subscription-sync-service:8000/api/rhsm-subscriptions/v1/internal/rpc/offerings/sync"
           env:
-            - name: ENABLE_SPLUNK_HEC
-              value: ${ENABLE_SPLUNK_HEC}
-            - name: SPLUNKMETA_namespace
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.namespace
-            - name: SPLUNKMETA_host
-              valueFrom:
-                fieldRef:
-                  apiVersion: v1
-                  fieldPath: metadata.name
-            - name: SPLUNK_HEC_URL
-              value: ${SPLUNK_HEC_URL}
-            - name: SPLUNK_HEC_TOKEN
+            - name: SWATCH_SELF_PSK
               valueFrom:
                 secretKeyRef:
-                  name: splunk-hec-external
-                  key: token
-            - name: SPLUNK_SOURCE
-              value: ${SPLUNK_SOURCE}
-            - name: SPLUNK_SOURCE_TYPE
-              value: ${SPLUNK_SOURCE_TYPE}
-            - name: SPLUNK_MESSAGE_FORMAT
-              value: ${SPLUNK_MESSAGE_FORMAT}
-            - name: SPLUNK_HEC_CONNECT_TIMEOUT
-              value: ${SPLUNK_HEC_CONNECT_TIMEOUT}
-            - name: SPLUNK_HEC_BATCH_SIZE
-              value: ${SPLUNK_HEC_BATCH_SIZE}
-            - name: SPLUNK_HEC_TERMINATION_TIMEOUT
-              value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
+                  name: swatch-psks
+                  key: self
+            # This env property is necessary to pass the test check.
             - name: SPRING_PROFILES_ACTIVE
-              value: offering-sync,kafka-queue
-            - name: JAVA_MAX_MEM_RATIO
-              value: '85'
-            - name: GC_MAX_METASPACE_SIZE
-              value: '256'
-            - name: LOG_FILE
-              value: /logs/server.log
-            - name: LOGGING_LEVEL_ROOT
-              value: ${LOGGING_LEVEL_ROOT}
-            - name: LOGGING_LEVEL_ORG_CANDLEPIN
-              value: ${LOGGING_LEVEL}
-            - name: PRODUCT_DENYLIST_RESOURCE_LOCATION
-              value: file:/capacity-denylist/product-denylist.txt
-            - name: DATABASE_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: ${DB_POD}-db
-                  key: db.host
-            - name: DATABASE_PORT
-              valueFrom:
-                secretKeyRef:
-                  name: ${DB_POD}-db
-                  key: db.port
-            - name: DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: ${DB_POD}-db
-                  key: db.user
-            - name: DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: ${DB_POD}-db
-                  key: db.password
-            - name: DATABASE_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: ${DB_POD}-db
-                  key: db.name
-            - name: INVENTORY_DATABASE_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: ${INVENTORY_SECRET_KEY_NAME}
-                  key: db.host
-            - name: INVENTORY_DATABASE_DATABASE
-              valueFrom:
-                secretKeyRef:
-                  name: ${INVENTORY_SECRET_KEY_NAME}
-                  key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}name
-            - name: INVENTORY_DATABASE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: ${INVENTORY_SECRET_KEY_NAME}
-                  key: db.user
-            - name: INVENTORY_DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: ${INVENTORY_SECRET_KEY_NAME}
-                  key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
-            - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
-            - name: OTEL_SERVICE_NAME
-              value: ${OTEL_SERVICE_NAME}
-            - name: OTEL_JAVAAGENT_ENABLED
-              value: ${OTEL_JAVAAGENT_ENABLED}
+              value: offering-sync
           resources:
             requests:
-              cpu: ${CPU_REQUEST}
-              memory: ${MEMORY_REQUEST}
+              cpu: ${CURL_CRON_CPU_REQUEST}
+              memory: ${CURL_CRON_MEMORY_REQUEST}
             limits:
-              cpu: ${CPU_LIMIT}
-              memory: ${MEMORY_LIMIT}
-          volumeMounts:
-            - name: logs
-              mountPath: /logs
-            - name: capacity-denylist
-              mountPath: /capacity-denylist
-          volumes:
-            - name: logs
-              emptyDir:
-            - name: capacity-denylist
-              configMap:
-                name: capacity-denylist
+              cpu: ${CURL_CRON_CPU_LIMIT}
+              memory: ${CURL_CRON_MEMORY_LIMIT}
 
   - apiVersion: v1
     kind: Secret

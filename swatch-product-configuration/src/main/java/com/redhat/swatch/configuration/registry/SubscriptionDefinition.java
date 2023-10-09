@@ -165,8 +165,9 @@ public class SubscriptionDefinition {
             });
   }
 
-  public static Set<String> getAllTags() {
+  public static Set<String> getAllNonPaygTags() {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
+        .filter(subscriptionDefinition -> !subscriptionDefinition.isPaygEligible())
         .map(SubscriptionDefinition::getVariants)
         .flatMap(Collection::stream)
         .map(Variant::getTag)
@@ -180,14 +181,14 @@ public class SubscriptionDefinition {
    * @param engProductId
    * @return Optional<Subscription> subscription
    */
-  public static Optional<SubscriptionDefinition> lookupSubscriptionByEngId(String engProductId) {
+  public static Set<SubscriptionDefinition> lookupSubscriptionByEngId(String engProductId) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .filter(subscription -> !subscription.getVariants().isEmpty())
         .filter(
             subscription ->
                 subscription.getVariants().stream()
                     .anyMatch(variant -> variant.getEngineeringIds().contains(engProductId)))
-        .collect(MoreCollectors.toOptional());
+        .collect(Collectors.toUnmodifiableSet());
   }
 
   /**

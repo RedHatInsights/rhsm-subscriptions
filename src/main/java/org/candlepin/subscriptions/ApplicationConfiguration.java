@@ -51,8 +51,6 @@ import org.candlepin.subscriptions.security.SecurityConfiguration;
 import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration;
 import org.candlepin.subscriptions.subscription.SubscriptionWorkerConfiguration;
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
-import org.candlepin.subscriptions.tally.job.OfferingSyncConfiguration;
-import org.candlepin.subscriptions.tally.job.SubscriptionSyncConfiguration;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.user.UserServiceClientConfiguration;
 import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
@@ -78,10 +76,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   TallyWorkerConfiguration.class,
   RhMarketplaceWorkerConfiguration.class,
   SubscriptionWorkerConfiguration.class,
-  SubscriptionSyncConfiguration.class,
   CapacityReconciliationWorkerConfiguration.class,
   OfferingWorkerConfiguration.class,
-  OfferingSyncConfiguration.class,
   DevModeConfiguration.class,
   SecurityConfiguration.class,
   MeteringConfiguration.class,

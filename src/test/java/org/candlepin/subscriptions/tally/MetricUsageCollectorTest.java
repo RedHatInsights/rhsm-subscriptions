@@ -68,6 +68,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class MetricUsageCollectorTest {
 
   public static final String RHEL_ENG_ID = "69";
+  public static final String RHEL_EUS_PAG_ENG_ID = "70";
   MetricUsageCollector metricUsageCollector;
 
   @Mock AccountServiceInventoryRepository accountRepo;
@@ -80,6 +81,8 @@ class MetricUsageCollectorTest {
 
   static final String SERVICE_TYPE = "OpenShift Cluster";
   static final String RHEL_FOR_X86 = "RHEL for x86";
+  static final String RHEL_FOR_X86_EUS_PAYG = "rhel-for-x86-eus-payg";
+
   static final String RHEL_WORKSTATION_SWATCH_PRODUCT_ID = "RHEL Workstation";
   static final String RHEL_COMPUTE_NODE_SWATCH_PRODUCT_ID = "RHEL Compute Node";
   static final String OSD_PRODUCT_ID = "OpenShift-dedicated-metrics";
@@ -200,9 +203,9 @@ class MetricUsageCollectorTest {
     Event event =
         createEvent()
             .withEventId(UUID.randomUUID())
-            .withProductIds(List.of(RHEL_ENG_ID))
+            .withProductIds(List.of(RHEL_FOR_X86, RHEL_EUS_PAG_ENG_ID))
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
-            .withServiceType(SERVICE_TYPE)
+            .withServiceType("RHEL System")
             .withMeasurements(Collections.singletonList(measurement))
             .withSla(Event.Sla.PREMIUM)
             .withBillingProvider(Event.BillingProvider.RED_HAT)
@@ -233,7 +236,7 @@ class MetricUsageCollectorTest {
           String billingAccountId = (String) tuple.get(3);
 
           HostBucketKey key = new HostBucketKey();
-          key.setProductId(RHEL_FOR_X86);
+          key.setProductId(RHEL_FOR_X86_EUS_PAYG);
           key.setSla(sla);
           key.setBillingProvider(billingProvider);
           key.setBillingAccountId(billingAccountId);
@@ -376,7 +379,7 @@ class MetricUsageCollectorTest {
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION)
             .withBillingProvider(Event.BillingProvider.RED_HAT)
-            .withProductIds(List.of(RHEL_ENG_ID));
+            .withProductIds(List.of(RHEL_ENG_ID, RHEL_EUS_PAG_ENG_ID));
 
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
     when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any(), any()))
@@ -388,8 +391,16 @@ class MetricUsageCollectorTest {
 
     UsageCalculation.Key engIdKey =
         new UsageCalculation.Key(
-            RHEL_FOR_X86, ServiceLevel.PREMIUM, Usage._ANY, BillingProvider.RED_HAT, "_ANY");
+            RHEL_FOR_X86_EUS_PAYG,
+            ServiceLevel.PREMIUM,
+            Usage._ANY,
+            BillingProvider.RED_HAT,
+            "_ANY");
     assertTrue(accountUsageCalculation.containsCalculation(engIdKey));
+    UsageCalculation.Key engIdKey1 =
+        new UsageCalculation.Key(
+            RHEL_FOR_X86, ServiceLevel.PREMIUM, Usage._ANY, BillingProvider.RED_HAT, "_ANY");
+    assertFalse(accountUsageCalculation.containsCalculation(engIdKey1));
     assertEquals(
         Double.valueOf(42.0),
         accountUsageCalculation
@@ -531,7 +542,7 @@ class MetricUsageCollectorTest {
             });
 
     metricUsageCollector.collect(
-        SERVICE_TYPE, "account123", "org123", new DateRange(eventDate, eventDate.plusHours(1)));
+        SERVICE_TYPE, "org123", new DateRange(eventDate, eventDate.plusHours(1)));
     assertEquals(
         Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, MetricIdUtils.getCores()));
   }
@@ -581,7 +592,7 @@ class MetricUsageCollectorTest {
             });
 
     metricUsageCollector.collect(
-        SERVICE_TYPE, "account123", "org123", new DateRange(eventDate, eventDate.plusHours(1)));
+        SERVICE_TYPE, "org123", new DateRange(eventDate, eventDate.plusHours(1)));
     verify(eventController, times(1))
         .findFirstEventTimestampInRange("org123", SERVICE_TYPE, eventDate, eventDate.plusHours(1));
     assertEquals(
@@ -629,7 +640,7 @@ class MetricUsageCollectorTest {
     when(eventController.findFirstEventTimestampInRange(any(), any(), any(), any()))
         .thenReturn(Optional.of(eventDate));
     metricUsageCollector.collect(
-        SERVICE_TYPE, "account123", "org123", new DateRange(eventDate, eventDate.plusHours(1)));
+        SERVICE_TYPE, "org123", new DateRange(eventDate, eventDate.plusHours(1)));
     assertEquals(
         Double.valueOf(42.0), activeInstance.getMonthlyTotal(monthId, MetricIdUtils.getCores()));
   }
@@ -639,7 +650,7 @@ class MetricUsageCollectorTest {
     DateRange range = new DateRange(clock.startOfCurrentHour(), clock.now());
     assertThrows(
         IllegalArgumentException.class,
-        () -> metricUsageCollector.collect(SERVICE_TYPE, "account123", "org123", range));
+        () -> metricUsageCollector.collect(SERVICE_TYPE, "org123", range));
   }
 
   @Test
@@ -687,7 +698,6 @@ class MetricUsageCollectorTest {
   void testAccountRepoNotTouchedIfNoEventsExist() {
     metricUsageCollector.collect(
         SERVICE_TYPE,
-        "account123",
         "org123",
         new DateRange(
             clock.startOfCurrentHour().minusHours(1), clock.startOfCurrentHour().plusHours(1)));

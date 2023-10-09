@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.metering.task;
 
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
@@ -71,25 +70,23 @@ public class MeteringTasksConfiguration {
       TaskQueue queue,
       @Qualifier("meteringTaskQueueProperties") TaskQueueProperties queueProps,
       PrometheusAccountSource accountSource,
-      AccountConfigRepository accountConfigRepository,
       ApplicationClock clock,
       ApplicationProperties appProps) {
-    return new PrometheusMetricsTaskManager(
-        queue, queueProps, accountSource, accountConfigRepository, clock, appProps);
+    return new PrometheusMetricsTaskManager(queue, queueProps, accountSource, clock, appProps);
   }
 
   // The following beans are defined for the worker profile only allowing
   // separation of producer/consumers in profiles (if required).
   @Bean
   @Qualifier("prometheusTaskFactory")
-  @Profile("openshift-metering-worker")
+  @Profile({"openshift-metering-worker", "metrics-rhel"})
   TaskFactory meteringTaskFactory(PrometheusMeteringController controller) {
     return new PrometheusMeteringTaskFactory(controller);
   }
 
   @Bean
   @Qualifier("openshiftMeteringTaskConsumer")
-  @Profile("openshift-metering-worker")
+  @Profile({"openshift-metering-worker", "metrics-rhel"})
   public TaskConsumer meteringTaskProcessor(
       @Qualifier("meteringTaskQueueProperties") TaskQueueProperties taskQueueProperties,
       TaskConsumerFactory<? extends TaskConsumer> taskConsumerFactory,

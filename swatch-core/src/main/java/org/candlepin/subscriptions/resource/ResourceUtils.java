@@ -78,17 +78,6 @@ public class ResourceUtils {
   }
 
   /**
-   * Get the account number of the authenticated user.
-   *
-   * @return account number as a String
-   */
-  public static String getAccountNumber() {
-    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-    InsightsUserPrincipal principal = (InsightsUserPrincipal) auth.getPrincipal();
-    return principal.getAccountNumber();
-  }
-
-  /**
    * Validates offset and limit parameters and produces a {@link Pageable} for them.
    *
    * @param offset 0-based offset, can be null.

@@ -74,8 +74,7 @@ public class MetricUsageCollector {
   }
 
   @Transactional
-  public CollectionResult collect(
-      String serviceType, String accountNumber, String orgId, DateRange range) {
+  public CollectionResult collect(String serviceType, String orgId, DateRange range) {
     if (!clock.isHourlyRange(range)) {
       throw new IllegalArgumentException(
           String.format(
@@ -102,9 +101,6 @@ public class MetricUsageCollector {
             .findById(inventoryId)
             .orElse(new AccountServiceInventory(inventoryId));
 
-    if (accountNumber != null) {
-      accountServiceInventory.setAccountNumber(accountNumber);
-    }
     /*
     Evaluate latest state to determine if we are doing a recalculation and filter to host records for only
     the product profile we're working on
@@ -206,7 +202,7 @@ public class MetricUsageCollector {
   public AccountUsageCalculation collectHour(
       AccountServiceInventory accountServiceInventory,
       OffsetDateTime startDateTime,
-      OffsetDateTime processEndDateTime) {
+      OffsetDateTime asOfDateTime) {
     OffsetDateTime endDateTime = startDateTime.plusHours(1);
 
     Map<String, List<Event>> eventToHostMapping =
@@ -216,7 +212,7 @@ public class MetricUsageCollector {
                 accountServiceInventory.getServiceType(),
                 startDateTime,
                 endDateTime,
-                processEndDateTime)
+                asOfDateTime)
             // We group fetched events by instanceId so that we can clear the measurements
             // on first access, if the instance already exists for the accountServiceInventory.
             .collect(Collectors.groupingBy(Event::getInstanceId));
@@ -488,19 +484,23 @@ public class MetricUsageCollector {
 
   private Set<String> getProductIds(Event event) {
     Set<String> productIds = new HashSet<>();
+    // Filter tags that are paygEligible for hourly tally
 
     if (Objects.nonNull(event.getRole())) {
       String role = event.getRole().toString();
       SubscriptionDefinition.lookupSubscriptionByRole(role)
+          .filter(SubscriptionDefinition::isPaygEligible)
           .flatMap(s -> s.findVariantForRole(role).map(Variant::getTag))
           .ifPresent(productIds::add);
     }
 
     var engIds = Optional.ofNullable(event.getProductIds()).orElse(Collections.emptyList());
     for (String engId : engIds) {
-      SubscriptionDefinition.lookupSubscriptionByEngId(engId)
-          .flatMap(s -> s.findVariantForEngId(engId).map(Variant::getTag))
-          .ifPresent(productIds::add);
+      productIds.addAll(
+          SubscriptionDefinition.lookupSubscriptionByEngId(engId).stream()
+              .filter(SubscriptionDefinition::isPaygEligible)
+              .flatMap(s -> s.findVariantForEngId(engId).map(Variant::getTag).stream())
+              .toList());
     }
 
     return productIds;

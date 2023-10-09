@@ -11,6 +11,8 @@ parameters:
     value: env-swatch-metrics
   - name: REPLICAS
     value: '1'
+  - name: METRICS_RHEL_REPLICAS
+    value: '1'
   - name: IMAGE
     value: quay.io/cloudservices/rhsm-subscriptions
   - name: IMAGE_TAG
@@ -21,6 +23,14 @@ parameters:
     value: quay.io/app-sre/ubi8-ubi-minimal
   - name: CURL_CRON_IMAGE_TAG
     value: latest
+  - name: CURL_CRON_MEMORY_REQUEST
+    value: 500Mi
+  - name: CURL_CRON_MEMORY_LIMIT
+    value: 800Mi
+  - name: CURL_CRON_CPU_REQUEST
+    value: 350m
+  - name: CURL_CRON_CPU_LIMIT
+    value: 500m
   - name: MEMORY_REQUEST
     value: 1000Mi
   - name: MEMORY_LIMIT
@@ -28,6 +38,14 @@ parameters:
   - name: CPU_REQUEST
     value: 350m
   - name: CPU_LIMIT
+    value: 1500m
+  - name: METRICS_RHEL_MEMORY_REQUEST
+    value: 1000Mi
+  - name: METRICS_RHEL_MEMORY_LIMIT
+    value: 1400Mi
+  - name: METRICS_RHEL_CPU_REQUEST
+    value: 350m
+  - name: METRICS_RHEL_CPU_LIMIT
     value: 1500m
   - name: DEV_MODE
     value: 'false'
@@ -53,7 +71,11 @@ parameters:
     value: WARN
   - name: LOGGING_LEVEL
     value: INFO
+  - name: METRICS_RHEL_LOGGING_LEVEL
+    value: INFO
   - name: METRICS_CRON_LOGGING_LEVEL
+    value: INFO
+  - name: METRICS_RHEL_JOB_LOGGING_LEVEL
     value: INFO
   - name: KAFKA_MESSAGE_THREADS
     value: '24'
@@ -61,7 +83,11 @@ parameters:
     value: '3600000'
   - name: KAFKA_SEEK_OVERRIDE_END
     value: 'false'
+  - name: METRICS_RHEL_KAFKA_SEEK_OVERRIDE_END
+    value: 'false'
   - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
+    value: ''
+  - name: METRICS_RHEL_KAFKA_SEEK_OVERRIDE_TIMESTAMP
     value: ''
   - name: PROM_URL
     value: http://localhost:8082
@@ -89,6 +115,8 @@ parameters:
     value: '2'
   - name: METERING_SCHEDULE
     value: '30 * * * *'
+  - name: RHEL_METERING_SCHEDULE
+    value: '30 * * * *'
   - name: PURGE_EVENTS_SCHEDULE
     value: '30 4 * * *'
   - name: EVENT_RECORD_RETENTION
@@ -96,6 +124,8 @@ parameters:
   - name: OPENSHIFT_METERING_RANGE
     value: '60'
   - name: HOURLY_TALLY_OFFSET
+    value: '60'
+  - name: METRICS_RHEL_METERING_RANGE
     value: '60'
 # nonprod secret keys have different syntax than prod/stage
   - name: INVENTORY_SECRET_KEY_NAME
@@ -118,7 +148,6 @@ parameters:
     value: 'false'
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: 'http://localhost:4317'
-
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
     kind: ClowdApp
@@ -126,8 +155,7 @@ objects:
       name: swatch-metrics
       labels:
         prometheus: rhsm
-    spec:
-      # The name of the ClowdEnvironment providing the services
+    spec: # The name of the ClowdEnvironment providing the services
       envName: ${ENV_NAME}
 
       database:
@@ -285,6 +313,8 @@ objects:
                   secretKeyRef:
                     name: ${INVENTORY_SECRET_KEY_NAME}
                     key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
+              - name: EVENT_SOURCE
+                value: 'prometheus'
               - name: PROM_URL
                 value: ${PROM_URL}
               - name: EVENT_RECORD_RETENTION
@@ -371,7 +401,91 @@ objects:
           successfulJobsHistoryLimit: 2
           restartPolicy: Never
           podSpec:
+            image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+            command:
+              - /usr/bin/bash
+              - -c
+              - >
+                /usr/bin/curl --fail -H "Origin: https://swatch-metrics-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-metrics-service:8000/api/rhsm-subscriptions/v1/internal/metering/sync"
+            env:
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+            resources:
+              requests:
+                cpu: ${CURL_CRON_CPU_REQUEST}
+                memory: ${CURL_CRON_MEMORY_REQUEST}
+              limits:
+                cpu: ${CURL_CRON_CPU_LIMIT}
+                memory: ${CURL_CRON_MEMORY_LIMIT}
+        - name: purge-events
+          schedule: ${PURGE_EVENTS_SCHEDULE}
+          activeDeadlineSeconds: 1800
+          successfulJobsHistoryLimit: 2
+          restartPolicy: Never
+          podSpec:
+            image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+            command:
+              - /usr/bin/bash
+              - -c
+              - >
+                /usr/bin/curl --fail -i -H "Origin: https://swatch-metrics-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X DELETE "http://swatch-metrics-service:8000/api/rhsm-subscriptions/v1/internal/metering/events"
+            env:
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+          resources:
+            requests:
+              cpu: ${CURL_CRON_CPU_REQUEST}
+              memory: ${CURL_CRON_MEMORY_REQUEST}
+            limits:
+              cpu: ${CURL_CRON_CPU_LIMIT}
+              memory: ${CURL_CRON_MEMORY_LIMIT}
+  - apiVersion: cloud.redhat.com/v1alpha1
+    kind: ClowdApp
+    metadata:
+      name: swatch-metrics-rhel
+      labels:
+        prometheus: rhsm
+    spec:
+      envName: ${ENV_NAME}
+      database:
+        sharedDbAppName: swatch-tally
+      dependencies:
+        - swatch-tally
+
+      kafkaTopics:
+        - replicas: ${{KAFKA_METERING_TASKS_REPLICAS}}
+          partitions: ${{KAFKA_METERING_TASKS_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.metering-rhel-tasks
+        - replicas: ${{KAFKA_SERVICE_INSTANCE_REPLICAS}}
+          partitions: ${{KAFKA_SERVICE_INSTANCE_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.service-instance-ingress
+
+      pullSecrets:
+        name: ${IMAGE_PULL_SECRET}
+      deployments:
+        - name: service
+          webServices:
+            public:
+              enabled: true
+            metrics:
+              enabled: true
+          replicas: ${{METRICS_RHEL_REPLICAS}}
+          podSpec:
+            metadata:
+              annotations:
+                ignore-check.kube-linter.io/no-liveness-probe: The token refresher sidecar container doesn't have a liveness probe instrumented but the service container does
+                ignore-check.kube-linter.io/no-readiness-probe: The token refresher sidecar container doesn't have a readiness probe instrumented but the service container does
             image: ${IMAGE}:${IMAGE_TAG}
+            command:
+            sidecars:
+              - name: token-refresher
+                enabled: true
             initContainers:
               - env:
                   - name: JAVA_DEBUG
@@ -381,14 +495,16 @@ objects:
                 inheritEnv: true
                 resources:
                   requests:
-                    cpu: ${CPU_REQUEST}
-                    memory: ${MEMORY_REQUEST}
+                    cpu: ${METRICS_RHEL_CPU_REQUEST}
+                    memory: ${METRICS_RHEL_MEMORY_REQUEST}
                   limits:
-                    cpu: ${CPU_LIMIT}
-                    memory: ${MEMORY_LIMIT}
+                    cpu: ${METRICS_RHEL_CPU_LIMIT}
+                    memory: ${METRICS_RHEL_MEMORY_LIMIT}
             env:
               - name: JAVA_DEBUG
                 value: ${JAVA_DEBUG}
+              - name: SPRING_LIQUIBASE_ENABLED
+                value: 'false'
               - name: ENABLE_SPLUNK_HEC
                 value: ${ENABLE_SPLUNK_HEC}
               - name: SPLUNKMETA_namespace
@@ -421,21 +537,27 @@ objects:
               - name: SPLUNK_HEC_TERMINATION_TIMEOUT
                 value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
               - name: SPRING_PROFILES_ACTIVE
-                value: metering-job,kafka-queue
+                value: metrics-rhel,kafka-queue
+              - name: SERVER_MAX_HTTP_HEADER_SIZE
+                value: ${SERVER_MAX_HTTP_HEADER_SIZE}
+              - name: LOG_FILE
+                value: /logs/server.log
               - name: JAVA_MAX_MEM_RATIO
                 value: '85'
               - name: GC_MAX_METASPACE_SIZE
                 value: '256'
-              - name: LOG_FILE
-                value: /logs/server.log
               - name: LOGGING_LEVEL_ROOT
                 value: ${LOGGING_LEVEL_ROOT}
               - name: LOGGING_LEVEL_ORG_CANDLEPIN
-                value: ${METRICS_CRON_LOGGING_LEVEL}
-              - name: OPENSHIFT_METERING_RANGE
-                value: ${OPENSHIFT_METERING_RANGE}
-              - name: HOURLY_TALLY_OFFSET
-                value: ${HOURLY_TALLY_OFFSET}
+                value: ${METRICS_RHEL_LOGGING_LEVEL}
+              - name: KAFKA_MESSAGE_THREADS
+                value: ${KAFKA_MESSAGE_THREADS}
+              - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
+                value: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS}
+              - name: METRICS_RHEL_KAFKA_SEEK_OVERRIDE_END
+                value: ${METRICS_RHEL_KAFKA_SEEK_OVERRIDE_END}
+              - name: METRICS_RHEL_KAFKA_SEEK_OVERRIDE_TIMESTAMP
+                value: ${METRICS_RHEL_KAFKA_SEEK_OVERRIDE_TIMESTAMP}
               - name: DATABASE_HOST
                 valueFrom:
                   secretKeyRef:
@@ -461,52 +583,92 @@ objects:
                   secretKeyRef:
                     name: swatch-tally-db
                     key: db.name
-              - name: INVENTORY_DATABASE_HOST
-                valueFrom:
-                  secretKeyRef:
-                    name: ${INVENTORY_SECRET_KEY_NAME}
-                    key: db.host
-              - name: INVENTORY_DATABASE_DATABASE
-                valueFrom:
-                  secretKeyRef:
-                    name: ${INVENTORY_SECRET_KEY_NAME}
-                    key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}name
-              - name: INVENTORY_DATABASE_USERNAME
-                valueFrom:
-                  secretKeyRef:
-                    name: ${INVENTORY_SECRET_KEY_NAME}
-                    key: db.user
-              - name: INVENTORY_DATABASE_PASSWORD
-                valueFrom:
-                  secretKeyRef:
-                    name: ${INVENTORY_SECRET_KEY_NAME}
-                    key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
+              - name: DATABASE_CONNECTION_TIMEOUT_MS
+                value: ${DATABASE_CONNECTION_TIMEOUT_MS}
+              - name: DATABASE_MAX_POOL_SIZE
+                value: ${DATABASE_MAX_POOL_SIZE}
+              - name: EVENT_SOURCE
+                value: 'rhelemeter'
               - name: PROM_URL
                 value: ${PROM_URL}
+              - name: OPENSHIFT_BILLING_MODEL_FILTER
+                value: ${OPENSHIFT_BILLING_MODEL_FILTER}
+              - name: USER_HOST
+                value: ${USER_HOST}
+              - name: USER_MAX_CONNECTIONS
+                value: ${USER_MAX_CONNECTIONS}
+              - name: USER_MAX_ATTEMPTS
+                value: ${USER_MAX_ATTEMPTS}
+              - name: USER_BACK_OFF_MAX_INTERVAL
+                value: ${USER_BACK_OFF_MAX_INTERVAL}
+              - name: USER_BACK_OFF_INITIAL_INTERVAL
+                value: ${USER_BACK_OFF_INITIAL_INTERVAL}
+              - name: USER_BACK_OFF_MULTIPLIER
+                value: ${USER_BACK_OFF_MULTIPLIER}
+              - name: RHSM_KEYSTORE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: tls
+                    key: keystore_password
+              - name: RHSM_KEYSTORE
+                value: /pinhead/keystore.jks
+              - name: DEV_MODE
+                value: ${DEV_MODE}
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+              - name: ENABLE_SYNCHRONOUS_OPERATIONS
+                value: ${ENABLE_SYNCHRONOUS_OPERATIONS}
               - name: OTEL_EXPORTER_OTLP_ENDPOINT
                 value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
               - name: OTEL_SERVICE_NAME
-                value: ${OTEL_SERVICE_NAME}
+                value: swatch-metrics-rhel
               - name: OTEL_JAVAAGENT_ENABLED
                 value: ${OTEL_JAVAAGENT_ENABLED}
+            livenessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: /health/liveness
+                port: 9000
+                scheme: HTTP
+              initialDelaySeconds: 15
+              periodSeconds: 20
+              successThreshold: 1
+              timeoutSeconds: 5
+            readinessProbe:
+              failureThreshold: 3
+              httpGet:
+                path: /health
+                port: 9000
+                scheme: HTTP
+              initialDelaySeconds: 15
+              periodSeconds: 20
+              successThreshold: 1
+              timeoutSeconds: 5
             resources:
               requests:
-                cpu: ${CPU_REQUEST}
-                memory: ${MEMORY_REQUEST}
+                cpu: ${METRICS_RHEL_CPU_REQUEST}
+                memory: ${METRICS_RHEL_MEMORY_REQUEST}
               limits:
-                cpu: ${CPU_LIMIT}
-                memory: ${MEMORY_LIMIT}
+                cpu: ${METRICS_RHEL_CPU_LIMIT}
+                memory: ${METRICS_RHEL_MEMORY_LIMIT}
             volumeMounts:
               - name: logs
                 mountPath: /logs
+              - name: pinhead
+                mountPath: /pinhead
             volumes:
               - name: logs
                 emptyDir:
-            sidecars:
-              - name: token-refresher
-                enabled: true
-        - name: purge-events
-          schedule: ${PURGE_EVENTS_SCHEDULE}
+              - name: pinhead
+                secret:
+                  secretName: pinhead
+
+      jobs:
+        - name: sync
+          schedule: ${RHEL_METERING_SCHEDULE}
           activeDeadlineSeconds: 1800
           successfulJobsHistoryLimit: 2
           restartPolicy: Never
@@ -516,22 +678,20 @@ objects:
               - /usr/bin/bash
               - -c
               - >
-                /usr/bin/curl --fail -i -H "Origin: https://swatch-metrics-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X DELETE "http://swatch-metrics-service:8000/api/rhsm-subscriptions/v1/internal/metering/events"
+                /usr/bin/curl --fail -H "Origin: https://swatch-metrics-rhel-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-metrics-rhel-service:8000/api/rhsm-subscriptions/v1/internal/metering/sync"
             env:
               - name: SWATCH_SELF_PSK
                 valueFrom:
                   secretKeyRef:
                     name: swatch-psks
                     key: self
-          resources:
-            requests:
-              cpu: ${CURL_CRON_CPU_REQUEST}
-              memory: ${CURL_CRON_MEMORY_REQUEST}
-            limits:
-              cpu: ${CURL_CRON_CPU_LIMIT}
-              memory: ${CURL_CRON_MEMORY_LIMIT}
-
-
+            resources:
+              requests:
+                cpu: ${CURL_CRON_CPU_REQUEST}
+                memory: ${CURL_CRON_MEMORY_REQUEST}
+              limits:
+                cpu: ${CURL_CRON_CPU_LIMIT}
+                memory: ${CURL_CRON_MEMORY_LIMIT}
   - apiVersion: v1
     kind: Secret
     metadata:

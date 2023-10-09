@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.util.DateRange;
@@ -48,7 +47,6 @@ public class TallySnapshotController {
 
   private static final Logger log = LoggerFactory.getLogger(TallySnapshotController.class);
 
-  private final AccountConfigRepository accountRepo;
   private final InventoryAccountUsageCollector usageCollector;
   private final MetricUsageCollector metricUsageCollector;
   private final MaxSeenSnapshotStrategy maxSeenSnapshotStrategy;
@@ -58,7 +56,6 @@ public class TallySnapshotController {
 
   @Autowired
   public TallySnapshotController(
-      AccountConfigRepository accountRepo,
       InventoryAccountUsageCollector usageCollector,
       MaxSeenSnapshotStrategy maxSeenSnapshotStrategy,
       @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
@@ -66,7 +63,6 @@ public class TallySnapshotController {
       CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy,
       SnapshotSummaryProducer summaryProducer) {
 
-    this.accountRepo = accountRepo;
     this.usageCollector = usageCollector;
     this.maxSeenSnapshotStrategy = maxSeenSnapshotStrategy;
     this.retryTemplate = retryTemplate;
@@ -106,8 +102,7 @@ public class TallySnapshotController {
       throw new IllegalArgumentException("A non-null orgId is required for tally operations.");
     }
 
-    String accountNumber = accountRepo.findAccountNumberByOrgId(orgId);
-    log.info("Producing snapshots for Org ID {} with Account {}.", orgId, accountNumber);
+    log.info("Producing snapshots for Org ID {}.", orgId);
     List<String> serviceTypes = SubscriptionDefinition.getAllServiceTypes();
     for (String serviceType : serviceTypes) {
       log.info(
@@ -120,8 +115,7 @@ public class TallySnapshotController {
       try {
         var result =
             retryTemplate.execute(
-                context ->
-                    metricUsageCollector.collect(serviceType, accountNumber, orgId, snapshotRange));
+                context -> metricUsageCollector.collect(serviceType, orgId, snapshotRange));
         if (result == null) {
           continue;
         }
@@ -148,16 +142,9 @@ public class TallySnapshotController {
                 Double::sum);
 
         summaryProducer.produceTallySummaryMessages(totalSnapshots);
-        log.info(
-            "Finished producing hourly snapshots for account {} with orgId {}",
-            accountNumber,
-            orgId);
+        log.info("Finished producing hourly snapshots for orgId {}", orgId);
       } catch (Exception e) {
-        log.error(
-            "Could not collect metrics and/or produce snapshots for account {} with orgId {}",
-            accountNumber,
-            orgId,
-            e);
+        log.error("Could not collect metrics and/or produce snapshots for with orgId {}", orgId, e);
       }
     }
   }
@@ -174,7 +161,8 @@ public class TallySnapshotController {
   private AccountUsageCalculation performTally(String orgId) {
     retryTemplate.execute(
         context -> {
-          usageCollector.reconcileSystemDataWithHbi(orgId, SubscriptionDefinition.getAllTags());
+          usageCollector.reconcileSystemDataWithHbi(
+              orgId, SubscriptionDefinition.getAllNonPaygTags());
           return null;
         });
     return usageCollector.tally(orgId);

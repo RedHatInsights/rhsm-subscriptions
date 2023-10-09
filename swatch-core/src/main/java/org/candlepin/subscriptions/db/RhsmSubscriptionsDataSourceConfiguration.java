@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.db;
 import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
@@ -95,11 +94,5 @@ public class RhsmSubscriptionsDataSourceConfiguration {
       @Qualifier("rhsmSubscriptionsEntityManagerFactory")
           EntityManagerFactory entityManagerFactory) {
     return new JpaTransactionManager(entityManagerFactory);
-  }
-
-  @Bean
-  public AccountListSource accountListSource(
-      AccountConfigRepository accountConfigRepository, ApplicationClock clock) {
-    return new DatabaseAccountListSource(accountConfigRepository);
   }
 }

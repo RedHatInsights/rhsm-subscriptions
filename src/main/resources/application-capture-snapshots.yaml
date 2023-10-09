@@ -1,5 +1,0 @@
-TASKS_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.tasks')].name:platform.rhsm-subscriptions.tasks}
-
-rhsm-subscriptions:
-  tasks:
-    topic: ${TASKS_TOPIC}

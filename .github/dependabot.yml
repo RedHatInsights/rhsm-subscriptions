@@ -30,3 +30,8 @@ updates:
     schedule:
       interval: "daily"
     target-branch: "main"
+  - package-ecosystem: "docker"
+    directory: "swatch-producer-azure/src/main/docker"
+    schedule:
+      interval: "daily"
+    target-branch: "main"

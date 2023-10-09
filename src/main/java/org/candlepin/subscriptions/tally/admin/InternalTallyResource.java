@@ -297,14 +297,12 @@ public class InternalTallyResource implements InternalApi {
    * @return success or error message
    */
   @Override
-  public OptInResponse createOrUpdateOptInConfig(String accountNumber, String orgId) {
+  public OptInResponse createOrUpdateOptInConfig(String orgId) {
     var response = new OptInResponse();
     Object principal = ResourceUtils.getPrincipal();
-    log.info(
-        "Opt in for account {}, org {} triggered via API by {}", accountNumber, orgId, principal);
-    log.debug("Creating OptInConfig over API for account {}, org {}", accountNumber, orgId);
-    response.setDetail(
-        internalTallyDataController.createOrUpdateOptInConfig(accountNumber, orgId, OptInType.API));
+    log.info("Opt in for org {} triggered via API by {}", orgId, principal);
+    log.debug("Creating OptInConfig over API for account {}, org {}", orgId);
+    response.setDetail(internalTallyDataController.createOrUpdateOptInConfig(orgId, OptInType.API));
     return response;
   }
 

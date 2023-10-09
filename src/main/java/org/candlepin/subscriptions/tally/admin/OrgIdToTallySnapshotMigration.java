@@ -40,14 +40,13 @@ public class OrgIdToTallySnapshotMigration extends DataMigration {
   public static final String UPDATE_SQL = "update tally_snapshots set org_id=? where id =?";
 
   private static final String ACCOUNT_SERVICE_QUERY =
-      "select t.id, a.org_id, t.org_id as tally_org \n"
-          + "from tally_snapshots t\n"
-          + "         left join account_config a\n"
-          + "                   on a.account_number = t.account_number\n"
-          + "where ?::uuid is null\n"
-          + "   or t.id > ?::uuid\n"
-          + "order by t.id\n"
-          + "limit ?";
+      """
+      select t.id, a.org_id, t.org_id as tally_org
+      from tally_snapshots t
+      left join account_config a on a.account_number = t.account_number
+      where ?::uuid is null or t.id > ?::uuid
+      order by t.id
+      limit ?""";
 
   private final Counter counter;
 

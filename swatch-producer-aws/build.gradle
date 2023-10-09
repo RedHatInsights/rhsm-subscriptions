@@ -26,6 +26,8 @@ dependencies {
     implementation project(":clients:swatch-internal-subscription-client")
     implementation project(":swatch-common-resteasy")
     implementation project(":swatch-product-configuration")
+    implementation project(":swatch-common-kafka")
+    implementation project(":swatch-common-resteasy-client")
     testImplementation 'io.rest-assured:rest-assured'
     testImplementation 'org.mockito:mockito-junit-jupiter'
     testImplementation 'org.testcontainers:junit-jupiter'
@@ -43,10 +45,10 @@ openApiGenerate {
     generatorName = "java"
     inputSpec = "${projectDir}/src/main/resources/openapi.yaml"
     outputDir = "${buildDir}/generated"
-    apiPackage = "com.redhat.swatch.openapi.resource"
-    modelPackage = "com.redhat.swatch.openapi.model"
-    invokerPackage = "com.redhat.swatch.openapi"
-    groupId = "com.redhat.swatch"
+    apiPackage = "com.redhat.swatch.aws.openapi.resource"
+    modelPackage = "com.redhat.swatch.aws.openapi.model"
+    invokerPackage = "com.redhat.swatch.aws.openapi"
+    groupId = "com.redhat.swatch.aws"
     configOptions = [
             sourceFolder         : "src/gen/java",
             interfaceOnly        : "true",
@@ -75,7 +77,7 @@ tasks.register('configureQuarkusBuild') {
 tasks.register("wiremock", JavaExec) {
     description = "Run mock REST services for this service"
     classpath = sourceSets.test.runtimeClasspath
-    mainClass = "com.redhat.swatch.wiremock.WiremockRunner"
+    mainClass = "com.redhat.swatch.aws.wiremock.WiremockRunner"
 }
 
 quarkusDev.dependsOn(configureQuarkusBuild)

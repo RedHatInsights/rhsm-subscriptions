@@ -27,7 +27,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
+import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.junit.jupiter.api.Test;
@@ -49,7 +49,7 @@ class TallyRetentionControllerTest {
 
   @MockBean private TallyRetentionPolicy policy;
   @MockBean private TallySnapshotRepository repository;
-  @MockBean private AccountConfigRepository accountConfigRepository;
+  @MockBean private OrgConfigRepository orgConfigRepository;
 
   @Autowired private TallyRetentionController controller;
 
@@ -76,7 +76,7 @@ class TallyRetentionControllerTest {
     when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(cutoff);
 
     List<String> testList = Arrays.asList("1", "2", "3", "4");
-    when(accountConfigRepository.findSyncEnabledOrgs()).thenReturn(testList.stream());
+    when(orgConfigRepository.findSyncEnabledOrgs()).thenReturn(testList.stream());
 
     controller.purgeSnapshotsAsync();
 
