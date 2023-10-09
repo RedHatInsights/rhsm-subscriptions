@@ -14,7 +14,7 @@ kind: Pod
 spec:
   containers:
     - name: kubedock
-      image: quay.io/cloudservices/kubedock:123efe0
+      image: quay.io/jcarvaja/kubedock:0.13.0
       tty: true
       args:
        - server
