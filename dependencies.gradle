@@ -70,3 +70,4 @@ libraries["wiremock"] = "com.github.tomakehurst:wiremock-standalone:3.0.1"
 libraries["awaitility"] = "org.awaitility:awaitility:4.2.0"
 libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:1.28.0'
 libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.19.1'
+libraries["embeddedkafka"] = 'io.github.embeddedkafka:embedded-kafka_3:3.6.0'

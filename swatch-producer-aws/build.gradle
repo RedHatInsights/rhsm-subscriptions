@@ -31,12 +31,12 @@ dependencies {
     testImplementation 'io.rest-assured:rest-assured'
     testImplementation 'org.mockito:mockito-junit-jupiter'
     testImplementation 'org.testcontainers:junit-jupiter'
-    testImplementation 'org.testcontainers:kafka'
     testImplementation 'org.testcontainers:postgresql'
     testImplementation 'org.testcontainers:testcontainers'
     testImplementation libraries["junit-jupiter"]
     testImplementation libraries["wiremock"]
     testImplementation project(':swatch-common-testcontainers')
+    testImplementation libraries["embeddedkafka"]
 }
 
 compileJava.dependsOn tasks.openApiGenerate

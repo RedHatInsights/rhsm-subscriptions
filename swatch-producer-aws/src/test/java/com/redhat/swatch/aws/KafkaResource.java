@@ -20,32 +20,28 @@
  */
 package com.redhat.swatch.aws;
 
+import io.github.embeddedkafka.EmbeddedK;
+import io.github.embeddedkafka.EmbeddedKafka;
+import io.github.embeddedkafka.EmbeddedKafkaConfig;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import java.util.Collections;
 import java.util.Map;
-import org.testcontainers.containers.CustomKafkaContainer;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.utility.DockerImageName;
 
 public class KafkaResource implements QuarkusTestResourceLifecycleManager {
 
-  static KafkaContainer kafka =
-      new CustomKafkaContainer(
-              DockerImageName.parse("quay.io/cloudservices/cp-kafka:latest-ubi8")
-                  .asCompatibleSubstituteFor("confluentinc/cp-kafka"))
-          // SMELL: Workaround for https://github.com/testcontainers/testcontainers-java/issues/7539
-          // This is because testcontainers randomly fails to start a container when using Podman
-          // socket.
-          .withStartupAttempts(3);
+  private EmbeddedK kafka;
 
   @Override
   public Map<String, String> start() {
-    kafka.start();
-    return Collections.singletonMap("kafka.bootstrap.servers", kafka.getBootstrapServers());
+    kafka = EmbeddedKafka.start(EmbeddedKafkaConfig.defaultConfig());
+    return Collections.singletonMap(
+        "kafka.bootstrap.servers", "PLAINTEXT://localhost:" + kafka.config().kafkaPort());
   }
 
   @Override
   public void stop() {
-    kafka.stop();
+    if (kafka != null) {
+      kafka.stop(false);
+    }
   }
 }
