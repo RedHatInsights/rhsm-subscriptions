@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.configuration.registry.ProductId;
 import java.time.OffsetDateTime;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
+import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.utilization.api.model.SkuCapacityReportSort;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
@@ -46,11 +46,11 @@ class SubscriptionResourceTest {
   private final OffsetDateTime max = OffsetDateTime.now().plusDays(4);
 
   @Autowired SubscriptionResource subscriptionResource;
-  @MockBean AccountConfigRepository accountConfigRepository;
+  @MockBean OrgConfigRepository orgConfigRepository;
 
   @BeforeEach
   public void setupTests() {
-    when(accountConfigRepository.existsByOrgId("owner123456")).thenReturn(true);
+    when(orgConfigRepository.existsByOrgId("owner123456")).thenReturn(true);
   }
 
   @Test

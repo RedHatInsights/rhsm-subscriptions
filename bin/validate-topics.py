@@ -189,7 +189,7 @@ def validate(clowdapp_references, springboot_references, quarkus_references, clo
                 break
         else:
             print(
-                f"❌ Quarkus properties file {reference.properties_path} references {reference.topic}, not found in clowdapp template {clowdapp_path}."
+                f"❌ ERROR Quarkus properties file {reference.properties_path} references {reference.topic}, not found in clowdapp template {clowdapp_path}."
             )
             failed = True
 
@@ -199,7 +199,7 @@ def validate(clowdapp_references, springboot_references, quarkus_references, clo
         clowdapp_path = find_clowdapp_path(reference.properties_path, clowdapps)
         if clowdapp_path is None:
             print(
-                f"❌ SpringBoot properties file {reference.properties_path} which is not associated to a specific ClowdApp template, references {reference.topic}."
+                f"❌ ERROR SpringBoot properties file {reference.properties_path} which is not associated to a specific ClowdApp template, references {reference.topic}."
             )
             failed = True
             continue
@@ -215,7 +215,7 @@ def validate(clowdapp_references, springboot_references, quarkus_references, clo
                 break
         else:
             print(
-                f"❌ SpringBoot properties file {reference.properties_path} references {reference.topic}, not found in clowdapp template {clowdapp_path}."
+                f"❌ ERROR SpringBoot properties file {reference.properties_path} references {reference.topic}, not found in clowdapp template {clowdapp_path}."
             )
             failed = True
 
@@ -230,7 +230,7 @@ def validate(clowdapp_references, springboot_references, quarkus_references, clo
             )
         else:
             print(
-                f"❌ SpringBoot properties file {reference.properties_path} references {reference.topic}, but does not use clowder to configure actual topic name."
+                f"❌ ERROR SpringBoot properties file {reference.properties_path} references {reference.topic}, but does not use clowder to configure actual topic name."
             )
             failed = True
 
@@ -239,7 +239,7 @@ def validate(clowdapp_references, springboot_references, quarkus_references, clo
     for reference in clowdapp_references:
         if not reference in seen_clowdapp_references:
             print(
-                f"❌ ClowdApp {reference.clowdapp_template} references {reference.topic} which didn't have a corresponding service-specific app property."
+                f"❌ ERROR ClowdApp {reference.clowdapp_template} references {reference.topic} which didn't have a corresponding service-specific app property."
             )
             failed = True
     if len(seen_clowdapp_references) == len(clowdapp_references):
@@ -256,7 +256,7 @@ def validate(clowdapp_references, springboot_references, quarkus_references, clo
                     if "platform." in line:
                         match = re.search("platform.[a-zA-Z.-]+", line)
                         print(
-                            f"❌ Java file {path}, line {index + 1} references {match.group(0)}."
+                            f"❌ ERROR Java file {path}, line {index + 1} references {match.group(0)}."
                         )
                         java_file_has_topic_reference = True
                         failed = True
@@ -264,6 +264,7 @@ def validate(clowdapp_references, springboot_references, quarkus_references, clo
         print(f"✅ No src/main/java files have topic references.")
 
     if failed:
+        print(f"❌ topic validation failed. See previous errors.")
         sys.exit(1)
 
 

@@ -90,3 +90,13 @@ management:
     jms:
       # disable activemq health checks when we're not actually using UMB
       enabled: ${UMB_ENABLED:false}
+
+#Current version of spring-kafka(3.0.10) has bug that logs incorrect warning: https://github.com/spring-projects/spring-kafka/issues/2784
+#TODO remove this. Fixed in next release
+logging:
+  level:
+    org:
+      springframework:
+        kafka:
+          listener:
+            DeadLetterPublishingRecoverer=error:

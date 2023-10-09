@@ -165,7 +165,8 @@ public class TallySnapshotController {
   private AccountUsageCalculation performTally(String orgId) {
     retryTemplate.execute(
         context -> {
-          usageCollector.reconcileSystemDataWithHbi(orgId, SubscriptionDefinition.getAllTags());
+          usageCollector.reconcileSystemDataWithHbi(
+              orgId, SubscriptionDefinition.getAllNonPaygTags());
           return null;
         });
     return usageCollector.tally(orgId);
