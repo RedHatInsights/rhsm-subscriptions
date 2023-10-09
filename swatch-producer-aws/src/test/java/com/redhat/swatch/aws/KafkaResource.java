@@ -23,13 +23,14 @@ package com.redhat.swatch.aws;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import java.util.Collections;
 import java.util.Map;
+import org.testcontainers.containers.CustomKafkaContainer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 public class KafkaResource implements QuarkusTestResourceLifecycleManager {
 
   static KafkaContainer kafka =
-      new KafkaContainer(
+      new CustomKafkaContainer(
               DockerImageName.parse("quay.io/cloudservices/cp-kafka:latest-ubi8")
                   .asCompatibleSubstituteFor("confluentinc/cp-kafka"))
           // SMELL: Workaround for https://github.com/testcontainers/testcontainers-java/issues/7539
