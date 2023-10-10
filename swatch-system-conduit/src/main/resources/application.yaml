@@ -33,7 +33,6 @@ rhsm-conduit:
     add-uuid-hyphens: ${INVENTORY_ADD_UUID_HYPHENS:false}
     stale-host-offset: ${INVENTORY_STALE_HOST_OFFSET:48h}
     kafka-host-ingress-topic: ${INVENTORY_HOST_INGRESS_TOPIC}
-    tolerate-missing-account-number: ${TOLERATE_MISSING_ACCOUNT_NUMBER:false}
   tasks:
     topic: ${CONDUIT_TOPIC}
     kafka-group-id: ${CONDUIT_KAFKA_GROUP_ID:rhsm-conduit-task-processor}

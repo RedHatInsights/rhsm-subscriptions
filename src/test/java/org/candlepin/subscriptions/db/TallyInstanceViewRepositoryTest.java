@@ -684,22 +684,17 @@ class TallyInstanceViewRepositoryTest {
     assertThat(socketsResultIds, containsInAnyOrder(host2.getInstanceId(), host3.getInstanceId()));
   }
 
-  private Host createBaseHost(String inventoryId, String account) {
+  private Host createBaseHost(String inventoryId, String org) {
     Host host =
-        new Host(
-            inventoryId,
-            UUID.randomUUID().toString(),
-            account,
-            "ORG_" + account,
-            "SUBMAN_" + inventoryId);
+        new Host(inventoryId, UUID.randomUUID().toString(), "ORG_" + org, "SUBMAN_" + inventoryId);
     host.setBillingAccountId("_ANY");
     host.setBillingProvider(BillingProvider._ANY);
     host.setInstanceId(UUID.randomUUID().toString());
     return host;
   }
 
-  private Host createHost(String inventoryId, String account) {
-    Host host = createBaseHost(inventoryId, account);
+  private Host createHost(String inventoryId, String org) {
+    Host host = createBaseHost(inventoryId, org);
     host.setMeasurement(MetricIdUtils.getSockets().toString(), 1.0);
     host.setMeasurement(MetricIdUtils.getCores().toString(), 1.0);
     return host;

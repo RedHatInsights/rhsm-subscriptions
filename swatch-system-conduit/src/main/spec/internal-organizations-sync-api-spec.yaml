@@ -210,8 +210,6 @@ components:
           type: string
         org_id:
           type: string
-        account_number:
-          type: string
         os_name:
           type: string
         os_version:

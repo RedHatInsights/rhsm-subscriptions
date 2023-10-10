@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.conduit.tasks;
 
 import org.candlepin.subscriptions.conduit.InventoryController;
 import org.candlepin.subscriptions.conduit.rhsm.client.ApiException;
-import org.candlepin.subscriptions.exception.MissingAccountNumberException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -35,7 +34,7 @@ class UpdateOrgInventoryTaskTest {
   @Mock private InventoryController controller;
 
   @Test
-  void testExecute() throws MissingAccountNumberException, ApiException {
+  void testExecute() throws ApiException {
     String expectedOrg = "my-org";
     UpdateOrgInventoryTask task = new UpdateOrgInventoryTask(controller, expectedOrg, null);
     task.execute();

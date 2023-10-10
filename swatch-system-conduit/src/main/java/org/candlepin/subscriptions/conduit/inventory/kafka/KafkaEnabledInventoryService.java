@@ -91,8 +91,7 @@ public class KafkaEnabledInventoryService extends InventoryService {
       // log the error and move on to the next one.
       try {
         log.debug(
-            "Sending host inventory message: {}:{}:{}",
-            factSet.getAccountNumber(),
+            "Sending host inventory message: {}:{}",
             factSet.getOrgId(),
             factSet.getSubscriptionManagerId());
         // After the retry limit is reached, the exception will bubble up to the catch clause and

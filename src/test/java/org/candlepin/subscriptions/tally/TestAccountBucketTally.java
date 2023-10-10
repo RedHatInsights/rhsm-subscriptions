@@ -36,7 +36,6 @@ import org.candlepin.subscriptions.db.model.Usage;
 @AllArgsConstructor
 public class TestAccountBucketTally implements AccountBucketTally {
   private String productId;
-  private String accountNumber;
   private HardwareMeasurementType measurementType;
   private ServiceLevel sla;
   private Usage usage;

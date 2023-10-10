@@ -85,7 +85,6 @@ class KafkaEnabledInventoryServiceTest {
 
     ConduitFacts expectedFacts = new ConduitFacts();
     expectedFacts.setFqdn("my_fqdn");
-    expectedFacts.setAccountNumber("my_account");
     expectedFacts.setOrgId("my_org");
     expectedFacts.setCpuCores(25);
     expectedFacts.setCpuSockets(45);
@@ -103,7 +102,6 @@ class KafkaEnabledInventoryServiceTest {
     CreateUpdateHostMessage message = messageCaptor.getValue();
     assertNotNull(message);
     assertEquals("add_host", message.getOperation());
-    assertEquals(expectedFacts.getAccountNumber(), message.getData().getAccount());
     assertEquals(expectedFacts.getFqdn(), message.getData().getFqdn());
 
     assertNotNull(message.getData().getFacts());
@@ -128,7 +126,6 @@ class KafkaEnabledInventoryServiceTest {
   @Test
   void ensureSendHostRetries() {
     ConduitFacts conduitFacts = new ConduitFacts();
-    conduitFacts.setAccountNumber("my_account");
     List<ConduitFacts> expectedFacts = Arrays.asList(conduitFacts);
 
     when(producer.send(anyString(), any(CreateUpdateHostMessage.class)))
@@ -177,7 +174,6 @@ class KafkaEnabledInventoryServiceTest {
     when(producer.send(topicCaptor.capture(), messageCaptor.capture())).thenReturn(null);
 
     ConduitFacts expectedFacts = new ConduitFacts();
-    expectedFacts.setAccountNumber("my_account");
 
     InventoryServiceProperties props = new InventoryServiceProperties();
     props.setStaleHostOffset(Duration.ofHours(24));
@@ -189,7 +185,6 @@ class KafkaEnabledInventoryServiceTest {
     CreateUpdateHostMessage message = messageCaptor.getValue();
     assertNotNull(message);
     assertEquals("add_host", message.getOperation());
-    assertEquals(expectedFacts.getAccountNumber(), message.getData().getAccount());
 
     assertNotNull(message.getData().getFacts());
     assertEquals(1, message.getData().getFacts().size());
@@ -214,7 +209,6 @@ class KafkaEnabledInventoryServiceTest {
 
     ConduitFacts expectedFacts = new ConduitFacts();
     expectedFacts.setFqdn("my_fqdn");
-    expectedFacts.setAccountNumber("my_account");
     expectedFacts.setOrgId("my_org");
     expectedFacts.setCpuCores(25);
     expectedFacts.setCpuSockets(45);
@@ -232,7 +226,6 @@ class KafkaEnabledInventoryServiceTest {
     CreateUpdateHostMessage message = messageCaptor.getValue();
     assertNotNull(message);
     assertEquals("add_host", message.getOperation());
-    assertEquals(expectedFacts.getAccountNumber(), message.getData().getAccount());
     assertEquals(expectedFacts.getFqdn(), message.getData().getFqdn());
 
     assertNotNull(message.getData().getFacts());
@@ -271,7 +264,6 @@ class KafkaEnabledInventoryServiceTest {
 
     ConduitFacts expectedFacts = new ConduitFacts();
     expectedFacts.setFqdn("my_fqdn");
-    expectedFacts.setAccountNumber("my_account");
     expectedFacts.setOrgId("my_org");
     expectedFacts.setCpuCores(25);
     expectedFacts.setCpuSockets(45);
@@ -289,7 +281,6 @@ class KafkaEnabledInventoryServiceTest {
     CreateUpdateHostMessage message = messageCaptor.getValue();
     assertNotNull(message);
     assertEquals("add_host", message.getOperation());
-    assertEquals(expectedFacts.getAccountNumber(), message.getData().getAccount());
     assertEquals(expectedFacts.getFqdn(), message.getData().getFqdn());
 
     assertNotNull(message.getData().getFacts());

@@ -292,7 +292,6 @@ public class InternalTallyResource implements InternalApi {
   /**
    * Create or update an opt in configuration. This operation is idempotent
    *
-   * @param accountNumber
    * @param orgId
    * @return success or error message
    */
@@ -301,7 +300,7 @@ public class InternalTallyResource implements InternalApi {
     var response = new OptInResponse();
     Object principal = ResourceUtils.getPrincipal();
     log.info("Opt in for org {} triggered via API by {}", orgId, principal);
-    log.debug("Creating OptInConfig over API for account {}, org {}", orgId);
+    log.debug("Creating OptInConfig over API for org {}", orgId);
     response.setDetail(internalTallyDataController.createOrUpdateOptInConfig(orgId, OptInType.API));
     return response;
   }

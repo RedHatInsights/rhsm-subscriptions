@@ -168,13 +168,7 @@ class HostTallyBucketRepositoryTest {
   }
 
   private Host createHost(String inventoryId, String orgId) {
-    Host host =
-        new Host(
-            inventoryId,
-            "INSIGHTS_" + inventoryId,
-            orgId + "_ACCOUNT",
-            orgId,
-            "SUBMAN_" + inventoryId);
+    Host host = new Host(inventoryId, "INSIGHTS_" + inventoryId, orgId, "SUBMAN_" + inventoryId);
     host.setDisplayName(orgId);
     host.setMeasurement(MetricIdUtils.getSockets().getValue(), 1.0);
     host.setMeasurement(MetricIdUtils.getCores().getValue(), 1.0);

@@ -50,12 +50,6 @@ public class ConduitFacts extends ConsumerInventory {
     return super.getFqdn();
   }
 
-  @Override
-  @NotNull
-  public String getAccountNumber() {
-    return super.getAccountNumber();
-  }
-
   @Valid
   @Override
   public List<@IpAddress @NotNull String> getIpAddresses() {
