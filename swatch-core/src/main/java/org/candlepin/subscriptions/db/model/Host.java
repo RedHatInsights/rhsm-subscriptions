@@ -80,9 +80,6 @@ public class Host implements Serializable {
   @Column(name = "display_name", nullable = false)
   private String displayName;
 
-  @Column(name = "account_number", nullable = false)
-  private String accountNumber;
-
   @NotNull
   @Column(name = "org_id")
   private String orgId;
@@ -149,13 +146,11 @@ public class Host implements Serializable {
 
   public Host() {}
 
-  public Host(
-      String inventoryId, String insightsId, String accountNumber, String orgId, String subManId) {
+  public Host(String inventoryId, String insightsId, String orgId, String subManId) {
     this.instanceType = "HBI_HOST";
     this.inventoryId = inventoryId;
     this.instanceId = inventoryId;
     this.insightsId = insightsId;
-    this.accountNumber = accountNumber;
     this.orgId = orgId;
     this.subscriptionManagerId = subManId;
   }
@@ -291,7 +286,6 @@ public class Host implements Serializable {
         && Objects.equals(inventoryId, host.inventoryId)
         && Objects.equals(insightsId, host.insightsId)
         && Objects.equals(displayName, host.displayName)
-        && Objects.equals(accountNumber, host.accountNumber)
         && Objects.equals(orgId, host.orgId)
         && Objects.equals(subscriptionManagerId, host.subscriptionManagerId)
         && Objects.equals(hypervisorUuid, host.hypervisorUuid)
@@ -311,7 +305,6 @@ public class Host implements Serializable {
         inventoryId,
         insightsId,
         displayName,
-        accountNumber,
         orgId,
         subscriptionManagerId,
         guest,

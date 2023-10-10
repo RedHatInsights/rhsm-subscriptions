@@ -30,7 +30,6 @@ import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OrgConfig;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
-import org.candlepin.subscriptions.exception.MissingAccountNumberException;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.DefaultResponse;
@@ -85,11 +84,7 @@ public class InternalOrganizationSyncResource implements InternalOrganizationsAp
 
   @Override
   public OrgInventory getInventoryForOrg(String orgId, Integer limit, Integer offset) {
-    try {
-      return controller.getInventoryForOrg(orgId, offset == null ? null : offset.toString());
-    } catch (MissingAccountNumberException ex) {
-      throw new InternalServerErrorException(ex.getMessage());
-    }
+    return controller.getInventoryForOrg(orgId, offset == null ? null : offset.toString());
   }
 
   @Override
@@ -127,8 +122,6 @@ public class InternalOrganizationSyncResource implements InternalOrganizationsAp
       if (ErrorCode.RHSM_SERVICE_UNKNOWN_ORG_ERROR.equals(ex.getCode())) {
         throw new NotFoundException(ex.getMessage());
       }
-      throw new InternalServerErrorException(ex.getMessage());
-    } catch (MissingAccountNumberException ex) {
       throw new InternalServerErrorException(ex.getMessage());
     }
 

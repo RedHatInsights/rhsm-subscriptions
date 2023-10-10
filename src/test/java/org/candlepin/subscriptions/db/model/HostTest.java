@@ -43,7 +43,6 @@ class HostTest {
 
     assertNull(host.getInventoryId());
     assertNull(host.getInsightsId());
-    assertNull(host.getAccountNumber());
     assertNull(host.getOrgId());
     assertNull(host.getDisplayName());
     assertNull(host.getSubscriptionManagerId());
@@ -66,7 +65,6 @@ class HostTest {
 
     assertEquals(host.getInventoryId(), inventoryHostFacts.getInventoryId().toString());
     assertEquals(host.getInsightsId(), inventoryHostFacts.getInsightsId());
-    assertEquals(host.getAccountNumber(), inventoryHostFacts.getAccount());
     assertEquals(host.getOrgId(), inventoryHostFacts.getOrgId());
     assertEquals(host.getDisplayName(), inventoryHostFacts.getDisplayName());
     assertEquals(host.getSubscriptionManagerId(), inventoryHostFacts.getSubscriptionManagerId());
@@ -87,7 +85,6 @@ class HostTest {
     populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
     assertEquals(host.getInventoryId(), inventoryHostFacts.getInventoryId().toString());
     assertEquals(host.getInsightsId(), inventoryHostFacts.getInsightsId());
-    assertEquals(host.getAccountNumber(), inventoryHostFacts.getAccount());
     assertEquals(host.getOrgId(), inventoryHostFacts.getOrgId());
     assertEquals(host.getDisplayName(), inventoryHostFacts.getDisplayName());
     assertEquals(host.getSubscriptionManagerId(), inventoryHostFacts.getSubscriptionManagerId());
@@ -109,7 +106,6 @@ class HostTest {
     populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
     assertEquals(host.getInventoryId(), inventoryHostFacts.getInventoryId().toString());
     assertEquals(host.getInsightsId(), inventoryHostFacts.getInsightsId());
-    assertEquals(host.getAccountNumber(), inventoryHostFacts.getAccount());
     assertEquals(host.getOrgId(), inventoryHostFacts.getOrgId());
     assertEquals(host.getDisplayName(), inventoryHostFacts.getDisplayName());
     assertEquals(host.getSubscriptionManagerId(), inventoryHostFacts.getSubscriptionManagerId());
@@ -131,7 +127,6 @@ class HostTest {
     populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
     assertEquals(host.getInventoryId(), inventoryHostFacts.getInventoryId().toString());
     assertEquals(host.getInsightsId(), inventoryHostFacts.getInsightsId());
-    assertEquals(host.getAccountNumber(), inventoryHostFacts.getAccount());
     assertEquals(host.getOrgId(), inventoryHostFacts.getOrgId());
     assertEquals(host.getDisplayName(), inventoryHostFacts.getDisplayName());
     assertEquals(host.getSubscriptionManagerId(), inventoryHostFacts.getSubscriptionManagerId());
@@ -213,7 +208,6 @@ class HostTest {
 
     inventoryHostFacts.setInventoryId(UUID.randomUUID());
     inventoryHostFacts.setInsightsId("123");
-    inventoryHostFacts.setAccount("234");
     inventoryHostFacts.setOrgId("345");
     inventoryHostFacts.setDisplayName("test");
     inventoryHostFacts.setSubscriptionManagerId("456");

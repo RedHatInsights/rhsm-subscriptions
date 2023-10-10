@@ -275,7 +275,6 @@ public class FactNormalizer {
       // Check for cores and sockets. If not included, default to 0.
 
       normalizedFacts.setOrgId(hostFacts.getOrgId());
-      normalizedFacts.setAccount(hostFacts.getAccount());
 
       handleRole(normalizedFacts, hostFacts.getSyspurposeRole());
       handleSla(normalizedFacts, hostFacts, hostFacts.getSyspurposeSla());

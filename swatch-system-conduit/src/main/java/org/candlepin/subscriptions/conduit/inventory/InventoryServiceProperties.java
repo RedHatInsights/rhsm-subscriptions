@@ -36,7 +36,6 @@ public class InventoryServiceProperties {
   private String apiKey;
   private String kafkaHostIngressTopic;
   private int apiHostUpdateBatchSize = 50;
-  private boolean tolerateMissingAccountNumber;
 
   @DurationUnit(ChronoUnit.HOURS)
   private Duration staleHostOffset = Duration.ofHours(0);
