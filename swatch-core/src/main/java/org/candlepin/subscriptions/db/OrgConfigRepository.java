@@ -47,5 +47,5 @@ public interface OrgConfigRepository extends JpaRepository<OrgConfig, String> {
   }
 
   @Query
-  Boolean existsByOrgId(String orgId);
+  boolean existsByOrgId(String orgId);
 }

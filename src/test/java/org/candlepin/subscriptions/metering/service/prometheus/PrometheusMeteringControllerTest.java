@@ -33,7 +33,6 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.candlepin.subscriptions.db.AccountConfigRepository;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.json.BaseEvent;
@@ -72,8 +71,6 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
   static final String PROMETHEUS = "prometheus";
 
   @MockBean private PrometheusEventsProducer eventsProducer;
-
-  @MockBean AccountConfigRepository accountConfigRepository;
 
   @MockBean OrgConfigRepository orgConfigRepository;
 

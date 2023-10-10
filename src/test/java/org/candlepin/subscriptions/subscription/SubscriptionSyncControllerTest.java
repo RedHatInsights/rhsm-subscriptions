@@ -38,6 +38,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
@@ -79,8 +80,9 @@ import org.springframework.test.context.ActiveProfiles;
 class SubscriptionSyncControllerTest {
 
   private static final OffsetDateTime NOW = OffsetDateTime.now();
-  public static final String BILLING_ACCOUNT_ID_ANY = "_ANY";
-  public static final String PAYG_PRODUCT_NAME = "OpenShift Dedicated";
+  private static final String SKU = "testsku";
+  private static final String BILLING_ACCOUNT_ID_ANY = "_ANY";
+  private static final String PAYG_PRODUCT_NAME = "OpenShift Dedicated";
 
   @Autowired SubscriptionSyncController subscriptionSyncController;
 
@@ -115,20 +117,20 @@ class SubscriptionSyncControllerTest {
   void setUp() {
     var offering =
         Offering.builder()
-            .sku("testsku")
+            .sku(SKU)
             .productName("RHEL")
             .productIds(new HashSet<>(List.of(68)))
             .build();
-    Mockito.when(offeringRepository.getReferenceById("testsku")).thenReturn(offering);
+    Mockito.when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
   }
 
   @Test
   void shouldCreateNewRecordOnQuantityChange() {
     Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
-        .thenReturn(Optional.of(createSubscription("123", "testsku", "456")));
-    Mockito.when(offeringRepository.existsById("testsku")).thenReturn(true);
-    Offering offering = Offering.builder().sku("testsku").build();
-    when(offeringRepository.getReferenceById("testsku")).thenReturn(offering);
+        .thenReturn(Optional.of(createSubscription()));
+    Mockito.when(offeringRepository.existsById(SKU)).thenReturn(true);
+    Offering offering = Offering.builder().sku(SKU).build();
+    when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
     when(denylist.productIdMatches(any())).thenReturn(false);
     var dto = createDto("456", 10);
     subscriptionSyncController.syncSubscription(dto);
@@ -140,10 +142,10 @@ class SubscriptionSyncControllerTest {
   @Test
   void shouldUpdateRecordOnNoQuantityChange() {
     Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
-        .thenReturn(Optional.of(createSubscription("123", "testsku", "456")));
-    Mockito.when(offeringRepository.existsById("testsku")).thenReturn(true);
-    Offering offering = Offering.builder().sku("testsku").build();
-    when(offeringRepository.getReferenceById("testsku")).thenReturn(offering);
+        .thenReturn(Optional.of(createSubscription()));
+    Mockito.when(offeringRepository.existsById(SKU)).thenReturn(true);
+    Offering offering = Offering.builder().sku(SKU).build();
+    when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
     when(denylist.productIdMatches(any())).thenReturn(false);
     var dto = createDto("456", 4);
     subscriptionSyncController.syncSubscription(dto);
@@ -156,9 +158,9 @@ class SubscriptionSyncControllerTest {
   void shouldCreateNewRecordOnNotFound() {
     Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
         .thenReturn(Optional.empty());
-    Mockito.when(offeringRepository.existsById("testsku")).thenReturn(true);
-    Offering offering = Offering.builder().sku("testsku").build();
-    when(offeringRepository.getReferenceById("testsku")).thenReturn(offering);
+    Mockito.when(offeringRepository.existsById(SKU)).thenReturn(true);
+    Offering offering = Offering.builder().sku(SKU).build();
+    when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
     when(denylist.productIdMatches(any())).thenReturn(false);
     var dto = createDto("456", 10);
     subscriptionSyncController.syncSubscription(dto);
@@ -169,8 +171,8 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void shouldSyncSubscriptionFromServiceForASubscriptionID() {
-    Offering offering = Offering.builder().sku("testSku").build();
-    Subscription s = createSubscription("123", "testsku", "456");
+    Offering offering = Offering.builder().sku(SKU).build();
+    Subscription s = createSubscription();
     s.setOffering(offering);
     Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
         .thenReturn(Optional.of(s));
@@ -199,11 +201,28 @@ class SubscriptionSyncControllerTest {
   }
 
   @Test
+  void shouldUpdateSubscriptionWhenUpdateProductIds() {
+    var dto = createDto(123, "456", 4);
+    var offering = givenOfferingWithProductIds(290);
+    subscriptionSyncController.syncSubscription(dto);
+    verify(subscriptionRepository).save(any());
+    verify(capacityReconciliationController).reconcileCapacityForSubscription(any());
+
+    // let's update only the product IDs
+    givenOfferingWithProductIds(290, 69);
+    reset(subscriptionRepository, capacityReconciliationController);
+    subscriptionSyncController.syncSubscription(
+        dto, Optional.of(createSubscriptionFrom(offering, dto)));
+    verify(subscriptionRepository).save(any());
+    verify(capacityReconciliationController, times(2)).reconcileCapacityForSubscription(any());
+  }
+
+  @Test
   void shouldSyncSubscriptionsSyncSubIfRecent() {
     when(denylist.productIdMatches(any())).thenReturn(false);
     Mockito.when(offeringRepository.existsById(any())).thenReturn(true);
-    Mockito.when(offeringRepository.getReferenceById("testsku"))
-        .thenReturn(Offering.builder().sku("testsku").productName("RHEL").build());
+    Mockito.when(offeringRepository.getReferenceById(SKU))
+        .thenReturn(Offering.builder().sku(SKU).productName("RHEL").build());
 
     // When syncing an org's subs, a sub should be synced if it is within effective*Dates
     var dto = createDto("456", 10);
@@ -470,10 +489,10 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void terminateActivePAYGSubscriptionTest() {
-    Subscription s = createSubscription("123", "testsku", "456");
+    Subscription s = createSubscription();
     Offering o = new Offering();
     o.setProductName(PAYG_PRODUCT_NAME);
-    when(offeringRepository.findById("testsku")).thenReturn(Optional.of(o));
+    when(offeringRepository.findById(SKU)).thenReturn(Optional.of(o));
     when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
 
     var termination = OffsetDateTime.now();
@@ -484,10 +503,10 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void lateTerminateActivePAYGSubscriptionTest() {
-    Subscription s = createSubscription("123", "testsku", "456");
+    Subscription s = createSubscription();
     Offering offering = Offering.builder().productName(PAYG_PRODUCT_NAME).build();
     s.setOffering(offering);
-    when(offeringRepository.findById("testsku")).thenReturn(Optional.of(offering));
+    when(offeringRepository.findById(SKU)).thenReturn(Optional.of(offering));
     when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
 
     var termination = OffsetDateTime.now().minusDays(1);
@@ -500,7 +519,7 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void terminateInTheFutureActivePAYGSubscriptionTest() {
-    Subscription s = createSubscription("123", "testsku", "456");
+    Subscription s = createSubscription();
     s.getOffering().setProductName(PAYG_PRODUCT_NAME);
     when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
 
@@ -514,7 +533,7 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void terminateActiveNonPAYGSubscriptionTest() {
-    Subscription s = createSubscription("123", "testsku", "456");
+    Subscription s = createSubscription();
     s.getOffering().setProductName("Random Product");
     when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
 
@@ -539,14 +558,14 @@ class SubscriptionSyncControllerTest {
                 .sellerAccount("s")));
 
     when(denylist.productIdMatches(any())).thenReturn(false);
-    when(offeringRepository.existsById("testsku")).thenReturn(true);
+    when(offeringRepository.existsById(SKU)).thenReturn(true);
 
-    Offering offering = Offering.builder().sku("testsku").build();
-    when(offeringRepository.getReferenceById("testsku")).thenReturn(offering);
+    Offering offering = Offering.builder().sku(SKU).build();
+    when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
     when(subscriptionService.getSubscriptionBySubscriptionNumber("subnum"))
         .thenReturn(serviceResponse);
 
-    subscriptionSyncController.syncSubscription("testsku", incoming, Optional.empty());
+    subscriptionSyncController.syncSubscription(SKU, incoming, Optional.empty());
     verify(subscriptionService).getSubscriptionBySubscriptionNumber("subnum");
     assertEquals("billingAccountId", incoming.getBillingAccountId());
     assertEquals(BillingProvider.AWS, incoming.getBillingProvider());
@@ -557,17 +576,17 @@ class SubscriptionSyncControllerTest {
   @Test
   void testSubscriptionEnrichedFromDbWhenSubscriptionIdMissing() {
     Subscription incoming = createConvertedDtoSubscription("123", null);
-    Subscription existing = createSubscription("123", "testsku", "456");
+    Subscription existing = createSubscription();
     existing.setBillingAccountId("billingAccountId");
     existing.setBillingProvider(BillingProvider.RED_HAT);
     existing.setBillingProviderId("billingProviderId");
 
     when(denylist.productIdMatches(any())).thenReturn(false);
-    when(offeringRepository.existsById("testsku")).thenReturn(true);
-    Offering offering = Offering.builder().sku("testsku").build();
-    when(offeringRepository.getReferenceById("testsku")).thenReturn(offering);
+    when(offeringRepository.existsById(SKU)).thenReturn(true);
+    Offering offering = Offering.builder().sku(SKU).build();
+    when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
 
-    subscriptionSyncController.syncSubscription("testsku", incoming, Optional.of(existing));
+    subscriptionSyncController.syncSubscription(SKU, incoming, Optional.of(existing));
 
     verifyNoInteractions(subscriptionService);
     assertEquals("billingAccountId", incoming.getBillingAccountId());
@@ -579,13 +598,13 @@ class SubscriptionSyncControllerTest {
   @Test
   void testSubscriptionNotEnrichedWhenSubscriptionIdPresent() {
     Subscription incoming = createConvertedDtoSubscription("123", "456");
-    Subscription existing = createSubscription("123", "testsku", "456");
+    Subscription existing = createSubscription();
     existing.setBillingAccountId("billingAccountId");
 
     when(denylist.productIdMatches(any())).thenReturn(false);
-    when(offeringRepository.existsById("testsku")).thenReturn(true);
+    when(offeringRepository.existsById(SKU)).thenReturn(true);
 
-    subscriptionSyncController.syncSubscription("testsku", incoming, Optional.of(existing));
+    subscriptionSyncController.syncSubscription(SKU, incoming, Optional.of(existing));
 
     verifyNoInteractions(subscriptionService);
     verify(subscriptionRepository).save(any());
@@ -598,17 +617,17 @@ class SubscriptionSyncControllerTest {
     incoming.setBillingProvider(BillingProvider.RED_HAT);
     incoming.setBillingProviderId("newBillingProviderId");
     incoming.setBillingAccountId("newBillingAccountId");
-    Subscription existing = createSubscription("123", "testsku", "456");
+    Subscription existing = createSubscription();
     existing.setBillingProvider(BillingProvider.AWS);
     existing.setBillingAccountId("oldBillingAccountId");
     existing.setBillingProviderId("oldBillinProviderId");
 
     when(denylist.productIdMatches(any())).thenReturn(false);
-    when(offeringRepository.existsById("testsku")).thenReturn(true);
-    Offering offering = Offering.builder().sku("testsku").build();
-    when(offeringRepository.getReferenceById("testsku")).thenReturn(offering);
+    when(offeringRepository.existsById(SKU)).thenReturn(true);
+    Offering offering = Offering.builder().sku(SKU).build();
+    when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
 
-    subscriptionSyncController.syncSubscription("testsku", incoming, Optional.of(existing));
+    subscriptionSyncController.syncSubscription(SKU, incoming, Optional.of(existing));
 
     verifyNoInteractions(subscriptionService);
     verify(subscriptionRepository).save(existing);
@@ -622,14 +641,14 @@ class SubscriptionSyncControllerTest {
     Subscription incoming = createConvertedDtoSubscription("123", "456");
 
     when(denylist.productIdMatches(any())).thenReturn(false);
-    when(offeringRepository.existsById("testsku")).thenReturn(false);
-    when(offeringSyncController.syncOffering("testsku")).thenReturn(SyncResult.SKIPPED_MATCHING);
-    Offering offering = Offering.builder().sku("testsku").build();
-    when(offeringRepository.getReferenceById("testsku")).thenReturn(offering);
+    when(offeringRepository.existsById(SKU)).thenReturn(false);
+    when(offeringSyncController.syncOffering(SKU)).thenReturn(SyncResult.SKIPPED_MATCHING);
+    Offering offering = Offering.builder().sku(SKU).build();
+    when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
 
-    subscriptionSyncController.syncSubscription("testsku", incoming, Optional.empty());
+    subscriptionSyncController.syncSubscription(SKU, incoming, Optional.empty());
 
-    verify(offeringSyncController).syncOffering("testsku");
+    verify(offeringSyncController).syncOffering(SKU);
     verify(subscriptionRepository).save(incoming);
     assertNull(incoming.getBillingAccountId());
   }
@@ -639,20 +658,20 @@ class SubscriptionSyncControllerTest {
     Subscription incoming = createConvertedDtoSubscription("123", "456");
 
     when(denylist.productIdMatches(any())).thenReturn(false);
-    when(offeringRepository.existsById("testsku")).thenReturn(false);
-    when(offeringSyncController.syncOffering("testsku")).thenReturn(SyncResult.FAILED);
-    Offering offering = Offering.builder().sku("testsku").build();
-    when(offeringRepository.getReferenceById("testsku")).thenReturn(offering);
+    when(offeringRepository.existsById(SKU)).thenReturn(false);
+    when(offeringSyncController.syncOffering(SKU)).thenReturn(SyncResult.FAILED);
+    Offering offering = Offering.builder().sku(SKU).build();
+    when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
 
-    subscriptionSyncController.syncSubscription("testsku", incoming, Optional.empty());
+    subscriptionSyncController.syncSubscription(SKU, incoming, Optional.empty());
 
-    verify(offeringSyncController).syncOffering("testsku");
+    verify(offeringSyncController).syncOffering(SKU);
     verify(subscriptionRepository, times(0)).save(incoming);
   }
 
   @Test
   void testShouldRemoveStaleSubscriptionsNotPresentInSubscriptionService() {
-    var subscription = createSubscription("123", "testsku", "456");
+    var subscription = createSubscription();
     when(subscriptionRepository.findByOrgId(any())).thenReturn(Stream.of(subscription));
     subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123", false);
     verify(subscriptionRepository).deleteAll(subscriptionsCaptor.capture());
@@ -661,7 +680,7 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void testShouldRemoveStaleSubscriptionsPresentInSubscriptionServiceButDenylisted() {
-    var subscription = createSubscription("123", "testsku", "456");
+    var subscription = createSubscription();
     var subServiceSub = createDto("456", 1);
     when(subscriptionRepository.findByOrgId(any())).thenReturn(Stream.of(subscription));
     when(subscriptionService.getSubscriptionsByOrgId(any())).thenReturn(List.of(subServiceSub));
@@ -673,7 +692,7 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void testShouldNotRemovePresentSub() {
-    var subscription = createSubscription("123", "testsku", "456");
+    var subscription = createSubscription();
     var subServiceSub = createDto("456", 1);
     subscription.setStartDate(clock.dateFromMilliseconds(subServiceSub.getEffectiveStartDate()));
     when(subscriptionRepository.findByOrgId(any())).thenReturn(Stream.of(subscription));
@@ -686,8 +705,8 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void testShouldKeepRecordsWithSameIdAndDifferentStartDates() {
-    var subscription1 = createSubscription("123", "testsku", "456");
-    var subscription2 = createSubscription("123", "testsku", "456");
+    var subscription1 = createSubscription();
+    var subscription2 = createSubscription();
     subscription2.setEndDate(subscription1.getEndDate().plusDays(2));
     var subServiceSub = createDto("456", 1);
     subscription2.setStartDate(clock.dateFromMilliseconds(subServiceSub.getEffectiveStartDate()));
@@ -698,6 +717,33 @@ class SubscriptionSyncControllerTest {
     subscriptionSyncController.reconcileSubscriptionsWithSubscriptionService("org123", false);
     verify(subscriptionRepository).deleteAll(subscriptionsCaptor.capture());
     assertFalse(subscriptionsCaptor.getValue().iterator().hasNext());
+  }
+
+  private Offering givenOfferingWithProductIds(Integer... productIds) {
+    Offering offering = new Offering();
+    offering.setSku(SKU);
+    offering.setProductIds(Set.of(productIds));
+    when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
+    when(offeringSyncController.syncOffering(SKU)).thenReturn(SyncResult.FETCHED_AND_SYNCED);
+    return offering;
+  }
+
+  private Subscription createSubscription() {
+    return createSubscription("123", SKU, "456");
+  }
+
+  private Subscription createSubscriptionFrom(
+      Offering offering, org.candlepin.subscriptions.subscription.api.model.Subscription dto) {
+    return Subscription.builder()
+        .subscriptionId("" + dto.getId())
+        .subscriptionNumber(dto.getSubscriptionNumber())
+        .orgId("" + dto.getWebCustomerId())
+        .quantity(dto.getQuantity())
+        .offering(offering)
+        .accountNumber("" + dto.getOracleAccountNumber())
+        .startDate(clock.dateFromMilliseconds(dto.getEffectiveStartDate()))
+        .endDate(clock.dateFromMilliseconds(dto.getEffectiveEndDate()))
+        .build();
   }
 
   private Subscription createSubscription(String orgId, String sku, String subId) {
@@ -740,7 +786,7 @@ class SubscriptionSyncControllerTest {
     dto.setEffectiveEndDate(toEpochMillis(NOW.plusDays(30)));
     dto.setWebCustomerId(orgId);
 
-    var product = new SubscriptionProduct().parentSubscriptionProductId(null).sku("testsku");
+    var product = new SubscriptionProduct().parentSubscriptionProductId(null).sku(SKU);
     List<SubscriptionProduct> products = Collections.singletonList(product);
     dto.setSubscriptionProducts(products);
 

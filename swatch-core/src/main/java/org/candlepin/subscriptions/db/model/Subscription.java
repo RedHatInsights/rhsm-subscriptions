@@ -129,7 +129,8 @@ public class Subscription implements Serializable {
         && Objects.equals(endDate, sub.getEndDate())
         && Objects.equals(billingProviderId, sub.getBillingProviderId())
         && Objects.equals(billingAccountId, sub.getBillingAccountId())
-        && Objects.equals(billingProvider, sub.getBillingProvider());
+        && Objects.equals(billingProvider, sub.getBillingProvider())
+        && Objects.equals(subscriptionProductIds, sub.getSubscriptionProductIds());
   }
 
   @Override
@@ -143,7 +144,8 @@ public class Subscription implements Serializable {
         endDate,
         billingProviderId,
         billingAccountId,
-        billingProvider);
+        billingProvider,
+        subscriptionProductIds);
   }
 
   /** Composite ID class for Subscription entities. */
