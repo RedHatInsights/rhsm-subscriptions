@@ -230,7 +230,6 @@ public class SubscriptionSyncController {
                 .subscriptionId(existingSubscription.getSubscriptionId())
                 .offering(existingSubscription.getOffering())
                 .orgId(existingSubscription.getOrgId())
-                .accountNumber(existingSubscription.getAccountNumber())
                 .quantity(newOrUpdated.getQuantity())
                 .startDate(OffsetDateTime.now())
                 .endDate(newOrUpdated.getEndDate())
@@ -476,7 +475,6 @@ public class SubscriptionSyncController {
         .subscriptionProductIds(
             new HashSet<>(Collections.singleton(SubscriptionDtoUtil.extractSku(subscription))))
         .orgId(subscription.getWebCustomerId().toString())
-        .accountNumber(String.valueOf(subscription.getOracleAccountNumber()))
         .quantity(subscription.getQuantity())
         .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))
         .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))
@@ -518,7 +516,6 @@ public class SubscriptionSyncController {
         // NOTE: UMB messages don't include subscriptionId
         .subscriptionNumber(subscription.getSubscriptionNumber())
         .orgId(subscription.getWebCustomerId())
-        .accountNumber(String.valueOf(subscription.getEbsAccountNumber()))
         .quantity(subscription.getQuantity())
         .startDate(subscription.getEffectiveStartDateInUtc())
         .endDate(endDate)
@@ -539,7 +536,6 @@ public class SubscriptionSyncController {
     entity.setBillingProvider(newOrUpdated.getBillingProvider());
     entity.setBillingAccountId(newOrUpdated.getBillingAccountId());
     entity.setBillingProviderId(newOrUpdated.getBillingProviderId());
-    entity.setAccountNumber(newOrUpdated.getAccountNumber());
     entity.setOrgId(newOrUpdated.getOrgId());
     // recalculate the subscription measurements and product IDs in case those have changed
     capacityReconciliationController.reconcileCapacityForSubscription(entity);
@@ -654,11 +650,7 @@ public class SubscriptionSyncController {
 
   @Transactional
   public List<org.candlepin.subscriptions.db.model.Subscription> findSubscriptions(
-      String accountNumber,
-      Optional<String> orgId,
-      Key usageKey,
-      OffsetDateTime rangeStart,
-      OffsetDateTime rangeEnd) {
+      Optional<String> orgId, Key usageKey, OffsetDateTime rangeStart, OffsetDateTime rangeEnd) {
     Assert.isTrue(Usage._ANY != usageKey.getUsage(), "Usage cannot be _ANY");
     Assert.isTrue(ServiceLevel._ANY != usageKey.getSla(), "Service Level cannot be _ANY");
 
@@ -683,19 +675,14 @@ public class SubscriptionSyncController {
             .ending(rangeEnd);
 
     DbReportCriteria subscriptionCriteria =
-        orgId
-            .map(id -> reportCriteriaBuilder.orgId(id).build())
-            .orElseGet(() -> reportCriteriaBuilder.accountNumber(accountNumber).build());
+        orgId.map(id -> reportCriteriaBuilder.orgId(id).build()).get();
 
     List<org.candlepin.subscriptions.db.model.Subscription> result =
         subscriptionRepository.findByCriteria(
             subscriptionCriteria, Sort.by(Subscription_.START_DATE).descending());
 
     if (result.isEmpty()) {
-      log.error(
-          "No subscription found for account {} with criteria {}",
-          accountNumber,
-          subscriptionCriteria);
+      log.error("No subscription found for orgId {} with criteria {}", orgId, subscriptionCriteria);
     }
 
     return result;

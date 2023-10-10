@@ -43,11 +43,9 @@ class TallySummaryMapperTest {
 
   @Test
   void testMapSnapshots() {
-    String account = "A1";
     String org = "O1";
     TallySnapshot rhosak =
         buildSnapshot(
-            account,
             org,
             "RHOSAK",
             Granularity.HOURLY,
@@ -58,7 +56,6 @@ class TallySummaryMapperTest {
             2);
     TallySnapshot rhel =
         buildSnapshot(
-            account,
             org,
             "RHEL",
             Granularity.HOURLY,
@@ -71,8 +68,7 @@ class TallySummaryMapperTest {
     var snapshots = List.of(rhosak, rhel);
 
     TallySummaryMapper mapper = new TallySummaryMapper();
-    TallySummary summary = mapper.mapSnapshots(account, org, snapshots);
-    assertEquals(account, summary.getAccountNumber());
+    TallySummary summary = mapper.mapSnapshots(org, snapshots);
     assertEquals(org, summary.getOrgId());
     List<org.candlepin.subscriptions.json.TallySnapshot> summarySnaps = summary.getTallySnapshots();
     assertEquals(snapshots.size(), summarySnaps.size());
@@ -113,7 +109,6 @@ class TallySummaryMapperTest {
   }
 
   TallySnapshot buildSnapshot(
-      String account,
       String orgId,
       String productId,
       Granularity granularity,
@@ -127,7 +122,6 @@ class TallySummaryMapperTest {
     measurements.put(new TallyMeasurementKey(HardwareMeasurementType.TOTAL, metricId), val);
 
     return TallySnapshot.builder()
-        .accountNumber(account)
         .orgId(orgId)
         .productId(productId)
         .snapshotDate(OffsetDateTime.now())

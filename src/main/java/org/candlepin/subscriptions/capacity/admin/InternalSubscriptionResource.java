@@ -164,18 +164,13 @@ public class InternalSubscriptionResource implements InternalApi {
 
   @Override
   public RhmUsageContext getRhmUsageContext(
-      String orgId,
-      OffsetDateTime date,
-      String productId,
-      String accountNumber,
-      String sla,
-      String usage) {
+      String orgId, OffsetDateTime date, String productId, String sla, String usage) {
 
     // Use "_ANY" because we don't support multiple rh marketplace accounts for a single customer
     String billingAccoutId = "_ANY";
 
     return rhmSubscriptionProvider
-        .getSubscription(orgId, accountNumber, productId, sla, usage, billingAccoutId, date)
+        .getSubscription(orgId, productId, sla, usage, billingAccoutId, date)
         .map(this::buildRhmUsageContext)
         .orElseThrow();
   }
@@ -191,13 +186,12 @@ public class InternalSubscriptionResource implements InternalApi {
       String orgId,
       OffsetDateTime date,
       String productId,
-      String accountNumber,
       String sla,
       String usage,
       String awsAccountId) {
 
     return awsSubscriptionProvider
-        .getSubscription(orgId, accountNumber, productId, sla, usage, awsAccountId, date)
+        .getSubscription(orgId, productId, sla, usage, awsAccountId, date)
         .map(this::buildAwsUsageContext)
         .orElseThrow();
   }

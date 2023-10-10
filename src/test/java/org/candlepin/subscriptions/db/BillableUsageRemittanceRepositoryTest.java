@@ -112,11 +112,7 @@ class BillableUsageRemittanceRepositoryTest {
     var accountMonthlyList = List.of(remittance1, remittance2);
     repository.saveAllAndFlush(accountMonthlyList);
     List<BillableUsageRemittanceEntity> found =
-        repository.filterBy(
-            BillableUsageRemittanceFilter.builder()
-                .account(remittance1.getAccountNumber())
-                .productId("product1")
-                .build());
+        repository.filterBy(BillableUsageRemittanceFilter.builder().productId("product1").build());
     assertFalse(found.isEmpty());
     assertEquals(accountMonthlyList, found);
   }
@@ -335,7 +331,6 @@ class BillableUsageRemittanceRepositoryTest {
 
     var expectedSummary1 =
         RemittanceSummaryProjection.builder()
-            .accountNumber(remittance1.getAccountNumber())
             .accumulationPeriod(
                 getAccumulationPeriod(remittance1.getKey().getRemittancePendingDate()))
             .billingAccountId(remittance1.getKey().getBillingAccountId())
@@ -351,7 +346,6 @@ class BillableUsageRemittanceRepositoryTest {
 
     var expectedSummary2 =
         RemittanceSummaryProjection.builder()
-            .accountNumber(remittance3.getAccountNumber())
             .accumulationPeriod(
                 getAccumulationPeriod(remittance3.getKey().getRemittancePendingDate()))
             .billingAccountId(remittance3.getKey().getBillingAccountId())

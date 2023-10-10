@@ -108,8 +108,8 @@ class InventoryAccountUsageCollectorTallyTest {
 
     AccountUsageCalculation calc = collector.tally(ORG_ID);
     // odd sockets are rounded up.
-    checkTotalsCalculation(calc, ACCOUNT, ORG_ID, NON_RHEL, 12, 4, 1);
-    checkPhysicalTotalsCalculation(calc, ACCOUNT, ORG_ID, NON_RHEL, 12, 4, 1);
+    checkTotalsCalculation(calc, ORG_ID, NON_RHEL, 12, 4, 1);
+    checkPhysicalTotalsCalculation(calc, ORG_ID, NON_RHEL, 12, 4, 1);
     assertNull(
         calc.getCalculation(createUsageKey(NON_RHEL)).getTotals(HardwareMeasurementType.VIRTUAL));
   }
@@ -132,13 +132,13 @@ class InventoryAccountUsageCollectorTallyTest {
 
     AccountUsageCalculation calc = collector.tally(ORG_ID);
     // odd sockets are rounded up.
-    checkTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
+    checkTotalsCalculation(calc, ORG_ID, TEST_PRODUCT, 12, 4, 1);
     // no guests running RHEL means no hypervisor total...
     assertNull(
         calc.getCalculation(createUsageKey(TEST_PRODUCT))
             .getTotals(HardwareMeasurementType.HYPERVISOR));
     // hypervisor itself gets counted
-    checkPhysicalTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
+    checkPhysicalTotalsCalculation(calc, ORG_ID, TEST_PRODUCT, 12, 4, 1);
   }
 
   @Test
@@ -175,8 +175,8 @@ class InventoryAccountUsageCollectorTallyTest {
     mockBucketRepositoryFromAccountService();
 
     AccountUsageCalculation calc = collector.tally(ORG_ID);
-    checkTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 1, 1);
-    checkVirtualTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 1, 1);
+    checkTotalsCalculation(calc, ORG_ID, TEST_PRODUCT, 12, 1, 1);
+    checkVirtualTotalsCalculation(calc, ORG_ID, TEST_PRODUCT, 12, 1, 1);
     assertNull(
         calc.getCalculation(createUsageKey(TEST_PRODUCT))
             .getTotals(HardwareMeasurementType.PHYSICAL));
@@ -201,8 +201,8 @@ class InventoryAccountUsageCollectorTallyTest {
 
     AccountUsageCalculation calc = collector.tally(ORG_ID);
     // odd sockets are rounded up.
-    checkTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
-    checkPhysicalTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
+    checkTotalsCalculation(calc, ORG_ID, TEST_PRODUCT, 12, 4, 1);
+    checkPhysicalTotalsCalculation(calc, ORG_ID, TEST_PRODUCT, 12, 4, 1);
     assertNull(
         calc.getCalculation(createUsageKey(TEST_PRODUCT))
             .getTotals(HardwareMeasurementType.VIRTUAL));
@@ -253,11 +253,11 @@ class InventoryAccountUsageCollectorTallyTest {
 
     AccountUsageCalculation a1Calc = collector.tally(orgId1);
     assertEquals(1, a1Calc.getProducts().size());
-    checkTotalsCalculation(a1Calc, account1, orgId1, TEST_PRODUCT, 12, 8, 2);
+    checkTotalsCalculation(a1Calc, orgId1, TEST_PRODUCT, 12, 8, 2);
 
     AccountUsageCalculation a2Calc = collector.tally(orgId2);
     assertEquals(1, a2Calc.getProducts().size());
-    checkTotalsCalculation(a2Calc, account2, orgId2, TEST_PRODUCT, 6, 2, 1);
+    checkTotalsCalculation(a2Calc, orgId2, TEST_PRODUCT, 6, 2, 1);
   }
 
   @Test
@@ -292,10 +292,10 @@ class InventoryAccountUsageCollectorTallyTest {
 
     AccountUsageCalculation a1Calc = collector.tally(ORG_ID);
     assertEquals(1, a1Calc.getProducts().size());
-    checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 16, 16, 2);
-    checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, TEST_PRODUCT, ServiceLevel._ANY, 16, 16, 2);
-    checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, TEST_PRODUCT, ServiceLevel.STANDARD, 6, 6, 1);
-    checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, TEST_PRODUCT, ServiceLevel.PREMIUM, 10, 10, 1);
+    checkTotalsCalculation(a1Calc, ORG_ID, TEST_PRODUCT, 16, 16, 2);
+    checkTotalsCalculation(a1Calc, ORG_ID, TEST_PRODUCT, ServiceLevel._ANY, 16, 16, 2);
+    checkTotalsCalculation(a1Calc, ORG_ID, TEST_PRODUCT, ServiceLevel.STANDARD, 6, 6, 1);
+    checkTotalsCalculation(a1Calc, ORG_ID, TEST_PRODUCT, ServiceLevel.PREMIUM, 10, 10, 1);
   }
 
   @Test
@@ -332,10 +332,9 @@ class InventoryAccountUsageCollectorTallyTest {
 
     AccountUsageCalculation a1Calc = collector.tally(ORG_ID);
     assertEquals(1, a1Calc.getProducts().size());
-    checkTotalsCalculation(a1Calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 16, 16, 2);
+    checkTotalsCalculation(a1Calc, ORG_ID, TEST_PRODUCT, 16, 16, 2);
     checkTotalsCalculation(
         a1Calc,
-        ACCOUNT,
         ORG_ID,
         TEST_PRODUCT,
         ServiceLevel.EMPTY,
@@ -347,7 +346,6 @@ class InventoryAccountUsageCollectorTallyTest {
         2);
     checkTotalsCalculation(
         a1Calc,
-        ACCOUNT,
         ORG_ID,
         TEST_PRODUCT,
         ServiceLevel.EMPTY,
@@ -359,7 +357,6 @@ class InventoryAccountUsageCollectorTallyTest {
         1);
     checkTotalsCalculation(
         a1Calc,
-        ACCOUNT,
         ORG_ID,
         TEST_PRODUCT,
         ServiceLevel.EMPTY,
@@ -412,11 +409,11 @@ class InventoryAccountUsageCollectorTallyTest {
 
     AccountUsageCalculation a1Calc = collector.tally(orgId1);
     assertEquals(1, a1Calc.getProducts().size());
-    checkTotalsCalculation(a1Calc, account1, orgId1, TEST_PRODUCT, 12, 8, 2);
+    checkTotalsCalculation(a1Calc, orgId1, TEST_PRODUCT, 12, 8, 2);
 
     AccountUsageCalculation a2Calc = collector.tally(orgId2);
     assertEquals(1, a2Calc.getProducts().size());
-    checkTotalsCalculation(a2Calc, account2, orgId2, TEST_PRODUCT, 12, 6, 1);
+    checkTotalsCalculation(a2Calc, orgId2, TEST_PRODUCT, 12, 6, 1);
   }
 
   @Test
@@ -439,7 +436,7 @@ class InventoryAccountUsageCollectorTallyTest {
 
     AccountUsageCalculation accountCalc = collector.tally(ORG_ID);
     assertEquals(1, accountCalc.getProducts().size());
-    checkTotalsCalculation(accountCalc, ACCOUNT, ORG_ID, TEST_PRODUCT, 8, 2, 1);
+    checkTotalsCalculation(accountCalc, ORG_ID, TEST_PRODUCT, 8, 2, 1);
   }
 
   @Test
@@ -497,13 +494,13 @@ class InventoryAccountUsageCollectorTallyTest {
 
     AccountUsageCalculation a1Calc = collector.tally(orgId1);
     assertEquals(1, a1Calc.getProducts().size());
-    checkTotalsCalculation(a1Calc, account1, orgId1, TEST_PRODUCT, 12, 8, 2);
-    checkPhysicalTotalsCalculation(a1Calc, account1, orgId1, TEST_PRODUCT, 12, 8, 2);
+    checkTotalsCalculation(a1Calc, orgId1, TEST_PRODUCT, 12, 8, 2);
+    checkPhysicalTotalsCalculation(a1Calc, orgId1, TEST_PRODUCT, 12, 8, 2);
 
     AccountUsageCalculation a2Calc = collector.tally(orgId2);
     assertEquals(1, a2Calc.getProducts().size());
-    checkTotalsCalculation(a2Calc, account2, orgId2, TEST_PRODUCT, 10, 4, 2);
-    checkPhysicalTotalsCalculation(a2Calc, account2, orgId2, TEST_PRODUCT, 10, 4, 2);
+    checkTotalsCalculation(a2Calc, orgId2, TEST_PRODUCT, 10, 4, 2);
+    checkPhysicalTotalsCalculation(a2Calc, orgId2, TEST_PRODUCT, 10, 4, 2);
   }
 
   @Test
@@ -537,9 +534,9 @@ class InventoryAccountUsageCollectorTallyTest {
     AccountUsageCalculation calc = collector.tally(ORG_ID);
     // odd sockets are rounded up for hypervisor.
     // hypervisor gets counted twice - once for itself, once for the guests
-    checkTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 24, 8, 2);
-    checkHypervisorTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
-    checkPhysicalTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
+    checkTotalsCalculation(calc, ORG_ID, TEST_PRODUCT, 24, 8, 2);
+    checkHypervisorTotalsCalculation(calc, ORG_ID, TEST_PRODUCT, 12, 4, 1);
+    checkPhysicalTotalsCalculation(calc, ORG_ID, TEST_PRODUCT, 12, 4, 1);
   }
 
   @Test
@@ -572,8 +569,8 @@ class InventoryAccountUsageCollectorTallyTest {
 
     AccountUsageCalculation calc = collector.tally(ORG_ID);
     // odd sockets are rounded up for hypervisor.
-    checkTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
-    checkHypervisorTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
+    checkTotalsCalculation(calc, ORG_ID, TEST_PRODUCT, 12, 4, 1);
+    checkHypervisorTotalsCalculation(calc, ORG_ID, TEST_PRODUCT, 12, 4, 1);
     assertNull(
         calc.getCalculation(createUsageKey(TEST_PRODUCT))
             .getTotals(HardwareMeasurementType.PHYSICAL));
@@ -660,8 +657,8 @@ class InventoryAccountUsageCollectorTallyTest {
 
     AccountUsageCalculation calc = collector.tally(ORG_ID);
     // odd sockets are rounded up.
-    checkTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
-    checkPhysicalTotalsCalculation(calc, ACCOUNT, ORG_ID, TEST_PRODUCT, 12, 4, 1);
+    checkTotalsCalculation(calc, ORG_ID, TEST_PRODUCT, 12, 4, 1);
+    checkPhysicalTotalsCalculation(calc, ORG_ID, TEST_PRODUCT, 12, 4, 1);
     assertNull(
         calc.getCalculation(createUsageKey(TEST_PRODUCT))
             .getTotals(HardwareMeasurementType.VIRTUAL));
@@ -742,19 +739,16 @@ class InventoryAccountUsageCollectorTallyTest {
 
   private void checkTotalsCalculation(
       AccountUsageCalculation calc,
-      String account,
       String owner,
       String product,
       int cores,
       int sockets,
       int instances) {
-    checkTotalsCalculation(
-        calc, account, owner, product, ServiceLevel._ANY, cores, sockets, instances);
+    checkTotalsCalculation(calc, owner, product, ServiceLevel._ANY, cores, sockets, instances);
   }
 
   private void checkTotalsCalculation(
       AccountUsageCalculation calc,
-      String account,
       String owner,
       String product,
       ServiceLevel serviceLevel,
@@ -764,7 +758,6 @@ class InventoryAccountUsageCollectorTallyTest {
 
     checkTotalsCalculation(
         calc,
-        account,
         owner,
         product,
         serviceLevel,
@@ -778,7 +771,6 @@ class InventoryAccountUsageCollectorTallyTest {
 
   private void checkTotalsCalculation(
       AccountUsageCalculation calc,
-      String account,
       String owner,
       String product,
       ServiceLevel serviceLevel,
@@ -788,7 +780,6 @@ class InventoryAccountUsageCollectorTallyTest {
       int cores,
       int sockets,
       int instances) {
-    assertEquals(account, calc.getAccount());
     assertEquals(owner, calc.getOrgId());
     assertTrue(
         calc.containsCalculation(
@@ -807,13 +798,11 @@ class InventoryAccountUsageCollectorTallyTest {
 
   private void checkPhysicalTotalsCalculation(
       AccountUsageCalculation calc,
-      String account,
       String owner,
       String product,
       int physicalCores,
       int physicalSockets,
       int physicalInstances) {
-    assertEquals(account, calc.getAccount());
     assertEquals(owner, calc.getOrgId());
     assertTrue(calc.containsCalculation(createUsageKey(product)));
 
@@ -824,13 +813,11 @@ class InventoryAccountUsageCollectorTallyTest {
 
   private void checkVirtualTotalsCalculation(
       AccountUsageCalculation calc,
-      String account,
       String orgId,
       String product,
       int cores,
       int sockets,
       int instances) {
-    assertEquals(account, calc.getAccount());
     assertEquals(orgId, calc.getOrgId());
     assertTrue(calc.containsCalculation(createUsageKey(product)));
 
@@ -841,13 +828,11 @@ class InventoryAccountUsageCollectorTallyTest {
 
   private void checkHypervisorTotalsCalculation(
       AccountUsageCalculation calc,
-      String account,
       String owner,
       String product,
       int hypCores,
       int hypSockets,
       int hypInstances) {
-    assertEquals(account, calc.getAccount());
     assertEquals(owner, calc.getOrgId());
     assertTrue(calc.containsCalculation(createUsageKey(product)));
 

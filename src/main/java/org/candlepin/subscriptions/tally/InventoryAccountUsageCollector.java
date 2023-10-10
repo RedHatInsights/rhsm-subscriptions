@@ -105,7 +105,7 @@ public class InventoryAccountUsageCollector {
     if (inventoryCount > tallyMaxHbiAccountSize) {
       throw new SystemThresholdException(orgId, tallyMaxHbiAccountSize, inventoryCount);
     }
-    AccountServiceInventory accountServiceInventory = fetchAccountServiceInventory(orgId, account);
+    AccountServiceInventory accountServiceInventory = fetchAccountServiceInventory(orgId);
     Map<String, Host> inventoryHostMap = buildInventoryHostMap(accountServiceInventory);
 
     OrgHostsData orgHostsData = new OrgHostsData(orgId);
@@ -223,14 +223,6 @@ public class InventoryAccountUsageCollector {
         tallyBucketRepository.tallyHostBuckets(orgId, HBI_INSTANCE_TYPE)) {
       tallyStream.forEach(
           bucketTally -> {
-            String currentAccount = calculation.getAccount();
-            String hostAccount = bucketTally.getAccountNumber();
-
-            // Set the account number if it is available
-            if (Objects.isNull(currentAccount) && Objects.nonNull(hostAccount)) {
-              calculation.setAccount(bucketTally.getAccountNumber());
-            }
-
             UsageCalculation usageCalc =
                 calculation.getOrCreateCalculation(
                     new Key(
@@ -283,19 +275,13 @@ public class InventoryAccountUsageCollector {
         .collect(Collectors.toSet());
   }
 
-  private AccountServiceInventory fetchAccountServiceInventory(String orgId, String account) {
-    log.info("Finding HBI hosts for account={} org={}", account, orgId);
+  private AccountServiceInventory fetchAccountServiceInventory(String orgId) {
+    log.info("Finding HBI hosts for org={}", orgId);
     AccountServiceInventoryId inventoryId =
         AccountServiceInventoryId.builder().orgId(orgId).serviceType(HBI_INSTANCE_TYPE).build();
-    AccountServiceInventory accountServiceInventory =
-        accountServiceInventoryRepository
-            .findById(inventoryId)
-            .orElse(new AccountServiceInventory(inventoryId));
-    if (account != null) {
-      accountServiceInventory.setAccountNumber(account);
-    }
-
-    return accountServiceInventory;
+    return accountServiceInventoryRepository
+        .findById(inventoryId)
+        .orElse(new AccountServiceInventory(inventoryId));
   }
 
   private Map<String, Host> buildInventoryHostMap(AccountServiceInventory accountServiceInventory) {

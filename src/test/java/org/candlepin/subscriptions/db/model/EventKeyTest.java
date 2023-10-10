@@ -67,7 +67,6 @@ class EventKeyTest {
   private Event eventForInstanceId(String instanceId) {
     return (Event)
         new Event()
-            .withAccountNumber("account")
             .withTimestamp(clock.now())
             .withOrgId("org")
             .withEventType("type")

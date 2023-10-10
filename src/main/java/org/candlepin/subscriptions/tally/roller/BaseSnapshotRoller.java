@@ -69,7 +69,7 @@ public abstract class BaseSnapshotRoller {
   public abstract Collection<TallySnapshot> rollSnapshots(AccountUsageCalculation accountCalc);
 
   protected TallySnapshot createSnapshotFromProductUsageCalculation(
-      String account, String orgId, UsageCalculation productCalc, Granularity granularity) {
+      String orgId, UsageCalculation productCalc, Granularity granularity) {
     TallySnapshot snapshot = new TallySnapshot();
     snapshot.setProductId(productCalc.getProductId());
     snapshot.setServiceLevel(productCalc.getSla());
@@ -78,7 +78,6 @@ public abstract class BaseSnapshotRoller {
     snapshot.setBillingAccountId(productCalc.getBillingAccountId());
     snapshot.setGranularity(granularity);
     snapshot.setOrgId(orgId);
-    snapshot.setAccountNumber(account);
     snapshot.setSnapshotDate(getSnapshotDate(granularity));
 
     // Copy the calculated hardware measurements to the snapshots
@@ -147,7 +146,7 @@ public abstract class BaseSnapshotRoller {
         if (snap == null && productCalc.hasMeasurements()) {
           snap =
               createSnapshotFromProductUsageCalculation(
-                  accountCalc.getAccount(), accountCalc.getOrgId(), productCalc, targetGranularity);
+                  accountCalc.getOrgId(), productCalc, targetGranularity);
           snaps.add(snap);
         } else if (snap != null && updateMaxValues(snap, productCalc)) {
           snaps.add(snap);

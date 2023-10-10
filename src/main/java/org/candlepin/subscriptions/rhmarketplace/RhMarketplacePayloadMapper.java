@@ -145,7 +145,6 @@ public class RhMarketplacePayloadMapper {
       throws RhmUsageContextLookupException {
     return usageContextRetryTemplate.execute(
         context -> {
-          String accountNumber = billableUsage.getAccountNumber();
           String orgId = billableUsage.getOrgId();
           try {
             log.debug(
@@ -154,7 +153,6 @@ public class RhMarketplacePayloadMapper {
                 orgId,
                 billableUsage.getSnapshotDate(),
                 billableUsage.getProductId(),
-                accountNumber,
                 Optional.ofNullable(billableUsage.getSla()).map(Sla::value).orElse(null),
                 Optional.ofNullable(billableUsage.getUsage()).map(Usage::value).orElse(null));
           } catch (ApiException e) {
