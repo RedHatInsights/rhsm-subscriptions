@@ -740,7 +740,6 @@ class SubscriptionSyncControllerTest {
         .orgId("" + dto.getWebCustomerId())
         .quantity(dto.getQuantity())
         .offering(offering)
-        .accountNumber("" + dto.getOracleAccountNumber())
         .startDate(clock.dateFromMilliseconds(dto.getEffectiveStartDate()))
         .endDate(clock.dateFromMilliseconds(dto.getEffectiveEndDate()))
         .build();
