@@ -91,13 +91,6 @@ parameters:
     value: ''
   - name: PROM_URL
     value: http://localhost:8082
-  - name: DATABASE_CONNECTION_TIMEOUT_MS
-    value: '30000'
-  # TODO This has been lowered from what it was in the previous environment (from 25 to 10)
-  # We were running the clowder DB out of connections.  If we need more, we need to investigate
-  # tuning the database to allow more
-  - name: DATABASE_MAX_POOL_SIZE
-    value: '10'
   - name: OPENSHIFT_BILLING_MODEL_FILTER
     value: 'marketplace'
   - name: USER_HOST
@@ -117,21 +110,12 @@ parameters:
     value: '30 * * * *'
   - name: RHEL_METERING_SCHEDULE
     value: '30 * * * *'
-  - name: PURGE_EVENTS_SCHEDULE
-    value: '30 4 * * *'
-  - name: EVENT_RECORD_RETENTION
-    value: '90d'
   - name: OPENSHIFT_METERING_RANGE
     value: '60'
   - name: HOURLY_TALLY_OFFSET
     value: '60'
   - name: METRICS_RHEL_METERING_RANGE
     value: '60'
-# nonprod secret keys have different syntax than prod/stage
-  - name: INVENTORY_SECRET_KEY_NAME
-    value: 'host-inventory-db'
-  - name: INVENTORY_SECRET_KEY_NAME_PREFIX
-    value: ''
   - name: KAFKA_METERING_TASKS_REPLICAS
     value: '3'
   - name: KAFKA_METERING_TASKS_PARTITIONS
@@ -158,8 +142,6 @@ objects:
     spec: # The name of the ClowdEnvironment providing the services
       envName: ${ENV_NAME}
 
-      database:
-        sharedDbAppName: swatch-tally
       dependencies:
         - swatch-tally
 
@@ -192,25 +174,9 @@ objects:
             sidecars:
               - name: token-refresher
                 enabled: true
-            initContainers:
-              - env:
-                  - name: JAVA_DEBUG
-                    value: ${JAVA_DEBUG}
-                  - name: SPRING_PROFILES_ACTIVE
-                    value: liquibase-only
-                inheritEnv: true
-                resources:
-                  requests:
-                    cpu: ${CPU_REQUEST}
-                    memory: ${MEMORY_REQUEST}
-                  limits:
-                    cpu: ${CPU_LIMIT}
-                    memory: ${MEMORY_LIMIT}
             env:
               - name: JAVA_DEBUG
                 value: ${JAVA_DEBUG}
-              - name: SPRING_LIQUIBASE_ENABLED
-                value: 'false'
               - name: ENABLE_SPLUNK_HEC
                 value: ${ENABLE_SPLUNK_HEC}
               - name: SPLUNKMETA_namespace
@@ -264,55 +230,6 @@ objects:
                 value: ${KAFKA_SEEK_OVERRIDE_END}
               - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
                 value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
-              - name: DATABASE_HOST
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-tally-db
-                    key: db.host
-              - name: DATABASE_PORT
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-tally-db
-                    key: db.port
-              - name: DATABASE_USERNAME
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-tally-db
-                    key: db.user
-              - name: DATABASE_PASSWORD
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-tally-db
-                    key: db.password
-              - name: DATABASE_DATABASE
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-tally-db
-                    key: db.name
-              - name: DATABASE_CONNECTION_TIMEOUT_MS
-                value: ${DATABASE_CONNECTION_TIMEOUT_MS}
-              - name: DATABASE_MAX_POOL_SIZE
-                value: ${DATABASE_MAX_POOL_SIZE}
-              - name: INVENTORY_DATABASE_HOST
-                valueFrom:
-                  secretKeyRef:
-                    name: ${INVENTORY_SECRET_KEY_NAME}
-                    key: db.host
-              - name: INVENTORY_DATABASE_DATABASE
-                valueFrom:
-                  secretKeyRef:
-                    name: ${INVENTORY_SECRET_KEY_NAME}
-                    key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}name
-              - name: INVENTORY_DATABASE_USERNAME
-                valueFrom:
-                  secretKeyRef:
-                    name: ${INVENTORY_SECRET_KEY_NAME}
-                    key: db.user
-              - name: INVENTORY_DATABASE_PASSWORD
-                valueFrom:
-                  secretKeyRef:
-                    name: ${INVENTORY_SECRET_KEY_NAME}
-                    key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
               - name: EVENT_SOURCE
                 value: 'prometheus'
               - name: PROM_URL
@@ -420,31 +337,6 @@ objects:
               limits:
                 cpu: ${CURL_CRON_CPU_LIMIT}
                 memory: ${CURL_CRON_MEMORY_LIMIT}
-        - name: purge-events
-          schedule: ${PURGE_EVENTS_SCHEDULE}
-          activeDeadlineSeconds: 1800
-          successfulJobsHistoryLimit: 2
-          restartPolicy: Never
-          podSpec:
-            image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
-            command:
-              - /usr/bin/bash
-              - -c
-              - >
-                /usr/bin/curl --fail -i -H "Origin: https://swatch-metrics-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X DELETE "http://swatch-metrics-service:8000/api/rhsm-subscriptions/v1/internal/metering/events"
-            env:
-              - name: SWATCH_SELF_PSK
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-psks
-                    key: self
-          resources:
-            requests:
-              cpu: ${CURL_CRON_CPU_REQUEST}
-              memory: ${CURL_CRON_MEMORY_REQUEST}
-            limits:
-              cpu: ${CURL_CRON_CPU_LIMIT}
-              memory: ${CURL_CRON_MEMORY_LIMIT}
   - apiVersion: cloud.redhat.com/v1alpha1
     kind: ClowdApp
     metadata:
@@ -453,8 +345,6 @@ objects:
         prometheus: rhsm
     spec:
       envName: ${ENV_NAME}
-      database:
-        sharedDbAppName: swatch-tally
       dependencies:
         - swatch-tally
 
@@ -486,25 +376,9 @@ objects:
             sidecars:
               - name: token-refresher
                 enabled: true
-            initContainers:
-              - env:
-                  - name: JAVA_DEBUG
-                    value: ${JAVA_DEBUG}
-                  - name: SPRING_PROFILES_ACTIVE
-                    value: liquibase-only
-                inheritEnv: true
-                resources:
-                  requests:
-                    cpu: ${METRICS_RHEL_CPU_REQUEST}
-                    memory: ${METRICS_RHEL_MEMORY_REQUEST}
-                  limits:
-                    cpu: ${METRICS_RHEL_CPU_LIMIT}
-                    memory: ${METRICS_RHEL_MEMORY_LIMIT}
             env:
               - name: JAVA_DEBUG
                 value: ${JAVA_DEBUG}
-              - name: SPRING_LIQUIBASE_ENABLED
-                value: 'false'
               - name: ENABLE_SPLUNK_HEC
                 value: ${ENABLE_SPLUNK_HEC}
               - name: SPLUNKMETA_namespace
@@ -558,35 +432,6 @@ objects:
                 value: ${METRICS_RHEL_KAFKA_SEEK_OVERRIDE_END}
               - name: METRICS_RHEL_KAFKA_SEEK_OVERRIDE_TIMESTAMP
                 value: ${METRICS_RHEL_KAFKA_SEEK_OVERRIDE_TIMESTAMP}
-              - name: DATABASE_HOST
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-tally-db
-                    key: db.host
-              - name: DATABASE_PORT
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-tally-db
-                    key: db.port
-              - name: DATABASE_USERNAME
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-tally-db
-                    key: db.user
-              - name: DATABASE_PASSWORD
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-tally-db
-                    key: db.password
-              - name: DATABASE_DATABASE
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-tally-db
-                    key: db.name
-              - name: DATABASE_CONNECTION_TIMEOUT_MS
-                value: ${DATABASE_CONNECTION_TIMEOUT_MS}
-              - name: DATABASE_MAX_POOL_SIZE
-                value: ${DATABASE_MAX_POOL_SIZE}
               - name: EVENT_SOURCE
                 value: 'rhelemeter'
               - name: PROM_URL

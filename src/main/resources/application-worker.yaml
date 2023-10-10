@@ -79,3 +79,5 @@ rhsm-subscriptions:
   tally-max-hbi-account-size: ${TALLY_MAX_HBI_ACCOUNT_SIZE:2147483647}  # Integer.MAX_VALUE by default
   hbi-reconciliation-flush-interval: ${HBI_RECONCILIATION_FLUSH_INTERVAL:1024}
   host-last-sync-threshold: ${HOST_LAST_SYNC_THRESHOLD:24h}
+  datasource:
+    enabled: true
