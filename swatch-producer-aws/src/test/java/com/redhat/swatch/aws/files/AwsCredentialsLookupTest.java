@@ -25,7 +25,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.aws.exception.AwsMissingCredentialsException;
+import com.redhat.swatch.aws.test.resources.InMemoryMessageBrokerKafkaResource;
 import io.quarkus.test.InjectMock;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.util.Map;
@@ -37,6 +39,9 @@ import software.amazon.awssdk.profiles.Profile;
 import software.amazon.awssdk.profiles.ProfileFile;
 
 @QuarkusTest
+@QuarkusTestResource(
+    value = InMemoryMessageBrokerKafkaResource.class,
+    restrictToAnnotatedClass = true)
 class AwsCredentialsLookupTest {
   private static final String AWS_SELLER_ACCOUNT = "123";
 

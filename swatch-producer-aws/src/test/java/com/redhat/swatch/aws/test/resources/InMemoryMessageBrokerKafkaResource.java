@@ -18,29 +18,27 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.aws;
+package com.redhat.swatch.aws.test.resources;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
-import java.util.Collections;
+import io.smallrye.reactive.messaging.memory.InMemoryConnector;
+import java.util.HashMap;
 import java.util.Map;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.utility.DockerImageName;
 
-public class KafkaResource implements QuarkusTestResourceLifecycleManager {
-
-  static KafkaContainer kafka =
-      new KafkaContainer(
-          DockerImageName.parse("quay.io/cloudservices/cp-kafka")
-              .asCompatibleSubstituteFor("confluentinc/cp-kafka"));
+public class InMemoryMessageBrokerKafkaResource implements QuarkusTestResourceLifecycleManager {
 
   @Override
   public Map<String, String> start() {
-    kafka.start();
-    return Collections.singletonMap("kafka.bootstrap.servers", kafka.getBootstrapServers());
+    Map<String, String> env = new HashMap<>();
+    Map<String, String> props1 = InMemoryConnector.switchIncomingChannelsToInMemory("tally-in");
+    Map<String, String> props2 = InMemoryConnector.switchOutgoingChannelsToInMemory("tally-out");
+    env.putAll(props1);
+    env.putAll(props2);
+    return env;
   }
 
   @Override
   public void stop() {
-    kafka.stop();
+    InMemoryConnector.clear();
   }
 }
