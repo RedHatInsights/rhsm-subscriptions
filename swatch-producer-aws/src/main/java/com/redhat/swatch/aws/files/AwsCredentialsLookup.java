@@ -22,6 +22,7 @@ package com.redhat.swatch.aws.files;
 
 import com.redhat.swatch.aws.exception.AwsMissingCredentialsException;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -41,13 +42,14 @@ import software.amazon.awssdk.profiles.ProfileFile;
 public class AwsCredentialsLookup {
 
   private final Map<String, ProfileCredentialsProvider> awsCredentialMap = new HashMap<>();
-  private final ProfileFile profileFile = ProfileFile.defaultProfileFile();
+
+  @Inject ProfileFile profileFile;
 
   public synchronized AwsCredentialsProvider getCredentialsProvider(String awsSellerAccount) {
     return awsCredentialMap.computeIfAbsent(awsSellerAccount, this::createCredentialsFromProfile);
   }
 
-  public ProfileCredentialsProvider createCredentialsFromProfile(String awsSellerAccount) {
+  private ProfileCredentialsProvider createCredentialsFromProfile(String awsSellerAccount) {
     // NOTE: it is useful to do this check here, because it allows us to catch missing credentials
     // in a predictable way.
     if (profileFile.profile(awsSellerAccount).isEmpty()) {

@@ -23,7 +23,9 @@ package com.redhat.swatch.aws.exception;
 import com.redhat.swatch.aws.openapi.model.Errors;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
 import jakarta.ws.rs.core.Response;
+import lombok.Getter;
 
+@Getter
 public class DefaultApiException extends ApiException {
 
   private final transient Errors errors;
@@ -31,9 +33,5 @@ public class DefaultApiException extends ApiException {
   public DefaultApiException(Response response, Errors errors) {
     super(response);
     this.errors = errors;
-  }
-
-  public Errors getErrors() {
-    return this.errors;
   }
 }

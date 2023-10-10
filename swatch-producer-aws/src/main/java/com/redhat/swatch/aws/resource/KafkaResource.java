@@ -36,7 +36,7 @@ public class KafkaResource implements KafkaApi {
   }
 
   @Override
-  public void kakfaSeekPosition(KafkaSeekPosition position) throws ProcessingException {
+  public void kafkaSeekPosition(KafkaSeekPosition position) throws ProcessingException {
     var seekHelperPosition =
         switch (position) {
           case BEGINNING -> KafkaSeekHelper.KafkaSeekPosition.BEGINNING;
@@ -46,7 +46,7 @@ public class KafkaResource implements KafkaApi {
   }
 
   @Override
-  public void kakfaSeekTimestamp(String timestamp) throws ProcessingException {
+  public void kafkaSeekTimestamp(String timestamp) throws ProcessingException {
     kafkaSeekHelper.seekToTimestamp(OffsetDateTime.parse(timestamp));
   }
 }
