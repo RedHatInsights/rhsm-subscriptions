@@ -11,7 +11,7 @@ variants:
     engineeringIds:
       - 70
     productNames:
-      - RHEL EUS COST PLACEHOLDER # when external service creates a sku offering manager definition. This is to differentiate between skus.
+      - RHEL Server
     roles:
       - rhel-for-x86-eus-payg-placeholder-role
 
