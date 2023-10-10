@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.util;
 
 import java.time.OffsetDateTime;
 import java.time.temporal.TemporalAmount;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.model.Granularity;
 
 /** Abstract class for adjusting time to a given report period. */

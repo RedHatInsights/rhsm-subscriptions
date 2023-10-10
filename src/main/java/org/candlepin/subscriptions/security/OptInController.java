@@ -23,10 +23,10 @@ package org.candlepin.subscriptions.security;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.Optional;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.db.model.config.OrgConfig;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfigData;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfigDataOrg;
@@ -47,8 +47,8 @@ import org.springframework.util.StringUtils;
 public class OptInController {
   private static final Logger log = LoggerFactory.getLogger(OptInController.class);
 
-  private OrgConfigRepository orgConfigRepository;
-  private ApplicationClock clock;
+  private final OrgConfigRepository orgConfigRepository;
+  private final ApplicationClock clock;
 
   @Autowired
   public OptInController(ApplicationClock clock, OrgConfigRepository orgConfigRepo) {

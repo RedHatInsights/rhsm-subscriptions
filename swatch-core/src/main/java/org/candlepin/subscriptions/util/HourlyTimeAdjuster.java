@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.util;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.temporal.TemporalAmount;
+import org.candlepin.clock.ApplicationClock;
 
 /** Class to fill the given TallyReport's snapshots based on an HOURLY granularity. */
 public class HourlyTimeAdjuster extends SnapshotTimeAdjuster {

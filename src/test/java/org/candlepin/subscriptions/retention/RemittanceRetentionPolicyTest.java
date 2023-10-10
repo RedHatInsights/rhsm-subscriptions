@@ -24,8 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.Test;
 
 class RemittanceRetentionPolicyTest {

@@ -36,6 +36,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
@@ -45,7 +46,6 @@ import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuild
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescriptor;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.SpanGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

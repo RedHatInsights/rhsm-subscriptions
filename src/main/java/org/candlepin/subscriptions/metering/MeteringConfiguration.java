@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.metering;
 
-import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.clock.ApplicationClock;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.context.annotation.Bean;

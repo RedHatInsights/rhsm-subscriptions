@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.util;
+package org.candlepin.clock;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -33,8 +33,7 @@ import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.time.temporal.TemporalField;
 import java.time.temporal.WeekFields;
-import org.candlepin.subscriptions.db.model.Granularity;
-import org.springframework.stereotype.Component;
+import lombok.Getter;
 
 /**
  * The single date and time source to be used by the application.
@@ -42,14 +41,13 @@ import org.springframework.stereotype.Component;
  * <p>All start* methods return the time at midnight - 2019-04-19 00:00:00.0 All end* methods return
  * the max time of the day - 2019-04-19 23:59:59.999999999Z
  */
-@Component
+@Getter
 public class ApplicationClock {
-  private static final String BAD_GRANULARITY_MESSAGE = "Unsupported granularity: %s";
-
-  private Clock clock;
 
   // Ensure the week starts with Sunday.
-  private TemporalField week = WeekFields.of(DayOfWeek.SUNDAY, 1).dayOfWeek();
+  private static final TemporalField WEEK = WeekFields.of(DayOfWeek.SUNDAY, 1).dayOfWeek();
+
+  private final Clock clock;
 
   public ApplicationClock() {
     this.clock = Clock.systemUTC();
@@ -57,10 +55,6 @@ public class ApplicationClock {
 
   public ApplicationClock(Clock clock) {
     this.clock = clock;
-  }
-
-  public Clock getClock() {
-    return this.clock;
   }
 
   public OffsetDateTime now() {
@@ -88,7 +82,7 @@ public class ApplicationClock {
   }
 
   public OffsetDateTime endOfWeek(OffsetDateTime anyDayInWeek) {
-    return endOfDay(anyDayInWeek.with(week, 7));
+    return endOfDay(anyDayInWeek.with(WEEK, 7));
   }
 
   public OffsetDateTime startOfCurrentWeek() {
@@ -96,7 +90,7 @@ public class ApplicationClock {
   }
 
   public OffsetDateTime startOfWeek(OffsetDateTime anyDayOfWeek) {
-    return startOfDay(anyDayOfWeek.with(week, 1));
+    return startOfDay(anyDayOfWeek.with(WEEK, 1));
   }
 
   public OffsetDateTime endOfCurrentMonth() {
@@ -205,50 +199,8 @@ public class ApplicationClock {
     return zonedDateTime.toOffsetDateTime();
   }
 
-  public OffsetDateTime calculateStartOfRange(OffsetDateTime toAdjust, Granularity granularity) {
-    switch (granularity) {
-      case HOURLY:
-        return startOfHour(toAdjust);
-      case DAILY:
-        return startOfDay(toAdjust);
-      case WEEKLY:
-        return startOfWeek(toAdjust);
-      case MONTHLY:
-        return startOfMonth(toAdjust);
-      case QUARTERLY:
-        return startOfQuarter(toAdjust);
-      case YEARLY:
-        return startOfYear(toAdjust);
-      default:
-        throw new IllegalArgumentException(String.format(BAD_GRANULARITY_MESSAGE, granularity));
-    }
-  }
-
-  public OffsetDateTime calculateEndOfRange(OffsetDateTime toAdjust, Granularity granularity) {
-    switch (granularity) {
-      case HOURLY:
-        return endOfHour(toAdjust);
-      case DAILY:
-        return endOfDay(toAdjust);
-      case WEEKLY:
-        return endOfWeek(toAdjust);
-      case MONTHLY:
-        return endOfMonth(toAdjust);
-      case QUARTERLY:
-        return endOfQuarter(toAdjust);
-      case YEARLY:
-        return endOfYear(toAdjust);
-      default:
-        throw new IllegalArgumentException(String.format(BAD_GRANULARITY_MESSAGE, granularity));
-    }
-  }
-
   public boolean isHourlyRange(OffsetDateTime startDateTime, OffsetDateTime endDateTime) {
     return startDateTime.isEqual(startOfHour(startDateTime))
         && endDateTime.isEqual(startOfHour(endDateTime));
-  }
-
-  public boolean isHourlyRange(DateRange dateRange) {
-    return isHourlyRange(dateRange.getStartDate(), dateRange.getEndDate());
   }
 }

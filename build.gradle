@@ -33,6 +33,7 @@ allprojects {
 }
 
 dependencies {
+    implementation project(":swatch-common-clock")
     implementation project(':swatch-core')
     implementation project(":api")
     implementation project(":clients:rh-marketplace-client")

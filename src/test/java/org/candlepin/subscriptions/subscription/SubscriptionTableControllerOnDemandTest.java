@@ -30,6 +30,7 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -40,7 +41,6 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.SubscriptionTableController;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.SkuCapacity;
@@ -67,7 +67,6 @@ class SubscriptionTableControllerOnDemandTest {
   @MockBean SubscriptionRepository subscriptionRepository;
   @MockBean OfferingRepository offeringRepository;
   @Autowired ApplicationClock clock;
-
   @Autowired SubscriptionTableController subscriptionTableController;
 
   @BeforeEach

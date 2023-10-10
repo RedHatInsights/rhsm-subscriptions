@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.test;
 
-import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.clock.ApplicationClock;
 import org.springframework.test.context.TestContext;
 import org.springframework.test.context.TestExecutionListener;
 

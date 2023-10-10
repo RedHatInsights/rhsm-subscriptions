@@ -25,6 +25,7 @@ import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.tally.TallyTaskQueueConfiguration;
@@ -34,7 +35,6 @@ import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,7 +117,7 @@ public class CaptureSnapshotsTaskManager {
   }
 
   public void tallyOrgByHourly(String orgId, DateRange tallyRange) {
-    if (!applicationClock.isHourlyRange(tallyRange)) {
+    if (!applicationClock.isHourlyRange(tallyRange.getStartDate(), tallyRange.getEndDate())) {
       log.error(
           "Hourly snapshot production for orgId {} will not be queued. "
               + "Invalid start/end times specified.",

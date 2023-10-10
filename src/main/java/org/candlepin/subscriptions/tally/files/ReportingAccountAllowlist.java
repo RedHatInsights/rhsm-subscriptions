@@ -22,10 +22,10 @@ package org.candlepin.subscriptions.tally.files;
 
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.files.PerLineFileSource;
 import org.candlepin.subscriptions.security.SecurityProperties;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.context.ResourceLoaderAware;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
@@ -34,8 +34,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class ReportingAccountAllowlist implements ResourceLoaderAware {
 
-  private PerLineFileSource source;
-  private boolean isDevMode;
+  private final PerLineFileSource source;
+  private final boolean isDevMode;
 
   public ReportingAccountAllowlist(
       ApplicationProperties props, SecurityProperties securityProps, ApplicationClock clock) {
