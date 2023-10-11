@@ -71,7 +71,6 @@ public interface BillableUsageRemittanceRepository
           key.get(BillableUsageRemittanceEntityPK_.ACCUMULATION_PERIOD),
           key.get(BillableUsageRemittanceEntityPK_.SLA),
           key.get(BillableUsageRemittanceEntityPK_.USAGE),
-          root.get(BillableUsageRemittanceEntity_.ACCOUNT_NUMBER),
           key.get(BillableUsageRemittanceEntityPK_.BILLING_PROVIDER),
           key.get(BillableUsageRemittanceEntityPK_.BILLING_ACCOUNT_ID),
           key.get(BillableUsageRemittanceEntityPK_.METRIC_ID),
@@ -83,7 +82,6 @@ public interface BillableUsageRemittanceRepository
             RemittanceSummaryProjection.class,
             criteriaBuilder.sum(root.get(BillableUsageRemittanceEntity_.REMITTED_PENDING_VALUE)),
             key.get(BillableUsageRemittanceEntityPK_.ORG_ID),
-            root.get(BillableUsageRemittanceEntity_.ACCOUNT_NUMBER),
             key.get(BillableUsageRemittanceEntityPK_.PRODUCT_ID),
             key.get(BillableUsageRemittanceEntityPK_.ACCUMULATION_PERIOD),
             key.get(BillableUsageRemittanceEntityPK_.SLA),
@@ -134,11 +132,6 @@ public interface BillableUsageRemittanceRepository
     };
   }
 
-  static Specification<BillableUsageRemittanceEntity> matchingAccountNumber(String account) {
-    return (root, query, builder) ->
-        builder.equal(root.get(BillableUsageRemittanceEntity_.accountNumber), account);
-  }
-
   static Specification<BillableUsageRemittanceEntity> matchingUsage(String usage) {
     return (root, query, builder) -> {
       var path = root.get(BillableUsageRemittanceEntity_.key);
@@ -183,9 +176,6 @@ public interface BillableUsageRemittanceRepository
       BillableUsageRemittanceFilter filter) {
 
     var searchCriteria = Specification.<BillableUsageRemittanceEntity>where(null);
-    if (Objects.nonNull(filter.getAccount())) {
-      searchCriteria = searchCriteria.and(matchingAccountNumber(filter.getAccount()));
-    }
     if (Objects.nonNull(filter.getProductId())) {
       searchCriteria = searchCriteria.and(matchingProductId(filter.getProductId()));
     }

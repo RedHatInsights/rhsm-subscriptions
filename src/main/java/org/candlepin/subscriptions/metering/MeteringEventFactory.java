@@ -49,7 +49,6 @@ public class MeteringEventFactory {
   /**
    * Creates an Event object that represents a cores snapshot for a given instance.
    *
-   * @param accountNumber the account number.
    * @param instanceId the ID of the cluster that was measured.
    * @param serviceLevel the service level of the cluster.
    * @param usage the usage of the cluster.
@@ -62,7 +61,6 @@ public class MeteringEventFactory {
    */
   @SuppressWarnings("java:S107")
   public static Event createMetricEvent(
-      String accountNumber,
       String orgId,
       String instanceId,
       String serviceLevel,
@@ -81,7 +79,6 @@ public class MeteringEventFactory {
     Event event = new Event();
     updateMetricEvent(
         event,
-        accountNumber,
         orgId,
         instanceId,
         serviceLevel,
@@ -132,7 +129,6 @@ public class MeteringEventFactory {
   @SuppressWarnings("java:S107")
   public static void updateMetricEvent(
       Event toUpdate,
-      String accountNumber,
       String orgId,
       String instanceId,
       String serviceLevel,
@@ -150,17 +146,16 @@ public class MeteringEventFactory {
       UUID meteringBatchId) {
     toUpdate
         .withServiceType(serviceType)
-        .withAccountNumber(accountNumber)
         .withTimestamp(measuredTime)
         .withExpiration(Optional.of(expired))
         .withDisplayName(Optional.of(instanceId))
-        .withSla(getSla(serviceLevel, accountNumber, instanceId))
-        .withUsage(getUsage(usage, accountNumber, instanceId))
-        .withBillingProvider(getBillingProvider(billingProvider, accountNumber, instanceId))
+        .withSla(getSla(serviceLevel, orgId, instanceId))
+        .withUsage(getUsage(usage, orgId, instanceId))
+        .withBillingProvider(getBillingProvider(billingProvider, orgId, instanceId))
         .withBillingAccountId(Optional.ofNullable(billingAccountId))
         .withMeasurements(
             List.of(new Measurement().withUom(measuredMetric.getValue()).withValue(measuredValue)))
-        .withRole(getRole(role, accountNumber, instanceId))
+        .withRole(getRole(role, orgId, instanceId))
         .withEventSource(eventSource)
         .withEventType(MeteringEventFactory.getEventType(measuredMetric.getValue(), productTag))
         .withOrgId(orgId)
@@ -174,7 +169,7 @@ public class MeteringEventFactory {
         : EVENT_TYPE;
   }
 
-  private static Sla getSla(String serviceLevel, String account, String clusterId) {
+  private static Sla getSla(String serviceLevel, String orgId, String clusterId) {
     /**
      * SLA values set by OCM: - Eval (ignored for now) - Standard - Premium - Self-Support - None
      * (converted to be __EMPTY__)
@@ -184,15 +179,15 @@ public class MeteringEventFactory {
       return Sla.fromValue(StringUtils.trimWhitespace(sla));
     } catch (IllegalArgumentException e) {
       log.warn(
-          "Unsupported SLA '{}' specified for event. account/cluster: {}/{}",
+          "Unsupported SLA '{}' specified for event. orgId/cluster: {}/{}",
           serviceLevel,
-          account,
+          orgId,
           clusterId);
     }
     return null;
   }
 
-  private static Usage getUsage(String usage, String account, String clusterId) {
+  private static Usage getUsage(String usage, String orgId, String clusterId) {
     if (usage == null) {
       return null;
     }
@@ -201,15 +196,15 @@ public class MeteringEventFactory {
       return Usage.fromValue(StringUtils.trimWhitespace(usage));
     } catch (IllegalArgumentException e) {
       log.warn(
-          "Unsupported Usage '{}' specified for event. account/cluster: {}/{}",
+          "Unsupported Usage '{}' specified for event. orgId/cluster: {}/{}",
           usage,
-          account,
+          orgId,
           clusterId);
     }
     return null;
   }
 
-  private static Role getRole(String role, String account, String clusterId) {
+  private static Role getRole(String role, String orgId, String clusterId) {
     if (role == null) {
       return null;
     }
@@ -218,16 +213,16 @@ public class MeteringEventFactory {
       return Role.fromValue(StringUtils.trimWhitespace(role));
     } catch (IllegalArgumentException e) {
       log.warn(
-          "Unsupported Role '{}' specified for event. account/cluster: {}/{}",
+          "Unsupported Role '{}' specified for event. orgId/cluster: {}/{}",
           role,
-          account,
+          orgId,
           clusterId);
     }
     return null;
   }
 
   private static BillingProvider getBillingProvider(
-      String billingProvider, String account, String clusterId) {
+      String billingProvider, String orgId, String clusterId) {
     if (billingProvider == null
         || billingProvider.equals(BillingProvider.__EMPTY__.value())
         || "rhm".equalsIgnoreCase(billingProvider)) {
@@ -238,9 +233,9 @@ public class MeteringEventFactory {
       return BillingProvider.fromValue(StringUtils.trimWhitespace(billingProvider));
     } catch (IllegalArgumentException e) {
       log.warn(
-          "Unsupported BillingProvider '{}' specified for event. account/cluster: {}/{}",
+          "Unsupported BillingProvider '{}' specified for event. orgId/cluster: {}/{}",
           billingProvider,
-          account,
+          orgId,
           clusterId);
     }
     return null;

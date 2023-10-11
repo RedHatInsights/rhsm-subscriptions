@@ -33,7 +33,6 @@ import lombok.NoArgsConstructor;
 public class RemittanceSummaryProjection {
   private Double totalRemittedPendingValue;
   private String orgId;
-  private String accountNumber;
   private String productId;
   private String accumulationPeriod;
   private String sla;

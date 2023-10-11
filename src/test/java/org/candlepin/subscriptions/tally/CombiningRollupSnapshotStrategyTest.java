@@ -564,7 +564,6 @@ class CombiningRollupSnapshotStrategyTest {
   private AccountUsageCalculation createAccountUsageCalculation(
       UsageCalculation.Key usageKey, double v) {
     AccountUsageCalculation usage = new AccountUsageCalculation("org123");
-    usage.setAccount("account123");
     usage.addUsage(usageKey, HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores(), v);
     usage.getProducts().add(OPEN_SHIFT_HOURLY);
 
@@ -589,7 +588,6 @@ class CombiningRollupSnapshotStrategyTest {
     return TallySnapshot.builder()
         .snapshotDate(snapshotDate)
         .productId(OPEN_SHIFT_HOURLY)
-        .accountNumber("account123")
         .orgId("org123")
         .tallyMeasurements(measurements)
         .granularity(granularity)

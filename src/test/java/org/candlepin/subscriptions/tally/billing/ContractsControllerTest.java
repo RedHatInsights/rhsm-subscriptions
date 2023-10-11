@@ -374,7 +374,6 @@ class ContractsControllerTest {
         .withProductId("RHEL Server")
         .withValue(24.5)
         .withUsage(Usage.PRODUCTION)
-        .withAccountNumber("account123")
         .withBillingAccountId("ba123")
         .withSla(Sla.PREMIUM)
         .withBillingProvider(BillingProvider.AWS)

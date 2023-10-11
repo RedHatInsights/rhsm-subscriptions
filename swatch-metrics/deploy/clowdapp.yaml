@@ -209,7 +209,7 @@ objects:
               - name: SPLUNK_HEC_TERMINATION_TIMEOUT
                 value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
               - name: SPRING_PROFILES_ACTIVE
-                value: openshift-metering-worker,kafka-queue
+                value: openshift-metering-worker,api,kafka-queue
               - name: SERVER_MAX_HTTP_HEADER_SIZE
                 value: ${SERVER_MAX_HTTP_HEADER_SIZE}
               - name: LOG_FILE
@@ -411,7 +411,7 @@ objects:
               - name: SPLUNK_HEC_TERMINATION_TIMEOUT
                 value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
               - name: SPRING_PROFILES_ACTIVE
-                value: metrics-rhel,kafka-queue
+                value: metrics-rhel,api,kafka-queue
               - name: SERVER_MAX_HTTP_HEADER_SIZE
                 value: ${SERVER_MAX_HTTP_HEADER_SIZE}
               - name: LOG_FILE

@@ -27,9 +27,6 @@ package org.candlepin.subscriptions.db.model;
 public interface AccountBucketTally {
   String getProductId();
 
-  // Grab the account only if it exists (not required)
-  String getAccountNumber();
-
   ServiceLevel getSla();
 
   BillingProvider getBillingProvider();

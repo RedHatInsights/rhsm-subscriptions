@@ -138,14 +138,12 @@ class SubscriptionTableControllerTest {
           "RH0180197", "RHEL Server", 0, 0, 0, 2, ServiceLevel.STANDARD, Usage.PRODUCTION, false);
 
   private enum Org {
-    STANDARD("711497", "477931");
+    STANDARD("711497");
 
     private final String orgId;
-    private final String accountNumber;
 
-    Org(String orgId, String accountNumber) {
+    Org(String orgId) {
       this.orgId = orgId;
-      this.accountNumber = accountNumber;
     }
   }
 
@@ -962,7 +960,6 @@ class SubscriptionTableControllerTest {
 
       subscription.setOffering(offering);
       subscription.setOrgId(org.orgId);
-      subscription.setAccountNumber(org.accountNumber);
 
       var quantity = subscription.getQuantity();
 

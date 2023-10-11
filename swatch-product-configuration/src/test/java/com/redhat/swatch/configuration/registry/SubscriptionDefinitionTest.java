@@ -56,7 +56,6 @@ class SubscriptionDefinitionTest {
     var expected =
         List.of(
             "OpenShift Cluster",
-            "OpenShift Cluster",
             "BASILISK Instance",
             "Rhacs Cluster",
             "Rhods Cluster",
