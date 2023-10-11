@@ -119,11 +119,11 @@ public class SubscriptionDefinition {
   /**
    * @return List<String> serviceTypes
    */
-  public static List<String> getAllServiceTypes() {
+  public static Set<String> getAllServiceTypes() {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .map(SubscriptionDefinition::getServiceType)
         .filter(Objects::nonNull)
-        .collect(Collectors.toList());
+        .collect(Collectors.toSet());
   }
 
   public boolean isPrometheusEnabled() {

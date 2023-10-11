@@ -64,10 +64,7 @@ public class SnapshotSummaryProducer {
         (orgId, snapshots) ->
             snapshots.stream()
                 .sorted(Comparator.comparing(TallySnapshot::getSnapshotDate))
-                .map(
-                    snapshot ->
-                        summaryMapper.mapSnapshots(
-                            snapshot.getAccountNumber(), orgId, List.of(snapshot)))
+                .map(snapshot -> summaryMapper.mapSnapshots(orgId, List.of(snapshot)))
                 .forEach(
                     summary -> {
                       if (validateTallySummary(summary)) {

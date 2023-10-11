@@ -88,7 +88,6 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
 
   @Autowired private ApplicationClock clock;
 
-  private final String expectedAccount = "my-test-account";
   private final String expectedOrgId = "my-test-org";
   private final String expectedClusterId = "C1";
   private final String expectedSla = "Premium";
@@ -130,7 +129,6 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
 
     QueryResult good =
         buildOpenShiftClusterQueryResult(
-            expectedAccount,
             expectedOrgId,
             expectedClusterId,
             expectedSla,
@@ -155,7 +153,6 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
     OffsetDateTime end = start.plusHours(4);
     QueryResult data =
         buildOpenShiftClusterQueryResult(
-            expectedAccount,
             expectedOrgId,
             expectedClusterId,
             expectedSla,
@@ -180,7 +177,6 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
 
     QueryResult data =
         buildOpenShiftClusterQueryResult(
-            expectedAccount,
             expectedOrgId,
             expectedClusterId,
             expectedSla,
@@ -196,7 +192,6 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
     List<BaseEvent> expectedEvents =
         List.of(
             MeteringEventFactory.createMetricEvent(
-                expectedAccount,
                 expectedOrgId,
                 expectedClusterId,
                 expectedSla,
@@ -213,7 +208,6 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
                 expectedProductTag,
                 expectedSpanId),
             MeteringEventFactory.createMetricEvent(
-                expectedAccount,
                 expectedOrgId,
                 expectedClusterId,
                 expectedSla,
@@ -256,7 +250,6 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
 
     QueryResult data =
         buildOpenShiftClusterQueryResult(
-            expectedAccount,
             expectedOrgId,
             expectedClusterId,
             expectedSla,
@@ -271,7 +264,6 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
 
     Event updatedEvent =
         MeteringEventFactory.createMetricEvent(
-            expectedAccount,
             expectedOrgId,
             expectedClusterId,
             expectedSla,
@@ -292,7 +284,6 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
         List.of(
             updatedEvent,
             MeteringEventFactory.createMetricEvent(
-                expectedAccount,
                 expectedOrgId,
                 expectedClusterId,
                 expectedSla,
@@ -332,7 +323,6 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
             .putMetricItem("support", "Standard")
             .putMetricItem("usage", "Production")
             .putMetricItem("role", "osd")
-            .putMetricItem("ebs_account", expectedAccount)
             .putMetricItem("external_organization", expectedOrgId)
             .putMetricItem("billing_marketplace", "red hat")
             .putMetricItem("billing_marketplace_account", expectedBillingAccountId)
@@ -343,7 +333,6 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
             .putMetricItem("support", "Standard")
             .putMetricItem("usage", "Production")
             .putMetricItem("role", "osd")
-            .putMetricItem("ebs_account", expectedAccount)
             .putMetricItem("external_organization", expectedOrgId)
             .putMetricItem("billing_marketplace", "red hat")
             .putMetricItem("billing_marketplace_account", expectedBillingAccountId)
@@ -359,7 +348,6 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
 
     Event updatedEvent =
         MeteringEventFactory.createMetricEvent(
-            expectedAccount,
             expectedOrgId,
             expectedClusterId,
             "Standard",
@@ -416,7 +404,6 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
   }
 
   private QueryResult buildOpenShiftClusterQueryResult(
-      String account,
       String orgId,
       String clusterId,
       String sla,
@@ -429,7 +416,6 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
             .putMetricItem("_id", clusterId)
             .putMetricItem("support", sla)
             .putMetricItem("usage", usage)
-            .putMetricItem("ebs_account", account)
             .putMetricItem("external_organization", orgId)
             .putMetricItem("billing_marketplace", billingProvider)
             .putMetricItem("billing_marketplace_account", billingAccountId);

@@ -204,7 +204,6 @@ public class PrometheusMeteringController {
     String role = product == null ? resourceName : product;
     String billingProvider = labels.get("billing_marketplace");
     String billingAccountId = labels.get("billing_marketplace_account");
-    String account = labels.get("ebs_account");
 
     // For the openshift metrics, we expect our results to be a 'matrix'
     // vector [(instant_time,value), ...] so we only look at the result's
@@ -221,7 +220,6 @@ public class PrometheusMeteringController {
 
       Event event =
           createOrUpdateEvent(
-              account,
               orgId,
               tagMetric.getId(),
               clusterId,
@@ -264,7 +262,6 @@ public class PrometheusMeteringController {
 
   @SuppressWarnings("java:S107")
   private Event createOrUpdateEvent(
-      String account,
       String orgId,
       String metricId,
       String instanceId,
@@ -283,7 +280,6 @@ public class PrometheusMeteringController {
     Event event = new Event();
     MeteringEventFactory.updateMetricEvent(
         event,
-        account,
         orgId,
         instanceId,
         sla,

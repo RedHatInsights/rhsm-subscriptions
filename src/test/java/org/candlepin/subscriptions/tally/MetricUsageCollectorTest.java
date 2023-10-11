@@ -776,10 +776,6 @@ class MetricUsageCollectorTest {
 
   private static Event createEvent(String instanceId) {
     return (Event)
-        new Event()
-            .withEventId(UUID.randomUUID())
-            .withAccountNumber("account123")
-            .withOrgId("test-org")
-            .withInstanceId(instanceId);
+        new Event().withEventId(UUID.randomUUID()).withOrgId("test-org").withInstanceId(instanceId);
   }
 }

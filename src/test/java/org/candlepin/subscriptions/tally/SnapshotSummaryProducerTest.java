@@ -82,7 +82,6 @@ class SnapshotSummaryProducerTest {
         "org1",
         List.of(
             buildSnapshot(
-                "a1",
                 "org1",
                 "OSD",
                 Granularity.HOURLY,
@@ -95,7 +94,6 @@ class SnapshotSummaryProducerTest {
         "org2",
         List.of(
             buildSnapshot(
-                "a2",
                 "org2",
                 "OCP",
                 Granularity.HOURLY,
@@ -110,10 +108,9 @@ class SnapshotSummaryProducerTest {
     List<TallySummary> summaries = summaryCaptor.getAllValues();
     assertEquals(2, summaries.size());
     Map<String, List<TallySummary>> results =
-        summaries.stream().collect(Collectors.groupingBy(TallySummary::getAccountNumber));
+        summaries.stream().collect(Collectors.groupingBy(TallySummary::getOrgId));
     assertSummary(
         results,
-        "a1",
         "org1",
         "OSD",
         Granularity.HOURLY,
@@ -123,7 +120,6 @@ class SnapshotSummaryProducerTest {
         20.4);
     assertSummary(
         results,
-        "a2",
         "org2",
         "OCP",
         Granularity.HOURLY,
@@ -135,7 +131,6 @@ class SnapshotSummaryProducerTest {
 
   void assertSummary(
       Map<String, List<TallySummary>> results,
-      String account,
       String orgId,
       String product,
       Granularity granularity,
@@ -143,11 +138,10 @@ class SnapshotSummaryProducerTest {
       Usage usage,
       MetricId uom,
       double value) {
-    assertTrue(results.containsKey(account));
-    List<TallySummary> accountSummaries = results.get(account);
+    assertTrue(results.containsKey(orgId));
+    List<TallySummary> accountSummaries = results.get(orgId);
     assertEquals(1, accountSummaries.size());
     TallySummary expectedSummary = accountSummaries.get(0);
-    assertEquals(account, expectedSummary.getAccountNumber());
     assertEquals(orgId, expectedSummary.getOrgId());
 
     assertEquals(1, expectedSummary.getTallySnapshots().size());
@@ -173,7 +167,6 @@ class SnapshotSummaryProducerTest {
         "a1",
         List.of(
             buildSnapshot(
-                "a1",
                 "org_1",
                 "OSD",
                 Granularity.HOURLY,
@@ -204,7 +197,6 @@ class SnapshotSummaryProducerTest {
   }
 
   TallySnapshot buildSnapshot(
-      String account,
       String orgId,
       String productId,
       Granularity granularity,
@@ -217,7 +209,6 @@ class SnapshotSummaryProducerTest {
     measurements.put(new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, metricId), val);
     measurements.put(new TallyMeasurementKey(HardwareMeasurementType.TOTAL, metricId), val);
     return TallySnapshot.builder()
-        .accountNumber(account)
         .orgId(orgId)
         .productId(productId)
         .snapshotDate(OffsetDateTime.now())

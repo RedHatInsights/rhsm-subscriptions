@@ -205,17 +205,12 @@ public class CombiningRollupSnapshotStrategy {
   }
 
   protected void populateSnapshotFromProductUsageCalculation(
-      TallySnapshot snapshot,
-      String account,
-      String orgId,
-      UsageCalculation productCalc,
-      Granularity granularity) {
+      TallySnapshot snapshot, String orgId, UsageCalculation productCalc, Granularity granularity) {
     snapshot.setProductId(productCalc.getProductId());
     snapshot.setServiceLevel(productCalc.getSla());
     snapshot.setUsage(productCalc.getUsage());
     snapshot.setGranularity(granularity);
     snapshot.setOrgId(orgId);
-    snapshot.setAccountNumber(account);
     snapshot.setBillingAccountId(productCalc.getBillingAccountId());
     snapshot.setBillingProvider(productCalc.getBillingProvider());
 
@@ -304,11 +299,7 @@ public class CombiningRollupSnapshotStrategy {
             UsageCalculation productCalc = accountCalc.getCalculation(usageKey);
 
             populateSnapshotFromProductUsageCalculation(
-                snapshot,
-                accountCalc.getAccount(),
-                accountCalc.getOrgId(),
-                productCalc,
-                granularity);
+                snapshot, accountCalc.getOrgId(), productCalc, granularity);
 
             snapshot.setSnapshotDate(offset);
             toSave.add(tallyRepo.save(snapshot));
@@ -440,7 +431,6 @@ public class CombiningRollupSnapshotStrategy {
           TallySnapshot existing = existingSnapshotLookup.get(snapshotKey);
           TallySnapshot snapshot = Objects.requireNonNullElseGet(existing, TallySnapshot::new);
 
-          snapshot.setAccountNumber(firstFinestGranularitySnapshot.getAccountNumber());
           snapshot.setOrgId(firstFinestGranularitySnapshot.getOrgId());
           snapshot.setProductId(firstFinestGranularitySnapshot.getProductId());
 

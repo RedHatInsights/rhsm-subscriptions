@@ -8,10 +8,6 @@ properties:
     type: string
     format: uuid
     required: false
-  account_number:
-    description: Account identifier for the relevant account.
-    type: string
-    required: false
   service_type:
     description: Identifier for the type of service being measured. (E.g. RHEL System, OpenShift Cluster)
     type: string

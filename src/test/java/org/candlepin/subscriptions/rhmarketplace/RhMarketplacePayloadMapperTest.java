@@ -80,7 +80,6 @@ class RhMarketplacePayloadMapperTest {
             any(OffsetDateTime.class),
             any(String.class),
             any(String.class),
-            any(String.class),
             any(String.class)))
         .thenReturn(rhmUsageContext);
 
@@ -89,13 +88,11 @@ class RhMarketplacePayloadMapperTest {
     OffsetDateTime snapshotDate =
         OffsetDateTime.ofInstant(Instant.ofEpochMilli(snapshotDateLong), ZoneId.of("UTC"));
 
-    String account = "test123";
     String orgId = "org123";
     var usage =
         new BillableUsage()
             .withId(UUID.fromString("c204074d-626f-4272-aa05-b6d69d6de16a"))
             .withOrgId(orgId)
-            .withAccountNumber(account)
             .withProductId("OpenShift-metrics")
             .withSnapshotDate(snapshotDate)
             .withUsage(Usage.PRODUCTION)
@@ -132,7 +129,6 @@ class RhMarketplacePayloadMapperTest {
             any(OffsetDateTime.class),
             any(String.class),
             any(String.class),
-            any(String.class),
             any(String.class)))
         .thenReturn(rhmUsageContext);
 
@@ -141,12 +137,10 @@ class RhMarketplacePayloadMapperTest {
     OffsetDateTime snapshotDate =
         OffsetDateTime.ofInstant(Instant.ofEpochMilli(snapshotDateLong), ZoneId.of("UTC"));
 
-    String account = "test123";
     String orgId = "org123";
     var usage =
         new BillableUsage()
             .withId(UUID.fromString("c204074d-626f-4272-aa05-b6d69d6de16a"))
-            .withAccountNumber(account)
             .withProductId("OpenShift-metrics")
             .withOrgId(orgId)
             .withSnapshotDate(snapshotDate)
@@ -251,7 +245,6 @@ class RhMarketplacePayloadMapperTest {
             any(OffsetDateTime.class),
             any(String.class),
             any(String.class),
-            any(String.class),
             any(String.class)))
         .thenThrow(ApiException.class);
 
@@ -261,7 +254,6 @@ class RhMarketplacePayloadMapperTest {
         new BillableUsage()
             .withOrgId("org")
             .withSnapshotDate(OffsetDateTime.now())
-            .withAccountNumber("account")
             .withProductId("product")
             .withSla(Sla.PREMIUM)
             .withUsage(Usage.PRODUCTION);

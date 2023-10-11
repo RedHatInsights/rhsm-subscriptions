@@ -71,9 +71,6 @@ public class BillableUsageConsumer {
     if (billableUsage.getOrgId() != null) {
       MDC.put("org_id", billableUsage.getOrgId());
     }
-    if (billableUsage.getAccountNumber() != null) {
-      MDC.put("account_id", billableUsage.getAccountNumber());
-    }
 
     Optional<Metric> metric = validateUsageAndLookupMetric(billableUsage);
     if (metric.isEmpty()) {

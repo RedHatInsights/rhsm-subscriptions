@@ -111,22 +111,16 @@ class SubscriptionTableControllerOnDemandTest {
           false);
 
   private enum Org {
-    STANDARD("711497", "477931");
+    STANDARD("711497");
 
     private final String orgId;
-    private final String accountNumber;
 
-    Org(String orgId, String accountNumber) {
+    Org(String orgId) {
       this.orgId = orgId;
-      this.accountNumber = accountNumber;
     }
 
     public String orgId() {
       return orgId;
-    }
-
-    public String accountNumber() {
-      return accountNumber;
     }
   }
 
@@ -569,7 +563,6 @@ class SubscriptionTableControllerOnDemandTest {
           .subscriptionId(sub.id)
           .quantity(sub.quantity)
           .subscriptionNumber(sub.number)
-          .accountNumber(org.accountNumber)
           .billingProvider(sub.billingProvider)
           .startDate(sub.start)
           .endDate(sub.end)
