@@ -31,6 +31,6 @@ metrics:
       queryKey: default
       queryParams:
         instanceKey: _id
-        product: rhel-for-x86-eus-payg-placeholder-role
+        product: Red Hat Enterprise Linux Server # TODO value generally maps to a product role, and this value clashes with the RHEL for x86 role
         metric: system_cpu_logical_count
         metadataMetric: system_cpu_logical_count
