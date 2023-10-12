@@ -109,7 +109,6 @@ class SubscriptionRepositoryTest {
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .accountNumber("1000")
                 .productNames(productNames)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
@@ -123,7 +122,6 @@ class SubscriptionRepositoryTest {
 
     var result = resultList.get(0);
     assertEquals("testSku1", result.getOffering().getSku());
-    assertEquals("1000", result.getAccountNumber());
   }
 
   @Transactional
@@ -149,7 +147,6 @@ class SubscriptionRepositoryTest {
     var result =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .accountNumber("1000")
                 .productNames(productNames)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
@@ -183,7 +180,6 @@ class SubscriptionRepositoryTest {
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .accountNumber("1000")
                 .productNames(productNames)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
@@ -216,7 +212,6 @@ class SubscriptionRepositoryTest {
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .accountNumber("1000")
                 .productNames(productNames)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
@@ -249,11 +244,7 @@ class SubscriptionRepositoryTest {
       subscription.setOffering(mct3718);
       subscriptionRepo.saveAndFlush(subscription);
     }
-    var criteria =
-        DbReportCriteria.builder()
-            .accountNumber("1001")
-            .serviceLevel(ServiceLevel.SELF_SUPPORT)
-            .build();
+    var criteria = DbReportCriteria.builder().serviceLevel(ServiceLevel.SELF_SUPPORT).build();
 
     var result = subscriptionRepo.findByCriteria(criteria, Sort.unsorted());
     assertEquals(5, result.size());
@@ -394,7 +385,6 @@ class SubscriptionRepositoryTest {
     subscription.setBillingProviderId("bananas");
     subscription.setSubscriptionId(subId);
     subscription.setOrgId(orgId);
-    subscription.setAccountNumber(accountNumber);
     subscription.setQuantity(4L);
     subscription.setStartDate(startDate);
     subscription.setEndDate(endDate);

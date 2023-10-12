@@ -500,7 +500,6 @@ class BillableUsageControllerTest {
 
   private BillableUsage billable(OffsetDateTime date, Double value) {
     return new BillableUsage()
-        .withAccountNumber("account123")
         .withUsage(Usage.PRODUCTION)
         .withId(UUID.randomUUID())
         .withBillingAccountId("aws-account1")
@@ -550,11 +549,7 @@ class BillableUsageControllerTest {
   private BillableUsageRemittanceEntity remittance(
       BillableUsage usage, OffsetDateTime remittedDate, Double value) {
     BillableUsageRemittanceEntityPK remKey = keyFrom(usage, remittedDate);
-    return BillableUsageRemittanceEntity.builder()
-        .key(remKey)
-        .remittedPendingValue(value)
-        .accountNumber(usage.getAccountNumber())
-        .build();
+    return BillableUsageRemittanceEntity.builder().key(remKey).remittedPendingValue(value).build();
   }
 
   private void performRemittanceTesting(

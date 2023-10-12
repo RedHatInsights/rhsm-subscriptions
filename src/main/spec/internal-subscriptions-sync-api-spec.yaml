@@ -142,12 +142,6 @@ paths:
   /internal/subscriptions/rhmUsageContext:
     description: "Get the Red Hat Marketplace usage context."
     parameters:
-      - name: accountNumber
-        in: query
-        required: false
-        schema:
-          type: string
-        description: "Customer's Account Number"
       - name: orgId
         in: query
         required: true
@@ -196,12 +190,6 @@ paths:
   /internal/subscriptions/awsUsageContext:
     description: "Get AWS usage context."
     parameters:
-      - name: accountNumber
-        in: query
-        required: false
-        schema:
-          type: string
-        description: "Customer's Account Number"
       - name: orgId
         in: query
         required: true

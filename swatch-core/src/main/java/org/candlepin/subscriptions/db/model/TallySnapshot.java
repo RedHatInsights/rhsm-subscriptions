@@ -73,9 +73,6 @@ public class TallySnapshot implements Serializable {
   @Column(name = "org_id")
   private String orgId;
 
-  @Column(name = "account_number")
-  private String accountNumber;
-
   @Builder.Default
   @Column(name = "sla")
   private ServiceLevel serviceLevel = ServiceLevel._ANY;
@@ -225,7 +222,6 @@ public class TallySnapshot implements Serializable {
     return Objects.equals(snapshotDate, that.snapshotDate)
         && Objects.equals(productId, that.productId)
         && Objects.equals(orgId, that.orgId)
-        && Objects.equals(accountNumber, that.accountNumber)
         && serviceLevel == that.serviceLevel
         && usage == that.usage
         && granularity == that.granularity
@@ -239,7 +235,6 @@ public class TallySnapshot implements Serializable {
         snapshotDate,
         productId,
         orgId,
-        accountNumber,
         serviceLevel,
         usage,
         granularity,

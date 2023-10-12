@@ -30,7 +30,6 @@ import org.candlepin.subscriptions.db.HypervisorReportCategory;
 @Data
 @Builder
 public class DbReportCriteria {
-  private String accountNumber;
   private String orgId;
   private String productTag;
   // TODO: ENT-5042 should move away from using product name values here //NOSONAR

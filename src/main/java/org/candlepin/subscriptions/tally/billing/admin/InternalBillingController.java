@@ -40,13 +40,12 @@ public class InternalBillingController {
   }
 
   public List<MonthlyRemittance> process(BillableUsageRemittanceFilter filter) {
-    if (filter.getAccount() == null && filter.getOrgId() == null) {
-      log.debug("Must provide either accountNumber or orgId in query");
+    if (filter.getOrgId() == null) {
+      log.debug("Must provide orgId in query");
       return Collections.emptyList();
     }
     MonthlyRemittance emptyRemittance =
         new MonthlyRemittance()
-            .accountNumber(filter.getAccount())
             .orgId(filter.getOrgId())
             .productId(filter.getProductId())
             .metricId(filter.getMetricId())
@@ -59,10 +58,7 @@ public class InternalBillingController {
       log.debug("This Account Remittance could not be found.");
       return List.of(emptyRemittance);
     }
-    log.debug(
-        "Found {} matches for Account Number: {}",
-        accountRemittanceList.size(),
-        filter.getAccount());
+    log.debug("Found {} matches for Org Id: {}", accountRemittanceList.size(), filter.getOrgId());
     return accountRemittanceList;
   }
 
@@ -76,7 +72,6 @@ public class InternalBillingController {
     for (RemittanceSummaryProjection entity : remittanceSummaryProjections) {
       MonthlyRemittance accountRemittance =
           new MonthlyRemittance()
-              .accountNumber(entity.getAccountNumber())
               .orgId(entity.getOrgId())
               .productId(entity.getProductId())
               .metricId(entity.getMetricId())

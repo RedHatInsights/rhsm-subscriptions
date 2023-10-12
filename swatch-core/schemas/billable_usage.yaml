@@ -3,9 +3,6 @@ title: BillableUsage
 required:
   - account_number
 properties:
-  account_number:
-    description: Account identifier for the relevant account.
-    type: string
   org_id:
     description: Preferred identifier for the relevant account (if present).
     type: string

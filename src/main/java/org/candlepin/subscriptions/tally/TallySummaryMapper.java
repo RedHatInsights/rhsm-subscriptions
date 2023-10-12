@@ -32,18 +32,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class TallySummaryMapper {
 
-  public TallySummary mapSnapshots(String account, String orgId, List<TallySnapshot> snapshots) {
-    return createTallySummary(account, orgId, snapshots);
+  public TallySummary mapSnapshots(String orgId, List<TallySnapshot> snapshots) {
+    return createTallySummary(orgId, snapshots);
   }
 
-  private TallySummary createTallySummary(
-      String accountNumber, String orgId, List<TallySnapshot> tallySnapshots) {
+  private TallySummary createTallySummary(String orgId, List<TallySnapshot> tallySnapshots) {
     var mappedSnapshots =
         tallySnapshots.stream().map(this::mapTallySnapshot).collect(Collectors.toList());
-    return new TallySummary()
-        .withAccountNumber(accountNumber)
-        .withOrgId(orgId)
-        .withTallySnapshots(mappedSnapshots);
+    return new TallySummary().withOrgId(orgId).withTallySnapshots(mappedSnapshots);
   }
 
   private org.candlepin.subscriptions.json.TallySnapshot mapTallySnapshot(

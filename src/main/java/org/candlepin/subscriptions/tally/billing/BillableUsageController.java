@@ -227,7 +227,6 @@ public class BillableUsageController {
     // Remitted value should be set to usages metric_value rather than billing_value
     newRemittance.setRemittedPendingValue(usageCalc.getRemittedValue());
     newRemittance.getKey().setRemittancePendingDate(usageCalc.getRemittanceDate());
-    newRemittance.setAccountNumber(usage.getAccountNumber());
     log.debug("Creating new remittance for update: {}", newRemittance);
     billableUsageRemittanceRepository.save(newRemittance);
   }

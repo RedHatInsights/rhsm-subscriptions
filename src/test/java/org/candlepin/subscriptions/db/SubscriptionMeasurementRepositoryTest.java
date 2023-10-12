@@ -73,7 +73,6 @@ class SubscriptionMeasurementRepositoryTest {
 
     var subscription =
         Subscription.builder()
-            .accountNumber("account123")
             .subscriptionId(subscriptionId)
             .subscriptionNumber("subscriptionNumber123")
             .offering(offering)
@@ -105,7 +104,6 @@ class SubscriptionMeasurementRepositoryTest {
     // ID and start date.
     var wrongOrgId =
         Subscription.builder()
-            .accountNumber("account123")
             .subscriptionId("subscription123")
             .subscriptionNumber("subscriptionNumber123")
             .orgId("other")

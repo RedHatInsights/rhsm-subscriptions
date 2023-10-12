@@ -57,7 +57,6 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   static final String METRIC = "Cores";
   static final String USER_ID = "123";
   static final String ORG_ID = "owner" + USER_ID;
-  static final String ACCOUNT_NUMBER = "account" + USER_ID;
   static final String PRODUCT_TAG = "rosa";
 
   @Autowired TallySnapshotController controller;
@@ -103,7 +102,6 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   private void givenEventAtDay(int dayAt, double value) {
     Event event = new Event();
     event.setEventId(UUID.randomUUID());
-    event.setAccountNumber(ACCOUNT_NUMBER);
     event.setTimestamp(start.plusDays(dayAt));
     event.setSla(Event.Sla.PREMIUM);
     event.setRole(Event.Role.MOA_HOSTEDCONTROLPLANE);

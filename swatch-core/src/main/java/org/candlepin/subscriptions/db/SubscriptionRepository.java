@@ -112,8 +112,6 @@ public interface SubscriptionRepository
                     dbReportCriteria.getBeginning(), dbReportCriteria.getEnding())));
     if (Objects.nonNull(dbReportCriteria.getOrgId())) {
       searchCriteria = searchCriteria.and(orgIdEquals(dbReportCriteria.getOrgId()));
-    } else if (Objects.nonNull(dbReportCriteria.getAccountNumber())) {
-      searchCriteria = searchCriteria.and(accountNumberEquals(dbReportCriteria.getAccountNumber()));
     }
     if (dbReportCriteria.isPayg()) {
       // NOTE: we expect payg subscription records to always populate billingProviderId
@@ -195,11 +193,6 @@ public interface SubscriptionRepository
       var productIdsPath = root.join(Subscription_.subscriptionProductIds);
       return builder.equal(productIdsPath, productId);
     };
-  }
-
-  private static Specification<Subscription> accountNumberEquals(String accountNumber) {
-    return (root, query, builder) ->
-        builder.equal(root.get(Subscription_.accountNumber), accountNumber);
   }
 
   private static Specification<Subscription> orgIdEquals(String orgId) {

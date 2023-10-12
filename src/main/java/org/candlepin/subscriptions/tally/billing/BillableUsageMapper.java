@@ -100,7 +100,6 @@ public class BillableUsageMapper {
                     .map(
                         measurement ->
                             new BillableUsage()
-                                .withAccountNumber(tallySummary.getAccountNumber())
                                 .withOrgId(tallySummary.getOrgId())
                                 .withId(snapshot.getId())
                                 .withSnapshotDate(snapshot.getSnapshotDate())

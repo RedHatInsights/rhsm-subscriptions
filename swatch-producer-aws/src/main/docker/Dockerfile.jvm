@@ -100,7 +100,7 @@ COPY buildSrc buildSrc
 COPY . .
 RUN ./gradlew assemble -x test
 
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.16-1.1693315923
+FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.16-1.1696518671
 
 ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en'
 
