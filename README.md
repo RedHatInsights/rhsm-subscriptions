@@ -600,10 +600,10 @@ EOF
 Possibly useful, to extract the JSON from the k8s configmap file:
 
 ```
-oc extract -f dashboards/grafana-dashboard-subscription-watch.configmap.yaml --confirm
+oc extract -f .rhcicd/grafana/grafana-dashboard-subscription-watch.configmap.yaml --confirm
 ```
 
-Once you extract it from the .yaml that's checked into this repo, you can import it into the stage instance of grafana by going to Create -> Import from the left nav.
+Once you extract it from the .yaml that's checked into this repo, you can import it into the stage instance of grafana by going to `Dashboards -> +Import` from the left nav.
 
 ## APIs
 
