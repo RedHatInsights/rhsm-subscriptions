@@ -21,8 +21,6 @@
 package org.candlepin.subscriptions.conduit.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.util.AssertionErrors.assertFalse;
 import static org.springframework.test.util.AssertionErrors.assertTrue;
@@ -34,10 +32,8 @@ import org.candlepin.subscriptions.conduit.InventoryController;
 import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OrgConfig;
-import org.candlepin.subscriptions.exception.MissingAccountNumberException;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
 import org.candlepin.subscriptions.utilization.api.model.OrgSyncRequest;
-import org.jboss.resteasy.spi.InternalServerErrorException;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -64,14 +60,6 @@ class InternalOrganizationSyncResourceTest {
     var request = new OrgSyncRequest();
     request.setOrgId("123");
     assertEquals("Success", resource.syncOrg(request).getStatus());
-  }
-
-  @Test
-  void syncOrgShouldThrowInternalServerError() throws Exception {
-    doThrow(new MissingAccountNumberException()).when(controller).updateInventoryForOrg(any());
-    var request = new OrgSyncRequest();
-    request.setOrgId("123");
-    assertThrows(InternalServerErrorException.class, () -> resource.syncOrg(request));
   }
 
   @Test
@@ -104,7 +92,7 @@ class InternalOrganizationSyncResourceTest {
   }
 
   @Test
-  void getInventoryForOrg() throws MissingAccountNumberException {
+  void getInventoryForOrg() {
     String orgId = "123";
     Integer offset = 0;
     OrgInventory expected = new OrgInventory();
@@ -113,16 +101,5 @@ class InternalOrganizationSyncResourceTest {
     OrgInventory actual = resource.getInventoryForOrg(orgId, null, offset);
     verify(controller).getInventoryForOrg(orgId, offset.toString());
     assertEquals(expected, actual);
-  }
-
-  @Test
-  void getInventoryForOrgThrowsInternalServerErrorException() throws MissingAccountNumberException {
-    String orgId = "123";
-    Integer offset = 0;
-    when(controller.getInventoryForOrg(orgId, offset.toString()))
-        .thenThrow(new MissingAccountNumberException());
-
-    assertThrows(
-        InternalServerErrorException.class, () -> resource.getInventoryForOrg(orgId, null, offset));
   }
 }

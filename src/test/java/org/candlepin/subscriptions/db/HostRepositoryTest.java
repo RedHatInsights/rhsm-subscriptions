@@ -168,7 +168,6 @@ class HostRepositoryTest {
     OffsetDateTime expLastSeen = OffsetDateTime.now(clock.getClock());
     String expInventoryId = "INV";
     String expInsightsId = "INSIGHTS_ID";
-    String expAccount = "ACCT";
     String expOrg = "ORG";
     String expSubId = "SUB_ID";
     String expDisplayName = "HOST_DISPLAY";
@@ -181,7 +180,7 @@ class HostRepositoryTest {
     boolean expIsHypervisor = true;
     String expCloudProvider = "CLOUD_PROVIDER";
 
-    Host host = new Host(expInventoryId, expInsightsId, expAccount, expOrg, expSubId);
+    Host host = new Host(expInventoryId, expInsightsId, expOrg, expSubId);
     host.setBillingProvider(BillingProvider.RED_HAT);
     host.setBillingAccountId("_ANY");
     host.setNumOfGuests(expGuests);
@@ -243,7 +242,7 @@ class HostRepositoryTest {
   @Transactional
   @Test
   void testCreate() {
-    Host host = new Host("INV1", "HOST1", "my_acct", "my_org", "sub_id");
+    Host host = new Host("INV1", "HOST1", "my_org", "sub_id");
     host.setDisplayName(DEFAULT_DISPLAY_NAME);
     host.addBucket(
         "RHEL",
@@ -271,7 +270,7 @@ class HostRepositoryTest {
   @Transactional
   @Test
   void testUpdate() {
-    Host host = new Host("INV1", "HOST1", "my_acct", "my_org", "sub_id");
+    Host host = new Host("INV1", "HOST1", "my_org", "sub_id");
     host.setDisplayName(DEFAULT_DISPLAY_NAME);
     host.setMeasurement(MetricIdUtils.getSockets().toString(), 1.0);
     host.setMeasurement(MetricIdUtils.getCores().toString(), 1.0);
@@ -307,8 +306,6 @@ class HostRepositoryTest {
     assertTrue(result.isPresent());
     Host toUpdate = result.get();
     assertEquals(2, toUpdate.getBuckets().size());
-
-    toUpdate.setAccountNumber("updated_acct_num");
     toUpdate.setMeasurement(MetricIdUtils.getSockets().toString(), 4.0);
     toUpdate.setMeasurement(MetricIdUtils.getCores().toString(), 8.0);
     toUpdate.setDisplayName(DEFAULT_DISPLAY_NAME);
@@ -333,7 +330,6 @@ class HostRepositoryTest {
     Optional<Host> updateResult = repo.findById(toUpdate.getId());
     assertTrue(updateResult.isPresent());
     Host updated = updateResult.get();
-    assertEquals("updated_acct_num", updated.getAccountNumber());
     assertEquals(4, updated.getMeasurement(MetricIdUtils.getSockets().toString()).intValue());
     assertEquals(8, updated.getMeasurement(MetricIdUtils.getCores().toString()).intValue());
     assertEquals(1, updated.getBuckets().size());
@@ -432,7 +428,6 @@ class HostRepositoryTest {
   void testNoHostFoundWhenItHasNoBucket() {
     Optional<Host> existing = repo.findById(existingHostsByInventoryId.get("inventory6").getId());
     assertTrue(existing.isPresent());
-    assertEquals("account3", existing.get().getAccountNumber());
 
     // When a host has no buckets, it will not be returned.
     Page<TallyHostView> hosts =
@@ -679,7 +674,7 @@ class HostRepositoryTest {
   @Transactional
   @Test
   void testGetHostViews() {
-    Host host1 = new Host("INV1", "HOST1", "my_acct", "my_org", "sub_id");
+    Host host1 = new Host("INV1", "HOST1", "my_org", "sub_id");
     host1.setMeasurement(MetricIdUtils.getSockets().toString(), 1.0);
     host1.setMeasurement(MetricIdUtils.getCores().toString(), 1.0);
     host1.setNumOfGuests(4);
@@ -718,8 +713,8 @@ class HostRepositoryTest {
     List<Host> toPersist =
         Arrays.asList(
             host1,
-            new Host("INV2", "HOST2", "my_acct", "my_org", "sub2_id"),
-            new Host("INV3", "HOST3", "my_acct2", "another_org", "sub3_id"));
+            new Host("INV2", "HOST2", "my_org", "sub2_id"),
+            new Host("INV3", "HOST3", "another_org", "sub3_id"));
 
     toPersist.forEach(x -> x.setDisplayName(DEFAULT_DISPLAY_NAME));
     persistHosts(toPersist.toArray(new Host[] {}));
@@ -791,7 +786,7 @@ class HostRepositoryTest {
   @Transactional
   @Test
   void testNullNumGuests() {
-    Host host = new Host("INV1", "HOST1", "my_acct", "my_org", "sub_id");
+    Host host = new Host("INV1", "HOST1", "my_org", "sub_id");
     host.setDisplayName(DEFAULT_DISPLAY_NAME);
     host.setMeasurement(MetricIdUtils.getSockets().toString(), 1.0);
     host.setMeasurement(MetricIdUtils.getCores().toString(), 1.0);
@@ -840,7 +835,7 @@ class HostRepositoryTest {
   @Transactional
   @Test
   void testShouldFilterSockets() {
-    Host coreHost = new Host("INV1", "HOST1", "my_acct", "my_org", "sub_id");
+    Host coreHost = new Host("INV1", "HOST1", "my_org", "sub_id");
     coreHost.setDisplayName(DEFAULT_DISPLAY_NAME);
     coreHost.setMeasurement(MetricIdUtils.getSockets().toString(), 0.0);
     coreHost.setMeasurement(MetricIdUtils.getCores().toString(), 1.0);
@@ -855,7 +850,7 @@ class HostRepositoryTest {
         1,
         HardwareMeasurementType.PHYSICAL);
 
-    Host socketHost = new Host("INV2", "HOST2", "my_acct", "my_org", "sub_id");
+    Host socketHost = new Host("INV2", "HOST2", "my_org", "sub_id");
     socketHost.setDisplayName(DEFAULT_DISPLAY_NAME);
     socketHost.setMeasurement(MetricIdUtils.getSockets().toString(), 1.0);
     socketHost.setMeasurement(MetricIdUtils.getCores().toString(), 0.0);
@@ -902,7 +897,7 @@ class HostRepositoryTest {
   @Transactional
   @Test
   void testShouldFilterCores() {
-    Host coreHost = new Host("INV1", "HOST1", "my_acct", "my_org", "sub_id");
+    Host coreHost = new Host("INV1", "HOST1", "my_org", "sub_id");
     coreHost.setDisplayName(DEFAULT_DISPLAY_NAME);
     coreHost.setMeasurement(MetricIdUtils.getSockets().toString(), 0.0);
     coreHost.setMeasurement(MetricIdUtils.getCores().toString(), 1.0);
@@ -917,7 +912,7 @@ class HostRepositoryTest {
         1,
         HardwareMeasurementType.PHYSICAL);
 
-    Host socketHost = new Host("INV2", "HOST2", "my_acct", "my_org", "sub_id");
+    Host socketHost = new Host("INV2", "HOST2", "my_org", "sub_id");
     socketHost.setDisplayName(DEFAULT_DISPLAY_NAME);
     socketHost.setMeasurement(MetricIdUtils.getSockets().toString(), 1.0);
     socketHost.setMeasurement(MetricIdUtils.getCores().toString(), 0.0);
@@ -1262,14 +1257,9 @@ class HostRepositoryTest {
     assertTrue(hostToBill.keySet().containsAll(Arrays.asList("i1", "i2", "i3")));
   }
 
-  private Host createHost(String inventoryId, String account) {
+  private Host createHost(String inventoryId, String org) {
     Host host =
-        new Host(
-            inventoryId,
-            "INSIGHTS_" + inventoryId,
-            account,
-            "ORG_" + account,
-            "SUBMAN_" + inventoryId);
+        new Host(inventoryId, "INSIGHTS_" + inventoryId, "ORG_" + org, "SUBMAN_" + inventoryId);
     host.setMeasurement(MetricIdUtils.getSockets().toString(), 1.0);
     host.setMeasurement(MetricIdUtils.getCores().toString(), 1.0);
     return host;

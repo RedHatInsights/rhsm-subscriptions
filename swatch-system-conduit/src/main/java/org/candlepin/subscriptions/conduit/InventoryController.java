@@ -35,7 +35,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -55,7 +54,6 @@ import org.candlepin.subscriptions.conduit.rhsm.client.model.Consumer;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.InstalledProducts;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.Pagination;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
-import org.candlepin.subscriptions.exception.MissingAccountNumberException;
 import org.candlepin.subscriptions.utilization.api.model.OrgInventory;
 import org.candlepin.subscriptions.validator.IpAddressValidator;
 import org.candlepin.subscriptions.validator.MacAddressValidator;
@@ -552,8 +550,7 @@ public class InventoryController {
     }
   }
 
-  public void updateInventoryForOrg(String orgId)
-      throws MissingAccountNumberException, ExternalServiceException {
+  public void updateInventoryForOrg(String orgId) throws ExternalServiceException {
     updateInventoryForOrg(orgId, null);
   }
 
@@ -572,8 +569,7 @@ public class InventoryController {
   }
 
   @Timed("rhsm-conduit.sync.org-page")
-  public void updateInventoryForOrg(String orgId, String offset)
-      throws ExternalServiceException, MissingAccountNumberException {
+  public void updateInventoryForOrg(String orgId, String offset) throws ExternalServiceException {
 
     org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory feedPage =
         getConsumerFeed(orgId, offset);
@@ -617,7 +613,7 @@ public class InventoryController {
   }
 
   public OrgInventory getInventoryForOrg(String orgId, String offset)
-      throws MissingAccountNumberException, ExternalServiceException {
+      throws ExternalServiceException {
     org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory feedPage =
         getConsumerFeed(orgId, offset);
     return inventoryService.getInventoryForOrgConsumers(
@@ -625,23 +621,10 @@ public class InventoryController {
   }
 
   private Stream<ConduitFacts> validateConduitFactsForOrg(
-      org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory feedPage)
-      throws MissingAccountNumberException {
+      org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory feedPage) {
 
     if (feedPage.getBody().isEmpty()) {
       return Stream.empty();
-    }
-
-    // If the missing account number is false then
-    // Peek at the first consumer.  If it is missing an account number, that means they all are.
-    // Abort and return an empty stream.  No sense in wasting time looping through everything.
-    try {
-      if (!serviceProperties.isTolerateMissingAccountNumber()
-          && !StringUtils.hasText(feedPage.getBody().get(0).getAccountNumber())) {
-        throw new MissingAccountNumberException();
-      }
-    } catch (NoSuchElementException e) {
-      throw new MissingAccountNumberException();
     }
 
     return feedPage.getBody().stream()
@@ -660,7 +643,6 @@ public class InventoryController {
       if (facts == null) {
         return Optional.empty();
       }
-      facts.setAccountNumber(consumer.getAccountNumber());
 
       Set<ConstraintViolation<ConduitFacts>> violations =
           validateHostTimer.recordCallable(() -> validator.validate(facts));

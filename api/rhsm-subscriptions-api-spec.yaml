@@ -57,18 +57,12 @@ paths:
               example:
                 data:
                   opt_in_complete: true
-                  account:
-                    account_number: 12345
-                    opt_in_type: 'API'
-                    created: '2017-08-04T17:32:05Z'
-                    last_updated: '2017-08-04T17:32:05Z'
                   org:
                     org_id: 1111
                     opt_in_type: 'API'
                     created: '2017-08-04T17:32:05Z'
                     last_updated: '2017-08-04T17:32:05Z'
                 meta:
-                  account_number: 12345
                   org_id: 1111
         '400':
           $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
@@ -79,7 +73,7 @@ paths:
         '500':
           $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
     put:
-      summary: "Create/Update an account's opt-in configuration. Account and Org ID are defined by the
+      summary: "Create/Update an account's opt-in configuration. Org ID are defined by the
                 identity header."
       operationId: putOptInConfig
       responses:
@@ -92,18 +86,12 @@ paths:
               example:
                 data:
                   opt_in_complete: true
-                  account:
-                    account_number: 12345
-                    opt_in_type: 'API'
-                    created: '2017-08-04T17:32:05Z'
-                    last_updated: '2017-08-04T17:32:05Z'
                   org:
                     org_id: 1111
                     opt_in_type: 'API'
                     created: '2017-08-04T17:32:05Z'
                     last_updated: '2017-08-04T17:32:05Z'
                 meta:
-                  account_number: 12345
                   org_id: 1111
         '400':
           $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
@@ -114,12 +102,12 @@ paths:
         '500':
           $ref: "../spec/error-responses.yaml#/$defs/InternalServerError"
     delete:
-      summary: "Delete an opt-in config for the associated account/org. The account number and org ID are
+      summary: "Delete an opt-in config for the associated org. The org ID are
                 pulled from the identity header."
       operationId: deleteOptInConfig
       responses:
         '204':
-          description: "Successfully deleted the opt-in configuration for the accociated account/org"
+          description: "Successfully deleted the opt-in configuration for the accociated org"
         '400':
           $ref: "../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
@@ -1197,8 +1185,6 @@ components:
           required:
             - org_id
           properties:
-            account_number:
-              type: string
             org_id:
               type: string
         data:
@@ -1215,8 +1201,6 @@ components:
                 - created
                 - last_updated
               properties:
-                account_number:
-                  type: string
                 opt_in_type:
                   type: string
                 created:
@@ -1815,8 +1799,6 @@ components:
     CandlepinPool:
       description: Subset of Candlepin pool data that rhsm-subscriptions understands.
       properties:
-        accountNumber:
-          type: string
         activeSubscription:
           type: boolean
         startDate:

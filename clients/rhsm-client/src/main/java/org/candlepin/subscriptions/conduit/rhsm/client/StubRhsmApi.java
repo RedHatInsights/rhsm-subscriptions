@@ -49,7 +49,6 @@ public class StubRhsmApi extends RhsmApi {
     Consumer consumer1 = new Consumer();
     consumer1.setUuid(UUID.randomUUID().toString());
     consumer1.setOrgId(xRhsmApiAccountID);
-    consumer1.setAccountNumber("ACCOUNT_1");
     consumer1.setHypervisorName("hypervisor1.test.com");
     consumer1.setServiceLevel("Premium");
     consumer1.setReleaseVer("8.0");
@@ -86,7 +85,6 @@ public class StubRhsmApi extends RhsmApi {
     String consumer2Uuid = UUID.randomUUID().toString();
     consumer2.setUuid(consumer2Uuid);
     consumer2.setOrgId(xRhsmApiAccountID);
-    consumer2.setAccountNumber("ACCOUNT_1");
     consumer2.getFacts().put("network.fqdn", "host2.test.com");
 
     Pagination pagination = new Pagination().offset(offset).limit(limit.longValue());

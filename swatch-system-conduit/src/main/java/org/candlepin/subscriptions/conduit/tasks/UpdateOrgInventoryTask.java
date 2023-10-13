@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.conduit.tasks;
 import org.candlepin.subscriptions.conduit.InventoryController;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.ExternalServiceException;
-import org.candlepin.subscriptions.exception.MissingAccountNumberException;
 import org.candlepin.subscriptions.task.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,8 +50,6 @@ public class UpdateOrgInventoryTask implements Task {
     log.info("Updating inventory for org {} with offset {}", orgId, offset);
     try {
       controller.updateInventoryForOrg(orgId, offset);
-    } catch (MissingAccountNumberException e) {
-      log.warn("Org {} is missing account number", orgId);
     } catch (ExternalServiceException e) {
       if (ErrorCode.RHSM_SERVICE_UNKNOWN_ORG_ERROR.equals(e.getCode())) {
         log.warn("RHSM API could not find orgId={} while updating inventory.", orgId);
