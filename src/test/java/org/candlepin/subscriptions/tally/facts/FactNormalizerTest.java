@@ -686,6 +686,14 @@ class FactNormalizerTest {
     assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for IBM Power"));
   }
 
+  @Test
+  void testQpcProductIdFromEngId() {
+    var host = createQpcHost("RHEL", "Test", clock.now());
+    host.setQpcProductIds("69");
+    NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
+    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for x86"));
+  }
+
   private void assertClassification(
       NormalizedFacts check, boolean isHypervisor, boolean isHypervisorUnknown, boolean isVirtual) {
     assertEquals(isHypervisor, check.isHypervisor());

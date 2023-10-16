@@ -26,6 +26,7 @@ import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.apache.commons.collections4.CollectionUtils;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.HostHardwareType;
@@ -329,7 +330,8 @@ public class FactNormalizer {
   private void normalizeQpcFacts(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
     // Check if this is a RHEL host and set product.
     if (hostFacts.getQpcProducts() != null && hostFacts.getQpcProducts().contains("RHEL")) {
-      if (hostFacts.getSystemProfileArch() != null) {
+      if (hostFacts.getSystemProfileArch() != null
+          && CollectionUtils.isEmpty(hostFacts.getQpcProductIds())) {
         switch (hostFacts.getSystemProfileArch()) {
           case "x86_64", "i686", "i386":
             normalizedFacts.addProduct("RHEL for x86");
