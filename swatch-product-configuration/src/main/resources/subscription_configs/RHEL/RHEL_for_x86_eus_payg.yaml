@@ -13,7 +13,7 @@ variants:
     productNames:
       - RHEL Server
     roles:
-      - rhel-for-x86-eus-payg-placeholder-role
+      - Red Hat Enterprise Linux Server
 
 defaults:
   variant: rhel-for-x86-eus-payg
