@@ -103,8 +103,8 @@ class FactNormalizerTest {
   @Test
   void testQpcNormalization() {
     NormalizedFacts normalized =
-        normalizer.normalize(createQpcHost("RHEL", clock.now()), hypervisorData());
-    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
+        normalizer.normalize(createQpcHost("RHEL", "x86_64", clock.now()), hypervisorData());
+    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for x86"));
     assertEquals(Integer.valueOf(0), normalized.getCores());
     assertEquals(Integer.valueOf(0), normalized.getSockets());
   }
@@ -207,21 +207,21 @@ class FactNormalizerTest {
   @Test
   void testRhelFromQpcFacts() {
     NormalizedFacts normalized =
-        normalizer.normalize(createQpcHost("RHEL", clock.now()), hypervisorData());
-    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL"));
+        normalizer.normalize(createQpcHost("RHEL", "x86_64", clock.now()), hypervisorData());
+    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for x86"));
   }
 
   @Test
   void testEmptyProductListWhenRhelNotPresent() {
     NormalizedFacts normalized =
-        normalizer.normalize(createQpcHost("EAP", clock.now()), hypervisorData());
+        normalizer.normalize(createQpcHost("EAP", null, clock.now()), hypervisorData());
     assertThat(normalized.getProducts(), Matchers.empty());
   }
 
   @Test
   void testEmptyProductListWhenQpcProductsNotSet() {
     NormalizedFacts normalized =
-        normalizer.normalize(createQpcHost(null, clock.now()), hypervisorData());
+        normalizer.normalize(createQpcHost(null, null, clock.now()), hypervisorData());
     assertThat(normalized.getProducts(), Matchers.empty());
   }
 
@@ -255,8 +255,10 @@ class FactNormalizerTest {
   @Test
   void testRhelUngroupedIfNoVariants() {
     NormalizedFacts normalized =
-        normalizer.normalize(createQpcHost("RHEL", clock.now()), hypervisorData());
-    assertThat(normalized.getProducts(), Matchers.containsInAnyOrder("RHEL", "RHEL Ungrouped"));
+        normalizer.normalize(createQpcHost("RHEL", "x86_64", clock.now()), hypervisorData());
+    assertThat(
+        normalized.getProducts(),
+        Matchers.containsInAnyOrder("RHEL for x86", "RHEL", "RHEL Ungrouped"));
   }
 
   @Test
@@ -660,6 +662,28 @@ class FactNormalizerTest {
     assertTrue(normalizedFacts.isMarketplace());
     assertEquals(0, normalizedFacts.getCores());
     assertEquals(0, normalizedFacts.getSockets());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"x86_64", "i386", "i686"})
+  void testQpcSystemArchSetRhelForX86Product(String arch) {
+    NormalizedFacts normalized =
+        normalizer.normalize(createQpcHost("RHEL", arch, clock.now()), hypervisorData());
+    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for x86"));
+  }
+
+  @Test
+  void testQpcSystemArchSetRhelForArm() {
+    NormalizedFacts normalized =
+        normalizer.normalize(createQpcHost("RHEL", "aarch64", clock.now()), hypervisorData());
+    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for ARM"));
+  }
+
+  @Test
+  void testQpcSystemArchSetRhelForIbmPower() {
+    NormalizedFacts normalized =
+        normalizer.normalize(createQpcHost("RHEL", "ppc64le", clock.now()), hypervisorData());
+    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for IBM Power"));
   }
 
   private void assertClassification(

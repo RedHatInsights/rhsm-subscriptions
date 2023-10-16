@@ -103,9 +103,11 @@ public class InventoryHostFactTestHelper {
     return baseFacts;
   }
 
-  public static InventoryHostFacts createQpcHost(String qpcProducts, OffsetDateTime syncTimestamp) {
+  public static InventoryHostFacts createQpcHost(
+      String qpcProducts, String systemArch, OffsetDateTime syncTimestamp) {
     InventoryHostFacts baseFacts = createBaseHost("test_org");
     baseFacts.setQpcProducts(qpcProducts);
+    baseFacts.setSystemProfileArch(systemArch);
     baseFacts.setSyncTimestamp(syncTimestamp.toString());
     return baseFacts;
   }
