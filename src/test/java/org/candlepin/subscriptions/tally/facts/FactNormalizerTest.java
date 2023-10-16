@@ -143,7 +143,7 @@ class FactNormalizerTest {
 
   @Test
   void testSystemProfileInfrastructureType() {
-    InventoryHostFacts baseFacts = createBaseHost("Account", "test-org");
+    InventoryHostFacts baseFacts = createBaseHost("test-org");
     baseFacts.setSystemProfileInfrastructureType("virtual");
     baseFacts.setSyncTimestamp(clock.now().toString());
 
@@ -186,7 +186,7 @@ class FactNormalizerTest {
   @Test
   void testIgnoresHostWhenLastSyncIsOutOfConfiguredThreshold() {
     OffsetDateTime lastSynced = clock.now().minusDays(2);
-    InventoryHostFacts facts = createRhsmHost("A1", "O1", "69", null, lastSynced);
+    InventoryHostFacts facts = createRhsmHost("O1", "69", null, lastSynced);
 
     NormalizedFacts normalized = normalizer.normalize(facts, hypervisorData());
     assertThat(normalized.getProducts(), Matchers.empty());
@@ -196,7 +196,7 @@ class FactNormalizerTest {
   @Test
   void testIncludesHostWhenLastSyncIsWithinTheConfiguredThreshold() {
     OffsetDateTime lastSynced = clock.now().minusDays(1);
-    InventoryHostFacts facts = createRhsmHost("A1", "O1", "69", null, lastSynced);
+    InventoryHostFacts facts = createRhsmHost("O1", "69", null, lastSynced);
     facts.setSystemProfileCoresPerSocket(2);
     facts.setSystemProfileSockets(2);
     NormalizedFacts normalized = normalizer.normalize(facts, hypervisorData());
@@ -272,8 +272,7 @@ class FactNormalizerTest {
   void nonNumericProductIdIgnored() {
     NormalizedFacts normalized =
         normalizer.normalize(
-            createRhsmHost(
-                "A1", "O1", "69,419,Foobar", "Red Hat Enterprise Linux Server", clock.now()),
+            createRhsmHost("O1", "69,419,Foobar", "Red Hat Enterprise Linux Server", clock.now()),
             hypervisorData());
     assertThat(
         normalized.getProducts(), Matchers.containsInAnyOrder("RHEL for x86", "RHEL " + "for ARM"));
@@ -309,7 +308,7 @@ class FactNormalizerTest {
 
   @Test
   void testModulo2SocketNormalizationForHypervisors() {
-    InventoryHostFacts hypervisor = createHypervisor("A1", "O1", 69);
+    InventoryHostFacts hypervisor = createHypervisor("O1", 69);
     hypervisor.setSystemProfileCoresPerSocket(4);
     hypervisor.setSystemProfileSockets(3);
 
@@ -335,7 +334,7 @@ class FactNormalizerTest {
 
   @Test
   void testNoModulo2SocketNormalizationForGuests() {
-    InventoryHostFacts guestFacts = createGuest("hyp-id", "A1", "O1", 69);
+    InventoryHostFacts guestFacts = createGuest("hyp-id", "O1", 69);
     guestFacts.setSystemProfileCoresPerSocket(4);
     guestFacts.setSystemProfileSockets(3);
     assertTrue(guestFacts.isVirtual());
@@ -351,7 +350,7 @@ class FactNormalizerTest {
 
   @Test
   void testPhysicalNormalization() {
-    InventoryHostFacts hostFacts = createBaseHost("A1", "O1");
+    InventoryHostFacts hostFacts = createBaseHost("O1");
     assertFalse(hostFacts.isVirtual());
     assertTrue(StringUtils.isEmpty(hostFacts.getHypervisorUuid()));
     assertTrue(StringUtils.isEmpty(hostFacts.getSatelliteHypervisorUuid()));
@@ -364,7 +363,7 @@ class FactNormalizerTest {
 
   @Test
   void testIsHypervisorNormalization() {
-    InventoryHostFacts facts = createHypervisor("A1", "O1", 1);
+    InventoryHostFacts facts = createHypervisor("O1", 1);
     facts.setSystemProfileCoresPerSocket(4);
     facts.setSystemProfileSockets(3);
     assertFalse(facts.isVirtual());
@@ -382,7 +381,7 @@ class FactNormalizerTest {
 
   @Test
   void testIsGuestNormalization() {
-    InventoryHostFacts facts = createGuest("hyp-id", "A1", "O1", 1);
+    InventoryHostFacts facts = createGuest("hyp-id", "O1", 1);
     facts.setSystemProfileCoresPerSocket(4);
     facts.setSystemProfileSockets(3);
     assertTrue(facts.isVirtual());
@@ -397,7 +396,7 @@ class FactNormalizerTest {
     assertFalse(normalized.isHypervisorUnknown());
     assertFalse(normalized.isHypervisor());
 
-    facts = createGuest(null, "A1", "O1", 1);
+    facts = createGuest(null, "O1", 1);
     facts.setSystemProfileCoresPerSocket(4);
     facts.setSystemProfileSockets(3);
 
@@ -415,7 +414,7 @@ class FactNormalizerTest {
   @Test
   void testThatCloudProviderIsSet() {
     String expectedCloudProvider = "aws";
-    InventoryHostFacts baseFacts = createBaseHost("A1", "O1");
+    InventoryHostFacts baseFacts = createBaseHost("O1");
     baseFacts.setCloudProvider(expectedCloudProvider);
 
     NormalizedFacts normalized = normalizer.normalize(baseFacts, hypervisorData());
@@ -426,7 +425,7 @@ class FactNormalizerTest {
   @ParameterizedTest
   @ValueSource(strings = {"google", "gcp"})
   void testThatGoogleCloudProviderIsSet(String expectedCloudProvider) {
-    InventoryHostFacts baseFacts = createBaseHost("A1", "O1");
+    InventoryHostFacts baseFacts = createBaseHost("O1");
     baseFacts.setCloudProvider(expectedCloudProvider);
 
     NormalizedFacts normalized = normalizer.normalize(baseFacts, hypervisorData());
@@ -436,13 +435,13 @@ class FactNormalizerTest {
 
   @Test
   void testThatCloudProviderIsNotSetIfNull() {
-    NormalizedFacts normalized = normalizer.normalize(createBaseHost("A1", "O1"), hypervisorData());
+    NormalizedFacts normalized = normalizer.normalize(createBaseHost("O1"), hypervisorData());
     assertNull(normalized.getCloudProviderType());
   }
 
   @Test
   void testThatCloudProviderIsNotSetIfEmpty() {
-    InventoryHostFacts baseFacts = createBaseHost("A1", "O1");
+    InventoryHostFacts baseFacts = createBaseHost("O1");
     baseFacts.setCloudProvider("");
 
     NormalizedFacts normalized = normalizer.normalize(baseFacts, hypervisorData());
@@ -452,7 +451,7 @@ class FactNormalizerTest {
   @Test
   void testThatUnsupportedCloudProviderIsNotSet() {
     String expectedCloudProvider = "unknown";
-    InventoryHostFacts baseFacts = createBaseHost("A1", "O1");
+    InventoryHostFacts baseFacts = createBaseHost("O1");
     baseFacts.setCloudProvider(expectedCloudProvider);
 
     NormalizedFacts normalized = normalizer.normalize(baseFacts, hypervisorData());
@@ -468,7 +467,7 @@ class FactNormalizerTest {
 
   @Test
   void testGuestWithMappedHypervisorClassification() {
-    InventoryHostFacts guestWithMappedHypervisor = createGuest("mapped-hyp-id", "A1", "O1", 1);
+    InventoryHostFacts guestWithMappedHypervisor = createGuest("mapped-hyp-id", "O1", 1);
 
     OrgHostsData guestData = hypervisorData();
     guestData.addHostMapping(
@@ -481,7 +480,7 @@ class FactNormalizerTest {
 
   @Test
   void testGuestWithUnmappedHypervisorClassification() {
-    InventoryHostFacts guestWithMappedHypervisor = createGuest("mapped-hyp-id", "A1", "O1", 1);
+    InventoryHostFacts guestWithMappedHypervisor = createGuest("mapped-hyp-id", "O1", 1);
 
     OrgHostsData guestData = hypervisorData();
     guestData.addHostMapping(guestWithMappedHypervisor.getHypervisorUuid(), null);
@@ -492,7 +491,7 @@ class FactNormalizerTest {
 
   @Test
   void testGuestWithUnmappedHypervisorClassificationUsingSatelliteMapping() {
-    InventoryHostFacts guestWithMappedHypervisor = createGuest("mapped-hyp-id", "A1", "O1", 1);
+    InventoryHostFacts guestWithMappedHypervisor = createGuest("mapped-hyp-id", "O1", 1);
     guestWithMappedHypervisor.setHypervisorUuid(null);
     guestWithMappedHypervisor.setSatelliteHypervisorUuid("mapped-hyp-id");
 
@@ -505,7 +504,7 @@ class FactNormalizerTest {
 
   @Test
   void testGuestWithNullHypIdIsUnmappedHypervisorClassification() {
-    InventoryHostFacts guestWithMappedHypervisor = createGuest(null, "A1", "O1", 1);
+    InventoryHostFacts guestWithMappedHypervisor = createGuest(null, "O1", 1);
 
     NormalizedFacts facts = normalizer.normalize(guestWithMappedHypervisor, hypervisorData());
     assertClassification(facts, false, true, true);
@@ -513,7 +512,7 @@ class FactNormalizerTest {
 
   @Test
   void testHypervisorClassificationWhenMapped() {
-    InventoryHostFacts hypervisor = createHypervisor("A1", "O1", 1);
+    InventoryHostFacts hypervisor = createHypervisor("O1", 1);
     hypervisor.setSystemProfileCoresPerSocket(4);
     hypervisor.setSystemProfileSockets(3);
     OrgHostsData guestData = hypervisorData();
@@ -525,7 +524,7 @@ class FactNormalizerTest {
 
   @Test
   void testHypervisorClassificationWhenUnmapped() {
-    InventoryHostFacts hypervisor = createHypervisor("A1", "O1", 1);
+    InventoryHostFacts hypervisor = createHypervisor("O1", 1);
     OrgHostsData guestData = hypervisorData();
     guestData.addHostMapping(hypervisor.getSubscriptionManagerId(), null);
 
@@ -541,7 +540,7 @@ class FactNormalizerTest {
   @ParameterizedTest
   @MethodSource("syspurposeUnitsArgs")
   void testSyspurposeUnits(String unit, int sockets, int cores) {
-    InventoryHostFacts facts = createBaseHost("A1", "O1");
+    InventoryHostFacts facts = createBaseHost("O1");
     facts.setSystemProfileCoresPerSocket(2);
     facts.setSystemProfileSockets(2);
 
@@ -554,7 +553,7 @@ class FactNormalizerTest {
 
   @Test
   void testSyspurposeUnitsUnspecified() {
-    InventoryHostFacts facts = createBaseHost("A1", "O1");
+    InventoryHostFacts facts = createBaseHost("O1");
     facts.setSystemProfileCoresPerSocket(2);
     facts.setSystemProfileSockets(2);
 
@@ -565,7 +564,7 @@ class FactNormalizerTest {
 
   @Test
   void classifyAsVirtualIfSatelliteReportedHypervisorUuidButNotInfrastructureType() {
-    InventoryHostFacts facts = createBaseHost("A1", "O1");
+    InventoryHostFacts facts = createBaseHost("O1");
     facts.setSatelliteHypervisorUuid("SAT_HYPERVISOR");
     assertFalse(facts.isVirtual());
     assertNull(facts.getSystemProfileInfrastructureType());
@@ -575,7 +574,7 @@ class FactNormalizerTest {
 
   @Test
   void testSatelliteSyspurposeHandled() {
-    InventoryHostFacts facts = createBaseHost("A1", "O1");
+    InventoryHostFacts facts = createBaseHost("O1");
     facts.setSatelliteRole("Red Hat Enterprise Linux Server");
     facts.setSatelliteSla("Premium");
     facts.setSatelliteUsage("Production");
@@ -587,7 +586,7 @@ class FactNormalizerTest {
 
   @Test
   void testRhsmFactsOverrideSatellite() {
-    InventoryHostFacts facts = createBaseHost("A1", "O1");
+    InventoryHostFacts facts = createBaseHost("O1");
     facts.setSatelliteRole("Red Hat Enterprise Linux Server");
     facts.setSatelliteSla("Premium");
     facts.setSatelliteUsage("Production");
@@ -604,7 +603,7 @@ class FactNormalizerTest {
 
   @Test
   void testCalculationOfVirtualCPU() {
-    InventoryHostFacts facts = createBaseHost("V1", "01");
+    InventoryHostFacts facts = createBaseHost("01");
     facts.setSystemProfileArch("x86_64");
     facts.setSystemProfileCoresPerSocket(16);
     facts.setSystemProfileSockets(1);
@@ -616,7 +615,7 @@ class FactNormalizerTest {
 
   @Test
   void testCalculationOfVirtualCPURoundsUP() {
-    InventoryHostFacts facts = createBaseHost("V1", "01");
+    InventoryHostFacts facts = createBaseHost("01");
     facts.setSystemProfileArch("x86_64");
     facts.setSystemProfileCoresPerSocket(9);
     facts.setSystemProfileSockets(1);

@@ -58,7 +58,6 @@ public class UsageContextSubscriptionProvider {
 
   public Optional<Subscription> getSubscription(
       String orgId,
-      String accountNumber,
       String productId,
       String sla,
       String usage,
@@ -76,7 +75,7 @@ public class UsageContextSubscriptionProvider {
     var start = subscriptionDate.minusHours(1);
     List<Subscription> subscriptions =
         subscriptionSyncController.findSubscriptions(
-            accountNumber, Optional.ofNullable(orgId), usageKey, start, subscriptionDate);
+            Optional.ofNullable(orgId), usageKey, start, subscriptionDate);
 
     var existsRecentlyTerminatedSubscription =
         subscriptions.stream()
@@ -107,10 +106,9 @@ public class UsageContextSubscriptionProvider {
     if (activeSubscriptions.size() > 1) {
       ambiguousSubscriptionCounter.increment();
       log.warn(
-          "Multiple subscriptions found for billing provider {} account {} or for org {} with key {} and product tag {}."
+          "Multiple subscriptions found for billing provider {} or for org {} with key {} and product tag {}."
               + " Selecting first result",
           billingProvider,
-          accountNumber,
           orgId,
           usageKey,
           usageKey.getProductId());

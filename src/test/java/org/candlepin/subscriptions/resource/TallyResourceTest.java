@@ -783,7 +783,6 @@ class TallyResourceTest {
   @Test
   void testTallyReportDataTotalUsingHardwareMeasurements() {
     TallySnapshot snapshot = new TallySnapshot();
-    snapshot.setAccountNumber("account123");
     snapshot.setOrgId("org123");
     ;
     snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
@@ -814,7 +813,6 @@ class TallyResourceTest {
   @Test
   void testTallyReportDataTotalUsingTallyMeasurements() {
     TallySnapshot snapshot = new TallySnapshot();
-    snapshot.setAccountNumber("account123");
     snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
     snapshot.setMeasurement(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores(), 4.0);
     when(repository.findSnapshot(
@@ -844,7 +842,6 @@ class TallyResourceTest {
   @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
   void testTallyReportDataCategoriesUsingHardwareMeasurements(ReportCategory category) {
     TallySnapshot snapshot = new TallySnapshot();
-    snapshot.setAccountNumber("account123");
     snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
     for (HardwareMeasurementType hardwareMeasurementType : HardwareMeasurementType.values()) {
       snapshot.setMeasurement(hardwareMeasurementType, MetricIdUtils.getCores(), 4.0);
@@ -876,7 +873,6 @@ class TallyResourceTest {
   @ParameterizedTest(name = DISPLAY_NAME_PLACEHOLDER + " " + DEFAULT_DISPLAY_NAME)
   void testTallyReportDataCategoriesUsingTallyMeasurements(ReportCategory category) {
     TallySnapshot snapshot = new TallySnapshot();
-    snapshot.setAccountNumber("account123");
     snapshot.setSnapshotDate(OffsetDateTime.parse("2021-10-05T00:00Z"));
     for (HardwareMeasurementType hardwareMeasurementType : HardwareMeasurementType.values()) {
       snapshot.setMeasurement(hardwareMeasurementType, MetricIdUtils.getCores(), 4.0);

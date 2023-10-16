@@ -88,9 +88,6 @@ public class BillableUsageProcessor {
     if (billableUsage.getOrgId() != null) {
       MDC.put("org_id", billableUsage.getOrgId());
     }
-    if (billableUsage.getAccountNumber() != null) {
-      MDC.put("account_id", billableUsage.getAccountNumber());
-    }
 
     Optional<Metric> metric = validateUsageAndLookupMetric(billableUsage);
     if (metric.isEmpty()) {
@@ -103,15 +100,13 @@ public class BillableUsageProcessor {
       context = lookupAwsUsageContext(billableUsage);
     } catch (SubscriptionRecentlyTerminatedException e) {
       log.info(
-          "Subscription recently terminated for account={} tallySnapshotId={} orgId={}",
-          billableUsage.getAccountNumber(),
+          "Subscription recently terminated for tallySnapshotId={} orgId={}",
           billableUsage.getId(),
           billableUsage.getOrgId());
       return;
     } catch (AwsUsageContextLookupException e) {
       log.error(
-          "Error looking up usage context for account={} tallySnapshotId={} orgId={}",
-          billableUsage.getAccountNumber(),
+          "Error looking up usage context for tallySnapshotId={} orgId={}",
           billableUsage.getId(),
           billableUsage.getOrgId(),
           e);
@@ -121,8 +116,7 @@ public class BillableUsageProcessor {
       transformAndSend(context, billableUsage, metric.get());
     } catch (Exception e) {
       log.error(
-          "Error sending usage for account={} rhSubscriptionId={} tallySnapshotId={} awsCustomerId={} awsProductCode={} orgId={}",
-          billableUsage.getAccountNumber(),
+          "Error sending usage for rhSubscriptionId={} tallySnapshotId={} awsCustomerId={} awsProductCode={} orgId={}",
           context.getRhSubscriptionId(),
           billableUsage.getId(),
           context.getCustomerId(),
@@ -140,7 +134,6 @@ public class BillableUsageProcessor {
           billableUsage.getOrgId(),
           billableUsage.getSnapshotDate(),
           billableUsage.getProductId(),
-          billableUsage.getAccountNumber(),
           Optional.ofNullable(billableUsage.getSla()).map(SlaEnum::value).orElse(null),
           Optional.ofNullable(billableUsage.getUsage()).map(UsageEnum::value).orElse(null),
           Optional.ofNullable(billableUsage.getBillingAccountId()).orElse("_ANY"));
@@ -170,18 +163,16 @@ public class BillableUsageProcessor {
 
     if (isDryRun.isPresent() && Boolean.TRUE.equals(isDryRun.get())) {
       log.info(
-          "[DRY RUN] Sending usage request to AWS: {}, organization={}, account={}, product_id={}",
+          "[DRY RUN] Sending usage request to AWS: {}, organization={}, product_id={}",
           request,
           billableUsage.getOrgId(),
-          billableUsage.getAccountNumber(),
           billableUsage.getProductId());
       return;
     } else {
       log.info(
-          "Sending usage request to AWS: {}, organization={}, account={}, product_id={}",
+          "Sending usage request to AWS: {}, organization={}, product_id={}",
           request,
           billableUsage.getOrgId(),
-          billableUsage.getAccountNumber(),
           billableUsage.getProductId());
     }
 
@@ -196,23 +187,14 @@ public class BillableUsageProcessor {
               result -> {
                 if (result.status() == UsageRecordResultStatus.CUSTOMER_NOT_SUBSCRIBED) {
                   log.warn(
-                      "No subscription found for organization={}, account={}, product_id={}, result={}",
+                      "No subscription found for organization={}, product_id={}, result={}",
                       billableUsage.getOrgId(),
-                      billableUsage.getAccountNumber(),
                       billableUsage.getProductId(),
                       result);
                 } else if (result.status() != UsageRecordResultStatus.SUCCESS) {
-                  log.warn(
-                      "{}, organization={}, account={}",
-                      result,
-                      billableUsage.getOrgId(),
-                      billableUsage.getAccountNumber());
+                  log.warn("{}, organization={}", result, billableUsage.getOrgId());
                 } else {
-                  log.info(
-                      "{}, organization={}, account={}",
-                      result,
-                      billableUsage.getOrgId(),
-                      billableUsage.getAccountNumber());
+                  log.info("{}, organization={},", result, billableUsage.getOrgId());
                   acceptedCounter.increment(response.results().size());
                 }
               });
@@ -225,10 +207,9 @@ public class BillableUsageProcessor {
       throw new AwsUnprocessedRecordsException(request.usageRecords().size(), e);
     } catch (AwsMissingCredentialsException e) {
       log.warn(
-          "{} for organization={}, account={}, awsCustomerId={}",
+          "{} for organization={}, awsCustomerId={}",
           e.getMessage(),
           billableUsage.getOrgId(),
-          billableUsage.getAccountNumber(),
           context.getCustomerId());
     }
   }

@@ -94,7 +94,6 @@ class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwa
     assertEquals(expectedHostId, fact.getInventoryId());
     assertEquals(ORG_ID, fact.getOrgId());
     assertNotNull(fact.getModifiedOn());
-    assertEquals(ACCOUNT, fact.getAccount());
     assertTrue(fact.isVirtual());
     assertEquals(VM_HOST_UUID, fact.getHypervisorUuid());
     assertEquals(VIRTUAL_HOST_UUID, fact.getSatelliteHypervisorUuid());

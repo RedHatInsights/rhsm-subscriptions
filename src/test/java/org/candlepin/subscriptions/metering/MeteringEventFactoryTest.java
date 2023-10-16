@@ -44,7 +44,6 @@ class MeteringEventFactoryTest {
 
   @Test
   void testOpenShiftClusterCoresEventCreation() {
-    String account = "my-account";
     String orgId = "my-org";
     String clusterId = "my-cluster";
     String sla = "Premium";
@@ -60,7 +59,6 @@ class MeteringEventFactoryTest {
 
     Event event =
         MeteringEventFactory.createMetricEvent(
-            account,
             orgId,
             clusterId,
             sla,
@@ -77,7 +75,6 @@ class MeteringEventFactoryTest {
             productTag,
             meteringBatchId);
 
-    assertEquals(account, event.getAccountNumber());
     assertEquals(orgId, event.getOrgId());
     assertEquals(measuredTime, event.getTimestamp());
     assertEquals(expiry, event.getExpiration().get());
@@ -100,7 +97,6 @@ class MeteringEventFactoryTest {
   void testOpenShiftClusterCoresHandlesNullServiceLevel() {
     Event event =
         MeteringEventFactory.createMetricEvent(
-            "my-account",
             "my-org",
             "cluster-id",
             null,
@@ -123,7 +119,6 @@ class MeteringEventFactoryTest {
   void testOpenShiftClusterCoresSlaSetToEmptyForSlaValueNone() {
     Event event =
         MeteringEventFactory.createMetricEvent(
-            "my-account",
             "my-org",
             "cluster-id",
             "None",
@@ -146,7 +141,6 @@ class MeteringEventFactoryTest {
   void testOpenShiftClusterCoresInvalidSlaWillNotBeSetOnEvent() {
     Event event =
         MeteringEventFactory.createMetricEvent(
-            "my-account",
             "my-org",
             "cluster-id",
             "UNKNOWN_SLA",
@@ -169,7 +163,6 @@ class MeteringEventFactoryTest {
   void testOpenShiftClusterCoresInvalidUsageSetsNullValue() {
     Event event =
         MeteringEventFactory.createMetricEvent(
-            "my-account",
             "my-org",
             "cluster-id",
             "Premium",
@@ -192,7 +185,6 @@ class MeteringEventFactoryTest {
   void testOpenShiftClusterCoresHandlesNullUsage() {
     Event event =
         MeteringEventFactory.createMetricEvent(
-            "my-account",
             "my-org",
             "cluster-id",
             "Premium",
@@ -215,7 +207,6 @@ class MeteringEventFactoryTest {
   void testOpenShiftClusterCoresInvalidRoleSetsNullValue() {
     Event event =
         MeteringEventFactory.createMetricEvent(
-            "my-account",
             "my-org",
             "cluster-id",
             "Premium",
@@ -238,7 +229,6 @@ class MeteringEventFactoryTest {
   void testOpenShiftClusterCoresHandlesNullRole() {
     Event event =
         MeteringEventFactory.createMetricEvent(
-            "my-account",
             "my-org",
             "cluster-id",
             "Premium",
@@ -261,7 +251,6 @@ class MeteringEventFactoryTest {
   void testHandlesValidBillingData() {
     Event event =
         MeteringEventFactory.createMetricEvent(
-            "my-account",
             "my-org",
             "cluster-id",
             "Premium",
@@ -286,7 +275,6 @@ class MeteringEventFactoryTest {
   void testHandlesNullBillingData() {
     Event event =
         MeteringEventFactory.createMetricEvent(
-            "my-account",
             "my-org",
             "cluster-id",
             "Premium",
@@ -310,7 +298,6 @@ class MeteringEventFactoryTest {
   void testBillingProviderEmptyForBillingProviderValueNoneToDefaultRedHat() {
     Event event =
         MeteringEventFactory.createMetricEvent(
-            "my-account",
             "my-org",
             "cluster-id",
             "Premium",
@@ -333,7 +320,6 @@ class MeteringEventFactoryTest {
   void testInvalidBillingProviderWillNotBeSetOnEvent() {
     Event event =
         MeteringEventFactory.createMetricEvent(
-            "my-account",
             "my-org",
             "cluster-id",
             "Premium",
@@ -356,7 +342,6 @@ class MeteringEventFactoryTest {
   void testEventTypeGeneratedOnEventCreation() {
     Event event =
         MeteringEventFactory.createMetricEvent(
-            "my-account",
             "my-org",
             "cluster-id",
             "Premium",
@@ -387,7 +372,6 @@ class MeteringEventFactoryTest {
   void testRhmNormalizedToRedHat() {
     Event event =
         MeteringEventFactory.createMetricEvent(
-            "my-account",
             "my-org",
             "cluster-id",
             "Premium",

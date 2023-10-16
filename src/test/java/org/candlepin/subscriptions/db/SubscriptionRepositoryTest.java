@@ -69,7 +69,7 @@ class SubscriptionRepositoryTest {
     // Because the findActiveSubscription query uses CURRENT_TIMESTAMP,
     // reset NOW so that it is current and not fixed.
     NOW = OffsetDateTime.now();
-    Subscription subscription = createSubscription("1", "1000", "123", "sellerAcctId");
+    Subscription subscription = createSubscription("1", "123", "sellerAcctId");
     Offering offering = createOffering("testSku", "Test SKU", 1066, null, null, null);
     subscription.setOffering(offering);
     offeringRepo.save(offering);
@@ -94,7 +94,7 @@ class SubscriptionRepositoryTest {
   @Transactional
   @Test
   void canMatchOfferings() {
-    Subscription subscription = createSubscription("1", "1000", "123", "sellerAcctId");
+    Subscription subscription = createSubscription("1", "123", "sellerAcctId");
     Offering o1 =
         createOffering("testSku1", "Test SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
     subscription.setOffering(o1);
@@ -109,7 +109,6 @@ class SubscriptionRepositoryTest {
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .accountNumber("1000")
                 .productNames(productNames)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
@@ -123,7 +122,6 @@ class SubscriptionRepositoryTest {
 
     var result = resultList.get(0);
     assertEquals("testSku1", result.getOffering().getSku());
-    assertEquals("1000", result.getAccountNumber());
   }
 
   @Transactional
@@ -132,7 +130,7 @@ class SubscriptionRepositoryTest {
     Offering offering = createOffering("testSku", "Test SKU", 1066, null, null, null);
     offeringRepo.save(offering);
 
-    Subscription subscription = createSubscription("1", "1000", "123", "sellerAcctId");
+    Subscription subscription = createSubscription("1", "123", "sellerAcctId");
     subscription.setOffering(offering);
     subscriptionRepo.saveAndFlush(subscription);
 
@@ -149,7 +147,6 @@ class SubscriptionRepositoryTest {
     var result =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .accountNumber("1000")
                 .productNames(productNames)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
@@ -168,7 +165,7 @@ class SubscriptionRepositoryTest {
     Offering offering = createOffering("testSku", "Test SKU", 1066, null, null, null);
     offeringRepo.save(offering);
 
-    Subscription subscription = createSubscription("1", "1000", "123", "sellerAcctId");
+    Subscription subscription = createSubscription("1", "123", "sellerAcctId");
     subscription.setOffering(offering);
     subscriptionRepo.saveAndFlush(subscription);
 
@@ -183,7 +180,6 @@ class SubscriptionRepositoryTest {
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .accountNumber("1000")
                 .productNames(productNames)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
@@ -201,9 +197,9 @@ class SubscriptionRepositoryTest {
   @Test
   void removeAllButMostRecentMarketplaceSubscriptions() {
     Subscription subscription1 =
-        createSubscription("1", "1000", "123", "sellerAcctId", NOW.minusDays(30), NOW.plusDays(10));
+        createSubscription("1", "123", "sellerAcctId", NOW.minusDays(30), NOW.plusDays(10));
     Subscription subscription2 =
-        createSubscription("1", "1000", "234", "sellerAcctId", NOW, NOW.plusDays(30));
+        createSubscription("1", "234", "sellerAcctId", NOW, NOW.plusDays(30));
     Offering offering =
         createOffering("testSku1", "Test SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
     List<Subscription> subscriptions = List.of(subscription1, subscription2);
@@ -216,7 +212,6 @@ class SubscriptionRepositoryTest {
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .accountNumber("1000")
                 .productNames(productNames)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
@@ -245,15 +240,11 @@ class SubscriptionRepositoryTest {
 
     for (int i = 0; i < 5; i++) {
       Subscription subscription =
-          createSubscription("1", "1001", String.valueOf(new Random().nextInt()), "sellerAcctId");
+          createSubscription("1", String.valueOf(new Random().nextInt()), "sellerAcctId");
       subscription.setOffering(mct3718);
       subscriptionRepo.saveAndFlush(subscription);
     }
-    var criteria =
-        DbReportCriteria.builder()
-            .accountNumber("1001")
-            .serviceLevel(ServiceLevel.SELF_SUPPORT)
-            .build();
+    var criteria = DbReportCriteria.builder().serviceLevel(ServiceLevel.SELF_SUPPORT).build();
 
     var result = subscriptionRepo.findByCriteria(criteria, Sort.unsorted());
     assertEquals(5, result.size());
@@ -268,15 +259,15 @@ class SubscriptionRepositoryTest {
 
     for (int i = 0; i < 5; i++) {
       Subscription subscription1 =
-          createSubscription("1", "1001", String.valueOf(new Random().nextInt()), "sellerAcctId");
+          createSubscription("1", String.valueOf(new Random().nextInt()), "sellerAcctId");
       subscription1.setOffering(mct3718);
 
       Subscription subscription2 =
-          createSubscription("1", "1001", String.valueOf(new Random().nextInt()), "sellerAcctId");
+          createSubscription("1", String.valueOf(new Random().nextInt()), "sellerAcctId");
       subscription2.setOffering(rh00798);
 
       Subscription subscription3 =
-          createSubscription("2", "1002", String.valueOf(new Random().nextInt()), "sellerAcctId");
+          createSubscription("2", String.valueOf(new Random().nextInt()), "sellerAcctId");
       subscription3.setOffering(mct3718);
       subscriptionRepo.saveAll(List.of(subscription1, subscription2, subscription3));
     }
@@ -291,14 +282,14 @@ class SubscriptionRepositoryTest {
   @Transactional
   @Test
   void findsUnlimitedSubscriptions() {
-    var s1 = createSubscription("org123", "account123", "sub123", "seller123");
-    var s2 = createSubscription("org123", "account123", "sub321", "seller123");
+    var s1 = createSubscription("org123", "sub123", "seller123");
+    var s2 = createSubscription("org123", "sub321", "seller123");
     var offering1 = createOffering("testSkuUnlimited", "TestSKUUnlimited", 1066, null, null, null);
     offering1.setHasUnlimitedUsage(true);
     List.of(s1, s2).forEach(x -> x.setOffering(offering1));
 
-    var s3 = createSubscription("org123", "account123", "sub456", "seller123");
-    var s4 = createSubscription("org123", "account123", "sub678", "seller123");
+    var s3 = createSubscription("org123", "sub456", "seller123");
+    var s4 = createSubscription("org123", "sub678", "seller123");
     var offering2 = createOffering("testSkuLimited", "TestSKULimited", 1066, null, null, null);
     offering2.setHasUnlimitedUsage(false);
     List.of(s3, s4).forEach(x -> x.setOffering(offering2));
@@ -318,8 +309,8 @@ class SubscriptionRepositoryTest {
     // reset NOW so that it is current and not fixed.
     NOW = OffsetDateTime.now();
 
-    var s1 = createSubscription("org123", "account123", "sub123", "seller123");
-    var s2 = createSubscription("org123", "account123", "sub321", "seller123");
+    var s1 = createSubscription("org123", "sub123", "seller123");
+    var s2 = createSubscription("org123", "sub321", "seller123");
     s2.setEndDate(null);
 
     var offering1 = createOffering("testSkuUnlimited", "TestSKUUnlimited", 1066, null, null, null);
@@ -335,9 +326,9 @@ class SubscriptionRepositoryTest {
   @Transactional
   @Test
   void testFindBySpecificationWhenSubscriptionEndDateIsNull() {
-    var s1 = createSubscription("org123", "account123", "sub123", "seller123");
+    var s1 = createSubscription("org123", "sub123", "seller123");
 
-    var s2 = createSubscription("org123", "account123", "sub321", "seller123");
+    var s2 = createSubscription("org123", "sub321", "seller123");
     s2.setEndDate(null);
 
     var offering1 = createOffering("testSkuUnlimited", "TestSKUUnlimited", 1066, null, null, null);
@@ -372,19 +363,16 @@ class SubscriptionRepositoryTest {
         .build();
   }
 
-  private Subscription createSubscription(
-      String orgId, String accountNumber, String subId, String billingAccountId) {
+  private Subscription createSubscription(String orgId, String subId, String billingAccountId) {
 
     // Truncate to avoid issues around nanosecond mismatches -- HSQLDB doesn't store timestamps
     // at the same resolution as the JVM
     OffsetDateTime startDate = NOW.truncatedTo(ChronoUnit.SECONDS);
-    return createSubscription(
-        orgId, accountNumber, subId, billingAccountId, startDate, startDate.plusDays(30));
+    return createSubscription(orgId, subId, billingAccountId, startDate, startDate.plusDays(30));
   }
 
   private Subscription createSubscription(
       String orgId,
-      String accountNumber,
       String subId,
       String billingAccountId,
       OffsetDateTime startDate,
@@ -394,7 +382,6 @@ class SubscriptionRepositoryTest {
     subscription.setBillingProviderId("bananas");
     subscription.setSubscriptionId(subId);
     subscription.setOrgId(orgId);
-    subscription.setAccountNumber(accountNumber);
     subscription.setQuantity(4L);
     subscription.setStartDate(startDate);
     subscription.setEndDate(endDate);

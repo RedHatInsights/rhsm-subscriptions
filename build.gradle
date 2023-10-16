@@ -80,6 +80,8 @@ dependencies {
             project(':clients'),
             project(':clients:quarkus'),
             project(':vendor')
+            project(':swatch-common-platform-quarkus'),
+            project(':swatch-common-platform-spring-boot'),
     ).contains(it)}.each {
         jacocoAggregation it
     }

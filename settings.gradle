@@ -35,3 +35,5 @@ include ':vendor:azure-marketplace'
 
 project(':vendor:azure-marketplace').projectDir = file('vendor/azure-marketplace/sdk')
 project(':vendor:azure-marketplace').buildFileName = "../../azure-marketplace.gradle"
+include ':swatch-common-platform-spring-boot'
+include ':swatch-common-platform-quarkus'

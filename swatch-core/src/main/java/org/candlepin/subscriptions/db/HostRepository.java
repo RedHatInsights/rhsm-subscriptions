@@ -553,8 +553,6 @@ public interface HostRepository
   Optional<OffsetDateTime> findMaxLastSeenDate(
       @Param("orgId") String orgId, @Param("serviceType") String serviceType);
 
-  List<Host> findByAccountNumber(String accountNumber);
-
   Optional<Host> findById(UUID id);
 
   void deleteByOrgId(String orgId);

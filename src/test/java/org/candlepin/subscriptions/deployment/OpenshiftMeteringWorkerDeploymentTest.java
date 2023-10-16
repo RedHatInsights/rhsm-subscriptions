@@ -18,9 +18,23 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.exception;
+package org.candlepin.subscriptions.deployment;
 
-/** Exception thrown when an org does not have an account number. */
-public class MissingAccountNumberException extends Exception {
-  /* intentionally empty */
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import org.candlepin.subscriptions.metering.MeteringConfiguration;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+
+@SpringBootTest
+@ActiveProfiles("openshift-metering-worker")
+class OpenshiftMeteringWorkerDeploymentTest {
+  @Autowired MeteringConfiguration configuration;
+
+  @Test
+  void testDeployment() {
+    assertNotNull(configuration);
+  }
 }

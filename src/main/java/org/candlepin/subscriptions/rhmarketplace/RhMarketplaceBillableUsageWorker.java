@@ -60,7 +60,7 @@ public class RhMarketplaceBillableUsageWorker extends SeekableKafkaConsumer {
       topics = "#{__listener.topic}",
       containerFactory = "kafkaBillableUsageListenerContainerFactory")
   public void receive(BillableUsage usage) {
-    log.debug("Billable Usage received by RHM for account {}!", usage.getAccountNumber());
+    log.debug("Billable Usage received by RHM for orgId {}!", usage.getOrgId());
     Optional.ofNullable(rhMarketplacePayloadMapper.createUsageRequest(usage))
         .filter(s -> !s.getData().isEmpty())
         .ifPresent(producer::submitUsageRequest);

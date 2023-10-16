@@ -97,7 +97,7 @@ class InventoryAccountUsageCollectorReconcileTest {
     collector.reconcileSystemDataWithHbi("org123", Set.of("RHEL"));
     // at this point, the iterations haven't actually run, since we're mocking the collator.
     var processor = captor.getValue();
-    var mockHbiSystem = InventoryHostFactTestHelper.createHypervisor("account", "org", 1);
+    var mockHbiSystem = InventoryHostFactTestHelper.createHypervisor("org", 1);
     processor.accept(mockHbiSystem, null, new OrgHostsData("placeholder"), 1);
     processor.accept(mockHbiSystem, null, new OrgHostsData("placeholder"), 2);
     processor.accept(mockHbiSystem, null, new OrgHostsData("placeholder"), 3);
@@ -111,8 +111,7 @@ class InventoryAccountUsageCollectorReconcileTest {
     when(factNormalizer.normalize(any(), any())).thenReturn(new NormalizedFacts());
     when(hostRepository.save(any())).thenReturn(new Host());
     var collector = setupCollector();
-    InventoryHostFacts hbiSystem =
-        InventoryHostFactTestHelper.createHypervisor("account123", "org123", 1);
+    InventoryHostFacts hbiSystem = InventoryHostFactTestHelper.createHypervisor("org123", 1);
     collector.reconcileHbiSystemWithSwatchSystem(
         hbiSystem, null, new OrgHostsData("org123"), Set.of("RHEL"), new ArrayList<>());
     verify(hostRepository).save(any());
@@ -123,8 +122,7 @@ class InventoryAccountUsageCollectorReconcileTest {
     when(factNormalizer.normalize(any(), any())).thenReturn(new NormalizedFacts());
 
     var collector = setupCollector();
-    InventoryHostFacts hbiSystem =
-        InventoryHostFactTestHelper.createHypervisor("account123", "org123", 1);
+    InventoryHostFacts hbiSystem = InventoryHostFactTestHelper.createHypervisor("org123", 1);
     Host swatchSystem = new Host();
     collector.reconcileHbiSystemWithSwatchSystem(
         hbiSystem, swatchSystem, new OrgHostsData("org123"), Set.of("RHEL"), new ArrayList<>());

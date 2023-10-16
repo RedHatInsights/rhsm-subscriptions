@@ -30,7 +30,6 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 /** The calculated usage for an account. */
 public class AccountUsageCalculation {
 
-  private String account;
   private String orgId;
   private Map<UsageCalculation.Key, UsageCalculation> calculations;
   private Set<String> products;
@@ -48,14 +47,6 @@ public class AccountUsageCalculation {
       addCalculation(calc);
     }
     return calc;
-  }
-
-  public String getAccount() {
-    return account;
-  }
-
-  public void setAccount(String account) {
-    this.account = account;
   }
 
   public String getOrgId() {
@@ -101,7 +92,7 @@ public class AccountUsageCalculation {
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
-    builder.append(String.format("[Account: %s, OrgId: %s, Calculations: [", account, orgId));
+    builder.append(String.format("[OrgId: %s, Calculations: [", orgId));
     for (UsageCalculation calc : this.calculations.values()) {
       builder.append(calc);
     }

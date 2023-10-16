@@ -431,18 +431,14 @@ class SubscriptionSyncControllerTest {
 
     assertThrows(
         IllegalArgumentException.class,
-        () ->
-            subscriptionSyncController.findSubscriptions(
-                "1000", orgId, key1, rangeStart, rangeEnd));
+        () -> subscriptionSyncController.findSubscriptions(orgId, key1, rangeStart, rangeEnd));
     assertThrows(
         IllegalArgumentException.class,
-        () ->
-            subscriptionSyncController.findSubscriptions(
-                "1000", orgId, key2, rangeStart, rangeEnd));
+        () -> subscriptionSyncController.findSubscriptions(orgId, key2, rangeStart, rangeEnd));
   }
 
   @Test
-  void findsSubscriptionId_WhenBothOrgIdAndAccountNumberPresent() {
+  void findsSubscriptionId_WhenOrgIdPresent() {
     UsageCalculation.Key key =
         new Key(
             "OpenShift-metrics",
@@ -462,58 +458,7 @@ class SubscriptionSyncControllerTest {
 
     List<Subscription> actual =
         subscriptionSyncController.findSubscriptions(
-            "1000", Optional.of("org1000"), key, rangeStart, rangeEnd);
-    assertEquals(1, actual.size());
-    assertEquals("xyz", actual.get(0).getBillingProviderId());
-  }
-
-  @Test
-  void findsSubscriptionId_WhenOrgIdPresentAndAccountNumberAbsent() {
-    UsageCalculation.Key key =
-        new Key(
-            "OpenShift-metrics",
-            ServiceLevel.STANDARD,
-            Usage.PRODUCTION,
-            BillingProvider.RED_HAT,
-            "xyz");
-    Subscription s = createSubscription("org123", "sku", "123");
-    s.getOffering().setProductName("OpenShift Container Platform");
-    s.setEndDate(OffsetDateTime.now().plusDays(7));
-    s.setBillingProvider(BillingProvider.RED_HAT);
-    s.setBillingProviderId("xyz");
-    List<Subscription> result = Collections.singletonList(s);
-
-    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(result);
-
-    List<Subscription> actual =
-        subscriptionSyncController.findSubscriptions(
-            null, Optional.of("org1000"), key, rangeStart, rangeEnd);
-    assertEquals(1, actual.size());
-    assertEquals("xyz", actual.get(0).getBillingProviderId());
-  }
-
-  @Test
-  void findsSubscriptionId_WhenAccountNumberPresentAndOrgIdAbsent() {
-    UsageCalculation.Key key =
-        new Key(
-            "OpenShift-metrics",
-            ServiceLevel.STANDARD,
-            Usage.PRODUCTION,
-            BillingProvider.RED_HAT,
-            "xyz");
-    Subscription s = createSubscription("org123", "sku", "123");
-    s.getOffering().setProductName("OpenShift Container Platform");
-    s.setStartDate(OffsetDateTime.now().minusDays(7));
-    s.setEndDate(OffsetDateTime.now().plusDays(7));
-    s.setBillingProvider(BillingProvider.RED_HAT);
-    s.setBillingProviderId("xyz");
-    List<Subscription> result = Collections.singletonList(s);
-
-    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(result);
-
-    List<Subscription> actual =
-        subscriptionSyncController.findSubscriptions(
-            "account123", Optional.empty(), key, rangeStart, rangeEnd);
+            Optional.of("org1000"), key, rangeStart, rangeEnd);
     assertEquals(1, actual.size());
     assertEquals("xyz", actual.get(0).getBillingProviderId());
   }
@@ -672,7 +617,6 @@ class SubscriptionSyncControllerTest {
     incoming.setBillingProvider(BillingProvider.RED_HAT);
     incoming.setBillingProviderId("newBillingProviderId");
     incoming.setBillingAccountId("newBillingAccountId");
-    incoming.setAccountNumber("account123");
     Subscription existing = createSubscription();
     existing.setBillingProvider(BillingProvider.AWS);
     existing.setBillingAccountId("oldBillingAccountId");
@@ -690,7 +634,6 @@ class SubscriptionSyncControllerTest {
     assertEquals(BillingProvider.RED_HAT, existing.getBillingProvider());
     assertEquals("newBillingProviderId", existing.getBillingProviderId());
     assertEquals("newBillingAccountId", existing.getBillingAccountId());
-    assertEquals("account123", existing.getAccountNumber());
   }
 
   @Test
@@ -797,7 +740,6 @@ class SubscriptionSyncControllerTest {
         .orgId("" + dto.getWebCustomerId())
         .quantity(dto.getQuantity())
         .offering(offering)
-        .accountNumber("" + dto.getOracleAccountNumber())
         .startDate(clock.dateFromMilliseconds(dto.getEffectiveStartDate()))
         .endDate(clock.dateFromMilliseconds(dto.getEffectiveEndDate()))
         .build();
@@ -856,7 +798,6 @@ class SubscriptionSyncControllerTest {
     return org.candlepin.subscriptions.db.model.Subscription.builder()
         .subscriptionId(String.valueOf(subscription.getId()))
         .orgId(subscription.getWebCustomerId().toString())
-        .accountNumber(String.valueOf(subscription.getOracleAccountNumber()))
         .quantity(subscription.getQuantity())
         .startDate(clock.dateFromMilliseconds(subscription.getEffectiveStartDate()))
         .endDate(clock.dateFromMilliseconds(subscription.getEffectiveEndDate()))

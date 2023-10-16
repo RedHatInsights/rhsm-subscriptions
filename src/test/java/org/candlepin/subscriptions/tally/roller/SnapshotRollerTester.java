@@ -162,12 +162,11 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     int highSockets = 200;
     int highInstances = 10;
 
-    String account = "A1";
     String orgId = "01";
     AccountUsageCalculation a1HighCalc =
-        createAccountCalc(account, orgId, getTestProduct(), highCores, highSockets, highInstances);
+        createAccountCalc(orgId, getTestProduct(), highCores, highSockets, highInstances);
     AccountUsageCalculation a1LowCalc =
-        createAccountCalc(account, orgId, getTestProduct(), lowCores, lowSockets, lowInstances);
+        createAccountCalc(orgId, getTestProduct(), lowCores, lowSockets, lowInstances);
 
     AccountUsageCalculation expectedCalc = expectMaxAccepted ? a1HighCalc : a1LowCalc;
 
@@ -229,11 +228,9 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
       OffsetDateTime endOfGranularPeriod) {
 
     AccountUsageCalculation a1Calc = createTestData();
-    String account = a1Calc.getAccount();
     String orgId = a1Calc.getOrgId();
 
     TallySnapshot orig = new TallySnapshot();
-    orig.setAccountNumber("my_account");
     orig.setOrgId(orgId);
     orig.setServiceLevel(ServiceLevel.EMPTY);
     orig.setUsage(Usage.EMPTY);
@@ -244,7 +241,6 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
     orig.setProductId(getTestProduct());
 
     TallySnapshot dupe = new TallySnapshot();
-    dupe.setAccountNumber("my_account");
     dupe.setOrgId(orgId);
     dupe.setServiceLevel(ServiceLevel.EMPTY);
     dupe.setUsage(Usage.EMPTY);
@@ -302,16 +298,11 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
   }
 
   private AccountUsageCalculation createTestData() {
-    return createAccountCalc("my_account", "O1", getTestProduct(), 12, 24, 6);
+    return createAccountCalc("O1", getTestProduct(), 12, 24, 6);
   }
 
   private AccountUsageCalculation createAccountCalc(
-      String account,
-      String orgId,
-      String product,
-      int totalCores,
-      int totalSockets,
-      int totalInstances) {
+      String orgId, String product, int totalCores, int totalSockets, int totalInstances) {
     UsageCalculation productCalc = new UsageCalculation(createUsageKey(product));
     Stream.of(
             HardwareMeasurementType.AWS,
@@ -326,7 +317,6 @@ public class SnapshotRollerTester<R extends BaseSnapshotRoller> {
             });
 
     AccountUsageCalculation calc = new AccountUsageCalculation(orgId);
-    calc.setAccount(account);
     calc.addCalculation(productCalc);
 
     return calc;

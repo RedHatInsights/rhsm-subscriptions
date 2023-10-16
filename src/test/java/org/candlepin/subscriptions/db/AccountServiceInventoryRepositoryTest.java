@@ -51,7 +51,6 @@ class AccountServiceInventoryRepositoryTest {
     AccountServiceInventory service = new AccountServiceInventory("org123", "HBI_HOST");
 
     Host host = new Host();
-    host.setAccountNumber("account123");
     host.setOrgId("org123");
     host.setInstanceId("1c474d4e-c277-472c-94ab-8229a40417eb");
     host.setDisplayName("name");
@@ -91,7 +90,6 @@ class AccountServiceInventoryRepositoryTest {
     Host host = existingInstances.get("1c474d4e-c277-472c-94ab-8229a40417eb");
 
     Host expected = new Host();
-    expected.setAccountNumber("account123");
     expected.setOrgId("org123");
     expected.setDisplayName("name");
     expected.setInstanceId("1c474d4e-c277-472c-94ab-8229a40417eb");

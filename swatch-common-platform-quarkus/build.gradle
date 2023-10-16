@@ -1,0 +1,11 @@
+plugins {
+    id 'java-platform'
+}
+
+dependencies {
+    constraints {
+        runtime libraries["netty-codec-http2"]
+    }
+}
+
+description = 'Dependency overrides for quarkus based swatch components'
