@@ -48,9 +48,6 @@ public class QueryBuilder {
           "#{metric.prometheus.queryKey}",
               descriptor -> descriptor.getMetric().getPrometheus().getQueryKey());
   private static final String KEY_VALUE_CLOSE_TAG = "]}";
-  private static final String SYSTEM_PROPERTY_OPEN_TAG = "${";
-  private static final String SYSTEM_PROPERTY_CLOSE_TAG = "}";
-  private static final String SYSTEM_PROPERTY_DEFAULT_TAG = ":";
 
   private final MetricProperties metricProperties;
 
@@ -82,25 +79,6 @@ public class QueryBuilder {
   }
 
   private String buildQuery(String query, QueryDescriptor descriptor) {
-    // Support of system properties binding in the format of "${KEY:default value}"
-    if (query.contains(SYSTEM_PROPERTY_OPEN_TAG)) {
-      String rawKey =
-          StringUtils.substringBetween(query, SYSTEM_PROPERTY_OPEN_TAG, SYSTEM_PROPERTY_CLOSE_TAG);
-      String key = rawKey;
-      String defaultValue = null;
-      if (rawKey.contains(SYSTEM_PROPERTY_DEFAULT_TAG)) {
-        String[] keyParts = rawKey.split(SYSTEM_PROPERTY_DEFAULT_TAG);
-        key = keyParts[0];
-        defaultValue = keyParts[1];
-      }
-
-      query =
-          query.replace(
-              SYSTEM_PROPERTY_OPEN_TAG + rawKey + SYSTEM_PROPERTY_CLOSE_TAG,
-              getSystemProperty(key, defaultValue));
-      return buildQuery(query, descriptor);
-    }
-
     // Support of key-value properties that use a map as collection. The expected format is:
     // "#{map[key]}"
     for (var rule : KEY_VALUE_RULES.entrySet()) {
@@ -124,17 +102,5 @@ public class QueryBuilder {
 
     log.debug("PromQL: {}", query);
     return query;
-  }
-
-  private static String getSystemProperty(String key, String defaultValue) {
-    String value = System.getProperty(key);
-    if (value == null) {
-      value = System.getenv(key);
-    }
-
-    if (value == null) {
-      value = defaultValue;
-    }
-    return value;
   }
 }
