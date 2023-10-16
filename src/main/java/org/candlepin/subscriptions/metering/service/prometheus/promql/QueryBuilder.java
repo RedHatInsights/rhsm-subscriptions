@@ -24,17 +24,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /** Builds PromQL queries based on a configured template. */
+@Slf4j
 @Component
 public class QueryBuilder {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(QueryBuilder.class);
   private static final Map<String, BiFunction<QueryDescriptor, String, String>> KEY_VALUE_RULES =
       Map.of(
           "#{metric.prometheus.queryParams[",
@@ -67,7 +66,7 @@ public class QueryBuilder {
       throw new IllegalArgumentException(
           String.format("Unable to find query template for key: %s", templateKey));
     }
-    LOGGER.debug("Building metric lookup PromQL.");
+    log.debug("Building metric lookup PromQL.");
     return buildQuery(template.get(), queryDescriptor);
   }
 
@@ -78,7 +77,7 @@ public class QueryBuilder {
       throw new IllegalArgumentException(
           String.format("Unable to find account query template for key: %s", templateKey));
     }
-    LOGGER.debug("Building account lookup PromQL.");
+    log.debug("Building account lookup PromQL.");
     return buildQuery(template.get(), queryDescriptor);
   }
 
@@ -123,7 +122,7 @@ public class QueryBuilder {
       }
     }
 
-    LOGGER.debug("PromQL: {}", query);
+    log.debug("PromQL: {}", query);
     return query;
   }
 
