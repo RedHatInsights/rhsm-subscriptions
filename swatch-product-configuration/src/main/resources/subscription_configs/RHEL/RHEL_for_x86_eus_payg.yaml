@@ -26,7 +26,7 @@ contractEnabled: false #There is no need to generate an AWS contract listing bec
 
 metrics:
   - id: vCPUs
-    awsDimension: vCPU_Hour # PLACEHOLDER when external service sends an aws dimension
+    awsDimension: Centos_Test # Change the value to vCPU_Hour in SWATCH-1839
     prometheus:
       queryKey: default
       queryParams:
