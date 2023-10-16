@@ -78,7 +78,9 @@ dependencies {
 
     subprojects.findAll { !Set.of(
             project(':clients'),
-            project(':clients:quarkus')
+            project(':clients:quarkus'),
+            project(':swatch-common-platform-quarkus'),
+            project(':swatch-common-platform-spring-boot'),
     ).contains(it)}.each {
         jacocoAggregation it
     }
