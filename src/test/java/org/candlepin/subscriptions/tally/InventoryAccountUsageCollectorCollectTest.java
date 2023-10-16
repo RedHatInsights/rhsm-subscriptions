@@ -76,14 +76,14 @@ class InventoryAccountUsageCollectorCollectTest {
 
   @Test
   void testGuestCountIsTrackedOnHost() {
-    InventoryHostFacts hypervisor = createHypervisor(ACCOUNT, ORG_ID, TEST_PRODUCT_ID);
+    InventoryHostFacts hypervisor = createHypervisor(ORG_ID, TEST_PRODUCT_ID);
 
     // Guests should not end up in the total since only the hypervisor should be counted.
     InventoryHostFacts guest1 =
-        createGuest(hypervisor.getSubscriptionManagerId(), ACCOUNT, ORG_ID, TEST_PRODUCT_ID);
+        createGuest(hypervisor.getSubscriptionManagerId(), ORG_ID, TEST_PRODUCT_ID);
 
     InventoryHostFacts guest2 =
-        createGuest(hypervisor.getSubscriptionManagerId(), ACCOUNT, ORG_ID, TEST_PRODUCT_ID);
+        createGuest(hypervisor.getSubscriptionManagerId(), ORG_ID, TEST_PRODUCT_ID);
 
     Map<String, String> expectedHypervisorMap = new HashMap<>();
     expectedHypervisorMap.put(
@@ -93,7 +93,7 @@ class InventoryAccountUsageCollectorCollectTest {
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt()))
         .thenReturn(Stream.of(hypervisor, guest1, guest2));
 
-    collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
+    collector.collect(RHEL_PRODUCTS, ORG_ID);
 
     ArgumentCaptor<AccountServiceInventory> accountService =
         ArgumentCaptor.forClass(AccountServiceInventory.class);
@@ -127,7 +127,7 @@ class InventoryAccountUsageCollectorCollectTest {
     Counter counter = meterRegistry.counter("rhsm-subscriptions.tally.hbi_hosts");
     double initialCount = counter.count();
 
-    InventoryHostFacts hypervisor = createHypervisor(ACCOUNT, ORG_ID, TEST_PRODUCT_ID);
+    InventoryHostFacts hypervisor = createHypervisor(ORG_ID, TEST_PRODUCT_ID);
 
     Map<String, String> expectedHypervisorMap = new HashMap<>();
     expectedHypervisorMap.put(
@@ -136,31 +136,19 @@ class InventoryAccountUsageCollectorCollectTest {
 
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(hypervisor));
 
-    collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
+    collector.collect(RHEL_PRODUCTS, ORG_ID);
     assertEquals(1, counter.count() - initialCount);
   }
 
   @Test
   void removesDuplicateHostRecords() {
     List<Integer> products = List.of(TEST_PRODUCT_ID);
-    InventoryHostFacts host = createRhsmHost(ACCOUNT, ORG_ID, products, "", OffsetDateTime.now());
+    InventoryHostFacts host = createRhsmHost(ORG_ID, products, "", OffsetDateTime.now());
     host.setSystemProfileCoresPerSocket(4);
     host.setSystemProfileSockets(3);
-    Host orig =
-        new Host(
-            host.getInventoryId().toString(),
-            "insights1",
-            host.getAccount(),
-            host.getOrgId(),
-            null);
+    Host orig = new Host(host.getInventoryId().toString(), "insights1", host.getOrgId(), null);
     orig.setInstanceId(host.getInventoryId().toString());
-    Host dupe =
-        new Host(
-            host.getInventoryId().toString(),
-            "insights2",
-            host.getAccount(),
-            host.getOrgId(),
-            null);
+    Host dupe = new Host(host.getInventoryId().toString(), "insights2", host.getOrgId(), null);
     dupe.setInstanceId("i2");
 
     AccountServiceInventory accountServiceInventory =
@@ -174,7 +162,7 @@ class InventoryAccountUsageCollectorCollectTest {
 
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), any())).thenReturn(Stream.of(host));
 
-    collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
+    collector.collect(RHEL_PRODUCTS, ORG_ID);
 
     assertEquals(1, accountServiceInventory.getServiceInstances().size());
   }
@@ -182,19 +170,12 @@ class InventoryAccountUsageCollectorCollectTest {
   @Test
   void ensureStaleHostsAreDeleted() {
     List<Integer> products = List.of(TEST_PRODUCT_ID);
-    InventoryHostFacts host = createRhsmHost(ACCOUNT, ORG_ID, products, "", OffsetDateTime.now());
+    InventoryHostFacts host = createRhsmHost(ORG_ID, products, "", OffsetDateTime.now());
     host.setSystemProfileCoresPerSocket(4);
     host.setSystemProfileSockets(3);
-    Host orig =
-        new Host(
-            host.getInventoryId().toString(),
-            "insights1",
-            host.getAccount(),
-            host.getOrgId(),
-            null);
+    Host orig = new Host(host.getInventoryId().toString(), "insights1", host.getOrgId(), null);
     orig.setInstanceId(host.getInventoryId().toString());
-    Host noLongerReported =
-        new Host("i2-inventory-id", "insights2", host.getAccount(), host.getOrgId(), null);
+    Host noLongerReported = new Host("i2-inventory-id", "insights2", host.getOrgId(), null);
     noLongerReported.setInstanceId("i2");
 
     AccountServiceInventory accountServiceInventory =
@@ -208,7 +189,7 @@ class InventoryAccountUsageCollectorCollectTest {
 
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), any())).thenReturn(Stream.of(host));
 
-    collector.collect(RHEL_PRODUCTS, ACCOUNT, ORG_ID);
+    collector.collect(RHEL_PRODUCTS, ORG_ID);
 
     assertEquals(1, accountServiceInventory.getServiceInstances().size());
   }

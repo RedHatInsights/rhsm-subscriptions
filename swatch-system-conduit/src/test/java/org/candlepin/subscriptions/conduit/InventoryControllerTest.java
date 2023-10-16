@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.conduit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -60,7 +59,6 @@ import org.candlepin.subscriptions.conduit.rhsm.client.model.Consumer;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.InstalledProducts;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.OrgInventory;
 import org.candlepin.subscriptions.conduit.rhsm.client.model.Pagination;
-import org.candlepin.subscriptions.exception.MissingAccountNumberException;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -94,17 +92,15 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testHostAddedForEachConsumer() throws ApiException, MissingAccountNumberException {
+  void testHostAddedForEachConsumer() throws ApiException {
     UUID uuid1 = UUID.randomUUID();
     UUID uuid2 = UUID.randomUUID();
     Consumer consumer1 = new Consumer();
     consumer1.setOrgId("123");
     consumer1.setUuid(uuid1.toString());
-    consumer1.setAccountNumber("account");
 
     ConduitFacts expectedFacts1 = new ConduitFacts();
     expectedFacts1.setOrgId("123");
-    expectedFacts1.setAccountNumber("account");
     expectedFacts1.setSubscriptionManagerId(uuid1.toString());
     expectedFacts1.setRhProd(new ArrayList<>());
     expectedFacts1.setSysPurposeAddons(new ArrayList<>());
@@ -112,11 +108,9 @@ class InventoryControllerTest {
     Consumer consumer2 = new Consumer();
     consumer2.setOrgId("123");
     consumer2.setUuid(uuid2.toString());
-    consumer2.setAccountNumber("account");
 
     ConduitFacts expectedFacts2 = new ConduitFacts();
     expectedFacts2.setOrgId("123");
-    expectedFacts2.setAccountNumber("account");
     expectedFacts2.setSubscriptionManagerId(uuid2.toString());
     expectedFacts2.setRhProd(new ArrayList<>());
     expectedFacts2.setSysPurposeAddons(new ArrayList<>());
@@ -131,7 +125,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testHandlesEmptyList() throws ApiException, MissingAccountNumberException {
+  void testHandlesEmptyList() throws ApiException {
     Pagination pagination = new Pagination().count(0L).limit(1L);
     when(rhsmService.getPageOfConsumers(eq("org123"), nullable(String.class), anyString()))
         .thenReturn(new OrgInventory().body(Collections.emptyList()).pagination(pagination));
@@ -150,14 +144,12 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testHostSkippedWhenExceptionHappens() throws MissingAccountNumberException, ApiException {
+  void testHostSkippedWhenExceptionHappens() throws ApiException {
     UUID uuid = UUID.randomUUID();
     Consumer consumer1 = Mockito.mock(Consumer.class);
     Consumer consumer2 = new Consumer();
     consumer2.setUuid(uuid.toString());
-    consumer2.setAccountNumber("account");
     consumer2.setOrgId("456");
-    when(consumer1.getAccountNumber()).thenReturn("account");
     when(consumer1.getFacts()).thenThrow(new RuntimeException("foobar"));
     when(rhsmService.getPageOfConsumers(eq("123"), nullable(String.class), anyString()))
         .thenReturn(pageOf(consumer1, consumer2));
@@ -165,7 +157,6 @@ class InventoryControllerTest {
 
     ConduitFacts expected = new ConduitFacts();
     expected.setOrgId("456");
-    expected.setAccountNumber("account");
     expected.setSubscriptionManagerId(uuid.toString());
     expected.setRhProd(new ArrayList<>());
     expected.setSysPurposeAddons(new ArrayList<>());
@@ -175,26 +166,22 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testSkipManifestConsumers() throws MissingAccountNumberException, ApiException {
+  void testSkipManifestConsumers() throws ApiException {
     UUID uuid1 = UUID.randomUUID();
     Consumer consumer1 = new Consumer();
     Consumer candlepinConsumer = new Consumer();
     Consumer satelliteConsumer = new Consumer();
     Consumer samConsumer = new Consumer();
     consumer1.setUuid(uuid1.toString());
-    consumer1.setAccountNumber("account");
     consumer1.setOrgId("456");
     consumer1.setType("system");
     candlepinConsumer.setUuid(UUID.randomUUID().toString());
-    candlepinConsumer.setAccountNumber("account");
     candlepinConsumer.setOrgId("456");
     candlepinConsumer.setType("candlepin");
     satelliteConsumer.setUuid(UUID.randomUUID().toString());
-    satelliteConsumer.setAccountNumber("account");
     satelliteConsumer.setOrgId("456");
     satelliteConsumer.setType("satellite");
     samConsumer.setUuid(UUID.randomUUID().toString());
-    samConsumer.setAccountNumber("account");
     samConsumer.setOrgId("456");
     samConsumer.setType("sam");
     when(rhsmService.getPageOfConsumers(eq("123"), nullable(String.class), anyString()))
@@ -203,74 +190,12 @@ class InventoryControllerTest {
 
     ConduitFacts expected = new ConduitFacts();
     expected.setOrgId("456");
-    expected.setAccountNumber("account");
     expected.setSubscriptionManagerId(uuid1.toString());
     expected.setRhProd(new ArrayList<>());
     expected.setSysPurposeAddons(new ArrayList<>());
     verify(inventoryService).scheduleHostUpdate(expected);
     verify(inventoryService, times(1)).flushHostUpdates();
     verifyNoMoreInteractions(inventoryService);
-  }
-
-  @Test
-  void testWhenTolerateMissingAccountNumberDisabled_ShortCircuitsOnMissingAccountNumbers()
-      throws ApiException, MissingAccountNumberException {
-    Consumer consumer1 = new Consumer();
-    consumer1.setOrgId("123");
-    consumer1.setUuid(UUID.randomUUID().toString());
-    Consumer consumer2 = new Consumer();
-    consumer1.setOrgId("123");
-    consumer2.setUuid(UUID.randomUUID().toString());
-
-    when(inventoryServiceProperties.isTolerateMissingAccountNumber()).thenReturn(false);
-    when(rhsmService.getPageOfConsumers(eq("123"), nullable(String.class), anyString()))
-        .thenReturn(pageOf(consumer1, consumer2));
-    assertThrows(
-        MissingAccountNumberException.class, () -> controller.updateInventoryForOrg("123"));
-    verify(inventoryService, times(0)).scheduleHostUpdate(any(ConduitFacts.class));
-  }
-
-  @Test
-  void testWhenTolerateMissingAccountNumberEnabled_DoNotThrowMissingAccountNumberException()
-      throws ApiException {
-    Consumer consumer1 = new Consumer();
-    consumer1.setOrgId("123");
-    consumer1.setUuid(UUID.randomUUID().toString());
-    Consumer consumer2 = new Consumer();
-    consumer1.setOrgId("123");
-    consumer2.setUuid(UUID.randomUUID().toString());
-
-    when(inventoryServiceProperties.isTolerateMissingAccountNumber()).thenReturn(true);
-    when(rhsmService.getPageOfConsumers(eq("123"), nullable(String.class), anyString()))
-        .thenReturn(pageOf(consumer1, consumer2));
-    assertDoesNotThrow(() -> controller.updateInventoryForOrg("123"));
-    verify(inventoryService, times(0)).scheduleHostUpdate(any(ConduitFacts.class));
-  }
-
-  @Test
-  void testHandleConsumerWithNoAccountNumber() throws MissingAccountNumberException, ApiException {
-    UUID uuid1 = UUID.randomUUID();
-    UUID uuid2 = UUID.randomUUID();
-    Consumer consumer1 = new Consumer();
-    consumer1.setOrgId("123");
-    consumer1.setUuid(uuid1.toString());
-    consumer1.setAccountNumber("account");
-    Consumer consumer2 = new Consumer();
-    consumer2.setUuid(uuid2.toString());
-
-    ConduitFacts expected = new ConduitFacts();
-    expected.setOrgId("123");
-    expected.setAccountNumber("account");
-    expected.setSubscriptionManagerId(uuid1.toString());
-    expected.setRhProd(new ArrayList<>());
-    expected.setSysPurposeAddons(new ArrayList<>());
-
-    when(rhsmService.getPageOfConsumers(eq("123"), nullable(String.class), anyString()))
-        .thenReturn(pageOf(consumer1, consumer2));
-
-    controller.updateInventoryForOrg("123");
-    verify(inventoryService).scheduleHostUpdate(expected);
-    verify(inventoryService, times(1)).flushHostUpdates();
   }
 
   @Test
@@ -724,19 +649,17 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testUnparseableBiosUuidsAreIgnored() throws ApiException, MissingAccountNumberException {
+  void testUnparseableBiosUuidsAreIgnored() throws ApiException {
     UUID uuid1 = UUID.randomUUID();
     UUID uuid2 = UUID.randomUUID();
     Consumer consumer1 = new Consumer();
     Consumer consumer2 = new Consumer();
     consumer1.setUuid(uuid1.toString());
-    consumer1.setAccountNumber("account");
     consumer1.setOrgId("456");
     // consumer1 has a valid BIOS UUID
     String bios1 = UUID.randomUUID().toString();
     consumer1.getFacts().put("dmi.system.uuid", bios1);
     consumer2.setUuid(uuid2.toString());
-    consumer2.setAccountNumber("account");
     consumer2.setOrgId("456");
     // consumer2 has not
     consumer2.getFacts().put("dmi.system.uuid", "Not present");
@@ -745,14 +668,12 @@ class InventoryControllerTest {
     controller.updateInventoryForOrg("456");
     ConduitFacts cfacts1 = new ConduitFacts();
     cfacts1.setOrgId("456");
-    cfacts1.setAccountNumber("account");
     cfacts1.setSubscriptionManagerId(uuid1.toString());
     cfacts1.setBiosUuid(bios1);
     cfacts1.setRhProd(new ArrayList<>());
     cfacts1.setSysPurposeAddons(new ArrayList<>());
     ConduitFacts cfacts2 = new ConduitFacts();
     cfacts2.setOrgId("456");
-    cfacts2.setAccountNumber("account");
     cfacts2.setSubscriptionManagerId(uuid2.toString());
     cfacts2.setRhProd(new ArrayList<>());
     cfacts2.setSysPurposeAddons(new ArrayList<>());
@@ -774,8 +695,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void handlesNoRegisteredSystemsWithoutException()
-      throws MissingAccountNumberException, ApiException {
+  void handlesNoRegisteredSystemsWithoutException() throws ApiException {
     when(rhsmService.getPageOfConsumers(eq("456"), nullable(String.class), anyString()))
         .thenReturn(pageOf());
     controller.updateInventoryForOrg("456");
@@ -783,7 +703,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void queuesNextPage() throws ApiException, MissingAccountNumberException {
+  void queuesNextPage() throws ApiException {
     // Add one to test for off-by-one bugs
     int size = rhsmApiProperties.getRequestBatchSize() * 3 + 1;
     assertThat(size, Matchers.greaterThan(0));
@@ -792,7 +712,6 @@ class InventoryControllerTest {
       Consumer consumer = new Consumer();
       consumer.setId("next-offset");
       consumer.setUuid(UUID.randomUUID().toString());
-      consumer.setAccountNumber("account");
       consumer.setOrgId("123");
       bigCollection.add(consumer);
     }
@@ -806,11 +725,10 @@ class InventoryControllerTest {
   }
 
   @Test
-  void doesNotFilterSystemsWithNoCheckin() throws ApiException, MissingAccountNumberException {
+  void doesNotFilterSystemsWithNoCheckin() throws ApiException {
     Consumer consumer1 = new Consumer();
     consumer1.setOrgId("123");
     consumer1.setUuid(UUID.randomUUID().toString());
-    consumer1.setAccountNumber("account");
 
     when(rhsmService.getPageOfConsumers(eq("123"), nullable(String.class), anyString()))
         .thenReturn(pageOf(consumer1));
@@ -819,11 +737,10 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testServiceLevelIsAdded() throws ApiException, MissingAccountNumberException {
+  void testServiceLevelIsAdded() throws ApiException {
     UUID uuid = UUID.randomUUID();
     Consumer consumer = new Consumer();
     consumer.setUuid(uuid.toString());
-    consumer.setAccountNumber("account");
     consumer.setOrgId("456");
 
     consumer.setServiceLevel("Premium");
@@ -834,7 +751,6 @@ class InventoryControllerTest {
 
     ConduitFacts cfacts = new ConduitFacts();
     cfacts.setOrgId("456");
-    cfacts.setAccountNumber("account");
     cfacts.setSubscriptionManagerId(uuid.toString());
     cfacts.setSysPurposeSla("Premium");
     cfacts.setRhProd(new ArrayList<>());
@@ -919,18 +835,15 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testOpenShiftClusterIdUsedAsDisplayName()
-      throws MissingAccountNumberException, ApiException {
+  void testOpenShiftClusterIdUsedAsDisplayName() throws ApiException {
     UUID uuid = UUID.randomUUID();
     Consumer consumer = new Consumer();
     consumer.setOrgId("123");
     consumer.setUuid(uuid.toString());
     consumer.getFacts().put("openshift.cluster_uuid", "JustAnotherCluster");
-    consumer.setAccountNumber("account");
 
     ConduitFacts expected = new ConduitFacts();
     expected.setOrgId("123");
-    expected.setAccountNumber("account");
     expected.setDisplayName("JustAnotherCluster");
     expected.setSubscriptionManagerId(uuid.toString());
     expected.setRhProd(new ArrayList<>());
@@ -988,18 +901,16 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testEmptyUuidNormalizedToNull() throws ApiException, MissingAccountNumberException {
+  void testEmptyUuidNormalizedToNull() throws ApiException {
     Consumer consumer = new Consumer();
     UUID uuid = UUID.randomUUID();
     consumer.setUuid(uuid.toString());
     consumer.setOrgId("org123");
     consumer.getFacts().put(InventoryController.INSIGHTS_ID, "");
-    consumer.setAccountNumber("account123");
 
     ConduitFacts expected = new ConduitFacts();
     expected.setOrgId("org123");
     expected.setSubscriptionManagerId(uuid.toString());
-    expected.setAccountNumber("account123");
     expected.setRhProd(new ArrayList<>());
     expected.setSysPurposeAddons(new ArrayList<>());
 
@@ -1012,14 +923,12 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testSystemMemoryBytesOverMaxValueSetsToNull()
-      throws ApiException, MissingAccountNumberException {
+  void testSystemMemoryBytesOverMaxValueSetsToNull() throws ApiException {
     UUID uuid = UUID.randomUUID();
     BigDecimal memTotal =
         new BigDecimal((InventoryController.MAX_ALLOWED_SYSTEM_MEMORY_BYTES / 1020L) + 1000L);
     Consumer consumer = new Consumer();
     consumer.setUuid(uuid.toString());
-    consumer.setAccountNumber("account");
     consumer.setOrgId("456");
     consumer.getFacts().put("memory.memtotal", memTotal.toString());
 
@@ -1029,7 +938,6 @@ class InventoryControllerTest {
 
     ConduitFacts cfacts = new ConduitFacts();
     cfacts.setOrgId("456");
-    cfacts.setAccountNumber("account");
     cfacts.setSubscriptionManagerId(uuid.toString());
     cfacts.setMemory(8421505L);
     cfacts.setSystemMemoryBytes(null);

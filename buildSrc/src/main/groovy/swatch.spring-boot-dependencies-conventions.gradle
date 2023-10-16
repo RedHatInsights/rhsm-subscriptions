@@ -7,6 +7,8 @@ repositories {
 dependencies {
     annotationProcessor enforcedPlatform(libraries["spring-boot-dependencies"])
     implementation enforcedPlatform(libraries["spring-boot-dependencies"])
+    // overrides for CVE and any other reasons
+    implementation enforcedPlatform(project(':swatch-common-platform-spring-boot'))
 
     // common testing deps, junit + mockito + hamcrest
     testImplementation "org.junit.jupiter:junit-jupiter-api"

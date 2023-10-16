@@ -30,9 +30,7 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.metering.ResourceUtil;
-import org.candlepin.subscriptions.metering.retention.EventRecordsRetentionProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
@@ -53,8 +51,6 @@ class InternalMeteringResourceTest {
 
   @Mock private PrometheusMetricsTaskManager tasks;
   @Mock private PrometheusMeteringController controller;
-  @Mock private EventRecordsRetentionProperties eventRecordsRetentionProperties;
-  @Mock private EventRecordRepository eventRecordRepository;
 
   private ApplicationProperties appProps;
   private ResourceUtil util;
@@ -75,15 +71,7 @@ class InternalMeteringResourceTest {
     retryTemplate = new RetryTemplate();
 
     resource =
-        new InternalMeteringResource(
-            util,
-            appProps,
-            eventRecordsRetentionProperties,
-            tasks,
-            controller,
-            eventRecordRepository,
-            metricProps,
-            retryTemplate);
+        new InternalMeteringResource(util, appProps, tasks, controller, metricProps, retryTemplate);
   }
 
   @Test

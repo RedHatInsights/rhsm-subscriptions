@@ -110,8 +110,6 @@ components:
           type: string
         orgId:
           type: string
-        accountNumber:
-          type: string
         lastCheckin:
           type: string
           format: date-time

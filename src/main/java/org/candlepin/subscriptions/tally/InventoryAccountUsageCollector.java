@@ -100,7 +100,7 @@ public class InventoryAccountUsageCollector {
 
   @SuppressWarnings("squid:S3776")
   @Transactional
-  public OrgHostsData collect(Set<String> products, String account, String orgId) {
+  public OrgHostsData collect(Set<String> products, String orgId) {
     int inventoryCount = inventory.activeSystemCountForOrgId(orgId, culledOffsetDays);
     if (inventoryCount > tallyMaxHbiAccountSize) {
       throw new SystemThresholdException(orgId, tallyMaxHbiAccountSize, inventoryCount);
@@ -318,7 +318,6 @@ public class InventoryAccountUsageCollector {
     }
 
     host.setInsightsId(inventoryHostFacts.getInsightsId());
-    host.setAccountNumber(inventoryHostFacts.getAccount());
     host.setOrgId(inventoryHostFacts.getOrgId());
     host.setDisplayName(inventoryHostFacts.getDisplayName());
     host.setSubscriptionManagerId(inventoryHostFacts.getSubscriptionManagerId());
