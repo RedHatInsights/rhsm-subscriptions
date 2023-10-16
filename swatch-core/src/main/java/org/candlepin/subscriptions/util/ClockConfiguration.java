@@ -21,16 +21,16 @@
 package org.candlepin.subscriptions.util;
 
 import org.candlepin.clock.ApplicationClock;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
 
 /** Provides access to common utility beans. */
-@Configuration
+@AutoConfiguration
 @ComponentScan(
     basePackages = "org.candlepin.clock",
     // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
