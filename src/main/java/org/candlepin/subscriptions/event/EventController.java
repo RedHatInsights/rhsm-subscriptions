@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventKey;
@@ -183,7 +184,9 @@ public class EventController {
                 try {
                   transactionHandler.runInNewTransaction(() -> save(eventIndexPair.getKey()));
                 } catch (Exception individualSaveException) {
-                  log.warn("Failed to save individual event record.");
+                  log.warn(
+                      "Failed to save individual event record: {}.",
+                      ExceptionUtils.getStackTrace(individualSaveException));
                   throw new BatchListenerFailedException(
                       individualSaveException.getMessage(), eventIndexPair.getValue());
                 }
@@ -227,7 +230,7 @@ public class EventController {
       try {
         BaseEvent baseEvent = objectMapper.readValue(eventIndex.getKey(), BaseEvent.class);
         if (!EXCLUDE_LOG_FOR_EVENT_SOURCES.contains(baseEvent.getEventSource())) {
-          log.info("Event processing in batch: " + baseEvent);
+          log.info("Event processing in batch: " + eventIndex.getKey());
         }
         if (StringUtils.hasText(baseEvent.getOrgId())) {
           log.debug(
@@ -244,8 +247,9 @@ public class EventController {
 
       } catch (Exception e) {
         log.warn(
-            String.format(
-                "Issue found %s for the service instance json skipping to next ", e.getMessage()));
+            "Issue found {} for the service instance json skipping to next: {}",
+            e.getMessage(),
+            ExceptionUtils.getStackTrace(e));
         if (result.failedOnIndex.isEmpty()) {
           result.setFailedOnIndex(eventIndex.getValue());
         }
