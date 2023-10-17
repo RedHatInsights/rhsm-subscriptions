@@ -31,6 +31,6 @@ metrics:
       queryKey: default
       queryParams:
         instanceKey: _id
-        product: rhel-for-x86-eus-payg-placeholder-role
+        product: Red Hat Enterprise Linux Server #Probably will be updated by SWATCH-1834, since this is usually populated by role
         metric: system_cpu_logical_count
         metadataMetric: system_cpu_logical_count
