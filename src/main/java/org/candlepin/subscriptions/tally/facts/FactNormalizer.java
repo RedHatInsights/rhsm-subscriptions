@@ -346,7 +346,6 @@ public class FactNormalizer {
       }
       normalizedFacts.addProduct("RHEL");
     }
-    getProductsFromProductIds(normalizedFacts, hostFacts.getQpcProductIds());
   }
 
   /**

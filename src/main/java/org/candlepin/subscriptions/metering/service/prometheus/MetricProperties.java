@@ -70,12 +70,6 @@ public class MetricProperties {
 
   private Map<String, String> accountQueryTemplates = new HashMap<>();
 
-  /**
-   * SPEL templates do not support nested expressions so the QueryBuilder will apply template
-   * parameters a set number of times to prevent recursion.
-   */
-  private int templateParameterDepth = 3;
-
   /** How many attempts before giving up on the MeteringJob. */
   private Integer jobMaxAttempts;
 

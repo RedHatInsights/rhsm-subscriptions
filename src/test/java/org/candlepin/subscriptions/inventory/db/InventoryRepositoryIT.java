@@ -70,7 +70,6 @@ class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwa
   private static final String INSIGHTS_ID = "INSIGHTS_ID test";
   private static final Set<String> RH_PROD = Set.of("a1", "a2", "a3");
   private static final Set<String> RH_PRODUCTS_INSTALLED = Set.of("b1", "b2", "b3");
-  private static final Set<String> RH_PRODUCT_CERTS = Set.of("c1", "c2", "c3");
   private static final Set<Map<String, String>> INSTALLED_PRODUCTS =
       Set.of(Map.of("id", "d1"), Map.of("id", "d2"));
   private static final int CUT_OFF_DAYS = 3;
@@ -117,7 +116,6 @@ class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwa
     assertEquals(VIRTUAL_HOST_UUID, fact.getHardwareSubmanId());
     assertEquals(RH_PROD, fact.getProducts());
     assertEquals(RH_PRODUCTS_INSTALLED, fact.getQpcProducts());
-    assertEquals(RH_PRODUCT_CERTS, fact.getQpcProductIds());
     assertEquals(Set.of("d1", "d2"), fact.getSystemProfileProductIds());
   }
 
@@ -195,13 +193,7 @@ class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwa
                 "system_purpose_usage",
                 SYSTEM_PURPOSE_USAGE),
             "qpc",
-            of(
-                "IS_RHEL",
-                "true",
-                "rh_products_installed",
-                RH_PRODUCTS_INSTALLED,
-                "rh_product_certs",
-                RH_PRODUCT_CERTS)),
+            of("IS_RHEL", "true", "rh_products_installed", RH_PRODUCTS_INSTALLED)),
         of("subscription_manager_id", SUBSCRIPTION_MANAGER_ID, "insights_id", INSIGHTS_ID),
         of(
             "infrastructure_type",
