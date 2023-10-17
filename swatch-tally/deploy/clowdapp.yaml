@@ -696,3 +696,23 @@ objects:
         and granularity='DAILY'
         and measurement_type!='TOTAL'
         AND snapshot_date > now() - interval '2 day'; 
+    - prefix: swatch/subscriptions
+      query: >-
+        select
+        subscription.sku,
+        subscription.subscription_id,
+        subscription.start_date,
+        subscription.end_date,
+        subscription.quantity,
+        subscription_product_ids.product_id,
+        coalesce(metric_id_normalized.normalized, subscription_measurements.metric_id) as metric_id,
+        subscription_measurements.measurement_type,
+        subscription_measurements.value
+        from subscription
+        left join subscription_product_ids on subscription.subscription_id = subscription_product_ids.subscription_id
+        left join subscription_measurements on subscription.subscription_id = subscription_measurements.subscription_id
+        left join (values
+          ('SOCKETS', 'Sockets'),
+          ('CORES', 'Cores'),
+          ('INSTANCE_HOURS', 'Instance-hours')
+        ) as metric_id_normalized(value, normalized) on subscription_measurements.metric_id=metric_id_normalized.value
