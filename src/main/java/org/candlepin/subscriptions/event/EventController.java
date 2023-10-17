@@ -185,7 +185,8 @@ public class EventController {
                   transactionHandler.runInNewTransaction(() -> save(eventIndexPair.getKey()));
                 } catch (Exception individualSaveException) {
                   log.warn(
-                      "Failed to save individual event record: {}.",
+                      "Failed to save individual event record: {} with error {}.",
+                      eventIndexPair.getKey(),
                       ExceptionUtils.getStackTrace(individualSaveException));
                   throw new BatchListenerFailedException(
                       individualSaveException.getMessage(), eventIndexPair.getValue());
@@ -247,8 +248,9 @@ public class EventController {
 
       } catch (Exception e) {
         log.warn(
-            "Issue found {} for the service instance json skipping to next: {}",
+            "Issue found {} for the service instance json {} skipping to next: {}",
             e.getMessage(),
+            eventIndex.getKey(),
             ExceptionUtils.getStackTrace(e));
         if (result.failedOnIndex.isEmpty()) {
           result.setFailedOnIndex(eventIndex.getValue());
