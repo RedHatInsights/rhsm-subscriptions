@@ -57,7 +57,6 @@ import lombok.Setter;
             @ColumnResult(name = "system_profile_arch"),
             @ColumnResult(name = "is_marketplace"),
             @ColumnResult(name = "qpc_products"),
-            @ColumnResult(name = "qpc_product_ids"),
             @ColumnResult(name = "system_profile_product_ids"),
             @ColumnResult(name = "syspurpose_role"),
             @ColumnResult(name = "syspurpose_sla"),
@@ -120,7 +119,6 @@ import lombok.Setter;
         h.canonical_facts->>'insights_id' as insights_id,
         rhsm_products.products,
         qpc_prods.qpc_products,
-        qpc_certs.qpc_product_ids,
         system_profile.system_profile_product_ids,
         h.stale_timestamp,
         coalesce(
@@ -138,9 +136,6 @@ import lombok.Setter;
         cross join lateral (
             select string_agg(items, ',') as qpc_products
             from jsonb_array_elements_text(h.facts->'qpc'->'rh_products_installed') as items) qpc_prods
-        cross join lateral (
-            select string_agg(items, ',') as qpc_product_ids
-            from jsonb_array_elements_text(h.facts->'qpc'->'rh_product_certs') as items) qpc_certs
         cross join lateral (
             select string_agg(items->>'id', ',') as system_profile_product_ids
             from jsonb_array_elements(h.system_profile_facts->'installed_products') as items) system_profile
