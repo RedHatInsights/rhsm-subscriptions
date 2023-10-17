@@ -247,9 +247,9 @@ public class EventController {
 
       } catch (Exception e) {
         log.warn(
-            String.format(
-                "Issue found %s for the service instance json skipping to next: {}",
-                e.getMessage(), ExceptionUtils.getStackTrace(e)));
+            "Issue found {} for the service instance json skipping to next: {}",
+            e.getMessage(),
+            ExceptionUtils.getStackTrace(e));
         if (result.failedOnIndex.isEmpty()) {
           result.setFailedOnIndex(eventIndex.getValue());
         }
