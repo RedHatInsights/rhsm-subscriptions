@@ -689,7 +689,7 @@ class FactNormalizerTest {
   @Test
   void testQpcProductIdFromEngId() {
     var host = createQpcHost("RHEL", "Test", clock.now());
-    host.setQpcProductIds("69");
+    host.setSystemProfileProductIds("69");
     NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
     assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for x86"));
   }

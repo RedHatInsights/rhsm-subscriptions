@@ -331,7 +331,7 @@ public class FactNormalizer {
     // Check if this is a RHEL host and set product.
     if (hostFacts.getQpcProducts() != null && hostFacts.getQpcProducts().contains("RHEL")) {
       if (hostFacts.getSystemProfileArch() != null
-          && CollectionUtils.isEmpty(hostFacts.getQpcProductIds())) {
+          && CollectionUtils.isEmpty(hostFacts.getSystemProfileProductIds())) {
         switch (hostFacts.getSystemProfileArch()) {
           case "x86_64", "i686", "i386":
             normalizedFacts.addProduct("RHEL for x86");
