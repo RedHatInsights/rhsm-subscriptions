@@ -20,21 +20,34 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus.promql;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.expression.ExpressionParser;
-import org.springframework.expression.common.TemplateParserContext;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Component;
 
 /** Builds PromQL queries based on a configured template. */
+@Slf4j
 @Component
 public class QueryBuilder {
 
-  private static final Logger log = LoggerFactory.getLogger(QueryBuilder.class);
+  private static final Map<String, BiFunction<QueryDescriptor, String, String>> KEY_VALUE_RULES =
+      Map.of(
+          "#{metric.prometheus.queryParams[",
+              (descriptor, key) -> descriptor.getMetric().getPrometheus().getQueryParams().get(key),
+          "#{runtime[", (descriptor, key) -> descriptor.getRuntime().get(key));
+
+  private static final Map<String, Function<QueryDescriptor, String>> DIRECT_RULES =
+      Map.of(
+          "#{metric.id}", descriptor -> descriptor.getMetric().getId(),
+          "#{metric.rhmMetricId}", descriptor -> descriptor.getMetric().getRhmMetricId(),
+          "#{metric.awsDimension}", descriptor -> descriptor.getMetric().getAwsDimension(),
+          "#{metric.prometheus.queryKey}",
+              descriptor -> descriptor.getMetric().getPrometheus().getQueryKey());
+  private static final String KEY_VALUE_CLOSE_TAG = "]}";
 
   private final MetricProperties metricProperties;
 
@@ -65,20 +78,28 @@ public class QueryBuilder {
     return buildQuery(template.get(), queryDescriptor);
   }
 
-  private String buildQuery(String template, QueryDescriptor descriptor) {
-    ExpressionParser parser = new SpelExpressionParser();
-    StandardEvaluationContext context = new StandardEvaluationContext(descriptor);
-
-    // Only allow nested expressions based on a config setting. We need to do this
-    // to prevent potential infinite recursion.
-    String query = template;
-    for (int i = 0; i < metricProperties.getTemplateParameterDepth(); i++) {
-      query = (String) parser.parseExpression(query, new TemplateParserContext()).getValue(context);
-      if (query == null) {
-        throw new IllegalStateException(
-            String.format("Unable to parse query template! %s", template));
+  private String buildQuery(String query, QueryDescriptor descriptor) {
+    // Support of key-value properties that use a map as collection. The expected format is:
+    // "#{map[key]}"
+    for (var rule : KEY_VALUE_RULES.entrySet()) {
+      if (query.contains(rule.getKey())) {
+        String key = StringUtils.substringBetween(query, rule.getKey(), KEY_VALUE_CLOSE_TAG);
+        String value = rule.getValue().apply(descriptor, key);
+        query = query.replace(rule.getKey() + key + KEY_VALUE_CLOSE_TAG, value);
+        return buildQuery(query, descriptor);
       }
     }
+
+    // Support of direct properties that is mapped with instance values. The expected format is:
+    // "#{instance.key}"
+    for (var rule : DIRECT_RULES.entrySet()) {
+      if (query.contains(rule.getKey())) {
+        String value = rule.getValue().apply(descriptor);
+        query = query.replace(rule.getKey(), value);
+        return buildQuery(query, descriptor);
+      }
+    }
+
     log.debug("PromQL: {}", query);
     return query;
   }

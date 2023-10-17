@@ -431,8 +431,8 @@ project(":api") {
     dependencies {
         implementation project(":swatch-product-configuration")
         implementation "jakarta.annotation:jakarta.annotation-api"
-        implementation "com.fasterxml.jackson.core:jackson-annotations"
-        implementation "jakarta.validation:jakarta.validation-api"
+        implementation libraries["jackson-annotations"]
+        implementation libraries["jakarta-validation-api"]
         implementation libraries["jakarta-ws-rs"]
         implementation libraries["swagger-annotations"]
         implementation libraries["jsr305"]

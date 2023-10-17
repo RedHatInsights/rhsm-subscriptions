@@ -331,7 +331,6 @@ public class FactNormalizer {
     if (hostFacts.getQpcProducts() != null && hostFacts.getQpcProducts().contains("RHEL")) {
       normalizedFacts.addProduct("RHEL");
     }
-    getProductsFromProductIds(normalizedFacts, hostFacts.getQpcProductIds());
   }
 
   /**
