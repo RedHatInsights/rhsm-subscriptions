@@ -280,6 +280,9 @@ public class ContractService {
     var subscription = new SubscriptionEntity();
     mapper.mapContractEntityToSubscriptionEntity(subscription, contract);
     measurementMetricIdTransformer.translateContractMetricIdsToSubscriptionMetricIds(subscription);
+    if (subscription.getSubscriptionMeasurements().size() != contract.getMetrics().size()) {
+      measurementMetricIdTransformer.resolveConflictingMetrics(contract);
+    }
     if (lookupSubscriptionId) {
       subscription.setSubscriptionId(lookupSubscriptionId(contract.getSubscriptionNumber()));
     }
