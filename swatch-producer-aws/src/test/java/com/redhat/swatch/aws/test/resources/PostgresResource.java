@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.aws;
+package com.redhat.swatch.aws.test.resources;
 
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import java.util.Collections;

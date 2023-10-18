@@ -22,9 +22,10 @@ package com.redhat.swatch.aws.exception;
 
 import lombok.Getter;
 
+@Getter
 public class AwsUnprocessedRecordsException extends AwsProducerException {
 
-  @Getter private final int count;
+  private final int count;
 
   public AwsUnprocessedRecordsException(int count) {
     super(ErrorCode.AWS_UNPROCESSED_RECORDS_ERROR, String.format("count=%d", count));

@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.aws.wiremock;
+package com.redhat.swatch.aws.test.wiremock;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 

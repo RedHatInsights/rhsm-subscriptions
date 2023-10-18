@@ -20,22 +20,39 @@
  */
 package com.redhat.swatch.aws;
 
+import static io.restassured.RestAssured.given;
+
+import com.redhat.swatch.aws.test.resources.InMemoryMessageBrokerKafkaResource;
+import com.redhat.swatch.aws.test.resources.PostgresResource;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
-import org.junit.Assert;
-import org.junit.jupiter.api.Disabled;
+import io.restassured.http.ContentType;
+import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-@Disabled("This placeholder test shows how to setup an integration test w/ DB & Kafka")
 @QuarkusTest
 @QuarkusTestResource(value = PostgresResource.class, restrictToAnnotatedClass = true)
-@QuarkusTestResource(value = KafkaResource.class, restrictToAnnotatedClass = true)
+@QuarkusTestResource(
+    value = InMemoryMessageBrokerKafkaResource.class,
+    restrictToAnnotatedClass = true)
 @Tag("integration")
-class TestContainerTest {
+class BillableUsageResourceIT {
 
   @Test
-  void testContainersStarting() {
-    Assert.assertTrue(true);
+  void testSubmitBillableUsage() {
+    given()
+        .contentType(ContentType.JSON)
+        .body(
+            """
+            {
+              "sla": "Standard",
+              "usage": "Development/Test",
+              "billingProvider": "aws"
+            }
+            """)
+        .post("/api/swatch-producer-aws/internal/aws/billable_usage")
+        .then()
+        .statusCode(HttpStatus.SC_NO_CONTENT);
   }
 }

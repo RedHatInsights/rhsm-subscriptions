@@ -28,7 +28,7 @@ dependencies {
     testImplementation 'io.rest-assured:rest-assured'
     testImplementation 'org.mockito:mockito-junit-jupiter'
     testImplementation 'org.testcontainers:junit-jupiter'
-    testImplementation 'org.testcontainers:kafka'
+    testImplementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'
     testImplementation 'org.testcontainers:testcontainers'
     testImplementation 'io.quarkus:quarkus-test-security'
     testImplementation libraries["junit-jupiter"]
