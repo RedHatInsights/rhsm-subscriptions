@@ -52,7 +52,6 @@ import org.candlepin.subscriptions.subscription.SubscriptionServiceConfiguration
 import org.candlepin.subscriptions.subscription.SubscriptionWorkerConfiguration;
 import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
-import org.candlepin.subscriptions.user.UserServiceClientConfiguration;
 import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
 import org.candlepin.subscriptions.util.UtilConfiguration;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -82,7 +81,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   SecurityConfiguration.class,
   MeteringConfiguration.class,
   SubscriptionServiceConfiguration.class,
-  UserServiceClientConfiguration.class,
   // NOTE(khowell): actually not needed in RH marketplace worker
   RhsmSubscriptionsDataSourceConfiguration.class,
   UtilConfiguration.class,

@@ -41,7 +41,6 @@ dependencies {
     implementation project(":clients:rbac-client")
     implementation project(":clients:rhsm-client")
     implementation project(":clients:subscription-client")
-    implementation project(":clients:user-client")
     implementation project(":clients:contracts-client")
     implementation project(":clients:swatch-internal-subscription-springboot-client")
 
