@@ -97,8 +97,8 @@ dependencies {
     testImplementation "org.springframework.security:spring-security-test"
     testImplementation "org.springframework.kafka:spring-kafka-test"
     testImplementation project(':swatch-core-test')
+    testImplementation "org.hsqldb:hsqldb"
 
-    runtimeOnly "org.hsqldb:hsqldb"
     runtimeOnly libraries["resteasy-jackson2-provider"]
 
     javaagent  libraries["splunk-otel-agent"]
