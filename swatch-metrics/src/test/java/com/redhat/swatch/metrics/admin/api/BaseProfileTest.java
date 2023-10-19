@@ -31,8 +31,10 @@ public abstract class BaseProfileTest {
   @Test
   public void testServiceIsUpAndRunning() {
     // generate admin API works
-    put("/internal/metering/sync").then().statusCode(HttpStatus.SC_NO_CONTENT);
-    post("/internal/metering/rosa?orgId=123").then().statusCode(HttpStatus.SC_NO_CONTENT);
+    post("/api/swatch-metrics/internal/metering/rosa?orgId=123")
+        .then()
+        .statusCode(HttpStatus.SC_NO_CONTENT);
+    put("/api/swatch-metrics/internal/metering/sync").then().statusCode(HttpStatus.SC_NO_CONTENT);
     // health resource is up and running
     get("/q/health").then().statusCode(HttpStatus.SC_OK);
     // openapi resources are up and running
