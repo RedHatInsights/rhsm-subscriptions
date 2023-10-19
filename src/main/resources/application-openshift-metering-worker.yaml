@@ -4,8 +4,6 @@ rhsm-subscriptions:
   # Use Spring Resource notation for this (e.g. "classpath:" or "file:")
   account-list-resource-location: ${ACCOUNT_LIST_RESOURCE_LOCATION:}
   account-batch-size: ${ACCOUNT_BATCH_SIZE:1}
-  datasource:
-    enabled: false
 
   metering:
     prometheus:
@@ -39,7 +37,3 @@ rhsm-subscriptions:
       seek-override-end: ${SERVICE_INSTANCE_INGRESS_KAFKA_SEEK_OVERRIDE_END:false}
       seek-override-timestamp: ${SERVICE_INSTANCE_INGRESS_KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
       max-poll-records: ${SERVICE_INSTANCE_INGRESS_KAFKA_MAX_POLL_RECORDS:500}
-
-spring:
-  liquibase:
-    enabled: ${rhsm-subscriptions.datasource.enabled}
