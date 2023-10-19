@@ -1,22 +1,22 @@
 ---
 platform: RHEL
 
-id: rhel-for-x86-eus-payg
+id: rhel-for-x86-els-payg
 
 #includedSubscriptions:
 #  - rhel-for-x86
 
 variants:
-  - tag: rhel-for-x86-eus-payg
+  - tag: rhel-for-x86-els-payg
     engineeringIds:
-      - 70
+      - 204
     productNames:
       - RHEL Server
     roles:
-      - rhel-for-x86-eus-payg-placeholder-role
+      - rhel-for-x86-els-payg-placeholder-role
 
 defaults:
-  variant: rhel-for-x86-eus-payg
+  variant: rhel-for-x86-els-payg
   sla: PREMIUM
   usage: PRODUCTION
 
@@ -26,7 +26,7 @@ contractEnabled: false #There is no need to generate an AWS contract listing bec
 
 metrics:
   - id: vCPUs
-    awsDimension: Centos_Test # Change the value to vCPU_Hour in SWATCH-1839
+    awsDimension: vCPU_hours
     prometheus:
       queryKey: default
       queryParams:
