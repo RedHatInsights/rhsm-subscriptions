@@ -39,12 +39,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
 import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.slf4j.Logger;
@@ -74,7 +74,7 @@ public class MetricUsageCollector {
 
   @Transactional
   public CollectionResult collect(String serviceType, String orgId, DateRange range) {
-    if (!clock.isHourlyRange(range)) {
+    if (!clock.isHourlyRange(range.getStartDate(), range.getEndDate())) {
       throw new IllegalArgumentException(
           String.format(
               "Start and end dates must be at the top of the hour: [%s -> %s]",

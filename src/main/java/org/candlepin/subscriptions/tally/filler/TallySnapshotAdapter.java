@@ -21,7 +21,7 @@
 package org.candlepin.subscriptions.tally.filler;
 
 import java.time.OffsetDateTime;
-import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
 
 public class TallySnapshotAdapter implements ReportFillerAdapter<TallySnapshot> {

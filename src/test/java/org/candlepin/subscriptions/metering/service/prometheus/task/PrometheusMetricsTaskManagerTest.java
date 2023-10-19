@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.OffsetDateTime;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
 import org.candlepin.subscriptions.task.TaskDescriptor;
@@ -31,7 +32,6 @@ import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

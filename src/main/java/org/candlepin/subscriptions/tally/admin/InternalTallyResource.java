@@ -26,6 +26,7 @@ import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
@@ -45,7 +46,6 @@ import org.candlepin.subscriptions.tally.admin.api.model.TallyResponse;
 import org.candlepin.subscriptions.tally.admin.api.model.UuidList;
 import org.candlepin.subscriptions.tally.events.EventRecordsRetentionProperties;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.core.task.TaskRejectedException;
@@ -105,7 +105,7 @@ public class InternalTallyResource implements InternalApi {
   public void performHourlyTallyForOrg(
       String orgId, OffsetDateTime start, OffsetDateTime end, Boolean xRhSwatchSynchronousRequest) {
     DateRange range = new DateRange(start, end);
-    if (!clock.isHourlyRange(range)) {
+    if (!clock.isHourlyRange(start, end)) {
       throw new IllegalArgumentException(
           String.format(
               "Start/End times must be at the top of the hour: [%s -> %s]",

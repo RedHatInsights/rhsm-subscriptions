@@ -22,7 +22,7 @@ package org.candlepin.subscriptions.tally.filler;
 
 import java.time.OffsetDateTime;
 import java.util.Objects;
-import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.clock.ApplicationClock;
 
 public class UnroundedTallyReportDataPointAdapter
     implements ReportFillerAdapter<UnroundedTallyReportDataPoint> {

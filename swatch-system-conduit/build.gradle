@@ -72,9 +72,9 @@ dependencies {
     // code changes
     implementation 'org.springframework.boot:spring-boot-devtools'
 
+    implementation project(":swatch-common-clock")
     implementation project(":swatch-core")
     implementation project(":clients-core")
-
     implementation project(":clients:rhsm-client")
 
     implementation "org.springframework.boot:spring-boot-starter-aop"

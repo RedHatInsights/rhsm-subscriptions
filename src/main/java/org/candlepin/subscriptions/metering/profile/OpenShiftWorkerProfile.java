@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.metering.profile;
 import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getProducerProperties;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.json.BaseEvent;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusEventsProducer;
@@ -34,7 +35,6 @@ import org.candlepin.subscriptions.metering.task.MeteringTasksConfiguration;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.SpanGenerator;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;

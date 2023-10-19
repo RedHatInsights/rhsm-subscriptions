@@ -20,8 +20,8 @@
  */
 package org.candlepin.subscriptions.tally.filler;
 
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.model.Granularity;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 import org.candlepin.subscriptions.utilization.api.model.TallySnapshot;
 

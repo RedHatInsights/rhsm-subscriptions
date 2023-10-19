@@ -25,6 +25,7 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
@@ -39,7 +40,6 @@ import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.json.BillableUsage;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.stereotype.Component;
 
 @Slf4j

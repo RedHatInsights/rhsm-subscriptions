@@ -22,9 +22,9 @@ package org.candlepin.subscriptions.tally.roller;
 
 import static org.candlepin.subscriptions.db.model.Granularity.HOURLY;
 
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
