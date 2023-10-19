@@ -144,7 +144,7 @@ rhsm-subscriptions:
       maximum-pool-size: ${DATABASE_MAX_POOL_SIZE}
   product:
     useStub: ${PRODUCT_USE_STUB:false}
-    url: ${PRODUCT_URL:https://product.qa.api.redhat.com/svcrest/product/v3}
+    url: ${PRODUCT_URL:https://product.stage.api.redhat.com/svcrest/product/v3}
     keystore: file:${PRODUCT_KEYSTORE:}
     keystorePassword: ${PRODUCT_KEYSTORE_PASSWORD:redhat}
     maxConnections: ${PRODUCT_MAX_CONNECTIONS:100}
