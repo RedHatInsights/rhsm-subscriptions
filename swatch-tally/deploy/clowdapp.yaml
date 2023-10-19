@@ -98,10 +98,6 @@ parameters:
     value: 0 6 * * *
   - name: CAPTURE_HOURLY_SNAPSHOT_SCHEDULE
     value: '@hourly'
-  - name: PURGE_EVENTS_SCHEDULE
-    value: '30 4 * * *'
-  - name: EVENT_RECORD_RETENTION
-    value: '90d'
   # TODO after enable individual functionality (see ENT-4487)
   - name: DEV_MODE
     value: 'false'
@@ -555,32 +551,6 @@ objects:
             - -c
             - >
               /usr/bin/curl --fail -H "Origin: https://swatch-tally-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://swatch-tally-service:8000/api/rhsm-subscriptions/v1/internal/rpc/tally/remittance/purge"
-          env:
-            - name: SWATCH_SELF_PSK
-              valueFrom:
-                secretKeyRef:
-                  name: swatch-psks
-                  key: self
-        resources:
-          requests:
-            cpu: ${CURL_CRON_CPU_REQUEST}
-            memory: ${CURL_CRON_MEMORY_REQUEST}
-          limits:
-            cpu: ${CURL_CRON_CPU_LIMIT}
-            memory: ${CURL_CRON_MEMORY_LIMIT}
-
-      - name: purge-events
-        schedule: ${PURGE_EVENTS_SCHEDULE}
-        activeDeadlineSeconds: 1800
-        successfulJobsHistoryLimit: 2
-        restartPolicy: Never
-        podSpec:
-          image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
-          command:
-            - /usr/bin/bash
-            - -c
-            - >
-              /usr/bin/curl --fail -i -H "Origin: https://swatch-tally-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X DELETE "http://swatch-tally-service:8000/api/rhsm-subscriptions/v1/internal/rpc/tally/events/purge"
           env:
             - name: SWATCH_SELF_PSK
               valueFrom:

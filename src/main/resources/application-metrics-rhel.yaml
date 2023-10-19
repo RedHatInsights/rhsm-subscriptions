@@ -3,8 +3,6 @@ SERVICE_INSTANCE_INGRESS_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'pla
 
 rhsm-subscriptions:
   account-batch-size: 1
-  datasource:
-    enabled: false
 
   metering:
     prometheus:
@@ -38,7 +36,3 @@ rhsm-subscriptions:
       seek-override-end: false
       seek-override-timestamp:
       max-poll-records: 500
-
-spring:
-  liquibase:
-    enabled: ${rhsm-subscriptions.datasource.enabled}

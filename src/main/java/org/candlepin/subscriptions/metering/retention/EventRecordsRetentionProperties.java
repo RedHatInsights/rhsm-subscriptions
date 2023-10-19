@@ -18,23 +18,18 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.deployment;
+package org.candlepin.subscriptions.metering.retention;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import java.time.Duration;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
-import org.candlepin.subscriptions.metering.MeteringConfiguration;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-
-@SpringBootTest
-@ActiveProfiles("openshift-metering-worker")
-class OpenshiftMeteringWorkerDeploymentTest {
-  @Autowired MeteringConfiguration configuration;
-
-  @Test
-  void testDeployment() {
-    assertNotNull(configuration);
-  }
+@Getter
+@Setter
+@Component
+@ConfigurationProperties(prefix = "rhsm-subscriptions.event-retention-policy")
+public class EventRecordsRetentionProperties {
+  private Duration eventRetentionDuration = Duration.ofDays(90L);
 }

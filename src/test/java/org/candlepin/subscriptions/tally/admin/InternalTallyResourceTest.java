@@ -29,13 +29,11 @@ import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.retention.RemittanceRetentionController;
 import org.candlepin.subscriptions.retention.TallyRetentionController;
 import org.candlepin.subscriptions.security.SecurityProperties;
 import org.candlepin.subscriptions.tally.MarketplaceResendTallyController;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
-import org.candlepin.subscriptions.tally.events.EventRecordsRetentionProperties;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.DateRange;
@@ -54,8 +52,6 @@ class InternalTallyResourceTest {
   @Mock private TallyRetentionController tallyRetentionController;
   @Mock private RemittanceRetentionController remittanceRetentionController;
   @Mock private InternalTallyDataController internalTallyDataController;
-  @Mock private EventRecordRepository eventRecordRepository;
-  @Mock private EventRecordsRetentionProperties eventRecordsRetentionProperties;
 
   private InternalTallyResource resource;
   private ApplicationProperties appProps;
@@ -76,9 +72,7 @@ class InternalTallyResourceTest {
             tallyRetentionController,
             remittanceRetentionController,
             internalTallyDataController,
-            properties,
-            eventRecordRepository,
-            eventRecordsRetentionProperties);
+            properties);
   }
 
   @Test

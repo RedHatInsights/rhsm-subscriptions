@@ -23,16 +23,21 @@ package org.candlepin.subscriptions.metering.api.admin;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
+import io.micrometer.core.annotation.Timed;
+import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.metering.ResourceUtil;
 import org.candlepin.subscriptions.metering.admin.api.InternalApi;
+import org.candlepin.subscriptions.metering.retention.EventRecordsRetentionProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
@@ -48,22 +53,42 @@ public class InternalMeteringResource implements InternalApi {
   private final ApplicationProperties applicationProperties;
   private final PrometheusMetricsTaskManager tasks;
   private final PrometheusMeteringController controller;
+  private final EventRecordsRetentionProperties eventRecordsRetentionProperties;
+  private final EventRecordRepository eventRecordRepository;
   private final MetricProperties metricProperties;
   private final RetryTemplate retryTemplate;
 
   public InternalMeteringResource(
       ResourceUtil util,
       ApplicationProperties applicationProperties,
+      EventRecordsRetentionProperties eventRecordsRetentionProperties,
       PrometheusMetricsTaskManager tasks,
       PrometheusMeteringController controller,
+      EventRecordRepository eventRecordRepository,
       MetricProperties metricProperties,
       @Qualifier("meteringJobRetryTemplate") RetryTemplate retryTemplate) {
     this.util = util;
     this.applicationProperties = applicationProperties;
+    this.eventRecordsRetentionProperties = eventRecordsRetentionProperties;
     this.tasks = tasks;
     this.controller = controller;
+    this.eventRecordRepository = eventRecordRepository;
     this.metricProperties = metricProperties;
     this.retryTemplate = retryTemplate;
+  }
+
+  @Override
+  @Transactional
+  @Timed("rhsm-subscriptions.events.purge")
+  public void purgeEventRecords() {
+    var eventRetentionDuration = eventRecordsRetentionProperties.getEventRetentionDuration();
+
+    OffsetDateTime cutoffDate =
+        OffsetDateTime.now().truncatedTo(ChronoUnit.DAYS).minus(eventRetentionDuration);
+
+    log.info("Purging event records older than {}", cutoffDate);
+    eventRecordRepository.deleteInBulkEventRecordsByTimestampBefore(cutoffDate);
+    log.info("Event record purge completed successfully");
   }
 
   @Override
