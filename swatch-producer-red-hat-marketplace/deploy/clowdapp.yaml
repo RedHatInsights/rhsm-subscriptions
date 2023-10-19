@@ -78,9 +78,9 @@ parameters:
   - name: DATABASE_MAX_POOL_SIZE
     value: '25'
   - name: PRODUCT_URL
-    value: https://product.qa.api.redhat.com/svcrest/product/v3
+    value: https://product.stage.api.redhat.com/svcrest/product/v3
   - name: SUBSCRIPTION_URL
-    value: https://subscription.qa.api.redhat.com/svcrest/subscription/v5
+    value: https://subscription.stage.api.redhat.com/svcrest/subscription/v5
   - name: SUBSCRIPTION_MAX_CONNECTIONS
     value: '100'
   - name: SUBSCRIPTION_BACKOFF_INITIAL_INTERVAL
@@ -94,7 +94,7 @@ parameters:
   - name: SUBSCRIPTION_PAGE_SIZE
     value: '500'
   - name: USER_HOST
-    value: 'user.qa.api.redhat.com'
+    value: 'user.stage.api.redhat.com'
   - name: USER_MAX_CONNECTIONS
     value: '100'
   - name: USER_MAX_ATTEMPTS

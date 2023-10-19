@@ -69,7 +69,7 @@ parameters:
     value: 'marketplace'
   - name: USER_HOST
     # required: true # FIXME Not sure where this is provided
-    value: 'user.qa.api.redhat.com'
+    value: 'user.stage.api.redhat.com'
   - name: USER_MAX_CONNECTIONS
     value: '100'
   - name: USER_MAX_ATTEMPTS
