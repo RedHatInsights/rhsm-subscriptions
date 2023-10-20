@@ -27,11 +27,13 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import java.time.OffsetDateTime;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.clock.ApplicationClock;
 
 @ApplicationScoped
 @Slf4j
 public class InternalMeteringResource implements DefaultApi {
   @Inject MetricProperties metricProperties;
+  @Inject ApplicationClock clock;
 
   @Override
   public void syncMetricsForAllAccounts() {

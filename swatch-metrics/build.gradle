@@ -19,6 +19,8 @@ dependencies {
     implementation project(':swatch-common-resteasy-client')
     implementation project(':swatch-common-config-workaround')
     implementation project(':swatch-common-resteasy')
+    implementation project(':swatch-common-clock')
+    implementation project(':swatch-model-events')
     implementation libraries["clowder-quarkus-config-source"]
     implementation libraries["quarkus-logging-splunk"]
     implementation libraries["splunk-library-javalogging"]
