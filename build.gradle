@@ -72,8 +72,7 @@ dependencies {
     testImplementation libraries["awaitility"]
     testImplementation project(':swatch-core-test')
     testImplementation project(':swatch-common-testcontainers')
-
-    runtimeOnly "org.hsqldb:hsqldb"
+    testImplementation "org.hsqldb:hsqldb"
 
     javaagent  libraries["splunk-otel-agent"]
 
