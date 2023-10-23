@@ -20,6 +20,16 @@
  */
 package com.redhat.swatch.contract.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.redhat.swatch.clients.subscription.api.model.Subscription;
 import com.redhat.swatch.clients.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
@@ -44,24 +54,13 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @QuarkusTest
 @QuarkusTestResource(value = WireMockResource.class, restrictToAnnotatedClass = true)
@@ -152,7 +151,7 @@ class ContractServiceTest extends BaseUnitTest {
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
     assertEquals(
-            "Previous contract archived and new contract created", statusResponse.getMessage());
+        "Previous contract archived and new contract created", statusResponse.getMessage());
   }
 
   @Test
@@ -173,7 +172,7 @@ class ContractServiceTest extends BaseUnitTest {
     // update
     verify(subscriptionRepository, times(2)).persist(any(SubscriptionEntity.class));
     verify(measurementMetricIdTransformer, times(2))
-            .translateContractMetricIdsToSubscriptionMetricIds(any());
+        .translateContractMetricIdsToSubscriptionMetricIds(any());
   }
 
   @Test
@@ -199,10 +198,13 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
-  void createPartnerContract_DuplicateContractThenDoNotPersist() throws ApiException {
-    ContractEntity incomingContract = new ContractEntity();
-    var uuid = UUID.randomUUID();
-    OffsetDateTime offsetDateTime = OffsetDateTime.now();
+  void testDeleteContractsByOrgId() {
+    givenExistingContract();
+    givenExistingSubscription();
+    contractService.deleteContractsByOrgId(ORG_ID);
+    verify(contractRepository).delete(any());
+    verify(subscriptionRepository).delete(any());
+  }
 
   private static PartnerEntitlementContract givenPartnerEntitlementContractWithoutProductCode() {
     var contract = givenPartnerEntitlementContractRequest();
@@ -215,7 +217,7 @@ class ContractServiceTest extends BaseUnitTest {
     contract.setRedHatSubscriptionNumber(SUBSCRIPTION_NUMBER);
 
     PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
-            new PartnerEntitlementContractCloudIdentifiers();
+        new PartnerEntitlementContractCloudIdentifiers();
     cloudIdentifiers.setAwsCustomerId("HSwCpt6sqkC");
     cloudIdentifiers.setAwsCustomerAccountId("568056954830");
     cloudIdentifiers.setProductCode("product123");
@@ -225,7 +227,8 @@ class ContractServiceTest extends BaseUnitTest {
 
   private SubscriptionEntity givenExistingSubscription() {
     SubscriptionEntity subscription = new SubscriptionEntity();
-    when(subscriptionRepository.find(eq(SubscriptionEntity.class), any())).thenReturn(List.of(subscription));
+    when(subscriptionRepository.find(eq(SubscriptionEntity.class), any()))
+        .thenReturn(List.of(subscription));
     return subscription;
   }
 
@@ -264,7 +267,7 @@ class ContractServiceTest extends BaseUnitTest {
     subscription.setId(42);
     try {
       when(subscriptionApi.getSubscriptionBySubscriptionNumber(any()))
-              .thenReturn(List.of(subscription));
+          .thenReturn(List.of(subscription));
     } catch (ApiException e) {
       fail(e);
     }

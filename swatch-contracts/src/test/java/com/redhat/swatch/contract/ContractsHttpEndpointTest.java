@@ -23,6 +23,7 @@ package com.redhat.swatch.contract;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.contract.openapi.model.Contract;
@@ -33,6 +34,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import io.restassured.http.ContentType;
 import java.util.List;
+import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
@@ -55,7 +57,7 @@ class ContractsHttpEndpointTest {
         .when()
         .get("/api/swatch-contracts/internal/contracts")
         .then()
-        .statusCode(200)
+        .statusCode(HttpStatus.SC_OK)
         .body("size()", is(1))
         .body("[0].org_id", is("org123"));
   }
@@ -81,7 +83,7 @@ class ContractsHttpEndpointTest {
         .when()
         .post("/api/swatch-contracts/internal/contracts")
         .then()
-        .statusCode(200);
+        .statusCode(HttpStatus.SC_OK);
   }
 
   @Test
@@ -94,7 +96,7 @@ class ContractsHttpEndpointTest {
         .when()
         .delete("/api/swatch-contracts/internal/contracts/123")
         .then()
-        .statusCode(204);
+        .statusCode(HttpStatus.SC_NO_CONTENT);
   }
 
   @Test
@@ -132,6 +134,19 @@ class ContractsHttpEndpointTest {
         .when()
         .post("/api/swatch-contracts/internal/rpc/partner/contracts")
         .then()
-        .statusCode(200);
+        .statusCode(HttpStatus.SC_OK);
+  }
+
+  @Test
+  @TestSecurity(
+      user = "placeholder",
+      roles = {"test"})
+  void deleteContractsByOrgId() {
+    given()
+        .when()
+        .delete("/api/swatch-contracts/internal/rpc/reset/contracts/org123")
+        .then()
+        .statusCode(HttpStatus.SC_NO_CONTENT);
+    verify(contractService).deleteContractsByOrgId("org123");
   }
 }

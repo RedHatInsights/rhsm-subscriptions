@@ -32,6 +32,10 @@ public class ContractRepository implements PanacheSpecificationSupport<ContractE
     return find(ContractEntity.class, specification, null);
   }
 
+  public List<ContractEntity> getContractsByOrgId(String orgId) {
+    return find("orgId", orgId).list();
+  }
+
   public ContractEntity findContract(UUID uuid) {
     log.info("Find contract by uuid {}", uuid);
     return find("uuid", uuid).firstResult();

@@ -112,6 +112,12 @@ public class ContractsTestingResource implements DefaultApi {
   }
 
   @Override
+  @RolesAllowed({"test", "support", "service"})
+  public StatusResponse deleteContractsByOrg(String orgId) throws ProcessingException {
+    return service.deleteContractsByOrgId(orgId);
+  }
+
+  @Override
   @RolesAllowed({"test"})
   public StatusResponse createPartnerEntitlementContract(PartnerEntitlementContract contract)
       throws ProcessingException {

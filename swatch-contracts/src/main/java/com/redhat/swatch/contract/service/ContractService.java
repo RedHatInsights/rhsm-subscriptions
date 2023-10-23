@@ -151,7 +151,6 @@ public class ContractService {
    * @param billingProvider the billing provider.
    * @param billingAccountId the billing account ID.
    * @param vendorProductCode the vendor product code.
-   *
    * @return List<Contract> the list of contracts.
    */
   public List<Contract> getContracts(
@@ -193,20 +192,8 @@ public class ContractService {
    */
   @Transactional
   public void deleteContract(String uuid) {
-
     var contract = contractRepository.findContract(UUID.fromString(uuid));
-    var subscription =
-        subscriptionRepository
-            .find(SubscriptionEntity.class, SubscriptionEntity.forContract(contract))
-            .stream()
-            .findFirst()
-            .orElse(null);
-    if (contract != null) {
-      contractRepository.delete(contract);
-    }
-    if (subscription != null) {
-      subscriptionRepository.delete(subscription);
-    }
+    deleteContract(contract);
   }
 
   @Transactional
@@ -360,6 +347,32 @@ public class ContractService {
     return statusResponse;
   }
 
+  @Transactional
+  public StatusResponse deleteContractsByOrgId(String orgId) {
+    StatusResponse statusResponse = new StatusResponse();
+
+    List<ContractEntity> contractsToDelete = contractRepository.getContractsByOrgId(orgId);
+    contractsToDelete.forEach(this::deleteContract);
+    log.info("Deleted {} contract for org id {}", contractsToDelete.size(), orgId);
+    statusResponse.setStatus(SUCCESS_MESSAGE);
+    return statusResponse;
+  }
+
+  private void deleteContract(ContractEntity contract) {
+    var subscription =
+        subscriptionRepository
+            .find(SubscriptionEntity.class, SubscriptionEntity.forContract(contract))
+            .stream()
+            .findFirst()
+            .orElse(null);
+    if (contract != null) {
+      contractRepository.delete(contract);
+    }
+    if (subscription != null) {
+      subscriptionRepository.delete(subscription);
+    }
+  }
+
   private boolean validPartnerEntitlementContract(PartnerEntitlementContract contract) {
     return Objects.nonNull(contract.getRedHatSubscriptionNumber())
         && Objects.nonNull(contract.getCloudIdentifiers())
@@ -392,13 +405,15 @@ public class ContractService {
   }
 
   private void persistContract(ContractEntity entity, OffsetDateTime now) {
-    var uuid = UUID.randomUUID();
-    entity.setUuid(uuid);
-    entity.getMetrics().forEach(f -> f.setContractUuid(uuid));
+    if (entity.getUuid() == null) {
+      entity.setUuid(UUID.randomUUID());
+    }
+
+    entity.getMetrics().forEach(f -> f.setContractUuid(entity.getUuid()));
     entity.setStartDate(now);
     entity.setLastUpdated(now);
     contractRepository.persist(entity);
-    log.info("New contract created with UUID {}", uuid);
+    log.info("New contract created/updated with UUID {}", entity.getUuid());
   }
 
   private Optional<ContractEntity> currentlyActiveContract(ContractEntity contract) {
