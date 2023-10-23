@@ -62,6 +62,9 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 @ApplicationScoped
 public class ContractService {
 
+  private static final String SUCCESS_MESSAGE = "SUCCESS";
+  private static final String FAILURE_MESSAGE = "FAILED";
+
   private final ContractRepository contractRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final ContractMapper mapper;
@@ -88,7 +91,7 @@ public class ContractService {
    * payload. This method will always set the end date to 'null', which indicates an active
    * contract.
    *
-   * @param contract
+   * @param contract the contract dto to create.
    * @return Contract dto
    */
   @Transactional
@@ -143,12 +146,13 @@ public class ContractService {
    * Build Specifications based on provided parameters if not null and use to query the database
    * based on specifications.
    *
-   * @param orgId
-   * @param productId
-   * @param billingProvider
-   * @param billingAccountId
-   * @param vendorProductCode
-   * @return List<Contract> dtos
+   * @param orgId the org ID.
+   * @param productId the product ID.
+   * @param billingProvider the billing provider.
+   * @param billingAccountId the billing account ID.
+   * @param vendorProductCode the vendor product code.
+   *
+   * @return List<Contract> the list of contracts.
    */
   public List<Contract> getContracts(
       String orgId,
@@ -185,7 +189,7 @@ public class ContractService {
    * Delete a contract for a given uuid. This is soft delete. It sets the end date of a contract to
    * the current timestamp.
    *
-   * @param uuid
+   * @param uuid the contract id.
    */
   @Transactional
   public void deleteContract(String uuid) {
@@ -306,8 +310,6 @@ public class ContractService {
   @Transactional
   public StatusResponse syncContractByOrgId(String contractOrgSync) {
     StatusResponse statusResponse = new StatusResponse();
-    final String failureMessage = "FAILED";
-    final String successMsg = "SUCCESS";
 
     try {
       var currentContracts = listCurrentlyActiveContractsByOrgId(contractOrgSync);
@@ -315,7 +317,7 @@ public class ContractService {
       if (currentContracts.isEmpty()) {
         log.debug("No active contract for {}", contractOrgSync);
         return statusResponse
-            .status(failureMessage)
+            .status(FAILURE_MESSAGE)
             .message(contractOrgSync + " not found in table");
       }
 
@@ -332,12 +334,12 @@ public class ContractService {
               transformEntitlementToContractEntity(result.getContent(), contract);
           if (Objects.nonNull(entitlementEntity)) {
             log.info("Syncing new Contract for {}", contractOrgSync);
-            statusResponse.setStatus(successMsg);
+            statusResponse.setStatus(SUCCESS_MESSAGE);
             var now = OffsetDateTime.now();
             persistSubscription(createSubscriptionForContract(entitlementEntity, true), now);
             persistContract(entitlementEntity, now);
           } else {
-            statusResponse.setStatus(failureMessage);
+            statusResponse.setStatus(FAILURE_MESSAGE);
             statusResponse.setMessage("Entitlement Cannot be found for " + contractOrgSync);
             return statusResponse;
           }
@@ -346,12 +348,12 @@ public class ContractService {
       statusResponse.setMessage("Contracts Synced for " + contractOrgSync);
     } catch (NumberFormatException e) {
       log.error(e.getMessage());
-      statusResponse.setStatus(failureMessage);
+      statusResponse.setStatus(FAILURE_MESSAGE);
       statusResponse.setMessage("An Error occurred while reconciling contract");
       return statusResponse;
     } catch (ApiException e) {
       log.error(e.getMessage());
-      statusResponse.setStatus(failureMessage);
+      statusResponse.setStatus(FAILURE_MESSAGE);
       statusResponse.setMessage("An Error occurred while calling Partner Api");
       return statusResponse;
     }
@@ -414,19 +416,6 @@ public class ContractService {
 
   private boolean isDuplicateContract(ContractEntity newEntity, ContractEntity existing) {
     return Objects.equals(newEntity, existing);
-  }
-
-  /**
-   * Updating of the unique constraint properties (productId, subscriptionNumber, and startDate are
-   * not allowed.
-   *
-   * @param o
-   * @param dto
-   * @return boolean
-   */
-  boolean isUpdateAllowed(ContractEntity o, Contract dto) {
-
-    return Objects.equals(dto.getVendorProductCode(), o.getVendorProductCode());
   }
 
   private ContractEntity transformEntitlementToContractEntity( // NOSONAR
@@ -519,7 +508,7 @@ public class ContractService {
 
   private void populateProductIdBySku(ContractEntity entity) {
     var sku = entity.getSku();
-    log.trace("Call swatch api to get producttags by sku {}", sku);
+    log.trace("Call swatch api to get product tags by sku {}", sku);
 
     if (Objects.nonNull(sku)) {
       try {
