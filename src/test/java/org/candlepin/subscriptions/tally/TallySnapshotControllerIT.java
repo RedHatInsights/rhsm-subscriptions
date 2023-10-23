@@ -22,6 +22,11 @@ package org.candlepin.subscriptions.tally;
 
 import static org.candlepin.subscriptions.metering.MeteringEventFactory.getEventType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
@@ -31,9 +36,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.EventRecordRepository;
+import org.candlepin.subscriptions.db.HostTallyBucketRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
+import org.candlepin.subscriptions.inventory.db.InventoryRepository;
+import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.resource.OptInResource;
@@ -46,8 +56,10 @@ import org.candlepin.subscriptions.utilization.api.model.GranularityType;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest(properties = "CONTRACT_USE_STUB=true")
@@ -58,6 +70,9 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   static final String USER_ID = "123";
   static final String ORG_ID = "owner" + USER_ID;
   static final String PRODUCT_TAG = "rosa";
+  static final String ENG_ID_FOR_RHEL_FOR_X86_HA = "83";
+  static final String RHEL_FOR_X86_HA = "rhel-for-x86-ha";
+  static final String PHYSICAL = "PHYSICAL";
 
   @Autowired TallySnapshotController controller;
   @Autowired TallyResource tallyResource;
@@ -66,6 +81,10 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
 
   @Autowired EventRecordRepository eventRecordRepository;
   @Autowired OptInResource optInResource;
+  @Autowired HostTallyBucketRepository hostTallyBucketRepository;
+
+  @MockBean(answer = Answers.CALLS_REAL_METHODS)
+  InventoryRepository inventoryRepository;
 
   OffsetDateTime start;
   OffsetDateTime end;
@@ -78,7 +97,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
 
   @WithMockRedHatPrincipal(value = USER_ID)
   @Test
-  void testProduceHourlySnapshotsForOrg() {
+  void testProduceHourlySnapshotsForOrgFromEvents() {
     givenOrgAndAccountInConfig();
     givenFiveDaysOfRangeForReport();
 
@@ -88,6 +107,47 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
     whenProduceHourlySnapshotsForOrg();
 
     assertTallyReportData();
+  }
+
+  @WithMockRedHatPrincipal(value = USER_ID)
+  @Test
+  void testProduceSnapshotsForOrgFromHostsPartOfHbi() {
+    givenOrgAndAccountInConfig();
+    UUID inventoryId = givenInventoryHostWithProductIds(ENG_ID_FOR_RHEL_FOR_X86_HA);
+
+    whenProduceSnapshotsForOrg();
+
+    assertAllHostTallyBucketsHaveExpectedProduct(inventoryId, RHEL_FOR_X86_HA);
+  }
+
+  private void assertAllHostTallyBucketsHaveExpectedProduct(
+      UUID inventoryId, String expectedProduct) {
+    List<HostTallyBucket> allHostTallyBuckets = new ArrayList<>();
+    hostTallyBucketRepository.findAll().forEach(allHostTallyBuckets::add);
+    assertFalse(allHostTallyBuckets.isEmpty());
+    assertTrue(
+        allHostTallyBuckets.stream()
+            .filter(h -> inventoryId.equals(h.getKey().getHostId()))
+            .allMatch(h -> expectedProduct.equals(h.getKey().getProductId())));
+  }
+
+  private UUID givenInventoryHostWithProductIds(String... productIds) {
+    UUID inventoryId = UUID.randomUUID();
+
+    InventoryHostFacts host = new InventoryHostFacts();
+    host.setOrgId(ORG_ID);
+    host.setInventoryId(inventoryId);
+    host.setSystemProfileSockets(2);
+    host.setSystemProfileCoresPerSocket(4);
+    host.setSystemProfileProductIds(String.join(",", productIds));
+    host.setSubscriptionManagerId(UUID.randomUUID().toString());
+    host.setInsightsId(UUID.randomUUID().toString());
+    host.setMarketplace(false);
+    host.setSystemProfileInfrastructureType(PHYSICAL);
+    host.setDisplayName(host.getInsightsId());
+    when(inventoryRepository.streamFacts(eq(ORG_ID), any())).thenAnswer(i -> Stream.of(host));
+
+    return inventoryId;
   }
 
   private void givenFiveDaysOfRangeForReport() {
@@ -118,6 +178,10 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
     eventRecordRepository.save(new EventRecord(event));
 
     events.add(event);
+  }
+
+  private void whenProduceSnapshotsForOrg() {
+    controller.produceSnapshotsForOrg(ORG_ID);
   }
 
   private void whenProduceHourlySnapshotsForOrg() {
