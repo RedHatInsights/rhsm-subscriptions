@@ -194,7 +194,8 @@ class BillableUsageMapperTest {
             .withBillingProvider(BillableUsage.BillingProvider.AWS)
             .withBillingAccountId("bill123")
             .withUom("Storage-gibibytes")
-            .withValue(42.0);
+            .withValue(42.0)
+            .withHardwareMeasurementType(HardwareMeasurementType.PHYSICAL.toString());
     assertEquals(
         expected,
         mapper

@@ -53,3 +53,6 @@ properties:
   vendor_product_code:
     description: Field used to specify a unique contract
     type: string
+  hardware_measurement_type:
+    type: string
+    format: string

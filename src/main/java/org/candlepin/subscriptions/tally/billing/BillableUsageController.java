@@ -236,10 +236,12 @@ public class BillableUsageController {
 
   private Double getCurrentlyMeasuredTotal(
       BillableUsage usage, OffsetDateTime beginning, OffsetDateTime ending) {
-    // NOTE: We are filtering billable usage to PHYSICAL hardware as that's the only
-    //       hardware type set when metering.
+    HardwareMeasurementType hardwareMeasurementType =
+        Optional.ofNullable(usage.getHardwareMeasurementType())
+            .map(HardwareMeasurementType::fromString)
+            .orElse(HardwareMeasurementType.PHYSICAL);
     TallyMeasurementKey measurementKey =
-        new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, usage.getUom());
+        new TallyMeasurementKey(hardwareMeasurementType, usage.getUom());
     return snapshotRepository.sumMeasurementValueForPeriod(
         usage.getOrgId(),
         usage.getProductId(),
