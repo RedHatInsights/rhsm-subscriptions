@@ -1,0 +1,540 @@
+# This is a file maintained by the rhsm-subscription project that describes
+# a portion of the Marketplace API.
+openapi: 3.0.2
+
+servers:
+  - url: https://marketplaceapi.microsoft.com
+
+info:
+  title: azure-marketplace-api
+  description: Third-party specification for Azure Marketplace API, see 
+    https://learn.microsoft.com/en-us/partner-center/marketplace/marketplace-metering-service-apis
+  version: 1.0.0
+
+paths:
+  /api/usageEvent:
+    parameters:
+      - name: api-version
+        in: query
+        required: true
+        description: "Use 2018-08-31"
+        schema:
+          type: string
+          default: "2018-08-31"
+      - name: x-ms-requestid
+        in: header
+        description: "Unique string value for tracking the request, preferably a GUID. If this 
+          value is not provided, one will be generated and returned in the response"
+        schema:
+          type: string
+          format: guid
+      - name: x-ms-correlationid
+        in: header
+        description: "Unique string value for operation on the client.  This parameter correlates
+          events on the client with events on the server side.  If this value is not provided, one
+          will be generated and returned in the response."
+        schema:
+          type: string
+    post:
+      operationId: submitUsageEvents
+      tags:
+        - azure_marketplace
+      security:
+        - oauth2ClientCredentials: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UsageEvent"
+            example: |-
+              {
+                "resourceId": <guid>, // unique identifier of the resource against which usage is emitted. 
+                "quantity": 5.0, // how many units were consumed for the date and hour specified in effectiveStartTime, must be greater than 0 or a double integer
+                "dimension": "dim1", // custom dimension identifier
+                "effectiveStartTime": "2018-12-01T08:30:14", // time in UTC when the usage event occurred, from now and until 24 hours back
+                "planId": "plan1", // id of the plan purchased for the offer
+              }
+      responses:
+        '200':
+          description: "The operation completed successfully"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsageEventOkResponse"
+              example: |-
+                {
+                  "usageEventId": <guid>, // unique identifier associated with the usage event in Microsoft records
+                  "status": "Accepted" // this is the only value in case of single usage event
+                  "messageTime": "2020-01-12T13:19:35.3458658Z", // time in UTC this event was accepted
+                  "resourceId": <guid>, // unique identifier of the resource against which usage is emitted. For SaaS it's the subscriptionId.
+                  "quantity": 5.0, // amount of emitted units as recorded by Microsoft
+                  "dimension": "dim1", // custom dimension identifier
+                  "effectiveStartTime": "2018-12-01T08:30:14", // time in UTC when the usage event occurred, as sent by the ISV
+                  "planId": "plan1", // id of the plan purchased for the offer
+                }
+        '400':
+          description: "Missing or invalid request data.  Ensure effectiveStartTime is no more than
+            24 hours in the past"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsageEventBadRequestResponse"
+        '403':
+          description: "The authorization token isn't provided, is invalid, or expired."
+        '409':
+          description: "A usage event has already been reported for the specified resource ID, 
+            effective usage date, and hour"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsageEventConflictResponse"
+  /api/usageEvents:
+    parameters:
+      - name: api-version
+        in: query
+        required: true
+        description: "Use 2018-08-31"
+        schema:
+          type: string
+          default: "2018-08-31"
+      - name: x-ms-requestid
+        in: header
+        description: "Unique string value for tracking the request, preferably a GUID. If this 
+         value is not provided, one will be generated and returned in the response"
+        schema:
+          type: string
+          format: guid
+      - name: x-ms-correlationid
+        in: header
+        description: "Unique string value for operation on the client.  This parameter correlates
+         events on the client with events on the server side.  If this value is not provided, one
+         will be generated and returned in the response."
+        schema:
+          type: string
+    get:
+      operationId: getUsageEvents
+      tags:
+        - azure_marketplace
+      security:
+        - oauth2ClientCredentials: []
+      parameters:
+        - name: usageStartDate
+          in: query
+          required: true
+          description: "DateTime in ISO8601 format"
+          schema:
+            type: string
+            format: date-time
+        - name: usageEndDate
+          in: query
+          description: "DateTime in ISO8601 format. Defaults to current date"
+          schema:
+            type: string
+            format: date-time
+        - name: offerId
+          in: query
+          schema:
+            type: string
+        - name: planId
+          in: query
+          schema:
+            type: string
+        - name: dimension
+          in: query
+          schema:
+            type: string
+        - name: azureSubscriptionId
+          in: query
+          schema:
+            type: string
+        - name: reconStatus
+          in: query
+          schema:
+            $ref: "#/components/schemas/ReconStatus"
+      responses:
+        '200':
+          description: "The operation completed successfully"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PostedUsageEvent"
+              example: |-
+                [
+                  {
+                    "usageDate": "2020-11-30T00:00:00Z",
+                    "usageResourceId": "11111111-2222-3333-4444-555555555555",
+                    "dimension": "tokens",
+                    "planId": "silver",
+                   "planName": "Silver",
+                    "offerId": "mycooloffer",
+                    "offerName": "My Cool Offer",
+                    "offerType": "SaaS",
+                    "azureSubscriptionId": "12345678-9012-3456-7890-123456789012",
+                    "reconStatus": "Accepted",
+                    "submittedQuantity": 17.0,
+                    "processedQuantity": 17.0,
+                    "submittedCount": 17
+                  }
+                ]
+        '403':
+          description: "The authorization token isn't provided, is invalid, or expired."
+
+  /api/batchUsageEvent:
+    parameters:
+      - name: api-version
+        in: query
+        required: true
+        description: "Use 2018-08-31"
+        schema:
+          type: string
+          default: "2018-08-31"
+      - name: x-ms-requestid
+        in: header
+        description: "Unique string value, preferably a GUID, for tracking the request, 
+          preferably a GUID. If this value is not provided, one will be generated and returned in
+          the response"
+        schema:
+          type: string
+          format: guid
+      - name: x-ms-correlationid
+        in: header
+        description: "Unique string value for operation on the client.  This parameter correlates
+          events on the client with events on the server side.  If this value is not provided, one
+          will be generated and returned in the response."
+        schema:
+          type: string
+    post:
+      operationId: submitBatchUsageEvents
+      tags:
+        - azure_marketplace
+      security:
+        - oauth2ClientCredentials: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchUsageEvent"
+            example: |-
+              {
+                "request": [ // list of usage events for the same or different resources of the publisher
+                  { // first event
+                    "resourceId": "<guid1>", // Unique identifier of the resource against which usage is emitted.
+                    "quantity": 5.0, // how many units were consumed for the date and hour specified in effectiveStartTime, must be greater than 0 or a double integer
+                    "dimension": "dim1", //Custom dimension identifier
+                    "effectiveStartTime": "2018-12-01T08:30:14",//Time in UTC when the usage event occurred, from now and until 24 hours back
+                    "planId": "plan1", // id of the plan purchased for the offer
+                  },
+                  { // next event
+                    "resourceId": "<guid2>",
+                    "quantity": 39.0,
+                    "dimension": "email",
+                    "effectiveStartTime": "2018-11-01T23:33:10
+                    "planId": "gold", // id of the plan purchased for the offer
+                  }
+                ]
+              }
+      responses:
+        '200':
+          description: Batch status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchUsageEventOkResponse"
+              example: |-
+                {
+                  "count": 2, // number of records in the response
+                  "result": [
+                    { // first response
+                      "usageEventId": "<guid>", // unique identifier associated with the usage event in Microsoft records
+                      "status": "Accepted" // see list of possible statuses below,
+                      "messageTime": "2020-01-12T13:19:35.3458658Z", // Time in UTC this event was accepted by Microsoft,
+                      "resourceId": "<guid1>", // unique identifier of the resource against which usage is emitted.
+                      "quantity": 5.0, // amount of emitted units as recorded by Microsoft
+                      "dimension": "dim1", // custom dimension identifier
+                      "effectiveStartTime": "2018-12-01T08:30:14",// time in UTC when the usage event occurred, as sent by the ISV
+                      "planId": "plan1", // id of the plan purchased for the offer
+                    },
+                    { // second response
+                      "status": "Duplicate",
+                      "messageTime": "0001-01-01T00:00:00",
+                      "error": {
+                        "additionalInfo": {
+                          "acceptedMessage": {
+                            "usageEventId": "<guid>",
+                            "status": "Duplicate",
+                            "messageTime": "2020-01-12T13:19:35.3458658Z",
+                            "resourceId": "<guid2>",
+                            "quantity": 1.0,
+                            "dimension": "email",
+                            "effectiveStartTime": "2020-01-12T11:03:28.14Z",
+                            "planId": "gold"
+                          }
+                        },
+                        "message": "This usage event already exist.",
+                        "code": "Conflict"
+                      },
+                      "resourceId": "<guid2>",
+                      "quantity": 1.0,
+                      "dimension": "email",
+                      "effectiveStartTime": "2020-01-12T11:03:28.14Z",
+                      "planId": "gold"
+                    }
+                  ]
+                }
+        # Can be thrown if more than 25 events are included
+        '400':
+          description: "The server could not process the current request.  Ensure no more than 25 
+            events are included."
+        '403':
+          description: "The authorization token isn't provided, is invalid, or expired."
+
+components:
+  schemas:
+    TokenResponse:
+      type: object
+      required:
+        - token_type
+        - expires_in
+        - ext_expires_in
+        - expires_on
+        - not_before
+        - resource
+        - access_token
+      properties:
+        token_type:
+          type: string
+        # Seconds the token is valid. Time of issuance can be found in the token's iat claim
+        expires_in:
+          type: integer
+        # Unsure what this field is.  The documentation doesn't explain it
+        ext_expires_in:
+          type: integer
+        # In seconds from the epoch
+        expires_on:
+          type: integer
+          format: int64
+        # In seconds from the epoch
+        not_before:
+          type: integer
+          format: int64
+        # Matches the resource given in the request body
+        resource:
+          type: string
+        access_token:
+          type: string
+
+    # These names intentionally echo
+    # https://github.com/microsoft/commercial-marketplace-client-java/blob/main/sdk/src/main/java/com/microsoft/marketplace/meter/models/
+    UsageEventBadRequestResponse:
+      type: object
+      required:
+        - message
+        - target
+        - code
+        - details
+      properties:
+        message:
+          type: string
+        target:
+          type: string
+        code:
+          type: string
+        details:
+          type: array
+          items:
+            $ref: "#/components/schemas/UsageEventBadRequestResponseDetail"
+
+    UsageEventBadRequestResponseDetail:
+      items:
+        type: object
+        properties:
+          message:
+            type: string
+          target:
+            type: string
+          code:
+            type: string
+
+    UsageEventConflictResponse:
+      type: object
+      required:
+        - message
+        - code
+        - additionalInfo
+      properties:
+        message:
+          type: string
+        code:
+          type: string
+        additionalInfo:
+          $ref: "#/components/schemas/UsageEventConflictResponseAdditionalInfo"
+
+    UsageEventConflictResponseAdditionalInfo:
+      type: object
+      required:
+        - acceptedMessage
+      properties:
+        acceptedMessage:
+          $ref: "#/components/schemas/UsageEventOkResponse"
+
+    UsageEventOkResponse:
+      allOf:
+        - $ref: "#/components/schemas/UsageEvent"
+        - type: object
+          properties:
+            usageEventId:
+              type: string
+              # This is merely informational and won't have an effect on the generated client
+              format: guid
+            status:
+              $ref: "#/components/schemas/UsageEventStatusEnum"
+            messageTime:
+              type: string
+              format: date-time
+
+    UsageEvent:
+      type: object
+      required:
+        - quantity
+        - dimension
+        - effectiveStartTime
+        - planId
+      properties:
+        # NB: resourceId and resourceUri are mutually exclusive
+        resourceId:
+          type: string
+          # This format is merely informational and won't have an effect on the generated client
+          format: guid
+        resourceUri:
+          type: string
+        quantity:
+          type: number
+          format: double
+        dimension:
+          type: string
+        effectiveStartTime:
+          type: string
+          format: date-time
+        planId:
+          type: string
+
+    UsageEventStatusEnum:
+      type: string
+      enum:
+         - Accepted
+         - Expired
+         - Duplicate
+         - Error
+         - ResourceNotFound
+         - ResourceNotAuthorized
+         - InvalidDimension
+         - InvalidQuantity
+         - BadArgument
+
+    BatchUsageEvent:
+      type: object
+      required:
+        - request
+      properties:
+        request:
+          type: array
+          items:
+            $ref: "#/components/schemas/UsageEvent"
+
+    UsageBatchEventOkMessage:
+      allOf:
+        - $ref: "#/components/schemas/UsageEventOkResponse"
+        - type: object
+          properties:
+            error:
+              $ref: "#/components/schemas/UsageEventConflictResponse"
+
+    BatchUsageEventOkResponse:
+      type: object
+      required:
+        - count
+        - result
+      properties:
+        count:
+          type: integer
+        result:
+          type: array
+          items:
+            $ref: "#/components/schemas/UsageBatchEventOkMessage"
+
+    ReconStatus:
+      type: string
+      enum:
+        - Submitted   # Not yet processed by Partner Center Analytics
+        - Accepted    # Matched with Partner Center Analytics
+        - Rejected    # Rejected in the pipeline
+        - Mismatch    # MarketplaceAPI and Partner Center Analytics quantities do not match
+        - TestHeaders # Subscription listed with test headers, therefore not in PC Analytics
+        - DryRun      # Submitted with SessionMode=DryRun, therefore not in PC Analytics
+
+    PostedUsageEvent:
+      type: object
+      required:
+        - usageDate
+        - usageResourceId
+        - dimension
+        - planId
+        - planName
+        - offerId
+        - offerName
+        - offerType
+        - azureSubscriptionId
+        - reconStatus
+        - submittedQuantity
+        - processedQuantity
+        - submittedCount
+      properties:
+        usageDate:
+          type: string
+          format: date-time
+        usageResourceId:
+          type: string
+          format: guid
+        dimension:
+          type: string
+        planId:
+          type: string
+        planName:
+          type: string
+        offerId:
+          type: string
+        offerName:
+          type: string
+        offerType:
+          type: string
+        azureSubscriptionId:
+          type: string
+          format: guid
+        reconStatus:
+          $ref: "#/components/schemas/ReconStatus"
+        submittedQuantity:
+          type: number
+          format: double
+        processedQuantity:
+          type: number
+          format: double
+        submittedCount:
+          type: number
+          format: double
+
+  securitySchemes:
+    oauth2ClientCredentials:
+      type: oauth2
+      description: "See https://learn.microsoft.com/en-us/partner-center/marketplace/marketplace-metering-service-authentication
+        for documentation on constructing the request body"
+      flows:
+        clientCredentials:
+          # It doesn't seem like there is a way to template the tenant ID unless we declare
+          # microsoftonline.com as the top-level server and override it under all the HTTP verb
+          # calls which seems like the tail wagging the dog to me
+          tokenUrl: https://login.microsoftonline.com/64dc69e4-d083-49fc-9569-ebece1dd1408/oauth/token
+          scopes: {}
