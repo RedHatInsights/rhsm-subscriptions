@@ -132,5 +132,6 @@
     <include file="liquibase/202310041633-fix-placeholder-values-for-rosa.xml"/>
     <!-- Need to fix duplicate key issue -->
     <!-- <include file="liquibase/202309181629-fix-measurement-metric-id-formatting.xml"/> -->
+    <include file="/liquibase/202310131200-remove-account-config.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
