@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
@@ -52,11 +53,11 @@ class InternalTallyResourceTest {
   @Mock private TallyRetentionController tallyRetentionController;
   @Mock private RemittanceRetentionController remittanceRetentionController;
   @Mock private InternalTallyDataController internalTallyDataController;
+  @Mock private SecurityProperties properties;
 
   private InternalTallyResource resource;
   private ApplicationProperties appProps;
   private ApplicationClock clock;
-  SecurityProperties properties;
 
   @BeforeEach
   void setupTest() {
@@ -146,9 +147,15 @@ class InternalTallyResourceTest {
 
   @Test
   void testPurgeRemittances() {
-    OffsetDateTime start = clock.startOfCurrentHour();
-    OffsetDateTime end = start.plusHours(1L);
     resource.purgeRemittances();
     verify(remittanceRetentionController).purgeRemittancesAsync();
+  }
+
+  @Test
+  void testDeleteDataAssociatedWithOrg() {
+    String orgId = "org1";
+    when(properties.isDevMode()).thenReturn(true);
+    resource.deleteDataAssociatedWithOrg(orgId);
+    verify(internalTallyDataController).deleteDataAssociatedWithOrg(orgId);
   }
 }

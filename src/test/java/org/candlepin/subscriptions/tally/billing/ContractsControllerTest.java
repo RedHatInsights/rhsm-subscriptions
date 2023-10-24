@@ -368,6 +368,12 @@ class ContractsControllerTest {
     assertEquals(String.format("No contract info found for usage! %s", usage), e.getMessage());
   }
 
+  @Test
+  void testDeleteContractsWithOrg() throws ApiException {
+    controller.deleteContractsWithOrg("org1");
+    verify(contractsApi).deleteContractsByOrg("org1");
+  }
+
   private BillableUsage defaultUsage() {
     return new BillableUsage()
         .withOrgId("org123")
