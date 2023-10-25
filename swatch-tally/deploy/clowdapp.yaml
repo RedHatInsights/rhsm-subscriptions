@@ -696,7 +696,7 @@ objects:
         and billing_account_id = '_ANY'
         and granularity='DAILY'
         and measurement_type!='TOTAL'
-        AND snapshot_date > now() - interval '2 day'; 
+        AND snapshot_date > now() - interval '10 day';
     - prefix: swatch/subscriptions
       query: >-
         select
