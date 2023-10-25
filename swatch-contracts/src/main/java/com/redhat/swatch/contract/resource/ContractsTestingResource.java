@@ -53,14 +53,14 @@ public class ContractsTestingResource implements DefaultApi {
   @Override
   @Transactional
   @RolesAllowed({"test"})
-  public Contract createContract(Contract contract) throws ApiException, ProcessingException {
+  public Contract createContract(Contract contract) throws ProcessingException {
     log.info("Creating contract");
     return service.createContract(contract);
   }
 
   @Override
   @RolesAllowed({"test"})
-  public void deleteContractByUUID(String uuid) throws ApiException, ProcessingException {
+  public void deleteContractByUUID(String uuid) throws ProcessingException {
     log.info("Deleting contract {}", uuid);
     service.deleteContract(uuid);
   }
@@ -85,7 +85,7 @@ public class ContractsTestingResource implements DefaultApi {
       String billingProvider,
       String billingAccountId,
       OffsetDateTime timestamp)
-      throws ApiException, ProcessingException {
+      throws ProcessingException {
     return service.getContracts(
         orgId, productId, billingProvider, billingAccountId, vendorProductCode, timestamp);
   }
@@ -93,7 +93,7 @@ public class ContractsTestingResource implements DefaultApi {
   @Override
   @Transactional
   @RolesAllowed({"test", "support"})
-  public StatusResponse syncAllContracts() throws ApiException, ProcessingException {
+  public StatusResponse syncAllContracts() throws ProcessingException {
     log.info("Syncing All Contracts");
     var contracts = service.getAllContracts();
     if (contracts.isEmpty()) {
@@ -107,14 +107,20 @@ public class ContractsTestingResource implements DefaultApi {
 
   @Override
   @RolesAllowed({"test", "support"})
-  public StatusResponse syncContractsByOrg(String orgId) throws ApiException, ProcessingException {
+  public StatusResponse syncContractsByOrg(String orgId) throws ProcessingException {
     return service.syncContractByOrgId(orgId);
+  }
+
+  @Override
+  @RolesAllowed({"test", "support", "service"})
+  public StatusResponse deleteContractsByOrg(String orgId) throws ProcessingException {
+    return service.deleteContractsByOrgId(orgId);
   }
 
   @Override
   @RolesAllowed({"test"})
   public StatusResponse createPartnerEntitlementContract(PartnerEntitlementContract contract)
-      throws ApiException, ProcessingException {
+      throws ProcessingException {
     return service.createPartnerContract(contract);
   }
 }

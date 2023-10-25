@@ -52,6 +52,11 @@ import org.springframework.util.StringUtils;
 @Slf4j
 public class InternalTallyResource implements InternalApi {
 
+  public static final String FEATURE_NOT_ENABLED_MESSSAGE =
+      "This feature is not currently enabled.";
+  private static final String SUCCESS_STATUS = "Success";
+  private static final String REJECTED_STATUS = "Rejected";
+
   private final ApplicationClock clock;
   private final ApplicationProperties applicationProperties;
   private final MarketplaceResendTallyController resendTallyController;
@@ -61,11 +66,6 @@ public class InternalTallyResource implements InternalApi {
   private final RemittanceRetentionController remittanceRetentionController;
   private final InternalTallyDataController internalTallyDataController;
   private final SecurityProperties properties;
-
-  public static final String FEATURE_NOT_ENABLED_MESSSAGE =
-      "This feature is not currently enabled.";
-  private static final String SUCCESS_STATUS = "Success";
-  private static final String REJECTED_STATUS = "Rejected";
 
   @SuppressWarnings("java:S107")
   public InternalTallyResource(
@@ -155,7 +155,7 @@ public class InternalTallyResource implements InternalApi {
       try {
         internalTallyDataController.deleteDataAssociatedWithOrg(orgId);
       } catch (Exception e) {
-        log.error("Unable to delete data for organization {} due to {}", orgId, e);
+        log.error("Unable to delete data for organization {}", orgId, e);
         response.setDetail(String.format("Unable to delete data for organization %s", orgId));
         return response;
       }
