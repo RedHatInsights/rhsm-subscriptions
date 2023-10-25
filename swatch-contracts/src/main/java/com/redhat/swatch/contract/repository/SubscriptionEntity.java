@@ -88,9 +88,6 @@ public class SubscriptionEntity implements Serializable {
   @Column(name = "billing_account_id")
   private String billingAccountId;
 
-  @Column(name = "account_number")
-  private String accountNumber;
-
   @Column(name = "billing_provider")
   private BillingProvider billingProvider;
 
@@ -136,7 +133,6 @@ public class SubscriptionEntity implements Serializable {
         && Objects.equals(endDate, sub.getEndDate())
         && Objects.equals(billingProviderId, sub.getBillingProviderId())
         && Objects.equals(billingAccountId, sub.getBillingAccountId())
-        && Objects.equals(accountNumber, sub.getAccountNumber())
         && Objects.equals(billingProvider, sub.getBillingProvider())
         && Objects.equals(ourProductIds, otherProductIds);
   }
@@ -154,7 +150,6 @@ public class SubscriptionEntity implements Serializable {
         endDate,
         billingProviderId,
         billingAccountId,
-        accountNumber,
         billingProvider,
         ourProductIds);
   }
