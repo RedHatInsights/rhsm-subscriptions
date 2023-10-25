@@ -6,32 +6,6 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
-
-  <changeSet id="202310131000-01" author="vbusch">
-    <comment>Drop account_config table.  org_config is used instead.</comment>
-    <dropTable tableName="account_config"/>
-    <rollback>
-      <createTable tableName="account_config">
-        <column name="account_number" type="VARCHAR(255)">
-                <constraints nullable="true" unique="true" uniqueConstraintName="account_config_account_number_unq"/>
-        </column>
-        <column name="opt_in_type" type="VARCHAR(255)">
-          <constraints nullable="false" />
-        </column>
-        <column name="created" type="TIMESTAMP WITH TIME ZONE">
-          <constraints nullable="false" />
-        </column>
-        <column name="updated" type="TIMESTAMP WITH TIME ZONE">
-          <constraints nullable="false" />
-        </column>
-        <column name="org_id" type="varchar(32)">
-          <constraints primaryKey="true" primaryKeyName="account_config_pkey" />
-        </column>
-      </createTable>
-
-    </rollback>
-  </changeSet>
-
   <changeSet id="202310031000-02" author="vbusch">
     <comment>Drop account_number column from subscription table</comment>
     <dropColumn tableName="subscription" columnName="account_number"/>
