@@ -1,0 +1,98 @@
+---
+openapi: "3.0.2"
+info:
+  title: "rhsm-subscriptions internal metering API"
+  version: 1.0.0
+servers:
+  - url: /{PATH_PREFIX}/{APP_NAME}/v1
+    variables:
+      PATH_PREFIX:
+        default: api
+      APP_NAME:
+        default: rhsm-subscriptions
+  - url: https://{HOSTNAME}/{PATH_PREFIX}/{APP_NAME}/v1
+    variables:
+      HOSTNAME:
+        enum:
+          - ci.cloud.redhat.com
+          - qa.cloud.redhat.com
+          - stage.cloud.redhat.com
+          - cloud.redhat.com
+        default: ci.cloud.redhat.com
+      PATH_PREFIX:
+        default: api
+      APP_NAME:
+        default: rhsm-subscriptions
+
+paths:
+  /internal/metering/sync:
+    description: 'Perform product metering for all accounts.'
+    put:
+      operationId: syncMetricsForAllAccounts
+      responses:
+        '200':
+          description: "Metering was successful."
+        '403':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+  /internal/metering/{productTag}:
+    description: 'Operations related to product metering.'
+    post:
+      operationId: meterProductForOrgIdAndRange
+      summary: "Perform product metering for account."
+      parameters:
+        - name: productTag
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: orgId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+            description: "The end date for the metering request. (e.g. 2022-05-03T10:00:00Z). Default: Top of the current hour."
+        - name: rangeInMinutes
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            description: "Defines the amount of time (in minutes) that will be used to calculate a metric query's start date based on a given end date.
+For example, given an end date of 2021-01-06T00:00:00Z and a rangeInMinutes of 60, the calculated start date will be: 2021-01-05T23:00:00Z.  Default (60) is stored in application.yaml for profiles openshift-metering-worker and metrics-rhel"
+        - name: x-rh-swatch-synchronous-request
+          in: header
+          required: false
+          schema:
+            type: boolean
+            default: "false"
+            description: "When present, a synchronous request is made."
+      responses:
+        '200':
+          description: "Metering was successful."
+        '400':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../../../spec/error-responses.yaml#/$defs/InternalServerError"
+
+components:
+  securitySchemes:
+    PskIdentity:
+      type: apiKey
+      in: header
+      name: x-rh-swatch-psk
+      description: |
+        Psk header containing Pre Shared Key. Contains an
+        UUID string:
+        ```
+        c9a98753-2092-4617-b226-5c2653330b3d
+        ```
+security:
+  - PskIdentity: []
