@@ -679,8 +679,8 @@ objects:
     - prefix: swatch/tally
       query: >-
         select
-        account_number,
-        org_id,
+        c.account_number as account_number,
+        s.org_id as org_id,
         snapshot_date,
         product_id,
         measurement_type,
@@ -689,6 +689,7 @@ objects:
         value
         from tally_snapshots s
         join tally_measurements tm on s.id = tm.snapshot_id
+        left join account_config c on c.org_id=s.org_id
         where sla = '_ANY'
         and usage = '_ANY'
         and billing_provider = '_ANY'
@@ -699,6 +700,8 @@ objects:
     - prefix: swatch/subscriptions
       query: >-
         select
+        c.account_number,
+        subscription.org_id,
         subscription.sku,
         subscription.subscription_id,
         subscription.start_date,
@@ -716,3 +719,4 @@ objects:
           ('CORES', 'Cores'),
           ('INSTANCE_HOURS', 'Instance-hours')
         ) as metric_id_normalized(value, normalized) on subscription_measurements.metric_id=metric_id_normalized.value
+        left join account_config c on c.org_id=subscription.org_id
