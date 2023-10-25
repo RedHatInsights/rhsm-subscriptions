@@ -649,7 +649,6 @@ objects:
     - prefix: swatch/tally
       query: >-
         select
-        account_number,
         org_id,
         snapshot_date,
         product_id,
