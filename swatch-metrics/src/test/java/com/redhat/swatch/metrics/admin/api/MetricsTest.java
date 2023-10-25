@@ -24,12 +24,14 @@ import static io.restassured.RestAssured.get;
 import static io.restassured.RestAssured.post;
 import static io.restassured.RestAssured.put;
 
+import io.quarkus.test.junit.QuarkusTest;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
-public abstract class BaseProfileTest {
+@QuarkusTest
+class MetricsTest {
   @Test
-  public void testServiceIsUpAndRunning() {
+  void testServiceIsUpAndRunning() {
     // generate admin API works
     post("/api/swatch-metrics/internal/metering/rosa?orgId=123")
         .then()

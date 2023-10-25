@@ -44,7 +44,7 @@ paths:
             type: integer
             minimum: 0
             description: "Defines the amount of time (in minutes) that will be used to calculate a metric query's start date based on a given end date.
-For example, given an end date of 2021-01-06T00:00:00Z and a rangeInMinutes of 60, the calculated start date will be: 2021-01-05T23:00:00Z.  Default (60) is stored in application.yaml for profiles openshift-metering-worker and metrics-rhel"
+For example, given an end date of 2021-01-06T00:00:00Z and a rangeInMinutes of 60, the calculated start date will be: 2021-01-05T23:00:00Z.  Default (60) is stored in application.yaml"
         - name: x-rh-swatch-synchronous-request
           in: header
           required: false
