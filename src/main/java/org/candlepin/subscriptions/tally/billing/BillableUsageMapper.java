@@ -112,7 +112,9 @@ public class BillableUsageMapper {
                                         snapshot.getBillingProvider().value()))
                                 .withBillingAccountId(snapshot.getBillingAccountId())
                                 .withUom(measurement.getUom())
-                                .withValue(measurement.getValue())));
+                                .withValue(measurement.getValue())
+                                .withHardwareMeasurementType(
+                                    measurement.getHardwareMeasurementType())));
   }
 
   private boolean hasMeasurements(TallySnapshot tallySnapshot) {
