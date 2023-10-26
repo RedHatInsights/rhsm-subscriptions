@@ -27,7 +27,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
@@ -75,7 +74,7 @@ public class EventRecord {
     this.timestamp = event.getTimestamp();
   }
 
-  @Column(name = "event_id")
+  @Column(name = "event_id", updatable = false)
   private UUID eventId;
 
   @Id
@@ -107,7 +106,7 @@ public class EventRecord {
   */
 
   @CreationTimestamp
-  @Column(name = "record_date")
+  @Column(name = "record_date", updatable = false)
   private OffsetDateTime recordDate;
 
   @Valid
@@ -126,13 +125,6 @@ public class EventRecord {
     }
 
     this.eventId = event.getEventId();
-  }
-
-  @PreUpdate
-  public void syncEventId() {
-    if (event != null && event.getEventId() != null && !event.getEventId().equals(this.eventId)) {
-      this.eventId = event.getEventId();
-    }
   }
 
   @Override
