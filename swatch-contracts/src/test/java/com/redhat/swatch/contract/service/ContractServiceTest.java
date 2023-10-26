@@ -26,16 +26,27 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.DimensionV1;
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1.SourcePartnerEnum;
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlements;
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerIdentityV1;
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.PurchaseV1;
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.RhEntitlementV1;
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.SaasContractV1;
+import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
 import com.redhat.swatch.clients.subscription.api.model.Subscription;
 import com.redhat.swatch.clients.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
 import com.redhat.swatch.contract.BaseUnitTest;
 import com.redhat.swatch.contract.model.MeasurementMetricIdTransformer;
 import com.redhat.swatch.contract.openapi.model.Contract;
+import com.redhat.swatch.contract.openapi.model.Dimension;
 import com.redhat.swatch.contract.openapi.model.Metric;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
@@ -179,6 +190,53 @@ class ContractServiceTest extends BaseUnitTest {
   void syncContractWithEmptyContractsList() {
     StatusResponse statusResponse = contractService.syncContractByOrgId(ORG_ID);
     assertEquals(ORG_ID + " not found in table", statusResponse.getMessage());
+  }
+
+  @Test
+  void testCreatePartnerContractCreatesAzureSubscription()
+      throws ApiException, com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException {
+    var contract = new PartnerEntitlementContract();
+    PartnerApi partnerApi = mock(PartnerApi.class);
+    contract.setRedHatSubscriptionNumber("subnum");
+    contract.setCurrentDimensions(
+        List.of(new Dimension().dimensionName("vCPU").dimensionValue("4")));
+    contract.setCloudIdentifiers(
+        new PartnerEntitlementContractCloudIdentifiers()
+            .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
+            .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
+            .offerId("azureProductCode")
+            .planId("rh-rhel-sub-1yr"));
+
+    var entitlement =
+        new PartnerEntitlementV1()
+            .rhAccountId("7186626")
+            .sourcePartner(SourcePartnerEnum.AZURE_MARKETPLACE)
+            .partnerIdentities(
+                new PartnerIdentityV1()
+                    .azureSubscriptionId("fa650050-dedd-4958-b901-d8e5118c0a5f")
+                    .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
+                    .azureCustomerId("eadf26ee-6fbc-4295-9a9e-25d4fea8951d_2019-05-31"))
+            .rhEntitlements(
+                List.of(new RhEntitlementV1().sku("MCT4249").redHatSubscriptionNumber("13294886")))
+            .purchase(
+                new PurchaseV1()
+                    .vendorProductCode("azureProductCode")
+                    .resourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
+                    .contracts(
+                        List.of(
+                            new SaasContractV1()
+                                .startDate(OffsetDateTime.parse("2023-06-09T13:59:43.035365Z"))
+                                .planId("rh-rhel-sub-1yr")
+                                .dimensions(List.of(new DimensionV1().name("vCPU").value("4"))))));
+
+    var azureQuery = new PartnerEntitlements().content(List.of(entitlement));
+    OfferingProductTags productTags = new OfferingProductTags();
+    productTags.data(List.of("MCT4249"));
+    when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
+    when(partnerApi.getPartnerEntitlements(any())).thenReturn(azureQuery);
+
+    StatusResponse statusResponse = contractService.createPartnerContract(contract);
+    assertEquals("New contract created", statusResponse.getMessage());
   }
 
   @Test

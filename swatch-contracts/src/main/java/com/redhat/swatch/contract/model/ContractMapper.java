@@ -22,11 +22,13 @@ package com.redhat.swatch.contract.model;
 
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.DimensionV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerIdentityV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.RhEntitlementV1;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.Dimension;
 import com.redhat.swatch.contract.openapi.model.Metric;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
+import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContractCloudIdentifiers;
 import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
@@ -61,9 +63,18 @@ public interface ContractMapper {
   ContractMetricEntity metricDtoToMetricEntity(Metric metric);
 
   @Mapping(target = "subscriptionNumber", source = "contract.redHatSubscriptionNumber")
-  @Mapping(target = "vendorProductCode", source = "cloudIdentifiers.productCode")
+  @Mapping(target = "vendorProductCode", source = "cloudIdentifiers")
   @BeanMapping(ignoreByDefault = true)
   ContractEntity partnerContractToContractEntity(PartnerEntitlementContract contract);
+
+  default String extractVendorProductCode(PartnerEntitlementContractCloudIdentifiers code) {
+    if (code.getProductCode() != null) {
+      return code.getProductCode();
+    } else if (code.getOfferId() != null) {
+      return code.getOfferId();
+    }
+    return null;
+  }
 
   @Mapping(target = "subscriptionId", ignore = true)
   @Mapping(target = "billingProviderId", ignore = true)
@@ -94,9 +105,7 @@ public interface ContractMapper {
   ContractMetricEntity dimensionToContractMetricEntity(Dimension dimension);
 
   @Mapping(target = "orgId", source = "entitlement.rhAccountId")
-  @Mapping(
-      target = "billingAccountId",
-      source = "entitlement.partnerIdentities.customerAwsAccountId")
+  @Mapping(target = "billingAccountId", source = "entitlement.partnerIdentities")
   @Mapping(
       target = "sku",
       source = "entitlement.rhEntitlements",
@@ -104,6 +113,16 @@ public interface ContractMapper {
   @BeanMapping(ignoreByDefault = true)
   void mapRhEntitlementsToContractEntity(
       @MappingTarget ContractEntity contractEntity, PartnerEntitlementV1 entitlement);
+
+  default String extractBillingAccountId(PartnerIdentityV1 accountId) {
+
+    if (accountId.getCustomerAwsAccountId() != null) {
+      return accountId.getCustomerAwsAccountId();
+    } else if (accountId.getAzureTenantId() != null) {
+      return accountId.getAzureTenantId();
+    }
+    return null;
+  }
 
   @Named("rhEntitlementSku")
   default String getRhEntitlementSku(List<RhEntitlementV1> rhEntitlements) {

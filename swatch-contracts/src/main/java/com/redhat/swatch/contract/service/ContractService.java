@@ -375,6 +375,17 @@ public class ContractService {
   }
 
   private boolean validPartnerEntitlementContract(PartnerEntitlementContract contract) {
+    return validAwsEntitlementContract(contract) || validAzureEntitlementContract(contract);
+  }
+
+  private boolean validAzureEntitlementContract(PartnerEntitlementContract contract) {
+    return Objects.nonNull(contract.getRedHatSubscriptionNumber())
+        && Objects.nonNull(contract.getCloudIdentifiers())
+        && Objects.nonNull(contract.getCloudIdentifiers().getAzureResourceId())
+        && Objects.nonNull(contract.getCloudIdentifiers().getOfferId());
+  }
+
+  private boolean validAwsEntitlementContract(PartnerEntitlementContract contract) {
     return Objects.nonNull(contract.getRedHatSubscriptionNumber())
         && Objects.nonNull(contract.getCloudIdentifiers())
         && Objects.nonNull(contract.getCloudIdentifiers().getAwsCustomerId())
@@ -478,26 +489,59 @@ public class ContractService {
 
   private void collectMissingUpStreamContractDetails( // NOSONAR
       ContractEntity entity, PartnerEntitlementContract contract) throws ApiException {
-    String awsCustomerAccountId = contract.getCloudIdentifiers().getAwsCustomerAccountId();
-    String productCode = contract.getCloudIdentifiers().getProductCode();
-    if (Objects.nonNull(contract.getCloudIdentifiers())
-        && Objects.nonNull(awsCustomerAccountId)
-        && Objects.nonNull(productCode)) {
-      PageRequest page = new PageRequest();
-      page.setSize(20);
-      page.setNumber(0);
-      log.trace(
-          "Call Partner Api to fill missing information using customerAwsAccountId {} and vendorProductCode {}",
-          awsCustomerAccountId,
-          productCode);
-      var result =
-          partnerApi.getPartnerEntitlements(
-              new QueryPartnerEntitlementV1()
-                  .customerAwsAccountId(awsCustomerAccountId)
-                  .vendorProductCode(productCode)
-                  .page(page));
-      mapUpstreamContractToContractEntity(entity, result);
+    String customerAccountId;
+    String productCode;
+    var marketplace = determineMarketplaceForContract(contract);
+
+    if (Objects.equals(marketplace, "aws")) {
+      customerAccountId = contract.getCloudIdentifiers().getAwsCustomerAccountId();
+      productCode = contract.getCloudIdentifiers().getProductCode();
+      if (Objects.nonNull(contract.getCloudIdentifiers())
+          && Objects.nonNull(customerAccountId)
+          && Objects.nonNull(productCode)) {
+        PageRequest page = new PageRequest();
+        page.setSize(20);
+        page.setNumber(0);
+        log.trace(
+            "Call Partner Api to fill missing information using customerAwsAccountId {} and vendorProductCode {}",
+            customerAccountId,
+            productCode);
+        var result =
+            partnerApi.getPartnerEntitlements(
+                new QueryPartnerEntitlementV1()
+                    .customerAwsAccountId(customerAccountId)
+                    .vendorProductCode(productCode)
+                    .page(page));
+        mapUpstreamContractToContractEntity(entity, result);
+      }
     }
+    if (Objects.equals(marketplace, "azure")) {
+      // azureResourceId is a unique identifier per SaaS purchase,
+      // so it should be sufficient by itself
+      customerAccountId = contract.getCloudIdentifiers().getAzureResourceId();
+      if (Objects.nonNull(contract.getCloudIdentifiers()) && Objects.nonNull(customerAccountId)) {
+        // get the entitlement query from partner api for azure marketplace
+        PageRequest page = new PageRequest();
+        page.setSize(20);
+        page.setNumber(0);
+        log.trace(
+            "Call Partner Api to fill missing information using Azure resourceId {}",
+            customerAccountId);
+        var result =
+            partnerApi.getPartnerEntitlements(
+                new QueryPartnerEntitlementV1().resourceId(customerAccountId).page(page));
+        mapUpstreamContractToContractEntity(entity, result);
+      }
+    }
+  }
+
+  private String determineMarketplaceForContract(PartnerEntitlementContract contract) {
+    if (Objects.nonNull(contract.getCloudIdentifiers().getAwsCustomerAccountId())) {
+      return "aws";
+    } else if (Objects.nonNull(contract.getCloudIdentifiers().getAzureResourceId())) {
+      return "azure";
+    }
+    return null;
   }
 
   private void mapUpstreamContractToContractEntity(
@@ -516,7 +560,6 @@ public class ContractService {
               .filter(contract -> Objects.isNull(contract.getEndDate()))
               .flatMap(contract -> contract.getDimensions().stream())
               .collect(Collectors.toSet());
-
       entity.setMetrics(mapper.dimensionV1ToContractMetricEntity(dimensionV1s));
       populateProductIdBySku(entity);
     }

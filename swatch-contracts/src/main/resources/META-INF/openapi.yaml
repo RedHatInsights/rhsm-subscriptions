@@ -532,6 +532,14 @@ components:
               type: string
             productCode:
               type: string
+            azureResourceId:
+              type: string
+            azureTenantId:
+              type: string
+            offerId:
+              type: string
+            planId:
+              type: string
     Dimension:
       properties:
         dimensionName:
