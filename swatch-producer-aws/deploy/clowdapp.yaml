@@ -44,9 +44,11 @@ parameters:
   - name: SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT
     value: http://swatch-subscription-sync-service:8000/api/rhsm-subscriptions/v1
   - name: AWS_MARKETPLACE_ENDPOINT_URL
-    value: 'http://localhost:8101/aws-marketplace/'
+    value: 'http://moto:5000/'
   - name: AWS_MANUAL_SUBMISSION_ENABLED
-    value: 'false'
+    value: 'true'
+  - name: AWS_MARKETPLACE_ENDPOINT_OVERRIDE
+    value: 'true'
   - name: TALLY_IN_FAIL_ON_DESER_FAILURE
     value: 'true'
   - name: LOGGING_LEVEL_ROOT
@@ -207,3 +209,39 @@ objects:
     name: swatch-psks
   data:
     self: cGxhY2Vob2xkZXI=
+
+- apiVersion: v1
+  kind: Deployment
+  metadata:
+    name: moto
+  spec:
+    selector:
+      matchLabels:
+        app: moto
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app: moto
+      spec:
+        containers:
+          - name: container
+            image: 'motoserver/moto:latest'
+            ports:
+              - containerPort: 5000
+                protocol: TCP
+            env:
+              - name: MOTO_PORT
+                value: '5000'
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: moto
+  spec:
+    selector:
+      app: moto
+    ports:
+      - protocol: TCP
+        port: 5000
+        targetPort: 5000
