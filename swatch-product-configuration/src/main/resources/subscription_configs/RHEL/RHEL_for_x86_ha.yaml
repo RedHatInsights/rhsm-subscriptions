@@ -1,0 +1,15 @@
+---
+platform: RHEL
+
+id: rhel-for-x86-ha
+
+variants:
+  - tag: rhel-for-x86-ha
+    engineeringIds:
+      - 83 # Red Hat Enterprise Linux High Availability for x86_64
+
+defaults:
+  variant: rhel-for-x86-ha
+
+metrics:
+  - id: Sockets
