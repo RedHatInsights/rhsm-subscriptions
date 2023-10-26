@@ -56,6 +56,8 @@ import org.candlepin.subscriptions.utilization.api.model.GranularityType;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -70,8 +72,6 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   static final String USER_ID = "123";
   static final String ORG_ID = "owner" + USER_ID;
   static final String PRODUCT_TAG = "rosa";
-  static final String ENG_ID_FOR_RHEL_FOR_X86_HA = "83";
-  static final String RHEL_FOR_X86_HA = "rhel-for-x86-ha";
   static final String PHYSICAL = "PHYSICAL";
 
   @Autowired TallySnapshotController controller;
@@ -110,14 +110,15 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   }
 
   @WithMockRedHatPrincipal(value = USER_ID)
-  @Test
-  void testProduceSnapshotsForOrgFromHostsPartOfHbi() {
+  @ParameterizedTest
+  @CsvSource(value = {"83,rhel-for-x86-ha", "90,rhel-for-x86-rs"})
+  void testProduceSnapshotsForOrgFromHostsPartOfHbi(String engId, String product) {
     givenOrgAndAccountInConfig();
-    UUID inventoryId = givenInventoryHostWithProductIds(ENG_ID_FOR_RHEL_FOR_X86_HA);
+    UUID inventoryId = givenInventoryHostWithProductIds(engId);
 
     whenProduceSnapshotsForOrg();
 
-    assertAllHostTallyBucketsHaveExpectedProduct(inventoryId, RHEL_FOR_X86_HA);
+    assertAllHostTallyBucketsHaveExpectedProduct(inventoryId, product);
   }
 
   private void assertAllHostTallyBucketsHaveExpectedProduct(

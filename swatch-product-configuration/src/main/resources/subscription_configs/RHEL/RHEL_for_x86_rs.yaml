@@ -1,0 +1,15 @@
+---
+platform: RHEL
+
+id: rhel-for-x86-rs
+
+variants:
+  - tag: rhel-for-x86-rs
+    engineeringIds:
+      - 90 # Red Hat Enterprise Linux Resilient Storage for x86_64
+
+defaults:
+  variant: rhel-for-x86-rs
+
+metrics:
+  - id: Sockets
