@@ -194,7 +194,7 @@ class ContractServiceTest extends BaseUnitTest {
 
   @Test
   void testCreatePartnerContractCreatesAzureSubscription()
-      throws ApiException, com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException {
+      throws com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException {
     var contract = new PartnerEntitlementContract();
     PartnerApi partnerApi = mock(PartnerApi.class);
     contract.setRedHatSubscriptionNumber("subnum");
@@ -202,6 +202,7 @@ class ContractServiceTest extends BaseUnitTest {
         List.of(new Dimension().dimensionName("vCPU").dimensionValue("4")));
     contract.setCloudIdentifiers(
         new PartnerEntitlementContractCloudIdentifiers()
+            .partner(SourcePartnerEnum.AZURE_MARKETPLACE.value())
             .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
             .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
             .offerId("azureProductCode")
@@ -221,7 +222,7 @@ class ContractServiceTest extends BaseUnitTest {
             .purchase(
                 new PurchaseV1()
                     .vendorProductCode("azureProductCode")
-                    .resourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
+                    .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
                     .contracts(
                         List.of(
                             new SaasContractV1()

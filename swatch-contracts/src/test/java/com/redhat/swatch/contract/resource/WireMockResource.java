@@ -183,7 +183,7 @@ public class WireMockResource
                                      ],
                                      "purchase": {
                                          "vendorProductCode": "rh-rhel-sub-preview",
-                                         "resourceId": "a69ff71c-aa8b-43d9-dea8-822fab4bbb86",
+                                         "azureResourceId": "a69ff71c-aa8b-43d9-dea8-822fab4bbb86",
                                          "contracts": [
                                              {
                                                  "startDate": "2023-06-09T13:59:43.035365Z",

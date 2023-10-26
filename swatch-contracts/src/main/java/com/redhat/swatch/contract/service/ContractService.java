@@ -493,7 +493,7 @@ public class ContractService {
     String productCode;
     var marketplace = determineMarketplaceForContract(contract);
 
-    if (Objects.equals(marketplace, "aws")) {
+    if (Objects.equals(marketplace, ContractSourcePartnerEnum.AWS.getValue())) {
       customerAccountId = contract.getCloudIdentifiers().getAwsCustomerAccountId();
       productCode = contract.getCloudIdentifiers().getProductCode();
       if (Objects.nonNull(contract.getCloudIdentifiers())
@@ -515,7 +515,7 @@ public class ContractService {
         mapUpstreamContractToContractEntity(entity, result);
       }
     }
-    if (Objects.equals(marketplace, "azure")) {
+    if (Objects.equals(marketplace, ContractSourcePartnerEnum.AZURE.getValue())) {
       // azureResourceId is a unique identifier per SaaS purchase,
       // so it should be sufficient by itself
       customerAccountId = contract.getCloudIdentifiers().getAzureResourceId();
@@ -529,7 +529,7 @@ public class ContractService {
             customerAccountId);
         var result =
             partnerApi.getPartnerEntitlements(
-                new QueryPartnerEntitlementV1().resourceId(customerAccountId).page(page));
+                new QueryPartnerEntitlementV1().azureResourceId(customerAccountId).page(page));
         mapUpstreamContractToContractEntity(entity, result);
       }
     }

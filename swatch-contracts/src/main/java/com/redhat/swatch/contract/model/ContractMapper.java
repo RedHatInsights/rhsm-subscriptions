@@ -67,10 +67,12 @@ public interface ContractMapper {
   @BeanMapping(ignoreByDefault = true)
   ContractEntity partnerContractToContractEntity(PartnerEntitlementContract contract);
 
+  // this method uses the partner field in PartnerEntitlementContractCloudIdentifiers
+  //  to determine how product code is mapped for a specific provider
   default String extractVendorProductCode(PartnerEntitlementContractCloudIdentifiers code) {
     if (code.getProductCode() != null) {
       return code.getProductCode();
-    } else if (code.getOfferId() != null) {
+    } else if (code.getPartner().equals("azure_marketplace")) {
       return code.getOfferId();
     }
     return null;
@@ -114,6 +116,8 @@ public interface ContractMapper {
   void mapRhEntitlementsToContractEntity(
       @MappingTarget ContractEntity contractEntity, PartnerEntitlementV1 entitlement);
 
+  // this method is to properly map value from entitlement partnerIdentities
+  // as these fields are populated differently based on the marketplace
   default String extractBillingAccountId(PartnerIdentityV1 accountId) {
 
     if (accountId.getCustomerAwsAccountId() != null) {

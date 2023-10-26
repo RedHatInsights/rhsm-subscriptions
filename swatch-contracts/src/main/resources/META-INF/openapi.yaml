@@ -526,6 +526,8 @@ components:
         cloudIdentifiers:
           type: object
           properties:
+            partner:
+              type: string
             awsCustomerId:
               type: string
             awsCustomerAccountId:
