@@ -37,36 +37,6 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
   private static final Logger log = LoggerFactory.getLogger(RHELProductUsageCollector.class);
 
   @Override
-  public void collect(UsageCalculation prodCalc, NormalizedFacts normalizedFacts) {
-    int appliedCores = Optional.ofNullable(normalizedFacts.getCores()).orElse(0);
-    int appliedSockets = Optional.ofNullable(normalizedFacts.getSockets()).orElse(0);
-
-    boolean guestWithUnknownHypervisor =
-        normalizedFacts.isVirtual() && normalizedFacts.isHypervisorUnknown();
-
-    // Cloud provider hosts only account for a single socket.
-    if (normalizedFacts.getCloudProviderType() != null) {
-      appliedSockets = normalizedFacts.isMarketplace() ? 0 : 1;
-      prodCalc.addCloudProvider(
-          normalizedFacts.getCloudProviderType(), appliedCores, appliedSockets, 1);
-    } else if (guestWithUnknownHypervisor) {
-      // If the hypervisor is unknown for a guest, we consider it as having a
-      // unique hypervisor instance contributing to the hypervisor counts.
-      // Since the guest is unmapped, we only contribute a single socket.
-      appliedSockets = normalizedFacts.isMarketplace() ? 0 : 1;
-      prodCalc.addUnmappedGuest(appliedCores, appliedSockets, 1);
-    }
-    // Accumulate for physical systems.
-    else if (!normalizedFacts.isVirtual()) {
-      // Physical system so increment the physical system counts.
-      if (normalizedFacts.isMarketplace()) {
-        appliedSockets = 0;
-      }
-      prodCalc.addPhysical(appliedCores, appliedSockets, 1);
-    }
-  }
-
-  @Override
   public void collectForHypervisor(UsageCalculation prodCalc, NormalizedFacts hypervisorFacts) {
     int appliedCores = Optional.ofNullable(hypervisorFacts.getCores()).orElse(0);
     int appliedSockets = Optional.ofNullable(hypervisorFacts.getSockets()).orElse(0);

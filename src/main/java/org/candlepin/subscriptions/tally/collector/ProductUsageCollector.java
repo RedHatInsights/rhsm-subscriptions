@@ -29,15 +29,6 @@ import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 public interface ProductUsageCollector {
 
   /**
-   * Collect and append usage data to the provided product calculation based on the facts for the
-   * given host.
-   *
-   * @param prodCalc the UsageCalculation to append to
-   * @param normalizedFacts the normalized view of the facts from inventory.
-   */
-  void collect(UsageCalculation prodCalc, NormalizedFacts normalizedFacts);
-
-  /**
    * Collect and append usage data based on hypervisor-guest mappings.
    *
    * @param prodCalc the UsageCalculation to append to

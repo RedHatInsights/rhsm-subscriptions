@@ -20,21 +20,8 @@
  */
 package org.candlepin.subscriptions.tally.collector;
 
-import static org.candlepin.subscriptions.tally.collector.Assertions.assertHardwareMeasurementTotals;
-import static org.candlepin.subscriptions.tally.collector.Assertions.assertHypervisorTotalsCalculation;
-import static org.candlepin.subscriptions.tally.collector.Assertions.assertNullExcept;
-import static org.candlepin.subscriptions.tally.collector.Assertions.assertPhysicalTotalsCalculation;
-import static org.candlepin.subscriptions.tally.collector.Assertions.assertTotalsCalculation;
-import static org.candlepin.subscriptions.tally.collector.Assertions.assertVirtualTotalsCalculation;
-import static org.candlepin.subscriptions.tally.collector.TestHelper.cloudMachineFacts;
-import static org.candlepin.subscriptions.tally.collector.TestHelper.guestFacts;
-import static org.candlepin.subscriptions.tally.collector.TestHelper.hypervisorFacts;
-import static org.candlepin.subscriptions.tally.collector.TestHelper.physicalNonHypervisor;
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.tally.UsageCalculation;
@@ -45,125 +32,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class RHELProductUsageCollectorTest {
 
-  private RHELProductUsageCollector collector;
-
-  public RHELProductUsageCollectorTest() {
-    collector = new RHELProductUsageCollector();
-  }
-
-  @Test
-  void testCountsForHypervisor() {
-    NormalizedFacts facts = hypervisorFacts(4, 12);
-
-    UsageCalculation calc = new UsageCalculation(createUsageKey());
-    collector.collect(calc, facts);
-    assertTotalsCalculation(calc, 4, 12, 1);
-    assertPhysicalTotalsCalculation(calc, 4, 12, 1);
-
-    // Expects no hypervisor totals in this case.
-    assertNull(calc.getTotals(HardwareMeasurementType.VIRTUAL));
-    // Expects no virtual totals in this case.
-    assertNull(calc.getTotals(HardwareMeasurementType.HYPERVISOR));
-
-    collector.collectForHypervisor(calc, facts);
-    assertHypervisorTotalsCalculation(calc, 4, 12, 1);
-  }
-
-  @Test
-  void testCountsForGuestWithKnownHypervisor() {
-    NormalizedFacts facts = guestFacts(3, 12, false);
-
-    UsageCalculation calc = new UsageCalculation(createUsageKey());
-    collector.collect(calc, facts);
-
-    // A guest with a known hypervisor does not contribute to any counts
-    // as they are accounted for by the guest's hypervisor.
-    assertNull(calc.getTotals(HardwareMeasurementType.TOTAL));
-    assertNull(calc.getTotals(HardwareMeasurementType.PHYSICAL));
-    assertNull(calc.getTotals(HardwareMeasurementType.VIRTUAL));
-    assertNull(calc.getTotals(HardwareMeasurementType.HYPERVISOR));
-  }
-
-  @Test
-  void testCountsForGuestWithUnkownHypervisor() {
-    NormalizedFacts facts = guestFacts(3, 12, true);
-
-    UsageCalculation calc = new UsageCalculation(createUsageKey());
-    collector.collect(calc, facts);
-
-    // A guest with an unknown hypervisor contributes to the overall totals
-    // It is counted as virtual
-    assertTotalsCalculation(calc, 1, 12, 1);
-    assertVirtualTotalsCalculation(calc, 1, 12, 1);
-    assertNull(calc.getTotals(HardwareMeasurementType.HYPERVISOR));
-    assertNull(calc.getTotals(HardwareMeasurementType.PHYSICAL));
-  }
-
-  @Test
-  void testCountsForPhysicalSystem() {
-    NormalizedFacts facts = physicalNonHypervisor(4, 12);
-
-    UsageCalculation calc = new UsageCalculation(createUsageKey());
-    collector.collect(calc, facts);
-
-    assertTotalsCalculation(calc, 4, 12, 1);
-    assertPhysicalTotalsCalculation(calc, 4, 12, 1);
-    assertNull(calc.getTotals(HardwareMeasurementType.VIRTUAL));
-    assertNull(calc.getTotals(HardwareMeasurementType.HYPERVISOR));
-  }
-
-  @Test
-  void hypervisorReportedWithNoSocketsDefaultToZero() {
-    NormalizedFacts facts = new NormalizedFacts();
-    facts.setHardwareType(HostHardwareType.PHYSICAL);
-    facts.setHypervisor(true);
-
-    var key = createUsageKey();
-    UsageCalculation calc = new UsageCalculation(key);
-    collector.collect(calc, facts);
-    Optional<HostTallyBucket> bucket = collector.buildBucketForHypervisor(key, facts);
-    assertTrue(bucket.isPresent());
-    assertEquals(0, bucket.get().getSockets());
-  }
-
-  @Test
-  void testCountsForCloudProvider() {
-    // Cloud provider host should contribute to the matched supported cloud provider,
-    // as well as the overall total. A cloud host should only ever contribute 1 socket
-    // along with its cores.
-    NormalizedFacts facts = cloudMachineFacts(HardwareMeasurementType.AWS, 4, 12);
-
-    UsageCalculation calc = new UsageCalculation(createUsageKey());
-    collector.collect(calc, facts);
-
-    assertTotalsCalculation(calc, 1, 12, 1);
-    assertHardwareMeasurementTotals(calc, HardwareMeasurementType.AWS, 1, 12, 1);
-    assertNullExcept(calc, HardwareMeasurementType.TOTAL, HardwareMeasurementType.AWS);
-  }
-
-  @Test
-  void testCountsForMarketplaceInstances() {
-    // Marketplace instance zeros should be ignored from the overall total
-    List<NormalizedFacts> conditions = new LinkedList<>();
-    NormalizedFacts marketFacts = cloudMachineFacts(HardwareMeasurementType.AWS, 1, 0);
-    marketFacts.setMarketplace(true);
-    conditions.add(marketFacts);
-
-    NormalizedFacts physicalNonHypervisor = physicalNonHypervisor(1, 0);
-    physicalNonHypervisor.setMarketplace(true);
-    conditions.add(physicalNonHypervisor);
-
-    NormalizedFacts virtual = guestFacts(1, 0, true);
-    virtual.setMarketplace(true);
-    conditions.add(virtual);
-
-    UsageCalculation calc = new UsageCalculation(createUsageKey());
-
-    for (NormalizedFacts current : conditions) {
-      collector.collect(calc, current);
-    }
-    assertTotalsCalculation(calc, 0, 0, 3);
-  }
+  private final ProductUsageCollector collector = new RHELProductUsageCollector();
 
   public static Stream<NormalizedFacts> generateFacts() {
     var unmappedGuest = new NormalizedFacts();
