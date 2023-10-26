@@ -7,6 +7,7 @@ variants:
   - tag: rhel-for-sap-x86
     engineeringIds:
       - 388 # RHEL for SAP Update Services for SAP Solutions
+      - 389 # Red Hat Enterprise Linux for SAP Solutions for x86_64 - Update Services for SAP Solutions
       - 241 # Red Hat Enterprise Linux 8 for x86_64 - SAP Solutions
       - 146 # Red Hat Enterprise Linux for SAP
 
