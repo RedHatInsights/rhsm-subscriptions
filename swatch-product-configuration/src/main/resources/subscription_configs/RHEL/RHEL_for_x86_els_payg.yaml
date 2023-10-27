@@ -12,8 +12,6 @@ variants:
       - 204
     productNames:
       - RHEL Server
-    roles:
-      - rhel-for-x86-els-payg-placeholder-role
 
 defaults:
   variant: rhel-for-x86-els-payg
