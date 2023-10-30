@@ -22,8 +22,8 @@ package org.candlepin.subscriptions.tally.filler;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.Test;
 
 class UnroundedTallyReportDataPointAdapterTest {

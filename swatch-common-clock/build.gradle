@@ -1,0 +1,7 @@
+plugins {
+    id 'swatch.java-conventions'
+}
+
+dependencies {
+    testImplementation libraries["junit-jupiter"]
+}

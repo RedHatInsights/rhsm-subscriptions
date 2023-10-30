@@ -25,7 +25,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.clock.ApplicationClock;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
@@ -38,20 +38,10 @@ public class FixedClockConfiguration {
   public static final ZonedDateTime SPRING_TIME_EDT =
       SPRING_TIME.atZone(ZoneId.of("America/New_York"));
 
-  // date --utc -d '2019-5-24T12:35:00 UTC' +%s
-  public static final long SPRING_EPOCH_UTC = 1558701300L;
-  // date --utc -d '2019-5-24T12:35:00 EDT' +%s
-  public static final long SPRING_EPOCH_EDT = 1558715700L;
-
   public static final LocalDateTime WINTER_TIME = LocalDateTime.of(2019, 1, 3, 14, 15, 0, 0);
   public static final ZonedDateTime WINTER_TIME_UTC = WINTER_TIME.atZone(ZoneId.of("UTC"));
   public static final ZonedDateTime WINTER_TIME_EST =
       WINTER_TIME.atZone(ZoneId.of("America/New_York"));
-
-  // date --utc -d '2019-1-3T14:15:00 UTC' +%s
-  public static final Long WINTER_EPOCH_UTC = 1546524900L;
-  // date --utc -d '2019-1-3T14:15:00 EST' +%s
-  public static final Long WINTER_EPOCH_EST = 1546542900L;
 
   @Bean
   @Primary

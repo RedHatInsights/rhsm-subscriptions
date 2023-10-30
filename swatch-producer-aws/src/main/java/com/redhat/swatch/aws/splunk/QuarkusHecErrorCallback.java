@@ -34,7 +34,7 @@ import java.util.logging.Level;
 import org.jboss.logmanager.ExtHandler;
 
 // This is a copy because quarkus's stuff is package protected.  Delete once
-// https://github.com/quarkiverse/quarkus-logging-splunk/pull/111 is merged
+// https://github.com/quarkiverse/quarkus-logging-splunk/pull/211 is merged
 public class QuarkusHecErrorCallback implements ErrorCallback {
   Boolean consoleEnabled;
 

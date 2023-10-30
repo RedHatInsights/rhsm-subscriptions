@@ -33,7 +33,9 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
+import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.json.BaseEvent;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
@@ -43,9 +45,9 @@ import org.candlepin.subscriptions.prometheus.model.QueryResultData;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.ResultType;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
+import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.test.ExtendWithPrometheusWiremock;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.candlepin.subscriptions.util.SpanGenerator;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,7 +64,7 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest(properties = "EVENT_SOURCE=" + PrometheusMeteringControllerTest.PROMETHEUS)
-@ActiveProfiles("openshift-metering-worker")
+@ActiveProfiles({"openshift-metering-worker", "test"})
 @Import(TestClockConfiguration.class)
 class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
 
@@ -79,6 +81,8 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
   @Autowired private QueryBuilder queryBuilder;
 
   @Captor private ArgumentCaptor<BaseEvent> eventsSent;
+
+  @MockBean private OptInController optInController;
 
   @MockBean private SpanGenerator spanGenerator;
 
@@ -113,6 +117,7 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
             queryBuilder,
             eventsProducer,
             openshiftRetry,
+            optInController,
             spanGenerator);
 
     queries = new QueryHelper(queryBuilder);
@@ -164,6 +169,27 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
 
     whenCollectMetrics(start, end);
     verifyQueryRange(prometheusServer, clock.startOfHour(start), end);
+  }
+
+  @Test
+  void orgIdGetsOptedInWhenReportingMetrics(
+      PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer) {
+    OffsetDateTime start = clock.startOfCurrentHour();
+    OffsetDateTime end = start.plusHours(4);
+    QueryResult data =
+        buildOpenShiftClusterQueryResult(
+            expectedOrgId,
+            expectedClusterId,
+            expectedSla,
+            expectedUsage,
+            expectedBillingProvider,
+            expectedBillingAccountId,
+            List.of(List.of(new BigDecimal("12312.345"), new BigDecimal(24))));
+    prometheusServer.stubQueryRange(data);
+
+    whenCollectMetrics(start, end);
+    verifyQueryRange(prometheusServer, start, end);
+    verify(optInController).optInByOrgId(expectedOrgId, OptInType.PROMETHEUS);
   }
 
   @Test

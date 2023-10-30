@@ -36,6 +36,7 @@ import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.tally.AccountResetService;
+import org.candlepin.subscriptions.tally.billing.ContractsController;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.util.DateRange;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
@@ -49,21 +50,26 @@ public class InternalTallyDataController {
   private final CaptureSnapshotsTaskManager tasks;
   private final ObjectMapper objectMapper;
   private final OptInController controller;
+  private final ContractsController contractsController;
 
   public InternalTallyDataController(
       AccountResetService accountResetService,
       EventController eventController,
       CaptureSnapshotsTaskManager tasks,
       ObjectMapper objectMapper,
-      OptInController controller) {
+      OptInController controller,
+      ContractsController contractsController) {
     this.accountResetService = accountResetService;
     this.eventController = eventController;
     this.tasks = tasks;
     this.objectMapper = objectMapper;
     this.controller = controller;
+    this.contractsController = contractsController;
   }
 
   public void deleteDataAssociatedWithOrg(String orgId) {
+    // we first delete the contracts and if it works, we continue with the rest of the data.
+    contractsController.deleteContractsWithOrg(orgId);
     accountResetService.deleteDataForOrg(orgId);
   }
 

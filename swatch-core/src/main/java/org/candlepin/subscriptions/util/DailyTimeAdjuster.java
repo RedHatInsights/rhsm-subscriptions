@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.util;
 import java.time.OffsetDateTime;
 import java.time.Period;
 import java.time.temporal.TemporalAmount;
+import org.candlepin.clock.ApplicationClock;
 
 /**
  * A ReportFiller instance that will fill the given TallyReport's snapshots based on a DAILY

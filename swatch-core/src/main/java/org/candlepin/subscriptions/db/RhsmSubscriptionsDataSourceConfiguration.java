@@ -25,7 +25,6 @@ import jakarta.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -44,10 +43,6 @@ import org.springframework.validation.annotation.Validated;
 
 /** A class to hold the inventory data source configuration. */
 @Configuration
-@ConditionalOnProperty(
-    prefix = "rhsm-subscriptions.datasource",
-    name = "enabled",
-    matchIfMissing = true)
 @EnableTransactionManagement
 @EnableJpaRepositories(
     basePackages = "org.candlepin.subscriptions.db",

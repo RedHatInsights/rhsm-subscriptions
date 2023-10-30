@@ -22,9 +22,10 @@ package com.redhat.swatch.aws.exception;
 
 import lombok.Getter;
 
+@Getter
 public class AwsDimensionNotConfiguredException extends AwsProducerException {
-  @Getter private final String productId;
-  @Getter private final String uom;
+  private final String productId;
+  private final String uom;
 
   public AwsDimensionNotConfiguredException(String productId, String uom) {
     super(

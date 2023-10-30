@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202310031000-02" author="vbusch">
+    <comment>Drop account_number column from subscription table</comment>
+    <dropColumn tableName="subscription" columnName="account_number"/>
+
+    <rollback>
+      <addColumn tableName="subscription"> <column name="account_number" type="varchar(255)"/> </addColumn>
+
+      <createIndex tableName="subscription" indexName="subscription_account_number_sku_idx">
+        <column name="account_number"/>
+        <column name="sku"/>
+      </createIndex>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202310031000-03" author="vbusch">
+    <comment>Drop account_number column from hosts table</comment>
+    <dropColumn tableName="hosts" columnName="account_number"/>
+
+    <rollback>
+      <addColumn tableName="hosts"> <column name="account_number" type="varchar(255)"/> </addColumn>
+
+      <createIndex indexName="account_idx" tableName="hosts">
+        <column name="account_number"/>
+      </createIndex>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202310031000-04" author="vbusch" dbms="postgresql">
+    <comment>Drop account_number column from events table</comment>
+    <dropColumn tableName="events" columnName="account_number"/>
+
+    <rollback>
+      <addColumn tableName="events"> <column name="account_number" type="varchar(255)"/> </addColumn>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202310031000-05" author="vbusch">
+    <comment>Drop account_number column from tally_snapshots table</comment>
+    <dropColumn tableName="tally_snapshots" columnName="account_number"/>
+
+    <rollback>
+      <addColumn tableName="tally_snapshots"> <column name="account_number" type="varchar(255)"/> </addColumn>
+
+      <createIndex indexName="acct_prod_sla_gran_usage_idx" tableName="tally_snapshots"
+                   unique="false">
+        <column name="account_number"/>
+        <column name="product_id"/>
+        <column name="sla"/>
+        <column name="usage"/>
+        <column name="granularity"/>
+      </createIndex>
+      <createIndex indexName="acct_prod_sla_granularity_idx" tableName="tally_snapshots"
+                   unique="false">
+        <column name="account_number"/>
+        <column name="product_id"/>
+        <column name="sla"/>
+        <column name="granularity"/>
+      </createIndex>
+      <createIndex indexName="acct_and_product_idx" tableName="tally_snapshots"
+                   unique="false">
+        <column name="account_number"/>
+        <column name="product_id"/>
+      </createIndex>
+    </rollback>
+  </changeSet>
+
+</databaseChangeLog>

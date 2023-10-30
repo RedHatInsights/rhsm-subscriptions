@@ -1,0 +1,36 @@
+---
+platform: RHEL
+
+id: rhel-for-x86-els-payg
+
+#includedSubscriptions:
+#  - rhel-for-x86
+
+variants:
+  - tag: rhel-for-x86-els-payg
+    engineeringIds:
+      - 204
+    productNames:
+      - RHEL Server
+    roles:
+      - rhel-for-x86-els-payg-placeholder-role
+
+defaults:
+  variant: rhel-for-x86-els-payg
+  sla: PREMIUM
+  usage: PRODUCTION
+
+serviceType: RHEL System
+
+contractEnabled: false #There is no need to generate an AWS contract listing because we will be using a non-Saas contract flow.
+
+metrics:
+  - id: vCPUs
+    awsDimension: vCPU_hours
+    prometheus:
+      queryKey: default
+      queryParams:
+        instanceKey: _id
+        product: Red Hat Enterprise Linux Server #Probably will be updated by SWATCH-1834, since this is usually populated by role
+        metric: system_cpu_logical_count
+        metadataMetric: system_cpu_logical_count

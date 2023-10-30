@@ -20,9 +20,9 @@
  */
 package org.candlepin.subscriptions.tally.files;
 
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.files.PerLineFileSource;
-import org.candlepin.subscriptions.util.ApplicationClock;
 
 /** Reads a set of accounts to sync from a file. Each line is a single account. */
 public class FileAccountSyncListSource extends PerLineFileSource {

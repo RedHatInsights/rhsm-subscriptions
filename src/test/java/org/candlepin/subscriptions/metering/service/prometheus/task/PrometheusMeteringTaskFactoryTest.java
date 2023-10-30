@@ -27,13 +27,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 
 import java.time.OffsetDateTime;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.task.MetricsTask;
 import org.candlepin.subscriptions.task.Task;
 import org.candlepin.subscriptions.task.TaskDescriptor;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

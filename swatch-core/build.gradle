@@ -7,6 +7,7 @@ plugins {
 dependencies {
     annotationProcessor "org.hibernate.orm:hibernate-jpamodelgen"
     implementation project(":api") // for util methods in ResourceUtils
+    implementation project(":swatch-common-clock") // for clock util methods
     implementation project(":clients:rbac-client") // for security integration w/ rbac
     api project(":swatch-common-resteasy")
     // API exports swatch-product-configuration classes to all projects that include swatch-core

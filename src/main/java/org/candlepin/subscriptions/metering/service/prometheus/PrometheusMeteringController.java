@@ -36,7 +36,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.model.EventKey;
+import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.metering.MeteringEventFactory;
 import org.candlepin.subscriptions.metering.MeteringException;
@@ -45,7 +47,7 @@ import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuild
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryDescriptor;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
 import org.candlepin.subscriptions.prometheus.model.StatusType;
-import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.util.SpanGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +68,7 @@ public class PrometheusMeteringController {
   private final ApplicationClock clock;
   private final MetricProperties metricProperties;
   private final RetryTemplate openshiftRetry;
+  private final OptInController optInController;
 
   private final SpanGenerator spanGenerator;
   private final QueryBuilder prometheusQueryBuilder;
@@ -78,6 +81,7 @@ public class PrometheusMeteringController {
       QueryBuilder queryBuilder,
       PrometheusEventsProducer eventsProducer,
       @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetry,
+      OptInController optInController,
       @Qualifier("meteringBatchIdGenerator") SpanGenerator spanGenerator) {
     this.clock = clock;
     this.metricProperties = metricProperties;
@@ -85,6 +89,7 @@ public class PrometheusMeteringController {
     this.prometheusQueryBuilder = queryBuilder;
     this.eventsProducer = eventsProducer;
     this.openshiftRetry = openshiftRetry;
+    this.optInController = optInController;
     this.spanGenerator = spanGenerator;
   }
 
@@ -126,6 +131,8 @@ public class PrometheusMeteringController {
     - it should already be)
      */
     OffsetDateTime startDate = clock.startOfHour(start).plusHours(1);
+    log.debug("Ensuring orgId={} has been set up for syncing/reporting.", orgId);
+    ensureOptIn(orgId);
     openshiftRetry.execute(
         context -> {
           try {
@@ -258,6 +265,15 @@ public class PrometheusMeteringController {
             start,
             end,
             meteringBatchId));
+  }
+
+  private void ensureOptIn(String orgId) {
+    try {
+      optInController.optInByOrgId(orgId, OptInType.PROMETHEUS);
+    } catch (Exception e) {
+      log.warn("Error while attempting to automatically opt-in orgId={}", orgId);
+      log.debug("Opt-in error for orgId=" + orgId, e);
+    }
   }
 
   @SuppressWarnings("java:S107")

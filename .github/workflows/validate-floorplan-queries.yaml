@@ -1,0 +1,42 @@
+name: "FloorPlan Queries"
+on:
+  - pull_request
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: 17
+          check-latest: true
+          cache: 'gradle'
+      - name: Setup JBang
+        uses: jbangdev/setup-jbang@main
+      - name: Setup yamlpath
+        run: |
+          jbang trust add https://github.com/yaml-path/jbang/
+          curl -Ls https://sh.jbang.dev | bash -s - app install --fresh --force yamlpath@yaml-path/jbang
+      - name: Setup Postgresql Database
+        run: docker run -d -v ./init_dbs.sh:/usr/share/container-scripts/postgresql/start/set_passwords.sh:z -p 5432:5432 -e POSTGRESQL_ADMIN_PASSWORD=admin quay.io/centos7/postgresql-13-centos7
+      - name: Setup Postgresql Client
+        run: sudo apt-get install -y postgresql-client
+      - name: Execute migrations
+        run: ./gradlew :liquibaseUpdate
+      - name: Run validation
+        run: |
+          QUERY_NAMES=$(yamlpath --format=PLAIN --single --expression="objects.(kind==FloorPlan).spec.queries.prefix" swatch-tally/deploy/clowdapp.yaml | tail -c +2 | head -c -2)
+          for rawQueryName in ${QUERY_NAMES[*]}; do
+            queryName=$(echo $rawQueryName | sed 's/,//g')
+            query=$(yamlpath --format=PLAIN --single --expression="objects.(kind==FloorPlan).spec.queries.(prefix == $queryName).query" swatch-tally/deploy/clowdapp.yaml | sed 's/;//g')
+            echo -e "Validating query: \n$query\n"
+            output=$(PGPASSWORD=rhsm-subscriptions psql -h localhost -U rhsm-subscriptions -d rhsm-subscriptions -c "$query;")
+            if [[ "$output" != *"(0 rows)"* ]]; then
+              echo -e "Error in query. Check the output for more information: \n$output"
+              exit 1
+            fi
+          done
+          echo "Queries validation was successful"

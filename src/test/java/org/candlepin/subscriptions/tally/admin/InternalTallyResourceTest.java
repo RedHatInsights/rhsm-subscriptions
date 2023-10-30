@@ -24,20 +24,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
-import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.retention.RemittanceRetentionController;
 import org.candlepin.subscriptions.retention.TallyRetentionController;
 import org.candlepin.subscriptions.security.SecurityProperties;
 import org.candlepin.subscriptions.tally.MarketplaceResendTallyController;
 import org.candlepin.subscriptions.tally.TallySnapshotController;
-import org.candlepin.subscriptions.tally.events.EventRecordsRetentionProperties;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.DateRange;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,13 +53,11 @@ class InternalTallyResourceTest {
   @Mock private TallyRetentionController tallyRetentionController;
   @Mock private RemittanceRetentionController remittanceRetentionController;
   @Mock private InternalTallyDataController internalTallyDataController;
-  @Mock private EventRecordRepository eventRecordRepository;
-  @Mock private EventRecordsRetentionProperties eventRecordsRetentionProperties;
+  @Mock private SecurityProperties properties;
 
   private InternalTallyResource resource;
   private ApplicationProperties appProps;
   private ApplicationClock clock;
-  SecurityProperties properties;
 
   @BeforeEach
   void setupTest() {
@@ -76,9 +73,7 @@ class InternalTallyResourceTest {
             tallyRetentionController,
             remittanceRetentionController,
             internalTallyDataController,
-            properties,
-            eventRecordRepository,
-            eventRecordsRetentionProperties);
+            properties);
   }
 
   @Test
@@ -152,9 +147,15 @@ class InternalTallyResourceTest {
 
   @Test
   void testPurgeRemittances() {
-    OffsetDateTime start = clock.startOfCurrentHour();
-    OffsetDateTime end = start.plusHours(1L);
     resource.purgeRemittances();
     verify(remittanceRetentionController).purgeRemittancesAsync();
+  }
+
+  @Test
+  void testDeleteDataAssociatedWithOrg() {
+    String orgId = "org1";
+    when(properties.isDevMode()).thenReturn(true);
+    resource.deleteDataAssociatedWithOrg(orgId);
+    verify(internalTallyDataController).deleteDataAssociatedWithOrg(orgId);
   }
 }

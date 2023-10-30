@@ -30,30 +30,6 @@ import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 public class DefaultProductUsageCollector implements ProductUsageCollector {
 
   @Override
-  public void collect(UsageCalculation prodCalc, NormalizedFacts normalizedFacts) {
-    int appliedCores = Optional.ofNullable(normalizedFacts.getCores()).orElse(0);
-    int appliedSockets = Optional.ofNullable(normalizedFacts.getSockets()).orElse(0);
-
-    if (normalizedFacts.getCloudProviderType() != null) {
-      appliedSockets = normalizedFacts.isMarketplace() ? 0 : 1;
-      prodCalc.addCloudProvider(
-          normalizedFacts.getCloudProviderType(), appliedCores, appliedSockets, 1);
-    }
-    // Accumulate for physical systems.
-    else if (!normalizedFacts.isVirtual()) {
-      appliedSockets = normalizedFacts.isMarketplace() ? 0 : appliedSockets;
-      prodCalc.addPhysical(appliedCores, appliedSockets, 1);
-    }
-    // Any other system is considered virtual
-    else {
-      if (normalizedFacts.isMarketplace()) {
-        appliedSockets = 0;
-      }
-      prodCalc.addVirtual(appliedCores, appliedSockets, 1);
-    }
-  }
-
-  @Override
   public Optional<HostTallyBucket> buildBucket(
       UsageCalculation.Key key, NormalizedFacts normalizedFacts) {
     int appliedCores = Optional.ofNullable(normalizedFacts.getCores()).orElse(0);

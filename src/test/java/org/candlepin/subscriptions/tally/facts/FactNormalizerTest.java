@@ -35,6 +35,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.HostHardwareType;
@@ -43,7 +44,6 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.OrgHostsData;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -684,6 +684,14 @@ class FactNormalizerTest {
     NormalizedFacts normalized =
         normalizer.normalize(createQpcHost("RHEL", "ppc64le", clock.now()), hypervisorData());
     assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for IBM Power"));
+  }
+
+  @Test
+  void testQpcProductIdFromEngId() {
+    var host = createQpcHost("RHEL", "Test", clock.now());
+    host.setSystemProfileProductIds("69");
+    NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
+    assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for x86"));
   }
 
   private void assertClassification(

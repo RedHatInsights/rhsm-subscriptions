@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.metering.task;
 
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusAccountSource;
@@ -33,7 +34,6 @@ import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.queue.TaskConsumer;
 import org.candlepin.subscriptions.task.queue.TaskConsumerFactory;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;

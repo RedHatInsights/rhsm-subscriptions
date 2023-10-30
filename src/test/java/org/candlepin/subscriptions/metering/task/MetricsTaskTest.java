@@ -24,10 +24,9 @@ import static org.mockito.Mockito.*;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
-import org.candlepin.subscriptions.prometheus.ApiException;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,7 +39,7 @@ class MetricsTaskTest {
   @Mock private PrometheusMeteringController controller;
 
   @Test
-  void testExecute() throws ApiException {
+  void testExecute() {
     ApplicationClock clock = new TestClockConfiguration().adjustableClock();
     OffsetDateTime expEnd = clock.now();
     OffsetDateTime expStart = expEnd.minusDays(1);

@@ -23,7 +23,7 @@ package org.candlepin.subscriptions.metering;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Optional;
-import org.candlepin.subscriptions.util.ApplicationClock;
+import org.candlepin.clock.ApplicationClock;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -31,7 +31,7 @@ import org.springframework.util.StringUtils;
 @Component
 public class ResourceUtil {
 
-  protected ApplicationClock clock;
+  private final ApplicationClock clock;
 
   public ResourceUtil(ApplicationClock clock) {
     this.clock = clock;

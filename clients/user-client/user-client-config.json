@@ -1,8 +1,0 @@
-{
-  "modelPackage": "org.candlepin.subscriptions.user.api.model",
-  "apiPackage": "org.candlepin.subscriptions.user.api.resources",
-  "invokerPackage": "org.candlepin.subscriptions.user",
-  "groupId": "org.candlepin",
-  "artifactId": "user-client",
-  "java8": true
-}

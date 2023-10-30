@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -39,7 +40,6 @@ import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Totals;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

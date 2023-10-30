@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billing.admin.api.model.MonthlyRemittance;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
@@ -33,7 +34,6 @@ import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -26,11 +26,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.OffsetDateTime;
 import java.util.TimeZone;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.db.model.config.OrgConfig;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfig;
 import org.candlepin.subscriptions.utilization.api.model.OptInConfigDataOrg;
 import org.junit.jupiter.api.BeforeEach;

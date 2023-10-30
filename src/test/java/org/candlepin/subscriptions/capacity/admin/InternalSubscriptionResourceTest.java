@@ -67,6 +67,14 @@ import org.springframework.web.context.WebApplicationContext;
 @WebAppConfiguration
 @ActiveProfiles({"capacity-ingress", "test"})
 class InternalSubscriptionResourceTest {
+
+  private static final String SYNC_ORG_123 = "/internal/subscriptions/sync/org/123";
+
+  private final OffsetDateTime defaultEndDate =
+      OffsetDateTime.of(2022, 7, 22, 8, 0, 0, 0, ZoneOffset.UTC);
+  private final OffsetDateTime defaultLookUpDate =
+      OffsetDateTime.of(2022, 6, 22, 8, 0, 0, 0, ZoneOffset.UTC);
+
   @MockBean SubscriptionSyncController syncController;
   @MockBean SubscriptionPruneController subscriptionPruneController;
 
@@ -81,11 +89,6 @@ class InternalSubscriptionResourceTest {
   @Autowired ApplicationProperties applicationProperties;
 
   private MockMvc mvc;
-  private static final String SYNC_ORG_123 = "/internal/subscriptions/sync/org/123";
-  private OffsetDateTime defaultEndDate =
-      OffsetDateTime.of(2022, 7, 22, 8, 0, 0, 0, ZoneOffset.UTC);
-  private OffsetDateTime defaultLookUpDate =
-      OffsetDateTime.of(2022, 6, 22, 8, 0, 0, 0, ZoneOffset.UTC);
 
   @BeforeEach
   public void setup() {
@@ -102,7 +105,7 @@ class InternalSubscriptionResourceTest {
   }
 
   @Test
-  void incrementsMissingCounter_WhenAccounNumberPresent() {
+  void incrementsMissingCounter_WhenAccountNumberPresent() {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
         new InternalSubscriptionResource(
@@ -149,7 +152,6 @@ class InternalSubscriptionResourceTest {
     assertEquals(1.0, counter.count());
   }
 
-  @Test
   void incrementsAmbiguousCounter_WhenOrgIdPresent() {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
@@ -202,7 +204,6 @@ class InternalSubscriptionResourceTest {
         exception.getCode().getDescription());
   }
 
-  @Test
   void shouldReturnActiveSubscriptionAndNotTerminated_WhenOrgIdPresent() {
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     Subscription sub1 = new Subscription();

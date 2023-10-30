@@ -265,11 +265,40 @@ paths:
                     status: 'Success'
                     message: "Contracts Synced for given org_id"
           description: success
-
       security:
         - support: []
         - test: []
       operationId: syncContractsByOrg
+
+  /api/swatch-contracts/internal/rpc/reset/contracts/{org_id}:
+    description: "Clear all contracts for a given org ID. "
+    delete:
+      parameters:
+        - name: org_id
+          description: ""
+          schema:
+            type: string
+          in: path
+          required: true
+      summary: "Clear all contracts for given org_id."
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              examples:
+                status response:
+                  value:
+                    status: 'Success'
+                    message: "Contracts Cleared for given org_id"
+          description: success
+      security:
+        - support: [ ]
+        - test: [ ]
+        - service: [ ]
+      operationId: deleteContractsByOrg
+
   /internal/rpc/syncAllContracts:
     description: "Trigger a sync for all contracts"
     post:

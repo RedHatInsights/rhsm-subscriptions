@@ -57,13 +57,13 @@ parameters:
   - name: OFFERING_SYNC_SCHEDULE
     value: 0 2 * * *
   - name: SUBSCRIPTION_URL
-    value: https://subscription.qa.api.redhat.com/svcrest/subscription/v5
+    value: https://subscription.stage.api.redhat.com/svcrest/subscription/v5
   - name: SUBSCRIPTION_IGNORE_EXPIRED_OLDER_THAN
     value: 2m
   - name: SUBSCRIPTION_IGNORE_STARTING_LATER_THAN
     value: 2m
   - name: PRODUCT_URL
-    value: https://product.qa.api.redhat.com/svcrest/product/v3
+    value: https://product.stage.api.redhat.com/svcrest/product/v3
   - name: SUBSCRIPTION_MAX_CONNECTIONS
     value: '100'
   - name: SUBSCRIPTION_MAX_RETRY_ATTEMPTS

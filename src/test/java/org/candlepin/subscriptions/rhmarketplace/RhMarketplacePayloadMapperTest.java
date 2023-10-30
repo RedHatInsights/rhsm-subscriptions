@@ -51,8 +51,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.retry.RetryCallback;
 import org.springframework.retry.RetryContext;
+import org.springframework.retry.RetryListener;
 import org.springframework.retry.backoff.NoBackOffPolicy;
-import org.springframework.retry.listener.RetryListenerSupport;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 
@@ -268,7 +268,7 @@ class RhMarketplacePayloadMapperTest {
    * A retry test support class that will increment a counter whenever an error occurs and the retry
    * logic is run.
    */
-  private class RetryTestSupport extends RetryListenerSupport {
+  private class RetryTestSupport implements RetryListener {
 
     private int retryCount = 0;
 

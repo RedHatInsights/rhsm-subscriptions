@@ -55,7 +55,7 @@ public class ContractsController {
   }
 
   @Retryable(
-      value = ExternalServiceException.class,
+      retryFor = ExternalServiceException.class,
       maxAttemptsExpression = "#{@contractsClientProperties.getMaxAttempts()}",
       backoff =
           @Backoff(
@@ -115,6 +115,25 @@ public class ContractsController {
             .reduce(0, Integer::sum);
     log.debug("Total contract coverage is {} for usage {} ", totalUnderContract, usage);
     return Double.valueOf(totalUnderContract);
+  }
+
+  @Retryable(
+      retryFor = ExternalServiceException.class,
+      maxAttemptsExpression = "#{@contractsClientProperties.getMaxAttempts()}",
+      backoff =
+          @Backoff(
+              delayExpression = "#{@contractsClientProperties.getBackOffInitialInterval()}",
+              maxDelayExpression = "#{@contractsClientProperties.getBackOffMaxInterval()}",
+              multiplierExpression = "#{@contractsClientProperties.getBackOffMultiplier()}"))
+  public void deleteContractsWithOrg(String orgId) {
+    try {
+      contractsApi.deleteContractsByOrg(orgId);
+    } catch (ApiException ex) {
+      throw new ExternalServiceException(
+          ErrorCode.CONTRACTS_SERVICE_ERROR,
+          String.format("Could not delete contracts with org ID '%s'", orgId),
+          ex);
+    }
   }
 
   private String getContractMetricId(

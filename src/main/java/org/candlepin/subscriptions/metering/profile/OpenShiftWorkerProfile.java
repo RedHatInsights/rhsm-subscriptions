@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.metering.profile;
 import static org.candlepin.subscriptions.task.queue.kafka.KafkaTaskProducerConfiguration.getProducerProperties;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.json.BaseEvent;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusEventsProducer;
@@ -31,10 +32,10 @@ import org.candlepin.subscriptions.metering.service.prometheus.PrometheusService
 import org.candlepin.subscriptions.metering.service.prometheus.config.PrometheusServiceConfiguration;
 import org.candlepin.subscriptions.metering.service.prometheus.promql.QueryBuilder;
 import org.candlepin.subscriptions.metering.task.MeteringTasksConfiguration;
+import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.candlepin.subscriptions.util.SpanGenerator;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
@@ -68,7 +69,10 @@ import org.springframework.retry.support.RetryTemplateBuilder;
   MeteringTasksConfiguration.class
 })
 @ComponentScan(
-    basePackages = {"org.candlepin.subscriptions.metering.api"},
+    basePackages = {
+      "org.candlepin.subscriptions.metering.api",
+      "org.candlepin.subscriptions.metering.retention"
+    },
     // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
     excludeFilters = {
       @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
@@ -154,6 +158,7 @@ public class OpenShiftWorkerProfile {
       QueryBuilder queryBuilder,
       PrometheusEventsProducer prometheusEventsProducer,
       @Qualifier("openshiftMetricRetryTemplate") RetryTemplate openshiftRetryTemplate,
+      OptInController optInController,
       @Qualifier("meteringBatchIdGenerator") SpanGenerator spanGenerator) {
     return new PrometheusMeteringController(
         clock,
@@ -162,6 +167,7 @@ public class OpenShiftWorkerProfile {
         queryBuilder,
         prometheusEventsProducer,
         openshiftRetryTemplate,
+        optInController,
         spanGenerator);
   }
 }

@@ -35,12 +35,14 @@ import com.redhat.swatch.aws.openapi.model.BillableUsage;
 import com.redhat.swatch.aws.openapi.model.BillableUsage.BillingProviderEnum;
 import com.redhat.swatch.aws.openapi.model.Error;
 import com.redhat.swatch.aws.openapi.model.Errors;
+import com.redhat.swatch.aws.test.resources.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AwsUsageContext;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.test.InjectMock;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
@@ -60,6 +62,9 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResu
 import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResultStatus;
 
 @QuarkusTest
+@QuarkusTestResource(
+    value = InMemoryMessageBrokerKafkaResource.class,
+    restrictToAnnotatedClass = true)
 class BillableUsageProcessorTest {
 
   private static final String INSTANCE_HOURS = "INSTANCE_HOURS";

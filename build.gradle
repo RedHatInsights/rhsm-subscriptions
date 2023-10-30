@@ -33,6 +33,7 @@ allprojects {
 }
 
 dependencies {
+    implementation project(":swatch-common-clock")
     implementation project(':swatch-core')
     implementation project(":api")
     implementation project(":clients:rh-marketplace-client")
@@ -41,7 +42,6 @@ dependencies {
     implementation project(":clients:rbac-client")
     implementation project(":clients:rhsm-client")
     implementation project(":clients:subscription-client")
-    implementation project(":clients:user-client")
     implementation project(":clients:contracts-client")
     implementation project(":clients:swatch-internal-subscription-springboot-client")
 
@@ -71,8 +71,7 @@ dependencies {
     testImplementation libraries["awaitility"]
     testImplementation project(':swatch-core-test')
     testImplementation project(':swatch-common-testcontainers')
-
-    runtimeOnly "org.hsqldb:hsqldb"
+    testImplementation "org.hsqldb:hsqldb"
 
     javaagent  libraries["splunk-otel-agent"]
 

@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.candlepin.subscriptions.metering.MeteringEventFactory.getEventType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -38,6 +39,7 @@ import java.util.UUID;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
+import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.prometheus.model.QueryResult;
 import org.candlepin.subscriptions.prometheus.model.QueryResultData;
 import org.candlepin.subscriptions.prometheus.model.QueryResultDataResultInner;
@@ -100,20 +102,24 @@ class MeteringMetricsFromPrometheusToDatabaseIT
   @Test
   void testCreateNewMetricsAndUpdateExistingEvents(
       PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer) {
-    givenMetricsInPrometheus(prometheusServer);
+    OffsetDateTime timestampForEvents = OffsetDateTime.now();
+
+    givenMetricsInPrometheusWithUsage(
+        prometheusServer, timestampForEvents, Event.Usage.DEVELOPMENT_TEST);
 
     // all insert
     whenCollectMetrics();
-    verifyAllEventsAreStoredInDatabase();
+    verifyAllEventsAreStoredInDatabaseWithUsage(Event.Usage.DEVELOPMENT_TEST);
     // store existing events to assert that event ID didn't change.
     List<UUID> snapshotOfExistingEvents = getEventIDsFromRepository();
 
     // all update
-    prometheusServer.resetScenario();
+    givenMetricsInPrometheusWithUsage(prometheusServer, timestampForEvents, Event.Usage.PRODUCTION);
     whenCollectMetrics();
-    verifyAllEventsAreStoredInDatabase();
+    verifyAllEventsAreStoredInDatabaseWithUsage(Event.Usage.PRODUCTION);
     verifyAllEventsUseEventSourcePrometheus();
-    assertEquals(snapshotOfExistingEvents, getEventIDsFromRepository());
+    assertThat(snapshotOfExistingEvents)
+        .containsExactlyInAnyOrderElementsOf(getEventIDsFromRepository());
   }
 
   private void givenExistingEventWithinSameTimeWindow() {
@@ -135,8 +141,10 @@ class MeteringMetricsFromPrometheusToDatabaseIT
     return repository.save(event);
   }
 
-  private void givenMetricsInPrometheus(
-      PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer) {
+  private void givenMetricsInPrometheusWithUsage(
+      PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer,
+      OffsetDateTime timestamp,
+      Event.Usage usage) {
     prometheusServer.resetScenario();
     QueryResult expectedResult = new QueryResult();
     expectedResult.status(StatusType.SUCCESS);
@@ -148,12 +156,12 @@ class MeteringMetricsFromPrometheusToDatabaseIT
       data.values(
           List.of(
               List.of(
-                  new BigDecimal(OffsetDateTime.now().plusSeconds(100).toEpochSecond()),
-                  new BigDecimal(1))));
+                  new BigDecimal(timestamp.plusSeconds(100).toEpochSecond()), new BigDecimal(1))));
       Map<String, String> labels = new HashMap<>();
       labels.put("_id", "id" + i);
       labels.put("product", "ocp");
       labels.put("support", "Premium");
+      labels.put("usage", usage.value());
       data.metric(labels);
       metricsList.add(data);
     }
@@ -180,10 +188,17 @@ class MeteringMetricsFromPrometheusToDatabaseIT
     controller.collectMetrics(PRODUCT_TAG, METRIC, ORG_ID, start, end);
   }
 
-  private void verifyAllEventsAreStoredInDatabase() {
+  private void verifyAllEventsAreStoredInDatabaseWithUsage(Event.Usage expectedUsage) {
     await()
         .atMost(TIMEOUT_TO_WAIT_FOR_METRICS)
-        .untilAsserted(() -> assertEquals(NUM_METRICS_TO_SEND, repository.count()));
+        .untilAsserted(
+            () -> {
+              assertEquals(NUM_METRICS_TO_SEND, repository.count());
+              assertTrue(repository.findAll().stream().allMatch(e -> e.getRecordDate() != null));
+              assertTrue(
+                  repository.findAll().stream()
+                      .allMatch(e -> expectedUsage == e.getEvent().getUsage()));
+            });
   }
 
   private void verifyAllEventsUseEventSourcePrometheus() {

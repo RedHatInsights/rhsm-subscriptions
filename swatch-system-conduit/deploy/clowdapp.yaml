@@ -40,7 +40,7 @@ parameters:
   - name: CPU_LIMIT
     value: 1500m
   - name: RHSM_URL
-    value: https://api.rhsm.qa.redhat.com/v1
+    value: https://api.rhsm.stage.redhat.com/v1
   - name: RHSM_MAX_ATTEMPTS
     value: '10'
   - name: RHSM_BACK_OFF_MAX_INTERVAL

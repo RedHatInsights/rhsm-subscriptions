@@ -29,7 +29,6 @@ import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.candlepin.subscriptions.util.ApplicationClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -45,8 +44,6 @@ import org.springframework.test.context.ActiveProfiles;
 @WithMockRedHatPrincipal("123456")
 @Import(TestClockConfiguration.class)
 class OptInResourceTest {
-
-  @Autowired private ApplicationClock clock;
 
   @MockBean OrgConfigRepository orgConfigRepository;
 

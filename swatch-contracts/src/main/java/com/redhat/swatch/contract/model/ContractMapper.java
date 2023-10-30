@@ -66,7 +66,6 @@ public interface ContractMapper {
   ContractEntity partnerContractToContractEntity(PartnerEntitlementContract contract);
 
   @Mapping(target = "subscriptionId", ignore = true)
-  @Mapping(target = "accountNumber", ignore = true)
   @Mapping(target = "billingProviderId", ignore = true)
   @Mapping(target = "quantity", constant = "1L")
   @Mapping(target = "offering", source = ".")
