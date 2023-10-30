@@ -111,7 +111,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
 
   @WithMockRedHatPrincipal(value = USER_ID)
   @ParameterizedTest
-  @CsvSource(value = {"83,rhel-for-x86-ha", "90,rhel-for-x86-rs"})
+  @CsvSource(value = {"83,rhel-for-x86-ha", "90,rhel-for-x86-rs", "389,rhel-for-sap-x86"})
   void testProduceSnapshotsForOrgFromHostsPartOfHbi(String engId, String product) {
     givenOrgAndAccountInConfig();
     UUID inventoryId = givenInventoryHostWithProductIds(engId);
