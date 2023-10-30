@@ -78,6 +78,15 @@
 FROM registry.access.redhat.com/ubi9/openjdk-17:1.16
 
 USER root
+# Add git, so that the build can determine the git hash
+# Disable all repos except for ubi repos, as ubi repos don't require auth;
+# this makes the container buildable without needing RHEL repos.
+RUN microdnf \
+  --disablerepo=* \
+  --enablerepo=ubi-9-appstream-rpms \
+  --enablerepo=ubi-9-baseos-rpms \
+  install -y \
+  git
 WORKDIR /stage
 
 COPY gradlew .
