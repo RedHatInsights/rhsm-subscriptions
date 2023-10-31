@@ -45,7 +45,7 @@ public class RhMarketplaceService {
   public RhMarketplaceService(RhMarketplaceProperties properties, RhMarketplaceApi api) {
     this.api = api;
     this.apiKey = properties.getApiKey();
-    this.tokenRefreshPeriodMs = properties.getTokenRefreshPeriod().toMillis() / 1000;
+    this.tokenRefreshPeriodMs = properties.getTokenRefreshPeriod().toMillis() / 100;
     this.accessToken = null;
     this.tokenRefreshCutoff = 0L;
   }
