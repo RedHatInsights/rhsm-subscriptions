@@ -47,12 +47,23 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import software.amazon.awssdk.services.marketplacemetering.MarketplaceMeteringClient;
 import software.amazon.awssdk.services.marketplacemetering.model.BatchMeterUsageRequest;
 import software.amazon.awssdk.services.marketplacemetering.model.BatchMeterUsageResponse;
@@ -70,12 +81,16 @@ class BillableUsageProcessorTest {
   private static final String INSTANCE_HOURS = "INSTANCE_HOURS";
   private static final String STORAGE_GIBIBYTE_MONTHS = "STORAGE_GIBIBYTE_MONTHS";
 
+  private static final Clock clock =
+      Clock.fixed(Instant.parse("2023-10-02T12:30:00Z"), ZoneId.of("UTC"));
+
   private static final BillableUsage RHOSAK_INSTANCE_HOURS_RECORD =
       new BillableUsage()
           .productId("rhosak")
           .snapshotDate(OffsetDateTime.MAX)
           .billingProvider(BillingProviderEnum.AWS)
           .uom(INSTANCE_HOURS)
+          .snapshotDate(OffsetDateTime.now(Clock.systemUTC()))
           .value(new BigDecimal("42.0"));
 
   private static final BillableUsage RHOSAK_STORAGE_GIB_MONTHS_RECORD =
@@ -84,6 +99,7 @@ class BillableUsageProcessorTest {
           .snapshotDate(OffsetDateTime.MAX)
           .billingProvider(BillingProviderEnum.AWS)
           .uom(STORAGE_GIBIBYTE_MONTHS)
+          .snapshotDate(OffsetDateTime.now(Clock.systemUTC()))
           .value(new BigDecimal("42.0"));
 
   public static final AwsUsageContext MOCK_AWS_USAGE_CONTEXT =
@@ -112,18 +128,26 @@ class BillableUsageProcessorTest {
   @Inject MeterRegistry meterRegistry;
   Counter acceptedCounter;
   Counter rejectedCounter;
+  Counter ignoredCounter;
   @Inject BillableUsageProcessor processor;
+
+  @ConfigProperty(name = "AWS_MARKETPLACE_USAGE_WINDOW")
+  Duration maxAgeDuration;
 
   @BeforeEach
   void setup() {
     acceptedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_rejected_total");
+    ignoredCounter = meterRegistry.counter("swatch_aws_marketplace_batch_ignored_total");
     meteringClient = mock(MarketplaceMeteringClient.class);
   }
 
   @Test
   void shouldSkipNonAwsSnapshots() {
-    BillableUsage usage = new BillableUsage().billingProvider(BillingProviderEnum.RED_HAT);
+    BillableUsage usage =
+        new BillableUsage()
+            .billingProvider(BillingProviderEnum.RED_HAT)
+            .snapshotDate(OffsetDateTime.now(Clock.systemUTC()));
     processor.process(usage);
     verifyNoInteractions(internalSubscriptionsApi, clientFactory);
   }
@@ -152,6 +176,7 @@ class BillableUsageProcessorTest {
             .productId("rhosak")
             .billingProvider(BillingProviderEnum.AWS)
             .uom(INSTANCE_HOURS)
+            .snapshotDate(OffsetDateTime.now(Clock.systemUTC()))
             .value(new BigDecimal("42.0"));
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenThrow(AwsUsageContextLookupException.class);
@@ -166,6 +191,7 @@ class BillableUsageProcessorTest {
             .productId("foobar")
             .billingProvider(BillingProviderEnum.AWS)
             .uom(INSTANCE_HOURS)
+            .snapshotDate(OffsetDateTime.now(Clock.systemUTC()))
             .value(new BigDecimal("42.0"));
     processor.process(usage);
     verifyNoInteractions(internalSubscriptionsApi, meteringClient);
@@ -221,7 +247,11 @@ class BillableUsageProcessorTest {
   void shouldNotMakeAwsUsageRequestWhenDryRunEnabled() throws ApiException {
     BillableUsageProcessor processor =
         new BillableUsageProcessor(
-            meterRegistry, internalSubscriptionsApi, clientFactory, Optional.of(true));
+            meterRegistry,
+            internalSubscriptionsApi,
+            clientFactory,
+            Optional.of(true),
+            Duration.of(1, ChronoUnit.HOURS));
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     processor.process(RHOSAK_INSTANCE_HOURS_RECORD);
@@ -251,7 +281,7 @@ class BillableUsageProcessorTest {
     Errors errors = new Errors();
     Error error = new Error();
     error.setCode("SUBSCRIPTIONS1005");
-    errors.setErrors(Arrays.asList(error));
+    errors.setErrors(List.of(error));
     var response = Response.serverError().entity(errors).build();
     var exception = new DefaultApiException(response, errors);
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
@@ -259,5 +289,44 @@ class BillableUsageProcessorTest {
 
     processor.process(RHOSAK_INSTANCE_HOURS_RECORD);
     verifyNoInteractions(meteringClient);
+  }
+
+  @Test
+  void shouldSkipMessageProcessingIfUsageIsOutsideTheUsageWindow() throws Exception {
+    double currentIgnored = ignoredCounter.count();
+    when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
+        .thenReturn(MOCK_AWS_USAGE_CONTEXT);
+
+    BillableUsage usage =
+        new BillableUsage()
+            .productId("rhosak")
+            .billingProvider(BillingProviderEnum.AWS)
+            .uom(INSTANCE_HOURS)
+            .value(new BigDecimal("42.0"))
+            .snapshotDate(OffsetDateTime.now(Clock.systemUTC()).minusHours(8));
+    processor.process(usage);
+    verifyNoInteractions(meteringClient);
+    assertEquals(currentIgnored + 1, ignoredCounter.count());
+  }
+
+  static Stream<Arguments> usageWindowTestArgs() {
+    OffsetDateTime now = OffsetDateTime.now(clock);
+    OffsetDateTime startOfCurrentHour = now.minusMinutes(30);
+    OffsetDateTime cutoff = startOfCurrentHour.minusHours(6);
+    return Stream.of(
+        Arguments.of(now, true),
+        Arguments.of(startOfCurrentHour, true),
+        Arguments.of(cutoff, true),
+        Arguments.of(cutoff.minusNanos(1), false),
+        Arguments.of(now.minusHours(7), false));
+  }
+
+  @ParameterizedTest
+  @MethodSource("usageWindowTestArgs")
+  void testUsageWindow(OffsetDateTime date, boolean isValid) {
+    // 6h
+    assertEquals(21600, maxAgeDuration.getSeconds());
+    assertEquals(
+        isValid, processor.isUsageDateValid(clock, new BillableUsage().snapshotDate(date)));
   }
 }

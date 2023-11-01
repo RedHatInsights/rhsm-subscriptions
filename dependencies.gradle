@@ -21,7 +21,7 @@ ext {
 ext.plugins = [
         "com.adarshr:gradle-test-logger-plugin:4.0.0",
         "com.diffplug.spotless:spotless-plugin-gradle:6.22.0",
-        "com.netflix.nebula:nebula-release-plugin:18.0.1",
+        "com.netflix.nebula:nebula-release-plugin:18.0.3",
         "io.quarkus:gradle-application-plugin:3.5.0",
         // swagger-parser manually upgraded for compatibility with snakeyaml 2.0
         // see https://github.com/OpenAPITools/openapi-generator/issues/15876
@@ -40,7 +40,7 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:2.1.1"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.21.10"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.21.12"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.0.0"
 libraries["guava"] = "com.google.guava:guava:32.1.3-jre"
 libraries["hamcrest-all"] = "org.hamcrest:hamcrest-all:1.3"

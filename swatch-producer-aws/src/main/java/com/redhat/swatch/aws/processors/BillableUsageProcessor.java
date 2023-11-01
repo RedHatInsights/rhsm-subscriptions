@@ -26,6 +26,7 @@ import com.redhat.swatch.aws.exception.AwsUnprocessedRecordsException;
 import com.redhat.swatch.aws.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.aws.exception.DefaultApiException;
 import com.redhat.swatch.aws.exception.SubscriptionRecentlyTerminatedException;
+import com.redhat.swatch.aws.exception.UsageTimestampOutOfBoundsException;
 import com.redhat.swatch.aws.openapi.model.BillableUsage;
 import com.redhat.swatch.aws.openapi.model.BillableUsage.BillingProviderEnum;
 import com.redhat.swatch.aws.openapi.model.BillableUsage.SlaEnum;
@@ -40,7 +41,10 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
+import java.time.Clock;
+import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -61,20 +65,25 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResu
 public class BillableUsageProcessor {
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
+  private final Counter ignoreCounter;
   private final InternalSubscriptionsApi internalSubscriptionsApi;
   private final AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory;
   private final Optional<Boolean> isDryRun;
+  private final Duration awsUsageWindow;
 
   public BillableUsageProcessor(
       MeterRegistry meterRegistry,
       @RestClient InternalSubscriptionsApi internalSubscriptionsApi,
       AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory,
-      @ConfigProperty(name = "ENABLE_AWS_DRY_RUN") Optional<Boolean> isDryRun) {
+      @ConfigProperty(name = "ENABLE_AWS_DRY_RUN") Optional<Boolean> isDryRun,
+      @ConfigProperty(name = "AWS_MARKETPLACE_USAGE_WINDOW") Duration awsUsageWindow) {
     acceptedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_aws_marketplace_batch_rejected_total");
+    ignoreCounter = meterRegistry.counter("swatch_aws_marketplace_batch_ignored_total");
     this.internalSubscriptionsApi = internalSubscriptionsApi;
     this.awsMarketplaceMeteringClientFactory = awsMarketplaceMeteringClientFactory;
     this.isDryRun = isDryRun;
+    this.awsUsageWindow = awsUsageWindow;
   }
 
   @Incoming("tally-in")
@@ -114,6 +123,20 @@ public class BillableUsageProcessor {
     }
     try {
       transformAndSend(context, billableUsage, metric.get());
+    } catch (UsageTimestampOutOfBoundsException e) {
+      log.warn(
+          "{} orgId={} tallySnapshotId={} productId={} snapshotDate={} rhSubscriptionId={} awsCustomerId={} awsProductCode={} subscriptionStartDate={} value={}",
+          e.getMessage(),
+          billableUsage.getOrgId(),
+          billableUsage.getId(),
+          billableUsage.getProductId(),
+          billableUsage.getSnapshotDate(),
+          context.getRhSubscriptionId(),
+          context.getCustomerId(),
+          context.getProductCode(),
+          context.getSubscriptionStartDate(),
+          billableUsage.getValue());
+      ignoreCounter.increment();
     } catch (Exception e) {
       log.error(
           "Error sending usage for rhSubscriptionId={} tallySnapshotId={} awsCustomerId={} awsProductCode={} orgId={}",
@@ -154,7 +177,9 @@ public class BillableUsageProcessor {
   }
 
   private void transformAndSend(AwsUsageContext context, BillableUsage billableUsage, Metric metric)
-      throws AwsUnprocessedRecordsException, AwsDimensionNotConfiguredException {
+      throws AwsUnprocessedRecordsException,
+          AwsDimensionNotConfiguredException,
+          UsageTimestampOutOfBoundsException {
     BatchMeterUsageRequest request =
         BatchMeterUsageRequest.builder()
             .productCode(context.getProductCode())
@@ -222,15 +247,21 @@ public class BillableUsageProcessor {
 
   private UsageRecord transformToAwsUsage(
       AwsUsageContext context, BillableUsage billableUsage, Metric metric)
-      throws AwsDimensionNotConfiguredException {
+      throws AwsDimensionNotConfiguredException, UsageTimestampOutOfBoundsException {
     OffsetDateTime effectiveTimestamp = billableUsage.getSnapshotDate();
     if (effectiveTimestamp.isBefore(context.getSubscriptionStartDate())) {
-      // NOTE: AWS requires that the timestamp "is not before the start of the software usage."
-      // https://docs.aws.amazon.com/marketplacemetering/latest/APIReference/API_UsageRecord.html
       // Because swatch doesn't store a precise timestamp for beginning of usage, we'll fall back to
       // the subscription start timestamp.
       effectiveTimestamp = context.getSubscriptionStartDate();
     }
+
+    // NOTE: AWS requires that the timestamp "is not before the start of the software usage."
+    // https://docs.aws.amazon.com/marketplacemetering/latest/APIReference/API_UsageRecord.html
+    if (!isUsageDateValid(Clock.systemUTC(), billableUsage)) {
+      throw new UsageTimestampOutOfBoundsException(
+          "Unable to send usage since it is outside of the AWS processing window");
+    }
+
     return UsageRecord.builder()
         .customerIdentifier(context.getCustomerId())
         .dimension(metric.getAwsDimension())
@@ -265,5 +296,26 @@ public class BillableUsageProcessor {
     }
 
     return metric;
+  }
+
+  /**
+   * Determines if the usage timestamp is valid according to the AWS usage age policy. In order for
+   * usage to be accepted by AWS, the timestamp must be on or after the START_OF_CURRENT_HOUR - 6h.
+   *
+   * <p>The implementation of this validation method follows the AWS policy closely, however, the
+   * AWS_MARKETPLACE_USAGE_WINDOW duration env var is available to allow fine-tuning of our own
+   * window.
+   *
+   * <p>START_OF_CURRENT_HOUR - AWS_MARKETPLACE_USAGE_WINDOW
+   *
+   * @param clock the clock used to determine the time NOW.
+   * @param usage the usage to check.
+   * @return true if the usage timestamp is valid, false otherwise.
+   */
+  // NOTE: Pass the clock as a parameter to make things a little easier to test.
+  protected boolean isUsageDateValid(Clock clock, BillableUsage usage) {
+    OffsetDateTime startOfCurrentHour = OffsetDateTime.now(clock).truncatedTo(ChronoUnit.HOURS);
+    OffsetDateTime cutoff = startOfCurrentHour.minus(awsUsageWindow);
+    return !usage.getSnapshotDate().isBefore(cutoff);
   }
 }
