@@ -1,0 +1,114 @@
+SERVER_PORT: ${clowder.endpoints.swatch-metrics.port:8000}
+LOGGING_LEVEL_COM_REDHAT_SWATCH: INFO
+LOGGING_LEVEL_ROOT: INFO
+ENABLE_SPLUNK_HEC: true
+SPLUNK_HEC_URL: https://splunk-hec.redhat.com:8088/
+SPLUNK_SOURCE: swatch-metrics
+SPLUNK_SOURCE_TYPE: quarkus_service
+SPLUNK_HEC_BATCH_SIZE: 1000
+SPLUNK_HEC_BATCH_INTERVAL: 10S
+SPLUNK_HEC_RETRY_COUNT: 3
+SPLUNK_HEC_INCLUDE_EX: false
+TALLY_IN_FAIL_ON_DESER_FAILURE: true
+
+# dev-specific defaults; these can still be overridden by env var
+"%dev":
+  LOGGING_LEVEL_COM_REDHAT_SWATCH: DEBUG
+  SWATCH_SELF_PSK: placeholder
+  ENABLE_SPLUNK_HEC: false
+  SPLUNK_HEC_URL: https://splunk-hec.prod.utility-us-east-2.redhat.com:8088/
+  SPLUNKMETA_host: ${USER}@${HOSTNAME}
+  SPLUNKMETA_namespace: local
+  SPLUNK_HEC_INCLUDE_EX: true
+  quarkus:
+    log:
+      console:
+        json: false
+
+# set the test profile properties to the same values as dev; these get activated for @QuarkusTest
+"%test":
+  SWATCH_SELF_PSK: ${%dev.SWATCH_SELF_PSK}
+  ENABLE_SPLUNK_HEC: ${%dev.ENABLE_SPLUNK_HEC}
+  SPLUNKMETA_host: unit_tests
+  quarkus:
+    log:
+      console:
+        json: false
+
+"%ephemeral":
+  quarkus:
+    otel:
+      sdk:
+        disabled: true
+"%stage":
+  quarkus:
+    otel:
+      sdk:
+        disabled: false
+"%prod":
+  quarkus:
+    otel:
+      sdk:
+        disabled: false
+
+quarkus:
+  http:
+    port: ${SERVER_PORT}
+    test-port: 0
+  log:
+    level: ${LOGGING_LEVEL_ROOT}
+    category:
+      "com.redhat.swatch":
+        level: ${LOGGING_LEVEL_COM_REDHAT_SWATCH}
+    handler:
+      splunk:
+        enabled: ${ENABLE_SPLUNK_HEC:false}
+        url: ${SPLUNK_HEC_URL:https://splunk-hec.redhat.com:8088/}
+        metadata-source: ${SPLUNK_SOURCE:swatch-metrics}
+        max-retries: ${SPLUNK_HEC_RETRY_COUNT:0}
+        metadata-source-type: ${SPLUNK_SOURCE_TYPE:quarkus_service}
+        metadata-host: ${SPLUNKMETA_host:${USER}@${HOSTNAME}}
+        metadata-fields:
+          namespace: ${SPLUNKMETA_namespace:local}
+        token: ${SPLUNK_HEC_TOKEN:replaceme}
+        include-exception: ${SPLUNK_HEC_INCLUDE_EX:false}
+        batch-size-count: ${SPLUNK_HEC_BATCH_SIZE:1000}
+        format: '%d %-5p [%c{3.}] (%t) %s%e%n'
+        batch-interval: ${SPLUNK_HEC_BATCH_INTERVAL:10S}
+  swagger-ui:
+    path: /api/${quarkus.application.name}/internal/swagger-ui
+    always-include: true
+  smallrye-openapi:
+    path: /api/${quarkus.application.name}/internal/openapi
+  otel:
+    exporter:
+      otlp:
+        endpoint: http://splunk-otel-collector:4317
+    sdk:
+      disabled: true
+  kafka:
+    devservices:
+      enabled: false
+
+rhsm-subscriptions:
+  metering:
+    prometheus:
+      metric:
+        queryTemplates:
+          default: >-
+            max(#{metric.prometheus.queryParams[metric]}) by (#{metric.prometheus.queryParams[instanceKey]})
+            * on(#{metric.prometheus.queryParams[instanceKey]}) group_right
+            min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{product="#{metric.prometheus.queryParams[product]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
+          addonSamples: >-
+            max(#{metric.prometheus.queryParams[metric]}) by (#{metric.prometheus.queryParams[instanceKey]})
+            * on(#{metric.prometheus.queryParams[instanceKey]}) group_right
+            min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{resource_type="addon",resource_name="#{metric.prometheus.queryParams[resourceName]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
+        maxAttempts: ${OPENSHIFT_MAX_ATTEMPTS:50}
+        backOffMaxInterval: ${OPENSHIFT_BACK_OFF_MAX_INTERVAL:50000}
+        backOffInitialInterval: ${OPENSHIFT_BACK_OFF_INITIAL_INTERVAL:1000}
+        backOffMultiplier: ${OPENSHIFT_BACK_OFF_MULTIPLIER:1.5}
+        eventSource: ${EVENT_SOURCE:prometheus}
+        rangeInMinutes: ${OPENSHIFT_METERING_RANGE:60}
+        jobMaxAttempts: ${METERING_JOB_MAX_ATTEMPTS:3}
+        jobBackOffMaxInterval: ${METERING_JOB_BACK_OFF_MAX_INTERVAL:50000}
+        jobBackOffInitialInterval: ${METERING_JOB_BACK_OFF_INITIAL_INTERVAL:1000}
