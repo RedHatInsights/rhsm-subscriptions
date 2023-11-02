@@ -25,11 +25,10 @@ import com.google.common.collect.Sets;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
-import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.OffsetDateTime;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -38,247 +37,127 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
+import org.candlepin.subscriptions.db.TallySnapshotRepository;
+import org.candlepin.subscriptions.db.TallyStateRepository;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.util.DateRange;
+import org.candlepin.subscriptions.tally.UsageCalculation.Key;
+import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Collects instances and tallies based on hourly metrics. */
-public class MetricUsageCollector {
+public class MetricUsageCollectorV2 {
+
   private static final Logger log = LoggerFactory.getLogger(MetricUsageCollector.class);
 
+  private final ApplicationProperties applicationProperties;
   private final AccountServiceInventoryRepository accountServiceInventoryRepository;
   private final EventController eventController;
   private final ApplicationClock clock;
 
   private final HostRepository hostRepository;
+  private final TallyStateRepository tallyStateRepository;
+  private final TallySnapshotRepository snapshotRepository;
 
-  public MetricUsageCollector(
+  public MetricUsageCollectorV2(
+      ApplicationProperties applicationProperties,
       AccountServiceInventoryRepository accountServiceInventoryRepository,
       EventController eventController,
       ApplicationClock clock,
-      HostRepository hostRepository) {
+      HostRepository hostRepository,
+      TallyStateRepository tallyStateRepository,
+      TallySnapshotRepository snapshotRepository) {
+    this.applicationProperties = applicationProperties;
     this.accountServiceInventoryRepository = accountServiceInventoryRepository;
     this.eventController = eventController;
     this.clock = clock;
     this.hostRepository = hostRepository;
+    this.tallyStateRepository = tallyStateRepository;
+    this.snapshotRepository = snapshotRepository;
   }
 
-  @Transactional
-  public MetricUsageCollectionResult collect(String serviceType, String orgId, DateRange range) {
-    if (!clock.isHourlyRange(range.getStartDate(), range.getEndDate())) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Start and end dates must be at the top of the hour: [%s -> %s]",
-              range.getStartString(), range.getEndString()));
-    }
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public int collect(
+      String orgId, String serviceType, Map<OffsetDateTime, AccountUsageCalculation> currentCalcs) {
 
-    Optional<OffsetDateTime> firstEventTimestampInRange =
-        eventController.findFirstEventTimestampInRange(
-            orgId, serviceType, range.getStartDate(), range.getEndDate());
-
-    if (firstEventTimestampInRange.isEmpty()) {
-      log.info("No event metrics to process for service type {} in range: {}", serviceType, range);
-      return null;
-    }
-    OffsetDateTime firstEventTimestamp = firstEventTimestampInRange.get();
-
-    log.info("Event exists for org {} of service type {} in range: {}", orgId, serviceType, range);
-    /* load the latest accountServiceInventory state, so we can update host records conveniently */
     AccountServiceInventoryId inventoryId =
         AccountServiceInventoryId.builder().orgId(orgId).serviceType(serviceType).build();
-    AccountServiceInventory accountServiceInventory =
-        accountServiceInventoryRepository
-            .findById(inventoryId)
-            .orElse(new AccountServiceInventory(inventoryId));
-
-    /*
-    Evaluate latest state to determine if we are doing a recalculation and filter to host records for only
-    the product profile we're working on
-    */
-    Map<String, Host> existingInstances = new HashMap<>();
-    Optional<OffsetDateTime> maxLastSeenTimestamp =
-        hostRepository.findMaxLastSeenDate(orgId, serviceType);
-    for (Host host : accountServiceInventory.getServiceInstances().values()) {
-      existingInstances.put(host.getInstanceId(), host);
+    if (!accountServiceInventoryRepository.existsById(inventoryId)) {
+      accountServiceInventoryRepository.save(new AccountServiceInventory(inventoryId));
     }
-    OffsetDateTime effectiveStartDateTime;
-    OffsetDateTime effectiveEndDateTime;
-    boolean isRecalculating;
-    /*
-    We need to recalculate several things if we are re-tallying, namely monthly totals need to be
-    cleared and re-updated for each host record
-    Evaluate latest state to determine if we are doing a recalculation.
-    This condition serves a dual purpose: First, it validates the presence of untallied events.
-    Additionally, it assesses whether the first event timestamp is after the host last seen.
-    If this condition holds false, then the effectiveStartDateTime is adjusted from the first day of the month to
-    the end of current hour. Otherwise, the start date is same as the beginning of the user start range,
-    it extends until the specified passed end date.
-     */
-    if (maxLastSeenTimestamp.isEmpty()
-        || !firstEventTimestamp.isAfter(maxLastSeenTimestamp.get())) {
-      int eventLastMonth =
-          firstEventTimestamp.getMonth().getValue() - OffsetDateTime.now().getMonth().getValue();
-      if (eventLastMonth < 0) {
-        effectiveStartDateTime = clock.startOfMonth(firstEventTimestamp);
-      } else {
-        effectiveStartDateTime = clock.startOfMonth(range.getStartDate());
+
+    TallyState currentState =
+        tallyStateRepository
+            .findById(new TallyStateKey(orgId, serviceType))
+            .orElseGet(
+                () -> tallyStateRepository.save(new TallyState(orgId, serviceType, clock.now())));
+
+    // TODO [MSTEAD] This should be the end date from the API.
+    OffsetDateTime cutoff = clock.endOfCurrentHour();
+
+    // TODO [MSTEAD] Check if batch size is equal, instead of checking 0, to avoid extra run.
+    List<EventRecord> eventsRecords =
+        eventController.fetchEventsInBatch(
+            orgId,
+            serviceType,
+            currentState.getLatestEventRecordDate(),
+            cutoff,
+            applicationProperties.getHourlyTallyEventBatchSize());
+
+    if (eventsRecords.isEmpty()) {
+      return 0;
+    }
+
+    var hostsByInstanceId =
+        hostRepository
+            .findAllByOrgIdAndInstanceIdIn(
+                orgId,
+                eventsRecords.stream().map(EventRecord::getInstanceId).collect(Collectors.toSet()))
+            .collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
+
+    OffsetDateTime maxRecordDate = null;
+    for (EventRecord eventRecord : eventsRecords) {
+      Host host = hostsByInstanceId.getOrDefault(eventRecord.getInstanceId(), new Host());
+      Event event = eventRecord.getEvent();
+
+      // Rebuild the account calculation for this Event's timestamp.
+      AccountUsageCalculation calc =
+          currentCalcs.getOrDefault(
+              event.getTimestamp(),
+              loadHourlyAccountCalculation(orgId, serviceType, event.getTimestamp()));
+      currentCalcs.put(event.getTimestamp(), calc);
+
+      updateInstanceFromEvent(event, host, serviceType, calc);
+      cleanUpHostMeasurements(host, event);
+      hostsByInstanceId.put(host.getInstanceId(), host);
+
+      if (Objects.isNull(maxRecordDate) || maxRecordDate.isBefore(eventRecord.getRecordDate())) {
+        // TODO [MSTEAD] Need to make sure that we don't end up missing Events with the same date
+        // while batching. I don't think we can end up in this state, but need to check.
+        maxRecordDate = eventRecord.getRecordDate();
       }
-      effectiveEndDateTime = range.getEndDate();
-      log.info(
-          "We appear to be retallying; adjusting start and end from [{} : {}] to [{} : {}]",
-          range.getStartString(),
-          range.getEndString(),
-          effectiveStartDateTime,
-          effectiveEndDateTime);
-      isRecalculating = true;
-    } else {
-      effectiveStartDateTime = firstEventTimestamp; // Earliest timestamp for an unprocessed event
-      effectiveEndDateTime = range.getEndDate(); // now - buffer
-      log.info(
-          "New tally! Adjusting start and end from [{} : {}] to [{} : {}]",
-          range.getStartString(),
-          range.getEndString(),
-          effectiveStartDateTime,
-          effectiveEndDateTime);
-      isRecalculating = false;
+      hostRepository.save(host);
     }
-
-    if (isRecalculating) {
-      log.info("Clearing monthly totals for {} instances", existingInstances.size());
-      existingInstances
-          .values()
-          .forEach(
-              instance ->
-                  instance.clearMonthlyTotals(effectiveStartDateTime, effectiveEndDateTime));
-    }
-
-    Map<OffsetDateTime, AccountUsageCalculation> accountCalcs =
-        collectHourlyCalculations(
-            accountServiceInventory, effectiveStartDateTime, effectiveEndDateTime);
-    accountServiceInventoryRepository.save(accountServiceInventory);
-
-    return new MetricUsageCollectionResult(
-        new DateRange(effectiveStartDateTime, effectiveEndDateTime), accountCalcs, isRecalculating);
+    currentState.setLatestEventRecordDate(maxRecordDate);
+    tallyStateRepository.save(currentState);
+    return eventsRecords.size();
   }
 
-  private Map<OffsetDateTime, AccountUsageCalculation> collectHourlyCalculations(
-      AccountServiceInventory accountServiceInventory,
-      OffsetDateTime effectiveStartDateTime,
-      OffsetDateTime effectiveEndDateTime) {
-    Map<OffsetDateTime, AccountUsageCalculation> accountCalcs = new HashMap<>();
-    for (OffsetDateTime offset = effectiveStartDateTime;
-        offset.isBefore(effectiveEndDateTime);
-        offset = offset.plusHours(1)) {
-      AccountUsageCalculation accountUsageCalculation =
-          collectHour(accountServiceInventory, offset, effectiveEndDateTime);
-
-      if (accountUsageCalculation != null && !accountUsageCalculation.getKeys().isEmpty()) {
-        accountCalcs.put(offset, accountUsageCalculation);
-      }
-    }
-
-    return accountCalcs;
-  }
-
-  @Transactional
-  public AccountUsageCalculation collectHour(
-      AccountServiceInventory accountServiceInventory,
-      OffsetDateTime startDateTime,
-      OffsetDateTime asOfDateTime) {
-    OffsetDateTime endDateTime = startDateTime.plusHours(1);
-
-    Map<String, List<Event>> eventToHostMapping =
-        eventController
-            .fetchEventsInTimeRangeByServiceType(
-                accountServiceInventory.getOrgId(),
-                accountServiceInventory.getServiceType(),
-                startDateTime,
-                endDateTime,
-                asOfDateTime)
-            // We group fetched events by instanceId so that we can clear the measurements
-            // on first access, if the instance already exists for the accountServiceInventory.
-            .collect(Collectors.groupingBy(Event::getInstanceId));
-
-    Map<String, Host> thisHoursInstances = new HashMap<>();
-    eventToHostMapping.forEach(
-        (instanceId, events) -> {
-          Set<String> seenMetricIds = new HashSet<>();
-          Host existing = accountServiceInventory.getServiceInstances().get(instanceId);
-          Host host = existing == null ? new Host() : existing;
-          thisHoursInstances.put(instanceId, host);
-          accountServiceInventory.getServiceInstances().put(instanceId, host);
-
-          events.forEach(
-              event -> {
-                updateInstanceFromEvent(event, host, accountServiceInventory.getServiceType());
-
-                if (event.getMeasurements() != null) {
-                  event.getMeasurements().stream()
-                      .map(measurement -> MetricIdUtils.toUpperCaseFormatted(measurement.getUom()))
-                      .forEach(seenMetricIds::add);
-                }
-              });
-
-          // clear any measurements that we don't have events for
-          Set<String> staleMeasurements =
-              host.getMeasurements().keySet().stream()
-                  .filter(k -> !seenMetricIds.contains(k))
-                  .collect(Collectors.toSet());
-          staleMeasurements.forEach(host.getMeasurements()::remove);
-        });
-    return tallyCurrentAccountState(accountServiceInventory, thisHoursInstances);
-  }
-
-  private AccountUsageCalculation tallyCurrentAccountState(
-      AccountServiceInventory accountInventory, Map<String, Host> thisHoursInstances) {
-    if (thisHoursInstances.isEmpty()) {
-      return null;
-    }
-    AccountUsageCalculation accountUsageCalculation =
-        new AccountUsageCalculation(accountInventory.getOrgId());
-
-    thisHoursInstances
-        .values()
-        .forEach(
-            instance ->
-                instance
-                    .getBuckets()
-                    .forEach(
-                        bucket -> {
-                          UsageCalculation.Key usageKey =
-                              new UsageCalculation.Key(
-                                  bucket.getKey().getProductId(),
-                                  bucket.getKey().getSla(),
-                                  bucket.getKey().getUsage(),
-                                  bucket.getKey().getBillingProvider(),
-                                  bucket.getKey().getBillingAccountId());
-                          instance
-                              .getMeasurements()
-                              .forEach(
-                                  (metricId, value) ->
-                                      accountUsageCalculation.addUsage(
-                                          usageKey,
-                                          getHardwareMeasurementType(instance),
-                                          MetricId.fromString(metricId),
-                                          value));
-                        }));
-    return accountUsageCalculation;
-  }
-
-  private void updateInstanceFromEvent(Event event, Host instance, String serviceType) {
+  private void updateInstanceFromEvent(
+      Event event, Host instance, String serviceType, AccountUsageCalculation accountCalc) {
     // fields that we expect to always be present
     instance.setOrgId(event.getOrgId());
     instance.setInstanceType(event.getServiceType());
     instance.setInstanceId(event.getInstanceId());
     instance.setDisplayName(event.getInstanceId()); // may be overridden later
-    instance.setLastSeen(event.getTimestamp());
     instance.setGuest(instance.getHardwareType() == HostHardwareType.VIRTUALIZED);
 
     // fields that are optional, see update/updateWithTransform method javadocs
@@ -299,13 +178,22 @@ public class MetricUsageCollector {
         .orElse(Collections.emptyList())
         .forEach(
             measurement -> {
-              instance.setMeasurement(measurement.getUom(), measurement.getValue());
+              if (!isEventAppliedToHost(instance, event)) {
+                instance.setMeasurement(measurement.getUom(), measurement.getValue());
+              }
+              // Every event should be applied to the totals.
               instance.addToMonthlyTotal(
                   event.getTimestamp(),
                   MetricId.fromString(measurement.getUom()),
                   measurement.getValue());
             });
-    addBucketsFromEvent(instance, event, serviceType);
+    addBucketsFromEvent(instance, event, serviceType, accountCalc);
+
+    // Only update the last seen when the event is newer than the last one applied.
+    if (!isEventAppliedToHost(instance, event)) {
+      log.info("Updating: " + event.getTimestamp());
+      instance.setLastSeen(event.getTimestamp());
+    }
   }
 
   /**
@@ -399,7 +287,8 @@ public class MetricUsageCollector {
     };
   }
 
-  private void addBucketsFromEvent(Host host, Event event, String serviceType) {
+  private void addBucketsFromEvent(
+      Host host, Event event, String serviceType, AccountUsageCalculation accountCalc) {
     // We have multiple SubscriptionDefinitions that can have the same serviceType (OpenShift
     // Cluster).  The SLA and usage for these definitions should be the same (if defined), so we
     // need to collect them all, deduplicate, and then verify via MoreCollectors.toOptional that we
@@ -459,6 +348,20 @@ public class MetricUsageCollector {
                   billingAccountId,
                   false));
           host.addBucket(bucket);
+
+          // Update the account usage
+          Key usageKey =
+              new Key(productId, slaBucket, usageBucket, billingProvider, billingAccountId);
+          event
+              .getMeasurements()
+              .forEach(
+                  m -> {
+                    accountCalc.addUsage(
+                        usageKey,
+                        getHardwareMeasurementType(host),
+                        MetricId.fromString(m.getUom()),
+                        m.getValue());
+                  });
         });
   }
 
@@ -493,5 +396,65 @@ public class MetricUsageCollector {
       billingAcctIds.add(billingAcctId);
     }
     return billingAcctIds;
+  }
+
+  /**
+   * If the event is the latest known event, update the current measurements based on the Event.
+   *
+   * @param host the target host.
+   * @param event the event measurements that should remain.
+   */
+  private void cleanUpHostMeasurements(Host host, Event event) {
+    // If the last seen date is not recent, we don't do anything. We must support a last seen date
+    // that is equal to the event date because, in theory, we could get multiple events that
+    // represent the same timestamp.
+    if (isEventAppliedToHost(host, event)) {
+      return;
+    }
+
+    List<String> seenMetricIds =
+        Optional.ofNullable(event.getMeasurements()).orElse(new LinkedList<>()).stream()
+            .map(measurement -> MetricIdUtils.toUpperCaseFormatted(measurement.getUom()))
+            .toList();
+    host.getMeasurements().keySet().stream()
+        .filter(k -> !seenMetricIds.contains(k))
+        .forEach(host.getMeasurements()::remove);
+  }
+
+  private boolean isEventAppliedToHost(Host host, Event event) {
+    return Objects.nonNull(host.getLastSeen()) && event.getTimestamp().isBefore(host.getLastSeen());
+  }
+
+  private AccountUsageCalculation loadHourlyAccountCalculation(
+      String orgId, String serviceType, OffsetDateTime hour) {
+    Set<String> products =
+        SubscriptionDefinition.findByServiceType(serviceType).stream()
+            .map(SubscriptionDefinition::getVariants)
+            .flatMap(List::stream)
+            .map(Variant::getTag)
+            .collect(Collectors.toSet());
+    Stream<TallySnapshot> snapshots =
+        snapshotRepository.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
+            orgId, products, Granularity.HOURLY, hour, clock.endOfHour(hour));
+
+    AccountUsageCalculation calc = new AccountUsageCalculation(orgId);
+    snapshots.forEach(
+        snap -> {
+          Key usageKey = Key.fromTallySnapshot(snap);
+          snap.getTallyMeasurements().entrySet().stream()
+              // Do not accumulate the TOTAL measurements as the calculation object calculates the
+              // totals based on the measurements that are added to it.
+              .filter(e -> !HardwareMeasurementType.TOTAL.equals(e.getKey().getMeasurementType()))
+              .forEach(
+                  entry -> {
+                    var measurementKey = entry.getKey();
+                    calc.addUsage(
+                        usageKey,
+                        measurementKey.getMeasurementType(),
+                        MetricId.fromString(measurementKey.getMetricId()),
+                        entry.getValue());
+                  });
+        });
+    return calc;
   }
 }

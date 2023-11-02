@@ -43,7 +43,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
@@ -98,14 +97,7 @@ class MetricUsageCollectorTest {
   @BeforeEach
   void setup() {
     metricUsageCollector =
-        new MetricUsageCollector(
-            new ApplicationProperties(),
-            accountRepo,
-            eventController,
-            clock,
-            hostRepository,
-            tallyStateRepository,
-            tallySnapshotRepository);
+        new MetricUsageCollector(accountRepo, eventController, clock, hostRepository);
   }
 
   @Test

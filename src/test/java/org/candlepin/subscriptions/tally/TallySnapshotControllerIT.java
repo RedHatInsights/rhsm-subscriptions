@@ -42,13 +42,16 @@ import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.HostTallyBucketRepository;
+import org.candlepin.subscriptions.db.TallyStateRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
+import org.candlepin.subscriptions.db.model.TallyState;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.resource.OptInResource;
+import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.resource.TallyResource;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
@@ -84,6 +87,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   @Autowired EventRecordRepository eventRecordRepository;
   @Autowired OptInResource optInResource;
   @Autowired HostTallyBucketRepository hostTallyBucketRepository;
+  @Autowired TallyStateRepository tallyStateRepository;
 
   @MockBean(answer = Answers.CALLS_REAL_METHODS)
   InventoryRepository inventoryRepository;
@@ -172,6 +176,8 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
 
   private void givenOrgAndAccountInConfig() {
     optInResource.putOptInConfig();
+    tallyStateRepository.save(
+        new TallyState(ResourceUtils.getOrgId(), "rosa Instance", clock.now()));
   }
 
   private void givenEventAtDay(int dayAt, double value) {

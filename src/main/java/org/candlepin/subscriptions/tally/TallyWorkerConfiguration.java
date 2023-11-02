@@ -155,6 +155,16 @@ public class TallyWorkerConfiguration {
 
   @Bean
   public MetricUsageCollector metricUsageCollector(
+      AccountServiceInventoryRepository accountServiceInventoryRepository,
+      EventController eventController,
+      ApplicationClock clock,
+      HostRepository hostRepository) {
+    return new MetricUsageCollector(
+        accountServiceInventoryRepository, eventController, clock, hostRepository);
+  }
+
+  @Bean
+  public MetricUsageCollectorV2 metricUsageCollectorV2(
       ApplicationProperties applicationProperties,
       AccountServiceInventoryRepository accountServiceInventoryRepository,
       EventController eventController,
@@ -162,7 +172,7 @@ public class TallyWorkerConfiguration {
       HostRepository hostRepository,
       TallyStateRepository tallyStateRepository,
       TallySnapshotRepository tallySnapshotRepository) {
-    return new MetricUsageCollector(
+    return new MetricUsageCollectorV2(
         applicationProperties,
         accountServiceInventoryRepository,
         eventController,

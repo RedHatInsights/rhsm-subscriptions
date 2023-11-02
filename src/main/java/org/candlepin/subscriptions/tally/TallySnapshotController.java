@@ -34,7 +34,6 @@ import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.TallyStateRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
-import org.candlepin.subscriptions.tally.MetricUsageCollector.CollectionResult;
 import org.candlepin.subscriptions.util.DateRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +52,7 @@ public class TallySnapshotController {
 
   private final InventoryAccountUsageCollector usageCollector;
   private final MetricUsageCollector metricUsageCollector;
+  private final MetricUsageCollectorV2 metricUsageCollectorV2;
   private final MaxSeenSnapshotStrategy maxSeenSnapshotStrategy;
   private final CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy;
   private final RetryTemplate retryTemplate;
@@ -66,6 +66,7 @@ public class TallySnapshotController {
       MaxSeenSnapshotStrategy maxSeenSnapshotStrategy,
       @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
       MetricUsageCollector metricUsageCollector,
+      MetricUsageCollectorV2 metricUsageCollectorV2,
       CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy,
       SnapshotSummaryProducer summaryProducer,
       TallyStateRepository tallyStateRepository,
@@ -75,6 +76,7 @@ public class TallySnapshotController {
     this.maxSeenSnapshotStrategy = maxSeenSnapshotStrategy;
     this.retryTemplate = retryTemplate;
     this.metricUsageCollector = metricUsageCollector;
+    this.metricUsageCollectorV2 = metricUsageCollectorV2;
     this.combiningRollupSnapshotStrategy = combiningRollupSnapshotStrategy;
     this.summaryProducer = summaryProducer;
     this.tallyStateRepository = tallyStateRepository;
@@ -129,30 +131,15 @@ public class TallySnapshotController {
 
       // TODO [mstead] Need to figure out what to do about the start/end dates.
 
+      // TODO [mstead] Configure whether we turn on V2 tally.
+      boolean enableV2Collection = true;
       try {
-        Map<OffsetDateTime, AccountUsageCalculation> currentCalcs = new HashMap<>();
         var result =
             retryTemplate.execute(
-                context -> {
-                  boolean collect = true;
-                  while (collect) {
-                    int processed =
-                        metricUsageCollector.collectEventCalculations(
-                            orgId, serviceType, currentCalcs);
-                    collect = processed > 0;
-                  }
-
-                  if (currentCalcs.isEmpty()) {
-                    return null;
-                  }
-
-                  // TODO [MSTEAD] The collection result should be passed above so that we do not
-                  //               have to track via the map.
-                  return new CollectionResult(
-                      getDateRangeFromResult(currentCalcs), currentCalcs, false);
-                  //                  return metricUsageCollector.collect(serviceType,
-                  // accountNumber, orgId, snapshotRange);
-                });
+                context ->
+                    enableV2Collection
+                        ? collectV2Metrics(orgId, serviceType)
+                        : collectLegacyMetrics(orgId, serviceType, snapshotRange));
 
         if (result == null) {
           continue;
@@ -216,5 +203,29 @@ public class TallySnapshotController {
     // During a tally, the end date is not included in the overall existing tally
     // query, therefor we need the range to end 1h after the last calculation.
     return new DateRange(effectiveStart, effectiveEnd.plusHours(1));
+  }
+
+  private MetricUsageCollectionResult collectLegacyMetrics(
+      String orgId, String serviceType, DateRange snapshotRange) {
+    return metricUsageCollector.collect(serviceType, orgId, snapshotRange);
+  }
+
+  private MetricUsageCollectionResult collectV2Metrics(String orgId, String serviceType) {
+    Map<OffsetDateTime, AccountUsageCalculation> currentCalcs = new HashMap<>();
+
+    boolean collect = true;
+    while (collect) {
+      int processed = metricUsageCollectorV2.collect(orgId, serviceType, currentCalcs);
+      collect = processed > 0;
+    }
+
+    if (currentCalcs.isEmpty()) {
+      return null;
+    }
+
+    // TODO [MSTEAD] The collection result should be passed above so that we do not
+    //               have to track via the map.
+    return new MetricUsageCollectionResult(
+        getDateRangeFromResult(currentCalcs), currentCalcs, false);
   }
 }
