@@ -176,7 +176,8 @@ public class ApplicationClock {
                     temporal.range(ChronoField.SECOND_OF_MINUTE).getMaximum())
                 .with(
                     ChronoField.NANO_OF_SECOND,
-                    temporal.range(ChronoField.NANO_OF_SECOND).getMaximum()));
+                    temporal.range(ChronoField.NANO_OF_SECOND).getMaximum()))
+                .truncatedTo(ChronoUnit.MICROS);
   }
 
   public OffsetDateTime startOfHour(OffsetDateTime toAdjust) {
