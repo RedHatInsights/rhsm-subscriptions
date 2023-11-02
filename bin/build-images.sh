@@ -10,7 +10,7 @@ function usage() {
   echo "Usage: $0 [-k] [-t tag] [BUILD_ARTIFACT...]"
   echo "-k       keep built images"
   echo "-t [tag] image tag"
-  echo "Valid build artifacts are 'rhsm', 'conduit', 'swatch-producer-aws', 'swatch-contracts'"
+  echo "Valid build artifacts are 'rhsm', 'conduit', 'swatch-producer-aws', 'swatch-contracts', 'swatch-producer-azure', 'swatch-metrics'"
   echo "Providing no artifact ids will result in a build for all artifacts"
   exit 0
 }
@@ -43,6 +43,7 @@ if [ ${#projects[@]} -eq 0 ]; then
   projects[2]="swatch-producer-aws"
   projects[3]="swatch-contracts"
   projects[4]="swatch-producer-azure"
+  projects[5]="swatch-metrics"
 fi
 
 quay_user=$(podman login --get-login quay.io)
@@ -72,7 +73,10 @@ for p in "${projects[@]}"; do
     "swatch-producer-azure")
       podman build . -f swatch-producer-azure/src/main/docker/Dockerfile.jvm -t quay.io/$quay_user/swatch-producer-azure:$tag --label "git-commit=${commit}" --ulimit nofile=2048:2048
       ;;
-    *) echo "Please use values from the set \"rhsm\", \"conduit\", \"swatch-producer-aws\", \"swatch-contracts\", \"swatch-producer-azure\"";;
+    "swatch-metrics")
+      podman build . -f swatch-metrics/src/main/docker/Dockerfile.jvm -t quay.io/$quay_user/swatch-metrics:$tag --label "git-commit=${commit}" --ulimit nofile=2048:2048
+      ;;
+    *) echo "Please use values from the set \"rhsm\", \"conduit\", \"swatch-producer-aws\", \"swatch-contracts\", \"swatch-producer-azure\", \"swatch-metrics\"";;
   esac
 done
 
@@ -100,6 +104,9 @@ for p in "${projects[@]}"; do
       ;;
     "swatch-producer-azure")
       push_and_clean "quay.io/$quay_user/swatch-producer-azure:$tag"
+      ;;
+    "swatch-metrics")
+      push_and_clean "quay.io/$quay_user/swatch-metrics:$tag"
       ;;
   esac
 done

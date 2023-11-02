@@ -31,6 +31,13 @@ IMAGES=""
 export COMPONENT_NAME="rhsm"  # name of app-sre "resourceTemplate" in deploy.yaml for this component
 # prebuild artifacts for quarkus builds
 for service in $SERVICES; do
+  # Ignore the swatch-metrics service until it's fully ported.
+  # To be uncommented in SWATCH-1806.
+  if [ "$service" == "swatch-metrics" ]
+  then
+    continue;
+  fi
+
   export IMAGE="quay.io/cloudservices/$service"  # the image location on quay
   export DOCKERFILE="$(get_dockerfile $service)"
 

@@ -1,0 +1,55 @@
+plugins {
+    id 'swatch.quarkus-conventions'
+    id 'org.openapi.generator'
+}
+
+dependencies {
+    implementation 'io.quarkus:quarkus-config-yaml'
+    implementation 'io.quarkus:quarkus-logging-json'
+    implementation 'io.quarkus:quarkus-opentelemetry'
+    implementation 'io.quarkus:quarkus-resteasy-reactive-jsonb'
+    implementation 'io.quarkus:quarkus-rest-client-reactive-jsonb'
+    implementation 'io.quarkus:quarkus-smallrye-fault-tolerance'
+    implementation 'io.quarkus:quarkus-smallrye-health'
+    implementation 'io.quarkus:quarkus-smallrye-openapi'
+    implementation 'io.quarkus:quarkus-hibernate-validator'
+    implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
+    implementation project(':swatch-product-configuration')
+    implementation project(':swatch-common-kafka')
+    implementation project(':swatch-common-resteasy-client')
+    implementation project(':swatch-common-config-workaround')
+    implementation project(':swatch-common-resteasy')
+    implementation project(':swatch-common-clock')
+    implementation project(':swatch-model-events')
+    implementation libraries["clowder-quarkus-config-source"]
+    implementation libraries["quarkus-logging-splunk"]
+    implementation libraries["splunk-library-javalogging"]
+    compileOnly libraries["lombok"]
+    testImplementation 'io.quarkus:quarkus-junit5'
+    testImplementation 'io.rest-assured:rest-assured'
+}
+
+compileJava.dependsOn tasks.openApiGenerate
+
+openApiGenerate {
+    generatorName = "java"
+    inputSpec = "${projectDir}/src/main/resources/META-INF/openapi.yaml"
+    outputDir = "${buildDir}/generated"
+    apiPackage = "com.redhat.swatch.metrics.admin.api"
+    modelPackage = "com.redhat.swatch.metrics.admin.api.model"
+    invokerPackage = "com.redhat.swatch.metrics.admin"
+    groupId = "com.redhat.swatch.metrics"
+    configOptions = [sourceFolder     : "src/gen/java",
+                     interfaceOnly    : "true",
+                     library          : "microprofile",
+                     java8            : "true",
+                     dateLibrary      : "java8",
+                     useBeanValidation: "true",
+                     microprofileRestClientVersion: "3.0",
+                     useJakartaEE: "true",
+    ]
+    additionalProperties = [disableMultipart: "true", // see https://github.com/OpenAPITools/openapi-generator/pull/4713#issuecomment-633906581
+    ]
+}
+
+sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
