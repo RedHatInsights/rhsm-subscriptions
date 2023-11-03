@@ -260,7 +260,31 @@ public class PrometheusMeteringController {
   @NotNull
   protected List<String> extractProductIdsFromProductLabel(String product) {
     List<String> productIds = new ArrayList<>();
-    boolean isEngIdList = product != null && product.matches("^\\d+(,\\s*\\d+)*");
+
+    /*
+      The regular expression pattern matches a sequence of numbers separated by commas with optional spaces in between.
+
+      Explanation:
+      ^          : Asserts the start of the line.
+      \d+        : Matches one or more digits (0-9).
+      (          : Starts a group that contains the following sequence:
+        ,        : Matches a comma.
+        \s*      : Matches zero or more whitespace characters.
+        \d+      : Matches one or more digits (0-9).
+      )*+        : The whole group can repeat zero or more times (including the comma followed by digits),
+                   and the possessive quantifier (*+) prevents excessive backtracking.
+
+      Example:
+      - 123,456,789: Matches a sequence of numbers separated by commas and optional spaces: 123, 456, 789.
+      - 1,23,4:     Matches a sequence of numbers separated by commas and optional spaces: 1, 23, 4.
+      - 100:        Matches a single number: 100.
+
+      Note: This pattern may lead to catastrophic backtracking for extremely large inputs due to its repetitive nature.
+    */
+
+    String pattern = "^\\d+(,\\s*\\d+)*+";
+
+    boolean isEngIdList = product != null && product.matches(pattern);
 
     if (isEngIdList) {
       productIds = Arrays.asList(product.split(","));
