@@ -75,7 +75,8 @@ public class MeteringEventFactory {
       MetricId measuredMetric,
       Double measuredValue,
       String productTag,
-      UUID meteringBatchId) {
+      UUID meteringBatchId,
+      List<String> productIds) {
     Event event = new Event();
     updateMetricEvent(
         event,
@@ -93,7 +94,8 @@ public class MeteringEventFactory {
         measuredMetric,
         measuredValue,
         productTag,
-        meteringBatchId);
+        meteringBatchId,
+        productIds);
     return event;
   }
 
@@ -143,7 +145,8 @@ public class MeteringEventFactory {
       MetricId measuredMetric,
       Double measuredValue,
       String productTag,
-      UUID meteringBatchId) {
+      UUID meteringBatchId,
+      List<String> productIds) {
     toUpdate
         .withServiceType(serviceType)
         .withTimestamp(measuredTime)
@@ -160,7 +163,8 @@ public class MeteringEventFactory {
         .withEventType(MeteringEventFactory.getEventType(measuredMetric.getValue(), productTag))
         .withOrgId(orgId)
         .withInstanceId(instanceId)
-        .withMeteringBatchId(meteringBatchId);
+        .withMeteringBatchId(meteringBatchId)
+        .withProductIds(productIds);
   }
 
   public static String getEventType(String metricId, String productTag) {

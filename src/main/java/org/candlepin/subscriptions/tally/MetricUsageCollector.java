@@ -476,6 +476,8 @@ public class MetricUsageCollector {
           .ifPresent(productIds::add);
     }
 
+    // TODO bookmark
+
     var engIds = Optional.ofNullable(event.getProductIds()).orElse(Collections.emptyList());
     for (String engId : engIds) {
       productIds.addAll(

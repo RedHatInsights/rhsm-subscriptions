@@ -33,6 +33,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
@@ -52,6 +53,9 @@ import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.candlepin.subscriptions.util.SpanGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -123,6 +127,26 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
     queries = new QueryHelper(queryBuilder);
 
     when(spanGenerator.generate()).thenReturn(expectedSpanId);
+  }
+
+  @ParameterizedTest
+  @MethodSource("productLabelsToProductIdList")
+  void testExtractProductIdsFromProductLabel(String productLabel, List<String> expectedResult) {
+    var actual = controller.extractProductIdsFromProductLabel(productLabel);
+
+    assertEquals(actual, expectedResult);
+  }
+
+  static Stream<Arguments> productLabelsToProductIdList() {
+    return Stream.of(
+        Arguments.of("", List.of()),
+        Arguments.of("asdf", List.of()),
+        Arguments.of("asdf,1", List.of()),
+        Arguments.of("1", List.of("1")),
+        Arguments.of("1,2", List.of("1", "2")),
+        Arguments.of("-1", List.of()),
+        Arguments.of("-1,88", List.of()),
+        Arguments.of("204,5,6", List.of("204", "5", "6")));
   }
 
   @Test
@@ -232,7 +256,8 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
                 expectedMetricId,
                 val1.doubleValue(),
                 expectedProductTag,
-                expectedSpanId),
+                expectedSpanId,
+                List.of()),
             MeteringEventFactory.createMetricEvent(
                 expectedOrgId,
                 expectedClusterId,
@@ -248,7 +273,8 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
                 expectedMetricId,
                 val2.doubleValue(),
                 expectedProductTag,
-                expectedSpanId),
+                expectedSpanId,
+                List.of()),
             MeteringEventFactory.createCleanUpEvent(
                 expectedOrgId,
                 getEventType(expectedMetricId.toString(), expectedProductTag),
@@ -304,7 +330,8 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
             expectedMetricId,
             val1.doubleValue(),
             expectedProductTag,
-            expectedSpanId);
+            expectedSpanId,
+            List.of());
 
     List<BaseEvent> expectedEvents =
         List.of(
@@ -324,7 +351,8 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
                 expectedMetricId,
                 val2.doubleValue(),
                 expectedProductTag,
-                expectedSpanId),
+                expectedSpanId,
+                List.of()),
             MeteringEventFactory.createCleanUpEvent(
                 expectedOrgId,
                 getEventType(expectedMetricId.toString(), expectedProductTag),
@@ -388,7 +416,8 @@ class PrometheusMeteringControllerTest implements ExtendWithPrometheusWiremock {
             expectedMetricId,
             4.0,
             expectedProductTag,
-            expectedSpanId);
+            expectedSpanId,
+            List.of());
 
     List<BaseEvent> expectedEvents =
         List.of(

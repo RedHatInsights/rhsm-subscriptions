@@ -31,6 +31,6 @@ metrics:
       queryKey: default
       queryParams:
         instanceKey: _id
-        product: Red Hat Enterprise Linux Server #Probably will be updated by SWATCH-1834, since this is usually populated by role
+        product: (^|,)(204)($|,)
         metric: system_cpu_logical_count
         metadataMetric: system_cpu_logical_count

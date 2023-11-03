@@ -26,9 +26,12 @@ import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import io.micrometer.core.annotation.Timed;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.BadRequestException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -204,11 +207,15 @@ public class PrometheusMeteringController {
     String product = labels.get("product");
     String resourceName = labels.get("resource_name");
 
+    // TODO update this note
     // NOTE: Role comes from the product label despite its name. The values set
     // here are NOT engineering or swatch product IDs. They map to the roles in
     // the swatch-product-configuration library. For openshift, the values will
     // be 'ocp' or 'osd'.
     String role = product == null ? resourceName : product;
+
+    List<String> productIds = extractProductIdsFromProductLabel(product);
+
     String billingProvider = labels.get("billing_marketplace");
     String billingAccountId = labels.get("billing_marketplace_account");
 
@@ -228,7 +235,7 @@ public class PrometheusMeteringController {
       Event event =
           createOrUpdateEvent(
               orgId,
-              tagMetric.getId(),
+              productIds,
               clusterId,
               sla,
               usage,
@@ -248,6 +255,17 @@ public class PrometheusMeteringController {
         eventsProducer.produce(event);
       }
     }
+  }
+
+  @NotNull
+  protected List<String> extractProductIdsFromProductLabel(String product) {
+    List<String> productIds = new ArrayList<>();
+    boolean isEngIdList = product != null && product.matches("^\\d+(,\\s*\\d+)*");
+
+    if (isEngIdList) {
+      productIds = Arrays.asList(product.split(","));
+    }
+    return productIds;
   }
 
   private void sendCleanUpEvent(
@@ -279,7 +297,7 @@ public class PrometheusMeteringController {
   @SuppressWarnings("java:S107")
   private Event createOrUpdateEvent(
       String orgId,
-      String metricId,
+      List<String> productIds,
       String instanceId,
       String sla,
       String usage,
@@ -310,7 +328,8 @@ public class PrometheusMeteringController {
         metric,
         value.doubleValue(),
         productTag,
-        meteringBatchId);
+        meteringBatchId,
+        productIds);
     return event;
   }
 

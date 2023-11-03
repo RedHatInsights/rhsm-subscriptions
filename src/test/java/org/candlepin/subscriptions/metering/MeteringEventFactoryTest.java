@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
@@ -73,7 +74,8 @@ class MeteringEventFactoryTest {
             uom,
             measuredValue,
             productTag,
-            meteringBatchId);
+            meteringBatchId,
+            List.of());
 
     assertEquals(orgId, event.getOrgId());
     assertEquals(measuredTime, event.getTimestamp());
@@ -111,7 +113,8 @@ class MeteringEventFactoryTest {
             MetricIdUtils.getCores(),
             12.5,
             productTag,
-            UUID.randomUUID());
+            UUID.randomUUID(),
+            List.of());
     assertNull(event.getSla());
   }
 
@@ -133,7 +136,8 @@ class MeteringEventFactoryTest {
             MetricIdUtils.getCores(),
             12.5,
             productTag,
-            UUID.randomUUID());
+            UUID.randomUUID(),
+            List.of());
     assertEquals(Sla.__EMPTY__, event.getSla());
   }
 
@@ -155,7 +159,8 @@ class MeteringEventFactoryTest {
             MetricIdUtils.getCores(),
             12.5,
             productTag,
-            UUID.randomUUID());
+            UUID.randomUUID(),
+            List.of());
     assertNull(event.getSla());
   }
 
@@ -177,7 +182,8 @@ class MeteringEventFactoryTest {
             MetricIdUtils.getCores(),
             12.5,
             productTag,
-            UUID.randomUUID());
+            UUID.randomUUID(),
+            List.of());
     assertNull(event.getUsage());
   }
 
@@ -199,7 +205,8 @@ class MeteringEventFactoryTest {
             MetricIdUtils.getCores(),
             12.5,
             productTag,
-            UUID.randomUUID());
+            UUID.randomUUID(),
+            List.of());
     assertNull(event.getUsage());
   }
 
@@ -221,7 +228,8 @@ class MeteringEventFactoryTest {
             MetricIdUtils.getCores(),
             12.5,
             productTag,
-            UUID.randomUUID());
+            UUID.randomUUID(),
+            List.of());
     assertNull(event.getRole());
   }
 
@@ -243,7 +251,8 @@ class MeteringEventFactoryTest {
             MetricIdUtils.getCores(),
             12.5,
             productTag,
-            UUID.randomUUID());
+            UUID.randomUUID(),
+            List.of());
     assertNull(event.getRole());
   }
 
@@ -265,7 +274,8 @@ class MeteringEventFactoryTest {
             MetricIdUtils.getCores(),
             12.5,
             productTag,
-            UUID.randomUUID());
+            UUID.randomUUID(),
+            List.of());
     assertEquals(BillingProvider.AWS, event.getBillingProvider());
     assertTrue(event.getBillingAccountId().isPresent());
     assertEquals("aws_account_123", event.getBillingAccountId().get());
@@ -289,7 +299,8 @@ class MeteringEventFactoryTest {
             MetricIdUtils.getCores(),
             12.5,
             productTag,
-            UUID.randomUUID());
+            UUID.randomUUID(),
+            List.of());
     assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());
     assertTrue(event.getBillingAccountId().isEmpty());
   }
@@ -312,7 +323,8 @@ class MeteringEventFactoryTest {
             MetricIdUtils.getCores(),
             12.5,
             productTag,
-            UUID.randomUUID());
+            UUID.randomUUID(),
+            List.of());
     assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());
   }
 
@@ -334,7 +346,8 @@ class MeteringEventFactoryTest {
             MetricIdUtils.getCores(),
             12.5,
             productTag,
-            UUID.randomUUID());
+            UUID.randomUUID(),
+            List.of());
     assertNull(event.getBillingProvider());
   }
 
@@ -356,7 +369,8 @@ class MeteringEventFactoryTest {
             MetricIdUtils.getCores(),
             12.5,
             productTag,
-            UUID.randomUUID());
+            UUID.randomUUID(),
+            List.of());
     assertEquals("snapshot_openshift-dedicated-metrics_cores", event.getEventType());
   }
 
@@ -386,7 +400,8 @@ class MeteringEventFactoryTest {
             MetricIdUtils.getCores(),
             12.5,
             productTag,
-            UUID.randomUUID());
+            UUID.randomUUID(),
+            List.of());
     assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());
   }
 }

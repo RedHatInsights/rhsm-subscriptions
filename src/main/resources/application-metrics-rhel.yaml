@@ -11,7 +11,7 @@ rhsm-subscriptions:
           default: >-
             max(#{metric.prometheus.queryParams[metric]}) by (#{metric.prometheus.queryParams[instanceKey]})
             * on(#{metric.prometheus.queryParams[instanceKey]}) group_right
-            min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{product="#{metric.prometheus.queryParams[product]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
+            min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{product=~"#{metric.prometheus.queryParams[product]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
           addonSamples: >-
             max(#{metric.prometheus.queryParams[metric]}) by (#{metric.prometheus.queryParams[instanceKey]})
             * on(#{metric.prometheus.queryParams[instanceKey]}) group_right
