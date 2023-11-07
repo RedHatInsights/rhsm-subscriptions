@@ -69,10 +69,7 @@ import org.springframework.retry.support.RetryTemplateBuilder;
   MeteringTasksConfiguration.class
 })
 @ComponentScan(
-    basePackages = {
-      "org.candlepin.subscriptions.metering.api",
-      "org.candlepin.subscriptions.metering.retention"
-    },
+    basePackages = "org.candlepin.subscriptions.metering.api",
     // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
     excludeFilters = {
       @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
