@@ -231,6 +231,8 @@ objects:
                 value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
               - name: EVENT_SOURCE
                 value: 'prometheus'
+              - name: METERING_TASK_TOPIC
+                value: 'platform.rhsm-subscriptions.metering-tasks'
               - name: PROM_URL
                 value: ${PROM_URL}
               - name: OPENSHIFT_BILLING_MODEL_FILTER
@@ -401,6 +403,8 @@ objects:
                 value: ${METRICS_RHEL_KAFKA_SEEK_OVERRIDE_TIMESTAMP}
               - name: EVENT_SOURCE
                 value: 'rhelemeter'
+              - name: METERING_TASK_TOPIC
+                value: 'platform.rhsm-subscriptions.metering-rhel-tasks'
               - name: PROM_URL
                 value: ${PROM_URL}
               - name: OPENSHIFT_BILLING_MODEL_FILTER

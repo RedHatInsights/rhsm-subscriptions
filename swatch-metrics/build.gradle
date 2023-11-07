@@ -1,6 +1,7 @@
 plugins {
     id 'swatch.quarkus-conventions'
     id 'org.openapi.generator'
+    id 'jsonschema2pojo'
 }
 
 dependencies {
@@ -27,6 +28,8 @@ dependencies {
     compileOnly libraries["lombok"]
     testImplementation 'io.quarkus:quarkus-junit5'
     testImplementation 'io.rest-assured:rest-assured'
+    testImplementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'
+    testImplementation libraries["awaitility"]
 }
 
 compileJava.dependsOn tasks.openApiGenerate
@@ -36,8 +39,8 @@ openApiGenerate {
     inputSpec = "${projectDir}/src/main/resources/META-INF/openapi.yaml"
     outputDir = "${buildDir}/generated"
     apiPackage = "com.redhat.swatch.metrics.admin.api"
-    modelPackage = "com.redhat.swatch.metrics.admin.api.model"
-    invokerPackage = "com.redhat.swatch.metrics.admin"
+    modelPackage = "com.redhat.swatch.metrics.model"
+    invokerPackage = "com.redhat.swatch.metrics"
     groupId = "com.redhat.swatch.metrics"
     configOptions = [sourceFolder     : "src/gen/java",
                      interfaceOnly    : "true",
@@ -48,8 +51,22 @@ openApiGenerate {
                      microprofileRestClientVersion: "3.0",
                      useJakartaEE: "true",
     ]
-    additionalProperties = [disableMultipart: "true", // see https://github.com/OpenAPITools/openapi-generator/pull/4713#issuecomment-633906581
-    ]
+    additionalProperties = [disableMultipart: "true"] // see https://github.com/OpenAPITools/openapi-generator/pull/4713#issuecomment-633906581
+}
+
+jsonSchema2Pojo {
+    source = files("${projectDir}/schemas")
+    targetPackage = "com.redhat.swatch.metrics.model"
+    targetDirectory = file("${buildDir}/generated/src/gen/java")
+    includeAdditionalProperties = false
+    includeJsr303Annotations = true
+    initializeCollections = false
+    dateTimeType = 'java.time.OffsetDateTime'
+    sourceType = 'yamlschema'
+    generateBuilders = true
+    includeGetters = true
+    includeSetters = true
+    useJakartaValidation = true
 }
 
 sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
