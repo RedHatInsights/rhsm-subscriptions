@@ -117,10 +117,6 @@ parameters:
     value: '30 * * * *'
   - name: RHEL_METERING_SCHEDULE
     value: '30 * * * *'
-  - name: PURGE_EVENTS_SCHEDULE
-    value: '30 4 * * *'
-  - name: EVENT_RECORD_RETENTION
-    value: '90d'
   - name: OPENSHIFT_METERING_RANGE
     value: '60'
   - name: HOURLY_TALLY_OFFSET
@@ -317,8 +313,6 @@ objects:
                 value: 'prometheus'
               - name: PROM_URL
                 value: ${PROM_URL}
-              - name: EVENT_RECORD_RETENTION
-                value: ${EVENT_RECORD_RETENTION}
               - name: OPENSHIFT_BILLING_MODEL_FILTER
                 value: ${OPENSHIFT_BILLING_MODEL_FILTER}
               - name: USER_HOST
@@ -420,31 +414,6 @@ objects:
               limits:
                 cpu: ${CURL_CRON_CPU_LIMIT}
                 memory: ${CURL_CRON_MEMORY_LIMIT}
-        - name: purge-events
-          schedule: ${PURGE_EVENTS_SCHEDULE}
-          activeDeadlineSeconds: 1800
-          successfulJobsHistoryLimit: 2
-          restartPolicy: Never
-          podSpec:
-            image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
-            command:
-              - /usr/bin/bash
-              - -c
-              - >
-                /usr/bin/curl --fail -i -H "Origin: https://swatch-metrics-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X DELETE "http://swatch-metrics-service:8000/api/rhsm-subscriptions/v1/internal/metering/events"
-            env:
-              - name: SWATCH_SELF_PSK
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-psks
-                    key: self
-          resources:
-            requests:
-              cpu: ${CURL_CRON_CPU_REQUEST}
-              memory: ${CURL_CRON_MEMORY_REQUEST}
-            limits:
-              cpu: ${CURL_CRON_CPU_LIMIT}
-              memory: ${CURL_CRON_MEMORY_LIMIT}
   - apiVersion: cloud.redhat.com/v1alpha1
     kind: ClowdApp
     metadata:

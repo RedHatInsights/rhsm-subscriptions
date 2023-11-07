@@ -20,11 +20,15 @@
  */
 package org.candlepin.subscriptions.tally.admin;
 
+import io.micrometer.core.annotation.Timed;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.retention.RemittanceRetentionController;
@@ -40,6 +44,7 @@ import org.candlepin.subscriptions.tally.admin.api.model.TallyResend;
 import org.candlepin.subscriptions.tally.admin.api.model.TallyResendData;
 import org.candlepin.subscriptions.tally.admin.api.model.TallyResponse;
 import org.candlepin.subscriptions.tally.admin.api.model.UuidList;
+import org.candlepin.subscriptions.tally.events.EventRecordsRetentionProperties;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.util.DateRange;
 import org.jetbrains.annotations.NotNull;
@@ -66,6 +71,8 @@ public class InternalTallyResource implements InternalApi {
   private final RemittanceRetentionController remittanceRetentionController;
   private final InternalTallyDataController internalTallyDataController;
   private final SecurityProperties properties;
+  private final EventRecordRepository eventRecordRepository;
+  private final EventRecordsRetentionProperties eventRecordsRetentionProperties;
 
   @SuppressWarnings("java:S107")
   public InternalTallyResource(
@@ -77,7 +84,9 @@ public class InternalTallyResource implements InternalApi {
       TallyRetentionController tallyRetentionController,
       RemittanceRetentionController remittanceRetentionController,
       InternalTallyDataController internalTallyDataController,
-      SecurityProperties properties) {
+      SecurityProperties properties,
+      EventRecordRepository eventRecordRepository,
+      EventRecordsRetentionProperties eventRecordsRetentionProperties) {
     this.clock = clock;
     this.applicationProperties = applicationProperties;
     this.resendTallyController = resendTallyController;
@@ -87,6 +96,8 @@ public class InternalTallyResource implements InternalApi {
     this.remittanceRetentionController = remittanceRetentionController;
     this.internalTallyDataController = internalTallyDataController;
     this.properties = properties;
+    this.eventRecordRepository = eventRecordRepository;
+    this.eventRecordsRetentionProperties = eventRecordsRetentionProperties;
   }
 
   @Override
@@ -167,6 +178,20 @@ public class InternalTallyResource implements InternalApi {
       response.setDetail(FEATURE_NOT_ENABLED_MESSSAGE);
       return response;
     }
+  }
+
+  @Override
+  @Transactional
+  @Timed("rhsm-subscriptions.events.purge")
+  public void purgeEventRecords() {
+    var eventRetentionDuration = eventRecordsRetentionProperties.getEventRetentionDuration();
+
+    OffsetDateTime cutoffDate =
+        OffsetDateTime.now().truncatedTo(ChronoUnit.DAYS).minus(eventRetentionDuration);
+
+    log.info("Purging event records older than {}", cutoffDate);
+    eventRecordRepository.deleteInBulkEventRecordsByTimestampBefore(cutoffDate);
+    log.info("Event record purge completed successfully");
   }
 
   /**

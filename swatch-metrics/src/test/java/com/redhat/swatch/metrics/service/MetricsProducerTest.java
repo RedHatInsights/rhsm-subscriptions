@@ -18,34 +18,43 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.metrics.admin.api;
+package com.redhat.swatch.metrics.service;
 
-import static io.restassured.RestAssured.get;
-import static io.restassured.RestAssured.post;
-import static io.restassured.RestAssured.put;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.metrics.test.resources.InMemoryMessageBrokerKafkaResource;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
-import org.apache.http.HttpStatus;
+import io.smallrye.reactive.messaging.memory.InMemoryConnector;
+import io.smallrye.reactive.messaging.memory.InMemorySink;
+import jakarta.enterprise.inject.Any;
+import jakarta.inject.Inject;
+import java.time.OffsetDateTime;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 @QuarkusTestResource(
     value = InMemoryMessageBrokerKafkaResource.class,
     restrictToAnnotatedClass = true)
-class MetricsTest {
+class MetricsProducerTest {
+
+  private static final String ORG_ID = "org1";
+  private static final String PRODUCT_TAG = "productTag";
+  private static final MetricId METRIC = MetricId.fromString("Sockets");
+
+  @Inject MetricsProducer producer;
+  @Inject @Any InMemoryConnector connector;
+
   @Test
-  void testServiceIsUpAndRunning() {
-    // generate admin API works
-    post("/api/swatch-metrics/internal/metering/rosa?orgId=123")
-        .then()
-        .statusCode(HttpStatus.SC_NO_CONTENT);
-    put("/api/swatch-metrics/internal/metering/sync").then().statusCode(HttpStatus.SC_NO_CONTENT);
-    // health resource is up and running
-    get("/q/health").then().statusCode(HttpStatus.SC_OK);
-    // openapi resources are up and running
-    get("/api/swatch-metrics/internal/openapi").then().statusCode(HttpStatus.SC_OK);
-    get("/api/swatch-metrics/internal/swagger-ui").then().statusCode(HttpStatus.SC_OK);
+  void testMessagesAreSentToTheTopic() {
+    InMemorySink<Object> results = connector.sink("tasks-out");
+
+    OffsetDateTime start = OffsetDateTime.now();
+    OffsetDateTime end = start.plusDays(1);
+
+    producer.queueMetricUpdateForOrgId(ORG_ID, PRODUCT_TAG, METRIC, start, end);
+
+    assertEquals(1, results.received().size());
   }
 }

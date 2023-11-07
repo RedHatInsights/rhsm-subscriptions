@@ -1,0 +1,23 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: MetricsTaskDescriptor
+required:
+  - org_id
+  - product_id
+  - metric
+  - start
+  - end
+properties:
+  org_id:
+    description: Preferred identifier for the relevant account (if present).
+    type: string
+  product_tag:
+    type: string
+  metric:
+    description: Preferred unit of measure for the subject (for products with multiple possible UOM).
+    type: string
+  start:
+    type: string
+    format: date-time
+  end:
+    type: string
+    format: date-time
