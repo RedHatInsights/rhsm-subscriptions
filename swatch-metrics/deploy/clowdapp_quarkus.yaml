@@ -110,10 +110,6 @@ parameters:
     value: '30 * * * *'
   - name: RHEL_METERING_SCHEDULE
     value: '30 * * * *'
-  - name: PURGE_EVENTS_SCHEDULE
-    value: '30 4 * * *'
-  - name: EVENT_RECORD_RETENTION
-    value: '90d'
   - name: HOURLY_TALLY_OFFSET
     value: '60'
   - name: METRICS_RHEL_METERING_RANGE
@@ -237,8 +233,6 @@ objects:
                 value: 'prometheus'
               - name: PROM_URL
                 value: ${PROM_URL}
-              - name: EVENT_RECORD_RETENTION
-                value: ${EVENT_RECORD_RETENTION}
               - name: OPENSHIFT_BILLING_MODEL_FILTER
                 value: ${OPENSHIFT_BILLING_MODEL_FILTER}
               - name: USER_HOST

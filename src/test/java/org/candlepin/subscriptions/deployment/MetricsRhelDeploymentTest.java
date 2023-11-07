@@ -29,8 +29,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@ActiveProfiles({"openshift-metering-worker", "test"})
-class MetricsWorkerDeploymentTest {
+@ActiveProfiles({"metrics-rhel", "test"})
+class MetricsRhelDeploymentTest {
   @Autowired MeteringConfiguration configuration;
 
   @Test
