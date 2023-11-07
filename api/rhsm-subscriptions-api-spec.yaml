@@ -608,6 +608,7 @@ paths:
           maximum: 100
         description: "The numbers of items to return"
     get:
+      deprecated: true
       summary: "Fetch hosts matching report criteria."
       operationId: getHosts
       parameters:
@@ -727,6 +728,7 @@ paths:
           maximum: 100
         description: "The numbers of items to return"
     get:
+      deprecated: true
       summary: "Fetch guests for this hypervisor."
       operationId: getHypervisorGuests
       responses:
