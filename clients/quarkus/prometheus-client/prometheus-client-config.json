@@ -1,0 +1,7 @@
+{
+  "modelPackage": "org.candlepin.subscriptions.prometheus.model",
+  "apiPackage": "org.candlepin.subscriptions.prometheus.resources",
+  "invokerPackage": "org.candlepin.subscriptions.prometheus",
+  "groupId": "org.candlepin",
+  "artifactId": "prometheus-client"
+}
