@@ -210,21 +210,35 @@ objects:
             - name: aws-marketplace-credentials
               secret:
                 secretName: aws-marketplace-credentials
-      - name: moto
-        replicas: ${{MOTO_REPLICAS}}
-        metadata:
-          name: moto
-        podSpec:
-          image: 'motoserver/moto:latest'
-          env:
-            - name: MOTO_PORT
-              value: '5000'
-          volumeMounts:
-            - name: logs
-              mountPath: /logs
-          volumes:
-            - name: logs
-              emptyDir:
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: swatch-producer-aws-moto
+    labels:
+      app: swatch-producer-aws-moto
+  spec:
+    replicas: ${{MOTO_REPLICAS}}
+    selector:
+      matchLabels:
+        app: swatch-producer-aws-moto
+    template:
+      metadata:
+        labels:
+          app: swatch-producer-aws-moto
+      spec:
+        containers:
+          - name: moto
+            image: 'motoserver/moto:latest'
+            env:
+              - name: MOTO_PORT
+                value: '5000'
+            volumeMounts:
+              - name: logs
+                mountPath: /logs
+        volumes:
+          - name: logs
+            emptyDir:
 
 - apiVersion: v1
   kind: Service
@@ -232,7 +246,7 @@ objects:
     name: moto
   spec:
     selector:
-      pod: swatch-producer-aws-moto
+      app: swatch-producer-aws-moto
     ports:
       - protocol: TCP
         port: 5000
