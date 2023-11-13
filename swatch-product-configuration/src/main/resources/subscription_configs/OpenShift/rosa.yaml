@@ -8,7 +8,7 @@ variants:
     roles:
       - moa-hostedcontrolplane
     productNames:
-      - OpenShift Dedicated
+      - OpenShift Online
 
 defaults:
   variant: rosa
