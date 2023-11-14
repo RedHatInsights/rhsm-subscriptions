@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.metering.service.prometheus;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.candlepin.subscriptions.metering.MeteringEventFactory.getEventType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -101,7 +100,7 @@ class MeteringMetricsFromPrometheusToDatabaseIT
   }
 
   @Test
-  void testCreateNewMetricsAndUpdateExistingEvents(
+  void testCreateNewMetrics(
       PrometheusQueryWiremockExtension.PrometheusQueryWiremock prometheusServer) {
     OffsetDateTime timestampForEvents = OffsetDateTime.now();
 
@@ -111,16 +110,15 @@ class MeteringMetricsFromPrometheusToDatabaseIT
     // all insert
     whenCollectMetrics();
     verifyAllEventsAreStoredInDatabaseWithUsage(Event.Usage.DEVELOPMENT_TEST);
-    // store existing events to assert that event ID didn't change.
-    List<UUID> snapshotOfExistingEvents = getEventIDsFromRepository();
+    verifyAllEventsUseEventSourcePrometheus();
 
-    // all update
+    // Metering over the same range will yield net new events with new usage value.
     givenMetricsInPrometheusWithUsage(prometheusServer, timestampForEvents, Event.Usage.PRODUCTION);
     whenCollectMetrics();
     verifyAllEventsAreStoredInDatabaseWithUsage(Event.Usage.PRODUCTION);
     verifyAllEventsUseEventSourcePrometheus();
-    assertThat(snapshotOfExistingEvents)
-        .containsExactlyInAnyOrderElementsOf(getEventIDsFromRepository());
+
+    assertEquals(NUM_METRICS_TO_SEND * 2, repository.findAll().size());
   }
 
   private void givenExistingEventWithinSameTimeWindow() {
@@ -196,11 +194,12 @@ class MeteringMetricsFromPrometheusToDatabaseIT
         .atMost(TIMEOUT_TO_WAIT_FOR_METRICS)
         .untilAsserted(
             () -> {
-              assertEquals(NUM_METRICS_TO_SEND, repository.count());
-              assertTrue(repository.findAll().stream().allMatch(e -> e.getRecordDate() != null));
-              assertTrue(
+              var existing =
                   repository.findAll().stream()
-                      .allMatch(e -> expectedUsage == e.getEvent().getUsage()));
+                      .filter(e -> expectedUsage == e.getEvent().getUsage())
+                      .toList();
+              assertEquals(NUM_METRICS_TO_SEND, existing.size());
+              assertTrue(existing.stream().allMatch(e -> e.getRecordDate() != null));
             });
   }
 
@@ -225,7 +224,4 @@ class MeteringMetricsFromPrometheusToDatabaseIT
     assertTrue(repository.existsById(existingEventBeforeTimeWindow.getEventRecordId()));
   }
 
-  private List<UUID> getEventIDsFromRepository() {
-    return repository.findAll().stream().map(EventRecord::getEventId).toList();
-  }
 }
