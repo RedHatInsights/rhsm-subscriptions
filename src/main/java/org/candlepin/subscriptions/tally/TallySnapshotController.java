@@ -109,7 +109,7 @@ public class TallySnapshotController {
   // from within an existing DB transaction, an exception will be thrown.
   @Transactional(propagation = Propagation.NEVER)
   @Timed("rhsm-subscriptions.snapshots.single.hourly")
-  public void produceHourlySnapshotsForOrg(String orgId, DateRange snapshotRange) {
+  public void produceHourlySnapshotsForOrg(String orgId) {
     if (Objects.isNull(orgId)) {
       throw new IllegalArgumentException("A non-null orgId is required for tally operations.");
     }
@@ -121,25 +121,10 @@ public class TallySnapshotController {
     // fetched by service type just once.
     Set<String> serviceTypes = SubscriptionDefinition.getAllServiceTypes();
     for (String serviceType : serviceTypes) {
-      log.info(
-          "Producing hourly snapshots for orgId {} for service type {} "
-              + "between startDateTime {} and endDateTime {}",
-          orgId,
-          serviceType,
-          snapshotRange.getStartString(),
-          snapshotRange.getEndString());
+      log.info("Producing hourly snapshots for orgId {} for service type {} ", orgId, serviceType);
 
-      // TODO [mstead] Need to figure out what to do about the start/end dates.
-
-      // TODO [mstead] Configure whether we turn on V2 tally.
-      boolean enableV2Collection = true;
       try {
-        var result =
-            retryTemplate.execute(
-                context ->
-                    enableV2Collection
-                        ? collectV2Metrics(orgId, serviceType)
-                        : collectLegacyMetrics(orgId, serviceType, snapshotRange));
+        var result = retryTemplate.execute(context -> collectV2Metrics(orgId, serviceType));
 
         if (result == null) {
           continue;
@@ -203,11 +188,6 @@ public class TallySnapshotController {
     // During a tally, the end date is not included in the overall existing tally
     // query, therefor we need the range to end 1h after the last calculation.
     return new DateRange(effectiveStart, effectiveEnd.plusHours(1));
-  }
-
-  private MetricUsageCollectionResult collectLegacyMetrics(
-      String orgId, String serviceType, DateRange snapshotRange) {
-    return metricUsageCollector.collect(serviceType, orgId, snapshotRange);
   }
 
   private MetricUsageCollectionResult collectV2Metrics(String orgId, String serviceType) {

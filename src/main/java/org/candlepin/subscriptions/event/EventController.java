@@ -108,8 +108,8 @@ public class EventController {
   }
 
   public List<EventRecord> fetchEventsInBatch(
-      String orgId, String serviceType, OffsetDateTime begin, OffsetDateTime end, int batchSize) {
-    return repo.fetchEventsInBatchByRecordDate(orgId, serviceType, begin, end, batchSize);
+      String orgId, String serviceType, OffsetDateTime begin, int batchSize) {
+    return repo.fetchEventsInBatchByRecordDate(orgId, serviceType, begin, batchSize);
   }
 
   /**

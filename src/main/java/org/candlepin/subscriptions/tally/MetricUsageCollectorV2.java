@@ -100,16 +100,12 @@ public class MetricUsageCollectorV2 {
             .orElseGet(
                 () -> tallyStateRepository.save(new TallyState(orgId, serviceType, clock.now())));
 
-    // TODO [MSTEAD] This should be the end date from the API.
-    OffsetDateTime cutoff = clock.endOfCurrentHour();
-
     // TODO [MSTEAD] Check if batch size is equal, instead of checking 0, to avoid extra run.
     List<EventRecord> eventsRecords =
         eventController.fetchEventsInBatch(
             orgId,
             serviceType,
             currentState.getLatestEventRecordDate(),
-            cutoff,
             applicationProperties.getHourlyTallyEventBatchSize());
 
     if (eventsRecords.isEmpty()) {
@@ -140,8 +136,6 @@ public class MetricUsageCollectorV2 {
       hostsByInstanceId.put(host.getInstanceId(), host);
 
       if (Objects.isNull(maxRecordDate) || maxRecordDate.isBefore(eventRecord.getRecordDate())) {
-        // TODO [MSTEAD] Need to make sure that we don't end up missing Events with the same date
-        // while batching. I don't think we can end up in this state, but need to check.
         maxRecordDate = eventRecord.getRecordDate();
       }
       hostRepository.save(host);

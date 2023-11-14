@@ -199,8 +199,8 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, EventR
           """
           select * from events
             where org_id=:orgId and data->>'service_type'=:serviceType and
-              record_date > :after and record_date < :cutoff
-              order by id, timestamp
+              record_date > :after
+              order by id, record_date
               limit :limit
           """)
   @Transactional(readOnly = true)
@@ -208,7 +208,6 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, EventR
       @Param("orgId") String orgId,
       @Param("serviceType") String serviceType,
       @Param("after") OffsetDateTime after,
-      @Param("cutoff") OffsetDateTime cutoff,
       @Param("limit") int limit);
 
   /**

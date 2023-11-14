@@ -56,7 +56,6 @@ import org.candlepin.subscriptions.resource.TallyResource;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
 import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
-import org.candlepin.subscriptions.util.DateRange;
 import org.candlepin.subscriptions.utilization.api.model.GranularityType;
 import org.candlepin.subscriptions.utilization.api.model.TallyReportData;
 import org.junit.jupiter.api.BeforeEach;
@@ -207,8 +206,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   }
 
   private void whenProduceHourlySnapshotsForOrg() {
-    controller.produceHourlySnapshotsForOrg(
-        ORG_ID, new DateRange(clock.startOfCurrentHour(), clock.startOfCurrentHour().plusHours(1)));
+    controller.produceHourlySnapshotsForOrg(ORG_ID);
   }
 
   private void assertTallyReportData() {
@@ -228,32 +226,6 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
             null,
             true,
             null);
-    //    // assert events
-    //    double accumulatedValue = 0;
-    //    for (var point : report.getData()) {
-    //      for (Event event : events) {
-    //        if (point.getDate().toLocalDate().equals(event.getTimestamp().toLocalDate())) {
-    //          for (var measurement : event.getMeasurements()) {
-    //            accumulatedValue += measurement.getValue();
-    //          }
-    //        }
-    //      }
-    //
-    //      int expectedValue = (int) Math.ceil(accumulatedValue);
-    //      assertEquals(
-    //          expectedValue,
-    //          point.getValue(),
-    //          "Unexpected value in data point at '"
-    //              + point.getDate()
-    //              + "'. Expected was "
-    //              + expectedValue
-    //              + ". Report was: "
-    //              + report);
-    //    }
-    //
-    //    // assert days, end day is inclusive, so we need to add one day more.
-    //    assertEquals((int) Duration.between(start, end).toDays() + 1,
-    // report.getMeta().getCount());
 
     expectedReport.assertReport(report);
   }
