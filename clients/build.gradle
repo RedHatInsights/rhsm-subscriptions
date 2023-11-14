@@ -12,6 +12,9 @@ project(":clients:prometheus-client") {
 
 project(":clients:quarkus:prometheus-client") {
     apply plugin: "swatch.quarkus-rest-client-conventions"
+    openApiGenerate {
+        inputSpec = "${rootDir}/clients/prometheus-client/prometheus-api-spec.yaml"
+    }
 }
 
 project(":clients:rbac-client") {
