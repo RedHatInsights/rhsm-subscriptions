@@ -18,23 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.deployment;
+package com.redhat.swatch.metrics.service.task;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import com.redhat.swatch.metrics.model.MetricsTaskDescriptor;
+import io.quarkus.kafka.client.serialization.JsonbDeserializer;
 
-import org.candlepin.subscriptions.metering.MeteringConfiguration;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-
-@SpringBootTest
-@ActiveProfiles({"openshift-metering-worker", "test"})
-class MetricsWorkerDeploymentTest {
-  @Autowired MeteringConfiguration configuration;
-
-  @Test
-  void testDeployment() {
-    assertNotNull(configuration);
+/** Provides quarkus a hint that we want to use JSON-B to serialize MetricsTaskDescriptor objects */
+public class MetricsTaskDescriptorDeserializer extends JsonbDeserializer<MetricsTaskDescriptor> {
+  public MetricsTaskDescriptorDeserializer() {
+    super(MetricsTaskDescriptor.class);
   }
 }

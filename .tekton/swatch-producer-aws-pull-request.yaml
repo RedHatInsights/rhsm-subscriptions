@@ -8,25 +8,25 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "main" && ( "***".pathChanged() || ".tekton/rhsm-subscriptions-pull-request.yaml".pathChanged()
-      || "Dockerfile".pathChanged() )
+      == "main" && ( "***".pathChanged() || ".tekton/swatch-producer-aws-pull-request.yaml".pathChanged()
+      || "./swatch-producer-aws/src/main/docker/Dockerfile.jvm".pathChanged() )
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: rhsm-subscriptions
-    appstudio.openshift.io/component: rhsm-subscriptions
+    appstudio.openshift.io/component: swatch-producer-aws
     pipelines.appstudio.openshift.io/type: build
-  name: rhsm-subscriptions-on-pull-request
+  name: swatch-producer-aws-on-pull-request
   namespace: rh-subs-watch-tenant
 spec:
   params:
   - name: dockerfile
-    value: Dockerfile
+    value: ./swatch-producer-aws/src/main/docker/Dockerfile.jvm
   - name: git-url
     value: '{{repo_url}}'
   - name: image-expires-after
     value: 5d
   - name: output-image
-    value: quay.io/redhat-user-workloads/rh-subs-watch-tenant/rhsm-subscriptions/rhsm-subscriptions:on-pr-{{revision}}
+    value: quay.io/redhat-user-workloads/rh-subs-watch-tenant/rhsm-subscriptions/swatch-producer-aws:on-pr-{{revision}}
   - name: path-context
     value: .
   - name: revision
@@ -231,7 +231,7 @@ spec:
         - name: name
           value: buildah
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-buildah:0.1@sha256:6e20ce8b188b5a017892fc657364b93abda3fa2c54effe2074168906fba07745
+          value: quay.io/redhat-appstudio-tekton-catalog/task-buildah:0.1@sha256:fabd9af8e999f2d11b024fbe21dd5ed2dcf029b71b4d7e21de3b106c3d6ff74d
         - name: kind
           value: task
         resolver: bundles
@@ -308,7 +308,7 @@ spec:
         - name: name
           value: deprecated-image-check
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-deprecated-image-check:0.3@sha256:f23d0cca3c02a78fb2b2760d0fba28a3196fa7bcc106da35f45ef95d1f8e7065
+          value: quay.io/redhat-appstudio-tekton-catalog/task-deprecated-image-check:0.3@sha256:35e2708505614397ede771474a2e2d6f04e911efc46afae47ca4a63e2f6fc9a0
         - name: kind
           value: task
         resolver: bundles
@@ -347,7 +347,7 @@ spec:
         - name: name
           value: sast-snyk-check
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-sast-snyk-check:0.1@sha256:f57c69cfedf37a46dd61285b5b9b4805ff196facaad2d7cdeded496c77d31bec
+          value: quay.io/redhat-appstudio-tekton-catalog/task-sast-snyk-check:0.1@sha256:edd4ba638b71de52c2662abd3e93fd876e6e75cd07b162d13fae014d3a1a1fac
         - name: kind
           value: task
         resolver: bundles

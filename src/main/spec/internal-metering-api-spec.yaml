@@ -24,17 +24,6 @@ servers:
         default: rhsm-subscriptions
 
 paths:
-  /internal/metering/events:
-    description: 'Purge event records'
-    delete:
-      operationId: purgeEventRecords
-      responses:
-        '200':
-          description: "Purge was successful."
-        '403':
-          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
-        '500':
-          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
   /internal/metering/sync:
     description: 'Perform product metering for all accounts.'
     put:

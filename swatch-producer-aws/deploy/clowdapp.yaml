@@ -43,9 +43,13 @@ parameters:
     value: 'true'
   - name: SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT
     value: http://swatch-subscription-sync-service:8000/api/rhsm-subscriptions/v1
+  - name: MOTO_REPLICAS
+    value: '0'
   - name: AWS_MARKETPLACE_ENDPOINT_URL
     value: 'http://localhost:8101/aws-marketplace/'
   - name: AWS_MANUAL_SUBMISSION_ENABLED
+    value: 'false'
+  - name: AWS_MARKETPLACE_ENDPOINT_OVERRIDE
     value: 'false'
   - name: AWS_MARKETPLACE_USAGE_WINDOW
     value: 6h
@@ -167,6 +171,8 @@ objects:
               value: ${SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT}
             - name: AWS_MANUAL_SUBMISSION_ENABLED
               value: ${AWS_MANUAL_SUBMISSION_ENABLED}
+            - name: AWS_MARKETPLACE_ENDPOINT_OVERRIDE
+              value: ${AWS_MARKETPLACE_ENDPOINT_OVERRIDE}
             - name: AWS_CONFIG_FILE
               value: /aws-marketplace-credentials/config.ini
             - name: AWS_MARKETPLACE_ENDPOINT_URL
@@ -205,9 +211,58 @@ objects:
               secret:
                 secretName: aws-marketplace-credentials
 
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: swatch-producer-aws-moto
+    labels:
+      app: swatch-producer-aws-moto
+  spec:
+    replicas: ${{MOTO_REPLICAS}}
+    selector:
+      matchLabels:
+        app: swatch-producer-aws-moto
+    template:
+      metadata:
+        labels:
+          app: swatch-producer-aws-moto
+      spec:
+        containers:
+          - name: moto
+            image: 'motoserver/moto:latest'
+            env:
+              - name: MOTO_PORT
+                value: '5000'
+            volumeMounts:
+              - name: logs
+                mountPath: /logs
+        volumes:
+          - name: logs
+            emptyDir:
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: moto
+  spec:
+    selector:
+      app: swatch-producer-aws-moto
+    ports:
+      - protocol: TCP
+        port: 5000
+        targetPort: 5000
+
 - apiVersion: v1
   kind: Secret
   metadata:
     name: swatch-psks
   data:
     self: cGxhY2Vob2xkZXI=
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: aws-marketplace-credentials
+  data:
+    # Base64 encoded
+    config.ini: W3Byb2ZpbGUgMTIzNDU2N10KYXdzX2FjY2Vzc19rZXlfaWQgPSByYW5kb21zdHVmZgphd3Nfc2VjcmV0X2FjY2Vzc19rZXkgPSByYW5kb21zdHVmZgo=

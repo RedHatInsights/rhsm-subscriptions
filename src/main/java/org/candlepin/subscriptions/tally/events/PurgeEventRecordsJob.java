@@ -18,9 +18,9 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.metering.retention;
+package org.candlepin.subscriptions.tally.events;
 
-import org.candlepin.subscriptions.metering.api.admin.InternalMeteringResource;
+import org.candlepin.subscriptions.tally.admin.InternalTallyResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -31,10 +31,10 @@ public class PurgeEventRecordsJob implements Runnable {
 
   private static final Logger log = LoggerFactory.getLogger(PurgeEventRecordsJob.class);
 
-  private final InternalMeteringResource meteringResource;
+  private final InternalTallyResource resource;
 
-  public PurgeEventRecordsJob(InternalMeteringResource meteringResource) {
-    this.meteringResource = meteringResource;
+  public PurgeEventRecordsJob(InternalTallyResource resource) {
+    this.resource = resource;
   }
 
   @Override
@@ -42,7 +42,7 @@ public class PurgeEventRecordsJob implements Runnable {
   public void run() {
     log.info("Starting PurgeEventRecordsJob job.");
 
-    meteringResource.purgeEventRecords();
+    resource.purgeEventRecords();
 
     log.info("PurgeEventRecordsJob complete.");
   }

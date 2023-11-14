@@ -9,7 +9,8 @@ SPLUNK_HEC_BATCH_SIZE: 1000
 SPLUNK_HEC_BATCH_INTERVAL: 10S
 SPLUNK_HEC_RETRY_COUNT: 3
 SPLUNK_HEC_INCLUDE_EX: false
-TALLY_IN_FAIL_ON_DESER_FAILURE: true
+METRICS_IN_FAIL_ON_DESER_FAILURE: true
+METERING_TASK_TOPIC: platform.rhsm-subscriptions.metering-tasks
 
 # dev-specific defaults; these can still be overridden by env var
 "%dev":
@@ -89,8 +90,59 @@ quarkus:
   kafka:
     devservices:
       enabled: false
+  reactive-messaging:
+    kafka:
+      serializer-generation:
+        enabled: false
+
+# Clowder quarkus config takes care of setting these, no need to try to do clowder.kafka.brokers[0]
+# Common kafka settings
+kafka:
+  bootstrap:
+    servers: localhost:9092
+# Kafka security configuration.  These properties must be present so that
+# clowder-quarkus-config-source will populate them from the Clowder provided configuration JSON.
+# If the properties are simply absent from this file, then clowder-quarkus-config-source will not
+# set values for the property even if a value is present in the Clowder JSON.
+#
+# Additionally, Kafka has a bug, https://issues.apache.org/jira/browse/KAFKA-4090, where if a
+# client attempts to connect to a TLS enabled port using PLAINTEXT, an OutOfMemoryException gets
+# thrown instead of something more relevant to the actual issue.
+  sasl:
+    jaas:
+      config:
+    mechanism: PLAIN
+  security:
+    protocol: PLAINTEXT
+
+# Consumer settings
+mp:
+  messaging:
+    incoming:
+      tasks-in:
+        connector: smallrye-kafka
+        # Note that clowder config will not resolve the topic from the clowder config file because
+        # it does not properly resolve `${...}` properties.
+        # This should be fixed by https://github.com/RedHatInsights/clowder-quarkus-config-source/pull/181
+        topic: ${METERING_TASK_TOPIC}
+        fail-on-deserialization-failure: ${METRICS_IN_FAIL_ON_DESER_FAILURE}
+        auto:
+          offset:
+            reset: earliest
+        value:
+          deserializer: com.redhat.swatch.metrics.service.task.MetricsTaskDescriptorDeserializer
+    outgoing:
+      tasks-out:
+        connector: smallrye-kafka
+        # Note that clowder config will not resolve the topic from the clowder config file because
+        # it does not properly resolve `${...}` properties.
+        # This should be fixed by https://github.com/RedHatInsights/clowder-quarkus-config-source/pull/181
+        topic: ${METERING_TASK_TOPIC}
+        value:
+          serializer: com.redhat.swatch.metrics.service.task.MetricsTaskDescriptorSerializer
 
 rhsm-subscriptions:
+  prometheus-latency-duration: ${PROMETHEUS_LATENCY_DURATION:0h}
   metering:
     prometheus:
       metric:
