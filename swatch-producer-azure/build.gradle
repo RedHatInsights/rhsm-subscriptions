@@ -74,17 +74,6 @@ openApiGenerate {
 
 sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
 
-
-tasks.register('configureQuarkusBuild') {
-    doLast {
-        System.setProperty("quarkus.container-image.tag", project.getVersion().toString().replace("+", "_"))
-    }
-}
-
-
-quarkusDev.dependsOn(configureQuarkusBuild)
-quarkusBuild.dependsOn(configureQuarkusBuild)
-
 tasks.register("wiremock", JavaExec) {
     description = "Run mock REST services for this service"
     classpath = sourceSets.test.runtimeClasspath
