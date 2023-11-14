@@ -23,7 +23,6 @@ dependencies {
     implementation 'io.quarkus:quarkus-hibernate-validator'
     implementation 'io.quarkus:quarkus-jsonb'
     implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
-    implementation 'io.quarkus:quarkus-openshift'
     implementation 'io.quarkus:quarkus-opentelemetry'
     implementation 'io.quarkus:quarkus-resteasy-reactive-jsonb'
     implementation 'io.quarkus:quarkus-security'
@@ -93,17 +92,6 @@ openApiGenerate {
 }
 
 sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
-
-
-tasks.register('configureQuarkusBuild') {
-    doLast {
-        System.setProperty("quarkus.container-image.tag", project.getVersion().toString().replace("+", "_"))
-    }
-}
-
-
-quarkusDev.dependsOn(configureQuarkusBuild)
-quarkusBuild.dependsOn(configureQuarkusBuild)
 
 tasks.register("wiremock", JavaExec) {
     description = "Run mock REST services for this service"
