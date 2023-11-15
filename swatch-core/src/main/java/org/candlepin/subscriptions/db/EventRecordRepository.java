@@ -200,7 +200,7 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, EventR
           select * from events
             where org_id=:orgId and data->>'service_type'=:serviceType and
               record_date > :after
-              order by id, record_date
+              order by record_date asc
               limit :limit
           """)
   @Transactional(readOnly = true)
