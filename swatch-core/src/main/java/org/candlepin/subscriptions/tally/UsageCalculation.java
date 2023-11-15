@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,7 +37,6 @@ import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.util.MetricIdUtils;
 
 /**
  * The calculated usage for a key where key is (productId, sla, usage, billingProvider, and

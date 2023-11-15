@@ -22,7 +22,7 @@ package org.candlepin.subscriptions.db.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.candlepin.subscriptions.util.MetricIdUtils;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import org.junit.jupiter.api.Test;
 
 class TallySnapshotTest {
