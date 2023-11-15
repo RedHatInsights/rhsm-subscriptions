@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EnumType;
@@ -28,7 +29,6 @@ import java.io.Serializable;
 import java.util.Objects;
 import lombok.Getter;
 import lombok.Setter;
-import org.candlepin.subscriptions.util.MetricIdUtils;
 
 /** Model object to the key for a given tally measurement */
 @Embeddable

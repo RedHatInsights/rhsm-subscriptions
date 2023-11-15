@@ -30,6 +30,7 @@ import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -50,7 +51,6 @@ import org.candlepin.subscriptions.db.model.TallyInstanceViewKey;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.tally.AccountListSourceException;
-import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
 import org.candlepin.subscriptions.utilization.api.model.CloudProvider;
 import org.candlepin.subscriptions.utilization.api.model.InstanceData;

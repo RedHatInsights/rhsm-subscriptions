@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -48,7 +49,6 @@ import org.candlepin.subscriptions.prometheus.model.StatusType;
 import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
 import org.candlepin.subscriptions.test.ExtendWithPrometheusWiremock;
 import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
-import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

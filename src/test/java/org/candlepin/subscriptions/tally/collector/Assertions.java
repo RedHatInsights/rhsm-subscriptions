@@ -24,13 +24,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Totals;
-import org.candlepin.subscriptions.util.MetricIdUtils;
 
 public class Assertions {
 
