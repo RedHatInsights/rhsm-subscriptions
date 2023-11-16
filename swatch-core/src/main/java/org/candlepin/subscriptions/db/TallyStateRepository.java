@@ -23,5 +23,12 @@ package org.candlepin.subscriptions.db;
 import org.candlepin.subscriptions.db.model.TallyState;
 import org.candlepin.subscriptions.db.model.TallyStateKey;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.transaction.annotation.Transactional;
 
-public interface TallyStateRepository extends JpaRepository<TallyState, TallyStateKey> {}
+public interface TallyStateRepository extends JpaRepository<TallyState, TallyStateKey> {
+
+  @Transactional
+  default TallyState saveInTransaction(TallyState state) {
+    return save(state);
+  }
+}

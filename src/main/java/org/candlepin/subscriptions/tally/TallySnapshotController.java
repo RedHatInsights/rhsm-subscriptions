@@ -31,9 +31,14 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.TallyStateRepository;
+import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.db.model.TallyState;
+import org.candlepin.subscriptions.db.model.TallyStateKey;
+import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.util.DateRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +55,9 @@ public class TallySnapshotController {
 
   private static final Logger log = LoggerFactory.getLogger(TallySnapshotController.class);
 
+  private final ApplicationProperties appProps;
   private final InventoryAccountUsageCollector usageCollector;
+  private final EventController eventController;
   private final MetricUsageCollector metricUsageCollector;
   private final MetricUsageCollectorV2 metricUsageCollectorV2;
   private final MaxSeenSnapshotStrategy maxSeenSnapshotStrategy;
@@ -62,7 +69,9 @@ public class TallySnapshotController {
 
   @Autowired
   public TallySnapshotController(
+      ApplicationProperties appProps,
       InventoryAccountUsageCollector usageCollector,
+      EventController eventController,
       MaxSeenSnapshotStrategy maxSeenSnapshotStrategy,
       @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
       MetricUsageCollector metricUsageCollector,
@@ -71,8 +80,9 @@ public class TallySnapshotController {
       SnapshotSummaryProducer summaryProducer,
       TallyStateRepository tallyStateRepository,
       ApplicationClock clock) {
-
+    this.appProps = appProps;
     this.usageCollector = usageCollector;
+    this.eventController = eventController;
     this.maxSeenSnapshotStrategy = maxSeenSnapshotStrategy;
     this.retryTemplate = retryTemplate;
     this.metricUsageCollector = metricUsageCollector;
@@ -123,15 +133,54 @@ public class TallySnapshotController {
     for (String serviceType : serviceTypes) {
       log.info("Producing hourly snapshots for orgId {} for service type {} ", orgId, serviceType);
 
-      try {
-        var result = retryTemplate.execute(context -> collectV2Metrics(orgId, serviceType));
+      // 1. Batch event lookup here.
+      // 2. for each batch:
+      //     - Update the hosts from events (must be idempotent based on record_date).
+      //     - Build the account usage calcs via the collector based on the events.
+      //     - Create the snapshots based on the calcs.
 
-        if (result == null) {
+      try {
+
+        TallyState currentState =
+            tallyStateRepository
+                .findById(new TallyStateKey(orgId, serviceType))
+                .orElseGet(
+                    () ->
+                        tallyStateRepository.save(new TallyState(orgId, serviceType, clock.now())));
+
+        boolean collect = true;
+        Map<OffsetDateTime, AccountUsageCalculation> currentCalcs = new HashMap<>();
+        while (collect) {
+          // If calculations exist, the hosts have been updated. Host updates are idempotent
+          // but the calculations will still occur during a retry on error.
+          collect =
+              retryTemplate.execute(
+                  context -> {
+                    List<EventRecord> events =
+                        eventController.fetchEventsInBatch(
+                            orgId,
+                            serviceType,
+                            currentState.getLatestEventRecordDate(),
+                            appProps.getHourlyTallyEventBatchSize());
+                    log.info("FOUND EVENTS: " + events.size());
+                    if (events.isEmpty()) {
+                      return false;
+                    }
+
+                    metricUsageCollectorV2.collect(orgId, serviceType, currentCalcs, events);
+                    currentState.setLatestEventRecordDate(
+                        events.get(events.size() - 1).getRecordDate());
+                    return true;
+                  });
+        }
+
+        if (currentCalcs.isEmpty()) {
+          tallyStateRepository.saveInTransaction(currentState);
           continue;
         }
 
         var applicableUsageCalculations =
-            result.getCalculations().entrySet().stream()
+            currentCalcs.entrySet().stream()
                 .filter(this::isCombiningRollupStrategySupported)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
@@ -145,12 +194,13 @@ public class TallySnapshotController {
         Map<String, List<TallySnapshot>> totalSnapshots =
             combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
                 orgId,
-                result.getRange(),
+                getDateRangeFromResult(currentCalcs),
                 tags,
                 applicableUsageCalculations,
                 Granularity.HOURLY,
                 Double::sum);
 
+        tallyStateRepository.saveInTransaction(currentState);
         summaryProducer.produceTallySummaryMessages(totalSnapshots);
         log.info("Finished producing hourly snapshots for orgId {}", orgId);
       } catch (Exception e) {
@@ -188,24 +238,5 @@ public class TallySnapshotController {
     // During a tally, the end date is not included in the overall existing tally
     // query, therefor we need the range to end 1h after the last calculation.
     return new DateRange(effectiveStart, effectiveEnd.plusHours(1));
-  }
-
-  private MetricUsageCollectionResult collectV2Metrics(String orgId, String serviceType) {
-    Map<OffsetDateTime, AccountUsageCalculation> currentCalcs = new HashMap<>();
-
-    boolean collect = true;
-    while (collect) {
-      int processed = metricUsageCollectorV2.collect(orgId, serviceType, currentCalcs);
-      collect = processed > 0;
-    }
-
-    if (currentCalcs.isEmpty()) {
-      return null;
-    }
-
-    // TODO [MSTEAD] The collection result should be passed above so that we do not
-    //               have to track via the map.
-    return new MetricUsageCollectionResult(
-        getDateRangeFromResult(currentCalcs), currentCalcs, false);
   }
 }

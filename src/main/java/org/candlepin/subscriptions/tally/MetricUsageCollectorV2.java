@@ -27,6 +27,7 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import java.time.OffsetDateTime;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -39,13 +40,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.db.TallyStateRepository;
 import org.candlepin.subscriptions.db.model.*;
-import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.util.MetricIdUtils;
@@ -58,35 +56,31 @@ public class MetricUsageCollectorV2 {
 
   private static final Logger log = LoggerFactory.getLogger(MetricUsageCollector.class);
 
-  private final ApplicationProperties applicationProperties;
   private final AccountServiceInventoryRepository accountServiceInventoryRepository;
-  private final EventController eventController;
   private final ApplicationClock clock;
 
   private final HostRepository hostRepository;
-  private final TallyStateRepository tallyStateRepository;
   private final TallySnapshotRepository snapshotRepository;
 
   public MetricUsageCollectorV2(
-      ApplicationProperties applicationProperties,
       AccountServiceInventoryRepository accountServiceInventoryRepository,
-      EventController eventController,
       ApplicationClock clock,
       HostRepository hostRepository,
-      TallyStateRepository tallyStateRepository,
       TallySnapshotRepository snapshotRepository) {
-    this.applicationProperties = applicationProperties;
     this.accountServiceInventoryRepository = accountServiceInventoryRepository;
-    this.eventController = eventController;
     this.clock = clock;
     this.hostRepository = hostRepository;
-    this.tallyStateRepository = tallyStateRepository;
     this.snapshotRepository = snapshotRepository;
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public int collect(
-      String orgId, String serviceType, Map<OffsetDateTime, AccountUsageCalculation> currentCalcs) {
+  public void collect(
+      String orgId, String serviceType, Map<OffsetDateTime, AccountUsageCalculation> calcCache,
+      List<EventRecord> events) {
+
+    if (events.isEmpty()) {
+      return;
+    }
 
     AccountServiceInventoryId inventoryId =
         AccountServiceInventoryId.builder().orgId(orgId).serviceType(serviceType).build();
@@ -94,55 +88,47 @@ public class MetricUsageCollectorV2 {
       accountServiceInventoryRepository.save(new AccountServiceInventory(inventoryId));
     }
 
-    TallyState currentState =
-        tallyStateRepository
-            .findById(new TallyStateKey(orgId, serviceType))
-            .orElseGet(
-                () -> tallyStateRepository.save(new TallyState(orgId, serviceType, clock.now())));
+    //    TallyState currentState =
+    //        tallyStateRepository
+    //            .findById(new TallyStateKey(orgId, serviceType))
+    //            .orElseGet(
+    //                () -> tallyStateRepository.save(new TallyState(orgId, serviceType,
+    // clock.now())));
 
-    // TODO [MSTEAD] Check if batch size is equal, instead of checking 0, to avoid extra run.
-    List<EventRecord> eventsRecords =
-        eventController.fetchEventsInBatch(
-            orgId,
-            serviceType,
-            currentState.getLatestEventRecordDate(),
-            applicationProperties.getHourlyTallyEventBatchSize());
-
-    if (eventsRecords.isEmpty()) {
-      return 0;
-    }
+    //    // TODO [MSTEAD] Check if batch size is equal, instead of checking 0, to avoid extra run.
+    //    List<EventRecord> eventsRecords =
+    //        eventController.fetchEventsInBatch(
+    //            orgId,
+    //            serviceType,
+    //            currentState.getLatestEventRecordDate(),
+    //            applicationProperties.getHourlyTallyEventBatchSize());
+    //
+    //    if (eventsRecords.isEmpty()) {
+    //      return 0;
+    //    }
 
     var hostsByInstanceId =
         hostRepository
             .findAllByOrgIdAndInstanceIdIn(
-                orgId,
-                eventsRecords.stream().map(EventRecord::getInstanceId).collect(Collectors.toSet()))
+                orgId, events.stream().map(EventRecord::getInstanceId).collect(Collectors.toSet()))
             .collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
 
-    OffsetDateTime maxRecordDate = null;
-    for (EventRecord eventRecord : eventsRecords) {
+    for (EventRecord eventRecord : events) {
       Host host = hostsByInstanceId.getOrDefault(eventRecord.getInstanceId(), new Host());
       Event event = eventRecord.getEvent();
 
       // Rebuild the account calculation for this Event's timestamp.
       AccountUsageCalculation calc =
-          currentCalcs.getOrDefault(
+          calcCache.getOrDefault(
               event.getTimestamp(),
               loadHourlyAccountCalculation(orgId, serviceType, event.getTimestamp()));
-      currentCalcs.put(event.getTimestamp(), calc);
+      calcCache.put(event.getTimestamp(), calc);
 
       updateInstanceFromEvent(event, host, serviceType, calc);
       cleanUpHostMeasurements(host, event);
       hostsByInstanceId.put(host.getInstanceId(), host);
-
-      if (Objects.isNull(maxRecordDate) || maxRecordDate.isBefore(eventRecord.getRecordDate())) {
-        maxRecordDate = eventRecord.getRecordDate();
-      }
       hostRepository.save(host);
     }
-    currentState.setLatestEventRecordDate(maxRecordDate);
-    tallyStateRepository.save(currentState);
-    return eventsRecords.size();
   }
 
   private void updateInstanceFromEvent(
@@ -451,4 +437,10 @@ public class MetricUsageCollectorV2 {
         });
     return calc;
   }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public void updateHosts(List<EventRecord> events) {}
+
+  public void collectMetrics(
+      List<EventRecord> events, Map<OffsetDateTime, AccountUsageCalculation> currentCalcs) {}
 }

@@ -223,5 +223,4 @@ class MeteringMetricsFromPrometheusToDatabaseIT
   private void verifyExistingEventBeforeTimeWindowWasNotDeleted() {
     assertTrue(repository.existsById(existingEventBeforeTimeWindow.getEventRecordId()));
   }
-
 }
