@@ -1745,6 +1745,7 @@ components:
         - Storage-gibibytes
         - Storage-gibibyte-months
         - Transfer-gibibytes
+        - vCPUs
         - billing_provider
         - number_of_guests
         - category
