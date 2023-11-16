@@ -52,19 +52,17 @@ public class ResteasyConfiguration implements WebMvcConfigurer {
     registry.addViewController("/api-docs").setViewName("redirect:/api-docs/index.html");
     registry.addViewController("/api-docs/").setViewName("redirect:/api-docs/index.html");
     registry
-        .addViewController("/api/swatch-subscription-sync/internal/swagger-ui")
-        .setViewName("redirect:/api-docs/internal-subscription-sync.html");
-    registry
         .addViewController("/api/swatch-tally/internal/swagger-ui")
-        .setViewName("redirect:/api-docs/internal-tally.html");
+        .setViewName("redirect:/api/swatch-tally/internal/swagger-ui/index.html");
     registry
         .addViewController("/api/swatch-metrics/internal/swagger-ui")
-        .setViewName("redirect:/api-docs/internal-metering.html");
+        .setViewName("redirect:/api/swatch-metrics/internal/swagger-ui/index.html");
     registry
         .addViewController("/api/swatch-billing/internal/swagger-ui")
-        .setViewName("redirect:/api-docs/internal-billing.html");
+        .setViewName("redirect:/api/swatch-billing/internal/swagger-ui/index.html");
     registry
         .addViewController("/api/swatch-producer-red-hat-marketplace/internal/swagger-ui")
-        .setViewName("redirect:/api-docs/internal-producer-red-hat-marketplace.html");
+        .setViewName(
+            "redirect:/api/swatch-producer-red-hat-marketplace/internal/swagger-ui/index.html");
   }
 }

@@ -96,7 +96,7 @@ public class ApiSecurityConfiguration {
         "/**/version",
         "/api-docs/**",
         "/webjars/**",
-        "/api/swatch-system-conduit/internal/swagger-ui"
+        "/api/swatch-system-conduit/internal/swagger-ui/index.html"
       };
 
   // NOTE: intentionally *not* annotated with @Bean; @Bean causes an extra use as an application
