@@ -73,11 +73,7 @@ public class MetricUsageCollectorV2 {
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public void collect(
-      String orgId,
-      String serviceType,
-      final Map<OffsetDateTime, AccountUsageCalculation> calcCache,
-      List<EventRecord> events) {
+  public void updateHosts(String orgId, String serviceType, List<EventRecord> events) {
 
     if (events.isEmpty()) {
       return;
@@ -103,16 +99,23 @@ public class MetricUsageCollectorV2 {
       cleanUpHostMeasurements(host, event);
       hostsByInstanceId.put(host.getInstanceId(), host);
 
-      // Rebuild the account calculation for this Event's timestamp.
-      AccountUsageCalculation calc =
-          calcCache.getOrDefault(
-              event.getTimestamp(),
-              loadHourlyAccountCalculation(orgId, serviceType, event.getTimestamp()));
-      calcCache.put(event.getTimestamp(), calc);
-
-      updateUsage(calc, event);
       hostRepository.save(host);
     }
+  }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public void calculateUsage(
+      List<EventRecord> events, Map<OffsetDateTime, AccountUsageCalculation> calcCache) {
+    events.forEach(
+        eventRecord -> {
+          // Rebuild the account calculation for this Event's timestamp.
+          Event event = eventRecord.getEvent();
+          AccountUsageCalculation calc =
+              calcCache.getOrDefault(event.getTimestamp(), loadHourlyAccountCalculation(event));
+
+          updateUsage(calc, event);
+          calcCache.put(event.getTimestamp(), calc);
+        });
   }
 
   private void updateInstanceFromEvent(Event event, Host instance) {
@@ -413,19 +416,22 @@ public class MetricUsageCollectorV2 {
     return Objects.nonNull(host.getLastSeen()) && event.getTimestamp().isBefore(host.getLastSeen());
   }
 
-  private AccountUsageCalculation loadHourlyAccountCalculation(
-      String orgId, String serviceType, OffsetDateTime hour) {
+  private AccountUsageCalculation loadHourlyAccountCalculation(Event event) {
     Set<String> products =
-        SubscriptionDefinition.findByServiceType(serviceType).stream()
+        SubscriptionDefinition.findByServiceType(event.getServiceType()).stream()
             .map(SubscriptionDefinition::getVariants)
             .flatMap(List::stream)
             .map(Variant::getTag)
             .collect(Collectors.toSet());
     Stream<TallySnapshot> snapshots =
         snapshotRepository.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
-            orgId, products, Granularity.HOURLY, hour, clock.endOfHour(hour));
+            event.getOrgId(),
+            products,
+            Granularity.HOURLY,
+            event.getTimestamp(),
+            clock.endOfHour(event.getTimestamp()));
 
-    AccountUsageCalculation calc = new AccountUsageCalculation(orgId);
+    AccountUsageCalculation calc = new AccountUsageCalculation(event.getOrgId());
     snapshots.forEach(
         snap -> {
           Key usageKey = Key.fromTallySnapshot(snap);

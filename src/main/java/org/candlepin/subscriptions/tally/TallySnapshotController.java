@@ -133,14 +133,7 @@ public class TallySnapshotController {
     for (String serviceType : serviceTypes) {
       log.info("Producing hourly snapshots for orgId {} for service type {} ", orgId, serviceType);
 
-      // 1. Batch event lookup here.
-      // 2. for each batch:
-      //     - Update the hosts from events (must be idempotent based on record_date).
-      //     - Build the account usage calcs via the collector based on the events.
-      //     - Create the snapshots based on the calcs.
-
       try {
-
         TallyState currentState =
             tallyStateRepository
                 .findById(new TallyStateKey(orgId, serviceType))
@@ -168,7 +161,8 @@ public class TallySnapshotController {
                       return false;
                     }
 
-                    metricUsageCollectorV2.collect(orgId, serviceType, currentCalcs, events);
+                    metricUsageCollectorV2.updateHosts(orgId, serviceType, events);
+                    metricUsageCollectorV2.calculateUsage(events, currentCalcs);
                     currentState.setLatestEventRecordDate(
                         events.get(events.size() - 1).getRecordDate());
                     return true;
