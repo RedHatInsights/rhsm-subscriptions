@@ -27,7 +27,6 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import java.time.OffsetDateTime;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -75,7 +74,9 @@ public class MetricUsageCollectorV2 {
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void collect(
-      String orgId, String serviceType, Map<OffsetDateTime, AccountUsageCalculation> calcCache,
+      String orgId,
+      String serviceType,
+      final Map<OffsetDateTime, AccountUsageCalculation> calcCache,
       List<EventRecord> events) {
 
     if (events.isEmpty()) {
@@ -88,25 +89,6 @@ public class MetricUsageCollectorV2 {
       accountServiceInventoryRepository.save(new AccountServiceInventory(inventoryId));
     }
 
-    //    TallyState currentState =
-    //        tallyStateRepository
-    //            .findById(new TallyStateKey(orgId, serviceType))
-    //            .orElseGet(
-    //                () -> tallyStateRepository.save(new TallyState(orgId, serviceType,
-    // clock.now())));
-
-    //    // TODO [MSTEAD] Check if batch size is equal, instead of checking 0, to avoid extra run.
-    //    List<EventRecord> eventsRecords =
-    //        eventController.fetchEventsInBatch(
-    //            orgId,
-    //            serviceType,
-    //            currentState.getLatestEventRecordDate(),
-    //            applicationProperties.getHourlyTallyEventBatchSize());
-    //
-    //    if (eventsRecords.isEmpty()) {
-    //      return 0;
-    //    }
-
     var hostsByInstanceId =
         hostRepository
             .findAllByOrgIdAndInstanceIdIn(
@@ -115,7 +97,11 @@ public class MetricUsageCollectorV2 {
 
     for (EventRecord eventRecord : events) {
       Host host = hostsByInstanceId.getOrDefault(eventRecord.getInstanceId(), new Host());
+
       Event event = eventRecord.getEvent();
+      updateInstanceFromEvent(event, host);
+      cleanUpHostMeasurements(host, event);
+      hostsByInstanceId.put(host.getInstanceId(), host);
 
       // Rebuild the account calculation for this Event's timestamp.
       AccountUsageCalculation calc =
@@ -124,15 +110,12 @@ public class MetricUsageCollectorV2 {
               loadHourlyAccountCalculation(orgId, serviceType, event.getTimestamp()));
       calcCache.put(event.getTimestamp(), calc);
 
-      updateInstanceFromEvent(event, host, serviceType, calc);
-      cleanUpHostMeasurements(host, event);
-      hostsByInstanceId.put(host.getInstanceId(), host);
+      updateUsage(calc, event);
       hostRepository.save(host);
     }
   }
 
-  private void updateInstanceFromEvent(
-      Event event, Host instance, String serviceType, AccountUsageCalculation accountCalc) {
+  private void updateInstanceFromEvent(Event event, Host instance) {
     // fields that we expect to always be present
     instance.setOrgId(event.getOrgId());
     instance.setInstanceType(event.getServiceType());
@@ -167,11 +150,10 @@ public class MetricUsageCollectorV2 {
                   MetricId.fromString(measurement.getUom()),
                   measurement.getValue());
             });
-    addBucketsFromEvent(instance, event, serviceType, accountCalc);
+    addBucketsFromEvent(instance, event);
 
     // Only update the last seen when the event is newer than the last one applied.
     if (!isEventAppliedToHost(instance, event)) {
-      log.info("Updating: " + event.getTimestamp());
       instance.setLastSeen(event.getTimestamp());
     }
   }
@@ -212,6 +194,10 @@ public class MetricUsageCollectorV2 {
   }
 
   private HostHardwareType getHostHardwareType(Event.HardwareType hardwareType) {
+    if (Objects.isNull(hardwareType)) {
+      return null;
+    }
+
     return switch (hardwareType) {
       case __EMPTY__ -> null;
       case PHYSICAL -> HostHardwareType.PHYSICAL;
@@ -220,25 +206,30 @@ public class MetricUsageCollectorV2 {
     };
   }
 
-  private HardwareMeasurementType getHardwareMeasurementType(Host instance) {
-    if (instance.getHardwareType() == null) {
+  private HardwareMeasurementType getHardwareMeasurementType(
+      HostHardwareType hostHardwareType, String hostCloudProvider) {
+    if (hostHardwareType == null) {
       return HardwareMeasurementType.PHYSICAL;
     }
-    return switch (instance.getHardwareType()) {
-      case CLOUD -> getCloudProvider(instance);
+    return switch (hostHardwareType) {
+      case CLOUD -> getCloudProvider(hostCloudProvider);
       case VIRTUALIZED -> HardwareMeasurementType.VIRTUAL;
       case PHYSICAL -> HardwareMeasurementType.PHYSICAL;
     };
   }
 
-  private HardwareMeasurementType getCloudProvider(Host instance) {
-    if (instance.getCloudProvider() == null) {
+  private HardwareMeasurementType getCloudProvider(String instanceCloudProvider) {
+    if (instanceCloudProvider == null) {
       throw new IllegalArgumentException("Hardware type cloud, but no cloud provider specified");
     }
-    return HardwareMeasurementType.fromString(instance.getCloudProvider());
+    return HardwareMeasurementType.fromString(instanceCloudProvider);
   }
 
   private HardwareMeasurementType getCloudProvider(Event.CloudProvider cloudProvider) {
+    if (Objects.isNull(cloudProvider)) {
+      return null;
+    }
+
     return switch (cloudProvider) {
       case __EMPTY__ -> null;
       case AWS -> HardwareMeasurementType.AWS;
@@ -267,13 +258,64 @@ public class MetricUsageCollectorV2 {
     };
   }
 
-  private void addBucketsFromEvent(
-      Host host, Event event, String serviceType, AccountUsageCalculation accountCalc) {
+  private void addBucketsFromEvent(Host host, Event event) {
+    Set<List<Object>> bucketTuples = buildBucketTuples(event);
+    bucketTuples.forEach(
+        tuple -> {
+          String productId = (String) tuple.get(0);
+          ServiceLevel slaBucket = (ServiceLevel) tuple.get(1);
+          Usage usageBucket = (Usage) tuple.get(2);
+          BillingProvider billingProvider = (BillingProvider) tuple.get(3);
+          String billingAccountId = (String) tuple.get(4);
+          HostTallyBucket bucket = new HostTallyBucket();
+          bucket.setKey(
+              new HostBucketKey(
+                  host,
+                  productId,
+                  slaBucket,
+                  usageBucket,
+                  billingProvider,
+                  billingAccountId,
+                  false));
+          host.addBucket(bucket);
+        });
+  }
+
+  private void updateUsage(AccountUsageCalculation calc, Event event) {
+    Set<List<Object>> bucketTuples = buildBucketTuples(event);
+    bucketTuples.forEach(
+        tuple -> {
+          String productId = (String) tuple.get(0);
+          ServiceLevel slaBucket = (ServiceLevel) tuple.get(1);
+          Usage usageBucket = (Usage) tuple.get(2);
+          BillingProvider billingProvider = (BillingProvider) tuple.get(3);
+          String billingAccountId = (String) tuple.get(4);
+
+          Key usageKey =
+              new Key(productId, slaBucket, usageBucket, billingProvider, billingAccountId);
+
+          HardwareMeasurementType hardwareMeasurementType =
+              getHardwareMeasurementType(
+                  getHostHardwareType(event.getHardwareType()),
+                  getCloudProviderAsString(event.getCloudProvider()));
+          event
+              .getMeasurements()
+              .forEach(
+                  m ->
+                      calc.addUsage(
+                          usageKey,
+                          hardwareMeasurementType,
+                          MetricId.fromString(m.getUom()),
+                          m.getValue()));
+        });
+  }
+
+  private Set<List<Object>> buildBucketTuples(Event event) {
     // We have multiple SubscriptionDefinitions that can have the same serviceType (OpenShift
     // Cluster).  The SLA and usage for these definitions should be the same (if defined), so we
     // need to collect them all, deduplicate, and then verify via MoreCollectors.toOptional that we
     // have only one or zero choices.
-    var subDefinitions = SubscriptionDefinition.findByServiceType(serviceType);
+    var subDefinitions = SubscriptionDefinition.findByServiceType(event.getServiceType());
     Optional<String> sla =
         subDefinitions.stream()
             .map(x -> x.getDefaults().getSla().toString())
@@ -308,41 +350,7 @@ public class MetricUsageCollectorV2 {
     Set<BillingProvider> billingProviders = Set.of(effectiveProvider, BillingProvider._ANY);
     Set<String> billingAccountIds = getBillingAccountIds(effectiveBillingAcctId);
 
-    Set<List<Object>> bucketTuples =
-        Sets.cartesianProduct(productIds, slas, usages, billingProviders, billingAccountIds);
-    bucketTuples.forEach(
-        tuple -> {
-          String productId = (String) tuple.get(0);
-          ServiceLevel slaBucket = (ServiceLevel) tuple.get(1);
-          Usage usageBucket = (Usage) tuple.get(2);
-          BillingProvider billingProvider = (BillingProvider) tuple.get(3);
-          String billingAccountId = (String) tuple.get(4);
-          HostTallyBucket bucket = new HostTallyBucket();
-          bucket.setKey(
-              new HostBucketKey(
-                  host,
-                  productId,
-                  slaBucket,
-                  usageBucket,
-                  billingProvider,
-                  billingAccountId,
-                  false));
-          host.addBucket(bucket);
-
-          // Update the account usage
-          Key usageKey =
-              new Key(productId, slaBucket, usageBucket, billingProvider, billingAccountId);
-          event
-              .getMeasurements()
-              .forEach(
-                  m -> {
-                    accountCalc.addUsage(
-                        usageKey,
-                        getHardwareMeasurementType(host),
-                        MetricId.fromString(m.getUom()),
-                        m.getValue());
-                  });
-        });
+    return Sets.cartesianProduct(productIds, slas, usages, billingProviders, billingAccountIds);
   }
 
   private Set<String> getProductIds(Event event) {

@@ -146,10 +146,11 @@ public class TallySnapshotController {
                 .findById(new TallyStateKey(orgId, serviceType))
                 .orElseGet(
                     () ->
-                        tallyStateRepository.save(new TallyState(orgId, serviceType, clock.now())));
+                        tallyStateRepository.save(
+                            new TallyState(orgId, serviceType, clock.startOfCurrentHour())));
 
-        boolean collect = true;
         Map<OffsetDateTime, AccountUsageCalculation> currentCalcs = new HashMap<>();
+        boolean collect = true;
         while (collect) {
           // If calculations exist, the hosts have been updated. Host updates are idempotent
           // but the calculations will still occur during a retry on error.
@@ -175,7 +176,6 @@ public class TallySnapshotController {
         }
 
         if (currentCalcs.isEmpty()) {
-          tallyStateRepository.saveInTransaction(currentState);
           continue;
         }
 
