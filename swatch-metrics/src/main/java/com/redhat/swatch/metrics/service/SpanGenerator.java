@@ -18,14 +18,28 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.metrics.service.task;
+package com.redhat.swatch.metrics.service;
 
-import com.redhat.swatch.metrics.model.MetricsTaskDescriptor;
-import io.quarkus.kafka.client.serialization.JsonbDeserializer;
+import jakarta.enterprise.context.ApplicationScoped;
+import java.util.UUID;
+import org.slf4j.MDC;
 
-/** Provides quarkus a hint that we want to use JSON-B to serialize MetricsTaskDescriptor objects */
-public class MetricsTaskDescriptorDeserializer extends JsonbDeserializer<MetricsTaskDescriptor> {
-  public MetricsTaskDescriptorDeserializer() {
-    super(MetricsTaskDescriptor.class);
+/**
+ * Utilities to generate a span identifier in a standard way. The generated span ID will be
+ * configured in MDC automatically.
+ */
+@ApplicationScoped
+public class SpanGenerator {
+  private static final String NAME = "metering-batch-id";
+
+  /**
+   * This method generates the span ID and puts it on MDC.
+   *
+   * @return the generated span ID.
+   */
+  public UUID generate() {
+    UUID spanId = UUID.randomUUID();
+    MDC.put(NAME, spanId.toString());
+    return spanId;
   }
 }

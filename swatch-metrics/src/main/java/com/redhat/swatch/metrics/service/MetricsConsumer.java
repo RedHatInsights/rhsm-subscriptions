@@ -22,8 +22,8 @@ package com.redhat.swatch.metrics.service;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.metrics.model.MetricsTaskDescriptor;
+import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -38,9 +38,14 @@ public class MetricsConsumer {
   private static final String START = "start";
   private static final String END = "end";
 
-  @Inject MeteringService service;
+  private final PrometheusMeteringController service;
+
+  public MetricsConsumer(PrometheusMeteringController service) {
+    this.service = service;
+  }
 
   @Incoming("tasks-in")
+  @Blocking
   public void process(MetricsTaskDescriptor task) {
     log.info(
         "Running {} {} metrics update task for orgId: {}",
