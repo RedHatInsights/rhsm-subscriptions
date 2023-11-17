@@ -87,7 +87,8 @@ public class ApiSecurityConfiguration {
         "/api-docs/**",
         "/webjars/**",
         "/**/*spec.yaml",
-        "/**/swagger-ui"
+        "/**/swagger-ui",
+        "/**/swagger-ui/index.html",
       };
 
   // NOTE: intentionally not annotated w/ @Bean; @Bean causes an extra use as an application filter
