@@ -105,6 +105,9 @@ public class RhMarketplacePayloadMapper {
     if (!isValid(billableUsage)) {
       log.warn("Skipping invalid billable usage {}", billableUsage);
       return null;
+    } else if (!isUsageRHMarketplaceEligible(billableUsage)) {
+      log.debug("Skipping billable usage due to another target marketplace {}", billableUsage);
+      return null;
     }
 
     OffsetDateTime snapshotDate = billableUsage.getSnapshotDate();
@@ -193,9 +196,7 @@ public class RhMarketplacePayloadMapper {
         && billableUsage.getBillingProvider() != null
         && billableUsage.getBillingAccountId() != null
         && billableUsage.getSnapshotDate() != null
-        && billableUsage.getId() != null
-        && isUsageRHMarketplaceEligible(billableUsage);
-  }
+        && billableUsage.getId() != null;
 
   public Stream<UsageRequest> createUsageRequests(TallySummary tallySummary) {
     return billableUsageMapper.fromTallySummary(tallySummary).map(this::createUsageRequest);
