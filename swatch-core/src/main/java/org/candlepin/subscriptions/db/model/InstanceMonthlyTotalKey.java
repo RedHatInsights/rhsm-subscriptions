@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.db.model;
 
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import java.io.Serializable;
@@ -27,7 +28,6 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.candlepin.subscriptions.util.MetricIdUtils;
 
 /** Key for instance monthly totals */
 @Data

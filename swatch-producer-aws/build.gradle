@@ -10,7 +10,6 @@ dependencies {
     implementation 'io.quarkus:quarkus-jsonb'
     implementation 'io.quarkus:quarkus-logging-json'
     implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
-    implementation 'io.quarkus:quarkus-openshift'
     implementation 'io.quarkus:quarkus-opentelemetry'
     implementation 'io.quarkus:quarkus-resteasy-reactive-jsonb'
     implementation 'io.quarkus:quarkus-smallrye-fault-tolerance'
@@ -68,17 +67,8 @@ tasks.openApiGenerate.inputs.file("../swatch-core/schemas/billable_usage.yaml")
 
 sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
 
-tasks.register('configureQuarkusBuild') {
-  doLast {
-    System.setProperty("quarkus.container-image.tag", project.getVersion().toString().replace("+", "_"))
-  }
-}
-
 tasks.register("wiremock", JavaExec) {
     description = "Run mock REST services for this service"
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "com.redhat.swatch.aws.test.wiremock.WiremockRunner"
 }
-
-quarkusDev.dependsOn(configureQuarkusBuild)
-quarkusBuild.dependsOn(configureQuarkusBuild)

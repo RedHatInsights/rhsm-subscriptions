@@ -25,10 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.util.HashMap;
 import java.util.Map;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
-import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.db;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -41,7 +42,6 @@ import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.resource.HostsResource;
 import org.candlepin.subscriptions.resource.InstancesResource;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
 import org.candlepin.subscriptions.utilization.api.model.InstanceReportSort;
 import org.junit.jupiter.api.AfterAll;

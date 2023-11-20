@@ -75,7 +75,7 @@
 #   accessed directly. (example: "foo.example.com,bar.example.com")
 #
 ###
-FROM registry.access.redhat.com/ubi9/openjdk-17:1.16
+FROM registry.access.redhat.com/ubi9/openjdk-17:1.17
 
 USER root
 # Add git, so that the build can determine the git hash
@@ -109,7 +109,7 @@ COPY buildSrc buildSrc
 COPY . .
 RUN ./gradlew assemble -x test
 
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.16-3
+FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.17-1
 
 ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en'
 
