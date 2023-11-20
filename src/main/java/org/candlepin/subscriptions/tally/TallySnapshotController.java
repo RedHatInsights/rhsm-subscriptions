@@ -24,7 +24,6 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.annotation.Timed;
 import java.time.OffsetDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -39,7 +38,6 @@ import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.TallyState;
 import org.candlepin.subscriptions.db.model.TallyStateKey;
 import org.candlepin.subscriptions.event.EventController;
-import org.candlepin.subscriptions.util.DateRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -142,39 +140,41 @@ public class TallySnapshotController {
                         tallyStateRepository.save(
                             new TallyState(orgId, serviceType, clock.startOfCurrentHour())));
 
-        Map<OffsetDateTime, AccountUsageCalculation> currentCalcs = new HashMap<>();
-        boolean collect = true;
-        while (collect) {
+        AccountUsageCalculationCache calcCache = new AccountUsageCalculationCache();
+        while (true) {
           // If calculations exist, the hosts have been updated. Host updates are idempotent
           // but the calculations will still occur during a retry on error.
-          collect =
-              retryTemplate.execute(
-                  context -> {
-                    List<EventRecord> events =
-                        eventController.fetchEventsInBatch(
-                            orgId,
-                            serviceType,
-                            currentState.getLatestEventRecordDate(),
-                            appProps.getHourlyTallyEventBatchSize());
-                    log.info("FOUND EVENTS: " + events.size());
-                    if (events.isEmpty()) {
-                      return false;
-                    }
+          List<EventRecord> events =
+              eventController.fetchEventsInBatch(
+                  orgId,
+                  serviceType,
+                  currentState.getLatestEventRecordDate(),
+                  appProps.getHourlyTallyEventBatchSize());
 
-                    metricUsageCollectorV2.updateHosts(orgId, serviceType, events);
-                    metricUsageCollectorV2.calculateUsage(events, currentCalcs);
-                    currentState.setLatestEventRecordDate(
-                        events.get(events.size() - 1).getRecordDate());
-                    return true;
-                  });
+          if (events.isEmpty()) {
+            break;
+          }
+
+          retryTemplate.execute(
+              context -> {
+                log.info("FOUND EVENTS: " + events.size());
+                // TODO Do not want to deserialize the Events in each call.
+                // TODO Hosts need a eventRecordDate in order to tell if the
+                //      Event was already applied.
+                metricUsageCollectorV2.updateHosts(orgId, serviceType, events);
+                metricUsageCollectorV2.calculateUsage(events, calcCache);
+                currentState.setLatestEventRecordDate(
+                    events.get(events.size() - 1).getRecordDate());
+                return null;
+              });
         }
 
-        if (currentCalcs.isEmpty()) {
+        if (calcCache.isEmpty()) {
           continue;
         }
 
         var applicableUsageCalculations =
-            currentCalcs.entrySet().stream()
+            calcCache.getCalculations().entrySet().stream()
                 .filter(this::isCombiningRollupStrategySupported)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
@@ -188,13 +188,13 @@ public class TallySnapshotController {
         Map<String, List<TallySnapshot>> totalSnapshots =
             combiningRollupSnapshotStrategy.produceSnapshotsFromCalculations(
                 orgId,
-                getDateRangeFromResult(currentCalcs),
+                calcCache.getCalculationRange(),
                 tags,
                 applicableUsageCalculations,
                 Granularity.HOURLY,
                 Double::sum);
 
-        tallyStateRepository.saveInTransaction(currentState);
+        tallyStateRepository.update(currentState);
         summaryProducer.produceTallySummaryMessages(totalSnapshots);
         log.info("Finished producing hourly snapshots for orgId {}", orgId);
       } catch (Exception e) {
@@ -220,17 +220,5 @@ public class TallySnapshotController {
           return null;
         });
     return usageCollector.tally(orgId);
-  }
-
-  private DateRange getDateRangeFromResult(Map<OffsetDateTime, AccountUsageCalculation> calcs) {
-    OffsetDateTime effectiveStart =
-        calcs.keySet().stream().min(OffsetDateTime::compareTo).orElseThrow();
-
-    OffsetDateTime effectiveEnd =
-        calcs.keySet().stream().max(OffsetDateTime::compareTo).orElseThrow();
-
-    // During a tally, the end date is not included in the overall existing tally
-    // query, therefor we need the range to end 1h after the last calculation.
-    return new DateRange(effectiveStart, effectiveEnd.plusHours(1));
   }
 }

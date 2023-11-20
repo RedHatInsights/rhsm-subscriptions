@@ -25,12 +25,11 @@ import com.google.common.collect.Sets;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
-import java.time.OffsetDateTime;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -45,7 +44,6 @@ import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
-import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Propagation;
@@ -104,17 +102,22 @@ public class MetricUsageCollectorV2 {
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public void calculateUsage(
-      List<EventRecord> events, Map<OffsetDateTime, AccountUsageCalculation> calcCache) {
+  public void calculateUsage(List<EventRecord> events, AccountUsageCalculationCache calcCache) {
     events.forEach(
         eventRecord -> {
+          if (calcCache.isEventApplied(eventRecord)) {
+            return;
+          }
+
           // Rebuild the account calculation for this Event's timestamp.
           Event event = eventRecord.getEvent();
           AccountUsageCalculation calc =
-              calcCache.getOrDefault(event.getTimestamp(), loadHourlyAccountCalculation(event));
+              calcCache.contains(event)
+                  ? calcCache.get(event)
+                  : loadHourlyAccountCalculation(event);
 
           updateUsage(calc, event);
-          calcCache.put(event.getTimestamp(), calc);
+          calcCache.put(eventRecord, calc);
         });
   }
 
@@ -451,10 +454,4 @@ public class MetricUsageCollectorV2 {
         });
     return calc;
   }
-
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public void updateHosts(List<EventRecord> events) {}
-
-  public void collectMetrics(
-      List<EventRecord> events, Map<OffsetDateTime, AccountUsageCalculation> currentCalcs) {}
 }

@@ -28,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public interface TallyStateRepository extends JpaRepository<TallyState, TallyStateKey> {
 
   @Transactional
-  default TallyState saveInTransaction(TallyState state) {
+  default TallyState update(TallyState state) {
     return save(state);
   }
 }
