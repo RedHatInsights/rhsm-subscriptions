@@ -57,7 +57,7 @@ public class TallySnapshotController {
   private final InventoryAccountUsageCollector usageCollector;
   private final EventController eventController;
   private final MetricUsageCollector metricUsageCollector;
-  private final MetricUsageCollectorV2 metricUsageCollectorV2;
+  private final MetricUsageCollector metricUsageCollectorV2;
   private final MaxSeenSnapshotStrategy maxSeenSnapshotStrategy;
   private final CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy;
   private final RetryTemplate retryTemplate;
@@ -73,7 +73,7 @@ public class TallySnapshotController {
       MaxSeenSnapshotStrategy maxSeenSnapshotStrategy,
       @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
       MetricUsageCollector metricUsageCollector,
-      MetricUsageCollectorV2 metricUsageCollectorV2,
+      MetricUsageCollector metricUsageCollectorV2,
       CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy,
       SnapshotSummaryProducer summaryProducer,
       TallyStateRepository tallyStateRepository,

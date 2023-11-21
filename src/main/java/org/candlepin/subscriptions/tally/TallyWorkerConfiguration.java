@@ -32,7 +32,6 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
-import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.product.ProductConfiguration;
@@ -155,20 +154,10 @@ public class TallyWorkerConfiguration {
   @Bean
   public MetricUsageCollector metricUsageCollector(
       AccountServiceInventoryRepository accountServiceInventoryRepository,
-      EventController eventController,
-      ApplicationClock clock,
-      HostRepository hostRepository) {
-    return new MetricUsageCollector(
-        accountServiceInventoryRepository, eventController, clock, hostRepository);
-  }
-
-  @Bean
-  public MetricUsageCollectorV2 metricUsageCollectorV2(
-      AccountServiceInventoryRepository accountServiceInventoryRepository,
       ApplicationClock clock,
       HostRepository hostRepository,
       TallySnapshotRepository tallySnapshotRepository) {
-    return new MetricUsageCollectorV2(
+    return new MetricUsageCollector(
         accountServiceInventoryRepository, clock, hostRepository, tallySnapshotRepository);
   }
 
