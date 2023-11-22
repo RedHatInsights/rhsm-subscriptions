@@ -57,7 +57,6 @@ public class TallySnapshotController {
   private final InventoryAccountUsageCollector usageCollector;
   private final EventController eventController;
   private final MetricUsageCollector metricUsageCollector;
-  private final MetricUsageCollector metricUsageCollectorV2;
   private final MaxSeenSnapshotStrategy maxSeenSnapshotStrategy;
   private final CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy;
   private final RetryTemplate retryTemplate;
@@ -73,7 +72,6 @@ public class TallySnapshotController {
       MaxSeenSnapshotStrategy maxSeenSnapshotStrategy,
       @Qualifier("collectorRetryTemplate") RetryTemplate retryTemplate,
       MetricUsageCollector metricUsageCollector,
-      MetricUsageCollector metricUsageCollectorV2,
       CombiningRollupSnapshotStrategy combiningRollupSnapshotStrategy,
       SnapshotSummaryProducer summaryProducer,
       TallyStateRepository tallyStateRepository,
@@ -84,7 +82,6 @@ public class TallySnapshotController {
     this.maxSeenSnapshotStrategy = maxSeenSnapshotStrategy;
     this.retryTemplate = retryTemplate;
     this.metricUsageCollector = metricUsageCollector;
-    this.metricUsageCollectorV2 = metricUsageCollectorV2;
     this.combiningRollupSnapshotStrategy = combiningRollupSnapshotStrategy;
     this.summaryProducer = summaryProducer;
     this.tallyStateRepository = tallyStateRepository;
@@ -161,8 +158,8 @@ public class TallySnapshotController {
                 // TODO Do not want to deserialize the Events in each call.
                 // TODO Hosts need a eventRecordDate in order to tell if the
                 //      Event was already applied.
-                metricUsageCollectorV2.updateHosts(orgId, serviceType, events);
-                metricUsageCollectorV2.calculateUsage(events, calcCache);
+                metricUsageCollector.updateHosts(orgId, serviceType, events);
+                metricUsageCollector.calculateUsage(events, calcCache);
                 currentState.setLatestEventRecordDate(
                     events.get(events.size() - 1).getRecordDate());
                 return null;
