@@ -8,8 +8,6 @@
 # result in an exception at start-up when the clowder property cannot be successfully resolved.
 # The values can still be overridden using environment variables as they have a higher precedence
 # than the defaults defined here.
-KAFKA_BOOTSTRAP_HOST: ${clowder.kafka.brokers[0].hostname:localhost}
-KAFKA_BOOTSTRAP_PORT: ${clowder.kafka.brokers[0].port:9092}
 KAFKA_USERNAME: ${clowder.kafka.brokers[0].sasl.username:}
 KAFKA_PASSWORD: ${clowder.kafka.brokers[0].sasl.password:}
 KAFKA_SASL_PROTOCOL: ${clowder.kafka.brokers[0].sasl.securityProtocol:}
@@ -110,7 +108,7 @@ spring:
   liquibase:
     change-log: classpath:/liquibase/changelog.xml
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_HOST}:${KAFKA_BOOTSTRAP_PORT}
+    bootstrap-servers: ${clowder.kafka.brokers:localhost:9092}
     listener:
       # The number of threads that will be processing messages (should match
       # the number of partitions on the queue)

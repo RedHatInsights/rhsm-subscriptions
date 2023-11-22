@@ -17,7 +17,7 @@ spring:
       - rh-marketplace
       - kafka-queue
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_HOST}:${KAFKA_BOOTSTRAP_PORT}
+    bootstrap-servers: ${clowder.kafka.brokers:localhost:9092}
     listener:
       # The number of threads that will be processing messages (should match
       # the number of partitions on the queue)

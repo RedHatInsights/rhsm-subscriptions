@@ -31,12 +31,14 @@ import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.commons.logging.Log;
 import org.springframework.boot.origin.Origin;
 import org.springframework.boot.origin.OriginLookup;
@@ -58,6 +60,7 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
 
   public static final String PROPERTY_SOURCE_NAME = "Clowder JSON";
   public static final String PREFIX = "clowder.";
+  private static final String KAFKA_BROKERS = "kafka.brokers";
 
   private static final String SERVLET_ENVIRONMENT_CLASS =
       "org.springframework.web.context.support.StandardServletEnvironment";
@@ -96,7 +99,15 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
     if (!name.startsWith(PREFIX)) {
       return null;
     }
-    return getJsonPathValue(name.substring(PREFIX.length()));
+
+    Object value = getJsonPathValue(name.substring(PREFIX.length()));
+
+    // handling for special properties like kafka brokers
+    if (name.endsWith(KAFKA_BROKERS)) {
+      return getKafkaBootstrapServersFromBrokerConfig(value);
+    }
+
+    return value;
   }
 
   protected Object getJsonPathValue(String path) {
@@ -272,5 +283,22 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
       }
     }
     return StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME;
+  }
+
+  @SuppressWarnings("unchecked")
+  private Object getKafkaBootstrapServersFromBrokerConfig(Object value) {
+    if (value instanceof Collection<?> list) {
+      if (list.isEmpty()) {
+        return null;
+      }
+
+      return list.stream()
+          .map(o -> (Map<String, Object>) o)
+          .map(m -> m.get("hostname") + ":" + m.get("port"))
+          .collect(Collectors.joining(","));
+    } else {
+      throw new IllegalStateException(
+          "Unknown type found in clowder configuration for bootstrap servers");
+    }
   }
 }

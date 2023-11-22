@@ -31,7 +31,19 @@
         "brokers": [
             {
                 "hostname": "env-rhsm-kafka.rhsm.svc",
-                "port": 29092
+                "port": 29092,
+                "cacert": "Dummy value",
+                "authtype": "sasl",
+                "sasl": {
+                    "username": "john",
+                    "password": "doe",
+                    "securityProtocol":"SASL_SSL",
+                    "saslMechanism":"PLAIN"
+                }
+            },
+            {
+                "hostname": "env-rhsm-kafka-secondary.rhsm.svc",
+                "port": 29093
             }
         ],
         "topics": [

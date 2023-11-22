@@ -243,6 +243,22 @@ class ClowderJsonPathPropertySourceTest {
     testServletPropertySource(StandardServletEnvironment.SERVLET_CONFIG_PROPERTY_SOURCE_NAME);
   }
 
+  @Test
+  void testKafkaBrokersProperty() throws Exception {
+    var source = new ClowderJsonPathPropertySource(jsonFromResource(TEST_CLOWDER_CONFIG_JSON));
+    var result = source.getProperty("clowder.kafka.brokers");
+    assertEquals("env-rhsm-kafka.rhsm.svc:29092,env-rhsm-kafka-secondary.rhsm.svc:29093", result);
+  }
+
+  @Test
+  void testKafkaBrokersPropertyWhenNoBrokersConfiguration() throws Exception {
+    var source =
+        new ClowderJsonPathPropertySource(
+            jsonFromResource("classpath:/test-clowder-config-without-brokers.json"));
+    var result = source.getProperty("clowder.kafka.brokers");
+    assertNull(result);
+  }
+
   private void testServletPropertySource(String servletContextPropertySourceName) throws Exception {
     environment
         .getPropertySources()
