@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.tally.roller;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -38,7 +39,6 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Totals;
-import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.springframework.data.domain.PageRequest;
 
 /** Since the roller tests are very similar, this class provides some common test scenarios. */

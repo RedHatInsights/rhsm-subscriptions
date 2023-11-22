@@ -22,12 +22,12 @@ ext.plugins = [
         "com.adarshr:gradle-test-logger-plugin:4.0.0",
         "com.diffplug.spotless:spotless-plugin-gradle:6.22.0",
         "com.netflix.nebula:nebula-release-plugin:18.0.4",
-        "io.quarkus:gradle-application-plugin:3.5.1",
+        "io.quarkus:gradle-application-plugin:3.5.2",
         // swagger-parser manually upgraded for compatibility with snakeyaml 2.0
         // see https://github.com/OpenAPITools/openapi-generator/issues/15876
         "io.swagger.parser.v3:swagger-parser:2.1.18",
         "org.jsonschema2pojo:jsonschema2pojo-gradle-plugin:1.2.1",
-        "org.liquibase:liquibase-gradle-plugin:2.2.0",
+        "org.liquibase:liquibase-gradle-plugin:2.2.1",
         "org.kordamp.gradle:jandex-gradle-plugin:1.1.0",
         "org.openapitools:openapi-generator-gradle-plugin:7.1.0",
         "org.springframework.boot:spring-boot-gradle-plugin:3.1.5",
@@ -35,12 +35,12 @@ ext.plugins = [
 ]
 
 // BOMs
-libraries["quarkus-bom"] = "io.quarkus.platform:quarkus-bom:3.5.1"
+libraries["quarkus-bom"] = "io.quarkus.platform:quarkus-bom:3.5.2"
 libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-dependencies:3.1.5"
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:2.1.1"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.21.21"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.21.26"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.0.0"
 libraries["guava"] = "com.google.guava:guava:32.1.3-jre"
 libraries["hamcrest-all"] = "org.hamcrest:hamcrest-all:1.3"
@@ -60,7 +60,7 @@ libraries["quarkus-logging-logback"] = "io.quarkiverse.logging.logback:quarkus-l
 libraries["quarkus-logging-splunk"] = "io.quarkiverse.logging.splunk:quarkus-logging-splunk:3.1.0"
 libraries["resilience4j-spring-boot2"] = "io.github.resilience4j:resilience4j-spring-boot2:2.1.0"
 libraries["resteasy-jackson2-provider"] = "org.jboss.resteasy:resteasy-jackson2-provider:6.2.6.Final"
-libraries["jackson-annotations"] = "com.fasterxml.jackson.core:jackson-annotations:2.15.3"
+libraries["jackson-annotations"] = "com.fasterxml.jackson.core:jackson-annotations:2.16.0"
 libraries["jakarta-validation-api"] = "jakarta.validation:jakarta.validation-api:3.0.2"
 libraries["resteasy-client"] = "org.jboss.resteasy:resteasy-client:6.2.6.Final"
 libraries["resteasy-multipart-provider"] = "org.jboss.resteasy:resteasy-multipart-provider:6.2.6.Final"
@@ -73,4 +73,4 @@ libraries["webjars-locator"] = "org.webjars:webjars-locator:0.48"
 libraries["wiremock"] = "com.github.tomakehurst:wiremock-standalone:3.0.1"
 libraries["awaitility"] = "org.awaitility:awaitility:4.2.0"
 libraries["splunk-otel-agent"] = 'com.splunk:splunk-otel-javaagent:1.29.1'
-libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.19.1'
+libraries["testcontainers-postgresql"] = 'org.testcontainers:postgresql:1.19.2'

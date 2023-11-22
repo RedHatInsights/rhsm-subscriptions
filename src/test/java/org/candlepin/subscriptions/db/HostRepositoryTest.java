@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.db;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -41,7 +42,6 @@ import org.candlepin.subscriptions.db.model.*;
 import org.candlepin.subscriptions.resource.HostsResource;
 import org.candlepin.subscriptions.resource.InstancesResource;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
 import org.candlepin.subscriptions.utilization.api.model.InstanceReportSort;
 import org.junit.jupiter.api.AfterAll;
@@ -434,36 +434,6 @@ class HostRepositoryTest {
         repo.getTallyHostViews(
             "ORG_account4", null, null, null, null, null, null, 0, 0, PageRequest.of(0, 10));
     assertEquals(0, hosts.stream().count());
-  }
-
-  @Transactional
-  @Test
-  void testReturnsGuestsOfHypervisor() {
-    String account = "hostGuestTest";
-    String uuid = UUID.randomUUID().toString();
-
-    Host hypervisor = createHost("hypervisor", account);
-    hypervisor.setSubscriptionManagerId(uuid);
-    addBucketToHost(hypervisor, "RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION);
-
-    Host guest = createHost("guest", account);
-    guest.setGuest(true);
-    guest.setHypervisorUuid(uuid);
-    addBucketToHost(guest, "RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION);
-
-    Host unmappedGuest = createHost("unmappedGuest", account);
-    unmappedGuest.setGuest(true);
-    addBucketToHost(unmappedGuest, "RHEL", ServiceLevel.PREMIUM, Usage.PRODUCTION);
-
-    List<Host> toSave = Arrays.asList(hypervisor, guest, unmappedGuest);
-    toSave.forEach(x -> x.setDisplayName(DEFAULT_DISPLAY_NAME));
-    persistHosts(toSave.toArray(new Host[] {}));
-
-    Page<Host> guests = repo.getHostsByHypervisor("ORG_" + account, uuid, PageRequest.of(0, 10));
-    assertEquals(1, guests.getTotalElements());
-    assertEquals(uuid, guests.getContent().get(0).getHypervisorUuid());
-    assertEquals("guest", guests.getContent().get(0).getInventoryId());
-    assertEquals("INSIGHTS_guest", guests.getContent().get(0).getInsightsId());
   }
 
   @Transactional

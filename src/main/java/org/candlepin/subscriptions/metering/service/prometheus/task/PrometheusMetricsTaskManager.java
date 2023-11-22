@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.metering.service.prometheus.task;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.stream.Stream;
@@ -33,7 +34,6 @@ import org.candlepin.subscriptions.task.TaskDescriptor.TaskDescriptorBuilder;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
-import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

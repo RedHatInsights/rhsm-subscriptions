@@ -26,6 +26,10 @@ objects:
         port: 8000
         privatePort: 8080
         mode: operator
+        # enable envoy sidecar to handle https connections
+        tls:
+          enabled: true
+          port: 8800
 
       # provides a prometheus metrics port on 9000
       metrics:

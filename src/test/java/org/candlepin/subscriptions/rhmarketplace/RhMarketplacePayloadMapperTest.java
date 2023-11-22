@@ -28,19 +28,20 @@ import static org.mockito.Mockito.*;
 import com.redhat.swatch.clients.internal.subscriptions.api.client.ApiException;
 import com.redhat.swatch.clients.internal.subscriptions.api.model.RhmUsageContext;
 import com.redhat.swatch.clients.internal.subscriptions.api.resources.InternalSubscriptionsApi;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
+import lombok.Getter;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
 import org.candlepin.subscriptions.json.BillableUsage.Sla;
 import org.candlepin.subscriptions.json.BillableUsage.Usage;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageMeasurement;
-import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -218,7 +219,7 @@ class RhMarketplacePayloadMapperTest {
                 .withBillingProvider(BillingProvider.GCP),
             false);
 
-    Arguments notEligableDefaultBillableUsage = Arguments.of(new BillableUsage(), false);
+    Arguments notEligibleDefaultBillableUsage = Arguments.of(new BillableUsage(), false);
 
     return Stream.of(
         eligibleRedHatBillingProvider,
@@ -227,7 +228,7 @@ class RhMarketplacePayloadMapperTest {
         notEligibleAzureBillingProvider,
         notEligibleOracleBillingProvider,
         notEligibleGcpBillingProvider,
-        notEligableDefaultBillableUsage);
+        notEligibleDefaultBillableUsage);
   }
 
   @Test
@@ -268,7 +269,8 @@ class RhMarketplacePayloadMapperTest {
    * A retry test support class that will increment a counter whenever an error occurs and the retry
    * logic is run.
    */
-  private class RetryTestSupport implements RetryListener {
+  @Getter
+  private static class RetryTestSupport implements RetryListener {
 
     private int retryCount = 0;
 
@@ -276,10 +278,6 @@ class RhMarketplacePayloadMapperTest {
     public <T, E extends Throwable> void onError(
         RetryContext context, RetryCallback<T, E> callback, Throwable throwable) {
       retryCount++;
-    }
-
-    public int getRetryCount() {
-      return retryCount;
     }
   }
 }

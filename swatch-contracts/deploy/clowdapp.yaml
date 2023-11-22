@@ -68,6 +68,7 @@ objects:
         sharedDbAppName: swatch-tally
       dependencies:
         - swatch-tally
+        - swatch-subscription-sync
 
       # Creates a database if local mode, or uses RDS in production
       # database:
