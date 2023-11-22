@@ -30,6 +30,7 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
@@ -51,9 +52,11 @@ import org.candlepin.subscriptions.utilization.api.model.SubscriptionEventType;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
@@ -62,6 +65,7 @@ import org.springframework.test.context.ActiveProfiles;
 class SubscriptionTableControllerOnDemandTest {
 
   private static final ProductId RHOSAK = ProductId.fromString("rhosak");
+  private static final ProductId RHEL_x86_ELS_PAYG = ProductId.fromString("rhel-for-x86-els-payg");
   private static final String OFFERING_DESCRIPTION_SUFFIX = " test description";
 
   @MockBean SubscriptionRepository subscriptionRepository;
@@ -108,6 +112,17 @@ class SubscriptionTableControllerOnDemandTest {
           ServiceLevel.STANDARD,
           Usage.DEVELOPMENT_TEST,
           false);
+  private static final SubCapSpec RH02781HR =
+      SubCapSpec.offering(
+          "RH02781HR",
+          "RHEL Server",
+          2,
+          null,
+          null,
+          null,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          true);
 
   private enum Org {
     STANDARD("711497");
@@ -419,6 +434,34 @@ class SubscriptionTableControllerOnDemandTest {
         reportForMatchingUsage.getData().stream().map(SkuCapacity::getBillingProvider).toList();
     assertTrue(billingProvidersReturned.contains(BillingProviderType.AWS));
     assertTrue(billingProvidersReturned.contains(BillingProviderType.RED_HAT));
+  }
+
+  @Test
+  void testGetSkuCapacityReportWithBillingProvider() {
+    Sub expectedSub = Sub.sub("1234", RH02781HR.sku, "1235", 1, BillingProvider.AWS, 6, 6);
+
+    List<Subscription> givenSubs = givenSubscriptions(Org.STANDARD, RH02781HR.withSub(expectedSub));
+
+    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(givenSubs);
+
+    when(subscriptionRepository.findAll(Mockito.<Specification<Subscription>>any()))
+        .thenReturn(givenSubs);
+
+    when(offeringRepository.findBySkuIn(Set.of(RH02781HR.sku)))
+        .thenReturn(List.of(givenSubs.get(0).getOffering()));
+
+    // When requesting a SKU capacity report for the eng product,
+    SkuCapacityReport actual =
+        subscriptionTableController.capacityReportBySku(
+            RHEL_x86_ELS_PAYG, null, null, null, null, null, null, null, null, null, null);
+
+    // Then the report contains a single inventory item containing the sub and HasInfiniteQuantity
+    // should be true.
+    assertEquals(1, actual.getData().size(), "Wrong number of items returned");
+    SkuCapacity actualItem = actual.getData().get(0);
+    assertTrue(actualItem.getHasInfiniteQuantity(), "HasInfiniteQuantity should be true");
+    assertEquals(actualItem.getSku() + OFFERING_DESCRIPTION_SUFFIX, actualItem.getProductName());
+    assertEquals("aws", actual.getData().get(0).getBillingProvider().toString());
   }
 
   private static void assertSubscription(Sub expectedSub, SkuCapacitySubscription actual) {

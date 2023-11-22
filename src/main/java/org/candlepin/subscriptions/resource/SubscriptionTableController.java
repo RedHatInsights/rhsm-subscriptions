@@ -197,6 +197,11 @@ public class SubscriptionTableController {
             var value = entry.getValue();
             addTotalCapacity(subscription, measurementKey, value, inventory);
           });
+      var billingProvider =
+          Optional.ofNullable(subscription.getBillingProvider())
+              .orElse(BillingProvider.EMPTY)
+              .asOpenApiEnum();
+      inventory.setBillingProvider(billingProvider);
     }
 
     for (Subscription subscription : unlimitedSubs) {
