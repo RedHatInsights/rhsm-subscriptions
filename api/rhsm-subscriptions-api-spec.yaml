@@ -1200,7 +1200,7 @@ components:
             count:
               type: integer
             total_monthly:
-              $ref: "#/components/schemas/TallyReportDataPoint"
+              $ref: "#/components/schemas/TallyReportTotalMonthly"
             product:
               type: string
             metric_id:
@@ -1230,6 +1230,21 @@ components:
           description: "The date for this datapoint."
           type: string
           format: date-time
+        value:
+          type: integer
+          format: int32
+        has_data:
+          type: boolean
+    TallyReportTotalMonthly:
+      description: "Tally report monthly summary."
+      required:
+        - value
+      properties:
+        date:
+          description: "Date of the tally report."
+          type: string
+          format: date-time
+          nullable: true
         value:
           type: integer
           format: int32
