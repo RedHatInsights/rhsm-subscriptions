@@ -36,18 +36,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.HypervisorReportCategory;
-import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.DbReportCriteria;
-import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey;
@@ -64,19 +60,14 @@ public class SubscriptionTableController {
 
   private static final String CORES = "Cores";
   private static final String SOCKETS = "Sockets";
-  private static final BillingProvider NO_BILLING_PROVIDER = null;
   private static final Uom NO_UOM = null;
   private final SubscriptionRepository subscriptionRepository;
-  private final OfferingRepository offeringRepository;
   private final ApplicationClock clock;
 
   @Autowired
   SubscriptionTableController(
-      SubscriptionRepository subscriptionRepository,
-      OfferingRepository offeringRepository,
-      ApplicationClock clock) {
+      SubscriptionRepository subscriptionRepository, ApplicationClock clock) {
     this.subscriptionRepository = subscriptionRepository;
-    this.offeringRepository = offeringRepository;
     this.clock = clock;
   }
 
@@ -108,7 +99,7 @@ public class SubscriptionTableController {
     ServiceLevel sanitizedServiceLevel = sanitizeServiceLevel(serviceLevel);
     Usage sanitizedUsage = sanitizeUsage(usage);
     BillingProvider sanitizedBillingProvider = sanitizeBillingProvider(billingProviderType);
-    String sanitiziedBillingAccountId = sanitizeBillingAccountId(billingAccountId);
+    String sanitizedBillingAccountId = sanitizeBillingAccountId(billingAccountId);
     HypervisorReportCategory hypervisorReportCategory =
         HypervisorReportCategory.mapCategory(category);
 
@@ -152,23 +143,12 @@ public class SubscriptionTableController {
     var subscriptionSpec = SubscriptionRepository.buildSearchSpecification(reportCriteria);
     var subscriptions = subscriptionRepository.findAll(subscriptionSpec);
     List<Subscription> unlimitedSubs = subscriptionRepository.findUnlimited(reportCriteria);
-
-    var skus =
-        subscriptions.stream()
-            .filter(x -> Objects.nonNull(x.getOffering()))
-            .map(x -> x.getOffering().getSku())
-            .collect(Collectors.toCollection(HashSet::new));
-    skus.addAll(
-        unlimitedSubs.stream()
-            .filter(x -> Objects.nonNull(x.getOffering()))
-            .map(x -> x.getOffering().getSku())
-            .collect(Collectors.toSet()));
-
-    Map<String, SkuCapacity> inventories = initializeDefaultSkuCapacities(skus, uom);
+    Map<String, SkuCapacity> reportItemsBySku = new HashMap<>();
 
     for (Subscription subscription : subscriptions) {
-
-      SkuCapacity inventory = inventories.get(subscription.getOffering().getSku());
+      SkuCapacity inventory =
+          reportItemsBySku.computeIfAbsent(
+              subscription.getOffering().getSku(), s -> initializeSkuCapacity(subscription, uom));
       calculateNextEvent(subscription, inventory, reportEnd);
       addSubscriptionInformation(subscription, inventory);
       var measurements = subscription.getSubscriptionMeasurements().entrySet().stream();
@@ -197,25 +177,19 @@ public class SubscriptionTableController {
             var value = entry.getValue();
             addTotalCapacity(subscription, measurementKey, value, inventory);
           });
-      var billingProvider =
-          Optional.ofNullable(subscription.getBillingProvider())
-              .orElse(BillingProvider.EMPTY)
-              .asOpenApiEnum();
-      inventory.setBillingProvider(billingProvider);
     }
 
     for (Subscription subscription : unlimitedSubs) {
-
       if (subscription.getOffering() != null) {
-        SkuCapacity inventory = inventories.get(subscription.getOffering().getSku());
+        SkuCapacity inventory =
+            reportItemsBySku.computeIfAbsent(
+                subscription.getOffering().getSku(), s -> initializeSkuCapacity(subscription, uom));
 
         inventory.setHasInfiniteQuantity(true);
         calculateNextEvent(subscription, inventory, reportCriteria.getEnding());
         addSubscriptionInformation(subscription, inventory);
       }
     }
-
-    List<SkuCapacity> reportItems = new ArrayList<>(inventories.values());
 
     boolean isOnDemand =
         SubscriptionDefinition.lookupSubscriptionByTag(productId.toString())
@@ -227,6 +201,7 @@ public class SubscriptionTableController {
     SubscriptionType subscriptionType =
         isOnDemand ? SubscriptionType.ON_DEMAND : SubscriptionType.ANNUAL;
 
+    List<SkuCapacity> reportItems = new ArrayList<>(reportItemsBySku.values());
     if (isOnDemand && reportItems.isEmpty()) {
       reportItems.addAll(
           getOnDemandSkuCapacities(
@@ -234,7 +209,7 @@ public class SubscriptionTableController {
               sanitizedServiceLevel,
               sanitizedUsage,
               sanitizedBillingProvider,
-              sanitiziedBillingAccountId,
+              sanitizedBillingAccountId,
               reportStart,
               reportEnd));
     }
@@ -258,16 +233,6 @@ public class SubscriptionTableController {
                 .uom(uom)
                 .reportCategory(category)
                 .product(productId.toString()));
-  }
-
-  private Map<String, SkuCapacity> initializeDefaultSkuCapacities(Set<String> skus, Uom uom) {
-    Map<String, SkuCapacity> capacityTemplates = new HashMap<>();
-    for (Offering offering : offeringRepository.findBySkuIn(skus)) {
-      // No information specific to an engineering product within an offering is added.
-      var inventory = initializeSkuCapacity(offering, NO_BILLING_PROVIDER, uom);
-      capacityTemplates.put(offering.getSku(), inventory);
-    }
-    return capacityTemplates;
   }
 
   private List<SkuCapacity> paginate(List<SkuCapacity> capacities, Pageable pageable) {
@@ -318,15 +283,14 @@ public class SubscriptionTableController {
           final SkuCapacity inventory =
               inventories.computeIfAbsent(
                   String.format("%s:%s", sku, sub.getBillingProvider()),
-                  key ->
-                      initializeSkuCapacity(sub.getOffering(), sub.getBillingProvider(), NO_UOM));
+                  key -> initializeSkuCapacity(sub, NO_UOM));
           addOnDemandSubscriptionInformation(sub, inventory);
         });
     return inventories.values();
   }
 
-  public SkuCapacity initializeSkuCapacity(
-      @Nonnull Offering offering, @Nullable BillingProvider billingProvider, @Nullable Uom uom) {
+  public SkuCapacity initializeSkuCapacity(@Nonnull Subscription sub, @Nullable Uom uom) {
+    var offering = sub.getOffering();
     var inventory = new SkuCapacity();
     inventory.setSubscriptions(new ArrayList<>());
     inventory.setSku(offering.getSku());
@@ -337,7 +301,9 @@ public class SubscriptionTableController {
         Optional.ofNullable(offering.getUsage()).orElse(Usage.EMPTY).asOpenApiEnum());
     inventory.setHasInfiniteQuantity(offering.getHasUnlimitedUsage());
     inventory.setBillingProvider(
-        Optional.ofNullable(billingProvider).orElse(BillingProvider.EMPTY).asOpenApiEnum());
+        Optional.ofNullable(sub.getBillingProvider())
+            .orElse(BillingProvider.EMPTY)
+            .asOpenApiEnum());
     inventory.setQuantity(0);
     inventory.setCapacity(0);
     inventory.setHypervisorCapacity(0);
