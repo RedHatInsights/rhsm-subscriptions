@@ -26,6 +26,7 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -92,8 +93,22 @@ public class MetricUsageCollector {
     for (EventRecord eventRecord : events) {
       Host host = hostsByInstanceId.getOrDefault(eventRecord.getInstanceId(), new Host());
 
+      // Determine if the Event has already been applied to this host and skip it if it is.
+      // This is important in the case that we attempt to apply the same Event multiple times.
+      log.info(
+          "HOST [{}]: {} EVENT: {}",
+          host.getInstanceId(),
+          host.getLastAppliedEventRecordDate(),
+          eventRecord.getRecordDate());
+      if (Objects.nonNull(host.getLastAppliedEventRecordDate())
+          && (host.getLastAppliedEventRecordDate().equals(eventRecord.getRecordDate())
+              || host.getLastAppliedEventRecordDate().isAfter(eventRecord.getRecordDate()))) {
+        log.info("Skipping host update...");
+        continue;
+      }
+
       Event event = eventRecord.getEvent();
-      updateInstanceFromEvent(event, host);
+      updateInstanceFromEvent(eventRecord.getRecordDate(), event, host);
       cleanUpHostMeasurements(host, event);
       hostsByInstanceId.put(host.getInstanceId(), host);
 
@@ -121,13 +136,14 @@ public class MetricUsageCollector {
         });
   }
 
-  private void updateInstanceFromEvent(Event event, Host instance) {
+  private void updateInstanceFromEvent(OffsetDateTime eventRecordDate, Event event, Host instance) {
     // fields that we expect to always be present
     instance.setOrgId(event.getOrgId());
     instance.setInstanceType(event.getServiceType());
     instance.setInstanceId(event.getInstanceId());
     instance.setDisplayName(event.getInstanceId()); // may be overridden later
     instance.setGuest(instance.getHardwareType() == HostHardwareType.VIRTUALIZED);
+    instance.setLastAppliedEventRecordDate(eventRecordDate);
 
     // fields that are optional, see update/updateWithTransform method javadocs
     update(instance::setBillingAccountId, event.getBillingAccountId());

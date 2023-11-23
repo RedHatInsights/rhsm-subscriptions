@@ -144,6 +144,13 @@ public class Host implements Serializable {
   @Column(name = "billing_account_id")
   private String billingAccountId;
 
+  /**
+   * Used to track the last Event that was applied to the monthly totals. The expected value will be
+   * Event.recordDate.
+   */
+  @Column(name = "last_applied_event_record_date")
+  private OffsetDateTime lastAppliedEventRecordDate;
+
   public Host() {}
 
   public Host(String inventoryId, String insightsId, String orgId, String subManId) {

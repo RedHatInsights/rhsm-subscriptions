@@ -27,22 +27,28 @@ import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.EventRecordRepository;
+import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Measurement;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,21 +72,25 @@ class TallySnapshotControllerTest {
   @Autowired ApplicationClock clock;
   @Autowired ApplicationProperties props;
   @MockBean TallySnapshotRepository snapshotRepo;
+  @Autowired HostRepository hostRepository;
   @Autowired MetricUsageCollector usageCollector;
   @Autowired TallySnapshotController controller;
 
-  @BeforeEach
-  void setupTest() {}
-
   @Test
-  void verifyRecoveryWhenHostUpdateFailsAndRetryOccurs() {}
-
-  @Test
-  void verifyRecoveryWhenCalculationUpdateFailsAndRetryOccurs() {
-    // Successfully calculate usage for a single event, and
-    // simulate an exception looking up existing usage for the second.
-    // On retry, the first event should be in the cache already, and should not
-    // get applied a second time. The second event should be applied successfully.
+  void verifyCorrectUpdatesWhenRetryOccurs() {
+    // If a retry occurs due to an error condition, the Host.lastAppliedEventDate
+    // should prevent the host from being updated multiple times, and the
+    // AccountUsageCalculationCache should prevent Events from being calculated
+    // multiple times in the same tally operation.
+    //
+    // This test will simulate an error when attempting to fetch the existing
+    // calculations from the snapshots. When this happens, all Hosts in the
+    // Event batch will have been updated, but no snapshots will have been created
+    // until the retry happens.
+    //
+    // On retry, the Host updates will be skipped because they have already been
+    // applied, and the calculations in the cache will be used based on the last
+    // event record date set on the cache.
 
     TestingRetryListener retryListener = new TestingRetryListener();
     collectorRetryTemplate.registerListener(retryListener);
@@ -88,13 +98,17 @@ class TallySnapshotControllerTest {
     OffsetDateTime firstSnapshotHour = clock.startOfCurrentHour();
     OffsetDateTime secondSnapshotHour = firstSnapshotHour.minusHours(1);
 
-    EventRecord event1 = createEvent(firstSnapshotHour, createMeasurement(42.0));
-    EventRecord event2 = createEvent(secondSnapshotHour, createMeasurement(20.0));
-    EventRecord event3 = createEvent(firstSnapshotHour, createMeasurement(8.0));
+    String instance1Id = UUID.randomUUID().toString();
+    EventRecord instance1Event1 =
+        createEvent(instance1Id, firstSnapshotHour, createMeasurement(42.0));
+    EventRecord instance2Event1 =
+        createEvent(UUID.randomUUID().toString(), secondSnapshotHour, createMeasurement(20.0));
+    EventRecord instance1Event2 =
+        createEvent(instance1Id, firstSnapshotHour, createMeasurement(8.0));
 
     when(eventRepo.fetchEventsInBatchByRecordDate(
             ORG_ID, SERVICE_TYPE, clock.startOfCurrentHour(), props.getHourlyTallyEventBatchSize()))
-        .thenReturn(List.of(event1, event2, event3));
+        .thenReturn(List.of(instance1Event1, instance2Event1, instance1Event2));
 
     when(snapshotRepo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), any(), any(), any()))
@@ -110,6 +124,29 @@ class TallySnapshotControllerTest {
     controller.produceHourlySnapshotsForOrg(ORG_ID);
 
     assertTrue(retryListener.didRetryOccur(), "Expected a forced retry to occur but it didn't!!!");
+
+    Map<String, Host> hosts =
+        hostRepository.findAll().stream()
+            .collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
+    assertEquals(2, hosts.size());
+
+    // Host 1: monthly totals should be amended.
+    // Host 2: monthly totals should remain the same.
+    Host instance1 = hosts.get(instance1Id);
+    assertEquals(
+        50.0,
+        instance1.getMonthlyTotal(
+            InstanceMonthlyTotalKey.formatMonthId(instance1Event1.getTimestamp()),
+            MetricIdUtils.getCores()));
+    assertEquals(instance1.getLastAppliedEventRecordDate(), instance1Event2.getRecordDate());
+
+    Host instance2 = hosts.get(instance2Event1.getInstanceId());
+    assertEquals(
+        20.0,
+        instance2.getMonthlyTotal(
+            InstanceMonthlyTotalKey.formatMonthId(instance2Event1.getTimestamp()),
+            MetricIdUtils.getCores()));
+    assertEquals(instance2.getLastAppliedEventRecordDate(), instance2Event1.getRecordDate());
 
     List<TallySnapshot> createdSnapshots = snapshotCaptor.getAllValues();
     assertEquals(48, createdSnapshots.size());
@@ -145,13 +182,14 @@ class TallySnapshotControllerTest {
     assertSnapshot(dailySnapshot, 70.0);
   }
 
-  EventRecord createEvent(OffsetDateTime usageTimestamp, Measurement measurement) {
+  private EventRecord createEvent(
+      String instanceId, OffsetDateTime usageTimestamp, Measurement measurement) {
     EventRecord eventRecord =
         new EventRecord(
             new Event()
                 .withEventId(UUID.randomUUID())
                 .withOrgId(ORG_ID)
-                .withInstanceId(UUID.randomUUID().toString())
+                .withInstanceId(instanceId)
                 .withEventId(UUID.randomUUID())
                 .withRole(Event.Role.OSD)
                 .withTimestamp(usageTimestamp)
@@ -159,11 +197,15 @@ class TallySnapshotControllerTest {
                 .withMeasurements(Collections.singletonList(measurement))
                 .withBillingProvider(Event.BillingProvider.RED_HAT)
                 .withBillingAccountId(Optional.of("sellerAcct")));
-    eventRecord.setRecordDate(clock.now());
+    // Truncate to MICROS because that's what the DB precision will be when
+    // pulling dates from persisted Host records for comparison. Otherwise,
+    // the extra precision points added to OffsetDateTime will cause the test
+    // to fail.
+    eventRecord.setRecordDate(clock.now().truncatedTo(ChronoUnit.MICROS));
     return eventRecord;
   }
 
-  Measurement createMeasurement(Double value) {
+  private Measurement createMeasurement(Double value) {
     return new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(value);
   }
 
@@ -173,6 +215,7 @@ class TallySnapshotControllerTest {
         snap.getMeasurement(HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores()));
   }
 
+  /** A retry listener that tracks whether the RetryTemplate had failed during testing. */
   private class TestingRetryListener implements RetryListener {
     private boolean retryOccurred;
 

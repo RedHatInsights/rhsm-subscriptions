@@ -156,8 +156,6 @@ public class TallySnapshotController {
               context -> {
                 log.info("FOUND EVENTS: " + events.size());
                 // TODO Do not want to deserialize the Events in each call.
-                // TODO Hosts need a eventRecordDate in order to tell if the
-                //      Event was already applied.
                 metricUsageCollector.updateHosts(orgId, serviceType, events);
                 metricUsageCollector.calculateUsage(events, calcCache);
                 currentState.setLatestEventRecordDate(
