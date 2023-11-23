@@ -73,6 +73,7 @@ public class EventRecord {
     this.eventSource = event.getEventSource();
     this.instanceId = event.getInstanceId();
     this.timestamp = event.getTimestamp();
+    this.recordDate = event.getRecordDate();
   }
 
   @Column(name = "event_id", updatable = false)
@@ -122,6 +123,7 @@ public class EventRecord {
     if (event == null) {
       return;
     }
+    this.event.setRecordDate(recordDate);
 
     if (event.getEventId() == null) {
       event.setEventId(UUID.randomUUID());

@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
-import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.util.DateRange;
 
@@ -47,12 +46,12 @@ public class AccountUsageCalculationCache {
     return calculations.containsKey(event.getTimestamp());
   }
 
-  public void put(EventRecord event, AccountUsageCalculation calc) {
+  public void put(Event event, AccountUsageCalculation calc) {
     calculations.put(event.getTimestamp(), calc);
     lastEventApplied = event.getRecordDate();
   }
 
-  public boolean isEventApplied(EventRecord event) {
+  public boolean isEventApplied(Event event) {
     return Objects.nonNull(lastEventApplied) && !lastEventApplied.isBefore(event.getRecordDate());
   }
 

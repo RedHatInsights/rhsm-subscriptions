@@ -32,12 +32,12 @@ import java.util.stream.Collectors;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.TallyStateRepository;
-import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.TallyState;
 import org.candlepin.subscriptions.db.model.TallyStateKey;
 import org.candlepin.subscriptions.event.EventController;
+import org.candlepin.subscriptions.json.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -141,7 +141,7 @@ public class TallySnapshotController {
         while (true) {
           // If calculations exist, the hosts have been updated. Host updates are idempotent
           // but the calculations will still occur during a retry on error.
-          List<EventRecord> events =
+          List<Event> events =
               eventController.fetchEventsInBatch(
                   orgId,
                   serviceType,
@@ -154,8 +154,6 @@ public class TallySnapshotController {
 
           retryTemplate.execute(
               context -> {
-                log.info("FOUND EVENTS: " + events.size());
-                // TODO Do not want to deserialize the Events in each call.
                 metricUsageCollector.updateHosts(orgId, serviceType, events);
                 metricUsageCollector.calculateUsage(events, calcCache);
                 currentState.setLatestEventRecordDate(

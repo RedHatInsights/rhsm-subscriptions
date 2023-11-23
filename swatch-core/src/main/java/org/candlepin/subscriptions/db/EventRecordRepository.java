@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.db;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.EventRecord;
@@ -31,7 +30,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * DB repository for Event records.
@@ -203,8 +201,7 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, EventR
               order by record_date asc
               limit :limit
           """)
-  @Transactional(readOnly = true)
-  List<EventRecord> fetchEventsInBatchByRecordDate(
+  Stream<EventRecord> fetchEventsInBatchByRecordDate(
       @Param("orgId") String orgId,
       @Param("serviceType") String serviceType,
       @Param("after") OffsetDateTime after,

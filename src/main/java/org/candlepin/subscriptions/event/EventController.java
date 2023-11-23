@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collection;
@@ -35,6 +34,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -50,6 +50,7 @@ import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.util.TransactionHandler;
 import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 /** Encapsulates interaction with event store. */
@@ -107,9 +108,12 @@ public class EventController {
         .map(EventRecord::getEvent);
   }
 
-  public List<EventRecord> fetchEventsInBatch(
+  @Transactional(readOnly = true)
+  public List<Event> fetchEventsInBatch(
       String orgId, String serviceType, OffsetDateTime begin, int batchSize) {
-    return repo.fetchEventsInBatchByRecordDate(orgId, serviceType, begin, batchSize);
+    return repo.fetchEventsInBatchByRecordDate(orgId, serviceType, begin, batchSize)
+        .map(EventRecord::getEvent)
+        .collect(Collectors.toList());
   }
 
   /**

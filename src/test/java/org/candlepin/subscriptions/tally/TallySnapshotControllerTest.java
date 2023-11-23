@@ -108,7 +108,7 @@ class TallySnapshotControllerTest {
 
     when(eventRepo.fetchEventsInBatchByRecordDate(
             ORG_ID, SERVICE_TYPE, clock.startOfCurrentHour(), props.getHourlyTallyEventBatchSize()))
-        .thenReturn(List.of(instance1Event1, instance2Event1, instance1Event2));
+        .thenReturn(Stream.of(instance1Event1, instance2Event1, instance1Event2));
 
     when(snapshotRepo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
             any(), any(), any(), any(), any()))
@@ -184,25 +184,23 @@ class TallySnapshotControllerTest {
 
   private EventRecord createEvent(
       String instanceId, OffsetDateTime usageTimestamp, Measurement measurement) {
-    EventRecord eventRecord =
-        new EventRecord(
-            new Event()
-                .withEventId(UUID.randomUUID())
-                .withOrgId(ORG_ID)
-                .withInstanceId(instanceId)
-                .withEventId(UUID.randomUUID())
-                .withRole(Event.Role.OSD)
-                .withTimestamp(usageTimestamp)
-                .withServiceType(SERVICE_TYPE)
-                .withMeasurements(Collections.singletonList(measurement))
-                .withBillingProvider(Event.BillingProvider.RED_HAT)
-                .withBillingAccountId(Optional.of("sellerAcct")));
-    // Truncate to MICROS because that's what the DB precision will be when
-    // pulling dates from persisted Host records for comparison. Otherwise,
-    // the extra precision points added to OffsetDateTime will cause the test
-    // to fail.
-    eventRecord.setRecordDate(clock.now().truncatedTo(ChronoUnit.MICROS));
-    return eventRecord;
+    return new EventRecord(
+        new Event()
+            .withEventId(UUID.randomUUID())
+            .withOrgId(ORG_ID)
+            .withInstanceId(instanceId)
+            .withEventId(UUID.randomUUID())
+            .withRole(Event.Role.OSD)
+            .withTimestamp(usageTimestamp)
+            .withServiceType(SERVICE_TYPE)
+            .withMeasurements(Collections.singletonList(measurement))
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcct"))
+            // Truncate to MICROS because that's what the DB precision will be when
+            // pulling dates from persisted Host records for comparison. Otherwise,
+            // the extra precision points added to OffsetDateTime will cause the test
+            // to fail.
+            .withRecordDate(clock.now().truncatedTo(ChronoUnit.MICROS)));
   }
 
   private Measurement createMeasurement(Double value) {

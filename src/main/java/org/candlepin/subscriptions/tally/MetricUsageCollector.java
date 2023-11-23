@@ -26,7 +26,6 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
-import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -72,7 +71,7 @@ public class MetricUsageCollector {
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public void updateHosts(String orgId, String serviceType, List<EventRecord> events) {
+  public void updateHosts(String orgId, String serviceType, List<Event> events) {
 
     if (events.isEmpty()) {
       return;
@@ -87,28 +86,21 @@ public class MetricUsageCollector {
     var hostsByInstanceId =
         hostRepository
             .findAllByOrgIdAndInstanceIdIn(
-                orgId, events.stream().map(EventRecord::getInstanceId).collect(Collectors.toSet()))
+                orgId, events.stream().map(Event::getInstanceId).collect(Collectors.toSet()))
             .collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
 
-    for (EventRecord eventRecord : events) {
-      Host host = hostsByInstanceId.getOrDefault(eventRecord.getInstanceId(), new Host());
+    for (Event event : events) {
+      Host host = hostsByInstanceId.getOrDefault(event.getInstanceId(), new Host());
 
       // Determine if the Event has already been applied to this host and skip it if it is.
       // This is important in the case that we attempt to apply the same Event multiple times.
-      log.info(
-          "HOST [{}]: {} EVENT: {}",
-          host.getInstanceId(),
-          host.getLastAppliedEventRecordDate(),
-          eventRecord.getRecordDate());
       if (Objects.nonNull(host.getLastAppliedEventRecordDate())
-          && (host.getLastAppliedEventRecordDate().equals(eventRecord.getRecordDate())
-              || host.getLastAppliedEventRecordDate().isAfter(eventRecord.getRecordDate()))) {
-        log.info("Skipping host update...");
+          && (host.getLastAppliedEventRecordDate().equals(event.getRecordDate())
+              || host.getLastAppliedEventRecordDate().isAfter(event.getRecordDate()))) {
         continue;
       }
 
-      Event event = eventRecord.getEvent();
-      updateInstanceFromEvent(eventRecord.getRecordDate(), event, host);
+      updateInstanceFromEvent(event, host);
       cleanUpHostMeasurements(host, event);
       hostsByInstanceId.put(host.getInstanceId(), host);
 
@@ -117,33 +109,32 @@ public class MetricUsageCollector {
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public void calculateUsage(List<EventRecord> events, AccountUsageCalculationCache calcCache) {
+  public void calculateUsage(List<Event> events, AccountUsageCalculationCache calcCache) {
     events.forEach(
-        eventRecord -> {
-          if (calcCache.isEventApplied(eventRecord)) {
+        event -> {
+          if (calcCache.isEventApplied(event)) {
             return;
           }
 
           // Rebuild the account calculation for this Event's timestamp.
-          Event event = eventRecord.getEvent();
           AccountUsageCalculation calc =
               calcCache.contains(event)
                   ? calcCache.get(event)
                   : loadHourlyAccountCalculation(event);
 
           updateUsage(calc, event);
-          calcCache.put(eventRecord, calc);
+          calcCache.put(event, calc);
         });
   }
 
-  private void updateInstanceFromEvent(OffsetDateTime eventRecordDate, Event event, Host instance) {
+  private void updateInstanceFromEvent(Event event, Host instance) {
     // fields that we expect to always be present
     instance.setOrgId(event.getOrgId());
     instance.setInstanceType(event.getServiceType());
     instance.setInstanceId(event.getInstanceId());
     instance.setDisplayName(event.getInstanceId()); // may be overridden later
     instance.setGuest(instance.getHardwareType() == HostHardwareType.VIRTUALIZED);
-    instance.setLastAppliedEventRecordDate(eventRecordDate);
+    instance.setLastAppliedEventRecordDate(event.getRecordDate());
 
     // fields that are optional, see update/updateWithTransform method javadocs
     update(instance::setBillingAccountId, event.getBillingAccountId());
@@ -436,6 +427,7 @@ public class MetricUsageCollector {
   }
 
   private AccountUsageCalculation loadHourlyAccountCalculation(Event event) {
+    log.debug("Loading hourly usage from snapshots: {}", event);
     Set<String> products =
         SubscriptionDefinition.findByServiceType(event.getServiceType()).stream()
             .map(SubscriptionDefinition::getVariants)

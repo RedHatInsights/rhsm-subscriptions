@@ -35,6 +35,7 @@ import com.google.common.collect.Sets;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -121,7 +122,7 @@ class MetricUsageCollectorTest {
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
     when(accountRepo.existsById(accountServiceInventory.getId())).thenReturn(false);
 
-    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(new EventRecord(event)));
+    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event));
     ArgumentCaptor<AccountServiceInventory> captor =
         ArgumentCaptor.forClass(AccountServiceInventory.class);
     verify(accountRepo, times(1)).save(captor.capture());
@@ -151,41 +152,37 @@ class MetricUsageCollectorTest {
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
     when(accountRepo.existsById(accountServiceInventory.getId())).thenReturn(true);
 
-    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(new EventRecord(event)));
+    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event));
     verify(hostRepository, times(1)).save(any());
   }
 
   @Test
-  void updateHostsOnlyUpdatesLastSeenAndMeasurementesWhenEventTimestampMostRecent() {
+  void updateHostsOnlyUpdatesLastSeenAndMeasurementsWhenEventTimestampMostRecent() {
     Measurement measurement1 =
         new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
-    EventRecord event1 =
-        new EventRecord(
-            createEvent()
-                .withEventId(UUID.randomUUID())
-                .withProductIds(List.of(RHEL_FOR_X86))
-                .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
-                .withServiceType("RHEL System")
-                .withMeasurements(Collections.singletonList(measurement1))
-                .withSla(Event.Sla.PREMIUM)
-                .withBillingProvider(Event.BillingProvider.RED_HAT)
-                .withBillingAccountId(Optional.of("sellerAcctId")));
-    event1.setRecordDate(OffsetDateTime.now());
+    Event event1 =
+        createEvent()
+            .withEventId(UUID.randomUUID())
+            .withProductIds(List.of(RHEL_FOR_X86))
+            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+            .withServiceType("RHEL System")
+            .withMeasurements(Collections.singletonList(measurement1))
+            .withSla(Event.Sla.PREMIUM)
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcctId"));
 
     Measurement measurement2 =
         new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(100.0);
-    EventRecord event2 =
-        new EventRecord(
-            createEvent()
-                .withEventId(UUID.randomUUID())
-                .withProductIds(List.of(RHEL_FOR_X86))
-                .withTimestamp(event1.getTimestamp().minusMonths(1))
-                .withServiceType("RHEL System")
-                .withMeasurements(Collections.singletonList(measurement2))
-                .withSla(Event.Sla.PREMIUM)
-                .withBillingProvider(Event.BillingProvider.RED_HAT)
-                .withBillingAccountId(Optional.of("sellerAcctId")));
-    event2.setRecordDate(OffsetDateTime.now());
+    Event event2 =
+        createEvent()
+            .withEventId(UUID.randomUUID())
+            .withProductIds(List.of(RHEL_FOR_X86))
+            .withTimestamp(event1.getTimestamp().minusMonths(1))
+            .withServiceType("RHEL System")
+            .withMeasurements(Collections.singletonList(measurement2))
+            .withSla(Event.Sla.PREMIUM)
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcctId"));
 
     OffsetDateTime instanceDate = event1.getTimestamp().minusDays(1);
     Host activeInstance = new Host();
@@ -226,7 +223,7 @@ class MetricUsageCollectorTest {
             .withBillingAccountId(Optional.of("sellerAcct"));
 
     AccountUsageCalculationCache cache = new AccountUsageCalculationCache();
-    metricUsageCollector.calculateUsage(List.of(new EventRecord(event)), cache);
+    metricUsageCollector.calculateUsage(List.of(event), cache);
 
     assertEquals(1, cache.getCalculations().size());
     assertTrue(cache.contains(event));
@@ -278,7 +275,7 @@ class MetricUsageCollectorTest {
     }
 
     AccountUsageCalculationCache cache = new AccountUsageCalculationCache();
-    metricUsageCollector.calculateUsage(List.of(new EventRecord(event)), cache);
+    metricUsageCollector.calculateUsage(List.of(event), cache);
 
     assertEquals(1, cache.getCalculations().size());
     assertTrue(cache.contains(event));
@@ -347,7 +344,7 @@ class MetricUsageCollectorTest {
             .withMeasurements(List.of(measurement));
 
     AccountUsageCalculationCache cache = new AccountUsageCalculationCache();
-    metricUsageCollector.calculateUsage(List.of(new EventRecord(event)), cache);
+    metricUsageCollector.calculateUsage(List.of(event), cache);
 
     assertEquals(1, cache.getCalculations().size());
     assertTrue(cache.contains(event));
@@ -385,7 +382,7 @@ class MetricUsageCollectorTest {
             .withBillingProvider(Event.BillingProvider.RED_HAT)
             .withBillingAccountId(Optional.of("sellerAcctId"));
 
-    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(new EventRecord(event)));
+    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event));
 
     ArgumentCaptor<Host> saveHostCaptor = ArgumentCaptor.forClass(Host.class);
     verify(hostRepository).save(saveHostCaptor.capture());
@@ -437,7 +434,7 @@ class MetricUsageCollectorTest {
             .withBillingAccountId(Optional.of("sellerAcctId"));
 
     AccountUsageCalculationCache cache = new AccountUsageCalculationCache();
-    metricUsageCollector.calculateUsage(List.of(new EventRecord(event)), cache);
+    metricUsageCollector.calculateUsage(List.of(event), cache);
 
     assertEquals(1, cache.getCalculations().size());
     assertTrue(cache.contains(event));
@@ -477,7 +474,7 @@ class MetricUsageCollectorTest {
             .withBillingAccountId(Optional.of("sellerAcctId"));
 
     AccountUsageCalculationCache cache = new AccountUsageCalculationCache();
-    metricUsageCollector.calculateUsage(List.of(new EventRecord(event)), cache);
+    metricUsageCollector.calculateUsage(List.of(event), cache);
 
     assertEquals(1, cache.getCalculations().size());
     assertTrue(cache.contains(event));
@@ -517,7 +514,7 @@ class MetricUsageCollectorTest {
             .withEventType("snapshot_" + OSD_METRIC_ID);
 
     AccountUsageCalculationCache cache = new AccountUsageCalculationCache();
-    metricUsageCollector.calculateUsage(List.of(new EventRecord(event)), cache);
+    metricUsageCollector.calculateUsage(List.of(event), cache);
 
     assertEquals(1, cache.getCalculations().size());
     assertTrue(cache.contains(event));
@@ -562,7 +559,7 @@ class MetricUsageCollectorTest {
             .withProductIds(List.of(RHEL_ENG_ID, RHEL_ELS_PAYG_ENG_ID));
 
     AccountUsageCalculationCache cache = new AccountUsageCalculationCache();
-    metricUsageCollector.calculateUsage(List.of(new EventRecord(event)), cache);
+    metricUsageCollector.calculateUsage(List.of(event), cache);
 
     assertEquals(1, cache.getCalculations().size());
     assertTrue(cache.contains(event));
@@ -622,11 +619,9 @@ class MetricUsageCollectorTest {
             .withBillingAccountId(Optional.of("sellerAcctId"));
 
     AccountUsageCalculationCache cache = new AccountUsageCalculationCache();
-    EventRecord eventRecord = new EventRecord(event);
-    // Records with the same record date should only be processed once.
-    eventRecord.setRecordDate(OffsetDateTime.now());
 
-    metricUsageCollector.calculateUsage(List.of(eventRecord, eventRecord), cache);
+    // Records with the same record date should only be processed once.
+    metricUsageCollector.calculateUsage(List.of(event, event), cache);
 
     assertEquals(1, cache.getCalculations().size());
     assertTrue(cache.contains(event));
@@ -658,43 +653,53 @@ class MetricUsageCollectorTest {
 
   @Test
   void testUpdatesMonthlyTotal() {
-    Measurement measurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
     String instanceId = UUID.randomUUID().toString();
-    Event coresEvent =
-        createEvent(instanceId)
-            .withEventId(UUID.randomUUID())
-            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
-            .withServiceType(SERVICE_TYPE)
-            .withMeasurements(Collections.singletonList(measurement))
-            .withUsage(Event.Usage.PRODUCTION);
+    OffsetDateTime usageTimestamp = OffsetDateTime.parse("2021-02-26T00:00:00Z");
 
+    Measurement coresMeasurement =
+        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
     Measurement instanceHoursMeasurement =
         new Measurement().withUom(MetricIdUtils.getInstanceHours().toString()).withValue(43.0);
-    Event instanceHoursEvent =
+
+    // Events can have the same timestamp, and will be applied if the
+    // record date is different. Order of creation matters for the following
+    // Events since the record date is set via createEvent.
+    Event coresEvent1 =
         createEvent(instanceId)
             .withEventId(UUID.randomUUID())
-            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
+            .withTimestamp(usageTimestamp)
+            .withServiceType(SERVICE_TYPE)
+            .withMeasurements(Collections.singletonList(coresMeasurement))
+            .withUsage(Event.Usage.PRODUCTION);
+
+    Event instanceHoursEvent1 =
+        createEvent(instanceId)
+            .withEventId(UUID.randomUUID())
+            .withTimestamp(usageTimestamp)
             .withServiceType(SERVICE_TYPE)
             .withMeasurements(Collections.singletonList(instanceHoursMeasurement))
             .withUsage(Event.Usage.PRODUCTION);
 
-    // Events can have the same timestamp, and will be applied if the
-    // record date is different.
-    EventRecord cores1 = new EventRecord(coresEvent);
-    cores1.setRecordDate(OffsetDateTime.now());
+    Event coresEvent2 =
+        createEvent(instanceId)
+            .withEventId(UUID.randomUUID())
+            .withTimestamp(usageTimestamp)
+            .withServiceType(SERVICE_TYPE)
+            .withMeasurements(Collections.singletonList(coresMeasurement))
+            .withUsage(Event.Usage.PRODUCTION);
 
-    EventRecord instanceHours1 = new EventRecord(instanceHoursEvent);
-    instanceHours1.setRecordDate(OffsetDateTime.now());
-
-    EventRecord cores2 = new EventRecord(coresEvent);
-    cores2.setRecordDate(OffsetDateTime.now());
-
-    EventRecord instanceHours2 = new EventRecord(instanceHoursEvent);
-    instanceHours2.setRecordDate(OffsetDateTime.now());
+    Event instanceHoursEvent2 =
+        createEvent(instanceId)
+            .withEventId(UUID.randomUUID())
+            .withTimestamp(usageTimestamp)
+            .withServiceType(SERVICE_TYPE)
+            .withMeasurements(Collections.singletonList(instanceHoursMeasurement))
+            .withUsage(Event.Usage.PRODUCTION);
 
     metricUsageCollector.updateHosts(
-        ORG_ID, SERVICE_TYPE, List.of(cores1, instanceHours1, cores2, instanceHours2));
+        ORG_ID,
+        SERVICE_TYPE,
+        List.of(coresEvent1, instanceHoursEvent1, coresEvent2, instanceHoursEvent2));
 
     ArgumentCaptor<Host> saveHostCaptor = ArgumentCaptor.forClass(Host.class);
     verify(hostRepository, times(4)).save(saveHostCaptor.capture());
@@ -716,25 +721,21 @@ class MetricUsageCollectorTest {
     String instanceId = UUID.randomUUID().toString();
     OffsetDateTime eventDate = clock.startOfCurrentHour();
 
-    EventRecord event1 =
-        new EventRecord(
-            createEvent(instanceId)
-                .withEventId(UUID.randomUUID())
-                .withTimestamp(eventDate)
-                .withServiceType(SERVICE_TYPE)
-                .withMeasurements(Collections.singletonList(measurement))
-                .withUsage(Event.Usage.PRODUCTION));
-    event1.setRecordDate(OffsetDateTime.now());
+    Event event1 =
+        createEvent(instanceId)
+            .withEventId(UUID.randomUUID())
+            .withTimestamp(eventDate)
+            .withServiceType(SERVICE_TYPE)
+            .withMeasurements(Collections.singletonList(measurement))
+            .withUsage(Event.Usage.PRODUCTION);
 
-    EventRecord olderEvent =
-        new EventRecord(
-            createEvent(instanceId)
-                .withEventId(UUID.randomUUID())
-                .withTimestamp(eventDate.minusMonths(2))
-                .withServiceType(SERVICE_TYPE)
-                .withMeasurements(Collections.singletonList(measurement))
-                .withUsage(Event.Usage.PRODUCTION));
-    olderEvent.setRecordDate(OffsetDateTime.now());
+    Event olderEvent =
+        createEvent(instanceId)
+            .withEventId(UUID.randomUUID())
+            .withTimestamp(eventDate.minusMonths(2))
+            .withServiceType(SERVICE_TYPE)
+            .withMeasurements(Collections.singletonList(measurement))
+            .withUsage(Event.Usage.PRODUCTION);
 
     OffsetDateTime instanceDate = eventDate.minusDays(1);
     Host activeInstance = new Host();
@@ -778,15 +779,13 @@ class MetricUsageCollectorTest {
         new Measurement()
             .withUom(MetricIdUtils.getCores().toString())
             .withValue(expectedCoresMeasurement);
-    EventRecord coresEvent =
-        new EventRecord(
-            createEvent(instanceId)
-                .withEventId(UUID.randomUUID())
-                .withTimestamp(eventDate)
-                .withServiceType(SERVICE_TYPE)
-                .withMeasurements(Collections.singletonList(coresMeasurement))
-                .withUsage(Event.Usage.PRODUCTION));
-    coresEvent.setRecordDate(OffsetDateTime.now());
+    Event coresEvent =
+        createEvent(instanceId)
+            .withEventId(UUID.randomUUID())
+            .withTimestamp(eventDate)
+            .withServiceType(SERVICE_TYPE)
+            .withMeasurements(Collections.singletonList(coresMeasurement))
+            .withUsage(Event.Usage.PRODUCTION);
 
     when(hostRepository.findAllByOrgIdAndInstanceIdIn(
             ORG_ID, Set.of(activeInstance.getInstanceId())))
@@ -818,7 +817,7 @@ class MetricUsageCollectorTest {
             .withInventoryId(Optional.empty())
             .withSubscriptionManagerId(Optional.empty());
 
-    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(new EventRecord(event)));
+    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event));
     ArgumentCaptor<Host> captor = ArgumentCaptor.forClass(Host.class);
     verify(hostRepository, times(1)).save(captor.capture());
 
@@ -839,7 +838,7 @@ class MetricUsageCollectorTest {
             .withMeasurements(Collections.singletonList(measurement))
             .withBillingAccountId(Optional.of("sellerAcct"));
 
-    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(new EventRecord(event)));
+    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event));
     ArgumentCaptor<Host> captor = ArgumentCaptor.forClass(Host.class);
     verify(hostRepository, times(1)).save(captor.capture());
 
@@ -858,7 +857,7 @@ class MetricUsageCollectorTest {
             .withServiceType(SERVICE_TYPE)
             .withMeasurements(Collections.singletonList(measurement));
 
-    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(new EventRecord(event)));
+    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event));
     ArgumentCaptor<Host> captor = ArgumentCaptor.forClass(Host.class);
     verify(hostRepository, times(1)).save(captor.capture());
 
@@ -889,24 +888,22 @@ class MetricUsageCollectorTest {
 
     Measurement measurement =
         new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
-    EventRecord event1 =
-        new EventRecord(
-            createEvent()
-                .withEventId(UUID.randomUUID())
-                .withRole(Event.Role.OSD)
-                .withTimestamp(eventTimestamp)
-                .withServiceType(SERVICE_TYPE)
-                .withMeasurements(Collections.singletonList(measurement))
-                .withBillingProvider(Event.BillingProvider.RED_HAT)
-                .withBillingAccountId(Optional.of("sellerAcct")));
-    event1.setRecordDate(OffsetDateTime.now());
+    Event event1 =
+        createEvent()
+            .withEventId(UUID.randomUUID())
+            .withRole(Event.Role.OSD)
+            .withTimestamp(eventTimestamp)
+            .withServiceType(SERVICE_TYPE)
+            .withMeasurements(Collections.singletonList(measurement))
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcct"));
 
     metricUsageCollector.calculateUsage(List.of(event1), cache);
 
     assertEquals(1, cache.getCalculations().size());
-    assertTrue(cache.contains(event1.getEvent()));
+    assertTrue(cache.contains(event1));
 
-    AccountUsageCalculation accountUsageCalculation = cache.get(event1.getEvent());
+    AccountUsageCalculation accountUsageCalculation = cache.get(event1);
     assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
     assertEquals(
         Double.valueOf(242.0),
@@ -943,7 +940,7 @@ class MetricUsageCollectorTest {
             .withBillingAccountId(Optional.of("sellerAcct"));
 
     AccountUsageCalculationCache cache = new AccountUsageCalculationCache();
-    metricUsageCollector.calculateUsage(List.of(new EventRecord(event)), cache);
+    metricUsageCollector.calculateUsage(List.of(event), cache);
 
     assertEquals(1, cache.getCalculations().size());
     assertTrue(cache.contains(event));
@@ -970,8 +967,12 @@ class MetricUsageCollectorTest {
   }
 
   private static Event createEvent(String instanceId) {
-    return (Event)
-        new Event().withEventId(UUID.randomUUID()).withOrgId("test-org").withInstanceId(instanceId);
+    return new Event()
+        .withEventId(UUID.randomUUID())
+        .withOrgId("test-org")
+        .withInstanceId(instanceId)
+        // MICROS precision to match the DB.
+        .withRecordDate(OffsetDateTime.now().truncatedTo(ChronoUnit.MICROS));
   }
 
   private TallySnapshot createSnapshot(OffsetDateTime snapshotDate, double value) {
