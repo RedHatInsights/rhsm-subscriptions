@@ -94,9 +94,7 @@ public class MetricUsageCollector {
 
       // Determine if the Event has already been applied to this host and skip it if it is.
       // This is important in the case that we attempt to apply the same Event multiple times.
-      if (Objects.nonNull(host.getLastAppliedEventRecordDate())
-          && (host.getLastAppliedEventRecordDate().equals(event.getRecordDate())
-              || host.getLastAppliedEventRecordDate().isAfter(event.getRecordDate()))) {
+      if (isEventAlreadyAppliedToHost(host, event)) {
         continue;
       }
 
@@ -128,13 +126,37 @@ public class MetricUsageCollector {
   }
 
   private void updateInstanceFromEvent(Event event, Host instance) {
-    // fields that we expect to always be present
+    // Always process buckets, measurements and set the lastAppliedEventRecordDate
+    // on the host.
+    Optional.ofNullable(event.getMeasurements())
+        .orElse(Collections.emptyList())
+        .forEach(
+            measurement -> {
+              if (!isUsageAlreadyApplied(instance, event)) {
+                instance.setMeasurement(measurement.getUom(), measurement.getValue());
+              }
+              // Every event should be applied to the totals.
+              instance.addToMonthlyTotal(
+                  event.getTimestamp(),
+                  MetricId.fromString(measurement.getUom()),
+                  measurement.getValue());
+            });
+    addBucketsFromEvent(instance, event);
+    instance.setLastAppliedEventRecordDate(event.getRecordDate());
+
+    // If the usage was already applied, there's no need to update the
+    // metadata from the Event since it will already be in the most up to
+    // date state based on the last time it was metered.
+    if (isUsageAlreadyApplied(instance, event)) {
+      return;
+    }
+
+    // Update the Host instance's meta-data
     instance.setOrgId(event.getOrgId());
     instance.setInstanceType(event.getServiceType());
     instance.setInstanceId(event.getInstanceId());
     instance.setDisplayName(event.getInstanceId()); // may be overridden later
     instance.setGuest(instance.getHardwareType() == HostHardwareType.VIRTUALIZED);
-    instance.setLastAppliedEventRecordDate(event.getRecordDate());
 
     // fields that are optional, see update/updateWithTransform method javadocs
     update(instance::setBillingAccountId, event.getBillingAccountId());
@@ -150,25 +172,8 @@ public class MetricUsageCollector {
     update(instance::setInventoryId, event.getInventoryId());
     update(instance::setHypervisorUuid, event.getHypervisorUuid());
     update(instance::setSubscriptionManagerId, event.getSubscriptionManagerId());
-    Optional.ofNullable(event.getMeasurements())
-        .orElse(Collections.emptyList())
-        .forEach(
-            measurement -> {
-              if (!isEventAppliedToHost(instance, event)) {
-                instance.setMeasurement(measurement.getUom(), measurement.getValue());
-              }
-              // Every event should be applied to the totals.
-              instance.addToMonthlyTotal(
-                  event.getTimestamp(),
-                  MetricId.fromString(measurement.getUom()),
-                  measurement.getValue());
-            });
-    addBucketsFromEvent(instance, event);
 
-    // Only update the last seen when the event is newer than the last one applied.
-    if (!isEventAppliedToHost(instance, event)) {
-      instance.setLastSeen(event.getTimestamp());
-    }
+    instance.setLastSeen(event.getTimestamp());
   }
 
   /**
@@ -409,7 +414,7 @@ public class MetricUsageCollector {
     // If the last seen date is not recent, we don't do anything. We must support a last seen date
     // that is equal to the event date because, in theory, we could get multiple events that
     // represent the same timestamp.
-    if (isEventAppliedToHost(host, event)) {
+    if (isUsageAlreadyApplied(host, event)) {
       return;
     }
 
@@ -422,8 +427,23 @@ public class MetricUsageCollector {
     toRemove.forEach(host.getMeasurements()::remove);
   }
 
-  private boolean isEventAppliedToHost(Host host, Event event) {
+  /**
+   * Determines if the Event's usage measurements have already been applied. Usage is considered
+   * applied when the Event's timestamp is before the Host's lastSeenDate (last time the event was
+   * metered).
+   *
+   * @param host
+   * @param event
+   * @return true if the usage was already applied, false otherwise.
+   */
+  private boolean isUsageAlreadyApplied(Host host, Event event) {
     return Objects.nonNull(host.getLastSeen()) && event.getTimestamp().isBefore(host.getLastSeen());
+  }
+
+  private boolean isEventAlreadyAppliedToHost(Host host, Event event) {
+    return Objects.nonNull(host.getLastAppliedEventRecordDate())
+        && (host.getLastAppliedEventRecordDate().equals(event.getRecordDate())
+            || host.getLastAppliedEventRecordDate().isAfter(event.getRecordDate()));
   }
 
   private AccountUsageCalculation loadHourlyAccountCalculation(Event event) {
