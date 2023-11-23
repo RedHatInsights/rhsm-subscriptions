@@ -204,8 +204,8 @@ public class TallyResource implements TallyApi {
         latestSnapshotDate = snapshot.getSnapshotDate();
       }
       var totalMonthlyValue = (int) Math.ceil(totalMonthlyValueRaw);
-      TallyReportDataPoint totalMonthly =
-          new TallyReportDataPoint()
+      TallyReportTotalMonthly totalMonthly =
+          new TallyReportTotalMonthly()
               .hasData(!snapshots.isEmpty())
               .value(totalMonthlyValue)
               .date(latestSnapshotDate);
