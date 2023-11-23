@@ -45,6 +45,7 @@ import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.ProcessingException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -220,7 +221,7 @@ public class ContractService {
       log.error(e.getMessage());
       statusResponse.setMessage("An Error occurred while reconciling contract");
       return statusResponse;
-    } catch (ApiException e) {
+    } catch (ProcessingException | ApiException e) {
       log.error(e.getMessage());
       statusResponse.setMessage("An Error occurred while calling Partner Api");
       return statusResponse;
@@ -338,7 +339,7 @@ public class ContractService {
       statusResponse.setStatus(FAILURE_MESSAGE);
       statusResponse.setMessage("An Error occurred while reconciling contract");
       return statusResponse;
-    } catch (ApiException e) {
+    } catch (ProcessingException | ApiException e) {
       log.error(e.getMessage());
       statusResponse.setStatus(FAILURE_MESSAGE);
       statusResponse.setMessage("An Error occurred while calling Partner Api");
