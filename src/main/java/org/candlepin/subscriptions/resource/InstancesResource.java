@@ -168,14 +168,14 @@ public class InstancesResource implements InstancesApi {
       }
     }
 
-    int minCores = 0;
-    int minSockets = 0;
+    Integer minCores = null;
+    Integer minSockets = null;
     if (metricIdOptional.map(metricId -> metricId.equals(MetricIdUtils.getCores())).orElse(false)) {
-      minCores = 1;
+      minCores = 0;
     } else if (metricIdOptional
         .map(metricId -> metricId.equals(MetricIdUtils.getSockets()))
         .orElse(false)) {
-      minSockets = 1;
+      minSockets = 0;
     }
 
     ServiceLevel sanitizedSla = ResourceUtils.sanitizeServiceLevel(sla);
