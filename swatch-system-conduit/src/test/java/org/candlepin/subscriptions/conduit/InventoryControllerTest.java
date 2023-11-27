@@ -946,4 +946,34 @@ class InventoryControllerTest {
     verify(inventoryService).scheduleHostUpdate(cfacts);
     verify(inventoryService, times(1)).flushHostUpdates();
   }
+
+  @Test
+  void testNumberOfCpusIsMappedToConduitFacts() {
+    int expectedNumberOfCpus = 5;
+    Consumer consumer = new Consumer();
+    consumer.getFacts().put("cpu.cpu(s)", "" + expectedNumberOfCpus);
+
+    // verify when cpu.cpu(s) is set
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertEquals(expectedNumberOfCpus, conduitFacts.getNumberOfCpus());
+
+    // verify when cpu.cpu(s) is unset
+    conduitFacts = controller.getFactsFromConsumer(new Consumer());
+    assertNull(conduitFacts.getNumberOfCpus());
+  }
+
+  @Test
+  void testThreadsPerCoreIsMappedToConduitFacts() {
+    int expectedThreadsPerCore = 3;
+    Consumer consumer = new Consumer();
+    consumer.getFacts().put("cpu.thread(s)_per_core", "" + expectedThreadsPerCore);
+
+    // verify when cpu.thread(s)_per_core is set
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertEquals(expectedThreadsPerCore, conduitFacts.getThreadsPerCore());
+
+    // verify when cpu.thread(s)_per_core is unset
+    conduitFacts = controller.getFactsFromConsumer(new Consumer());
+    assertNull(conduitFacts.getThreadsPerCore());
+  }
 }
