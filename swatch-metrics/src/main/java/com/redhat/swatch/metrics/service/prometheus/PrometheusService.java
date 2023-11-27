@@ -34,6 +34,7 @@ import com.redhat.swatch.metrics.exception.ExternalServiceException;
 import com.redhat.swatch.metrics.service.prometheus.model.QuerySummaryResult;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.ProcessingException;
 import java.io.File;
 import java.io.IOException;
 import java.time.OffsetDateTime;
@@ -79,7 +80,7 @@ public class PrometheusService {
           queryRangeApi.queryRange(
               query, start.toEpochSecond(), end.toEpochSecond(), Integer.toString(step), timeout);
       return parseQueryResult(data, resultDataItemConsumer);
-    } catch (ApiException ex) {
+    } catch (ProcessingException | ApiException ex) {
       throw new ExternalServiceException(
           ErrorCode.REQUEST_PROCESSING_ERROR, formatErrorMessage(ex), ex);
     }
@@ -96,13 +97,13 @@ public class PrometheusService {
       log.debug("Running prometheus query: Time: {}, Query: {}", time.toEpochSecond(), query);
       File data = queryApi.query(query, time, timeout);
       return parseQueryResult(data, itemConsumer);
-    } catch (ApiException ex) {
+    } catch (ProcessingException | ApiException ex) {
       throw new ExternalServiceException(
           ErrorCode.REQUEST_PROCESSING_ERROR, formatErrorMessage(ex), ex);
     }
   }
 
-  private String formatErrorMessage(ApiException ex) {
+  private String formatErrorMessage(Exception ex) {
     return String.format("Prometheus API Error! MESSAGE: %s", ex.getMessage());
   }
 
