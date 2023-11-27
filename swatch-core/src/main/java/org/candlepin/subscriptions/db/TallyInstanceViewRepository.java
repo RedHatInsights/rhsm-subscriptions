@@ -101,18 +101,15 @@ public interface TallyInstanceViewRepository
   static Specification<TallyInstanceView> socketsAndCoresGreaterThanOrEqualTo(
       Integer minCores, Integer minSockets) {
     return (root, query, builder) -> {
-      if(Objects.nonNull(minCores) && Objects.nonNull(minSockets)) {
+      if (Objects.nonNull(minCores) && Objects.nonNull(minSockets)) {
         return builder.and(
             builder.greaterThanOrEqualTo(root.get(TallyInstanceView_.cores), minCores),
             builder.greaterThanOrEqualTo(root.get(TallyInstanceView_.sockets), minSockets));
-      }
-      else if(Objects.nonNull(minCores)) {
+      } else if (Objects.nonNull(minCores)) {
         return builder.greaterThanOrEqualTo(root.get(TallyInstanceView_.cores), minCores);
-      }
-      else if(Objects.nonNull(minSockets)) {
+      } else if (Objects.nonNull(minSockets)) {
         return builder.greaterThanOrEqualTo(root.get(TallyInstanceView_.sockets), minSockets);
-      }
-      else return null;
+      } else return null;
     };
   }
 
