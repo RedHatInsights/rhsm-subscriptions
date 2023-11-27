@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.resource;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -108,8 +107,8 @@ class InstancesResourceTest {
                 any(),
                 any(),
                 any(),
-                anyInt(),
-                anyInt(),
+                any(),
+                any(),
                 any(),
                 any(),
                 any(),
@@ -207,8 +206,8 @@ class InstancesResourceTest {
                 any(),
                 any(),
                 any(),
-                anyInt(),
-                anyInt(),
+                any(),
+                any(),
                 any(),
                 any(),
                 any(),
@@ -297,8 +296,8 @@ class InstancesResourceTest {
                 any(),
                 any(),
                 any(),
-                anyInt(),
-                anyInt(),
+                any(),
+                any(),
                 any(),
                 any(),
                 any(),
@@ -393,8 +392,8 @@ class InstancesResourceTest {
                 any(),
                 any(),
                 any(),
-                anyInt(),
-                anyInt(),
+                any(),
+                any(),
                 any(),
                 any(),
                 any(),
@@ -426,8 +425,8 @@ class InstancesResourceTest {
                 any(),
                 any(),
                 any(),
-                anyInt(),
-                anyInt(),
+                any(),
+                any(),
                 any(),
                 any(),
                 any(),
@@ -443,8 +442,8 @@ class InstancesResourceTest {
             any(),
             any(),
             any(),
-            anyInt(),
-            anyInt(),
+            any(),
+            any(),
             eq(null),
             any(),
             any(),
@@ -471,7 +470,7 @@ class InstancesResourceTest {
   }
 
   @Test
-  void testMinCoresOneWhenUomIsCores() {
+  void testMinCoresZeroWhenUomIsCores() {
     BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
 
     var tallyInstanceView = new TallyInstanceView();
@@ -492,8 +491,8 @@ class InstancesResourceTest {
                 any(),
                 any(),
                 any(),
-                anyInt(),
-                anyInt(),
+                any(),
+                any(),
                 any(),
                 any(),
                 any(),
@@ -525,8 +524,8 @@ class InstancesResourceTest {
             any(),
             any(),
             any(),
-            eq(1),
             eq(0),
+            eq(null),
             eq(null),
             any(),
             any(),
@@ -536,7 +535,7 @@ class InstancesResourceTest {
   }
 
   @Test
-  void testMinSocketsOneWhenUomIsSockets() {
+  void testMinSocketsZeroWhenUomIsSockets() {
     BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
 
     var tallyInstanceView = new TallyInstanceView();
@@ -557,8 +556,8 @@ class InstancesResourceTest {
                 any(),
                 any(),
                 any(),
-                anyInt(),
-                anyInt(),
+                any(),
+                any(),
                 any(),
                 any(),
                 any(),
@@ -590,8 +589,8 @@ class InstancesResourceTest {
             any(),
             any(),
             any(),
+            eq(null),
             eq(0),
-            eq(1),
             eq(null),
             any(),
             any(),
