@@ -135,5 +135,6 @@
     <include file="/liquibase/202310131200-remove-account-config.xml"/>
     <include file="/liquibase/202310251600-replace-account-config-table.xml"/>
     <include file="/liquibase/202311161207-drop-account-config-table.xml"/>
+    <include file="/liquibase/202311211112-remove-default-sockets-cores-on-buckets.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
