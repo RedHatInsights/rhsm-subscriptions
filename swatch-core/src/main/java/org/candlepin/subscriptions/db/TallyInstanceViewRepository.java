@@ -99,7 +99,7 @@ public interface TallyInstanceViewRepository
   }
 
   static Specification<TallyInstanceView> socketsAndCoresGreaterThanOrEqualTo(
-      int minCores, int minSockets) {
+      Integer minCores, Integer minSockets) {
     return (root, query, builder) ->
         builder.and(
             builder.greaterThanOrEqualTo(root.get(TallyInstanceView_.cores), minCores),
@@ -189,8 +189,8 @@ public interface TallyInstanceViewRepository
       ServiceLevel sla,
       Usage usage,
       String displayNameSubstring,
-      int minCores,
-      int minSockets,
+      Integer minCores,
+      Integer minSockets,
       String month,
       MetricId referenceUom,
       BillingProvider billingProvider,
