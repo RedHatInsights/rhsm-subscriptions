@@ -233,8 +233,8 @@ public class InventoryAccountUsageCollector {
                         bucketTally.getBillingAccountId()));
             usageCalc.add(
                 bucketTally.getMeasurementType(),
-                bucketTally.getCores(),
-                bucketTally.getSockets(),
+                Optional.ofNullable(bucketTally.getCores()).orElse(0.0),
+                Optional.ofNullable(bucketTally.getSockets()).orElse(0.0),
                 bucketTally.getInstances());
           });
       return calculation;

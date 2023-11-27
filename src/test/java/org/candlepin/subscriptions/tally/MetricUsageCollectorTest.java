@@ -244,6 +244,7 @@ class MetricUsageCollectorTest {
           key.setAsHypervisor(false);
           HostTallyBucket bucket = new HostTallyBucket();
           bucket.setKey(key);
+          bucket.setCores(measurement.getValue().intValue());
           bucket.setHost(instance);
           expected.add(bucket);
         });
