@@ -94,6 +94,13 @@ quarkus:
     kafka:
       serializer-generation:
         enabled: false
+  rest-client:
+    "com.redhat.swatch.clients.prometheus.api.resources.QueryApi":
+      url: ${rhsm-subscriptions.metering.prometheus.client.url}
+      scope: jakarta.enterprise.context.ApplicationScoped
+    "com.redhat.swatch.clients.prometheus.api.resources.QueryRangeApi":
+      url: ${rhsm-subscriptions.metering.prometheus.client.url}
+      scope: jakarta.enterprise.context.ApplicationScoped
 
 # Clowder quarkus config takes care of setting these, no need to try to do clowder.kafka.brokers[0]
 # Common kafka settings
@@ -145,6 +152,9 @@ rhsm-subscriptions:
   prometheus-latency-duration: ${PROMETHEUS_LATENCY_DURATION:0h}
   metering:
     prometheus:
+      client:
+        token: ${PROM_AUTH_TOKEN:}
+        url: ${PROM_URL:https://localhost/api/v1}
       metric:
         queryTemplates:
           default: >-

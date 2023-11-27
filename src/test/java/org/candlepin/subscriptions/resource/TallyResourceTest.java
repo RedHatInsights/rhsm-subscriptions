@@ -27,6 +27,7 @@ import static org.mockito.Mockito.*;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.contracts.api.resources.CapacityApi;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Response;
@@ -60,7 +61,6 @@ import org.candlepin.subscriptions.security.RoleProvider;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.test.TestClock;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
 import org.candlepin.subscriptions.utilization.api.model.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -1018,8 +1018,8 @@ class TallyResourceTest {
             null,
             false,
             null);
-    TallyReportDataPoint expectedTotalMonthly =
-        new TallyReportDataPoint().date(null).value(0).hasData(false);
+    TallyReportTotalMonthly expectedTotalMonthly =
+        new TallyReportTotalMonthly().date(null).value(0).hasData(false);
     assertEquals(expectedTotalMonthly, response.getMeta().getTotalMonthly());
   }
 
@@ -1052,8 +1052,8 @@ class TallyResourceTest {
             null,
             false,
             null);
-    TallyReportDataPoint expectedTotalMonthly =
-        new TallyReportDataPoint()
+    TallyReportTotalMonthly expectedTotalMonthly =
+        new TallyReportTotalMonthly()
             .date(OffsetDateTime.parse("2021-11-03T00:00Z"))
             .value(7)
             .hasData(true);
@@ -1091,8 +1091,8 @@ class TallyResourceTest {
             null,
             false,
             null);
-    TallyReportDataPoint expectedTotalMonthly =
-        new TallyReportDataPoint()
+    TallyReportTotalMonthly expectedTotalMonthly =
+        new TallyReportTotalMonthly()
             .date(OffsetDateTime.parse("2021-11-03T00:00Z"))
             .value(7)
             .hasData(true);
@@ -1115,8 +1115,8 @@ class TallyResourceTest {
                 })
             .collect(Collectors.toList());
 
-    TallyReportDataPoint expectedTotalMonthly =
-        new TallyReportDataPoint()
+    TallyReportTotalMonthly expectedTotalMonthly =
+        new TallyReportTotalMonthly()
             .date(OffsetDateTime.parse("2023-03-08T12:35Z"))
             .value(22)
             .hasData(true);
@@ -1174,8 +1174,8 @@ class TallyResourceTest {
                 })
             .collect(Collectors.toList());
 
-    TallyReportDataPoint expectedTotalMonthly =
-        new TallyReportDataPoint()
+    TallyReportTotalMonthly expectedTotalMonthly =
+        new TallyReportTotalMonthly()
             .date(OffsetDateTime.parse("2023-03-02T12:35Z"))
             .value(3)
             .hasData(true);
@@ -1302,8 +1302,8 @@ class TallyResourceTest {
             snap4Date, 100,
             snap5Date, 150));
 
-    TallyReportDataPoint expectedTotalMonthly =
-        new TallyReportDataPoint().date(snap5Date).value(500).hasData(true);
+    TallyReportTotalMonthly expectedTotalMonthly =
+        new TallyReportTotalMonthly().date(snap5Date).value(500).hasData(true);
 
     TallyReportData report =
         resource.getTallyReportData(

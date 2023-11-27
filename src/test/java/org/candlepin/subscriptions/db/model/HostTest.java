@@ -23,12 +23,12 @@ package org.candlepin.subscriptions.db.model;
 import static org.candlepin.subscriptions.tally.InventoryAccountUsageCollector.populateHostFieldsFromHbi;
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.OffsetDateTime;
 import java.util.Set;
 import java.util.UUID;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
-import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.junit.jupiter.api.Test;
 
 class HostTest {

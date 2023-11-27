@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -46,7 +47,6 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.InstancesResource;
-import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.candlepin.subscriptions.utilization.api.model.InstanceReportSort;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;

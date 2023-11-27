@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.db.model;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -49,7 +50,6 @@ import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.candlepin.subscriptions.util.MetricIdUtils;
 
 /**
  * Represents a reported Host from inventory. This entity stores normalized facts for a Host

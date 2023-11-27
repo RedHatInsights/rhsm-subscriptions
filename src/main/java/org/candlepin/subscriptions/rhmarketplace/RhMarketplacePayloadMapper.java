@@ -31,18 +31,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.BillableUsage.Sla;
 import org.candlepin.subscriptions.json.BillableUsage.Usage;
-import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageEvent;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageMeasurement;
 import org.candlepin.subscriptions.rhmarketplace.api.model.UsageRequest;
-import org.candlepin.subscriptions.tally.billing.BillableUsageMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.retry.support.RetryTemplate;
@@ -50,14 +46,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 /** Maps BillableUsage to payload contents to be sent to RHM apis */
+@Slf4j
 @Service
 public class RhMarketplacePayloadMapper {
-  private static final Logger log = LoggerFactory.getLogger(RhMarketplacePayloadMapper.class);
-
-  public static final String OPENSHIFT_DEDICATED_4_CPU_HOUR =
-      "redhat.com:openshift_dedicated:4cpu_hour";
-
-  private final BillableUsageMapper billableUsageMapper;
   private final InternalSubscriptionsApi subscriptionsClient;
   private final RetryTemplate usageContextRetryTemplate;
 
@@ -66,9 +57,6 @@ public class RhMarketplacePayloadMapper {
       InternalSubscriptionsApi subscriptionsClient,
       @Qualifier("rhmUsageContextLookupRetryTemplate") RetryTemplate usageContextRetryTemplate) {
     this.subscriptionsClient = subscriptionsClient;
-    // NOTE(khowell) this dependency is temporary, and instantiating here was easier than
-    // refactoring profiles.
-    this.billableUsageMapper = new BillableUsageMapper();
     this.usageContextRetryTemplate = usageContextRetryTemplate;
   }
 
@@ -104,6 +92,9 @@ public class RhMarketplacePayloadMapper {
   protected UsageEvent produceUsageEvent(BillableUsage billableUsage) {
     if (!isValid(billableUsage)) {
       log.warn("Skipping invalid billable usage {}", billableUsage);
+      return null;
+    } else if (!isUsageRHMarketplaceEligible(billableUsage)) {
+      log.debug("Skipping billable usage due to another target marketplace {}", billableUsage);
       return null;
     }
 
@@ -193,11 +184,6 @@ public class RhMarketplacePayloadMapper {
         && billableUsage.getBillingProvider() != null
         && billableUsage.getBillingAccountId() != null
         && billableUsage.getSnapshotDate() != null
-        && billableUsage.getId() != null
-        && isUsageRHMarketplaceEligible(billableUsage);
-  }
-
-  public Stream<UsageRequest> createUsageRequests(TallySummary tallySummary) {
-    return billableUsageMapper.fromTallySummary(tallySummary).map(this::createUsageRequest);
+        && billableUsage.getId() != null;
   }
 }

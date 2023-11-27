@@ -1051,6 +1051,7 @@ objects:
         MCT2537F5
         MCT2537RN
         MCT2660
+        MCT2667
         MCT2741
         MCT2741F3
         MCT2883
@@ -1063,6 +1064,7 @@ objects:
         MCT3262F3RN
         MCT3262RN
         MCT3262S
+        MCT3632
         MCT3718
         MCT3719
         MCT3857
@@ -1231,3 +1233,13 @@ objects:
         SER0403
         SER0419
         SER0440
+        SVC1882
+        SVC2461
+        SVC2462
+        SVC2463
+        SVC3026
+        SVC3027
+        SVC3028
+        SVC3029
+        SVC3030
+        SVC3031

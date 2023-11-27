@@ -22,7 +22,7 @@ export NAMESPACE=$(bonfire namespace reserve --pool ${NAMESPACE_POOL})
 SMOKE_NAMESPACE=$NAMESPACE  # track which namespace was used here for 'teardown' in common_deploy_logic
 
 # NOTE(khowell) this line added to force enable sidecars
-oc patch env env-$NAMESPACE -p '{"spec":{"providers":{"sidecars":{"tokenRefresher":{"enabled":true}}}}}' --type=merge
+oc patch env env-$NAMESPACE -p '{"spec":{"providers":{"sidecars":{"tokenRefresher":{"enabled":true}}, "web":{"tls":{"enabled": true, "port": 8800, "privatePort": 10800}}}}}' --type=merge
 
 bonfire deploy \
     ${APP_NAME} \

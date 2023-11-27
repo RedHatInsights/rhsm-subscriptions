@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.db;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.persistence.criteria.JoinType;
 import java.util.List;
 import java.util.Objects;
@@ -34,7 +35,6 @@ import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.TallyInstanceViewKey_;
 import org.candlepin.subscriptions.db.model.TallyInstanceView_;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;

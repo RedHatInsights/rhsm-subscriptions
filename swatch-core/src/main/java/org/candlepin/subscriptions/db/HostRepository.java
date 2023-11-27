@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.db;
 import static org.hibernate.jpa.AvailableHints.HINT_FETCH_SIZE;
 
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.persistence.QueryHint;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
@@ -36,7 +37,6 @@ import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.*;
-import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -523,13 +523,6 @@ public interface HostRepository
   default MetricId getDefaultMetricIdForProduct(String productId) {
     return MetricIdUtils.getMetricIdsFromConfigForTag(productId).findFirst().orElse(null);
   }
-
-  @Query(
-      "select distinct h from Host h where "
-          + "h.orgId = :orgId and "
-          + "h.hypervisorUuid = :hypervisor_id")
-  Page<Host> getHostsByHypervisor(
-      @Param("orgId") String orgId, @Param("hypervisor_id") String hypervisorId, Pageable pageable);
 
   @Query(
       "select distinct h1 from Host h1 where "

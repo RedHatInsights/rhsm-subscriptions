@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Sets;
 import com.redhat.swatch.configuration.registry.MetricId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.HashSet;
@@ -51,7 +52,6 @@ import org.candlepin.subscriptions.json.Event.Role;
 import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.DateRange;
-import org.candlepin.subscriptions.util.MetricIdUtils;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

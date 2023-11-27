@@ -32,6 +32,7 @@ import com.redhat.swatch.contract.repository.SubscriptionMeasurementEntity;
 import com.redhat.swatch.contract.repository.SubscriptionProductIdEntity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.ProcessingException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -82,7 +83,7 @@ public class MeasurementMetricIdTransformer {
                               measurement.setMetricId(metric.getUom());
                             }));
       }
-    } catch (ApiException e) {
+    } catch (ProcessingException | ApiException e) {
       log.error("Error looking up dimension for metrics", e);
       throw new ContractsException(ErrorCode.UNHANDLED_EXCEPTION, e.getMessage());
     }
@@ -110,7 +111,7 @@ public class MeasurementMetricIdTransformer {
               .collect(Collectors.toSet());
       contract.getMetrics().removeIf(metric -> !metrics.contains(metric.getMetricId()));
 
-    } catch (ApiException e) {
+    } catch (ProcessingException | ApiException e) {
       log.error("Error resolving dimensions for contract metrics", e);
       throw new ContractsException(ErrorCode.UNHANDLED_EXCEPTION, e.getMessage());
     }
