@@ -311,7 +311,8 @@ public class InstancesResource implements InstancesApi {
     List<Double> measurementList = new ArrayList<>();
     for (String metric : measurements) {
       if (MetricIdUtils.getSockets().equals(MetricId.fromString(metric))) {
-        measurementList.add(Double.valueOf(tallyInstanceView.getSockets()));
+        measurementList.add(
+            Double.valueOf(Optional.ofNullable(tallyInstanceView.getSockets()).orElse(0)));
       } else if (!isPAYG && tallyInstanceView.getKey().getMetricId().equalsIgnoreCase(metric)) {
         measurementList.add(Optional.ofNullable(tallyInstanceView.getValue()).orElse(0.0));
       } else {
