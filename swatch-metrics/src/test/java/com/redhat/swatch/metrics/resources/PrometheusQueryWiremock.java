@@ -144,7 +144,7 @@ public class PrometheusQueryWiremock {
   }
 
   public void resetScenario() {
-    wireMockServer.resetScenarios();
+    wireMockServer.resetAll();
   }
 
   private String toJson(Object object) {

@@ -33,7 +33,6 @@ import com.redhat.swatch.metrics.exception.ErrorCode;
 import com.redhat.swatch.metrics.exception.ExternalServiceException;
 import com.redhat.swatch.metrics.service.prometheus.model.QuerySummaryResult;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.ProcessingException;
 import java.io.File;
 import java.io.IOException;
@@ -56,9 +55,16 @@ public class PrometheusService {
   public static final String JSON_PROPERTY_ERROR_TYPE = "errorType";
   public static final String JSON_PROPERTY_ERROR = "error";
 
-  @Inject @RestClient QueryApi queryApi;
-  @Inject @RestClient QueryRangeApi queryRangeApi;
-  @Inject JsonFactory factory;
+  private final QueryApi queryApi;
+  private final QueryRangeApi queryRangeApi;
+  private final JsonFactory factory;
+
+  public PrometheusService(
+      @RestClient QueryApi queryApi, @RestClient QueryRangeApi queryRangeApi, JsonFactory factory) {
+    this.queryApi = queryApi;
+    this.queryRangeApi = queryRangeApi;
+    this.factory = factory;
+  }
 
   public QuerySummaryResult runRangeQuery(
       String query,

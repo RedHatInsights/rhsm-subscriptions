@@ -18,16 +18,16 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.metrics.service;
+package com.redhat.swatch.metrics.exception;
 
-import com.redhat.swatch.configuration.registry.MetricId;
-import jakarta.enterprise.context.ApplicationScoped;
-import java.time.OffsetDateTime;
+/** Root level exception for the metering. */
+public class MeteringException extends RuntimeException {
 
-@ApplicationScoped
-public class MeteringService {
-  public void collectMetrics(
-      String tag, MetricId metric, String orgId, OffsetDateTime start, OffsetDateTime end) {
-    // To be done in https://issues.redhat.com/browse/SWATCH-1805
+  public MeteringException(String message) {
+    super(message);
+  }
+
+  public MeteringException(String message, Throwable cause) {
+    super(message, cause);
   }
 }
