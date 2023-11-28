@@ -309,7 +309,32 @@ objects:
               - name: pinhead
                 secret:
                   secretName: pinhead
-
+      jobs:
+        - name: sync
+          schedule: ${METERING_SCHEDULE}
+          activeDeadlineSeconds: 1800
+          successfulJobsHistoryLimit: 2
+          restartPolicy: Never
+          podSpec:
+            image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+            command:
+              - /usr/bin/bash
+              - -c
+              - >
+                /usr/bin/curl --fail -H "Origin: https://swatch-metrics-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-metrics-service:8000/api/swatch-metrics/v1/internal/metering/sync"
+            env:
+              - name: SWATCH_SELF_PSK
+                valueFrom:
+                  secretKeyRef:
+                    name: swatch-psks
+                    key: self
+            resources:
+              requests:
+                cpu: ${CURL_CRON_CPU_REQUEST}
+                memory: ${CURL_CRON_MEMORY_REQUEST}
+              limits:
+                cpu: ${CURL_CRON_CPU_LIMIT}
+                memory: ${CURL_CRON_MEMORY_LIMIT}
   - apiVersion: cloud.redhat.com/v1alpha1
     kind: ClowdApp
     metadata:
@@ -494,7 +519,7 @@ objects:
               - /usr/bin/bash
               - -c
               - >
-                /usr/bin/curl --fail -H "Origin: https://swatch-metrics-rhel-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-metrics-rhel-service:8000/api/rhsm-subscriptions/v1/internal/metering/sync"
+                /usr/bin/curl --fail -H "Origin: https://swatch-metrics-rhel-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-metrics-rhel-service:8000/api/swatch-metrics/v1/internal/metering/sync"
             env:
               - name: SWATCH_SELF_PSK
                 valueFrom:

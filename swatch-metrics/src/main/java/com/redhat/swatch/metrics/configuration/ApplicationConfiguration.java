@@ -18,10 +18,19 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.metrics.service.task;
+package com.redhat.swatch.metrics.configuration;
 
-import com.redhat.swatch.metrics.model.MetricsTaskDescriptor;
-import io.quarkus.kafka.client.serialization.JsonbSerializer;
+import jakarta.enterprise.context.ApplicationScoped;
+import java.time.Duration;
+import lombok.Getter;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-/** Provides quarkus a hint that we want to use JSON-B to serialize MetricsTaskDescriptor objects */
-public class MetricsTaskDescriptorSerializer extends JsonbSerializer<MetricsTaskDescriptor> {}
+@ApplicationScoped
+@Getter
+public class ApplicationConfiguration {
+  @ConfigProperty(name = "rhsm-subscriptions.enable-synchronous-operations")
+  boolean enableSynchronousOperations;
+
+  @ConfigProperty(name = "rhsm-subscriptions.prometheus-latency-duration")
+  Duration prometheusLatencyDuration;
+}
