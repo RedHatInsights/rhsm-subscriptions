@@ -14,7 +14,7 @@ parameters:
   - name: METRICS_RHEL_REPLICAS
     value: '1'
   - name: IMAGE
-    value: quay.io/cloudservices/rhsm-subscriptions
+    value: quay.io/cloudservices/swatch-metrics
   - name: IMAGE_TAG
     value: latest
   - name: IMAGE_PULL_SECRET
@@ -54,7 +54,7 @@ parameters:
   - name: SPLUNK_SOURCE
     value: 'rhsm-subscription-hec'
   - name: SPLUNK_SOURCE_TYPE
-    value: 'springboot_server'
+    value: 'quarkus_server'
   - name: SPLUNK_MESSAGE_FORMAT
     value: 'text'
   - name: SPLUNK_HEC_URL
@@ -91,13 +91,6 @@ parameters:
     value: ''
   - name: PROM_URL
     value: http://localhost:8082
-  - name: DATABASE_CONNECTION_TIMEOUT_MS
-    value: '30000'
-  # TODO This has been lowered from what it was in the previous environment (from 25 to 10)
-  # We were running the clowder DB out of connections.  If we need more, we need to investigate
-  # tuning the database to allow more
-  - name: DATABASE_MAX_POOL_SIZE
-    value: '10'
   - name: OPENSHIFT_BILLING_MODEL_FILTER
     value: 'marketplace'
   - name: USER_HOST
@@ -117,17 +110,10 @@ parameters:
     value: '30 * * * *'
   - name: RHEL_METERING_SCHEDULE
     value: '30 * * * *'
-  - name: OPENSHIFT_METERING_RANGE
-    value: '60'
   - name: HOURLY_TALLY_OFFSET
     value: '60'
   - name: METRICS_RHEL_METERING_RANGE
     value: '60'
-# nonprod secret keys have different syntax than prod/stage
-  - name: INVENTORY_SECRET_KEY_NAME
-    value: 'host-inventory-db'
-  - name: INVENTORY_SECRET_KEY_NAME_PREFIX
-    value: ''
   - name: KAFKA_METERING_TASKS_REPLICAS
     value: '3'
   - name: KAFKA_METERING_TASKS_PARTITIONS
@@ -144,6 +130,12 @@ parameters:
     value: 'false'
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: 'http://localhost:4317'
+  - name: METRICS_HEALTH_LIVENESS_PATH
+    value: /q/health/live
+  - name: METRICS_HEALTH_READY_PATH
+    value: /q/health/ready
+  - name: METRICS_HEALTH_PORT
+    value: '8000'
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
     kind: ClowdApp
@@ -153,11 +145,6 @@ objects:
         prometheus: rhsm
     spec: # The name of the ClowdEnvironment providing the services
       envName: ${ENV_NAME}
-
-      database:
-        sharedDbAppName: swatch-tally
-      dependencies:
-        - swatch-tally
 
       kafkaTopics:
         - replicas: ${{KAFKA_METERING_TASKS_REPLICAS}}
@@ -188,25 +175,9 @@ objects:
             sidecars:
               - name: token-refresher
                 enabled: true
-            initContainers:
-              - env:
-                  - name: JAVA_DEBUG
-                    value: ${JAVA_DEBUG}
-                  - name: SPRING_PROFILES_ACTIVE
-                    value: liquibase-only
-                inheritEnv: true
-                resources:
-                  requests:
-                    cpu: ${CPU_REQUEST}
-                    memory: ${MEMORY_REQUEST}
-                  limits:
-                    cpu: ${CPU_LIMIT}
-                    memory: ${MEMORY_LIMIT}
             env:
               - name: JAVA_DEBUG
                 value: ${JAVA_DEBUG}
-              - name: SPRING_LIQUIBASE_ENABLED
-                value: 'false'
               - name: ENABLE_SPLUNK_HEC
                 value: ${ENABLE_SPLUNK_HEC}
               - name: SPLUNKMETA_namespace
@@ -238,9 +209,7 @@ objects:
                 value: ${SPLUNK_HEC_BATCH_SIZE}
               - name: SPLUNK_HEC_TERMINATION_TIMEOUT
                 value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
-              - name: SPRING_PROFILES_ACTIVE
-                value: openshift-metering-worker,api,kafka-queue
-              - name: SERVER_MAX_HTTP_HEADER_SIZE
+              - name: QUARKUS_HTTP_LIMITS_MAX_HEADER_SIZE
                 value: ${SERVER_MAX_HTTP_HEADER_SIZE}
               - name: LOG_FILE
                 value: /logs/server.log
@@ -260,57 +229,10 @@ objects:
                 value: ${KAFKA_SEEK_OVERRIDE_END}
               - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
                 value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
-              - name: DATABASE_HOST
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-tally-db
-                    key: db.host
-              - name: DATABASE_PORT
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-tally-db
-                    key: db.port
-              - name: DATABASE_USERNAME
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-tally-db
-                    key: db.user
-              - name: DATABASE_PASSWORD
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-tally-db
-                    key: db.password
-              - name: DATABASE_DATABASE
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-tally-db
-                    key: db.name
-              - name: DATABASE_CONNECTION_TIMEOUT_MS
-                value: ${DATABASE_CONNECTION_TIMEOUT_MS}
-              - name: DATABASE_MAX_POOL_SIZE
-                value: ${DATABASE_MAX_POOL_SIZE}
-              - name: INVENTORY_DATABASE_HOST
-                valueFrom:
-                  secretKeyRef:
-                    name: ${INVENTORY_SECRET_KEY_NAME}
-                    key: db.host
-              - name: INVENTORY_DATABASE_DATABASE
-                valueFrom:
-                  secretKeyRef:
-                    name: ${INVENTORY_SECRET_KEY_NAME}
-                    key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}name
-              - name: INVENTORY_DATABASE_USERNAME
-                valueFrom:
-                  secretKeyRef:
-                    name: ${INVENTORY_SECRET_KEY_NAME}
-                    key: db.user
-              - name: INVENTORY_DATABASE_PASSWORD
-                valueFrom:
-                  secretKeyRef:
-                    name: ${INVENTORY_SECRET_KEY_NAME}
-                    key: ${INVENTORY_SECRET_KEY_NAME_PREFIX}password
               - name: EVENT_SOURCE
                 value: 'prometheus'
+              - name: METERING_TASK_TOPIC
+                value: 'platform.rhsm-subscriptions.metering-tasks'
               - name: PROM_URL
                 value: ${PROM_URL}
               - name: OPENSHIFT_BILLING_MODEL_FILTER
@@ -352,8 +274,8 @@ objects:
             livenessProbe:
               failureThreshold: 3
               httpGet:
-                path: /health/liveness
-                port: 9000
+                path: ${METRICS_HEALTH_LIVENESS_PATH}
+                port: ${{METRICS_HEALTH_PORT}}
                 scheme: HTTP
               initialDelaySeconds: 15
               periodSeconds: 20
@@ -362,8 +284,8 @@ objects:
             readinessProbe:
               failureThreshold: 3
               httpGet:
-                path: /health
-                port: 9000
+                path: ${METRICS_HEALTH_READY_PATH}
+                port: ${{METRICS_HEALTH_PORT}}
                 scheme: HTTP
               initialDelaySeconds: 15
               periodSeconds: 20
@@ -387,7 +309,6 @@ objects:
               - name: pinhead
                 secret:
                   secretName: pinhead
-
       jobs:
         - name: sync
           schedule: ${METERING_SCHEDULE}
@@ -400,7 +321,7 @@ objects:
               - /usr/bin/bash
               - -c
               - >
-                /usr/bin/curl --fail -H "Origin: https://swatch-metrics-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-metrics-service:8000/api/rhsm-subscriptions/v1/internal/metering/sync"
+                /usr/bin/curl --fail -H "Origin: https://swatch-metrics-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-metrics-service:8000/api/swatch-metrics/v1/internal/metering/sync"
             env:
               - name: SWATCH_SELF_PSK
                 valueFrom:
@@ -422,10 +343,6 @@ objects:
         prometheus: rhsm
     spec:
       envName: ${ENV_NAME}
-      database:
-        sharedDbAppName: swatch-tally
-      dependencies:
-        - swatch-tally
 
       kafkaTopics:
         - replicas: ${{KAFKA_METERING_TASKS_REPLICAS}}
@@ -455,25 +372,9 @@ objects:
             sidecars:
               - name: token-refresher
                 enabled: true
-            initContainers:
-              - env:
-                  - name: JAVA_DEBUG
-                    value: ${JAVA_DEBUG}
-                  - name: SPRING_PROFILES_ACTIVE
-                    value: liquibase-only
-                inheritEnv: true
-                resources:
-                  requests:
-                    cpu: ${METRICS_RHEL_CPU_REQUEST}
-                    memory: ${METRICS_RHEL_MEMORY_REQUEST}
-                  limits:
-                    cpu: ${METRICS_RHEL_CPU_LIMIT}
-                    memory: ${METRICS_RHEL_MEMORY_LIMIT}
             env:
               - name: JAVA_DEBUG
                 value: ${JAVA_DEBUG}
-              - name: SPRING_LIQUIBASE_ENABLED
-                value: 'false'
               - name: ENABLE_SPLUNK_HEC
                 value: ${ENABLE_SPLUNK_HEC}
               - name: SPLUNKMETA_namespace
@@ -505,9 +406,7 @@ objects:
                 value: ${SPLUNK_HEC_BATCH_SIZE}
               - name: SPLUNK_HEC_TERMINATION_TIMEOUT
                 value: ${SPLUNK_HEC_TERMINATION_TIMEOUT}
-              - name: SPRING_PROFILES_ACTIVE
-                value: metrics-rhel,api,kafka-queue
-              - name: SERVER_MAX_HTTP_HEADER_SIZE
+              - name: QUARKUS_HTTP_LIMITS_MAX_HEADER_SIZE
                 value: ${SERVER_MAX_HTTP_HEADER_SIZE}
               - name: LOG_FILE
                 value: /logs/server.log
@@ -527,37 +426,10 @@ objects:
                 value: ${METRICS_RHEL_KAFKA_SEEK_OVERRIDE_END}
               - name: METRICS_RHEL_KAFKA_SEEK_OVERRIDE_TIMESTAMP
                 value: ${METRICS_RHEL_KAFKA_SEEK_OVERRIDE_TIMESTAMP}
-              - name: DATABASE_HOST
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-tally-db
-                    key: db.host
-              - name: DATABASE_PORT
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-tally-db
-                    key: db.port
-              - name: DATABASE_USERNAME
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-tally-db
-                    key: db.user
-              - name: DATABASE_PASSWORD
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-tally-db
-                    key: db.password
-              - name: DATABASE_DATABASE
-                valueFrom:
-                  secretKeyRef:
-                    name: swatch-tally-db
-                    key: db.name
-              - name: DATABASE_CONNECTION_TIMEOUT_MS
-                value: ${DATABASE_CONNECTION_TIMEOUT_MS}
-              - name: DATABASE_MAX_POOL_SIZE
-                value: ${DATABASE_MAX_POOL_SIZE}
               - name: EVENT_SOURCE
                 value: 'rhelemeter'
+              - name: METERING_TASK_TOPIC
+                value: 'platform.rhsm-subscriptions.metering-rhel-tasks'
               - name: PROM_URL
                 value: ${PROM_URL}
               - name: OPENSHIFT_BILLING_MODEL_FILTER
@@ -599,8 +471,8 @@ objects:
             livenessProbe:
               failureThreshold: 3
               httpGet:
-                path: /health/liveness
-                port: 9000
+                path: ${METRICS_HEALTH_LIVENESS_PATH}
+                port: ${{METRICS_HEALTH_PORT}}
                 scheme: HTTP
               initialDelaySeconds: 15
               periodSeconds: 20
@@ -609,8 +481,8 @@ objects:
             readinessProbe:
               failureThreshold: 3
               httpGet:
-                path: /health
-                port: 9000
+                path: ${METRICS_HEALTH_READY_PATH}
+                port: ${{METRICS_HEALTH_PORT}}
                 scheme: HTTP
               initialDelaySeconds: 15
               periodSeconds: 20
@@ -647,7 +519,7 @@ objects:
               - /usr/bin/bash
               - -c
               - >
-                /usr/bin/curl --fail -H "Origin: https://swatch-metrics-rhel-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-metrics-rhel-service:8000/api/rhsm-subscriptions/v1/internal/metering/sync"
+                /usr/bin/curl --fail -H "Origin: https://swatch-metrics-rhel-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-metrics-rhel-service:8000/api/swatch-metrics/v1/internal/metering/sync"
             env:
               - name: SWATCH_SELF_PSK
                 valueFrom:
