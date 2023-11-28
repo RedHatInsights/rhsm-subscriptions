@@ -18,26 +18,15 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.metrics.test.resources;
+package com.redhat.swatch.metrics.service.json;
 
-import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
-import io.smallrye.reactive.messaging.memory.InMemoryConnector;
-import java.util.HashMap;
-import java.util.Map;
+import com.redhat.swatch.metrics.model.MetricsTaskDescriptor;
+import io.quarkus.kafka.client.serialization.ObjectMapperDeserializer;
 
-public class InMemoryMessageBrokerKafkaResource implements QuarkusTestResourceLifecycleManager {
-
-  @Override
-  public Map<String, String> start() {
-    Map<String, String> env = new HashMap<>();
-    env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory("tasks-in"));
-    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory("tasks-out"));
-    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory("events-out"));
-    return env;
-  }
-
-  @Override
-  public void stop() {
-    InMemoryConnector.clear();
+/** Provides quarkus a hint that we want to use JSON-B to serialize MetricsTaskDescriptor objects */
+public class MetricsTaskDescriptorDeserializer
+    extends ObjectMapperDeserializer<MetricsTaskDescriptor> {
+  public MetricsTaskDescriptorDeserializer() {
+    super(MetricsTaskDescriptor.class);
   }
 }

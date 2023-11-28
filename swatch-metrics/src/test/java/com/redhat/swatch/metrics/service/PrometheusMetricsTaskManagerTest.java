@@ -20,9 +20,8 @@
  */
 package com.redhat.swatch.metrics.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
-import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.metrics.test.resources.InMemoryMessageBrokerKafkaResource;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
@@ -37,24 +36,21 @@ import org.junit.jupiter.api.Test;
 @QuarkusTestResource(
     value = InMemoryMessageBrokerKafkaResource.class,
     restrictToAnnotatedClass = true)
-class MetricsProducerTest {
+class PrometheusMetricsTaskManagerTest {
 
-  private static final String ORG_ID = "org1";
-  private static final String PRODUCT_TAG = "productTag";
-  private static final MetricId METRIC = MetricId.fromString("Sockets");
+  private static final String TEST_PROFILE_ID = "OpenShift-dedicated-metrics";
 
-  @Inject MetricsProducer producer;
+  @Inject PrometheusMetricsTaskManager manager;
   @Inject @Any InMemoryConnector connector;
 
   @Test
-  void testMessagesAreSentToTheTopic() {
+  void testTasksAreProducedToTopic() {
     InMemorySink<Object> results = connector.sink("tasks-out");
 
-    OffsetDateTime start = OffsetDateTime.now();
-    OffsetDateTime end = start.plusDays(1);
-
-    producer.queueMetricUpdateForOrgId(ORG_ID, PRODUCT_TAG, METRIC, start, end);
-
-    assertEquals(1, results.received().size());
+    String orgId = "org123";
+    OffsetDateTime end = OffsetDateTime.now();
+    OffsetDateTime start = end.minusDays(1);
+    manager.updateMetricsForOrgId(orgId, TEST_PROFILE_ID, start, end);
+    assertFalse(results.received().isEmpty());
   }
 }

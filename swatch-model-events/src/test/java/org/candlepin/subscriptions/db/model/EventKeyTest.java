@@ -23,54 +23,53 @@ package org.candlepin.subscriptions.db.model;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
+import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.json.Event;
-import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.junit.jupiter.api.Test;
 
 class EventKeyTest {
 
-  private ApplicationClock clock = new TestClockConfiguration().adjustableClock();
-
   @Test
   void testLookup() {
-    Event e1 = eventForInstanceId("instance1");
-    Event e2 = eventForInstanceId("instance2");
-    Event e3 = eventForInstanceId("instance3");
+    OffsetDateTime now = OffsetDateTime.now();
+
+    Event e1 = eventForInstanceId("instance1", now);
+    Event e2 = eventForInstanceId("instance2", now);
+    Event e3 = eventForInstanceId("instance3", now);
 
     Map<EventKey, Event> eventMap =
         Stream.of(e1, e2, e3).collect(Collectors.toMap(EventKey::fromEvent, Function.identity()));
 
-    assertEquals(e1, eventMap.get(keyForInstanceId("instance1")));
-    assertEquals(e2, eventMap.get(keyForInstanceId("instance2")));
-    assertEquals(e3, eventMap.get(keyForInstanceId("instance3")));
+    assertEquals(e1, eventMap.get(keyForInstanceId("instance1", now)));
+    assertEquals(e2, eventMap.get(keyForInstanceId("instance2", now)));
+    assertEquals(e3, eventMap.get(keyForInstanceId("instance3", now)));
   }
 
   @Test
   void testEquality() {
-    EventKey ek1 = new EventKey("org", "source", "type", "instance", clock.now());
-    EventKey ek2 = new EventKey("org", "source", "type", "instance", clock.now());
-    EventKey ek3 = new EventKey("org3", "source3", "type3", "instance3", clock.now().minusDays(1));
+    OffsetDateTime now = OffsetDateTime.now();
+    EventKey ek1 = new EventKey("org", "source", "type", "instance", now);
+    EventKey ek2 = new EventKey("org", "source", "type", "instance", now);
+    EventKey ek3 = new EventKey("org3", "source3", "type3", "instance3", now.minusDays(1));
 
     assertEquals(ek1, ek2);
     assertNotEquals(ek1, ek3);
   }
 
-  private EventKey keyForInstanceId(String instanceId) {
-    return new EventKey("org", "source", "type", instanceId, clock.now());
+  private EventKey keyForInstanceId(String instanceId, OffsetDateTime timestamp) {
+    return new EventKey("org", "source", "type", instanceId, timestamp);
   }
 
-  private Event eventForInstanceId(String instanceId) {
-    return (Event)
-        new Event()
-            .withTimestamp(clock.now())
-            .withOrgId("org")
-            .withEventType("type")
-            .withEventSource("source")
-            .withInstanceId(instanceId);
+  private Event eventForInstanceId(String instanceId, OffsetDateTime timestamp) {
+    return new Event()
+        .withTimestamp(timestamp)
+        .withOrgId("org")
+        .withEventType("type")
+        .withEventSource("source")
+        .withInstanceId(instanceId);
   }
 }
