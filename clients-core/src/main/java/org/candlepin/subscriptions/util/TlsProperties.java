@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.util;
 
-import java.io.IOException;
-import java.io.InputStream;
 import lombok.Data;
 import lombok.ToString;
 import org.springframework.core.io.Resource;
@@ -41,19 +39,8 @@ public class TlsProperties {
   /** Truststore file password */
   @ToString.Exclude private char[] truststorePassword;
 
-  public InputStream getKeystoreStream() throws IOException {
-    if (!validFile(keystore)) {
-      throw new IllegalStateException("No keystore file has been set");
-    }
-    return keystore.getInputStream();
-  }
-
-  public InputStream getTruststoreStream() throws IOException {
-    if (!validFile(truststore)) {
-      throw new IllegalStateException("No truststore file has been set");
-    }
-    return truststore.getInputStream();
-  }
+  /** Truststore type */
+  @ToString.Exclude private String truststoreType;
 
   public boolean usesClientAuth() {
     return validFile(keystore);

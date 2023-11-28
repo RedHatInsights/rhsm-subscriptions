@@ -8,7 +8,10 @@ rhsm-subscriptions:
   rbac-service:
     application-name: ${RHSM_RBAC_APPLICATION_NAME:subscriptions}
     use-stub: ${RHSM_RBAC_USE_STUB:false}
-    url: http://${RHSM_RBAC_HOST}:${RHSM_RBAC_PORT}/api/rbac/v1
+    url: ${clowder.endpoints.rbac-service.url:http://localhost:8819}/api/rbac/v1
+    truststore: ${clowder.endpoints.rbac-service.trust-store-path}
+    truststore-password: ${clowder.endpoints.rbac-service.trust-store-password}
+    truststore-type: ${clowder.endpoints.rbac-service.trust-store-type}
     max-connections: ${RHSM_RBAC_MAX_CONNECTIONS:100}
     stub-permissions: ${RHSM_RBAC_STUB_PERMISSIONS:subscriptions:*:*}
   api:

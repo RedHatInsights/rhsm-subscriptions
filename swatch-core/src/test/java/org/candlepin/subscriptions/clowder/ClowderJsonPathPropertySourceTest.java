@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.isA;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
@@ -34,6 +35,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
@@ -264,13 +266,21 @@ class ClowderJsonPathPropertySourceTest {
         "clowder.kafka.brokers.sasl.mechanism|PLAIN",
         "clowder.kafka.brokers.sasl.jaas.config|org.apache.kafka.common.security.plain.PlainLoginModule required username=\"john\" password=\"doe\";",
         "clowder.kafka.brokers.cacert|Dummy value",
-        "clowder.kafka.brokers.cacert.type|PEM"
+        "clowder.kafka.brokers.cacert.type|PEM",
+        "clowder.endpoints.rhsm-clowdapp-service.url|http://rhsm-clowdapp-service.rhsm.svc:8000",
+        "clowder.endpoints.index-service.url|https://index.rhsm.svc:8800",
+        "clowder.endpoints.index-service.trust-store-path|file:/tmp/truststore.*.trust",
+        "clowder.endpoints.index-service.trust-store-password|.+",
+        "clowder.endpoints.index-service.trust-store-type|PKCS12"
       },
       delimiter = '|')
-  void testKafkaBrokersProperties(String property, String expectedValue) throws Exception {
+  void testCustomLogicInProperties(String property, String expectedValue) throws Exception {
     var source = new ClowderJsonPathPropertySource(jsonFromResource(TEST_CLOWDER_CONFIG_JSON));
     var result = source.getProperty(property);
-    assertEquals(expectedValue, result);
+    assertTrue(
+        Pattern.matches(expectedValue, (String) result),
+        String.format(
+            "Actual value was '%s' and expected expression is '%s'", result, expectedValue));
   }
 
   private void testServletPropertySource(String servletContextPropertySourceName) throws Exception {
