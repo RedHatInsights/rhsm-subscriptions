@@ -68,6 +68,9 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
    * config and the function is the custom logic to apply. For example, if we want to apply a custom
    * logic for the property "clowder.kafka.broker.sasl", then we need to add a new entry with key
    * ".sasl" and the function with the custom logic.
+   *
+   * <p>Clowder configuration might include multiple brokers. In this case, the logic will use the
+   * first broker with the SASL configuration.
    */
   private static final Map<String, KafkaBrokerConfigMapper> KAFKA_BROKERS_PROPERTIES =
       Map.of(

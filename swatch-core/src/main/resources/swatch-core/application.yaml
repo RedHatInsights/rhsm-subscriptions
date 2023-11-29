@@ -98,6 +98,16 @@ spring:
       sasl.mechanism: ${clowder.kafka.brokers.sasl.mechanism:}
       sasl.jaas.config: ${clowder.kafka.brokers.sasl.jaas.config:}
     ssl:
+      # This needs to be a PEM encoded certificate string.  If you want to point to a file you can use
+      # spring.kafka.ssl.trust-store-location property but that property is mutually exclusive with the
+      # spring.kafka.ssl.trust-store-certificates property.  Since Clowder gives us the actual
+      # certificate PEM, we have to use the trust-store-certificates property here.
+      #
+      # The value of this property must match a regular expression defined in Kafka's
+      # DefaultSslEngineFactory.PemParser class.  The regular expression is (with Java escapes)
+      # -+BEGIN\\s*.*CERTIFICATE[^-]*-+\\s+(?:\\s*[^\\r\\n]*:[^\\r\\n]*[\\r\\n]+)*([a-zA-Z0-9/+=\\s]*)-+END\\s*.*CERTIFICATE[^-]*-+\\s+")
+      # A notable point about this expression is that the "----BEGIN CERTIFICATE-----" piece must be
+      # followed by a newline which makes it challenging to place the value in a properties or YAML file.
       trust-store-certificates: ${clowder.kafka.brokers.cacert:}
       trust-store-type: ${clowder.kafka.brokers.cacert.type:}
     listener:
