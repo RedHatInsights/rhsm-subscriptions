@@ -21,9 +21,9 @@
 package com.redhat.swatch.azure.kafka;
 
 import com.redhat.swatch.azure.openapi.model.BillableUsage;
-import io.quarkus.kafka.client.serialization.JsonbSerializer;
+import io.quarkus.kafka.client.serialization.ObjectMapperSerializer;
 
-/** Provides quarkus a hint that we want to use JSON-B to serialize BillableUsage objects */
-public class BillableUsageSerializer extends JsonbSerializer<BillableUsage> {
+/** Provides quarkus a hint that we want to use Jackson to serialize BillableUsage objects */
+public class BillableUsageSerializer extends ObjectMapperSerializer<BillableUsage> {
   /* intentionally empty */
 }

@@ -22,14 +22,13 @@ package com.redhat.swatch.aws.test.wiremock;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AwsUsageContext;
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -48,19 +47,23 @@ public class WiremockRunner {
     WireMockServer wireMockServer =
         new WireMockServer(
             WireMockConfiguration.options().port(wiremockPort).notifier(new ConsoleNotifier(true)));
-    configureMockSwatchInternalSubscriptionService(wireMockServer);
+    try {
+      configureMockSwatchInternalSubscriptionService(wireMockServer);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
     configureAwsBatchMeterApi(wireMockServer);
     wireMockServer.start();
   }
 
   // NOTE: if this gets unwieldy, we can move stubbing to separate classes
-  private static void configureMockSwatchInternalSubscriptionService(
-      WireMockServer wireMockServer) {
+  private static void configureMockSwatchInternalSubscriptionService(WireMockServer wireMockServer)
+      throws JsonProcessingException {
     String awsCustomerId =
         Optional.ofNullable(System.getenv("WIREMOCK_AWS_CUSTOMER_ID")).orElse("customer123");
     String awsProductCode =
         Optional.ofNullable(System.getenv("WIREMOCK_AWS_PRODUCT_CODE")).orElse("productCode");
-    Jsonb jsonb = JsonbBuilder.create();
+    ObjectMapper mapper = new ObjectMapper();
     wireMockServer.stubFor(
         any(urlMatching("/api/rhsm-subscriptions/v1/?.*"))
             .withQueryParam("accountNumber", equalTo("account123"))
@@ -69,7 +72,7 @@ public class WiremockRunner {
                 aResponse()
                     .withHeader("Content-Type", "application/json")
                     .withBody(
-                        jsonb.toJson(
+                        mapper.writeValueAsString(
                             new AwsUsageContext()
                                 .customerId(awsCustomerId)
                                 .productCode(awsProductCode)
@@ -84,7 +87,7 @@ public class WiremockRunner {
                 aResponse()
                     .withHeader("Content-Type", "application/json")
                     .withBody(
-                        jsonb.toJson(
+                        mapper.writeValueAsString(
                             new AwsUsageContext()
                                 .customerId(awsCustomerId)
                                 .productCode(awsProductCode)
@@ -99,7 +102,7 @@ public class WiremockRunner {
                 aResponse()
                     .withHeader("Content-Type", "application/json")
                     .withBody(
-                        jsonb.toJson(
+                        mapper.writeValueAsString(
                             new AwsUsageContext()
                                 .customerId(awsCustomerId)
                                 .productCode(awsProductCode)

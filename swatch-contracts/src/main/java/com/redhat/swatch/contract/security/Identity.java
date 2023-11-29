@@ -20,7 +20,7 @@
  */
 package com.redhat.swatch.contract.security;
 
-import jakarta.json.bind.annotation.JsonbProperty;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -34,10 +34,10 @@ import lombok.NoArgsConstructor;
 public class Identity {
   private String type;
 
-  @JsonbProperty("org_id")
+  @JsonProperty("org_id")
   private String orgId;
 
-  @JsonbProperty("associate")
+  @JsonProperty("associate")
   private SamlAssertions samlAssertions;
 
   private X509Properties x509;
