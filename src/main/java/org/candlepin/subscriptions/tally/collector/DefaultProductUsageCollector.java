@@ -32,10 +32,11 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
   @Override
   public Optional<HostTallyBucket> buildBucket(
       UsageCalculation.Key key, NormalizedFacts normalizedFacts) {
-    int appliedCores = Optional.ofNullable(normalizedFacts.getCores()).orElse(0);
-    int appliedSockets = Optional.ofNullable(normalizedFacts.getSockets()).orElse(0);
+    Integer appliedCores = normalizedFacts.getCores();
+    Integer appliedSockets = normalizedFacts.getSockets();
 
     HardwareMeasurementType appliedType = null;
+
     // Cloud provider hosts only account for a single socket.
     if (normalizedFacts.getCloudProviderType() != null) {
       appliedSockets = normalizedFacts.isMarketplace() ? 0 : 1;
@@ -43,7 +44,7 @@ public class DefaultProductUsageCollector implements ProductUsageCollector {
     }
     // Accumulate for physical systems.
     else if (!normalizedFacts.isVirtual()) {
-      appliedSockets = normalizedFacts.isMarketplace() ? 0 : appliedSockets;
+      appliedSockets = normalizedFacts.isMarketplace() ? (Integer) 0 : appliedSockets;
       appliedType = HardwareMeasurementType.PHYSICAL;
     }
     // Any other system is considered virtual
