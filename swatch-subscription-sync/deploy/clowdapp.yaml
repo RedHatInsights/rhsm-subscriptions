@@ -15,7 +15,6 @@ parameters:
     value: WARN
   - name: LOGGING_LEVEL
     value: INFO
-  - name: KAFKA_BOOTSTRAP_HOST
   - name: KAFKA_MESSAGE_THREADS
     value: '24'
   - name: KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS
