@@ -21,6 +21,13 @@
             "hostname": "rbac-service.rhsm.svc",
             "name": "service",
             "port": 8000
+        },
+        {
+            "app": "index",
+            "hostname": "index.rhsm.svc",
+            "name": "service",
+            "port": 8000,
+            "tlsPort": 8800
         }
     ],
     "featureFlags": {
@@ -74,5 +81,6 @@
     "metricsPort": 9000,
     "privatePort": 8080,
     "publicPort": 8000,
-    "webPort": 8000
+    "webPort": 8000,
+    "tlsCAPath": "src/test/resources/ca-test.pem"
 }
