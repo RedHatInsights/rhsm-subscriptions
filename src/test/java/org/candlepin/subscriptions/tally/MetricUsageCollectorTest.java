@@ -85,7 +85,7 @@ class MetricUsageCollectorTest {
 
   static final String RHEL_WORKSTATION_SWATCH_PRODUCT_ID = "RHEL Workstation";
   static final String RHEL_COMPUTE_NODE_SWATCH_PRODUCT_ID = "RHEL Compute Node";
-  static final String OSD_PRODUCT_ID = "OpenShift-dedicated-metrics";
+  static final String OSD_PRODUCT_TAG = "OpenShift-dedicated-metrics";
 
   static final String OSD_METRIC_ID = "redhat.com:openshift_dedicated:4cpu_hour";
 
@@ -124,6 +124,7 @@ class MetricUsageCollectorTest {
         createEvent()
             .withEventId(UUID.randomUUID())
             .withRole(Event.Role.OSD)
+            .withProductTag(Set.of(OSD_PRODUCT_TAG))
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
             .withMeasurements(Collections.singletonList(measurement))
@@ -137,7 +138,7 @@ class MetricUsageCollectorTest {
     assertNotNull(accountUsageCalculation);
     UsageCalculation.Key usageCalculationKey =
         new UsageCalculation.Key(
-            OSD_PRODUCT_ID,
+            OSD_PRODUCT_TAG,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider.RED_HAT,
@@ -203,7 +204,8 @@ class MetricUsageCollectorTest {
     Event event =
         createEvent()
             .withEventId(UUID.randomUUID())
-            .withProductIds(List.of(RHEL_FOR_X86, RHEL_ELS_PAYG_ENG_ID))
+            .withProductIds(List.of(RHEL_ENG_ID, RHEL_ELS_PAYG_ENG_ID))
+            .withProductTag(Set.of(RHEL_FOR_X86_ELS_PAYG))
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType("RHEL System")
             .withMeasurements(Collections.singletonList(measurement))
@@ -258,6 +260,7 @@ class MetricUsageCollectorTest {
         createEvent()
             .withEventId(UUID.randomUUID())
             .withRole(Event.Role.OSD)
+            .withProductTag(Set.of(OSD_PRODUCT_TAG))
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
             .withMeasurements(Collections.singletonList(measurement))
@@ -272,7 +275,7 @@ class MetricUsageCollectorTest {
     assertNotNull(accountUsageCalculation);
     UsageCalculation.Key usageCalculationKey =
         new UsageCalculation.Key(
-            OSD_PRODUCT_ID,
+            OSD_PRODUCT_TAG,
             ServiceLevel._ANY,
             Usage.PRODUCTION,
             BillingProvider.RED_HAT,
@@ -294,6 +297,7 @@ class MetricUsageCollectorTest {
         createEvent()
             .withEventId(UUID.randomUUID())
             .withRole(Event.Role.OSD)
+            .withProductTag(Set.of(OSD_PRODUCT_TAG))
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
             .withMeasurements(Collections.singletonList(measurement))
@@ -308,7 +312,7 @@ class MetricUsageCollectorTest {
     assertNotNull(accountUsageCalculation);
     UsageCalculation.Key usageCalculationKey =
         new UsageCalculation.Key(
-            OSD_PRODUCT_ID,
+            OSD_PRODUCT_TAG,
             ServiceLevel.PREMIUM,
             Usage._ANY,
             BillingProvider.RED_HAT,
@@ -348,7 +352,7 @@ class MetricUsageCollectorTest {
 
     UsageCalculation.Key serverKey =
         new UsageCalculation.Key(
-            OSD_PRODUCT_ID, ServiceLevel.PREMIUM, Usage._ANY, BillingProvider.RED_HAT, "_ANY");
+            OSD_PRODUCT_TAG, ServiceLevel.PREMIUM, Usage._ANY, BillingProvider.RED_HAT, "_ANY");
     assertTrue(accountUsageCalculation.containsCalculation(serverKey));
     assertEquals(
         Double.valueOf(42.0),
@@ -379,7 +383,8 @@ class MetricUsageCollectorTest {
             .withMeasurements(Collections.singletonList(measurement))
             .withUsage(Event.Usage.PRODUCTION)
             .withBillingProvider(Event.BillingProvider.RED_HAT)
-            .withProductIds(List.of(RHEL_ENG_ID, RHEL_ELS_PAYG_ENG_ID));
+            .withProductIds(List.of(RHEL_ENG_ID, RHEL_ELS_PAYG_ENG_ID))
+            .withProductTag(Set.of(RHEL_FOR_X86_ELS_PAYG));
 
     AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
     when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any(), any()))
@@ -433,6 +438,7 @@ class MetricUsageCollectorTest {
         createEvent()
             .withEventId(UUID.randomUUID())
             .withRole(Event.Role.OSD)
+            .withProductTag(Set.of(OSD_PRODUCT_TAG))
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType(SERVICE_TYPE)
             .withMeasurements(Collections.singletonList(measurement))
@@ -447,7 +453,7 @@ class MetricUsageCollectorTest {
     assertNotNull(accountUsageCalculation);
     UsageCalculation.Key usageCalculationKey =
         new UsageCalculation.Key(
-            OSD_PRODUCT_ID,
+            OSD_PRODUCT_TAG,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
             BillingProvider.RED_HAT,
@@ -776,6 +782,10 @@ class MetricUsageCollectorTest {
 
   private static Event createEvent(String instanceId) {
     return (Event)
-        new Event().withEventId(UUID.randomUUID()).withOrgId("test-org").withInstanceId(instanceId);
+        new Event()
+            .withEventId(UUID.randomUUID())
+            .withOrgId("test-org")
+            .withInstanceId(instanceId)
+            .withProductTag(Set.of(OSD_PRODUCT_TAG));
   }
 }
