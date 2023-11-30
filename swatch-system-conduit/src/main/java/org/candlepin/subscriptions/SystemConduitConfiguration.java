@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions;
 
-import org.candlepin.subscriptions.clowder.KafkaJaasBeanPostProcessor;
 import org.candlepin.subscriptions.clowder.RdsSslBeanPostProcessor;
 import org.candlepin.subscriptions.validator.IpAddressValidator;
 import org.candlepin.subscriptions.validator.MacAddressValidator;
@@ -30,16 +29,6 @@ import org.springframework.core.env.Environment;
 
 @Configuration
 public class SystemConduitConfiguration {
-  /**
-   * A bean post-processor responsible for setting up JAAS for Kafka.
-   *
-   * @param env The Spring Environment
-   * @return a KafkaJaasBeanPostProcessor object
-   */
-  @Bean
-  public KafkaJaasBeanPostProcessor kafkaJaasBeanPostProcessor(Environment env) {
-    return new KafkaJaasBeanPostProcessor(env);
-  }
 
   /**
    * An instance of the MacAddressValidator that we use to detect NICs with bad MAC addresses.
