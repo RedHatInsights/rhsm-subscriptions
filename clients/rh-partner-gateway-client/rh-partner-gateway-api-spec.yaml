@@ -149,7 +149,7 @@ components:
       properties:
         sku:
           type: string
-        redHatSubscriptionNumber:
+        subscriptionNumber:
           type: string
     ApiErrorV1:
       properties:
