@@ -23,10 +23,6 @@ parameters:
     value: WARN
   - name: LOGGING_LEVEL
     value: INFO
-  - name: RHSM_RBAC_HOST
-    value: rbac-service
-  - name: RHSM_RBAC_PORT
-    value: '8000'
   - name: REPLICAS
     value: '1'
   - name: MEMORY_REQUEST
@@ -80,11 +76,12 @@ objects:
 
     spec:
       envName: ${ENV_NAME}
+      dependencies:
+        - swatch-tally
+        - rbac
 
       database:
         sharedDbAppName: swatch-tally
-      dependencies:
-        - swatch-tally
 
       deployments:
         - name: service
@@ -162,10 +159,6 @@ objects:
                 value: ${LOGGING_LEVEL_ROOT}
               - name: LOGGING_LEVEL_ORG_CANDLEPIN
                 value: ${LOGGING_LEVEL}
-              - name: RHSM_RBAC_HOST
-                value: ${RHSM_RBAC_HOST}
-              - name: RHSM_RBAC_PORT
-                value: ${RHSM_RBAC_PORT}
               - name: DATABASE_HOST
                 valueFrom:
                   secretKeyRef:

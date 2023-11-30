@@ -237,8 +237,6 @@ RHSM_RBAC_USE_STUB=true ./gradlew bootRun
 * `KAFKA_GROUP_ID` kafka consumer group ID
 * `KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS`: kafka max poll interval in milliseconds
 * `KAFKA_MESSAGE_THREADS`: number of consumer threads
-* `KAFKA_BOOTSTRAP_HOST`: kafka bootstrap host
-* `KAFKA_BOOTSTRAP_PORT`: kafka boostrap port
 * `KAFKA_CONSUMER_RECONNECT_BACKOFF_MS`: kafka consumer reconnect backoff in milliseconds
 * `KAFKA_CONSUMER_RECONNECT_BACKOFF_MAX_MS`: kafka consumer reconnect max backoff in milliseconds
 * `KAFKA_API_RECONNECT_TIMEOUT_MS`: kafka connection timeout in milliseconds

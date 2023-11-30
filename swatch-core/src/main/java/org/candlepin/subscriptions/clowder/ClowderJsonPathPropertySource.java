@@ -31,12 +31,18 @@ import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import lombok.EqualsAndHashCode;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.logging.Log;
 import org.springframework.boot.origin.Origin;
 import org.springframework.boot.origin.OriginLookup;
@@ -53,11 +59,44 @@ import org.springframework.web.context.support.StandardServletEnvironment;
  * This class resolves any property starting with "clowder." Everything after the "clowder." prefix
  * is evaluated as a JSON Path expression against the Clowder JSON and the result is returned.
  */
+@EqualsAndHashCode(callSuper = true)
+@Slf4j
 public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
     implements OriginLookup<String> {
 
   public static final String PROPERTY_SOURCE_NAME = "Clowder JSON";
   public static final String PREFIX = "clowder.";
+  private static final String KAFKA_BROKERS = "kafka.brokers";
+  private static final String ENDPOINTS = "endpoints";
+  private static final Integer PORT_NOT_SET = 0;
+  private static final String ENDPOINT_TLS_PORT_PROPERTY = "tlsPort";
+
+  /**
+   * Custom rules for kafka broker property binding where the key is the suffix of the clowder
+   * config and the function is the custom logic to apply. For example, if we want to apply a custom
+   * logic for the property "clowder.kafka.broker.sasl", then we need to add a new entry with key
+   * ".sasl" and the function with the custom logic.
+   *
+   * <p>Clowder configuration might include multiple brokers. In this case, the logic will use the
+   * first broker with the SASL configuration.
+   */
+  private static final Map<String, KafkaBrokerConfigMapper> KAFKA_BROKERS_PROPERTIES =
+      Map.of(
+          "", ClowderJsonPathPropertySource::kafkaBrokerToBootstrapServer,
+          ".sasl.securityProtocol",
+              ClowderJsonPathPropertySource::kafkaBrokerToSaslSecurityProtocol,
+          ".sasl.mechanism", ClowderJsonPathPropertySource::kafkaBrokerToSaslMechanism,
+          ".sasl.jaas.config", ClowderJsonPathPropertySource::kafkaBrokerToSaslJaasConfig,
+          ".cacert", ClowderJsonPathPropertySource::kafkaBrokerToCaCert,
+          ".cacert.type", ClowderJsonPathPropertySource::kafkaBrokerToCaCertType);
+
+  /** Custom rules to configure rest-clients using clowder file. */
+  private static final Map<String, EndpointConfigMapper> ENDPOINTS_PROPERTIES =
+      Map.of(
+          ".url", ClowderJsonPathPropertySource::endpointToUrl,
+          ".trust-store-path", ClowderJsonPathPropertySource::endpointToTrustStorePath,
+          ".trust-store-password", ClowderJsonPathPropertySource::endpointToTrustStorePassword,
+          ".trust-store-type", ClowderJsonPathPropertySource::endpointToTrustStoreType);
 
   private static final String SERVLET_ENVIRONMENT_CLASS =
       "org.springframework.web.context.support.StandardServletEnvironment";
@@ -83,6 +122,8 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
           .options(Option.ALWAYS_RETURN_LIST)
           .build();
 
+  private ClowderTrustStoreConfiguration trustStoreConfiguration;
+
   public ClowderJsonPathPropertySource(ClowderJson source) {
     super(PROPERTY_SOURCE_NAME, source);
   }
@@ -96,7 +137,51 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
     if (!name.startsWith(PREFIX)) {
       return null;
     }
+
+    // handling for special properties like kafka brokers
+    if (name.contains(KAFKA_BROKERS)) {
+      String brokerConfig = name.substring(PREFIX.length() + KAFKA_BROKERS.length());
+      // special logic to provide a comma-separated list of kafka brokers
+      // value is expected to be a list of key-value collection with the broker configuration.
+      KafkaBrokerConfigMapper configFunction = KAFKA_BROKERS_PROPERTIES.get(brokerConfig);
+      if (configFunction != null) {
+        return getKafkaBrokerConfig(name, configFunction);
+      }
+    }
+    // handling for rest-clients
+    if (name.contains(ENDPOINTS)) {
+      for (Map.Entry<String, EndpointConfigMapper> entry : ENDPOINTS_PROPERTIES.entrySet()) {
+        if (name.endsWith(entry.getKey())) {
+          return getEndpointConfig(name, entry.getValue());
+        }
+      }
+    }
+
     return getJsonPathValue(name.substring(PREFIX.length()));
+  }
+
+  protected String getTruststorePath() {
+    if (trustStoreConfiguration == null) {
+      initializeTrustStoreConfiguration();
+    }
+
+    return trustStoreConfiguration.getPath();
+  }
+
+  protected String getTruststorePassword() {
+    if (trustStoreConfiguration == null) {
+      initializeTrustStoreConfiguration();
+    }
+
+    return trustStoreConfiguration.getPassword();
+  }
+
+  protected String getTruststoreType() {
+    if (trustStoreConfiguration == null) {
+      initializeTrustStoreConfiguration();
+    }
+
+    return ClowderTrustStoreConfiguration.CLOWDER_ENDPOINT_STORE_TYPE;
   }
 
   protected Object getJsonPathValue(String path) {
@@ -197,6 +282,138 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
     }
   }
 
+  public static Object kafkaBrokerToBootstrapServer(List<Map<String, Object>> brokerConfig) {
+    return brokerConfig.stream()
+        .map(m -> m.get("hostname") + ":" + m.get("port"))
+        .collect(Collectors.joining(","));
+  }
+
+  public static String kafkaBrokerToSaslSecurityProtocol(List<Map<String, Object>> brokerConfig) {
+    String saslMechanism = kafkaBrokerToSaslMechanism(brokerConfig);
+    if (saslMechanism != null) {
+      return getKafkaBrokerSaslProperty(brokerConfig, "securityProtocol");
+    }
+
+    // if sasl mechanism isn't specified, kafka communication is unauthenticated, nothing to do
+    return null;
+  }
+
+  public static String kafkaBrokerToSaslMechanism(List<Map<String, Object>> brokerConfig) {
+    return getKafkaBrokerSaslProperty(brokerConfig, "saslMechanism");
+  }
+
+  public static Object kafkaBrokerToSaslJaasConfig(List<Map<String, Object>> brokerConfig) {
+    String saslMechanism = kafkaBrokerToSaslMechanism(brokerConfig);
+    if (saslMechanism != null) {
+      // configure the sasl.jaas.config property, inspired by ClowderConfigSource
+      String username = getKafkaBrokerSaslProperty(brokerConfig, "username");
+      String password = getKafkaBrokerSaslProperty(brokerConfig, "password");
+      return switch (saslMechanism) {
+        case "PLAIN" -> "org.apache.kafka.common.security.plain.PlainLoginModule required "
+            + "username=\""
+            + username
+            + "\" password=\""
+            + password
+            + "\";";
+        case "SCRAM-SHA-512",
+            "SCRAM-SHA-256" -> "org.apache.kafka.common.security.scram.ScramLoginModule required "
+            + "username=\""
+            + username
+            + "\" password=\""
+            + password
+            + "\";";
+        default -> throw new IllegalArgumentException(
+            "Invalid SASL mechanism defined: " + saslMechanism);
+      };
+    }
+
+    // if sasl mechanism isn't specified, kafka communication is unauthenticated, nothing to do
+    return null;
+  }
+
+  public static Object kafkaBrokerToCaCert(List<Map<String, Object>> brokerConfig) {
+    String saslMechanism = kafkaBrokerToSaslMechanism(brokerConfig);
+    if (saslMechanism != null) {
+      Map<String, Object> broker = getKafkaBrokerWithSasl(brokerConfig);
+      if (broker != null) {
+        return broker.get("cacert");
+      }
+    }
+
+    // if sasl mechanism isn't specified, kafka communication is unauthenticated, nothing to do
+    return null;
+  }
+
+  public static Object kafkaBrokerToCaCertType(List<Map<String, Object>> brokerConfig) {
+    Object cacert = kafkaBrokerToCaCert(brokerConfig);
+    if (cacert != null) {
+      return "PEM";
+    }
+
+    return null;
+  }
+
+  private void initializeTrustStoreConfiguration() {
+    Object tlsCAPath = getJsonPathValue("tlsCAPath");
+    if (tlsCAPath instanceof String tlsCAPathAsString && !tlsCAPathAsString.isBlank()) {
+      trustStoreConfiguration = new ClowderTrustStoreConfiguration(tlsCAPathAsString);
+    } else {
+      throw new IllegalStateException(
+          "Requested tls port for endpoint but did not provide tlsCAPath");
+    }
+  }
+
+  public static Object endpointToUrl(
+      ClowderJsonPathPropertySource root, Map<String, Object> endpointConfig) {
+    String protocol = "http";
+    Object hostName = endpointConfig.get("hostname");
+    Object port = endpointConfig.get("port");
+    if (endpointUsesTls(endpointConfig)) {
+      protocol = "https";
+      port = endpointConfig.get(ENDPOINT_TLS_PORT_PROPERTY);
+    }
+
+    String url = String.format("%s://%s:%s", protocol, hostName, port);
+    log.info("Endpoint '{}' using '{}'", getEndpointName(endpointConfig), url);
+    return url;
+  }
+
+  public static Object endpointToTrustStorePath(
+      ClowderJsonPathPropertySource root, Map<String, Object> endpointConfig) {
+    if (endpointUsesTls(endpointConfig)) {
+      return "file:" + root.getTruststorePath();
+    }
+
+    return null;
+  }
+
+  public static Object endpointToTrustStorePassword(
+      ClowderJsonPathPropertySource root, Map<String, Object> endpointConfig) {
+    if (endpointUsesTls(endpointConfig)) {
+      return root.getTruststorePassword();
+    }
+
+    return null;
+  }
+
+  public static Object endpointToTrustStoreType(
+      ClowderJsonPathPropertySource root, Map<String, Object> endpointConfig) {
+    if (endpointUsesTls(endpointConfig)) {
+      return root.getTruststoreType();
+    }
+
+    return null;
+  }
+
+  public static boolean endpointUsesTls(Map<String, Object> endpointConfig) {
+    Object tlsPort = endpointConfig.get(ENDPOINT_TLS_PORT_PROPERTY);
+    if (tlsPort instanceof Integer tlsPortAsInt) {
+      return !tlsPortAsInt.equals(PORT_NOT_SET);
+    }
+
+    return false;
+  }
+
   /**
    * Find where in the list of PropertySources the ClowderJsonPathPropertySource should be. The list
    * of PropertySources defines the resolution order when the same variable is defined in multiple
@@ -273,4 +490,82 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
     }
     return StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME;
   }
+
+  @SuppressWarnings("unchecked")
+  private Object getKafkaBrokerConfig(String name, KafkaBrokerConfigMapper configFunction) {
+    Object value = getJsonPathValue(KAFKA_BROKERS);
+    if (value instanceof Collection<?> list) {
+      if (list.isEmpty()) {
+        return null;
+      }
+      List<Map<String, Object>> brokers = list.stream().map(o -> (Map<String, Object>) o).toList();
+      return configFunction.apply(brokers);
+    } else {
+      throw new IllegalStateException(
+          "Unknown type found in clowder configuration for Kafka Broker property: " + name);
+    }
+  }
+
+  private Object getEndpointConfig(String name, EndpointConfigMapper configFunction) {
+    Object value = getJsonPathValue(ENDPOINTS);
+    if (value instanceof Collection<?> list) {
+      if (list.isEmpty()) {
+        return null;
+      }
+
+      String endpoint = extractEndpointName(name);
+      Map<String, Object> found =
+          list.stream()
+              .map(o -> (Map<String, Object>) o)
+              .filter(c -> endpoint.equals(getEndpointName(c)))
+              .findFirst()
+              .orElseThrow(
+                  () ->
+                      new IllegalStateException(
+                          "Could not find the endpoint configuration for property: " + name));
+      return configFunction.apply(this, found);
+    } else {
+      throw new IllegalStateException(
+          "Unknown type found in clowder configuration for endpoint property: " + name);
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static String getKafkaBrokerSaslProperty(
+      List<Map<String, Object>> brokerConfig, String propertyName) {
+    Map<String, Object> broker = getKafkaBrokerWithSasl(brokerConfig);
+    if (broker != null) {
+      Map<String, Object> saslConfig = (Map<String, Object>) broker.get("sasl");
+      Object value = saslConfig.get(propertyName);
+      if (value instanceof String str) {
+        return str;
+      }
+    }
+
+    return null;
+  }
+
+  private static Map<String, Object> getKafkaBrokerWithSasl(
+      List<Map<String, Object>> brokerConfig) {
+    return brokerConfig.stream()
+        .filter(m -> "sasl".equals(m.get("authtype")))
+        .findFirst()
+        .orElse(null);
+  }
+
+  @FunctionalInterface
+  private interface KafkaBrokerConfigMapper extends Function<List<Map<String, Object>>, Object> {}
+
+  private String extractEndpointName(String name) {
+    String part = name.substring(PREFIX.length() + ENDPOINTS.length() + 1);
+    return part.substring(0, part.indexOf("."));
+  }
+
+  private static String getEndpointName(Map<String, Object> endpointConfig) {
+    return String.format("%s-%s", endpointConfig.get("app"), endpointConfig.get("name"));
+  }
+
+  @FunctionalInterface
+  private interface EndpointConfigMapper
+      extends BiFunction<ClowderJsonPathPropertySource, Map<String, Object>, Object> {}
 }
