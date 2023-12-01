@@ -458,7 +458,7 @@ public class ContractService {
         if (Objects.nonNull(rhEntitlements)
             && !rhEntitlements.isEmpty()
             && Objects.nonNull(rhEntitlements.get(0))) {
-          var subscription = rhEntitlements.get(0).getRedHatSubscriptionNumber();
+          var subscription = rhEntitlements.get(0).getSubscriptionNumber();
           var sku = rhEntitlements.get(0).getSku();
           prevEntity.setSku(sku);
           prevEntity.setSubscriptionNumber(subscription);
