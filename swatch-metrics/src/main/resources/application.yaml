@@ -118,7 +118,9 @@ kafka:
 # thrown instead of something more relevant to the actual issue.
   sasl:
     jaas:
-      config:
+      # NOTE: empty string intentional, omitting the value is interpreted as null, and clowder
+      # config source will not populate the config when null
+      config: ''
     mechanism: PLAIN
   security:
     protocol: PLAINTEXT
