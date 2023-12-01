@@ -54,7 +54,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
@@ -70,10 +70,9 @@ import org.springframework.transaction.annotation.Transactional;
 @TestInstance(Lifecycle.PER_CLASS)
 class TallyInstanceViewRepositoryTest {
 
-  private final String RHEL = "RHEL";
-  private final String COOL_PROD = "COOL_PROD";
+  private static final String RHEL = "RHEL";
+  private static final String COOL_PROD = "COOL_PROD";
   private static final String DEFAULT_DISPLAY_NAME = "REDHAT_PWNS";
-  private static final String SANITIZED_MISSING_DISPLAY_NAME = "";
 
   @Autowired private TallyInstanceViewRepository repo;
   @Autowired private HostRepository hostRepo;
@@ -143,7 +142,10 @@ class TallyInstanceViewRepositoryTest {
 
   @Transactional
   @ParameterizedTest
-  @MethodSource("org.candlepin.subscriptions.db.HostRepositoryTest#instanceSortParams")
+  @EnumSource(
+      value = InstanceReportSort.class,
+      mode = EnumSource.Mode.EXCLUDE,
+      names = "CORE_SECONDS")
   void canSortByInstanceBasedSortMethods(InstanceReportSort sort) {
 
     String sortValue = InstancesResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
