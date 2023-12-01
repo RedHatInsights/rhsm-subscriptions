@@ -494,6 +494,12 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
   @SuppressWarnings("unchecked")
   private Object getKafkaBrokerConfig(String name, KafkaBrokerConfigMapper configFunction) {
     Object value = getJsonPathValue(KAFKA_BROKERS);
+    // NOTE: because we configure kafka in shared configuration, kafka config is included in
+    // services that don't use kafka. Clowder doesn't populate kafka config for those services, so
+    // we won't have a value to contribute.
+    if (value == null) {
+      return null;
+    }
     if (value instanceof Collection<?> list) {
       if (list.isEmpty()) {
         return null;
