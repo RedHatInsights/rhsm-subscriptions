@@ -37,7 +37,7 @@ import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.security.SecurityProperties;
 import org.candlepin.subscriptions.subscription.SubscriptionPruneController;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
-import org.candlepin.subscriptions.utilization.admin.api.InternalApi;
+import org.candlepin.subscriptions.utilization.admin.api.InternalSubscriptionsApi;
 import org.candlepin.subscriptions.utilization.admin.api.model.AwsUsageContext;
 import org.candlepin.subscriptions.utilization.admin.api.model.DefaultResponse;
 import org.candlepin.subscriptions.utilization.admin.api.model.Metric;
@@ -54,7 +54,7 @@ import org.springframework.stereotype.Component;
 /** Subscriptions Table API implementation. */
 @Slf4j
 @Component
-public class InternalSubscriptionResource implements InternalApi {
+public class InternalSubscriptionResource implements InternalSubscriptionsApi {
 
   private static final String SUCCESS_STATUS = "Success";
 

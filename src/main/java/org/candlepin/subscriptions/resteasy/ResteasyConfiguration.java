@@ -25,8 +25,6 @@ import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
-import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * Configuration of Resteasy.
@@ -46,26 +44,4 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
           type = FilterType.CUSTOM,
           classes = AutoConfigurationExcludeFilter.class)
     })
-public class ResteasyConfiguration implements WebMvcConfigurer {
-  @Override
-  public void addViewControllers(ViewControllerRegistry registry) {
-    registry.addViewController("/api-docs").setViewName("redirect:/api-docs/index.html");
-    registry.addViewController("/api-docs/").setViewName("redirect:/api-docs/index.html");
-    registry
-        .addViewController("/api/swatch-subscription-sync/internal/swagger-ui")
-        .setViewName("redirect:/api/swatch-subscription-sync/internal/swagger-ui/index.html");
-    registry
-        .addViewController("/api/swatch-tally/internal/swagger-ui")
-        .setViewName("redirect:/api/swatch-tally/internal/swagger-ui/index.html");
-    registry
-        .addViewController("/api/swatch-metrics/internal/swagger-ui")
-        .setViewName("redirect:/api/swatch-metrics/internal/swagger-ui/index.html");
-    registry
-        .addViewController("/api/swatch-billing/internal/swagger-ui")
-        .setViewName("redirect:/api/swatch-billing/internal/swagger-ui/index.html");
-    registry
-        .addViewController("/api/swatch-producer-red-hat-marketplace/internal/swagger-ui")
-        .setViewName(
-            "redirect:/api/swatch-producer-red-hat-marketplace/internal/swagger-ui/index.html");
-  }
-}
+public class ResteasyConfiguration {}

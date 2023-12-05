@@ -32,7 +32,7 @@ import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.metering.ResourceUtil;
-import org.candlepin.subscriptions.metering.admin.api.InternalApi;
+import org.candlepin.subscriptions.metering.admin.api.InternalProductMeteringApi;
 import org.candlepin.subscriptions.metering.service.prometheus.MetricProperties;
 import org.candlepin.subscriptions.metering.service.prometheus.PrometheusMeteringController;
 import org.candlepin.subscriptions.metering.service.prometheus.task.PrometheusMetricsTaskManager;
@@ -43,7 +43,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
-public class InternalMeteringResource implements InternalApi {
+public class InternalMeteringResource implements InternalProductMeteringApi {
   private final ResourceUtil util;
   private final ApplicationProperties applicationProperties;
   private final PrometheusMetricsTaskManager tasks;

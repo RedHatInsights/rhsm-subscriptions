@@ -163,6 +163,7 @@ tasks.register("buildApiTally", GenerateTask) {
         interfaceOnly: "true",
         generatePom: "false",
         dateLibrary: "java8",
+        useTags: "true",
         useJakartaEe: "true",
     ]
 }
@@ -176,6 +177,7 @@ tasks.register("buildApiSubSync", GenerateTask) {
             interfaceOnly: "true",
             generatePom: "false",
             dateLibrary: "java8",
+            useTags: "true",
             useJakartaEe: "true",
     ]
 }
@@ -189,6 +191,7 @@ tasks.register("buildApiBilling", GenerateTask) {
             interfaceOnly: "true",
             generatePom: "false",
             dateLibrary: "java8",
+            useTags: "true",
             useJakartaEe: "true",
     ]
 }
@@ -202,6 +205,7 @@ tasks.register("buildApiMetering", GenerateTask) {
             interfaceOnly: "true",
             generatePom: "false",
             dateLibrary: "java8",
+            useTags: "true",
             useJakartaEe: "true",
     ]
 }
@@ -215,6 +219,7 @@ tasks.register("buildApiProducerRHM", GenerateTask) {
             interfaceOnly: "true",
             generatePom: "false",
             dateLibrary: "java8",
+            useTags: "true",
             useJakartaEe: "true",
     ]
 }
@@ -390,6 +395,7 @@ project(":api") {
             interfaceOnly: "true",
             generatePom: "false",
             dateLibrary: "java8",
+            useTags: "true",
             useJakartaEe: "true",
         ]
         importMappings = [

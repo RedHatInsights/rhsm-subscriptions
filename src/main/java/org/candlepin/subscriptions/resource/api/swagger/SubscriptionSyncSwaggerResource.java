@@ -18,20 +18,17 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource.api;
+package org.candlepin.subscriptions.resource.api.swagger;
 
-import org.candlepin.subscriptions.utilization.admin.api.InternalSubscriptionSyncOpenapiYamlApi;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.ws.rs.Path;
 import org.springframework.stereotype.Component;
 
-/** Serves the OpenAPI yaml for the internal subscription sync API */
 @Component
-public class InternalSubscriptionSyncApiYamlResource
-    implements InternalSubscriptionSyncOpenapiYamlApi {
-  @Autowired ApiSpecController controller;
+@Path(value = "/swatch-subscription-sync/internal/swagger-ui")
+public class SubscriptionSyncSwaggerResource extends BaseSwaggerResource {
 
   @Override
-  public String getOpenApiYaml() {
-    return controller.getInternalSubSyncApiYaml();
+  String getServiceName() {
+    return "swatch-subscription-sync";
   }
 }

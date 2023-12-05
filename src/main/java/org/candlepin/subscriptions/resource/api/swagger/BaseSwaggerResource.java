@@ -18,22 +18,24 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource.api;
+package org.candlepin.subscriptions.resource.api.swagger;
 
-import org.candlepin.subscriptions.billing.admin.api.InternalBillingOpenapiJsonApi;
-import org.springframework.stereotype.Component;
+import jakarta.ws.rs.GET;
+import java.io.File;
+import java.io.IOException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ResourceLoader;
 
-@Component
-public class InternalBillingApiJsonResource implements InternalBillingOpenapiJsonApi {
+public abstract class BaseSwaggerResource {
 
-  private ApiSpecController controller;
+  private static final String INDEX_FILE = "classpath:static/api/%s/internal/swagger-ui/index.html";
 
-  public InternalBillingApiJsonResource(ApiSpecController controller) {
-    this.controller = controller;
-  }
+  @Autowired ResourceLoader resourceLoader;
 
-  @Override
-  public String getOpenApiJson() {
-    return controller.getInternalBillingApiJson();
+  abstract String getServiceName();
+
+  @GET
+  public File index() throws IOException {
+    return resourceLoader.getResource(String.format(INDEX_FILE, getServiceName())).getFile();
   }
 }

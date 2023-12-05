@@ -37,8 +37,6 @@ DEV_MODE: false
 DEVTEST_SUBSCRIPTION_EDITING_ENABLED: true
 DEVTEST_EVENT_EDITING_ENABLED: false
 ENABLE_ACCOUNT_RESET: false
-PATH_PREFIX: api
-APP_NAME: rhsm-subscriptions
 
 DATABASE_HOST: ${clowder.database.hostname:localhost}
 DATABASE_PORT: ${clowder.database.port:5432}

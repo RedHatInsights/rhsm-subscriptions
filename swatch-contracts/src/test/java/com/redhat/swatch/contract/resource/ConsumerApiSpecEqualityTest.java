@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -40,7 +39,6 @@ import org.eclipse.microprofile.openapi.models.OpenAPI;
 import org.eclipse.microprofile.openapi.models.PathItem;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.yaml.snakeyaml.Yaml;
 
 /**
  * Test to verify equality between customer API spec and the service's own copy of the definition.
@@ -65,15 +63,6 @@ class ConsumerApiSpecEqualityTest {
     }
   }
 
-  private static Map<String, Object> loadSpec(String path) {
-    var yaml = new Yaml();
-    try {
-      return yaml.load(Files.newInputStream(Paths.get(path)));
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   private static Stream<String> getCustomerApiPaths() {
     return serviceSpec.getPaths().getPathItems().keySet().stream()
         .filter(path -> path.startsWith("/api/rhsm-subscriptions/v1"));
@@ -82,7 +71,7 @@ class ConsumerApiSpecEqualityTest {
   @ParameterizedTest
   @MethodSource(value = "getCustomerApiPaths")
   void testCustomerApiDefinitionsEquivalentToMonolithSpec(String servicePath) throws IOException {
-    var monolithPath = servicePath.replace("api/rhsm-subscriptions/v1/", "");
+    var monolithPath = servicePath.replace("api/rhsm-subscriptions/v1/", "rhsm-subscriptions/v1/");
     var monolithPathItem = monolithSpec.getPaths().getPathItem(monolithPath);
     var servicePathItem = serviceSpec.getPaths().getPathItem(servicePath);
     for (var pathItem : Set.of(monolithPathItem, servicePathItem)) {

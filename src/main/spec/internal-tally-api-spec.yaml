@@ -3,13 +3,8 @@ info:
   title: "rhsm-subscriptions internal tally API"
   version: 1.0.0
 servers:
-  - url: /{PATH_PREFIX}/{APP_NAME}/v1
-    variables:
-      PATH_PREFIX:
-        default: api
-      APP_NAME:
-        default: rhsm-subscriptions
-  - url: https://{HOSTNAME}/{PATH_PREFIX}/{APP_NAME}/v1
+  - url: /api
+  - url: https://{HOSTNAME}/api
     variables:
       HOSTNAME:
         enum:
@@ -18,13 +13,9 @@ servers:
           - stage.cloud.redhat.com
           - cloud.redhat.com
         default: ci.cloud.redhat.com
-      PATH_PREFIX:
-        default: api
-      APP_NAME:
-        default: rhsm-subscriptions
 
 paths:
-  /internal/tally/resend:
+  /swatch-tally/internal/tally/resend:
     description: 'Operations to resend specific tally snapshots to marketplaces'
     post:
       operationId: resendTally
@@ -46,7 +37,7 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - internalTally
-  /internal/rpc/tally/remittance/purge:
+  /swatch-tally/internal/rpc/tally/remittance/purge:
     description: 'Operations to purge existing tally snapshots matching the configured retention policy.'
     post:
       operationId: purgeRemittances
@@ -63,7 +54,7 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [internalTally]
-  /internal/tally/hourly:
+  /swatch-tally/internal/tally/hourly:
     description: 'Operations pertaining to the hourly tally.'
     post:
       operationId: performHourlyTallyForOrg
@@ -105,11 +96,8 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
-  /internal-tally-openapi.json:
-    $ref: "../../../spec/openapi-paths.yaml#/openapi-json"
-  /internal-tally-openapi.yaml:
-    $ref: "../../../spec/openapi-paths.yaml#/openapi-yaml"
-  /internal/rpc/tally/purge:
+      tags: [internalTally]
+  /swatch-tally/internal/rpc/tally/purge:
     description: 'Operations to purge existing tally snapshots matching the configured retention policy.'
     post:
       operationId: purgeTallySnapshots
@@ -126,7 +114,7 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [internalTally]
-  /internal/rpc/tally/{org_id}:
+  /swatch-tally/internal/rpc/tally/{org_id}:
     description: Clear tallies, hosts, and events for a given org ID. Enabled via ENABLE_ACCOUNT_RESET environment variable.
     delete:
       operationId: deleteDataAssociatedWithOrg
@@ -150,7 +138,7 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [internalTally]
-  /internal/rpc/tally/events/{org_id}:
+  /swatch-tally/internal/rpc/tally/events/{org_id}:
     description: Fetch events by Org
     get:
       operationId: fetchEventsForOrgIdInTimeRange
@@ -188,7 +176,7 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [ internalTally ]
-  /internal/rpc/tally/events:
+  /swatch-tally/internal/rpc/tally/events:
     description: Save a list of events. Supported only in dev-mode.
     post:
       operationId: saveEvents
@@ -233,7 +221,7 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [ internalTally ]
-  /internal/rpc/tally/events/purge:
+  /swatch-tally/internal/rpc/tally/events/purge:
     description: 'Purge event records'
     delete:
       operationId: purgeEventRecords
@@ -245,7 +233,7 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [internalTally]
-  /internal/rpc/tally/events/{event_id}:
+  /swatch-tally/internal/rpc/tally/events/{event_id}:
     description: Delete an event. Supported only in dev-mode.
     delete:
       operationId: deleteEvent
@@ -269,7 +257,7 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [internalTally]
-  /internal/rpc/tally/snapshots/{org_id}:
+  /swatch-tally/internal/rpc/tally/snapshots/{org_id}:
     description: Trigger and update tally snapshot for an org.
     put:
       operationId: tallyOrg
@@ -295,7 +283,7 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [ internalTally ]
-  /internal/rpc/tally/all-org-snapshots:
+  /swatch-tally/internal/rpc/tally/all-org-snapshots:
     description: Trigger and update tally for all configured org.
     put:
       operationId: tallyConfiguredOrgs
@@ -315,7 +303,7 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [internalTally]
-  /internal/rpc/tally/snapshots:
+  /swatch-tally/internal/rpc/tally/snapshots:
     description: Trigger hourly tally for all configured orgs for the specified range. The 'start' and "
        'end' parameters MUST be specified as a pair to complete a range. If they are left empty, 
        a date range is used based on NOW with the configured offsets applied (identical to if
@@ -351,7 +339,7 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [ internalTally ]
-  /internal/rpc/tally/opt-in:
+  /swatch-tally/internal/rpc/tally/opt-in:
     description: Create or update an opt in configuration. This operation is idempotent.
     put:
       operationId: createOrUpdateOptInConfig
@@ -378,6 +366,10 @@ paths:
         '500':
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags: [ internalTally ]
+  /swatch-tally/internal/openapi.json:
+    $ref: "../../../spec/openapi-paths.yaml#/openapi-json"
+  /swatch-tally/internal/openapi:
+    $ref: "../../../spec/openapi-paths.yaml#/openapi-yaml"
 components:
   requestBodies:
     UuidListBody:

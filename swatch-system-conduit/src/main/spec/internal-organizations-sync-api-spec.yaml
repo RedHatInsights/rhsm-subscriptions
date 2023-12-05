@@ -4,13 +4,8 @@ info:
   description: "REST interface for the internal-organization-sync service. Please note any deprecated APIs. Our current deprecation policy is to keep deprecated APIs around for at least 6 months."
   version: 1.0.0
 servers:
-  - url: /{PATH_PREFIX}/{APP_NAME}/v1
-    variables:
-      PATH_PREFIX:
-        default: api
-      APP_NAME:
-        default: rhsm-subscriptions
-  - url: https://{HOSTNAME}/{PATH_PREFIX}/{APP_NAME}/v1
+  - url: /api
+  - url: https://{HOSTNAME}/api
     variables:
       HOSTNAME:
         enum:
@@ -19,12 +14,8 @@ servers:
           - stage.cloud.redhat.com
           - cloud.redhat.com
         default: ci.cloud.redhat.com
-      PATH_PREFIX:
-        default: api
-      APP_NAME:
-        default: rhsm-subscriptions
 paths:
-  /internal/rpc/syncOrg:
+  /swatch-system-conduit/internal/rpc/syncOrg:
     description: "Trigger a sync for a given Org ID"
     post:
       summary: "Sync organization for given org_id."
@@ -48,7 +39,7 @@ paths:
           $ref: "../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
           $ref: "../../../../spec/error-responses.yaml#/$defs/InternalServerError"
-  /internal/rpc/syncAllOrgs:
+  /swatch-system-conduit/internal/rpc/syncAllOrgs:
     description: "Trigger a sync for all Organizations"
     post:
       summary: "Sync all organizations."
@@ -66,7 +57,7 @@ paths:
           $ref: "../../../../spec/error-responses.yaml#/$defs/Forbidden"
         '500':
           $ref: "../../../../spec/error-responses.yaml#/$defs/InternalServerError"
-  /internal/organizations-sync-list:
+  /swatch-system-conduit/internal/organizations-sync-list:
     description: "Initiate altering database sync list by either adding or removing a given list of Org IDs"
     parameters:
       - name: org_ids
@@ -115,7 +106,7 @@ paths:
           $ref: "../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
           $ref: "../../../../spec/error-responses.yaml#/$defs/InternalServerError"
-  /internal/organizations-sync-list/{org_id}:
+  /swatch-system-conduit/internal/organizations-sync-list/{org_id}:
     description: "Initiate a search to check if given Org ID is in sync list"
     parameters:
       - name: org_id
@@ -143,7 +134,7 @@ paths:
           $ref: "../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
           $ref: "../../../../spec/error-responses.yaml#/$defs/InternalServerError"
-  /internal/organizations/{org_id}/inventory:
+  /swatch-system-conduit/internal/organizations/{org_id}/inventory:
     description: "Initiate viewing conduit representation of an org's systems from RHSM"
     parameters:
       - name: org_id
@@ -184,9 +175,9 @@ paths:
           $ref: "../../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
         '500':
           $ref: "../../../../spec/error-responses.yaml#/$defs/InternalServerError"
-  /internal-organizations-sync-openapi.json:
+  /swatch-system-conduit/internal/openapi.json:
     $ref: "../../../../spec/openapi-paths.yaml#/openapi-json"
-  /internal-organizations-sync-openapi.yaml:
+  /swatch-system-conduit/internal/openapi:
     $ref: "../../../../spec/openapi-paths.yaml#/openapi-yaml"
 components:
   requestBodies:

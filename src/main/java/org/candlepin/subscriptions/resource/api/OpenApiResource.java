@@ -20,18 +20,25 @@
  */
 package org.candlepin.subscriptions.resource.api;
 
-import org.candlepin.subscriptions.utilization.admin.api.InternalSubscriptionSyncOpenapiJsonApi;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.candlepin.subscriptions.utilization.api.resources.RootApi;
 import org.springframework.stereotype.Component;
 
-/** Serves the OpenAPI json for the internal subscription sync API */
+/** Serves the OpenAPI spec as /openapi.yaml. */
 @Component
-public class InternalSubscriptionSyncApiJsonResource
-    implements InternalSubscriptionSyncOpenapiJsonApi {
-  @Autowired ApiSpecController controller;
+public class OpenApiResource implements RootApi {
+  private final ApiSpecController controller;
+
+  public OpenApiResource(ApiSpecController controller) {
+    this.controller = controller;
+  }
+
+  @Override
+  public String getOpenApiYaml() {
+    return controller.getOpenApiYaml();
+  }
 
   @Override
   public String getOpenApiJson() {
-    return controller.getInternalSubSyncApiJson();
+    return controller.getOpenApiJson();
   }
 }

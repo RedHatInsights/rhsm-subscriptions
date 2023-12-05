@@ -18,22 +18,17 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource.api;
+package org.candlepin.subscriptions.resource.api.swagger;
 
-import org.candlepin.subscriptions.billing.admin.api.InternalBillingOpenapiYamlApi;
+import jakarta.ws.rs.Path;
 import org.springframework.stereotype.Component;
 
 @Component
-public class InternalBillingApiYamlResource implements InternalBillingOpenapiYamlApi {
-
-  private ApiSpecController controller;
-
-  public InternalBillingApiYamlResource(ApiSpecController controller) {
-    this.controller = controller;
-  }
+@Path(value = "/swatch-metrics/internal/swagger-ui")
+public class MetricsSwaggerResource extends BaseSwaggerResource {
 
   @Override
-  public String getOpenApiYaml() {
-    return controller.getInternalBillingApiYaml();
+  String getServiceName() {
+    return "swatch-metrics";
   }
 }

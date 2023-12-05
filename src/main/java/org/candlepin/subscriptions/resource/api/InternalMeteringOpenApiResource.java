@@ -20,17 +20,26 @@
  */
 package org.candlepin.subscriptions.resource.api;
 
-import org.candlepin.subscriptions.tally.admin.api.InternalTallyOpenapiJsonApi;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.candlepin.subscriptions.metering.admin.api.RootApi;
 import org.springframework.stereotype.Component;
 
-/** Serves the OpenAPI json for the internal tally API */
+/** Serves the OpenAPI json for the internal metering sync API */
 @Component
-public class InternalTallyApiJsonResource implements InternalTallyOpenapiJsonApi {
-  @Autowired ApiSpecController controller;
+public class InternalMeteringOpenApiResource implements RootApi {
+
+  private final ApiSpecController controller;
+
+  public InternalMeteringOpenApiResource(ApiSpecController controller) {
+    this.controller = controller;
+  }
 
   @Override
   public String getOpenApiJson() {
-    return controller.getInternalTallyApiJson();
+    return controller.getInternalMeteringApiJson();
+  }
+
+  @Override
+  public String getOpenApiYaml() {
+    return controller.getInternalMeteringApiYaml();
   }
 }

@@ -18,15 +18,17 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resteasy;
+package org.candlepin.subscriptions.resource.api.swagger;
 
-import jakarta.ws.rs.ApplicationPath;
-import jakarta.ws.rs.core.Application;
+import jakarta.ws.rs.Path;
 import org.springframework.stereotype.Component;
 
-/** Bootstrapper for RESTEasy. */
 @Component
-@ApplicationPath("/api")
-public class JaxrsApplication extends Application {
-  /* Intentionally left empty */
+@Path(value = "/swatch-billing/internal/swagger-ui")
+public class BillingSwaggerResource extends BaseSwaggerResource {
+
+  @Override
+  String getServiceName() {
+    return "swatch-billing";
+  }
 }

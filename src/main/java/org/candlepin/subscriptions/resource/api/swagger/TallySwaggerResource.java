@@ -18,19 +18,17 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource.api;
+package org.candlepin.subscriptions.resource.api.swagger;
 
-import org.candlepin.subscriptions.utilization.api.resources.OpenapiJsonApi;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.ws.rs.Path;
 import org.springframework.stereotype.Component;
 
-/** Serves the OpenAPI spec as /openapi.json. */
 @Component
-public class OpenApiJsonResource implements OpenapiJsonApi {
-  @Autowired ApiSpecController controller;
+@Path(value = "/swatch-tally/internal/swagger-ui")
+public class TallySwaggerResource extends BaseSwaggerResource {
 
   @Override
-  public String getOpenApiJson() {
-    return controller.getOpenApiJson();
+  String getServiceName() {
+    return "swatch-tally";
   }
 }

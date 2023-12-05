@@ -24,14 +24,14 @@ import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
-import org.candlepin.subscriptions.billing.admin.api.InternalApi;
+import org.candlepin.subscriptions.billing.admin.api.InternalBillingApi;
 import org.candlepin.subscriptions.billing.admin.api.model.MonthlyRemittance;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
 import org.springframework.stereotype.Component;
 
 /** This resource is for exposing administrator REST endpoints for Remittance. */
 @Component
-public class InternalBillingResource implements InternalApi {
+public class InternalBillingResource implements InternalBillingApi {
 
   private final InternalBillingController billingController;
 

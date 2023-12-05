@@ -18,19 +18,25 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource.api;
+package org.candlepin.subscriptions.conduit.resource.api;
 
-import org.candlepin.subscriptions.tally.admin.api.InternalTallyOpenapiYamlApi;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import java.io.File;
+import java.io.IOException;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
-/** Serves the OpenAPI yaml for the internal tally API */
 @Component
-public class InternalTallyApiYamlResource implements InternalTallyOpenapiYamlApi {
-  @Autowired ApiSpecController controller;
+@Path(value = "/swatch-system-conduit/internal/swagger-ui")
+public class SwaggerResource {
 
-  @Override
-  public String getOpenApiYaml() {
-    return controller.getInternalTallyApiYaml();
+  @Value("classpath:static/api/swatch-system-conduit/internal/swagger-ui/index.html")
+  Resource indexFile;
+
+  @GET
+  public File index() throws IOException {
+    return indexFile.getFile();
   }
 }

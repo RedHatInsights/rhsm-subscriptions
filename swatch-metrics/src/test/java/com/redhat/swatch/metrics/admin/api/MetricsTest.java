@@ -188,12 +188,10 @@ class MetricsTest {
       request = request.header("x-rh-swatch-synchronous-request", xRhSwatchSynchronousRequest);
     }
 
-    return request.post("/api/swatch-metrics/v1/internal/metering/" + productTag).then();
+    return request.post("/api/swatch-metrics/internal/metering/" + productTag).then();
   }
 
   private void syncMetricsForAllAccounts() {
-    put("/api/swatch-metrics/v1/internal/metering/sync")
-        .then()
-        .statusCode(HttpStatus.SC_NO_CONTENT);
+    put("/api/swatch-metrics/internal/metering/sync").then().statusCode(HttpStatus.SC_NO_CONTENT);
   }
 }

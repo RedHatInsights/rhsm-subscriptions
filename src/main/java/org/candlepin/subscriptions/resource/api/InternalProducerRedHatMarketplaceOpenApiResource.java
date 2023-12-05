@@ -20,21 +20,25 @@
  */
 package org.candlepin.subscriptions.resource.api;
 
-import org.candlepin.subscriptions.metering.admin.api.InternalMeteringOpenapiJsonApi;
+import org.candlepin.subscriptions.rhmarketplace.admin.api.RootApi;
 import org.springframework.stereotype.Component;
 
-/** Serves the OpenAPI json for the internal metering sync API */
 @Component
-public class InternalMeteringApiJsonResource implements InternalMeteringOpenapiJsonApi {
+public class InternalProducerRedHatMarketplaceOpenApiResource implements RootApi {
 
-  private ApiSpecController controller;
+  private final ApiSpecController controller;
 
-  public InternalMeteringApiJsonResource(ApiSpecController controller) {
+  public InternalProducerRedHatMarketplaceOpenApiResource(ApiSpecController controller) {
     this.controller = controller;
   }
 
   @Override
   public String getOpenApiJson() {
-    return controller.getInternalMeteringApiJson();
+    return controller.getInternalProducerRHMApiJson();
+  }
+
+  @Override
+  public String getOpenApiYaml() {
+    return controller.getInternalProducerRHMApiYaml();
   }
 }

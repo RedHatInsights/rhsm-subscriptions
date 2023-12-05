@@ -470,7 +470,7 @@ objects:
             - /usr/bin/bash
             - -c
             - >
-              /usr/bin/curl --fail -H "Origin: https://swatch-tally-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-tally-service:8000/api/rhsm-subscriptions/v1/internal/rpc/tally/all-org-snapshots"
+              /usr/bin/curl --fail -H "Origin: https://swatch-tally-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-tally-service:8000/api/swatch-tally/v1/internal/rpc/tally/all-org-snapshots"
           env:
             - name: SWATCH_SELF_PSK
               valueFrom:
@@ -499,7 +499,7 @@ objects:
             - /usr/bin/bash
             - -c
             - >
-              /usr/bin/curl --fail -H "Origin: https://swatch-tally-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-tally-service:8000/api/rhsm-subscriptions/v1/internal/rpc/tally/snapshots"
+              /usr/bin/curl --fail -H "Origin: https://swatch-tally-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-tally-service:8000/api/swatch-tally/v1/internal/rpc/tally/snapshots"
           env:
             - name: SWATCH_SELF_PSK
               valueFrom:
@@ -528,7 +528,7 @@ objects:
             - /usr/bin/bash
             - -c
             - >
-              /usr/bin/curl --fail -H "Origin: https://swatch-tally-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://swatch-tally-service:8000/api/rhsm-subscriptions/v1/internal/rpc/tally/purge"
+              /usr/bin/curl --fail -H "Origin: https://swatch-tally-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://swatch-tally-service:8000/api/swatch-tally/v1/internal/rpc/tally/purge"
           env:
             - name: SWATCH_SELF_PSK
               valueFrom:
@@ -554,7 +554,7 @@ objects:
             - /usr/bin/bash
             - -c
             - >
-              /usr/bin/curl --fail -H "Origin: https://swatch-tally-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://swatch-tally-service:8000/api/rhsm-subscriptions/v1/internal/rpc/tally/remittance/purge"
+              /usr/bin/curl --fail -H "Origin: https://swatch-tally-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X POST "http://swatch-tally-service:8000/api/swatch-tally/v1/internal/rpc/tally/remittance/purge"
           env:
             - name: SWATCH_SELF_PSK
               valueFrom:
@@ -580,7 +580,7 @@ objects:
             - /usr/bin/bash
             - -c
             - >
-              /usr/bin/curl --fail -i -H "Origin: https://swatch-tally-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X DELETE "http://swatch-tally-service:8000/api/rhsm-subscriptions/v1/internal/rpc/tally/events/purge"
+              /usr/bin/curl --fail -i -H "Origin: https://swatch-tally-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X DELETE "http://swatch-tally-service:8000/api/swatch-tally/v1/internal/rpc/tally/events/purge"
           env:
             - name: SWATCH_SELF_PSK
               valueFrom:

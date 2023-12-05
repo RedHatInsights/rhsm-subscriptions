@@ -81,6 +81,7 @@ public class ApiSecurityConfiguration {
 
   private static final String[] URLS_PERMITTED_WITHOUT_AUTH =
       new String[] {
+        "/**/*openapi",
         "/**/*openapi.yaml",
         "/**/*openapi.json",
         "/**/version",

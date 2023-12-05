@@ -483,7 +483,7 @@ objects:
             - /usr/bin/bash
             - -c
             - >
-              /usr/bin/curl --fail -H "Origin: https://swatch-subscription-sync-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-subscription-sync-service:8000/api/rhsm-subscriptions/v1/internal/rpc/subscriptions/sync"
+              /usr/bin/curl --fail -H "Origin: https://swatch-subscription-sync-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-subscription-sync-service:8000/api/swatch-subscription-sync/v1/internal/rpc/subscriptions/sync"
           env:
             - name: SWATCH_SELF_PSK
               valueFrom:
@@ -512,7 +512,7 @@ objects:
             - /usr/bin/bash
             - -c
             - >
-              /usr/bin/curl --fail -H "Origin: https://swatch-subscription-sync-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-subscription-sync-service:8000/api/rhsm-subscriptions/v1/internal/rpc/offerings/sync"
+              /usr/bin/curl --fail -H "Origin: https://swatch-subscription-sync-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-subscription-sync-service:8000/api/swatch-subscription-sync/v1/internal/rpc/offerings/sync"
           env:
             - name: SWATCH_SELF_PSK
               valueFrom:

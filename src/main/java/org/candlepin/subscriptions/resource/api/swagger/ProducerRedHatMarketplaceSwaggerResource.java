@@ -18,19 +18,17 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.resource.api;
+package org.candlepin.subscriptions.resource.api.swagger;
 
-import org.candlepin.subscriptions.utilization.api.resources.OpenapiYamlApi;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.ws.rs.Path;
 import org.springframework.stereotype.Component;
 
-/** Serves the OpenAPI spec as /openapi.yaml. */
 @Component
-public class OpenApiYamlResource implements OpenapiYamlApi {
-  @Autowired ApiSpecController controller;
+@Path(value = "/swatch-producer-red-hat-marketplace/internal/swagger-ui")
+public class ProducerRedHatMarketplaceSwaggerResource extends BaseSwaggerResource {
 
   @Override
-  public String getOpenApiYaml() {
-    return controller.getOpenApiYaml();
+  String getServiceName() {
+    return "swatch-producer-red-hat-marketplace";
   }
 }
