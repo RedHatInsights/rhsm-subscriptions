@@ -8,6 +8,7 @@ description = 'Event model definition used by Swatch Tally'
 dependencies {
     implementation libraries["jackson-annotations"] // for json generated models
     implementation libraries["jakarta-validation-api"] // for validation API in generated models
+    implementation "com.fasterxml.jackson.core:jackson-databind"
 
     testImplementation libraries["junit-jupiter"]
 }

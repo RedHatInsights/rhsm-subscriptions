@@ -35,6 +35,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
@@ -166,6 +167,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
     event.setTimestamp(start.plusDays(dayAt));
     event.setSla(Event.Sla.PREMIUM);
     event.setRole(Event.Role.MOA_HOSTEDCONTROLPLANE);
+    event.setProductTag(Set.of(PRODUCT_TAG));
     event.setOrgId(ORG_ID);
     event.setEventType(getEventType(METRIC, PRODUCT_TAG));
     event.setInstanceId(PROMETHEUS);

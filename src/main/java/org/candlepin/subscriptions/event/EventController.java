@@ -21,10 +21,13 @@
 package org.candlepin.subscriptions.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -240,6 +243,7 @@ public class EventController {
         }
 
         if (baseEvent instanceof Event eventToSave) {
+          enrichServiceInstanceFromIncomingFeed(eventToSave);
           result.addEvent(eventToSave, eventIndex.getValue());
         } else if (baseEvent instanceof CleanUpEvent cleanUpEvent) {
           log.debug("Processing clean up event for: " + cleanUpEvent);
@@ -259,6 +263,36 @@ public class EventController {
       }
     }
     return result;
+  }
+
+  private void enrichServiceInstanceFromIncomingFeed(Event event) {
+    // Determine whether the product is payg or non-payg, and then add the appropriate tag in
+    // SWATCH-1993. We are only checking for payg at this time because we only support payg in this
+    // flow, and we don't have a way to distinguish between payg and non-payg through events.
+    event.setProductTag(getPaygEligibleProductTags(event));
+  }
+
+  private Set<String> getPaygEligibleProductTags(Event event) {
+    Set<String> productTags = new HashSet<>();
+    // Filter tags that are paygEligible
+
+    if (Objects.nonNull(event.getRole())) {
+      String role = event.getRole().toString();
+      SubscriptionDefinition.lookupSubscriptionByRole(role)
+          .filter(SubscriptionDefinition::isPaygEligible)
+          .flatMap(s -> s.findVariantForRole(role).map(Variant::getTag))
+          .ifPresent(productTags::add);
+    }
+
+    var engIds = Optional.ofNullable(event.getProductIds()).orElse(Collections.emptyList());
+    for (String engId : engIds) {
+      productTags.addAll(
+          SubscriptionDefinition.lookupSubscriptionByEngId(engId).stream()
+              .filter(SubscriptionDefinition::isPaygEligible)
+              .flatMap(s -> s.findVariantForEngId(engId).map(Variant::getTag).stream())
+              .toList());
+    }
+    return productTags;
   }
 
   /**
