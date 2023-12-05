@@ -141,6 +141,8 @@ public abstract class InventoryService {
     }
     systemProfile.setSystemMemoryBytes(facts.getSystemMemoryBytes());
     systemProfile.setNumberOfSockets(facts.getCpuSockets());
+    systemProfile.setNumberOfCpus(facts.getNumberOfCpus());
+    systemProfile.setThreadsPerCore(facts.getThreadsPerCore());
     systemProfile.setOwnerId(facts.getSubscriptionManagerId());
     systemProfile.setNetworkInterfaces(facts.getNetworkInterfaces());
     systemProfile.setIsMarketplace(facts.getIsMarketplace());
