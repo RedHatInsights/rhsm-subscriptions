@@ -22,12 +22,12 @@ package com.redhat.swatch.metrics.service.promql;
 
 import com.redhat.swatch.metrics.configuration.MetricProperties;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 /** Builds PromQL queries based on a configured template. */
 @Slf4j
@@ -36,20 +36,27 @@ public class QueryBuilder {
   private static final Map<String, BiFunction<QueryDescriptor, String, String>> KEY_VALUE_RULES =
       Map.of(
           "#{metric.prometheus.queryParams[",
-              (descriptor, key) -> descriptor.getMetric().getPrometheus().getQueryParams().get(key),
-          "#{runtime[", (descriptor, key) -> descriptor.getRuntime().get(key));
+          (descriptor, key) -> descriptor.getMetric().getPrometheus().getQueryParams().get(key),
+          "#{runtime[",
+          (descriptor, key) -> descriptor.getRuntime().get(key));
 
   private static final Map<String, Function<QueryDescriptor, String>> DIRECT_RULES =
       Map.of(
-          "#{metric.id}", descriptor -> descriptor.getMetric().getId(),
-          "#{metric.rhmMetricId}", descriptor -> descriptor.getMetric().getRhmMetricId(),
-          "#{metric.awsDimension}", descriptor -> descriptor.getMetric().getAwsDimension(),
+          "#{metric.id}",
+          descriptor -> descriptor.getMetric().getId(),
+          "#{metric.rhmMetricId}",
+          descriptor -> descriptor.getMetric().getRhmMetricId(),
+          "#{metric.awsDimension}",
+          descriptor -> descriptor.getMetric().getAwsDimension(),
           "#{metric.prometheus.queryKey}",
-              descriptor -> descriptor.getMetric().getPrometheus().getQueryKey());
+          descriptor -> descriptor.getMetric().getPrometheus().getQueryKey());
   private static final String KEY_VALUE_CLOSE_TAG = "]}";
-  private static final int INDEX_NOT_FOUND = -1;
 
-  @Inject MetricProperties metricProperties;
+  private final MetricProperties metricProperties;
+
+  public QueryBuilder(MetricProperties metricProperties) {
+    this.metricProperties = metricProperties;
+  }
 
   public String build(QueryDescriptor queryDescriptor) {
     String templateKey = queryDescriptor.getMetric().getPrometheus().getQueryKey();
@@ -79,7 +86,7 @@ public class QueryBuilder {
     // "#{map[key]}"
     for (var rule : KEY_VALUE_RULES.entrySet()) {
       if (query.contains(rule.getKey())) {
-        String key = substringBetween(query, rule.getKey());
+        String key = StringUtils.substringBetween(query, rule.getKey(), KEY_VALUE_CLOSE_TAG);
         String value = rule.getValue().apply(descriptor, key);
         query = query.replace(rule.getKey() + key + KEY_VALUE_CLOSE_TAG, value);
         return buildQuery(query, descriptor);
@@ -98,16 +105,5 @@ public class QueryBuilder {
 
     log.debug("PromQL: {}", query);
     return query;
-  }
-
-  private static String substringBetween(String str, String open) {
-    final int start = str.indexOf(open);
-    if (start != INDEX_NOT_FOUND) {
-      final int end = str.indexOf(KEY_VALUE_CLOSE_TAG, start + open.length());
-      if (end != INDEX_NOT_FOUND) {
-        return str.substring(start + open.length(), end);
-      }
-    }
-    return null;
   }
 }

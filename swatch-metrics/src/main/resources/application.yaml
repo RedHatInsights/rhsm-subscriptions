@@ -11,6 +11,7 @@ SPLUNK_HEC_RETRY_COUNT: 3
 SPLUNK_HEC_INCLUDE_EX: false
 METRICS_IN_FAIL_ON_DESER_FAILURE: true
 METERING_TASK_TOPIC: platform.rhsm-subscriptions.metering-tasks
+SERVICE_INSTANCE_INGRESS_TOPIC: platform.rhsm-subscriptions.service-instance-ingress
 
 # dev-specific defaults; these can still be overridden by env var
 "%dev":
@@ -117,7 +118,9 @@ kafka:
 # thrown instead of something more relevant to the actual issue.
   sasl:
     jaas:
-      config:
+      # NOTE: empty string intentional, omitting the value is interpreted as null, and clowder
+      # config source will not populate the config when null
+      config: ''
     mechanism: PLAIN
   security:
     protocol: PLAINTEXT
@@ -137,7 +140,7 @@ mp:
           offset:
             reset: earliest
         value:
-          deserializer: com.redhat.swatch.metrics.service.task.MetricsTaskDescriptorDeserializer
+          deserializer: com.redhat.swatch.metrics.service.json.MetricsTaskDescriptorDeserializer
     outgoing:
       tasks-out:
         connector: smallrye-kafka
@@ -146,16 +149,32 @@ mp:
         # This should be fixed by https://github.com/RedHatInsights/clowder-quarkus-config-source/pull/181
         topic: ${METERING_TASK_TOPIC}
         value:
-          serializer: com.redhat.swatch.metrics.service.task.MetricsTaskDescriptorSerializer
+          serializer: io.quarkus.kafka.client.serialization.ObjectMapperSerializer
+      events-out:
+        connector: smallrye-kafka
+        # Note that clowder config will not resolve the topic from the clowder config file because
+        # it does not properly resolve `${...}` properties.
+        # This should be fixed by https://github.com/RedHatInsights/clowder-quarkus-config-source/pull/181
+        topic: ${SERVICE_INSTANCE_INGRESS_TOPIC}
+        value:
+          serializer: io.quarkus.kafka.client.serialization.ObjectMapperSerializer
 
 rhsm-subscriptions:
   prometheus-latency-duration: ${PROMETHEUS_LATENCY_DURATION:0h}
+  enable-synchronous-operations: ${ENABLE_SYNCHRONOUS_OPERATIONS:false}
   metering:
     prometheus:
       client:
         token: ${PROM_AUTH_TOKEN:}
         url: ${PROM_URL:https://localhost/api/v1}
       metric:
+        accountQueryTemplates:
+          default: >-
+            group(min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{product='#{metric.prometheus.queryParams[product]}', external_organization != '', billing_model='marketplace'}[1h]))
+            by (external_organization)
+          addonSamples: >-
+            group(min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{resource_type="addon", resource_name='#{metric.prometheus.queryParams[resourceName]}', external_organization != '', billing_model='marketplace'}[1h]))
+            by (external_organization)
         queryTemplates:
           default: >-
             max(#{metric.prometheus.queryParams[metric]}) by (#{metric.prometheus.queryParams[instanceKey]})

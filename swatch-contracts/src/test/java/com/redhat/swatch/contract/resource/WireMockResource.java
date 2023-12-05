@@ -126,7 +126,7 @@ public class WireMockResource
                                       "rhEntitlements": [
                                         {
                                           "sku": "RH000000",
-                                          "redHatSubscriptionNumber": "123456"
+                                          "subscriptionNumber": "123456"
                                         }
                                       ],
                                       "purchase": {
@@ -178,7 +178,7 @@ public class WireMockResource
                                       "rhEntitlements": [
                                         {
                                           "sku": "RH000000",
-                                          "redHatSubscriptionNumber": "121256"
+                                          "subscriptionNumber": "121256"
                                         }
                                       ],
                                       "purchase": {

@@ -35,14 +35,12 @@ import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.Validator;
 import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationWorkerConfiguration;
-import org.candlepin.subscriptions.clowder.KafkaJaasBeanPostProcessor;
 import org.candlepin.subscriptions.clowder.RdsSslBeanPostProcessor;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.json.BaseEvent;
 import org.candlepin.subscriptions.json.CleanUpEvent;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.EventsMixin;
-import org.candlepin.subscriptions.metering.MeteringConfiguration;
 import org.candlepin.subscriptions.product.OfferingWorkerConfiguration;
 import org.candlepin.subscriptions.resource.ApiConfiguration;
 import org.candlepin.subscriptions.rhmarketplace.RhMarketplaceWorkerConfiguration;
@@ -79,7 +77,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
   OfferingWorkerConfiguration.class,
   DevModeConfiguration.class,
   SecurityConfiguration.class,
-  MeteringConfiguration.class,
   SubscriptionServiceConfiguration.class,
   // NOTE(khowell): actually not needed in RH marketplace worker
   RhsmSubscriptionsDataSourceConfiguration.class,
@@ -173,20 +170,6 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   @Bean
   public TimedAspect timedAspect(MeterRegistry registry) {
     return new TimedAspect(registry);
-  }
-
-  /**
-   * A bean post-processor responsible for setting up JAAS for Kafka. It's declared here so that
-   * this bean will always be created. In other words, the creation of this bean isn't dependent on
-   * the web of Import annotations that we have declared across our Configuration classes.
-   * ApplicationConfiguration is the one Configuration class we can always count on to load.
-   *
-   * @param env The Spring Environment
-   * @return a KafkaJaasBeanPostProcessor object
-   */
-  @Bean
-  public KafkaJaasBeanPostProcessor kafkaJaasBeanPostProcessor(Environment env) {
-    return new KafkaJaasBeanPostProcessor(env);
   }
 
   @Bean

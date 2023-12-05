@@ -48,7 +48,7 @@ class MetricsConsumerTest {
 
   @Inject @Any InMemoryConnector connector;
 
-  @InjectSpy MeteringService service;
+  @InjectSpy PrometheusMeteringController service;
 
   @Test
   void testMessagesAreConsumed() {

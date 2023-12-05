@@ -30,7 +30,7 @@ with open("src/main/resources/application.yaml") as config_file:
     ]["accountQueryTemplates"]
 
 with open(
-    "src/main/resources/application-openshift-metering-worker.yaml"
+    "swatch-metrics/src/main/resources/application.yaml"
 ) as config_file:
     config = yaml.safe_load(config_file)
     query_templates = config["rhsm-subscriptions"]["metering"]["prometheus"]["metric"][

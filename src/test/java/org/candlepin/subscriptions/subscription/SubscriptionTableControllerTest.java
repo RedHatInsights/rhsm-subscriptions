@@ -31,15 +31,13 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import jakarta.ws.rs.core.Response;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -78,7 +76,6 @@ class SubscriptionTableControllerTest {
   private static final String OFFERING_DESCRIPTION_SUFFIX = " test description";
 
   @MockBean SubscriptionRepository subscriptionRepository;
-  @MockBean OfferingRepository offeringRepository;
   @Autowired ApplicationClock clock;
   @Autowired SubscriptionTableController subscriptionTableController;
 
@@ -171,18 +168,6 @@ class SubscriptionTableControllerTest {
     return flattened;
   }
 
-  private void mockOfferings(MeasurementSpec... specs) {
-    Set<String> skus = new HashSet<>();
-    List<Offering> offerings = new ArrayList<>();
-    Arrays.stream(specs)
-        .forEach(
-            x -> {
-              skus.add(x.sku);
-              offerings.add(x.createOffering());
-            });
-    when(offeringRepository.findBySkuIn(skus)).thenReturn(offerings);
-  }
-
   @Test
   void testGetSkuCapacityReportSingleSub() {
     // Given an org with one active sub with a quantity of 4 and has an eng product with a socket
@@ -193,7 +178,7 @@ class SubscriptionTableControllerTest {
 
     givenCapacities(Org.STANDARD, productId, spec);
     givenSubscriptionsInRepository(expectedSub);
-    mockOfferings(spec);
+    givenOfferings(spec);
     expectedSub.setOffering(spec.createOffering());
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
@@ -228,7 +213,7 @@ class SubscriptionTableControllerTest {
     givenCapacities(Org.STANDARD, productId, spec1, spec2);
     givenSubscriptionsInRepository(expectedOlderSub, expectedNewerSub);
 
-    mockOfferings(spec1); // spec2 is the same offering
+    givenOfferings(spec1); // spec2 is the same offering
 
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
@@ -274,7 +259,7 @@ class SubscriptionTableControllerTest {
     givenCapacities(Org.STANDARD, productId, spec1, spec2);
     givenSubscriptionsInRepository(expectedNewerSub, expectedOlderSub);
 
-    mockOfferings(spec1, spec2);
+    givenOfferings(spec1, spec2);
 
     // When requesting a SKU capacity report for the eng product, sorted by SKU
     SkuCapacityReport actual =
@@ -353,7 +338,7 @@ class SubscriptionTableControllerTest {
     givenCapacities(Org.STANDARD, RHEL_FOR_X86, spec1, spec2);
     givenSubscriptionsInRepository(expectedNewerSub, expectedOlderSub);
 
-    mockOfferings(spec1); // spec2 is the same offering
+    givenOfferings(spec1); // spec2 is the same offering
 
     SkuCapacityReport report =
         subscriptionTableController.capacityReportBySku(
@@ -382,7 +367,7 @@ class SubscriptionTableControllerTest {
 
     givenSubscriptionsInRepository();
 
-    mockOfferings(spec1); // spec2 is the same offering
+    givenOfferings(spec1); // spec2 is the same offering
 
     SkuCapacityReport reportForUnmatchedSLA =
         subscriptionTableController.capacityReportBySku(
@@ -427,7 +412,7 @@ class SubscriptionTableControllerTest {
 
     givenSubscriptionsInRepository();
 
-    mockOfferings(spec1); // spec2 is the same offering
+    givenOfferings(spec1); // spec2 is the same offering
 
     SkuCapacityReport reportForUnmatchedUsage =
         subscriptionTableController.capacityReportBySku(
@@ -512,7 +497,7 @@ class SubscriptionTableControllerTest {
         rh00604f7.subscription,
         rh0060192.subscription);
 
-    mockOfferings(spec1, spec2, rh00604f6, rh00604f7, rh0060192);
+    givenOfferings(spec1, spec2, rh00604f6, rh00604f7, rh0060192);
 
     SkuCapacityReport reportWithOffsetAndLimit =
         subscriptionTableController.capacityReportBySku(
@@ -530,11 +515,11 @@ class SubscriptionTableControllerTest {
 
     var coresSpec1 = RH0180193_CORES.withSub(expectedNewerSub);
     var coresSpec2 = RH0180194_SOCKETS_AND_CORES.withSub(expectedMuchOlderSub);
-    mockOfferings(coresSpec1, coresSpec2);
+    givenOfferings(coresSpec1, coresSpec2);
 
     var socketsSpec1 = RH0180192_SOCKETS.withSub(expectedOlderSub);
     var socketsSpec2 = RH0180194_SOCKETS_AND_CORES.withSub(expectedMuchOlderSub);
-    mockOfferings(socketsSpec1, socketsSpec2);
+    givenOfferings(socketsSpec1, socketsSpec2);
 
     givenCapacities(Org.STANDARD, productId, coresSpec1, coresSpec2);
     givenCapacities(Org.STANDARD, productId, socketsSpec1, socketsSpec2);
@@ -650,7 +635,7 @@ class SubscriptionTableControllerTest {
 
     when(subscriptionRepository.findUnlimited(any()))
         .thenReturn(List.of(unlimitedSpec.subscription));
-    mockOfferings(unlimitedSpec);
+    givenOfferings(unlimitedSpec);
 
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
@@ -680,7 +665,7 @@ class SubscriptionTableControllerTest {
 
     when(subscriptionRepository.findUnlimited(any()))
         .thenReturn(List.of(unlimitedSpec.subscription));
-    mockOfferings(spec1, unlimitedSpec);
+    givenOfferings(spec1, unlimitedSpec);
 
     // When requesting a SKU capacity report for the eng product, sorted by quantity
     SkuCapacityReport actual =
@@ -728,7 +713,7 @@ class SubscriptionTableControllerTest {
 
     when(subscriptionRepository.findUnlimited(any()))
         .thenReturn(List.of(unlimitedSpec.subscription));
-    mockOfferings(spec1, unlimitedSpec);
+    givenOfferings(spec1, unlimitedSpec);
 
     // When requesting a SKU capacity report for the eng product, sorted by quantity
     SkuCapacityReport actual =
@@ -771,7 +756,7 @@ class SubscriptionTableControllerTest {
     givenCapacities(Org.STANDARD, productId, spec1);
     givenSubscriptionsInRepository(expectedSub);
 
-    mockOfferings(spec1);
+    givenOfferings(spec1);
 
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
@@ -797,7 +782,7 @@ class SubscriptionTableControllerTest {
     givenCapacities(Org.STANDARD, productId, spec1);
     givenSubscriptionsInRepository(expectedSub);
 
-    mockOfferings(spec1);
+    givenOfferings(spec1);
 
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
@@ -810,6 +795,10 @@ class SubscriptionTableControllerTest {
     SkuCapacity actualItem = actual.getData().get(0);
     assertEquals(spec1.sku, actualItem.getSku(), "Wrong SKU");
     assertCapacities(0, 8, Uom.CORES, actualItem);
+  }
+
+  private void givenOfferings(MeasurementSpec... specs) {
+    Stream.of(specs).forEach(spec -> spec.subscription.setOffering(spec.createOffering()));
   }
 
   private void givenSubscriptionsInRepository(Subscription... subs) {

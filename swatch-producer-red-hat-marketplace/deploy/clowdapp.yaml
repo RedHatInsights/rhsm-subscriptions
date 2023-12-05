@@ -135,8 +135,6 @@ parameters:
     value: 'false'
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: 'http://localhost:4317'
-  - name: SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT
-    value: http://swatch-subscription-sync-service:8000/api/rhsm-subscriptions/v1
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -147,6 +145,9 @@ objects:
       prometheus: rhsm
   spec:
     envName: ${ENV_NAME}
+    dependencies:
+      - swatch-tally
+      - swatch-subscription-sync
 
     kafkaTopics:
       - replicas: ${{KAFKA_TALLY_REPLICAS}}
@@ -158,8 +159,6 @@ objects:
 
     database:
       sharedDbAppName: swatch-tally
-    dependencies:
-      - swatch-tally
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
@@ -366,8 +365,6 @@ objects:
               value: ${OTEL_SERVICE_NAME}
             - name: OTEL_JAVAAGENT_ENABLED
               value: ${OTEL_JAVAAGENT_ENABLED}
-            - name: SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT
-              value: ${SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT}
 
           livenessProbe:
             failureThreshold: 3

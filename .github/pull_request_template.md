@@ -1,6 +1,6 @@
 
-<!-- Replace XXXX with the issue number -->
-Jira issue: [SWATCH-XXXX](https://issues.redhat.com/browse/SWATCH-XXXX)
+<!-- Replace XXXX with the issue number. Issue will be auto-linked -->
+Jira issue: SWATCH-XXXX
 
 ## Description
 <!-- Provide a description of this PR.  Try to provide answers to "what", "how",

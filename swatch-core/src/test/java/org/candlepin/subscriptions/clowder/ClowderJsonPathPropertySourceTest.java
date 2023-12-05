@@ -21,8 +21,11 @@
 package org.candlepin.subscriptions.clowder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.Matchers.isA;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
@@ -32,9 +35,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.boot.logging.DeferredLogFactory;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
@@ -59,7 +65,7 @@ class ClowderJsonPathPropertySourceTest {
           + "    }"
           + "  ]}";
 
-  private ConfigurableEnvironment environment = new StandardEnvironment();
+  private final ConfigurableEnvironment environment = new StandardEnvironment();
   private final DeferredLogFactory logFactory = Supplier::get;
 
   @Test
@@ -241,6 +247,40 @@ class ClowderJsonPathPropertySourceTest {
   @Test
   void propertySourceShouldBeOrderedBeforeServletConfigPropertySource() throws Exception {
     testServletPropertySource(StandardServletEnvironment.SERVLET_CONFIG_PROPERTY_SOURCE_NAME);
+  }
+
+  @Test
+  void testKafkaBrokersPropertyWhenNoBrokersConfiguration() throws Exception {
+    var source =
+        new ClowderJsonPathPropertySource(
+            jsonFromResource("classpath:/test-clowder-config-without-brokers.json"));
+    var result = source.getProperty("clowder.kafka.brokers");
+    assertNull(result);
+  }
+
+  @ParameterizedTest
+  @CsvSource(
+      value = {
+        "clowder.kafka.brokers|env-rhsm-kafka.rhsm.svc:29092,env-rhsm-kafka-secondary.rhsm.svc:29093",
+        "clowder.kafka.brokers.sasl.securityProtocol|SASL_SSL",
+        "clowder.kafka.brokers.sasl.mechanism|PLAIN",
+        "clowder.kafka.brokers.sasl.jaas.config|org.apache.kafka.common.security.plain.PlainLoginModule required username=\"john\" password=\"doe\";",
+        "clowder.kafka.brokers.cacert|Dummy value",
+        "clowder.kafka.brokers.cacert.type|PEM",
+        "clowder.endpoints.rhsm-clowdapp-service.url|http://rhsm-clowdapp-service.rhsm.svc:8000",
+        "clowder.endpoints.index-service.url|https://index.rhsm.svc:8800",
+        "clowder.endpoints.index-service.trust-store-path|file:/tmp/truststore.*.trust",
+        "clowder.endpoints.index-service.trust-store-password|.+",
+        "clowder.endpoints.index-service.trust-store-type|PKCS12"
+      },
+      delimiter = '|')
+  void testCustomLogicInProperties(String property, String expectedValue) throws Exception {
+    var source = new ClowderJsonPathPropertySource(jsonFromResource(TEST_CLOWDER_CONFIG_JSON));
+    var result = source.getProperty(property);
+    assertTrue(
+        Pattern.matches(expectedValue, (String) result),
+        String.format(
+            "Actual value was '%s' and expected expression is '%s'", result, expectedValue));
   }
 
   private void testServletPropertySource(String servletContextPropertySourceName) throws Exception {

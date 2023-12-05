@@ -57,6 +57,10 @@ import org.springframework.test.context.ActiveProfiles;
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles({"rhsm-conduit", "test", "kafka-queue"})
 class KafkaEnabledInventoryServiceTest {
+
+  private static final int NUMBER_OF_CPUS = 5;
+  private static final int THREADS_PER_CORE = 3;
+
   @Autowired
   @Qualifier("kafkaRetryTemplate")
   private RetryTemplate retryTemplate;
@@ -90,6 +94,8 @@ class KafkaEnabledInventoryServiceTest {
     expectedFacts.setCpuSockets(45);
     expectedFacts.setOsName("Red Hat Enterprise Linux Workstation");
     expectedFacts.setOsVersion("6.3");
+    expectedFacts.setNumberOfCpus(NUMBER_OF_CPUS);
+    expectedFacts.setThreadsPerCore(THREADS_PER_CORE);
 
     InventoryServiceProperties props = new InventoryServiceProperties();
     props.setKafkaHostIngressTopic("placeholder");
@@ -121,6 +127,8 @@ class KafkaEnabledInventoryServiceTest {
         "RHEL", message.getData().getSystemProfile().getOperatingSystem().getName().value());
     assertEquals(6, message.getData().getSystemProfile().getOperatingSystem().getMajor());
     assertEquals(3, message.getData().getSystemProfile().getOperatingSystem().getMinor());
+    assertEquals(NUMBER_OF_CPUS, message.getData().getSystemProfile().getNumberOfCpus());
+    assertEquals(THREADS_PER_CORE, message.getData().getSystemProfile().getThreadsPerCore());
   }
 
   @Test

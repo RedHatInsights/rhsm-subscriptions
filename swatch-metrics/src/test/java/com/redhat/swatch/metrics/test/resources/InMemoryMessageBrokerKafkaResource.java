@@ -32,6 +32,7 @@ public class InMemoryMessageBrokerKafkaResource implements QuarkusTestResourceLi
     Map<String, String> env = new HashMap<>();
     env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory("tasks-in"));
     env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory("tasks-out"));
+    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory("events-out"));
     return env;
   }
 

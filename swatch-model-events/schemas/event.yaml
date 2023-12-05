@@ -152,3 +152,10 @@ properties:
     type: string
     existingJavaType: java.util.Optional<String>
     required: false
+  product_tag:
+    description: Product tag
+    type: array
+    items:
+      type: string
+    required: false
+    uniqueItems: true

@@ -39,7 +39,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
-import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostApiProjection;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
@@ -50,8 +49,6 @@ import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.utilization.api.model.HostReport;
 import org.candlepin.subscriptions.utilization.api.model.HostReportMeta;
 import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
-import org.candlepin.subscriptions.utilization.api.model.HypervisorGuestReport;
-import org.candlepin.subscriptions.utilization.api.model.MetaCount;
 import org.candlepin.subscriptions.utilization.api.model.PageLinks;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.SortDirection;
@@ -256,25 +253,5 @@ public class HostsResource implements HostsApi {
     if (!isDateRangePossible || !isBothDatesFromSameMonth) {
       throw new IllegalArgumentException("Invalid date range.");
     }
-  }
-
-  @Override
-  @ReportingAccessRequired
-  public HypervisorGuestReport getHypervisorGuests(
-      String hypervisorUuid, Integer offset, Integer limit) {
-    String orgId = ResourceUtils.getOrgId();
-    Pageable page = ResourceUtils.getPageable(offset, limit);
-    Page<Host> guests = repository.getHostsByHypervisor(orgId, hypervisorUuid, page);
-    PageLinks links;
-    if (offset != null || limit != null) {
-      links = pageLinkCreator.getPaginationLinks(uriInfo, guests);
-    } else {
-      links = null;
-    }
-
-    return new HypervisorGuestReport()
-        .links(links)
-        .meta(new MetaCount().count((int) guests.getTotalElements()))
-        .data(guests.getContent().stream().map(Host::asApiHost).collect(Collectors.toList()));
   }
 }

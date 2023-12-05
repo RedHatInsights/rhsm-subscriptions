@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import static org.candlepin.subscriptions.metering.MeteringEventFactory.getEventType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,6 +34,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
@@ -166,8 +166,9 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
     event.setTimestamp(start.plusDays(dayAt));
     event.setSla(Event.Sla.PREMIUM);
     event.setRole(Event.Role.MOA_HOSTEDCONTROLPLANE);
+    event.setProductTag(Set.of(PRODUCT_TAG));
     event.setOrgId(ORG_ID);
-    event.setEventType(getEventType(METRIC, PRODUCT_TAG));
+    event.setEventType("snapshot_" + METRIC.toLowerCase() + "_" + PRODUCT_TAG.toLowerCase());
     event.setInstanceId(PROMETHEUS);
     event.setEventSource("any");
     event.setExpiration(Optional.of(event.getTimestamp().plusHours(5)));

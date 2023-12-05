@@ -76,6 +76,18 @@ public class ConduitFacts extends ConsumerInventory {
 
   @Positive
   @Override
+  public Integer getNumberOfCpus() {
+    return super.getNumberOfCpus();
+  }
+
+  @Positive
+  @Override
+  public Integer getThreadsPerCore() {
+    return super.getThreadsPerCore();
+  }
+
+  @Positive
+  @Override
   public Long getMemory() {
     return super.getMemory();
   }

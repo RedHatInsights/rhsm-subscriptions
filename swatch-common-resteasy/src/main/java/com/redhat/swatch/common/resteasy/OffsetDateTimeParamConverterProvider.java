@@ -26,6 +26,7 @@ import jakarta.ws.rs.ext.Provider;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 
 /** ParamConverterProvider to enable use of OffsetDateTime in query parameters. */
@@ -47,13 +48,15 @@ public class OffsetDateTimeParamConverterProvider implements ParamConverterProvi
    */
   public static class OffsetDateTimeParamConverter implements ParamConverter<OffsetDateTime> {
 
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+
     @Override
     public OffsetDateTime fromString(String value) {
       if (value == null) {
         return null;
       }
       try {
-        return OffsetDateTime.parse(value);
+        return OffsetDateTime.parse(value, FORMATTER);
       } catch (DateTimeParseException e) {
         throw new IllegalArgumentException(e);
       }
@@ -64,7 +67,7 @@ public class OffsetDateTimeParamConverterProvider implements ParamConverterProvi
       if (value == null) {
         return null;
       }
-      return value.toString();
+      return FORMATTER.format(value);
     }
   }
 }

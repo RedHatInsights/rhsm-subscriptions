@@ -41,6 +41,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.ProcessingException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -171,7 +172,7 @@ public class BillableUsageProcessor {
         }
       }
       throw new AwsUsageContextLookupException(e);
-    } catch (ApiException e) {
+    } catch (ProcessingException | ApiException e) {
       throw new AwsUsageContextLookupException(e);
     }
   }
