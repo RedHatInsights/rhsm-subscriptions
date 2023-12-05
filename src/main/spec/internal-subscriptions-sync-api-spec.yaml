@@ -42,6 +42,33 @@ paths:
           application/json:
             schema:
               type: string
+            examples:
+              subscription:
+                "value": [
+                  {
+                    "id": "000149",
+                    "subscriptionNumber": "8838431",
+                    "subscriptionProducts": [
+                      {
+                        "sku": "MCT4121HR"
+                      }
+                    ],
+                    "webCustomerId": "14541308",
+                    "quantity": 1,
+                    "oracleAccountNumber": "",
+                    "effectiveStartDate": 1697847432103,
+                    "effectiveEndDate": 1730247432103,
+                    "externalReferences": {
+                      "awsMarketplace": {
+                        "subscriptionID": "100",
+                        "customerID": 102,
+                        "productCode": "testProductCode",
+                        "sellerAccount": "1234567",
+                        "customerAccountID": 102
+                      }
+                    }
+                  }
+                ]
       responses:
         '200':
           description: Save a list of subscriptions
@@ -49,6 +76,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SubscriptionResponse"
+              examples:
+                success:
+                  value: {
+                    "detail": "Success"
+                  }
+
         '400':
           $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
