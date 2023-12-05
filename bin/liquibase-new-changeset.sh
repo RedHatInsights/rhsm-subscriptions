@@ -1,4 +1,6 @@
 #!/bin/bash
+# Usage: liquibase-new-changeset.sh <text to append to the generated changeset>
+# For example: running `liquibase-new-changeset.sh remove-account` would create a change set `202312050855-remove-account.xml` where `202312050855` is auto-populated from the current date.
 desc=$(echo "$@" | sed 's/ /-/g' | tr A-Z a-z)
 date=$(date +%Y%m%d%H%M)
 filename=$(date +%Y%m%d%H%M)-$desc.xml
