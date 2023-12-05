@@ -20,7 +20,7 @@ ext {
 // buildSrc/build.gradle adds them to the gradle classpath
 ext.plugins = [
         "com.adarshr:gradle-test-logger-plugin:4.0.0",
-        "com.diffplug.spotless:spotless-plugin-gradle:6.23.2",
+        "com.diffplug.spotless:spotless-plugin-gradle:6.23.3",
         "com.netflix.nebula:nebula-release-plugin:18.0.5",
         "io.quarkus:gradle-application-plugin:3.6.0",
         // swagger-parser manually upgraded for compatibility with snakeyaml 2.0
@@ -40,7 +40,7 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:2.1.1"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.21.35"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.21.37"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.0.0"
 libraries["guava"] = "com.google.guava:guava:32.1.3-jre"
 libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.14.0"
@@ -69,7 +69,7 @@ libraries["resteasy-spring-boot-starter"] = "org.jboss.resteasy:resteasy-servlet
 libraries["resteasy-validator-provider"] = "org.jboss.resteasy:resteasy-validator-provider:6.2.6.Final"
 libraries["splunk-library-javalogging"] = "com.splunk.logging:splunk-library-javalogging:1.11.8"
 libraries["swagger-annotations"] = "io.swagger:swagger-annotations:1.6.12"
-libraries["swagger-ui"] = "org.webjars:swagger-ui:5.9.0"
+libraries["swagger-ui"] = "org.webjars:swagger-ui:5.10.3"
 libraries["webjars-locator"] = "org.webjars:webjars-locator:0.50"
 libraries["wiremock"] = "com.github.tomakehurst:wiremock-standalone:3.0.1"
 libraries["awaitility"] = "org.awaitility:awaitility:4.2.0"
