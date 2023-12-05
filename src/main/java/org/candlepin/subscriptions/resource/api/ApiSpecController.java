@@ -58,12 +58,6 @@ public class ApiSpecController {
   @Value("classpath:internal-tally-openapi.json")
   private Resource internalTallyApiJson;
 
-  @Value("classpath:internal-metering-api-spec.yaml")
-  private Resource internalMeteringApiYaml;
-
-  @Value("classpath:internal-metering-openapi.json")
-  private Resource internalMeteringApiJson;
-
   @Value("classpath:internal-billing-api-spec.yaml")
   private Resource internalBillingApiYaml;
 
@@ -110,14 +104,6 @@ public class ApiSpecController {
 
   public String getInternalTallyApiJson() {
     return getResourceAsString(internalTallyApiJson);
-  }
-
-  public String getInternalMeteringApiYaml() {
-    return getResourceAsString(internalMeteringApiYaml);
-  }
-
-  public String getInternalMeteringApiJson() {
-    return getResourceAsString(internalMeteringApiJson);
   }
 
   public String getInternalBillingApiYaml() {

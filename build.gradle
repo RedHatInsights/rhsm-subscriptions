@@ -146,9 +146,6 @@ ext {
     billing_api_spec_file = "${internal_spec_dir}/internal-billing-api-spec.yaml"
     billing_config_file = "${internal_spec_dir}/internal-billing-api-config.json"
 
-    metering_api_spec_file = "${internal_spec_dir}/internal-metering-api-spec.yaml"
-    metering_config_file = "${internal_spec_dir}/internal-metering-api-config.json"
-
     swatch_producer_rhm_api_spec_file = "${internal_spec_dir}/internal-swatch-producer-red-hat-marketplace-api-spec.yaml"
     swatch_producer_rhm_config_spec_file = "${internal_spec_dir}/internal-swatch-producer-red-hat-marketplace-api-config.json"
 
@@ -193,19 +190,6 @@ tasks.register("buildApiBilling", GenerateTask) {
     ]
 }
 
-tasks.register("buildApiMetering", GenerateTask) {
-    generatorName = "jaxrs-spec"
-    inputSpec = metering_api_spec_file
-    configFile = metering_config_file
-    outputDir = "$buildDir/generated/metering"
-    configOptions = [
-            interfaceOnly: "true",
-            generatePom: "false",
-            dateLibrary: "java8",
-            useJakartaEe: "true",
-    ]
-}
-
 tasks.register("buildApiProducerRHM", GenerateTask) {
     generatorName = "jaxrs-spec"
     inputSpec = swatch_producer_rhm_api_spec_file
@@ -237,10 +221,6 @@ tasks.register("validateApiBilling", ValidateTask) {
     inputSpec = billing_api_spec_file
 }
 
-tasks.register("validateApiMetering", ValidateTask) {
-    inputSpec = metering_api_spec_file
-}
-
 tasks.register("apiValidate") {
     dependsOn(provider {
         tasks.findAll { task -> task.name.startsWith('validateApi') }
@@ -267,14 +247,6 @@ tasks.register("generateApiDocsBilling", GenerateTask) {
     generatorName = "html"
     inputSpec = billing_api_spec_file
     outputDir = "$buildDir/internal-billing-docs"
-    generateModelTests = false
-    generateApiTests = false
-}
-
-tasks.register("generateApiDocsMetering", GenerateTask) {
-    generatorName = "html"
-    inputSpec = metering_api_spec_file
-    outputDir = "$buildDir/internal-metering-docs"
     generateModelTests = false
     generateApiTests = false
 }
@@ -315,18 +287,6 @@ tasks.register("generateOpenApiJsonBilling", GenerateTask) {
     ]
 }
 
-tasks.register("generateOpenApiJsonMetering", GenerateTask) {
-    generatorName = "openapi"
-    inputSpec = metering_api_spec_file
-    outputDir = "$buildDir/openapijson"
-    generateModelTests = false
-    generateApiTests = false
-    configOptions = [
-            outputFileName: "internal-metering-openapi.json",
-            useJakartaEe: "true",
-    ]
-}
-
 tasks.register("generateOpenApiJsonProducerRhM", GenerateTask) {
     generatorName = "openapi"
     inputSpec = swatch_producer_rhm_api_spec_file
@@ -340,8 +300,8 @@ tasks.register("generateOpenApiJsonProducerRhM", GenerateTask) {
 }
 
 processResources {
-    from tasks.generateOpenApiJsonTally, tasks.generateOpenApiJsonSubSync, tasks.generateOpenApiJsonBilling, tasks.generateOpenApiJsonMetering, tasks.generateOpenApiJsonProducerRhM
-    from tally_api_spec_file, sub_sync_api_spec_file, billing_api_spec_file, metering_api_spec_file, swatch_producer_rhm_api_spec_file
+    from tasks.generateOpenApiJsonTally, tasks.generateOpenApiJsonSubSync, tasks.generateOpenApiJsonBilling, tasks.generateOpenApiJsonProducerRhM
+    from tally_api_spec_file, sub_sync_api_spec_file, billing_api_spec_file, swatch_producer_rhm_api_spec_file
 }
 
 sourceSets.main.java.srcDirs += [
