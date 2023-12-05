@@ -31,12 +31,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.ResourceLoader;
 
-class CertInfoEndpointTest {
+class CertInfoContributorTest {
   public static final char[] STORE_PASSWORD = "password".toCharArray();
 
   private final ResourceLoader rl = new DefaultResourceLoader();
   private RhsmApiProperties config;
-  private CertInfoEndpoint endpoint;
+  private CertInfoContributor endpoint;
 
   private Map<String, Map<String, String>> infoMap;
 
@@ -45,7 +45,7 @@ class CertInfoEndpointTest {
     infoMap = null;
 
     config = new RhsmApiProperties();
-    endpoint = new CertInfoEndpoint(config);
+    endpoint = new CertInfoContributor(config);
   }
 
   @Test

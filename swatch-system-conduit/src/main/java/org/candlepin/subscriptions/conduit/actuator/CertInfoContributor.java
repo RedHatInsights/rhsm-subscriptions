@@ -28,37 +28,36 @@ import org.candlepin.subscriptions.conduit.rhsm.client.RhsmApiProperties;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
-import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
+import org.springframework.boot.actuate.autoconfigure.info.ConditionalOnEnabledInfoContributor;
+import org.springframework.boot.actuate.autoconfigure.info.InfoContributorFallback;
+import org.springframework.boot.actuate.info.Info.Builder;
+import org.springframework.boot.actuate.info.InfoContributor;
 import org.springframework.stereotype.Component;
 
 /** Endpoint to print basic information about the certificates Conduit is using. */
 @Component
-@Endpoint(id = "certs")
-public class CertInfoEndpoint {
-
-  private static final Logger log = LoggerFactory.getLogger(CertInfoEndpoint.class);
+@ConditionalOnEnabledInfoContributor(value = "certs", fallback = InfoContributorFallback.DISABLE)
+public class CertInfoContributor implements InfoContributor {
+  private static final Logger log = LoggerFactory.getLogger(CertInfoContributor.class);
   public static final String CERT_LOAD_ERR = "Could not load certificates";
 
   private final RhsmApiProperties rhsmApiProperties;
 
-  public CertInfoEndpoint(RhsmApiProperties rhsmApiProperties) {
+  public CertInfoContributor(RhsmApiProperties rhsmApiProperties) {
     this.rhsmApiProperties = rhsmApiProperties;
   }
 
-  @ReadOperation
   public Map<String, Map<String, String>> keystoreInfo() throws IllegalStateException {
     HttpClientProperties config = rhsmApiProperties;
 
     try {
       return CertInfoInquisitor.loadStoreInfo(config.getKeystore(), config.getKeystorePassword());
     } catch (IOException | GeneralSecurityException e) {
-      log.error(CERT_LOAD_ERR, e);
+      log.warn(CERT_LOAD_ERR, e);
+      throw new IllegalStateException(CERT_LOAD_ERR, e);
     }
-    throw new IllegalStateException(CERT_LOAD_ERR);
   }
 
-  @ReadOperation
   public Map<String, Map<String, String>> truststoreInfo() throws IllegalStateException {
     HttpClientProperties config = rhsmApiProperties;
 
@@ -66,8 +65,23 @@ public class CertInfoEndpoint {
       return CertInfoInquisitor.loadStoreInfo(
           config.getTruststore(), config.getTruststorePassword());
     } catch (IOException | GeneralSecurityException e) {
-      log.error(CERT_LOAD_ERR, e);
+      log.warn(CERT_LOAD_ERR, e);
+      throw new IllegalStateException(CERT_LOAD_ERR, e);
     }
-    throw new IllegalStateException(CERT_LOAD_ERR);
+  }
+
+  @Override
+  public void contribute(Builder builder) {
+    try {
+      builder.withDetail("keystore", keystoreInfo());
+    } catch (IllegalStateException e) {
+      builder.withDetail("keystore", e.getMessage() + ":" + e.getCause().getMessage());
+    }
+
+    try {
+      builder.withDetail("truststore", truststoreInfo());
+    } catch (IllegalStateException e) {
+      builder.withDetail("truststore", e.getMessage() + ":" + e.getCause().getMessage());
+    }
   }
 }
