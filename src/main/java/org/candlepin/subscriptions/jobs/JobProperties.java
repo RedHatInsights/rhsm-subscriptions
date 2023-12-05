@@ -35,9 +35,6 @@ public class JobProperties {
   // Once a day at 3am
   private String purgeSnapshotSchedule = "0 0 3 * * ?";
 
-  // Every hour, on the hour
-  private String meteringSchedule = "0 0 * * * ?";
-
   public String getCaptureHourlySnapshotSchedule() {
     return captureHourlySnapshotSchedule;
   }
