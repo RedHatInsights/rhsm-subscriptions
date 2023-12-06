@@ -18,22 +18,20 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.azure.exception;
+package com.redhat.swatch.azure.file;
 
-import lombok.Getter;
+import lombok.Data;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-@Getter
-public enum ErrorCode {
-  AZURE_MANUAL_SUBMISSION_DISABLED(1005, "Manual submission disabled."),
-  AZURE_MARKETPLACE_API_REQUEST_FAILED(1006, "Azure Marketplace Api request failed.");
+@Data
+public class AzureMarketplaceProperties {
 
-  private static final String CODE_PREFIX = "AZURE";
+  @ConfigProperty(name = "AZURE_OIDC_BASE_URL")
+  private String oidcBaseUrl;
 
-  ErrorCode(int intCode, String description) {
-    this.code = CODE_PREFIX + intCode;
-    this.description = description;
-  }
+  @ConfigProperty(name = "AZURE_MARKETPLACE_BASE_URL")
+  private String marketplaceBaseUrl;
 
-  private final String code;
-  private final String description;
+  @ConfigProperty(name = "AZURE_MARKETPLACE_API_VERSION")
+  private String marketplaceApiVersion;
 }

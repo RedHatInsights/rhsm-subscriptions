@@ -20,20 +20,9 @@
  */
 package com.redhat.swatch.azure.exception;
 
-import lombok.Getter;
+public class AzureMarketplaceRequestFailedException extends AzureProducerException {
 
-@Getter
-public enum ErrorCode {
-  AZURE_MANUAL_SUBMISSION_DISABLED(1005, "Manual submission disabled."),
-  AZURE_MARKETPLACE_API_REQUEST_FAILED(1006, "Azure Marketplace Api request failed.");
-
-  private static final String CODE_PREFIX = "AZURE";
-
-  ErrorCode(int intCode, String description) {
-    this.code = CODE_PREFIX + intCode;
-    this.description = description;
+  public AzureMarketplaceRequestFailedException() {
+    super(ErrorCode.AZURE_MARKETPLACE_API_REQUEST_FAILED, "Hint: Check Azure credentials");
   }
-
-  private final String code;
-  private final String description;
 }

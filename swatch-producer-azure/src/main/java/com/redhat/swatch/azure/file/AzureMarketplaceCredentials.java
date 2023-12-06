@@ -18,22 +18,41 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.azure.exception;
+package com.redhat.swatch.azure.file;
 
+import java.util.ArrayList;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-public enum ErrorCode {
-  AZURE_MANUAL_SUBMISSION_DISABLED(1005, "Manual submission disabled."),
-  AZURE_MARKETPLACE_API_REQUEST_FAILED(1006, "Azure Marketplace Api request failed.");
+@AllArgsConstructor
+public class AzureMarketplaceCredentials {
+  private Credentials credentials;
 
-  private static final String CODE_PREFIX = "AZURE";
-
-  ErrorCode(int intCode, String description) {
-    this.code = CODE_PREFIX + intCode;
-    this.description = description;
+  public ArrayList<Client> getClients() {
+    return credentials.getAzure().getClients();
   }
 
-  private final String code;
-  private final String description;
+  @AllArgsConstructor
+  @Getter
+  public class Credentials {
+    private Azure azure;
+  }
+
+  @AllArgsConstructor
+  @Getter
+  public class Azure {
+
+    private ArrayList<Client> clients;
+  }
+
+  @AllArgsConstructor
+  @Getter
+  public class Client {
+
+    private String tenantId;
+    private String clientId;
+    private String clientSecret;
+    private String publisher;
+  }
 }

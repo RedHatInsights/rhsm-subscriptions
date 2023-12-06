@@ -18,22 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.azure.exception;
+package com.redhat.swatch.azure.file;
 
-import lombok.Getter;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.json.bind.Jsonb;
+import jakarta.json.bind.JsonbBuilder;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.junit.Assert;
+import org.junit.jupiter.api.Test;
 
-@Getter
-public enum ErrorCode {
-  AZURE_MANUAL_SUBMISSION_DISABLED(1005, "Manual submission disabled."),
-  AZURE_MARKETPLACE_API_REQUEST_FAILED(1006, "Azure Marketplace Api request failed.");
+@QuarkusTest
+public class AzureMarketplaceCredentialsConfigurationTest {
 
-  private static final String CODE_PREFIX = "AZURE";
+  @ConfigProperty(name = "AZURE_MARKETPLACE_CREDENTIALS")
+  private String azureCredentialJson;
 
-  ErrorCode(int intCode, String description) {
-    this.code = CODE_PREFIX + intCode;
-    this.description = description;
+  @Test
+  public void testCreateAzureMarketplaceCredentials() {
+    Jsonb jsonbMapper = JsonbBuilder.create();
+    AzureMarketplaceCredentials credentials =
+        jsonbMapper.fromJson(azureCredentialJson, AzureMarketplaceCredentials.class);
+    Assert.assertNotNull(credentials);
   }
-
-  private final String code;
-  private final String description;
 }

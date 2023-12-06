@@ -22,6 +22,7 @@ package com.redhat.swatch.azure.service;
 
 import com.redhat.swatch.azure.openapi.model.BillableUsage;
 import com.redhat.swatch.azure.openapi.model.BillableUsage.BillingProviderEnum;
+import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEvent;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
 import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
@@ -41,6 +42,9 @@ import org.slf4j.MDC;
 @Slf4j
 @ApplicationScoped
 public class BillableUsageConsumer {
+
+  private final AzureMarketplaceService azureMarketplaceService;
+
   private final Counter
       acceptedCounter; // TODO https://issues.redhat.com/browse/SWATCH-1726 //NOSONAR
   private final Counter
@@ -53,10 +57,12 @@ public class BillableUsageConsumer {
   public BillableUsageConsumer(
       MeterRegistry meterRegistry,
       @RestClient InternalSubscriptionsApi internalSubscriptionsApi,
+      @RestClient AzureMarketplaceService azureMarketplaceService,
       @ConfigProperty(name = "ENABLE_AZURE_DRY_RUN") Optional<Boolean> isDryRun) {
     acceptedCounter = meterRegistry.counter("swatch_azure_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_azure_marketplace_batch_rejected_total");
     this.internalSubscriptionsApi = internalSubscriptionsApi;
+    this.azureMarketplaceService = azureMarketplaceService;
     this.isDryRun = isDryRun;
   }
 
@@ -73,6 +79,7 @@ public class BillableUsageConsumer {
     }
 
     Optional<Metric> metric = validateUsageAndLookupMetric(billableUsage);
+
     if (metric.isEmpty()) {
       log.debug("Skipping billable usage because it is not applicable: {}", billableUsage);
       return; // please remove me after below TODO implemented! NOSONAR
@@ -82,6 +89,15 @@ public class BillableUsageConsumer {
     - lookup azure usage context
     - transform and send
      */
+
+    azureMarketplaceService.sendUsageEventToAzureMarketplace(
+        transformToAzureUsageEvent(billableUsage));
+  }
+
+  private UsageEvent transformToAzureUsageEvent(BillableUsage billableUsage) {
+    var event = new UsageEvent();
+
+    return event;
   }
 
   private Optional<Metric> validateUsageAndLookupMetric(BillableUsage billableUsage) {
