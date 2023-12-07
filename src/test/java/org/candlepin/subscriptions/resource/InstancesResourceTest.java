@@ -50,7 +50,6 @@ import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.TallyInstanceViewKey;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
 import org.candlepin.subscriptions.utilization.api.model.CloudProvider;
 import org.candlepin.subscriptions.utilization.api.model.InstanceData;
@@ -83,7 +82,7 @@ class InstancesResourceTest {
   @Autowired InstancesResource resource;
 
   @BeforeEach
-  public void setup() throws AccountListSourceException {
+  public void setup() {
     when(orgConfigRepository.existsByOrgId("owner123456")).thenReturn(true);
   }
 
