@@ -39,6 +39,7 @@ import org.candlepin.subscriptions.subscription.SubscriptionPruneController;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.candlepin.subscriptions.utilization.admin.api.InternalApi;
 import org.candlepin.subscriptions.utilization.admin.api.model.AwsUsageContext;
+import org.candlepin.subscriptions.utilization.admin.api.model.AzureUsageContext;
 import org.candlepin.subscriptions.utilization.admin.api.model.DefaultResponse;
 import org.candlepin.subscriptions.utilization.admin.api.model.Metric;
 import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTags;
@@ -194,6 +195,25 @@ public class InternalSubscriptionResource implements InternalApi {
         .getSubscription(orgId, productId, sla, usage, awsAccountId, date)
         .map(this::buildAwsUsageContext)
         .orElseThrow();
+  }
+
+  @Override
+  public AzureUsageContext getAzureMarketplaceContext(
+      @jakarta.validation.constraints.NotNull String orgId,
+      @jakarta.validation.constraints.NotNull OffsetDateTime date,
+      @jakarta.validation.constraints.NotNull String productId,
+      String sla,
+      String usage,
+      String azureAccountId) {
+
+    var context = new AzureUsageContext();
+
+    context.setAzureResourceId("hardcodedAzureResourceId");
+    context.setAzureTenantId("hardcodedAzureTenantId");
+    context.setOfferId("hardcodedOfferId");
+    context.setPlanId("hardcodedPlanId");
+
+    return context;
   }
 
   @Override
