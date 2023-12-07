@@ -176,6 +176,7 @@ public class InventoryController {
 
   protected ConduitFacts getFactsFromConsumer(Consumer consumer) {
     final Map<String, String> rhsmFacts = consumer.getFacts();
+    log.debug("Received message from consumer: {}", consumer);
     ConduitFacts facts = new ConduitFacts();
     facts.setOrgId(consumer.getOrgId());
     String clusterUuid = rhsmFacts.get(OPENSHIFT_CLUSTER_UUID);

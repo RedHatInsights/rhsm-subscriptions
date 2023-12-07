@@ -65,6 +65,8 @@ class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwa
   private static final String INFRASTRUCTURE_TYPE = "INFRASTRUCTURE_TYPE test";
   private static final int CORES_PER_SOCKET = 4;
   private static final int NUMBER_OF_SOCKETS = 5;
+  private static final int NUMBER_OF_CPUS = 8;
+  private static final int THREADS_PER_CORE = 2;
   private static final String CLOUD_PROVIDER = "CLOUD_PROVIDER test";
   private static final String ARCH = "ARCH test";
   private static final String INSIGHTS_ID = "INSIGHTS_ID test";
@@ -109,6 +111,8 @@ class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwa
     assertEquals(INFRASTRUCTURE_TYPE, fact.getSystemProfileInfrastructureType());
     assertEquals(CORES_PER_SOCKET, fact.getSystemProfileCoresPerSocket());
     assertEquals(NUMBER_OF_SOCKETS, fact.getSystemProfileSockets());
+    assertEquals(NUMBER_OF_CPUS, fact.getSystemProfileCpus());
+    assertEquals(THREADS_PER_CORE, fact.getSystemProfileThreadsPerCore());
     assertEquals(CLOUD_PROVIDER, fact.getCloudProvider());
     assertEquals(ARCH, fact.getSystemProfileArch());
     assertTrue(fact.isMarketplace());
@@ -202,6 +206,10 @@ class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwa
             CORES_PER_SOCKET,
             "number_of_sockets",
             NUMBER_OF_SOCKETS,
+            "number_of_cpus",
+            NUMBER_OF_CPUS,
+            "threads_per_core",
+            THREADS_PER_CORE,
             "cloud_provider",
             CLOUD_PROVIDER,
             "arch",
