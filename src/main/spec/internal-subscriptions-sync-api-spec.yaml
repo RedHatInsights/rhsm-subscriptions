@@ -42,6 +42,33 @@ paths:
           application/json:
             schema:
               type: string
+            examples:
+              subscription:
+                "value": [
+                  {
+                    "id": "000149",
+                    "subscriptionNumber": "8838431",
+                    "subscriptionProducts": [
+                      {
+                        "sku": "MCT4121HR"
+                      }
+                    ],
+                    "webCustomerId": "14541308",
+                    "quantity": 1,
+                    "oracleAccountNumber": "",
+                    "effectiveStartDate": 1697847432103,
+                    "effectiveEndDate": 1730247432103,
+                    "externalReferences": {
+                      "awsMarketplace": {
+                        "subscriptionID": "100",
+                        "customerID": 102,
+                        "productCode": "testProductCode",
+                        "sellerAccount": "1234567",
+                        "customerAccountID": 102
+                      }
+                    }
+                  }
+                ]
       responses:
         '200':
           description: Save a list of subscriptions
@@ -49,6 +76,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SubscriptionResponse"
+              examples:
+                success:
+                  value: {
+                    "detail": "Success"
+                  }
+
         '400':
           $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
@@ -239,6 +272,69 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - internalSubscriptions
+
+  /internal/subscriptions/azureUsageContext:
+    get:
+      operationId: getAzureMarketplaceContext
+      summary: Lookup necessary info to submit a usage record to Azure
+      tags:
+        - internalSubscriptions
+      parameters:
+        - name: orgId
+          description: 'Look at subscriptions for this orgId'
+          example: org123
+          schema:
+            type: string
+          in: query
+          required: true
+        - name: date
+          description: 'Look at subscriptions starting on this date'
+          example: 2023-10-31T00:00:00Z
+          schema:
+            format: date-time
+            type: string
+          in: query
+          required: true
+        - name: productId
+          description: 'This value should correspond to a product variant tag as defined in swatch product configuration'
+          example: rhel-for-x86-els-payg
+          schema:
+            type: string
+          in: query
+          required: true
+        - name: sla
+          description: 'Look at subscriptions matching this SLA'
+          example: Premium
+          schema:
+            type: string
+          in: query
+        - name: usage
+          description: 'Look at subscriptions matching this usage'
+          example: Production
+          schema:
+            type: string
+          in: query
+        - name: billingAccountId
+          description: 'Look at subscriptions matching this billing_account_id'
+          schema:
+            type: string
+          in: query
+          required: false
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AzureUsageContext'
+          description: Found Azure usage context matching the criteria.
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '404':
+          $ref: "../../../spec/error-responses.yaml#/$defs/ResourceNotFound"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
   /internal/offerings/{sku}/product_tags:
     description: "Mapping sku to product tags."
     parameters:
@@ -450,6 +546,25 @@ components:
         subscriptionStartDate:
           type: string
           format: date-time
+    AzureUsageContext:
+      description: Encapsulates all data needed to map tally snapshot usage to Azure UsageRecords.
+      properties:
+        azureResourceId:
+          description: IT Partner gateway will pass it under "cloudIdentifiers".  UMB messages under purchase.resourceId
+          type: string
+          example: 10d3a42f-cad5-4b55-8cd7-1569edf07a4d
+        azureTenantId:
+          description: IT Partner gateway will pass it under "cloudIdentifiers".  UMB messages under partnerIdentities.azureTenantId
+          type: string
+          example: 18087458-3905-4dea-80a4-758d69b7d2c5
+        offerId:
+          description: IT Partner gateway will pass it under "cloudIdentifiers".  UMB messages under purchase.vendorProductCode
+          type: string
+          example: azureProductCode
+        planId:
+          description: IT Partner gateway will pass it under "cloudIdentifiers".  UMB messages under contracts.planId
+          type: string
+          example: rh-rhel-sub-1yr
     OfferingProductTags:
       properties:
         data:

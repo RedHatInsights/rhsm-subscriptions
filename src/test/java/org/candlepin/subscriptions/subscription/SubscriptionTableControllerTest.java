@@ -47,7 +47,6 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.resource.SubscriptionTableController;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.SkuCapacity;
 import org.candlepin.subscriptions.utilization.api.model.SkuCapacityReport;
@@ -80,7 +79,7 @@ class SubscriptionTableControllerTest {
   @Autowired SubscriptionTableController subscriptionTableController;
 
   @BeforeEach
-  void setup() throws AccountListSourceException {
+  void setup() {
     // The @ReportingAccessRequired annotation checks if the org of the user is allowlisted
     // to receive reports or not. This org will be used throughout most tests.
   }
