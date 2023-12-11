@@ -67,11 +67,13 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.mockito.ArgumentCaptor;
 
 @QuarkusTest
 @QuarkusTestResource(value = WireMockResource.class, restrictToAnnotatedClass = true)
@@ -157,6 +159,7 @@ class ContractServiceTest extends BaseUnitTest {
   @Test
   void createPartnerContract_NotDuplicateContractThenPersist() {
     givenExistingContract();
+    givenExistingSubscription("1234:agb1:1fa");
 
     PartnerEntitlementContract request = givenPartnerEntitlementContractRequest();
 
@@ -169,6 +172,33 @@ class ContractServiceTest extends BaseUnitTest {
   void createPartnerContract_DuplicateContractThenDoNotPersist() {
     PartnerEntitlementContract request = givenPartnerEntitlementContractRequest();
     contractService.createPartnerContract(request);
+
+    StatusResponse statusResponse = contractService.createPartnerContract(request);
+    assertEquals("Duplicate record found", statusResponse.getMessage());
+  }
+
+  @Test
+  void testCreatePartnerContractNewBillingProviderIdPersist() {
+    PartnerEntitlementContract request = givenPartnerEntitlementContractRequest();
+    contractService.createPartnerContract(request);
+
+    givenExistingSubscription("new:new:new");
+    StatusResponse statusResponse = contractService.createPartnerContract(request);
+    assertEquals(
+        "Previous contract archived and new contract created", statusResponse.getMessage());
+  }
+
+  @Test
+  void testCreatePartnerContractDuplicateBillingProviderIdNotPersist() {
+    PartnerEntitlementContract request = givenPartnerEntitlementContractRequest();
+    contractService.createPartnerContract(request);
+
+    request.getCloudIdentifiers().setAzureResourceId("dupeId");
+    request.getCloudIdentifiers().setOfferId("dupeId");
+    request.getCloudIdentifiers().setPlanId("dupeId");
+    request.getCloudIdentifiers().setPartner("azure_marketplace");
+
+    givenExistingSubscription("dupeId;dupeId;dupeId");
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
     assertEquals("Duplicate record found", statusResponse.getMessage());
@@ -193,10 +223,8 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
-  void testCreatePartnerContractCreatesAzureSubscription()
-      throws com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException {
+  void testCreatePartnerContractCreatesAzureSubscription() throws Exception {
     var contract = new PartnerEntitlementContract();
-    PartnerApi partnerApi = mock(PartnerApi.class);
     contract.setRedHatSubscriptionNumber("subnum");
     contract.setCurrentDimensions(
         List.of(new Dimension().dimensionName("vCPU").dimensionValue("4")));
@@ -208,36 +236,36 @@ class ContractServiceTest extends BaseUnitTest {
             .offerId("azureProductCode")
             .planId("rh-rhel-sub-1yr"));
 
-    var entitlement =
-        new PartnerEntitlementV1()
-            .rhAccountId("7186626")
-            .sourcePartner(SourcePartnerEnum.AZURE_MARKETPLACE)
-            .partnerIdentities(
-                new PartnerIdentityV1()
-                    .azureSubscriptionId("fa650050-dedd-4958-b901-d8e5118c0a5f")
-                    .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
-                    .azureCustomerId("eadf26ee-6fbc-4295-9a9e-25d4fea8951d_2019-05-31"))
-            .rhEntitlements(
-                List.of(new RhEntitlementV1().sku("MCT4249").redHatSubscriptionNumber("13294886")))
-            .purchase(
-                new PurchaseV1()
-                    .vendorProductCode("azureProductCode")
-                    .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
-                    .contracts(
-                        List.of(
-                            new SaasContractV1()
-                                .startDate(OffsetDateTime.parse("2023-06-09T13:59:43.035365Z"))
-                                .planId("rh-rhel-sub-1yr")
-                                .dimensions(List.of(new DimensionV1().name("vCPU").value("4"))))));
-
-    var azureQuery = new PartnerEntitlements().content(List.of(entitlement));
-    OfferingProductTags productTags = new OfferingProductTags();
-    productTags.data(List.of("MCT4249"));
-    when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
-    when(partnerApi.getPartnerEntitlements(any())).thenReturn(azureQuery);
+    mockPartnerApi();
 
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
     assertEquals("New contract created", statusResponse.getMessage());
+  }
+
+  @Test
+  void testCreatePartnerContractCreatesCorrectBillingProviderId() throws Exception {
+    var contract = new PartnerEntitlementContract();
+    contract.setRedHatSubscriptionNumber("subnum");
+    contract.setCurrentDimensions(
+        List.of(new Dimension().dimensionName("vCPU").dimensionValue("4")));
+    contract.setCloudIdentifiers(
+        new PartnerEntitlementContractCloudIdentifiers()
+            .partner(SourcePartnerEnum.AZURE_MARKETPLACE.value())
+            .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
+            .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
+            .offerId("azureProductCode")
+            .planId("rh-rhel-sub-1yr"));
+
+    mockPartnerApi();
+
+    ArgumentCaptor<SubscriptionEntity> subscriptionSaveCapture =
+        ArgumentCaptor.forClass(SubscriptionEntity.class);
+    contractService.createPartnerContract(contract);
+    verify(subscriptionRepository).persist(subscriptionSaveCapture.capture());
+    subscriptionSaveCapture.getValue();
+    assertEquals(
+        "a69ff71c-aa8b-43d9-dea8-822fab4bbb86;rh-rhel-sub-1yr;azureProductCode",
+        subscriptionSaveCapture.getValue().getBillingProviderId());
   }
 
   @Test
@@ -285,9 +313,15 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   private SubscriptionEntity givenExistingSubscription() {
+    return givenExistingSubscription(null);
+  }
+
+  private SubscriptionEntity givenExistingSubscription(String billingProviderId) {
     SubscriptionEntity subscription = new SubscriptionEntity();
+    subscription.setBillingProviderId(billingProviderId);
     when(subscriptionRepository.find(eq(SubscriptionEntity.class), any()))
         .thenReturn(List.of(subscription));
+    when(subscriptionRepository.findOne(any(), any())).thenReturn(Optional.of(subscription));
     return subscription;
   }
 
@@ -336,5 +370,35 @@ class ContractServiceTest extends BaseUnitTest {
     OfferingProductTags productTags = new OfferingProductTags();
     productTags.data(data);
     when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
+  }
+
+  private void mockPartnerApi() throws Exception {
+    PartnerApi partnerApi = mock(PartnerApi.class);
+    var entitlement =
+        new PartnerEntitlementV1()
+            .rhAccountId("7186626")
+            .sourcePartner(SourcePartnerEnum.AZURE_MARKETPLACE)
+            .partnerIdentities(
+                new PartnerIdentityV1()
+                    .azureSubscriptionId("fa650050-dedd-4958-b901-d8e5118c0a5f")
+                    .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
+                    .azureCustomerId("eadf26ee-6fbc-4295-9a9e-25d4fea8951d_2019-05-31"))
+            .rhEntitlements(List.of(new RhEntitlementV1().sku("MCT4249")))
+            .purchase(
+                new PurchaseV1()
+                    .vendorProductCode("azureProductCode")
+                    .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
+                    .contracts(
+                        List.of(
+                            new SaasContractV1()
+                                .startDate(OffsetDateTime.parse("2023-06-09T13:59:43.035365Z"))
+                                .planId("rh-rhel-sub-1yr")
+                                .dimensions(List.of(new DimensionV1().name("vCPU").value("4"))))));
+
+    var azureQuery = new PartnerEntitlements().content(List.of(entitlement));
+    OfferingProductTags productTags = new OfferingProductTags();
+    productTags.data(List.of("MCT4249"));
+    when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
+    when(partnerApi.getPartnerEntitlements(any())).thenReturn(azureQuery);
   }
 }

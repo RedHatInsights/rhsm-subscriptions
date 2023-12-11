@@ -63,12 +63,16 @@ public interface ContractMapper {
   ContractMetricEntity metricDtoToMetricEntity(Metric metric);
 
   @Mapping(target = "subscriptionNumber", source = "contract.redHatSubscriptionNumber")
-  @Mapping(target = "vendorProductCode", source = "cloudIdentifiers")
+  @Mapping(
+      target = "vendorProductCode",
+      source = "cloudIdentifiers",
+      qualifiedByName = "vendorProductCode")
   @BeanMapping(ignoreByDefault = true)
   ContractEntity partnerContractToContractEntity(PartnerEntitlementContract contract);
 
   // this method uses the partner field in PartnerEntitlementContractCloudIdentifiers
   //  to determine how product code is mapped for a specific provider
+  @Named("vendorProductCode")
   default String extractVendorProductCode(PartnerEntitlementContractCloudIdentifiers code) {
     if (code.getProductCode() != null) {
       return code.getProductCode();
@@ -76,6 +80,16 @@ public interface ContractMapper {
       return code.getOfferId();
     }
     return null;
+  }
+
+  @Named("billingProviderId")
+  default String extractBillingProviderId(PartnerEntitlementContractCloudIdentifiers code) {
+    String providerId = null;
+    if ("azure_marketplace".equals(code.getPartner())) {
+      providerId =
+          String.format("%s;%s;%s", code.getAzureResourceId(), code.getPlanId(), code.getOfferId());
+    }
+    return providerId;
   }
 
   @Mapping(target = "subscriptionId", ignore = true)

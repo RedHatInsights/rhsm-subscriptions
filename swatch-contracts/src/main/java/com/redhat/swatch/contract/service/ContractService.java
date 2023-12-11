@@ -122,7 +122,7 @@ public class ContractService {
     }
     entity.setEndDate(null);
 
-    var subscription = createSubscriptionForContract(entity, false);
+    var subscription = createSubscriptionForContract(entity, null, false);
     subscription.setSubscriptionId(contract.getUuid());
     contractRepository.persist(entity);
     subscriptionRepository.persist(subscription);
@@ -208,10 +208,12 @@ public class ContractService {
     }
 
     ContractEntity entity;
+    String billingProviderId = null;
     try {
       // Fill up information from upstream and swatch
       entity = mapper.partnerContractToContractEntity(contract);
       collectMissingUpStreamContractDetails(entity, contract);
+      billingProviderId = mapper.extractBillingProviderId(contract.getCloudIdentifiers());
       if (!isValidEntity(entity)) {
         statusResponse.setMessage("Empty value in non-null fields");
         log.warn("Empty value in non-null fields for contract entity {}", entity);
@@ -231,7 +233,7 @@ public class ContractService {
     boolean isDuplicateContract;
     if (existing.isPresent()) {
       ContractEntity existingContract = existing.get();
-      isDuplicateContract = isDuplicateContract(entity, existingContract);
+      isDuplicateContract = isDuplicateContract(entity, existingContract, billingProviderId);
       if (isDuplicateContract) {
         log.info(
             "Duplicate contract found that matches the record for uuid {}",
@@ -240,7 +242,8 @@ public class ContractService {
       } else {
         // Record found in contract table but, the contract has changed
         var now = OffsetDateTime.now();
-        persistExistingSubscription(existingContract, now); // end current subscription
+        persistExistingSubscription(
+            existingContract, billingProviderId, now); // end current subscription
         persistExistingContract(existingContract, now); // Persist previous contract
 
         persistContract(entity, now); // Persist new contract
@@ -250,7 +253,7 @@ public class ContractService {
     } else {
       // New contract
       var now = OffsetDateTime.now();
-      persistSubscription(createSubscriptionForContract(entity, true), now);
+      persistSubscription(createSubscriptionForContract(entity, billingProviderId, true), now);
       persistContract(entity, now);
       statusResponse.setMessage("New contract created");
     }
@@ -258,17 +261,18 @@ public class ContractService {
     return statusResponse;
   }
 
-  private void persistExistingSubscription(ContractEntity contract, OffsetDateTime now) {
+  private void persistExistingSubscription(
+      ContractEntity contract, String billingProviderId, OffsetDateTime now) {
     var subscription =
         subscriptionRepository
             .findOne(SubscriptionEntity.class, SubscriptionEntity.forContract(contract))
-            .orElseGet(() -> createSubscriptionForContract(contract, true));
+            .orElseGet(() -> createSubscriptionForContract(contract, billingProviderId, true));
     subscription.setEndDate(now);
     subscriptionRepository.persist(subscription);
   }
 
   private SubscriptionEntity createSubscriptionForContract(
-      ContractEntity contract, boolean lookupSubscriptionId) {
+      ContractEntity contract, String billingProviderId, boolean lookupSubscriptionId) {
     var subscription = new SubscriptionEntity();
     mapper.mapContractEntityToSubscriptionEntity(subscription, contract);
     measurementMetricIdTransformer.translateContractMetricIdsToSubscriptionMetricIds(subscription);
@@ -278,6 +282,7 @@ public class ContractService {
     if (lookupSubscriptionId) {
       subscription.setSubscriptionId(lookupSubscriptionId(contract.getSubscriptionNumber()));
     }
+    subscription.setBillingProviderId(billingProviderId);
     return subscription;
   }
 
@@ -324,7 +329,7 @@ public class ContractService {
             log.info("Syncing new Contract for {}", contractOrgSync);
             statusResponse.setStatus(SUCCESS_MESSAGE);
             var now = OffsetDateTime.now();
-            persistSubscription(createSubscriptionForContract(entitlementEntity, true), now);
+            persistSubscription(createSubscriptionForContract(entitlementEntity, null, true), now);
             persistContract(entitlementEntity, now);
           } else {
             statusResponse.setStatus(FAILURE_MESSAGE);
@@ -441,8 +446,17 @@ public class ContractService {
     return contractRepository.getContracts(specification);
   }
 
-  private boolean isDuplicateContract(ContractEntity newEntity, ContractEntity existing) {
-    return Objects.equals(newEntity, existing);
+  private boolean isDuplicateContract(
+      ContractEntity newEntity, ContractEntity existing, String newBillingProviderId) {
+    return (Objects.equals(newEntity, existing)
+        && Objects.equals(newBillingProviderId, getSubscriptionBillingProviderId(existing)));
+  }
+
+  private String getSubscriptionBillingProviderId(ContractEntity contractEntity) {
+    return subscriptionRepository
+        .findOne(SubscriptionEntity.class, SubscriptionEntity.forContract(contractEntity))
+        .map(SubscriptionEntity::getBillingProviderId)
+        .orElse(null);
   }
 
   private ContractEntity transformEntitlementToContractEntity( // NOSONAR
