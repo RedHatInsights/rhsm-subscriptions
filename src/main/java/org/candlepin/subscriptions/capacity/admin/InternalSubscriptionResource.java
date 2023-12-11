@@ -67,6 +67,7 @@ public class InternalSubscriptionResource implements InternalApi {
   private final MeterRegistry meterRegistry;
   private final UsageContextSubscriptionProvider awsSubscriptionProvider;
   private final UsageContextSubscriptionProvider rhmSubscriptionProvider;
+  private final UsageContextSubscriptionProvider azureSubscriptionProvider;
   private final MetricMapper metricMapper;
 
   private final ApplicationProperties applicationProperties;
@@ -99,6 +100,12 @@ public class InternalSubscriptionResource implements InternalApi {
             this.meterRegistry.counter("rhsm-subscriptions.marketplace.missing.subscription"),
             this.meterRegistry.counter("rhsm-subscriptions.marketplace.ambiguous.subscription"),
             BillingProvider.RED_HAT);
+    this.azureSubscriptionProvider =
+        new UsageContextSubscriptionProvider(
+            this.subscriptionSyncController,
+            this.meterRegistry.counter("swatch_missing_azure_subscription"),
+            this.meterRegistry.counter("swatch_ambiguous_azure_subscription"),
+            BillingProvider.AZURE);
     this.subscriptionPruneController = subscriptionPruneController;
     this.offeringSync = offeringSync;
     this.capacityReconciliationController = capacityReconciliationController;
@@ -206,14 +213,10 @@ public class InternalSubscriptionResource implements InternalApi {
       String usage,
       String azureAccountId) {
 
-    var context = new AzureUsageContext();
-
-    context.setAzureResourceId("hardcodedAzureResourceId");
-    context.setAzureTenantId("hardcodedAzureTenantId");
-    context.setOfferId("hardcodedOfferId");
-    context.setPlanId("hardcodedPlanId");
-
-    return context;
+    return azureSubscriptionProvider
+        .getSubscription(orgId, productId, sla, usage, azureAccountId, date)
+        .map(this::buildAzureUsageContext)
+        .orElseThrow();
   }
 
   @Override
@@ -232,6 +235,19 @@ public class InternalSubscriptionResource implements InternalApi {
         .productCode(productCode)
         .customerId(customerId)
         .awsSellerAccountId(sellerAccount);
+  }
+
+  private AzureUsageContext buildAzureUsageContext(Subscription subscription) {
+    String[] parts = subscription.getBillingProviderId().split(";");
+    String productCode = parts[0];
+    String customerId = parts[1];
+    String sellerAccount = parts[2];
+    return new AzureUsageContext();
+//        .azureResourceId(subscription.getSubscriptionId())
+//        .subscriptionStartDate(subscription.getStartDate())
+//        .productCode(productCode)
+//        .customerId(customerId)
+//        .awsSellerAccountId(sellerAccount);
   }
 
   /**

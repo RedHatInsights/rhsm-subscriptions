@@ -23,6 +23,7 @@ metrics:
   - id: Transfer-gibibytes
     rhmMetricId: redhat.com:BASILISK:transfer_gb
     awsDimension: transfer_gb
+    azureDimension: transfer_gb
     prometheus:
       queryKey: default
       queryParams:
@@ -33,6 +34,7 @@ metrics:
   - id: Instance-hours
     rhmMetricId: redhat.com:BASILISK:cluster_hour
     awsDimension: cluster_hour
+    azureDimension: cluster_hour
     prometheus:
       queryKey: default
       queryParams:
@@ -43,6 +45,7 @@ metrics:
   - id: Storage-gibibyte-months
     rhmMetricId: redhat.com:BASILISK:storage_gib_months
     awsDimension: storage_gb
+    azureDimension: storage_gb
     prometheus:
       queryKey: default
       queryParams:

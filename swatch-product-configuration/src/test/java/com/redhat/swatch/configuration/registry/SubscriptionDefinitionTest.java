@@ -251,4 +251,10 @@ class SubscriptionDefinitionTest {
     assertEquals(
         "cluster_hour", SubscriptionDefinition.getAwsDimension("BASILISK", "Instance-hours"));
   }
+
+  @Test
+  void testGetAzureDimension() {
+    assertEquals(
+        "cluster_hour", SubscriptionDefinition.getAzureDimension("BASILISK", "Instance-hours"));
+  }
 }

@@ -82,6 +82,7 @@ public class BillableUsageConsumer {
     - lookup azure usage context
     - transform and send
      */
+
   }
 
   private Optional<Metric> validateUsageAndLookupMetric(BillableUsage billableUsage) {
