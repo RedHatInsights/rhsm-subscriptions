@@ -21,34 +21,36 @@
 package com.redhat.swatch.azure.file;
 
 import java.util.ArrayList;
-import lombok.AllArgsConstructor;
+import java.util.Optional;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
-@AllArgsConstructor
+@NoArgsConstructor
 public class AzureMarketplaceCredentials {
   private Credentials credentials;
 
   public ArrayList<Client> getClients() {
-    return credentials.getAzure().getClients();
+    return Optional.ofNullable(credentials.getAzure()).map(Azure::getClients)
+        .orElse(new ArrayList<>());
   }
 
-  @AllArgsConstructor
+  @NoArgsConstructor
   @Getter
-  public class Credentials {
+  public static class Credentials {
     private Azure azure;
   }
 
-  @AllArgsConstructor
+  @NoArgsConstructor
   @Getter
-  public class Azure {
+  public static class Azure {
 
     private ArrayList<Client> clients;
   }
 
-  @AllArgsConstructor
+  @NoArgsConstructor
   @Getter
-  public class Client {
+  public static class Client {
 
     private String tenantId;
     private String clientId;

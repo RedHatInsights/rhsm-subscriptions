@@ -70,7 +70,7 @@ public class BillableUsageConsumer {
   public BillableUsageConsumer(
       MeterRegistry meterRegistry,
       @RestClient InternalSubscriptionsApi internalSubscriptionsApi,
-      @RestClient AzureMarketplaceService azureMarketplaceService,
+      AzureMarketplaceService azureMarketplaceService,
       @ConfigProperty(name = "ENABLE_AZURE_DRY_RUN") Optional<Boolean> isDryRun) {
     acceptedCounter = meterRegistry.counter("swatch_azure_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_azure_marketplace_batch_rejected_total");

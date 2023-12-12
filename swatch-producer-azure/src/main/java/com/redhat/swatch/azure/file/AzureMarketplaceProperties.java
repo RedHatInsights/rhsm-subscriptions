@@ -20,10 +20,12 @@
  */
 package com.redhat.swatch.azure.file;
 
+import jakarta.enterprise.context.ApplicationScoped;
 import lombok.Data;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Data
+@ApplicationScoped
 public class AzureMarketplaceProperties {
 
   @ConfigProperty(name = "AZURE_OIDC_BASE_URL")

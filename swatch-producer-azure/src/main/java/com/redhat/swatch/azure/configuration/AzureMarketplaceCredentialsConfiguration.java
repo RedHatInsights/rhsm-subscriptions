@@ -20,17 +20,23 @@
  */
 package com.redhat.swatch.azure.configuration;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.azure.file.AzureMarketplaceCredentials;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.inject.Produces;
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
+import jakarta.inject.Inject;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Dependent
+@Slf4j
 public class AzureMarketplaceCredentialsConfiguration {
+
+  @Inject
+  ObjectMapper mapper;
 
   @ConfigProperty(name = "AZURE_MARKETPLACE_CREDENTIALS")
   private String azureCredentialJson;
@@ -40,9 +46,12 @@ public class AzureMarketplaceCredentialsConfiguration {
   @ApplicationScoped
   @Produces
   public AzureMarketplaceCredentials defaultAzureCredentials() {
-    Jsonb jsonbMapper = JsonbBuilder.create();
-    AzureMarketplaceCredentials credentials =
-        jsonbMapper.fromJson(azureCredentialJson, AzureMarketplaceCredentials.class);
-    return credentials;
+    try {
+          return mapper.readValue(azureCredentialJson, AzureMarketplaceCredentials.class);
+    }
+    catch(JsonProcessingException e) {
+      log.error("Failed to parse azure credentials json", e);
+      return null;
+    }
   }
 }

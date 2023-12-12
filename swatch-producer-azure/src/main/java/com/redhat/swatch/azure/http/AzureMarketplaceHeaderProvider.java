@@ -33,7 +33,6 @@ import jakarta.ws.rs.client.ClientRequestContext;
 import jakarta.ws.rs.client.ClientRequestFilter;
 import jakarta.ws.rs.ext.Provider;
 
-@Provider
 public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
 
   @Inject private OidcClients oidcClients;

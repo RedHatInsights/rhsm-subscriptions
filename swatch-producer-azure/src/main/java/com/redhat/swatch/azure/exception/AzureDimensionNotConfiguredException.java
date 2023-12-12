@@ -29,7 +29,7 @@ public class AzureDimensionNotConfiguredException extends AzureProducerException
 
   public AzureDimensionNotConfiguredException(String productId, String uom) {
     super(
-        ErrorCode.AWS_DIMENSION_NOT_CONFIGURED,
+        ErrorCode.AZURE_DIMENSION_NOT_CONFIGURED,
         String.format("productId=%s and uom=%s", productId, uom));
     this.productId = productId;
     this.uom = uom;
