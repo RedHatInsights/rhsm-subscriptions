@@ -239,15 +239,13 @@ public class InternalSubscriptionResource implements InternalApi {
 
   private AzureUsageContext buildAzureUsageContext(Subscription subscription) {
     String[] parts = subscription.getBillingProviderId().split(";");
-    String productCode = parts[0];
-    String customerId = parts[1];
-    String sellerAccount = parts[2];
-    return new AzureUsageContext();
-//        .azureResourceId(subscription.getSubscriptionId())
-//        .subscriptionStartDate(subscription.getStartDate())
-//        .productCode(productCode)
-//        .customerId(customerId)
-//        .awsSellerAccountId(sellerAccount);
+    String resourceId = parts[0];
+    String planId = parts[1];
+    String offerId = parts[2];
+    return new AzureUsageContext()
+        .azureResourceId(resourceId)
+        .offerId(offerId)
+        .planId(planId);
   }
 
   /**
