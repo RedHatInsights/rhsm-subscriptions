@@ -93,10 +93,7 @@ public class AzureMarketplaceService {
                     .baseUri(new URI(azureMarketplaceProperties.getMarketplaceBaseUrl()))
                     .register(
                         new AzureMarketplaceHeaderProvider(
-                            azureMarketplaceProperties,
-                            azureMarketplaceCredentials,
-                            client,
-                            oidcClients))
+                            azureMarketplaceProperties, client, oidcClients))
                     .build(AzureMarketplaceApi.class);
               } catch (URISyntaxException ex) {
                 log.error("Unable to create URI for Azure authentication for client.", ex);

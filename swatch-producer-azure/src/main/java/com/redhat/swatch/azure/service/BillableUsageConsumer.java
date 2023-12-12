@@ -122,12 +122,6 @@ public class BillableUsageConsumer {
       var response = azureMarketplaceService.sendUsageEventToAzureMarketplace(usageEvent);
       log.debug("{}", response);
       if (response.getStatus() != UsageEventStatusEnum.ACCEPTED) {
-        log.warn(
-            "No subscription found for organization={}, product_id={}, result={}",
-            billableUsage.getOrgId(),
-            billableUsage.getProductId(),
-            response);
-      } else if (response.getStatus() != UsageEventStatusEnum.ACCEPTED) {
         log.warn("{}, organization={}", response, billableUsage.getOrgId());
       } else {
         log.info("{}, organization={},", response, billableUsage.getOrgId());

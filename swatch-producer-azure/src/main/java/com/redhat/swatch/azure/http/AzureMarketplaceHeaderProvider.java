@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.azure.http;
 
-import com.redhat.swatch.azure.file.AzureMarketplaceCredentials;
 import com.redhat.swatch.azure.file.AzureMarketplaceCredentials.Client;
 import com.redhat.swatch.azure.file.AzureMarketplaceProperties;
 import io.quarkus.oidc.client.OidcClient;
@@ -30,16 +29,16 @@ import io.quarkus.oidc.client.OidcClients;
 import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.client.ClientRequestContext;
 import jakarta.ws.rs.client.ClientRequestFilter;
+import jakarta.ws.rs.core.Response;
+import java.io.IOException;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
 
   private OidcClients oidcClients;
 
   private Uni<OidcClient> clientUni;
-
-  private AzureMarketplaceProperties azureMarketplaceProperties;
-
-  private AzureMarketplaceCredentials azureMarketplaceCredentials;
 
   private Client clientInfo;
 
@@ -47,10 +46,8 @@ public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
 
   public AzureMarketplaceHeaderProvider(
       AzureMarketplaceProperties azureMarketplaceProperties,
-      AzureMarketplaceCredentials azureMarketplaceCredentials,
       Client clientInfo,
       OidcClients oidcClients) {
-    this.azureMarketplaceCredentials = azureMarketplaceCredentials;
     this.clientInfo = clientInfo;
     this.oidcClients = oidcClients;
     this.tokenUrl =
@@ -60,8 +57,10 @@ public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
     this.clientUni = createOidcClient();
   }
 
-  public String getAccessToken() {
-    return clientUni.await().indefinitely().getTokens().await().indefinitely().getAccessToken();
+  public String getAccessToken() throws IOException {
+    try (var oidcClient = clientUni.await().indefinitely()) {
+      return oidcClient.getTokens().await().indefinitely().getAccessToken();
+    }
   }
 
   private Uni<OidcClient> createOidcClient() {
@@ -76,6 +75,11 @@ public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
 
   @Override
   public void filter(ClientRequestContext requestContext) {
-    requestContext.getHeaders().add("Authorization", "Bearer " + getAccessToken());
+    try {
+      requestContext.getHeaders().add("Authorization", "Bearer " + getAccessToken());
+    } catch (IOException e) {
+      log.error("Error getting OAuth access token", e);
+      requestContext.abortWith(Response.serverError().build());
+    }
   }
 }
