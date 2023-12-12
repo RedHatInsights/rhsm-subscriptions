@@ -70,7 +70,7 @@ class BillableUsageMapperTest {
   void setupTest() {
     subscriptionDefinitionRegistry = mock(SubscriptionDefinitionRegistry.class);
     setMock(subscriptionDefinitionRegistry);
-    var variant = Variant.builder().tag("rhosak").build();
+    var variant = Variant.builder().tag("rosa").build();
     var awsMetric =
         com.redhat.swatch.configuration.registry.Metric.builder()
             .awsDimension("AWS_METRIC_ID")
@@ -120,7 +120,7 @@ class BillableUsageMapperTest {
         mapper
             .fromTallySummary(
                 createExampleTallySummaryWithOrgId(
-                    "rhosak",
+                    "rosa",
                     Granularity.HOURLY,
                     Sla.ANY,
                     Usage.PRODUCTION,
@@ -137,7 +137,7 @@ class BillableUsageMapperTest {
         mapper
             .fromTallySummary(
                 createExampleTallySummaryWithOrgId(
-                    "rhosak",
+                    "rosa",
                     Granularity.HOURLY,
                     Sla.STANDARD,
                     Usage.ANY,
@@ -154,7 +154,7 @@ class BillableUsageMapperTest {
         mapper
             .fromTallySummary(
                 createExampleTallySummaryWithOrgId(
-                    "rhosak",
+                    "rosa",
                     Granularity.HOURLY,
                     Sla.STANDARD,
                     Usage.PRODUCTION,
@@ -171,7 +171,7 @@ class BillableUsageMapperTest {
         mapper
             .fromTallySummary(
                 createExampleTallySummaryWithOrgId(
-                    "rhosak",
+                    "rosa",
                     Granularity.HOURLY,
                     Sla.STANDARD,
                     Usage.PRODUCTION,
@@ -187,7 +187,7 @@ class BillableUsageMapperTest {
     BillableUsage expected =
         new BillableUsage()
             .withOrgId("org123")
-            .withProductId("rhosak")
+            .withProductId("rosa")
             .withSnapshotDate(OffsetDateTime.MIN)
             .withUsage(BillableUsage.Usage.PRODUCTION)
             .withSla(BillableUsage.Sla.STANDARD)
@@ -201,7 +201,7 @@ class BillableUsageMapperTest {
         mapper
             .fromTallySummary(
                 createExampleTallySummaryWithOrgId(
-                    "rhosak",
+                    "rosa",
                     Granularity.HOURLY,
                     Sla.STANDARD,
                     Usage.PRODUCTION,
@@ -218,7 +218,7 @@ class BillableUsageMapperTest {
         mapper
             .fromTallySummary(
                 createExampleTallySummaryWithOrgId(
-                    "rhosak",
+                    "rosa",
                     Granularity.YEARLY,
                     Sla.STANDARD,
                     Usage.PRODUCTION,
@@ -233,12 +233,7 @@ class BillableUsageMapperTest {
     BillableUsageMapper mapper = new BillableUsageMapper();
     TallySummary tallySummary =
         createExampleTallySummaryWithOrgId(
-            "rhosak",
-            Granularity.HOURLY,
-            Sla.STANDARD,
-            Usage.PRODUCTION,
-            BillingProvider.AWS,
-            "123");
+            "rosa", Granularity.HOURLY, Sla.STANDARD, Usage.PRODUCTION, BillingProvider.AWS, "123");
     tallySummary.getTallySnapshots().get(0).setTallyMeasurements(null);
     assertTrue(mapper.fromTallySummary(tallySummary).findAny().isEmpty());
   }

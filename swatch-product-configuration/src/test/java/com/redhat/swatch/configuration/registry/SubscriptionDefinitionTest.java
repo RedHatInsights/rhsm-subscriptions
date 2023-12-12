@@ -59,7 +59,6 @@ class SubscriptionDefinitionTest {
             "BASILISK Instance",
             "Rhacs Cluster",
             "Rhods Cluster",
-            "Kafka Cluster",
             "rosa Instance",
             "RHEL System");
     var actual = SubscriptionDefinition.getAllServiceTypes();
