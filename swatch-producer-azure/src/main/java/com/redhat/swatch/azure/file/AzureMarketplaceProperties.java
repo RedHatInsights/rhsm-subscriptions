@@ -29,11 +29,11 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 public class AzureMarketplaceProperties {
 
   @ConfigProperty(name = "AZURE_OIDC_BASE_URL")
-  private String oidcBaseUrl;
+  String oidcBaseUrl;
 
   @ConfigProperty(name = "AZURE_MARKETPLACE_BASE_URL")
-  private String marketplaceBaseUrl;
+  String marketplaceBaseUrl;
 
   @ConfigProperty(name = "AZURE_MARKETPLACE_API_VERSION")
-  private String marketplaceApiVersion;
+  String marketplaceApiVersion;
 }

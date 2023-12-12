@@ -28,18 +28,16 @@ import io.quarkus.oidc.client.OidcClientConfig;
 import io.quarkus.oidc.client.OidcClientConfig.Grant.Type;
 import io.quarkus.oidc.client.OidcClients;
 import io.smallrye.mutiny.Uni;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.client.ClientRequestContext;
 import jakarta.ws.rs.client.ClientRequestFilter;
-import jakarta.ws.rs.ext.Provider;
 
 public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
 
-  @Inject private OidcClients oidcClients;
+  private OidcClients oidcClients;
 
   private Uni<OidcClient> clientUni;
 
-  @Inject private AzureMarketplaceProperties azureMarketplaceProperties;
+  private AzureMarketplaceProperties azureMarketplaceProperties;
 
   private AzureMarketplaceCredentials azureMarketplaceCredentials;
 
@@ -48,9 +46,13 @@ public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
   private String baseUrl;
 
   public AzureMarketplaceHeaderProvider(
-      AzureMarketplaceCredentials azureMarketplaceCredentials, Client clientInfo) {
+      AzureMarketplaceProperties azureMarketplaceProperties,
+      AzureMarketplaceCredentials azureMarketplaceCredentials,
+      Client clientInfo,
+      OidcClients oidcClients) {
     this.azureMarketplaceCredentials = azureMarketplaceCredentials;
     this.clientInfo = clientInfo;
+    this.oidcClients = oidcClients;
     this.baseUrl =
         azureMarketplaceProperties
             .getOidcBaseUrl()

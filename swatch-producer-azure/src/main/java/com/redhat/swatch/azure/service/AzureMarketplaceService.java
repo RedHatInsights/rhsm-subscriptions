@@ -28,6 +28,7 @@ import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEvent;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventOkResponse;
 import com.redhat.swatch.clients.azure.marketplace.api.resources.ApiException;
 import com.redhat.swatch.clients.azure.marketplace.api.resources.AzureMarketplaceApi;
+import io.quarkus.oidc.client.OidcClients;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.net.URI;
@@ -42,18 +43,21 @@ import org.eclipse.microprofile.rest.client.RestClientBuilder;
 @ApplicationScoped
 public class AzureMarketplaceService {
 
-  @Inject private AzureMarketplaceProperties azureMarketplaceProperties;
+  AzureMarketplaceProperties azureMarketplaceProperties;
 
-  @Inject private AzureMarketplaceCredentials azureMarketplaceCredentials;
+  AzureMarketplaceCredentials azureMarketplaceCredentials;
 
   private List<AzureMarketplaceApi> marketplaceClients;
+  private OidcClients oidcClients;
 
   @Inject
   public AzureMarketplaceService(
       AzureMarketplaceProperties azureMarketplaceProperties,
-      AzureMarketplaceCredentials azureMarketplaceCredentials) {
+      AzureMarketplaceCredentials azureMarketplaceCredentials,
+      OidcClients oidcClients) {
     this.azureMarketplaceProperties = azureMarketplaceProperties;
     this.azureMarketplaceCredentials = azureMarketplaceCredentials;
+    this.oidcClients = oidcClients;
     this.marketplaceClients = createClientsForAllTenants();
   }
 
@@ -88,7 +92,11 @@ public class AzureMarketplaceService {
                 return RestClientBuilder.newBuilder()
                     .baseUri(new URI(azureMarketplaceProperties.getMarketplaceBaseUrl()))
                     .register(
-                        new AzureMarketplaceHeaderProvider(azureMarketplaceCredentials, client))
+                        new AzureMarketplaceHeaderProvider(
+                            azureMarketplaceProperties,
+                            azureMarketplaceCredentials,
+                            client,
+                            oidcClients))
                     .build(AzureMarketplaceApi.class);
               } catch (URISyntaxException ex) {
                 log.error("Unable to create URI for Azure authentication for client.", ex);

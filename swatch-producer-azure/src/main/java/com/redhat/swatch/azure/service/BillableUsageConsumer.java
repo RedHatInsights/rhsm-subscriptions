@@ -33,7 +33,6 @@ import com.redhat.swatch.azure.openapi.model.BillableUsage.SlaEnum;
 import com.redhat.swatch.azure.openapi.model.BillableUsage.UsageEnum;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEvent;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventStatusEnum;
-import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AwsUsageContext;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AzureUsageContext;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
@@ -45,8 +44,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.ProcessingException;
-import java.time.Clock;
-import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -100,10 +97,11 @@ public class BillableUsageConsumer {
     transformAndSend(lookupAzureUsageContext(billableUsage), billableUsage, metric.get());
   }
 
-  private void transformAndSend(AzureUsageContext context, BillableUsage billableUsage, Metric metric)
+  private void transformAndSend(
+      AzureUsageContext context, BillableUsage billableUsage, Metric metric)
       throws AzureUnprocessedRecordsException,
-      AzureDimensionNotConfiguredException,
-      UsageTimestampOutOfBoundsException {
+          AzureDimensionNotConfiguredException,
+          UsageTimestampOutOfBoundsException {
     var usageEvent = transformToAzureUsage(context, billableUsage, metric);
     if (isDryRun.isPresent() && Boolean.TRUE.equals(isDryRun.get())) {
       log.info(

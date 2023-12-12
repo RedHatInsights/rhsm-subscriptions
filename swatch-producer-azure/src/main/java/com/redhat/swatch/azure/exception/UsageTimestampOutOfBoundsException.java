@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.azure.exception;
 
-
 import static com.redhat.swatch.azure.exception.ErrorCode.USAGE_TIMESTAMP_OUT_OF_RANGE;
 
 /**

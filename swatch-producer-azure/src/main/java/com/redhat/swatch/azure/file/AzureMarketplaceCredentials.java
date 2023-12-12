@@ -31,7 +31,8 @@ public class AzureMarketplaceCredentials {
   private Credentials credentials;
 
   public ArrayList<Client> getClients() {
-    return Optional.ofNullable(credentials.getAzure()).map(Azure::getClients)
+    return Optional.ofNullable(credentials.getAzure())
+        .map(Azure::getClients)
         .orElse(new ArrayList<>());
   }
 

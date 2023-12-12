@@ -35,8 +35,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @Slf4j
 public class AzureMarketplaceCredentialsConfiguration {
 
-  @Inject
-  ObjectMapper mapper;
+  @Inject ObjectMapper mapper;
 
   @ConfigProperty(name = "AZURE_MARKETPLACE_CREDENTIALS")
   private String azureCredentialJson;
@@ -47,9 +46,8 @@ public class AzureMarketplaceCredentialsConfiguration {
   @Produces
   public AzureMarketplaceCredentials defaultAzureCredentials() {
     try {
-          return mapper.readValue(azureCredentialJson, AzureMarketplaceCredentials.class);
-    }
-    catch(JsonProcessingException e) {
+      return mapper.readValue(azureCredentialJson, AzureMarketplaceCredentials.class);
+    } catch (JsonProcessingException e) {
       log.error("Failed to parse azure credentials json", e);
       return null;
     }
