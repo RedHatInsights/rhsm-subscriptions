@@ -20,25 +20,19 @@
  */
 package com.redhat.swatch.azure.exception;
 
-import lombok.Getter;
 
-@Getter
-public enum ErrorCode {
-  AZURE_UNPROCESSED_RECORDS_ERROR(1000, "Some Azure UsageEvents were not processed"),
-  AZURE_DIMENSION_NOT_CONFIGURED(1001, "Azure Dimension not configured"),
-  AZURE_MANUAL_SUBMISSION_DISABLED(1005, "Manual submission disabled."),
-  SUBSCRIPTION_RECENTLY_TERMINATED(1006, "Subscription recently terminated"),
-  USAGE_TIMESTAMP_OUT_OF_RANGE(1007, "Usage timestamp will not be accepted by AWS"),
-  AZURE_MARKETPLACE_API_REQUEST_FAILED(1008, "Azure Marketplace Api request failed."),
-  AZURE_USAGE_CONTEXT_LOOKUP_ERROR(1009, "Error looking up Azure Usage Context.");
+import static com.redhat.swatch.azure.exception.ErrorCode.USAGE_TIMESTAMP_OUT_OF_RANGE;
 
-  private static final String CODE_PREFIX = "AZURE";
+/**
+ * When thrown, indicates that the usage being processed is outside the AWS APIs acceptable
+ * timestamp range.
+ *
+ * <p>(See:
+ * https://docs.aws.amazon.com/marketplacemetering/latest/APIReference/API_UsageRecord.html)
+ */
+public class UsageTimestampOutOfBoundsException extends AzureProducerException {
 
-  ErrorCode(int intCode, String description) {
-    this.code = CODE_PREFIX + intCode;
-    this.description = description;
+  public UsageTimestampOutOfBoundsException(String message) {
+    super(USAGE_TIMESTAMP_OUT_OF_RANGE, message);
   }
-
-  private final String code;
-  private final String description;
 }
