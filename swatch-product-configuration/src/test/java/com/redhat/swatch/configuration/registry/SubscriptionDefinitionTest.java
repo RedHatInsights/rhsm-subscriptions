@@ -95,6 +95,7 @@ class SubscriptionDefinitionTest {
     metric.setId("Instance-hours");
     metric.setRhmMetricId("redhat.com:BASILISK:cluster_hour");
     metric.setAwsDimension("cluster_hour");
+    metric.setAzureDimension("cluster_hour");
 
     var prometheusMetric = new PrometheusMetric();
     prometheusMetric.setQueryKey("default");
