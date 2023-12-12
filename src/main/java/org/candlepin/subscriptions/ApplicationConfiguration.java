@@ -33,6 +33,7 @@ import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationModu
 import io.micrometer.core.aop.TimedAspect;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.Validator;
+import org.candlepin.subscriptions.actuator.CertInfoContributor;
 import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationWorkerConfiguration;
 import org.candlepin.subscriptions.clowder.RdsSslBeanPostProcessor;
@@ -53,7 +54,10 @@ import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
 import org.candlepin.subscriptions.util.UtilConfiguration;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.actuate.autoconfigure.info.ConditionalOnEnabledInfoContributor;
+import org.springframework.boot.actuate.autoconfigure.info.InfoContributorFallback;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -175,5 +179,11 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   @Bean
   public RdsSslBeanPostProcessor rdsSslBeanPostProcessor(Environment env) {
     return new RdsSslBeanPostProcessor(env);
+  }
+
+  @Bean
+  @ConditionalOnEnabledInfoContributor(value = "certs", fallback = InfoContributorFallback.DISABLE)
+  public CertInfoContributor certInfoContributor(ApplicationContext context) {
+    return new CertInfoContributor(context);
   }
 }
