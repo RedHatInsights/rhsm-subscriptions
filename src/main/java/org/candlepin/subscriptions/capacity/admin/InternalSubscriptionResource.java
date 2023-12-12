@@ -242,10 +242,7 @@ public class InternalSubscriptionResource implements InternalApi {
     String resourceId = parts[0];
     String planId = parts[1];
     String offerId = parts[2];
-    return new AzureUsageContext()
-        .azureResourceId(resourceId)
-        .offerId(offerId)
-        .planId(planId);
+    return new AzureUsageContext().azureResourceId(resourceId).offerId(offerId).planId(planId);
   }
 
   /**
