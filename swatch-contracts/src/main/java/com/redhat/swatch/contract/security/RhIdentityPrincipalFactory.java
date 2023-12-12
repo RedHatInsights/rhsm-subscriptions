@@ -20,18 +20,30 @@
  */
 package com.redhat.swatch.contract.security;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Base64;
 
-/** DTO for X509 auth details in x-rh-identity from turnpike authentication. */
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class X509Properties {
-  @JsonProperty("subject_dn")
-  String subjectDn;
+@ApplicationScoped
+public class RhIdentityPrincipalFactory {
+  @Inject ObjectMapper mapper;
+
+  public RhIdentityPrincipal fromHeader(String header) throws IOException {
+    return fromJson(new ByteArrayInputStream(Base64.getDecoder().decode(header)), header);
+  }
+
+  public RhIdentityPrincipal fromJson(String json) throws IOException {
+    return mapper.readValue(json, RhIdentityPrincipal.class);
+  }
+
+  public RhIdentityPrincipal fromJson(InputStream inputStream, String headerValue)
+      throws IOException {
+    var identity = mapper.readValue(inputStream, RhIdentityPrincipal.class);
+    identity.setHeaderValue(headerValue);
+    return identity;
+  }
 }

@@ -23,7 +23,9 @@ package com.redhat.swatch.metrics.service.json;
 import com.redhat.swatch.metrics.model.MetricsTaskDescriptor;
 import io.quarkus.kafka.client.serialization.ObjectMapperDeserializer;
 
-/** Provides quarkus a hint that we want to use JSON-B to serialize MetricsTaskDescriptor objects */
+/**
+ * Provides quarkus a hint that we want to use Jackson to serialize MetricsTaskDescriptor objects
+ */
 public class MetricsTaskDescriptorDeserializer
     extends ObjectMapperDeserializer<MetricsTaskDescriptor> {
   public MetricsTaskDescriptorDeserializer() {
