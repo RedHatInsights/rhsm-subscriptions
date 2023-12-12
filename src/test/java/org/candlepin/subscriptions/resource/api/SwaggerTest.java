@@ -29,12 +29,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.ActiveProfiles;
 
 /**
  * This test covers the logic in ResteasyConfiguration and the static swagger resources (to ensure
  * that point out to the correct openapi endpoints).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
 class SwaggerTest {
 
   private static final String LOCALHOST = "http://localhost:";
