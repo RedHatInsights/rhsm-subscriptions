@@ -105,14 +105,14 @@ public class BillableUsageConsumer {
     var usageEvent = transformToAzureUsage(context, billableUsage, metric);
     if (isDryRun.isPresent() && Boolean.TRUE.equals(isDryRun.get())) {
       log.info(
-          "[DRY RUN] Sending usage request to AWS: {}, organization={}, product_id={}",
+          "[DRY RUN] Sending usage request to Azure: {}, organization={}, product_id={}",
           usageEvent,
           billableUsage.getOrgId(),
           billableUsage.getProductId());
       return;
     } else {
       log.info(
-          "Sending usage request to AWS: {}, organization={}, product_id={}",
+          "Sending usage request to Azure: {}, organization={}, product_id={}",
           usageEvent,
           billableUsage.getOrgId(),
           billableUsage.getProductId());
