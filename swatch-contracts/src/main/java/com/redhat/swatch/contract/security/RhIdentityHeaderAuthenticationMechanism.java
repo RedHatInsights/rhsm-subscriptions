@@ -32,6 +32,7 @@ import io.vertx.ext.web.RoutingContext;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Alternative;
+import jakarta.inject.Inject;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 
@@ -51,6 +52,8 @@ import lombok.extern.slf4j.Slf4j;
 public class RhIdentityHeaderAuthenticationMechanism implements HttpAuthenticationMechanism {
   private static final String RH_IDENTITY_HEADER = "x-rh-identity";
 
+  @Inject RhIdentityPrincipalFactory identityFactory;
+
   @Override
   public Uni<SecurityIdentity> authenticate(
       RoutingContext context, IdentityProviderManager identityProviderManager) {
@@ -60,7 +63,7 @@ public class RhIdentityHeaderAuthenticationMechanism implements HttpAuthenticati
       return Uni.createFrom().nullItem();
     }
     try {
-      RhIdentityPrincipal identity = RhIdentityPrincipal.fromHeader(xRhIdentityHeader);
+      RhIdentityPrincipal identity = identityFactory.fromHeader(xRhIdentityHeader);
       // NOTE: it is important we call identityProviderManager.authenticate rather than building a
       // SecurityIdentity directly, as identityProviderManager is responsible for invoking the
       // RolesAugmentor

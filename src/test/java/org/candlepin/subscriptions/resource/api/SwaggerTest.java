@@ -18,45 +18,46 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.deployment;
+package org.candlepin.subscriptions.resource.api;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.candlepin.subscriptions.SystemConduitApplication;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest(
-    useMainMethod = SpringBootTest.UseMainMethod.ALWAYS,
-    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles({"test"})
-class SystemConduitDeploymentTest {
+/**
+ * This test covers the logic in ResteasyConfiguration and the static swagger resources (to ensure
+ * that point out to the correct openapi endpoints).
+ */
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
+class SwaggerTest {
 
   private static final String LOCALHOST = "http://localhost:";
 
-  @Autowired SystemConduitApplication configuration;
   @LocalServerPort int port;
 
   private final TestRestTemplate restTemplate =
       new TestRestTemplate(TestRestTemplate.HttpClientOption.ENABLE_REDIRECTS);
 
-  @Test
-  void testDeployment() {
-    assertNotNull(configuration);
-  }
-
-  @Test
-  void testSwaggerPage() {
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "swatch-subscription-sync",
+        "swatch-tally",
+        "swatch-billing",
+        "swatch-producer-red-hat-marketplace"
+      })
+  void testSwaggerPage(String app) {
     ResponseEntity<String> response =
         restTemplate.getForEntity(
-            LOCALHOST + port + "/api/swatch-system-conduit/internal/swagger-ui", String.class);
-    assertTrue(response.getStatusCode().is2xxSuccessful());
+            LOCALHOST + port + "/api/" + app + "/internal/swagger-ui", String.class);
     assertNotNull(response.getBody());
     assertTrue(response.getBody().contains("API Docs"));
   }

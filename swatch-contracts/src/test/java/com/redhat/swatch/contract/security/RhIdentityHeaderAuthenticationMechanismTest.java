@@ -25,24 +25,24 @@ import static org.mockito.Mockito.*;
 import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.security.identity.IdentityProviderManager;
 import io.quarkus.security.identity.SecurityIdentity;
+import io.quarkus.test.InjectMock;
+import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.vertx.http.runtime.QuarkusHttpHeaders;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
+import jakarta.inject.Inject;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
+@QuarkusTest
 class RhIdentityHeaderAuthenticationMechanismTest {
-  @Mock HttpServerRequest request;
+  @InjectMock HttpServerRequest request;
+  @InjectMock SecurityIdentity authResponse;
+  @InjectMock IdentityProviderManager identityProviderManager;
 
-  @Mock SecurityIdentity authResponse;
-
-  @Mock IdentityProviderManager identityProviderManager;
+  @Inject RhIdentityHeaderAuthenticationMechanism auth;
 
   RoutingContext mockRequest(Map<String, String> headerValues) {
     var routingContext = mock(RoutingContext.class);
@@ -53,7 +53,6 @@ class RhIdentityHeaderAuthenticationMechanismTest {
 
   @Test
   void testIdentityHeaderAuthenticationNotAttemptedWhenHeaderMissing() {
-    var auth = new RhIdentityHeaderAuthenticationMechanism();
     var subscriber =
         auth.authenticate(mockRequest(Map.of()), identityProviderManager)
             .subscribe()
@@ -64,7 +63,6 @@ class RhIdentityHeaderAuthenticationMechanismTest {
 
   @Test
   void testIdentityHeaderAuthenticationRequestedWhenHeaderPresent() {
-    var auth = new RhIdentityHeaderAuthenticationMechanism();
     when(identityProviderManager.authenticate(any()))
         .thenReturn(Uni.createFrom().item(authResponse));
     var subscriber =
@@ -89,7 +87,6 @@ class RhIdentityHeaderAuthenticationMechanismTest {
 
   @Test
   void testIdentityHeaderAuthenticationFailedWhenHeaderMalformed() {
-    var auth = new RhIdentityHeaderAuthenticationMechanism();
     var subscriber =
         auth.authenticate(
                 mockRequest(Map.of("x-rh-identity", "placeholder")), identityProviderManager)

@@ -42,6 +42,8 @@ public class InventoryHostFacts {
   private String systemProfileInfrastructureType;
   private Integer systemProfileCoresPerSocket;
   private Integer systemProfileSockets;
+  private Integer systemProfileCpus;
+  private Integer systemProfileThreadsPerCore;
   private String systemProfileArch;
   private boolean isMarketplace;
   private boolean isVirtual;
@@ -84,6 +86,8 @@ public class InventoryHostFacts {
       String systemProfileInfrastructureType,
       String systemProfileCores,
       String systemProfileSockets,
+      String systemProfileCpus,
+      String systemProfileThreadsPerCore,
       String systemProfileArch,
       String isMarketplace,
       String qpcProducts,
@@ -116,6 +120,8 @@ public class InventoryHostFacts {
     this.systemProfileInfrastructureType = systemProfileInfrastructureType;
     this.systemProfileCoresPerSocket = asInt(systemProfileCores);
     this.systemProfileSockets = asInt(systemProfileSockets);
+    this.systemProfileCpus = asInt(systemProfileCpus);
+    this.systemProfileThreadsPerCore = asInt(systemProfileThreadsPerCore);
     this.systemProfileArch = systemProfileArch;
     this.isMarketplace = asBoolean(isMarketplace);
     this.systemProfileProductIds = asStringSet(systemProfileProductIds);

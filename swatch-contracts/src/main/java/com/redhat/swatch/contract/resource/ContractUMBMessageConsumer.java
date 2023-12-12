@@ -21,6 +21,7 @@
 package com.redhat.swatch.contract.resource;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.contract.exception.CreateContractException;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
@@ -28,8 +29,6 @@ import com.redhat.swatch.contract.service.ContractService;
 import io.smallrye.common.annotation.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -38,6 +37,7 @@ import org.eclipse.microprofile.reactive.messaging.Incoming;
 @Slf4j
 public class ContractUMBMessageConsumer {
 
+  @Inject ObjectMapper mapper;
   @Inject ContractService service;
 
   @ConfigProperty(name = "UMB_ENABLED")
@@ -60,9 +60,9 @@ public class ContractUMBMessageConsumer {
     // process UMB contract.
     log.info(dtoContract);
 
-    try (Jsonb jsonbMapper = JsonbBuilder.create()) {
+    try {
       PartnerEntitlementContract contract =
-          jsonbMapper.fromJson(dtoContract, PartnerEntitlementContract.class);
+          mapper.readValue(dtoContract, PartnerEntitlementContract.class);
 
       return service.createPartnerContract(contract);
     } catch (Exception e) {

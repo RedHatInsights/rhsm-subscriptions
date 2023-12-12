@@ -165,6 +165,8 @@ parameters:
     value: '2147483647'  # Integer.MAX_VALUE by default
   - name: HBI_RECONCILIATION_FLUSH_INTERVAL
     value: '1024'
+  - name: USE_CPU_SYSTEM_FACTS_TO_ALL_PRODUCTS
+    value: 'true'
   - name: MACHINE_POOL
     value: '' # don't restrict to a specific machine pool by default
   - name: JOB_MACHINE_POOL
@@ -408,6 +410,8 @@ objects:
               value: ${TALLY_MAX_HBI_ACCOUNT_SIZE}
             - name: HBI_RECONCILIATION_FLUSH_INTERVAL
               value: ${HBI_RECONCILIATION_FLUSH_INTERVAL}
+            - name: USE_CPU_SYSTEM_FACTS_TO_ALL_PRODUCTS
+              value: ${USE_CPU_SYSTEM_FACTS_TO_ALL_PRODUCTS}
             - name: HOST_LAST_SYNC_THRESHOLD
               value: ${HOST_LAST_SYNC_THRESHOLD}
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
