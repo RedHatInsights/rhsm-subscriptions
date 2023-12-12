@@ -233,7 +233,7 @@ class InternalSubscriptionResourceTest {
     when(syncController.findSubscriptions(any(), any(), any(), any())).thenReturn(List.of(sub));
     var azureUsageContext =
         resource.getAzureMarketplaceContext(
-            "org123", endDate, "rhosak", "Premium", "Production", "123");
+            "org123", endDate, "BASILISK", "Premium", "Production", "123");
     assertEquals("resourceId", azureUsageContext.getAzureResourceId());
     assertEquals("planId", azureUsageContext.getPlanId());
     assertEquals("offerId", azureUsageContext.getOfferId());
