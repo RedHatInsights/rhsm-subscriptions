@@ -21,6 +21,7 @@
 package com.redhat.swatch.azure.file;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,7 +31,7 @@ import lombok.NoArgsConstructor;
 public class AzureMarketplaceCredentials {
   private Credentials credentials;
 
-  public ArrayList<Client> getClients() {
+  public List<Client> getClients() {
     return Optional.ofNullable(credentials.getAzure())
         .map(Azure::getClients)
         .orElse(new ArrayList<>());
