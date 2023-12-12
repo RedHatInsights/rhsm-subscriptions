@@ -28,8 +28,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @ApplicationScoped
 public class AzureMarketplaceProperties {
 
-  @ConfigProperty(name = "AZURE_OIDC_BASE_URL")
-  String oidcBaseUrl;
+  @ConfigProperty(name = "AZURE_OAUTH_TOKEN_URL")
+  String oauthTokenUrl;
 
   @ConfigProperty(name = "AZURE_MARKETPLACE_BASE_URL")
   String marketplaceBaseUrl;

@@ -43,7 +43,7 @@ public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
 
   private Client clientInfo;
 
-  private String baseUrl;
+  private String tokenUrl;
 
   public AzureMarketplaceHeaderProvider(
       AzureMarketplaceProperties azureMarketplaceProperties,
@@ -53,9 +53,9 @@ public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
     this.azureMarketplaceCredentials = azureMarketplaceCredentials;
     this.clientInfo = clientInfo;
     this.oidcClients = oidcClients;
-    this.baseUrl =
+    this.tokenUrl =
         azureMarketplaceProperties
-            .getOidcBaseUrl()
+            .getOauthTokenUrl()
             .replace("[TenantIdPlaceholder]", clientInfo.getTenantId());
     this.clientUni = createOidcClient();
   }
@@ -67,7 +67,7 @@ public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
   private Uni<OidcClient> createOidcClient() {
     OidcClientConfig cfg = new OidcClientConfig();
     cfg.setId(clientInfo.getTenantId());
-    cfg.setAuthServerUrl(baseUrl);
+    cfg.setTokenPath(tokenUrl);
     cfg.setClientId(clientInfo.getClientId());
     cfg.getGrant().setType(Type.CLIENT);
     cfg.getCredentials().setSecret(clientInfo.getClientSecret());
