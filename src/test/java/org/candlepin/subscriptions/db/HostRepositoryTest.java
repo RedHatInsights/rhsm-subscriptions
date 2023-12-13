@@ -52,9 +52,7 @@ import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyHostView;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.resource.InstancesResource;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.candlepin.subscriptions.utilization.api.model.InstanceReportSort;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -78,8 +76,8 @@ import org.springframework.transaction.annotation.Transactional;
 @TestInstance(Lifecycle.PER_CLASS)
 @Import(TestClockConfiguration.class)
 class HostRepositoryTest {
-  private final String RHEL = "RHEL";
-  private final String COOL_PROD = "COOL_PROD";
+  private static final String RHEL = "RHEL";
+  private static final String COOL_PROD = "COOL_PROD";
   private static final String DEFAULT_DISPLAY_NAME = "REDHAT_PWNS";
   private static final String SANITIZED_MISSING_DISPLAY_NAME = "";
   private static final String SORT_BY_MONTHLY_TOTALS = "monthlyTotals";
@@ -516,11 +514,7 @@ class HostRepositoryTest {
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
-            PageRequest.of(
-                0,
-                10,
-                Sort.Direction.ASC,
-                InstancesResource.INSTANCE_SORT_PARAM_MAPPING.get(InstanceReportSort.SOCKETS)));
+            PageRequest.of(0, 10, Sort.Direction.ASC, "sockets"));
     List<TallyHostView> found = hosts.stream().toList();
 
     assertEquals(1, found.size());
