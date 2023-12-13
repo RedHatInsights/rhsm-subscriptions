@@ -35,12 +35,12 @@ ext.plugins = [
 ]
 
 // BOMs
-libraries["quarkus-bom"] = "io.quarkus.platform:quarkus-bom:3.6.0"
+libraries["quarkus-bom"] = "io.quarkus.platform:quarkus-bom:3.6.1"
 libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-dependencies:3.1.6"
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:2.1.1"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.21.42"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.21.43"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.0.0"
 libraries["guava"] = "com.google.guava:guava:32.1.3-jre"
 libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.14.0"
