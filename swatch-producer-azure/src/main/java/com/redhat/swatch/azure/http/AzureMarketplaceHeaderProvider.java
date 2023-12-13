@@ -29,8 +29,6 @@ import io.quarkus.oidc.client.OidcClients;
 import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.client.ClientRequestContext;
 import jakarta.ws.rs.client.ClientRequestFilter;
-import jakarta.ws.rs.core.Response;
-import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -73,11 +71,6 @@ public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
 
   @Override
   public void filter(ClientRequestContext requestContext) {
-    try {
-      requestContext.getHeaders().add("Authorization", "Bearer " + getAccessToken());
-    } catch (IOException e) {
-      log.error("Error getting OAuth access token", e);
-      requestContext.abortWith(Response.serverError().build());
-    }
+    requestContext.getHeaders().add("Authorization", "Bearer " + getAccessToken());
   }
 }
