@@ -90,11 +90,37 @@ public class BillableUsageConsumer {
 
     Optional<Metric> metric = validateUsageAndLookupMetric(billableUsage);
 
+    AzureUsageContext context;
     if (metric.isEmpty()) {
       log.debug("Skipping billable usage because it is not applicable: {}", billableUsage);
       return;
     }
-    transformAndSend(lookupAzureUsageContext(billableUsage), billableUsage, metric.get());
+    try {
+      context = lookupAzureUsageContext(billableUsage);
+    } catch (SubscriptionRecentlyTerminatedException e) {
+      log.info(
+          "Subscription recently terminated for tallySnapshotId={} orgId={}",
+          billableUsage.getId(),
+          billableUsage.getOrgId());
+      return;
+    } catch (AzureUsageContextLookupException e) {
+      log.error(
+          "Error looking up usage context for tallySnapshotId={} orgId={}",
+          billableUsage.getId(),
+          billableUsage.getOrgId(),
+          e);
+      return;
+    }
+    try {
+      transformAndSend(context, billableUsage, metric.get());
+    } catch (Exception e) {
+      log.error(
+          "Error sending usage for tallySnapshotId={} azureResourceId={} orgId={}",
+          billableUsage.getId(),
+          context.getAzureResourceId(),
+          billableUsage.getOrgId(),
+          e);
+    }
   }
 
   private void transformAndSend(
