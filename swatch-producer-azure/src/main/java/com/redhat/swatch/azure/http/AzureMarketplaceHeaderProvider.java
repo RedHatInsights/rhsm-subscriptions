@@ -57,7 +57,7 @@ public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
     this.client = createOidcClient().await().indefinitely();
   }
 
-  public String getAccessToken() throws IOException {
+  public String getAccessToken() {
     return client.getTokens().await().indefinitely().getAccessToken();
   }
 
