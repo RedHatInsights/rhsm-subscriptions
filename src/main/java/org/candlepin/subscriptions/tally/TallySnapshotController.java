@@ -132,10 +132,7 @@ public class TallySnapshotController {
         TallyState currentState =
             tallyStateRepository
                 .findById(new TallyStateKey(orgId, serviceType))
-                .orElseGet(
-                    () ->
-                        tallyStateRepository.save(
-                            new TallyState(orgId, serviceType, clock.startOfToday().minusDays(1))));
+                .orElseGet(() -> initializeTallyState(orgId, serviceType));
 
         AccountUsageCalculationCache calcCache = new AccountUsageCalculationCache();
 
@@ -218,5 +215,16 @@ public class TallySnapshotController {
           return null;
         });
     return usageCollector.tally(orgId);
+  }
+
+  private TallyState initializeTallyState(String orgId, String serviceType) {
+    OffsetDateTime defaultLastEventRecordDate = clock.startOfToday().minusDays(1);
+    log.info(
+        "Initializing tally state orgId={} serviceType={} lastEventRecordDate={}",
+        orgId,
+        serviceType,
+        defaultLastEventRecordDate);
+    return tallyStateRepository.save(
+        new TallyState(orgId, serviceType, defaultLastEventRecordDate));
   }
 }
