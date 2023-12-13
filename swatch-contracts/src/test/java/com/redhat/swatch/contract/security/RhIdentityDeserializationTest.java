@@ -22,19 +22,24 @@ package com.redhat.swatch.contract.security;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+@QuarkusTest
 class RhIdentityDeserializationTest {
+  @Inject RhIdentityPrincipalFactory identityFactory;
+
   @Test
-  void testCanDeserializeAssociateHeaderProperly() {
-    var identity = RhIdentityPrincipal.fromHeader(RhIdentityUtils.ASSOCIATE_IDENTITY_HEADER);
+  void testCanDeserializeAssociateHeaderProperly() throws Exception {
+    var identity = identityFactory.fromHeader(RhIdentityUtils.ASSOCIATE_IDENTITY_HEADER);
     assertEquals("Associate", identity.getIdentity().getType());
     assertEquals("test@example.com", identity.getIdentity().getSamlAssertions().getEmail());
   }
 
   @Test
-  void testCanDeserializeX509HeaderProperly() {
-    var identity = RhIdentityPrincipal.fromHeader(RhIdentityUtils.X509_IDENTITY_HEADER);
+  void testCanDeserializeX509HeaderProperly() throws Exception {
+    var identity = identityFactory.fromHeader(RhIdentityUtils.X509_IDENTITY_HEADER);
     assertEquals("X509", identity.getIdentity().getType());
     assertEquals("CN=test.example.com", identity.getIdentity().getX509().getSubjectDn());
   }

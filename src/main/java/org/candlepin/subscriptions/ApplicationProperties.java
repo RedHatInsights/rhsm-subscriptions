@@ -153,4 +153,20 @@ public class ApplicationProperties {
    */
   @DurationUnit(ChronoUnit.DAYS)
   private Duration hourlyTallyDurationLimitDays;
+
+  /**
+   * This property enables that all the products use the new formula to calculate the number of
+   * virtual CPUs (vCPUs). If disabled, the new formula will only be used for the OpenShift
+   * Container products. See more in {@link
+   * org.candlepin.subscriptions.tally.facts.FactNormalizer#normalize}. The formula to calculate the
+   * number of virtual CPUs (vCPUs) is based on the number of threads per core which previously was
+   * hard-coded to 2.0. After <a href="https://issues.redhat.com/browse/SWATCH-80">SWATCH-80</a>,
+   * the number of threads per core is given from a new system profile fact. If absent, then we can
+   * also calculate it from another new system profile fact which is the number of CPUs. However, we
+   * are not sure if the new system profile facts are only valid for the OpenShift Container
+   * products. Therefore, we see an extreme risk of applying the new system facts to all products,
+   * so if we detect this is not the desired behaviour, we can disable this property to only apply
+   * the new system profile facts to the OpenShift Container products.
+   */
+  private boolean useCpuSystemFactsToAllProducts = true;
 }

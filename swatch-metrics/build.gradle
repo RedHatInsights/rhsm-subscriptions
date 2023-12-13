@@ -50,6 +50,7 @@ openApiGenerate {
                      library          : "microprofile",
                      java8            : "true",
                      dateLibrary      : "java8",
+                     serializationLibrary: "jackson",
                      useBeanValidation: "true",
                      microprofileRestClientVersion: "3.0",
                      useJakartaEE: "true",

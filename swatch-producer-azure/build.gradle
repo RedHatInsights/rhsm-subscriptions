@@ -6,15 +6,16 @@ plugins {
 dependencies {
     compileOnly libraries["lombok"]
     implementation 'io.quarkus:quarkus-hibernate-validator'
-    implementation 'io.quarkus:quarkus-jsonb'
+    implementation 'io.quarkus:quarkus-jackson'
     implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
     implementation 'io.quarkus:quarkus-opentelemetry'
-    implementation 'io.quarkus:quarkus-resteasy-reactive-jsonb'
+    implementation 'io.quarkus:quarkus-resteasy-reactive-jackson'
     implementation 'io.quarkus:quarkus-security'
     implementation 'io.quarkus:quarkus-smallrye-fault-tolerance'
     implementation 'io.quarkus:quarkus-smallrye-health'
     implementation 'io.quarkus:quarkus-smallrye-openapi'
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
+    implementation 'io.quarkus:quarkus-oidc-client'
     implementation project(':clients:swatch-internal-subscription-client')
     implementation project(':swatch-common-config-workaround')
     implementation project(':swatch-common-resteasy')
@@ -24,6 +25,7 @@ dependencies {
     implementation project(':swatch-product-configuration')
     implementation project(':swatch-common-kafka')
     implementation project(':swatch-common-resteasy-client')
+    implementation project(":clients:azure-marketplace-client")
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
     testImplementation 'io.rest-assured:rest-assured'
     testImplementation 'org.mockito:mockito-junit-jupiter'
@@ -56,6 +58,7 @@ openApiGenerate {
                      library          : "microprofile",
                      java8            : "true",
                      dateLibrary      : "java8",
+                     serializationLibrary: "jackson",
                      useBeanValidation: "true",
                      microprofileRestClientVersion: "3.0",
                      useJakartaEE: "true",

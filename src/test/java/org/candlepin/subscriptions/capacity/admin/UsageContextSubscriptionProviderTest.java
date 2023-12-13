@@ -79,7 +79,7 @@ class UsageContextSubscriptionProviderTest {
         NotFoundException.class,
         () ->
             provider.getSubscription(
-                "org123", "rhosak", "Premium", "Production", "123", defaultLookUpDate));
+                "org123", "rosa", "Premium", "Production", "123", defaultLookUpDate));
     Counter counter = meterRegistry.counter(MISSING_SUBSCRIPTIONS_COUNTER_NAME);
     assertEquals(1.0, counter.count());
   }
@@ -100,7 +100,7 @@ class UsageContextSubscriptionProviderTest {
 
     Optional<Subscription> subscription =
         provider.getSubscription(
-            "org123", "rhosak", "Premium", "Production", "123", defaultLookUpDate);
+            "org123", "rosa", "Premium", "Production", "123", defaultLookUpDate);
     assertTrue(subscription.isPresent());
     assertEquals("SUB1", subscription.get().getSubscriptionId());
 
@@ -122,7 +122,7 @@ class UsageContextSubscriptionProviderTest {
             SubscriptionsException.class,
             () -> {
               provider.getSubscription(
-                  "org123", "rhosak", "Premium", "Production", "123", lookupDate);
+                  "org123", "rosa", "Premium", "Production", "123", lookupDate);
             });
 
     assertEquals(
@@ -145,7 +145,7 @@ class UsageContextSubscriptionProviderTest {
 
     var lookupDate = endDate.plusMinutes(30);
     Optional<Subscription> subscription =
-        provider.getSubscription("org123", "rhosak", "Premium", "Production", "123", lookupDate);
+        provider.getSubscription("org123", "rosa", "Premium", "Production", "123", lookupDate);
     assertTrue(subscription.isPresent());
     assertEquals(sub2, subscription.get());
   }

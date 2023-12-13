@@ -22,7 +22,7 @@ entrypoint() {
   CLUSTER_ID=${CLUSTER_ID:-test01}
   BILLING_PROVIDER=${BILLING_PROVIDER:-aws}
   METRICS="${METRICS:-kafka_id:kafka_broker_quota_totalstorageusedbytes:max_over_time1h_gibibyte_months}"
-  PRODUCT=${PRODUCT:-rhosak}
+  PRODUCT=${PRODUCT:-rosa}
   MARKETPLACE_ACCOUNT=${MARKETPLACE_ACCOUNT:-mktp-123}
   ACCOUNT=${ACCOUNT:-account123}
   ORG_ID=${ORG_ID:-org123}

@@ -28,7 +28,8 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum ContractSourcePartnerEnum {
-  AWS("aws_marketplace", "aws");
+  AWS("aws_marketplace", "aws"),
+  AZURE("azure_marketplace", "azure");
 
   private final String code;
   private final String value;

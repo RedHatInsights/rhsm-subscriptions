@@ -20,7 +20,7 @@
  */
 package com.redhat.swatch.contract.security;
 
-import jakarta.json.bind.annotation.JsonbProperty;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -32,6 +32,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class X509Properties {
-  @JsonbProperty("subject_dn")
+  @JsonProperty("subject_dn")
   String subjectDn;
 }

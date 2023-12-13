@@ -24,15 +24,18 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.clients.rbac.api.model.Access;
 import com.redhat.swatch.clients.rbac.api.model.AccessPagination;
 import com.redhat.swatch.clients.rbac.api.resources.AccessApi;
 import com.redhat.swatch.clients.rbac.api.resources.ApiException;
+import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.security.identity.AuthenticationRequestContext;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.runtime.QuarkusSecurityIdentity;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,6 +47,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class RbacRolesAugmentorTest {
   RbacRolesAugmentor augmentor;
+  RhIdentityPrincipalFactory identityFactory;
 
   @Mock AccessApi rbacApi;
 
@@ -54,24 +58,21 @@ class RbacRolesAugmentorTest {
     augmentor = new RbacRolesAugmentor();
     augmentor.rbacEnabled = true;
     augmentor.accessApi = rbacApi;
+
+    identityFactory = new RhIdentityPrincipalFactory();
+    identityFactory.mapper = new ObjectMapper();
   }
 
-  private RbacRolesAugmentor getRbacRolesAugmentor() {
-    var augmentor = new RbacRolesAugmentor();
-    augmentor.accessApi = rbacApi;
-    augmentor.rbacEnabled = true;
-    return augmentor;
-  }
-
-  private static QuarkusSecurityIdentity securityIdentityForRhIdentityJson(String json) {
-    return QuarkusSecurityIdentity.builder()
-        .setPrincipal(RhIdentityPrincipal.fromJson(json))
-        .build();
+  private QuarkusSecurityIdentity securityIdentityForRhIdentityJson(String json) {
+    try {
+      return QuarkusSecurityIdentity.builder().setPrincipal(identityFactory.fromJson(json)).build();
+    } catch (IOException e) {
+      throw new AuthenticationFailedException(e);
+    }
   }
 
   @Test
   void customerRoleGrantedToCustomerHavingAdminRbacRole() throws ApiException {
-    var augmentor = getRbacRolesAugmentor();
     when(rbacApi.getPrincipalAccess(any(), any(), any(), any(), any()))
         .thenReturn(
             new AccessPagination().data(List.of(new Access().permission("subscriptions:*:*"))));
@@ -87,7 +88,6 @@ class RbacRolesAugmentorTest {
 
   @Test
   void customerRoleGrantedToCustomerHavingReaderRbacRole() throws ApiException {
-    var augmentor = getRbacRolesAugmentor();
     when(rbacApi.getPrincipalAccess(any(), any(), any(), any(), any()))
         .thenReturn(
             new AccessPagination()
@@ -104,7 +104,6 @@ class RbacRolesAugmentorTest {
 
   @Test
   void customerRoleNotGrantedToCustomerNoRbacRole() throws ApiException {
-    var augmentor = getRbacRolesAugmentor();
     when(rbacApi.getPrincipalAccess(any(), any(), any(), any(), any()))
         .thenReturn(new AccessPagination().data(List.of()));
     var subscriber =
@@ -119,7 +118,6 @@ class RbacRolesAugmentorTest {
 
   @Test
   void customerRoleNotGrantedWhenRbacCallFails() throws ApiException {
-    var augmentor = getRbacRolesAugmentor();
     when(rbacApi.getPrincipalAccess(any(), any(), any(), any(), any()))
         .thenThrow(new ApiException());
     var subscriber =
@@ -134,7 +132,6 @@ class RbacRolesAugmentorTest {
 
   @Test
   void noRbacInteractionWhenRbacNotEnabled() throws ApiException {
-    var augmentor = getRbacRolesAugmentor();
     augmentor.rbacEnabled = false;
     var subscriber =
         augmentor
