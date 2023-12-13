@@ -18,22 +18,20 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.configuration.registry;
+package com.redhat.swatch.azure.exception;
 
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import lombok.Getter;
 
-@Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class Metric {
+@Getter
+public class AzureDimensionNotConfiguredException extends AzureProducerException {
+  private final String productId;
+  private final String uom;
 
-  @NotNull @NotEmpty private String id; // required
-  private String rhmMetricId;
-  private String awsDimension;
-  private String azureDimension;
-  private PrometheusMetric prometheus;
-  private Double billingFactor;
+  public AzureDimensionNotConfiguredException(String productId, String uom) {
+    super(
+        ErrorCode.AZURE_DIMENSION_NOT_CONFIGURED,
+        String.format("productId=%s and uom=%s", productId, uom));
+    this.productId = productId;
+    this.uom = uom;
+  }
 }

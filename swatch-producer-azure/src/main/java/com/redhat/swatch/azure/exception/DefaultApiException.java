@@ -18,22 +18,20 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.configuration.registry;
+package com.redhat.swatch.azure.exception;
 
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import com.redhat.swatch.clients.swatch.internal.subscription.api.model.Errors;
+import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
+import jakarta.ws.rs.core.Response;
+import lombok.Getter;
 
-@Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class Metric {
+@Getter
+public class DefaultApiException extends ApiException {
 
-  @NotNull @NotEmpty private String id; // required
-  private String rhmMetricId;
-  private String awsDimension;
-  private String azureDimension;
-  private PrometheusMetric prometheus;
-  private Double billingFactor;
+  private final transient Errors errors;
+
+  public DefaultApiException(Response response, Errors errors) {
+    super(response);
+    this.errors = errors;
+  }
 }

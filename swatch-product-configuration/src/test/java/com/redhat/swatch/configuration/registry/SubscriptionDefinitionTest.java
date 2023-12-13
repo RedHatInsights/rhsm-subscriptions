@@ -94,6 +94,7 @@ class SubscriptionDefinitionTest {
     metric.setId("Instance-hours");
     metric.setRhmMetricId("redhat.com:BASILISK:cluster_hour");
     metric.setAwsDimension("cluster_hour");
+    metric.setAzureDimension("cluster_hour");
 
     var prometheusMetric = new PrometheusMetric();
     prometheusMetric.setQueryKey("default");
@@ -249,5 +250,11 @@ class SubscriptionDefinitionTest {
   void testGetAwsDimension() {
     assertEquals(
         "cluster_hour", SubscriptionDefinition.getAwsDimension("BASILISK", "Instance-hours"));
+  }
+
+  @Test
+  void testGetAzureDimension() {
+    assertEquals(
+        "cluster_hour", SubscriptionDefinition.getAzureDimension("BASILISK", "Instance-hours"));
   }
 }

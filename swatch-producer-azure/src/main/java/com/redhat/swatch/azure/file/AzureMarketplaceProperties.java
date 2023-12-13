@@ -18,22 +18,22 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.configuration.registry;
+package com.redhat.swatch.azure.file;
 
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import jakarta.enterprise.context.ApplicationScoped;
+import lombok.Data;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class Metric {
+@ApplicationScoped
+public class AzureMarketplaceProperties {
 
-  @NotNull @NotEmpty private String id; // required
-  private String rhmMetricId;
-  private String awsDimension;
-  private String azureDimension;
-  private PrometheusMetric prometheus;
-  private Double billingFactor;
+  @ConfigProperty(name = "AZURE_OAUTH_TOKEN_URL")
+  String oauthTokenUrl;
+
+  @ConfigProperty(name = "AZURE_MARKETPLACE_BASE_URL")
+  String marketplaceBaseUrl;
+
+  @ConfigProperty(name = "AZURE_MARKETPLACE_API_VERSION")
+  String marketplaceApiVersion;
 }

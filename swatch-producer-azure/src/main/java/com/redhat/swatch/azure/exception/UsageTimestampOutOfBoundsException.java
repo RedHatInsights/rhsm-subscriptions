@@ -18,22 +18,20 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.configuration.registry;
+package com.redhat.swatch.azure.exception;
 
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import static com.redhat.swatch.azure.exception.ErrorCode.USAGE_TIMESTAMP_OUT_OF_RANGE;
 
-@Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class Metric {
+/**
+ * When thrown, indicates that the usage being processed is outside the AWS APIs acceptable
+ * timestamp range.
+ *
+ * <p>(See:
+ * https://docs.aws.amazon.com/marketplacemetering/latest/APIReference/API_UsageRecord.html)
+ */
+public class UsageTimestampOutOfBoundsException extends AzureProducerException {
 
-  @NotNull @NotEmpty private String id; // required
-  private String rhmMetricId;
-  private String awsDimension;
-  private String azureDimension;
-  private PrometheusMetric prometheus;
-  private Double billingFactor;
+  public UsageTimestampOutOfBoundsException(String message) {
+    super(USAGE_TIMESTAMP_OUT_OF_RANGE, message);
+  }
 }

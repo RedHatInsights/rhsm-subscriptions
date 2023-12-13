@@ -18,22 +18,11 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.configuration.registry;
+package com.redhat.swatch.azure.exception;
 
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
+public class AzureMarketplaceRequestFailedException extends AzureProducerException {
 
-@Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class Metric {
-
-  @NotNull @NotEmpty private String id; // required
-  private String rhmMetricId;
-  private String awsDimension;
-  private String azureDimension;
-  private PrometheusMetric prometheus;
-  private Double billingFactor;
+  public AzureMarketplaceRequestFailedException() {
+    super(ErrorCode.AZURE_MARKETPLACE_API_REQUEST_FAILED, "Hint: Check Azure credentials");
+  }
 }

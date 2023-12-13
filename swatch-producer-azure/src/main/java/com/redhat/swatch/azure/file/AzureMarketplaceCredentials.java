@@ -18,22 +18,45 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.configuration.registry;
+package com.redhat.swatch.azure.file;
 
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-@Data
-@Builder
-@AllArgsConstructor
+@Getter
 @NoArgsConstructor
-public class Metric {
+public class AzureMarketplaceCredentials {
+  private Credentials credentials;
 
-  @NotNull @NotEmpty private String id; // required
-  private String rhmMetricId;
-  private String awsDimension;
-  private String azureDimension;
-  private PrometheusMetric prometheus;
-  private Double billingFactor;
+  public List<Client> getClients() {
+    return Optional.ofNullable(credentials.getAzure())
+        .map(Azure::getClients)
+        .orElse(new ArrayList<>());
+  }
+
+  @NoArgsConstructor
+  @Getter
+  public static class Credentials {
+    private Azure azure;
+  }
+
+  @NoArgsConstructor
+  @Getter
+  public static class Azure {
+
+    private ArrayList<Client> clients;
+  }
+
+  @NoArgsConstructor
+  @Getter
+  public static class Client {
+
+    private String tenantId;
+    private String clientId;
+    private String clientSecret;
+    private String publisher;
+  }
 }

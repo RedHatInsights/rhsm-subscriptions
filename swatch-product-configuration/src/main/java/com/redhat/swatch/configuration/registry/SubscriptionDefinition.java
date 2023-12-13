@@ -260,6 +260,13 @@ public class SubscriptionDefinition {
         .orElse(null);
   }
 
+  public static String getAzureDimension(String productId, String metricId) {
+    return lookupSubscriptionByTag(productId)
+        .flatMap(subscriptionDefinition -> subscriptionDefinition.getMetric(metricId))
+        .map(com.redhat.swatch.configuration.registry.Metric::getAzureDimension)
+        .orElse(null);
+  }
+
   public static String getRhmMetricId(String productId, String metricId) {
     return lookupSubscriptionByTag(productId)
         .flatMap(subscriptionDefinition -> subscriptionDefinition.getMetric(metricId))

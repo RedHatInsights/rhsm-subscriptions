@@ -152,6 +152,7 @@ class InternalSubscriptionResourceTest {
     assertEquals(1.0, counter.count());
   }
 
+  @Test
   void incrementsAmbiguousCounter_WhenOrgIdPresent() {
     SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
     InternalSubscriptionResource resource =
@@ -204,6 +205,7 @@ class InternalSubscriptionResourceTest {
         exception.getCode().getDescription());
   }
 
+  @Test
   void shouldReturnActiveSubscriptionAndNotTerminated_WhenOrgIdPresent() {
     var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
     Subscription sub1 = new Subscription();
@@ -220,6 +222,21 @@ class InternalSubscriptionResourceTest {
     assertEquals("bar1", awsUsageContext.getProductCode());
     assertEquals("bar2", awsUsageContext.getCustomerId());
     assertEquals("bar3", awsUsageContext.getAwsSellerAccountId());
+  }
+
+  @Test
+  void azureUsageContextEncodesAttributes() {
+    var endDate = OffsetDateTime.of(2022, 1, 1, 6, 0, 0, 0, ZoneOffset.UTC);
+    Subscription sub = new Subscription();
+    sub.setBillingProviderId("resourceId;planId;offerId");
+    sub.setEndDate(endDate);
+    when(syncController.findSubscriptions(any(), any(), any(), any())).thenReturn(List.of(sub));
+    var azureUsageContext =
+        resource.getAzureMarketplaceContext(
+            "org123", endDate, "BASILISK", "Premium", "Production", "123");
+    assertEquals("resourceId", azureUsageContext.getAzureResourceId());
+    assertEquals("planId", azureUsageContext.getPlanId());
+    assertEquals("offerId", azureUsageContext.getOfferId());
   }
 
   @Test

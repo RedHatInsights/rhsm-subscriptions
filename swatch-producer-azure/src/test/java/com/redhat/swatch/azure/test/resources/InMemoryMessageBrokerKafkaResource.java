@@ -18,22 +18,27 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.configuration.registry;
+package com.redhat.swatch.azure.test.resources;
 
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
+import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import io.smallrye.reactive.messaging.memory.InMemoryConnector;
+import java.util.HashMap;
+import java.util.Map;
 
-@Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class Metric {
+public class InMemoryMessageBrokerKafkaResource implements QuarkusTestResourceLifecycleManager {
 
-  @NotNull @NotEmpty private String id; // required
-  private String rhmMetricId;
-  private String awsDimension;
-  private String azureDimension;
-  private PrometheusMetric prometheus;
-  private Double billingFactor;
+  @Override
+  public Map<String, String> start() {
+    Map<String, String> env = new HashMap<>();
+    Map<String, String> props1 = InMemoryConnector.switchIncomingChannelsToInMemory("tally-in");
+    Map<String, String> props2 = InMemoryConnector.switchOutgoingChannelsToInMemory("tally-out");
+    env.putAll(props1);
+    env.putAll(props2);
+    return env;
+  }
+
+  @Override
+  public void stop() {
+    InMemoryConnector.clear();
+  }
 }
