@@ -38,7 +38,7 @@ public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
 
   private OidcClients oidcClients;
 
-  private Uni<OidcClient> clientUni;
+  private OidcClient client;
 
   private Client clientInfo;
 
@@ -54,13 +54,12 @@ public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
         azureMarketplaceProperties
             .getOauthTokenUrl()
             .replace("[TenantIdPlaceholder]", clientInfo.getTenantId());
-    this.clientUni = createOidcClient();
+    this.client = createOidcClient().await().indefinitely();
+
   }
 
   public String getAccessToken() throws IOException {
-    try (var oidcClient = clientUni.await().indefinitely()) {
-      return oidcClient.getTokens().await().indefinitely().getAccessToken();
-    }
+    return client.getTokens().await().indefinitely().getAccessToken();
   }
 
   private Uni<OidcClient> createOidcClient() {
