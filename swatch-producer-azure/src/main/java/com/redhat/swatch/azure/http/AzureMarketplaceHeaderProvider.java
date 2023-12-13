@@ -55,7 +55,6 @@ public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
             .getOauthTokenUrl()
             .replace("[TenantIdPlaceholder]", clientInfo.getTenantId());
     this.client = createOidcClient().await().indefinitely();
-
   }
 
   public String getAccessToken() throws IOException {
