@@ -201,8 +201,6 @@ objects:
                   fieldRef:
                     apiVersion: v1
                     fieldPath: metadata.namespace
-              - name: SWATCH_INTERNAL_SUBSCRIPTION_ENDPOINT
-                required: false
             volumeMounts:
               - name: logs
                 mountPath: /logs
