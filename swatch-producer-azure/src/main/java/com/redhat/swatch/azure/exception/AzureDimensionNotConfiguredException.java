@@ -25,13 +25,13 @@ import lombok.Getter;
 @Getter
 public class AzureDimensionNotConfiguredException extends AzureProducerException {
   private final String productId;
-  private final String uom;
+  private final String metricId;
 
-  public AzureDimensionNotConfiguredException(String productId, String uom) {
+  public AzureDimensionNotConfiguredException(String productId, String metricId) {
     super(
         ErrorCode.AZURE_DIMENSION_NOT_CONFIGURED,
-        String.format("productId=%s and uom=%s", productId, uom));
+        String.format("productId=%s and metricId=%s", productId, metricId));
     this.productId = productId;
-    this.uom = uom;
+    this.metricId = metricId;
   }
 }
