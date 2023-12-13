@@ -20,11 +20,9 @@
  */
 package org.candlepin.testcontainers;
 
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 import lombok.EqualsAndHashCode;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
 @EqualsAndHashCode(callSuper = true)
@@ -37,11 +35,7 @@ public class InventoryContainer extends GenericContainer<InventoryContainer> {
     super(DockerImageName.parse(IMAGE));
     dependsOn(insightsDatabase);
     this.insightsDatabase = insightsDatabase;
-    setWaitStrategy(
-        new LogMessageWaitStrategy()
-            .withRegEx(".*Listening on API.*")
-            .withTimes(1)
-            .withStartupTimeout(Duration.of(60, ChronoUnit.SECONDS)));
+    waitingFor(Wait.forLogMessage(".*Listening on API.*", 1));
 
     // SMELL: Workaround for https://github.com/testcontainers/testcontainers-java/issues/7539
     // This is because testcontainers randomly fails to start a container when using Podman socket.
