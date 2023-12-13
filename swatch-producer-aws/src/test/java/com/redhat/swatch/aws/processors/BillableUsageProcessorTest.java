@@ -79,26 +79,26 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResu
 class BillableUsageProcessorTest {
 
   private static final String INSTANCE_HOURS = "INSTANCE_HOURS";
-  private static final String STORAGE_GIBIBYTE_MONTHS = "STORAGE_GIBIBYTE_MONTHS";
+  private static final String CORES = "CORES";
 
   private static final Clock clock =
       Clock.fixed(Instant.parse("2023-10-02T12:30:00Z"), ZoneId.of("UTC"));
 
-  private static final BillableUsage RHOSAK_INSTANCE_HOURS_RECORD =
+  private static final BillableUsage ROSA_INSTANCE_HOURS_RECORD =
       new BillableUsage()
-          .productId("rhosak")
+          .productId("rosa")
           .snapshotDate(OffsetDateTime.MAX)
           .billingProvider(BillingProviderEnum.AWS)
           .uom(INSTANCE_HOURS)
           .snapshotDate(OffsetDateTime.now(Clock.systemUTC()))
           .value(new BigDecimal("42.0"));
 
-  private static final BillableUsage RHOSAK_STORAGE_GIB_MONTHS_RECORD =
+  private static final BillableUsage ROSA_STORAGE_GIB_MONTHS_RECORD =
       new BillableUsage()
-          .productId("rhosak")
+          .productId("rosa")
           .snapshotDate(OffsetDateTime.MAX)
           .billingProvider(BillingProviderEnum.AWS)
-          .uom(STORAGE_GIBIBYTE_MONTHS)
+          .uom(CORES)
           .snapshotDate(OffsetDateTime.now(Clock.systemUTC()))
           .value(new BigDecimal("42.0"));
 
@@ -156,7 +156,7 @@ class BillableUsageProcessorTest {
   void shouldLookupAwsContextOnApplicableSnapshot() throws ApiException {
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(new AwsUsageContext());
-    processor.process(RHOSAK_INSTANCE_HOURS_RECORD);
+    processor.process(ROSA_INSTANCE_HOURS_RECORD);
     verify(internalSubscriptionsApi).getAwsUsageContext(any(), any(), any(), any(), any(), any());
   }
 
@@ -165,7 +165,7 @@ class BillableUsageProcessorTest {
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
-    processor.process(RHOSAK_INSTANCE_HOURS_RECORD);
+    processor.process(ROSA_INSTANCE_HOURS_RECORD);
     verify(meteringClient).batchMeterUsage(any(BatchMeterUsageRequest.class));
   }
 
@@ -173,7 +173,7 @@ class BillableUsageProcessorTest {
   void shouldSkipMessageIfAwsContextCannotBeLookedUp() throws ApiException {
     BillableUsage usage =
         new BillableUsage()
-            .productId("rhosak")
+            .productId("rosa")
             .billingProvider(BillingProviderEnum.AWS)
             .uom(INSTANCE_HOURS)
             .snapshotDate(OffsetDateTime.now(Clock.systemUTC()))
@@ -201,7 +201,7 @@ class BillableUsageProcessorTest {
   void shouldFindStorageAwsDimension() throws ApiException {
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(new AwsUsageContext());
-    processor.process(RHOSAK_STORAGE_GIB_MONTHS_RECORD);
+    processor.process(ROSA_STORAGE_GIB_MONTHS_RECORD);
     verify(internalSubscriptionsApi).getAwsUsageContext(any(), any(), any(), any(), any(), any());
   }
 
@@ -212,7 +212,7 @@ class BillableUsageProcessorTest {
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
         .thenReturn(BATCH_METER_USAGE_SUCCESS_RESPONSE);
-    processor.process(RHOSAK_INSTANCE_HOURS_RECORD);
+    processor.process(ROSA_INSTANCE_HOURS_RECORD);
     assertEquals(1.0, acceptedCounter.count());
   }
 
@@ -227,7 +227,7 @@ class BillableUsageProcessorTest {
             BatchMeterUsageResponse.builder()
                 .unprocessedRecords(UsageRecord.builder().build())
                 .build());
-    processor.process(RHOSAK_INSTANCE_HOURS_RECORD);
+    processor.process(ROSA_INSTANCE_HOURS_RECORD);
     assertEquals(current + 1, rejectedCounter.count());
   }
 
@@ -239,7 +239,7 @@ class BillableUsageProcessorTest {
     when(clientFactory.buildMarketplaceMeteringClient(any())).thenReturn(meteringClient);
     when(meteringClient.batchMeterUsage(any(BatchMeterUsageRequest.class)))
         .thenThrow(MarketplaceMeteringException.class);
-    processor.process(RHOSAK_INSTANCE_HOURS_RECORD);
+    processor.process(ROSA_INSTANCE_HOURS_RECORD);
     assertEquals(current + 1, rejectedCounter.count());
   }
 
@@ -254,7 +254,7 @@ class BillableUsageProcessorTest {
             Duration.of(1, ChronoUnit.HOURS));
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
-    processor.process(RHOSAK_INSTANCE_HOURS_RECORD);
+    processor.process(ROSA_INSTANCE_HOURS_RECORD);
     verifyNoInteractions(clientFactory, meteringClient);
   }
 
@@ -272,7 +272,7 @@ class BillableUsageProcessorTest {
     assertThrows(
         SubscriptionRecentlyTerminatedException.class,
         () -> {
-          processor.lookupAwsUsageContext(RHOSAK_INSTANCE_HOURS_RECORD);
+          processor.lookupAwsUsageContext(ROSA_INSTANCE_HOURS_RECORD);
         });
   }
 
@@ -287,7 +287,7 @@ class BillableUsageProcessorTest {
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenThrow(exception);
 
-    processor.process(RHOSAK_INSTANCE_HOURS_RECORD);
+    processor.process(ROSA_INSTANCE_HOURS_RECORD);
     verifyNoInteractions(meteringClient);
   }
 
@@ -299,7 +299,7 @@ class BillableUsageProcessorTest {
 
     BillableUsage usage =
         new BillableUsage()
-            .productId("rhosak")
+            .productId("rosa")
             .billingProvider(BillingProviderEnum.AWS)
             .uom(INSTANCE_HOURS)
             .value(new BigDecimal("42.0"))

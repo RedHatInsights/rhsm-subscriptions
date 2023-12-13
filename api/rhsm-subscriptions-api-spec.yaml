@@ -1557,7 +1557,6 @@ components:
         - Sockets
         - Core-seconds
         - Instance-hours
-        - Storage-gibibytes
         - Storage-gibibyte-months
         - Transfer-gibibytes
         - vCPUs

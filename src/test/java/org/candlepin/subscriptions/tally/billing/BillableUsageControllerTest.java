@@ -506,7 +506,7 @@ class BillableUsageControllerTest {
         .withBillingFactor(1.0)
         .withBillingProvider(BillingProvider.AWS)
         .withOrgId("org123")
-        .withProductId("rhosak")
+        .withProductId("rosa")
         .withSla(Sla.STANDARD)
         .withUom("STORAGE_GIBIBYTES")
         .withSnapshotDate(date)
