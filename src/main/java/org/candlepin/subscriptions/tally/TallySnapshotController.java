@@ -37,7 +37,6 @@ import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.TallyState;
 import org.candlepin.subscriptions.db.model.TallyStateKey;
 import org.candlepin.subscriptions.event.EventController;
-import org.candlepin.subscriptions.json.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -136,30 +135,23 @@ public class TallySnapshotController {
 
         AccountUsageCalculationCache calcCache = new AccountUsageCalculationCache();
 
-        // Process events in batches until there are no more matches from the DB.
-        boolean checkForEvents = true;
-        while (checkForEvents) {
-          List<Event> events =
-              eventController.fetchEventsInBatch(
-                  orgId,
-                  serviceType,
-                  currentState.getLatestEventRecordDate(),
-                  appProps.getHourlyTallyEventBatchSize());
-
-          if (events.isEmpty()) {
-            checkForEvents = false;
-            continue;
-          }
-
-          retryTemplate.execute(
-              context -> {
-                metricUsageCollector.updateHosts(orgId, serviceType, events);
-                metricUsageCollector.calculateUsage(events, calcCache);
-                currentState.setLatestEventRecordDate(
-                    events.get(events.size() - 1).getRecordDate());
-                return null;
-              });
-        }
+        // We use a functional interface for processing event batches to allow
+        // us to wrap the Event fetch in a read only transaction without needing
+        // to annotate this method with a DB transaction.
+        eventController.processEventsInBatches(
+            orgId,
+            serviceType,
+            currentState.getLatestEventRecordDate(),
+            appProps.getHourlyTallyEventBatchSize(),
+            nextBatch ->
+                retryTemplate.execute(
+                    context -> {
+                      metricUsageCollector.updateHosts(orgId, serviceType, nextBatch);
+                      metricUsageCollector.calculateUsage(nextBatch, calcCache);
+                      currentState.setLatestEventRecordDate(
+                          nextBatch.get(nextBatch.size() - 1).getRecordDate());
+                      return null;
+                    }));
 
         if (!calcCache.isEmpty()) {
           var applicableUsageCalculations =

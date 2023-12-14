@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -34,7 +35,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -92,29 +93,38 @@ public class EventController {
         .map(EventRecord::getEvent);
   }
 
-  public Stream<Event> fetchEventsInTimeRangeByServiceType(
+  @Transactional(readOnly = true)
+  public void processEventsInBatches(
       String orgId,
       String serviceType,
       OffsetDateTime begin,
-      OffsetDateTime end,
-      OffsetDateTime asOfDateTime) {
-    // asOfDateTime is used to ignore events that are recorded outside a given hourly tally's
-    // window. Those events will be processed during the next hourly tally, and filtering them out
-    // here ensures they won't be processed twice hence we don't have to retally again.
-    return repo.findByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
-            orgId, serviceType, begin, end)
-        .filter(
-            eventRecord ->
-                Objects.isNull(asOfDateTime) || eventRecord.getRecordDate().isBefore(asOfDateTime))
-        .map(EventRecord::getEvent);
-  }
+      int batchSize,
+      Consumer<List<Event>> eventConsumer) {
+    List<Event> toProcess = new LinkedList<>();
+    try (Stream<EventRecord> eventStream =
+        repo.fetchOrderedEventStream(orgId, serviceType, begin)) {
+      eventStream.forEach(
+          eventRecord -> {
+            toProcess.add(eventRecord.getEvent());
+            repo.getEntityManager().detach(eventRecord);
+            if (toProcess.size() == batchSize) {
+              log.debug(
+                  "Processing batch of {} Events for orgId={} serviceType={}",
+                  batchSize,
+                  orgId,
+                  serviceType);
+              eventConsumer.accept(toProcess);
+              toProcess.clear();
+            }
+          });
 
-  @Transactional(readOnly = true)
-  public List<Event> fetchEventsInBatch(
-      String orgId, String serviceType, OffsetDateTime begin, int batchSize) {
-    return repo.fetchEventsInBatchByRecordDate(orgId, serviceType, begin, batchSize)
-        .map(EventRecord::getEvent)
-        .collect(Collectors.toList());
+      // Process any that were outside the batch boundary.
+      if (!toProcess.isEmpty()) {
+        log.debug("Processing the remaining batch {}", toProcess.size());
+        eventConsumer.accept(toProcess);
+        toProcess.clear();
+      }
+    }
   }
 
   /**

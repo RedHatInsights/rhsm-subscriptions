@@ -28,8 +28,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import jakarta.persistence.EntityManager;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import org.candlepin.subscriptions.db.EventRecordRepository;
@@ -39,6 +42,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -48,8 +52,8 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
 class EventControllerTest {
+  @Mock EntityManager mockEntityManager;
   @Autowired EventController eventController;
-
   @MockBean private EventRecordRepository eventRecordRepository;
   @MockBean private OptInController optInController;
   @Captor private ArgumentCaptor<Collection<EventRecord>> eventsSaved;
@@ -205,6 +209,7 @@ class EventControllerTest {
                    "action": "cleanup"
                  }
                 """;
+    when(eventRecordRepository.getEntityManager()).thenReturn(mockEntityManager);
   }
 
   @Test
@@ -338,6 +343,37 @@ class EventControllerTest {
         events.get(0).getEvent().getBillingAccountId().get());
   }
 
+  @Test
+  void testProcessEventsInBatches_processesAllEvents() {
+    List<EventRecord> all = new LinkedList<>();
+    for (int i = 0; i < 10; i++) {
+      all.add(new EventRecord());
+    }
+
+    OffsetDateTime now = OffsetDateTime.now();
+    when(eventRecordRepository.fetchOrderedEventStream("org123", "serviceType", now))
+        .thenReturn(all.stream());
+
+    final int batchSize = 3;
+    BatchedEventCounter counter = new BatchedEventCounter();
+    eventController.processEventsInBatches(
+        "org123",
+        "serviceType",
+        now,
+        batchSize,
+        events -> {
+          counter.increment(events.size());
+        });
+
+    List<Integer> finalBatchCount = counter.getCounts();
+    assertEquals(4, finalBatchCount.size());
+    // Verify the number of events in each batch.
+    assertEquals(batchSize, finalBatchCount.get(0));
+    assertEquals(batchSize, finalBatchCount.get(1));
+    assertEquals(batchSize, finalBatchCount.get(2));
+    assertEquals(1, finalBatchCount.get(3));
+  }
+
   private void verifyDeletionOfStaleEventsIsDone() {
     verify(eventRecordRepository)
         .deleteStaleEvents(
@@ -352,5 +388,17 @@ class EventControllerTest {
   private void verifyDeletionOfStaleEventsIsNotDone() {
     verify(eventRecordRepository, times(0))
         .deleteStaleEvents(any(), any(), any(), any(), any(), any());
+  }
+
+  private class BatchedEventCounter {
+    private final List<Integer> counts = new LinkedList<>();
+
+    void increment(int eventCount) {
+      counts.add(eventCount);
+    }
+
+    List<Integer> getCounts() {
+      return counts;
+    }
   }
 }
