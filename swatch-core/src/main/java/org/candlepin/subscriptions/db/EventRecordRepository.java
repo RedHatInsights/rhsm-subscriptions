@@ -20,6 +20,9 @@
  */
 package org.candlepin.subscriptions.db;
 
+import static org.hibernate.jpa.HibernateHints.HINT_FETCH_SIZE;
+
+import jakarta.persistence.QueryHint;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -29,6 +32,7 @@ import org.candlepin.subscriptions.db.model.EventRecordId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 
 /**
@@ -38,7 +42,8 @@ import org.springframework.data.repository.query.Param;
  * @see org.candlepin.subscriptions.json.Event
  */
 @SuppressWarnings({"linelength", "indentation"})
-public interface EventRecordRepository extends JpaRepository<EventRecord, EventRecordId> {
+public interface EventRecordRepository
+    extends JpaRepository<EventRecord, EventRecordId>, EntityManagerLookup {
 
   /**
    * Fetch a stream of events for a given account for a given time range.
@@ -225,4 +230,19 @@ public interface EventRecordRepository extends JpaRepository<EventRecord, EventR
       @Param("serviceType") String serviceType,
       @Param("begin") OffsetDateTime begin,
       @Param("end") OffsetDateTime end);
+
+  @Query(
+      nativeQuery = true,
+      value =
+          """
+          select * from events
+            where org_id=:orgId and data->>'service_type'=:serviceType and
+              record_date > :after
+              order by record_date asc
+          """)
+  @QueryHints(value = {@QueryHint(name = HINT_FETCH_SIZE, value = "1024")})
+  Stream<EventRecord> fetchOrderedEventStream(
+      @Param("orgId") String orgId,
+      @Param("serviceType") String serviceType,
+      @Param("after") OffsetDateTime after);
 }

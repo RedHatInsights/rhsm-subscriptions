@@ -106,6 +106,10 @@ public class MetricUsageCollector {
       // Determine if the Event has already been applied to this host and skip it if it is.
       // This is important in the case that we attempt to apply the same Event multiple times.
       if (isEventAlreadyAppliedToHost(host, event)) {
+        log.debug(
+            "Skipping host update. Event already applied to the host orgId={} instanceId={}",
+            host.getOrgId(),
+            host.getInstanceId());
         continue;
       }
 

@@ -27,6 +27,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import jakarta.persistence.EntityManager;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
@@ -58,6 +59,7 @@ import org.candlepin.subscriptions.json.Measurement;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -74,6 +76,7 @@ class TallySnapshotControllerTest {
   private static final String ORG_ID = "test-org";
   private static final String SERVICE_TYPE = "OpenShift Cluster";
 
+  @Mock EntityManager mockEntityManager;
   @MockBean EventRecordRepository eventRepo;
   @MockBean TallyStateRepository tallyStateRepo;
   @Autowired RetryTemplate collectorRetryTemplate;
@@ -86,6 +89,7 @@ class TallySnapshotControllerTest {
 
   @BeforeEach
   void setupTest() {
+    when(eventRepo.getEntityManager()).thenReturn(mockEntityManager);
     when(tallyStateRepo.save(any())).thenAnswer(a -> a.getArgument(0));
   }
 
@@ -93,11 +97,7 @@ class TallySnapshotControllerTest {
   void verifyTallyStateLatestEventRecordDateDefaultsToStartOfThePreviousDayWhenStateDoesNotExist() {
     controller.produceHourlySnapshotsForOrg(ORG_ID);
     verify(eventRepo)
-        .fetchEventsInBatchByRecordDate(
-            ORG_ID,
-            SERVICE_TYPE,
-            clock.startOfToday().minusDays(1),
-            props.getHourlyTallyEventBatchSize());
+        .fetchOrderedEventStream(ORG_ID, SERVICE_TYPE, clock.startOfToday().minusDays(1));
   }
 
   @Test
@@ -109,11 +109,7 @@ class TallySnapshotControllerTest {
     controller.produceHourlySnapshotsForOrg(ORG_ID);
 
     verify(eventRepo)
-        .fetchEventsInBatchByRecordDate(
-            ORG_ID,
-            SERVICE_TYPE,
-            state.getLatestEventRecordDate(),
-            props.getHourlyTallyEventBatchSize());
+        .fetchOrderedEventStream(ORG_ID, SERVICE_TYPE, state.getLatestEventRecordDate());
   }
 
   @Test
@@ -146,11 +142,7 @@ class TallySnapshotControllerTest {
     EventRecord instance1Event2 =
         createEvent(instance1Id, firstSnapshotHour, createMeasurement(8.0));
 
-    when(eventRepo.fetchEventsInBatchByRecordDate(
-            ORG_ID,
-            SERVICE_TYPE,
-            clock.startOfToday().minusDays(1),
-            props.getHourlyTallyEventBatchSize()))
+    when(eventRepo.fetchOrderedEventStream(ORG_ID, SERVICE_TYPE, clock.startOfToday().minusDays(1)))
         .thenReturn(Stream.of(instance1Event1, instance2Event1, instance1Event2));
 
     when(snapshotRepo.findByOrgIdAndProductIdInAndGranularityAndSnapshotDateBetween(
