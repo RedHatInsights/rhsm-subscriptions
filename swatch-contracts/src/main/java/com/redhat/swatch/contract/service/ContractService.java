@@ -122,7 +122,7 @@ public class ContractService {
     }
     entity.setEndDate(null);
 
-    var subscription = createSubscriptionForContract(entity, false);
+    var subscription = createSubscriptionForContract(entity, null, false);
     subscription.setSubscriptionId(contract.getUuid());
     contractRepository.persist(entity);
     subscriptionRepository.persist(subscription);
@@ -208,10 +208,12 @@ public class ContractService {
     }
 
     ContractEntity entity;
+    String billingProviderId = null;
     try {
       // Fill up information from upstream and swatch
       entity = mapper.partnerContractToContractEntity(contract);
       collectMissingUpStreamContractDetails(entity, contract);
+      billingProviderId = mapper.extractBillingProviderId(contract.getCloudIdentifiers());
       if (!isValidEntity(entity)) {
         statusResponse.setMessage("Empty value in non-null fields");
         log.warn("Empty value in non-null fields for contract entity {}", entity);
@@ -231,7 +233,7 @@ public class ContractService {
     boolean isDuplicateContract;
     if (existing.isPresent()) {
       ContractEntity existingContract = existing.get();
-      isDuplicateContract = isDuplicateContract(entity, existingContract);
+      isDuplicateContract = isDuplicateContract(entity, existingContract, billingProviderId);
       if (isDuplicateContract) {
         log.info(
             "Duplicate contract found that matches the record for uuid {}",
@@ -240,7 +242,8 @@ public class ContractService {
       } else {
         // Record found in contract table but, the contract has changed
         var now = OffsetDateTime.now();
-        persistExistingSubscription(existingContract, now); // end current subscription
+        persistExistingSubscription(
+            existingContract, billingProviderId, now); // end current subscription
         persistExistingContract(existingContract, now); // Persist previous contract
 
         persistContract(entity, now); // Persist new contract
@@ -250,7 +253,7 @@ public class ContractService {
     } else {
       // New contract
       var now = OffsetDateTime.now();
-      persistSubscription(createSubscriptionForContract(entity, true), now);
+      persistSubscription(createSubscriptionForContract(entity, billingProviderId, true), now);
       persistContract(entity, now);
       statusResponse.setMessage("New contract created");
     }
@@ -258,17 +261,18 @@ public class ContractService {
     return statusResponse;
   }
 
-  private void persistExistingSubscription(ContractEntity contract, OffsetDateTime now) {
+  private void persistExistingSubscription(
+      ContractEntity contract, String billingProviderId, OffsetDateTime now) {
     var subscription =
         subscriptionRepository
             .findOne(SubscriptionEntity.class, SubscriptionEntity.forContract(contract))
-            .orElseGet(() -> createSubscriptionForContract(contract, true));
+            .orElseGet(() -> createSubscriptionForContract(contract, billingProviderId, true));
     subscription.setEndDate(now);
     subscriptionRepository.persist(subscription);
   }
 
   private SubscriptionEntity createSubscriptionForContract(
-      ContractEntity contract, boolean lookupSubscriptionId) {
+      ContractEntity contract, String billingProviderId, boolean lookupSubscriptionId) {
     var subscription = new SubscriptionEntity();
     mapper.mapContractEntityToSubscriptionEntity(subscription, contract);
     measurementMetricIdTransformer.translateContractMetricIdsToSubscriptionMetricIds(subscription);
@@ -278,6 +282,7 @@ public class ContractService {
     if (lookupSubscriptionId) {
       subscription.setSubscriptionId(lookupSubscriptionId(contract.getSubscriptionNumber()));
     }
+    subscription.setBillingProviderId(billingProviderId);
     return subscription;
   }
 
@@ -324,7 +329,7 @@ public class ContractService {
             log.info("Syncing new Contract for {}", contractOrgSync);
             statusResponse.setStatus(SUCCESS_MESSAGE);
             var now = OffsetDateTime.now();
-            persistSubscription(createSubscriptionForContract(entitlementEntity, true), now);
+            persistSubscription(createSubscriptionForContract(entitlementEntity, null, true), now);
             persistContract(entitlementEntity, now);
           } else {
             statusResponse.setStatus(FAILURE_MESSAGE);
@@ -375,6 +380,17 @@ public class ContractService {
   }
 
   private boolean validPartnerEntitlementContract(PartnerEntitlementContract contract) {
+    return validAwsEntitlementContract(contract) || validAzureEntitlementContract(contract);
+  }
+
+  private boolean validAzureEntitlementContract(PartnerEntitlementContract contract) {
+    return Objects.nonNull(contract.getRedHatSubscriptionNumber())
+        && Objects.nonNull(contract.getCloudIdentifiers())
+        && Objects.nonNull(contract.getCloudIdentifiers().getAzureResourceId())
+        && Objects.nonNull(contract.getCloudIdentifiers().getOfferId());
+  }
+
+  private boolean validAwsEntitlementContract(PartnerEntitlementContract contract) {
     return Objects.nonNull(contract.getRedHatSubscriptionNumber())
         && Objects.nonNull(contract.getCloudIdentifiers())
         && Objects.nonNull(contract.getCloudIdentifiers().getAwsCustomerId())
@@ -430,8 +446,17 @@ public class ContractService {
     return contractRepository.getContracts(specification);
   }
 
-  private boolean isDuplicateContract(ContractEntity newEntity, ContractEntity existing) {
-    return Objects.equals(newEntity, existing);
+  private boolean isDuplicateContract(
+      ContractEntity newEntity, ContractEntity existing, String newBillingProviderId) {
+    return (Objects.equals(newEntity, existing)
+        && Objects.equals(newBillingProviderId, getSubscriptionBillingProviderId(existing)));
+  }
+
+  private String getSubscriptionBillingProviderId(ContractEntity contractEntity) {
+    return subscriptionRepository
+        .findOne(SubscriptionEntity.class, SubscriptionEntity.forContract(contractEntity))
+        .map(SubscriptionEntity::getBillingProviderId)
+        .orElse(null);
   }
 
   private ContractEntity transformEntitlementToContractEntity( // NOSONAR
@@ -478,26 +503,59 @@ public class ContractService {
 
   private void collectMissingUpStreamContractDetails( // NOSONAR
       ContractEntity entity, PartnerEntitlementContract contract) throws ApiException {
-    String awsCustomerAccountId = contract.getCloudIdentifiers().getAwsCustomerAccountId();
-    String productCode = contract.getCloudIdentifiers().getProductCode();
-    if (Objects.nonNull(contract.getCloudIdentifiers())
-        && Objects.nonNull(awsCustomerAccountId)
-        && Objects.nonNull(productCode)) {
-      PageRequest page = new PageRequest();
-      page.setSize(20);
-      page.setNumber(0);
-      log.trace(
-          "Call Partner Api to fill missing information using customerAwsAccountId {} and vendorProductCode {}",
-          awsCustomerAccountId,
-          productCode);
-      var result =
-          partnerApi.getPartnerEntitlements(
-              new QueryPartnerEntitlementV1()
-                  .customerAwsAccountId(awsCustomerAccountId)
-                  .vendorProductCode(productCode)
-                  .page(page));
-      mapUpstreamContractToContractEntity(entity, result);
+    String customerAccountId;
+    String productCode;
+    var marketplace = determineMarketplaceForContract(contract);
+
+    if (Objects.equals(marketplace, ContractSourcePartnerEnum.AWS.getValue())) {
+      customerAccountId = contract.getCloudIdentifiers().getAwsCustomerAccountId();
+      productCode = contract.getCloudIdentifiers().getProductCode();
+      if (Objects.nonNull(contract.getCloudIdentifiers())
+          && Objects.nonNull(customerAccountId)
+          && Objects.nonNull(productCode)) {
+        PageRequest page = new PageRequest();
+        page.setSize(20);
+        page.setNumber(0);
+        log.trace(
+            "Call Partner Api to fill missing information using customerAwsAccountId {} and vendorProductCode {}",
+            customerAccountId,
+            productCode);
+        var result =
+            partnerApi.getPartnerEntitlements(
+                new QueryPartnerEntitlementV1()
+                    .customerAwsAccountId(customerAccountId)
+                    .vendorProductCode(productCode)
+                    .page(page));
+        mapUpstreamContractToContractEntity(entity, result);
+      }
     }
+    if (Objects.equals(marketplace, ContractSourcePartnerEnum.AZURE.getValue())) {
+      // azureResourceId is a unique identifier per SaaS purchase,
+      // so it should be sufficient by itself
+      customerAccountId = contract.getCloudIdentifiers().getAzureResourceId();
+      if (Objects.nonNull(contract.getCloudIdentifiers()) && Objects.nonNull(customerAccountId)) {
+        // get the entitlement query from partner api for azure marketplace
+        PageRequest page = new PageRequest();
+        page.setSize(20);
+        page.setNumber(0);
+        log.trace(
+            "Call Partner Api to fill missing information using Azure resourceId {}",
+            customerAccountId);
+        var result =
+            partnerApi.getPartnerEntitlements(
+                new QueryPartnerEntitlementV1().azureResourceId(customerAccountId).page(page));
+        mapUpstreamContractToContractEntity(entity, result);
+      }
+    }
+  }
+
+  private String determineMarketplaceForContract(PartnerEntitlementContract contract) {
+    if (Objects.nonNull(contract.getCloudIdentifiers().getAwsCustomerAccountId())) {
+      return "aws";
+    } else if (Objects.nonNull(contract.getCloudIdentifiers().getAzureResourceId())) {
+      return "azure";
+    }
+    return null;
   }
 
   private void mapUpstreamContractToContractEntity(
@@ -516,7 +574,6 @@ public class ContractService {
               .filter(contract -> Objects.isNull(contract.getEndDate()))
               .flatMap(contract -> contract.getDimensions().stream())
               .collect(Collectors.toSet());
-
       entity.setMetrics(mapper.dimensionV1ToContractMetricEntity(dimensionV1s));
       populateProductIdBySku(entity);
     }

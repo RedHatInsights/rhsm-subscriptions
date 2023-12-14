@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally;
 
+import static com.redhat.swatch.configuration.util.MetricIdUtils.getCores;
 import static org.candlepin.subscriptions.tally.collector.Assertions.assertHardwareMeasurementTotals;
 import static org.candlepin.subscriptions.tally.collector.Assertions.assertNullExcept;
 import static org.junit.jupiter.api.Assertions.*;
@@ -50,6 +51,22 @@ class UsageCalculationTest {
 
     assertHardwareMeasurementTotals(calculation, HardwareMeasurementType.TOTAL, 15, 20, 10);
     assertNullExcept(calculation, HardwareMeasurementType.TOTAL);
+  }
+
+  /**
+   * Added this test case due to a bug we've seen with doubles being rounded. More information in <a
+   * href="https://issues.redhat.com/browse/SWATCH-2009">SWATCH-2009</a>.
+   */
+  @Test
+  void testAddToTotalShouldRoundDoubleValues() {
+    UsageCalculation calculation = new UsageCalculation(createUsageKey("Product"));
+    calculation.addToTotal(getCores(), 2.9);
+    calculation.addToTotal(getCores(), 3.0);
+    calculation.addToTotal(getCores(), 2.3);
+    calculation.addToTotal(getCores(), 1.4);
+    calculation.addToTotal(getCores(), 0.2);
+    assertEquals(
+        9.8, calculation.getTotals(HardwareMeasurementType.TOTAL).getMeasurement(getCores()));
   }
 
   @Test

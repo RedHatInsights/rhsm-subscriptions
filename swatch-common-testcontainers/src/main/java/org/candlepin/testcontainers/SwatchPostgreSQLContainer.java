@@ -21,15 +21,13 @@
 package org.candlepin.testcontainers;
 
 import java.io.IOException;
-import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.EqualsAndHashCode;
 import org.candlepin.testcontainers.exceptions.ExecuteStatementInContainerException;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
 @EqualsAndHashCode(callSuper = true)
@@ -38,11 +36,7 @@ public class SwatchPostgreSQLContainer extends PostgreSQLContainer<SwatchPostgre
 
   public SwatchPostgreSQLContainer(String database) {
     super(DockerImageName.parse(POSTGRESQL_IMAGE).asCompatibleSubstituteFor("postgres"));
-    setWaitStrategy(
-        new LogMessageWaitStrategy()
-            .withRegEx(".*Starting server.*")
-            .withTimes(1)
-            .withStartupTimeout(Duration.of(60, ChronoUnit.SECONDS)));
+    waitingFor(Wait.forLogMessage(".*Starting server.*", 1));
     setCommand("run-postgresql");
 
     withDatabaseName(database);

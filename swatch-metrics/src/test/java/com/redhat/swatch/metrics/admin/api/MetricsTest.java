@@ -49,7 +49,7 @@ import org.junit.jupiter.api.Test;
     restrictToAnnotatedClass = true)
 class MetricsTest {
 
-  private static final String VALID_PRODUCT = "rhosak";
+  private static final String VALID_PRODUCT = "rosa";
 
   @Inject ApplicationClock clock;
   @InjectMock PrometheusMetricsTaskManager tasks;

@@ -22,10 +22,12 @@ package org.candlepin.subscriptions.tally;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
+import java.math.BigDecimal;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -74,7 +76,7 @@ public class UsageCalculation {
 
   /** Provides metric totals associated with each hardware type associated with a calculation. */
   public static class Totals {
-    private final Map<MetricId, Double> measurements = new HashMap<>();
+    private final Map<MetricId, BigDecimal> measurements = new HashMap<>();
 
     public String toString() {
       String entries =
@@ -86,18 +88,17 @@ public class UsageCalculation {
     }
 
     public Map<MetricId, Double> getMeasurements() {
-      return measurements;
+      return measurements.entrySet().stream()
+          .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().doubleValue()));
     }
 
     public Double getMeasurement(MetricId uom) {
-      return measurements.get(uom);
+      return Optional.ofNullable(measurements.get(uom)).map(BigDecimal::doubleValue).orElse(null);
     }
 
     public void increment(MetricId uom, Double amount) {
-      Double existingValue = getMeasurement(uom);
-      double value = existingValue == null ? 0.0 : existingValue;
-      double newValue = value + amount;
-      measurements.put(uom, newValue);
+      BigDecimal value = measurements.getOrDefault(uom, BigDecimal.valueOf(0));
+      measurements.put(uom, value.add(BigDecimal.valueOf(amount)));
     }
   }
 

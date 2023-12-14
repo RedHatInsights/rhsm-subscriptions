@@ -44,10 +44,10 @@ class TallySummaryMapperTest {
   @Test
   void testMapSnapshots() {
     String org = "O1";
-    TallySnapshot rhosak =
+    TallySnapshot rosa =
         buildSnapshot(
             org,
-            "RHOSAK",
+            "ROSA",
             Granularity.HOURLY,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -65,7 +65,7 @@ class TallySummaryMapperTest {
             MetricIdUtils.getSockets().getValue(),
             24);
 
-    var snapshots = List.of(rhosak, rhel);
+    var snapshots = List.of(rosa, rhel);
 
     TallySummaryMapper mapper = new TallySummaryMapper();
     TallySummary summary = mapper.mapSnapshots(org, snapshots);
@@ -73,9 +73,9 @@ class TallySummaryMapperTest {
     List<org.candlepin.subscriptions.json.TallySnapshot> summarySnaps = summary.getTallySnapshots();
     assertEquals(snapshots.size(), summarySnaps.size());
 
-    var mappedRhosakOptional = findSnapshot(summary, "RHOSAK");
-    assertTrue(mappedRhosakOptional.isPresent());
-    assertMappedSnapshot(rhosak, mappedRhosakOptional.get());
+    var mappedRosaOptional = findSnapshot(summary, "ROSA");
+    assertTrue(mappedRosaOptional.isPresent());
+    assertMappedSnapshot(rosa, mappedRosaOptional.get());
 
     var mappedRhelOptional = findSnapshot(summary, "RHEL");
     assertTrue(mappedRhelOptional.isPresent());
