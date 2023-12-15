@@ -134,13 +134,12 @@ paths:
       tags:
         - internalSubscriptions
       responses:
-        '202':
-          description: "The request for syncing organization's subscription is processing."
+        '200':
+          description: The request for syncing a single organization's subscription is processing.
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
-                example: Sync started.
+                $ref: "#/components/schemas/RpcResponse"
         '400':
           $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
         '403':

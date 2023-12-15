@@ -148,9 +148,9 @@ public class InternalSubscriptionResource implements InternalApi {
   }
 
   @Override
-  public String forceSyncSubscriptionsForOrg(String orgId) {
+  public RpcResponse forceSyncSubscriptionsForOrg(String orgId) {
     subscriptionSyncController.forceSyncSubscriptionsForOrgAsync(orgId);
-    return "Sync started.";
+    return new RpcResponse();
   }
 
   /** Remove subscription and capacity records that are in the denylist */
