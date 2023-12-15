@@ -48,6 +48,7 @@ import org.candlepin.subscriptions.json.BaseEvent;
 import org.candlepin.subscriptions.json.CleanUpEvent;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.BillingProvider;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.util.TransactionHandler;
 import org.springframework.kafka.listener.BatchListenerFailedException;
@@ -248,6 +249,7 @@ public class EventController {
           if (BillingProvider.AZURE.equals(eventToSave.getBillingProvider())) {
             setAzureBillingAccountId(eventToSave);
           }
+          validateServiceInstanceEvent(eventToSave);
           enrichServiceInstanceFromIncomingFeed(eventToSave);
           result.addEvent(eventToSave, eventIndex.getValue());
         } else if (baseEvent instanceof CleanUpEvent cleanUpEvent) {
@@ -276,6 +278,17 @@ public class EventController {
           String.format(
               "%s;%s", event.getAzureTenantId().get(), event.getAzureSubscriptionId().get());
       event.setBillingAccountId(Optional.of(billingAccountId));
+    }
+  }
+
+  private void validateServiceInstanceEvent(Event event) throws IllegalArgumentException {
+    List<Measurement> invalidMeasurements =
+        event.getMeasurements().stream()
+            .filter(m -> Objects.nonNull(m.getValue()) && m.getValue() < 0)
+            .toList();
+
+    if (!invalidMeasurements.isEmpty()) {
+      throw new IllegalArgumentException("Event measurement(s) must be > 0");
     }
   }
 

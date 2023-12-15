@@ -28,6 +28,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -37,6 +38,7 @@ import java.util.List;
 import java.util.UUID;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
+import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.security.OptInController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,6 +56,7 @@ import org.springframework.test.context.ActiveProfiles;
 class EventControllerTest {
   @Mock EntityManager mockEntityManager;
   @Autowired EventController eventController;
+  @Autowired ObjectMapper mapper;
   @MockBean private EventRecordRepository eventRecordRepository;
   @MockBean private OptInController optInController;
   @Captor private ArgumentCaptor<Collection<EventRecord>> eventsSaved;
@@ -64,6 +67,7 @@ class EventControllerTest {
   String eventRecord4;
   String eventRecord5;
   String azureEventRecord1;
+  String eventRecordNegativeMeasurement;
   String cleanUpEvent;
 
   @BeforeEach
@@ -173,6 +177,7 @@ class EventControllerTest {
                    "service_type": "OpenShift Cluster"
                  }
                 """;
+
     azureEventRecord1 =
         """
                 {
@@ -195,8 +200,29 @@ class EventControllerTest {
                    "billing_provider": "azure",
                    "azure_tenant_id": "TestAzureTenantId",
                    "azure_subscription_id": "TestAzureSubscriptionId"
+                }
+        """;
+    eventRecordNegativeMeasurement =
+        """
+                {
+                   "sla": "Premium",
+                   "role": "osd",
+                   "org_id": "8",
+                   "timestamp": "2023-05-02T10:00:00Z",
+                   "event_type": "snapshot_redhat.com:openshift_dedicated:cluster_hour",
+                   "expiration": "2023-05-02T01:00:00Z",
+                   "instance_id": "e3a62bd1-fd00-405c-9401-f2288808588d",
+                   "display_name": "automation_osd_cluster_e3a62bd1-fd00-405c-9401-f2288808588d",
+                   "event_source": "prometheus",
+                   "measurements": [
+                     {
+                       "uom": "Instance-hours",
+                       "value": -1
+                     }
+                   ],
+                   "service_type": "OpenShift Cluster"
                  }
-                """;
+        """;
     cleanUpEvent =
         """
                 {
@@ -208,7 +234,7 @@ class EventControllerTest {
                    "event_source": "prometheus",
                    "action": "cleanup"
                  }
-                """;
+        """;
     when(eventRecordRepository.getEntityManager()).thenReturn(mockEntityManager);
   }
 
@@ -283,6 +309,24 @@ class EventControllerTest {
     List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
     // Should save first 2 successful events.
     assertEquals(2, events.size());
+  }
+
+  @Test
+  void testPersistServiceInstances_SkipEventsWithNegativeMeasurements() throws Exception {
+    List<String> eventRecords = new ArrayList<>();
+    eventRecords.add(eventRecord1);
+    eventRecords.add(eventRecordNegativeMeasurement);
+    EventRecord expectedEvent = new EventRecord(mapper.readValue(eventRecord1, Event.class));
+
+    eventController.persistServiceInstances(eventRecords);
+
+    verify(optInController, times(2)).optInByOrgId(any(), any());
+    when(eventRecordRepository.saveAll(any())).thenReturn(new ArrayList<>());
+    verify(eventRecordRepository).saveAll(eventsSaved.capture());
+    List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
+    assertEquals(1, events.size());
+    assertEquals(expectedEvent, events.get(0));
+    verifyDeletionOfStaleEventsIsNotDone();
   }
 
   @Test
