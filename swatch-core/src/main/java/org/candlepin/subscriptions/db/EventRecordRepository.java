@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.db;
 import static org.hibernate.jpa.HibernateHints.HINT_FETCH_SIZE;
 
 import jakarta.persistence.QueryHint;
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -142,94 +141,9 @@ public interface EventRecordRepository
       OffsetDateTime begin,
       OffsetDateTime end);
 
-  /**
-   * Check if any Events exist for the specified org and service type during the specified range.
-   *
-   * @param orgId
-   * @param serviceType
-   * @param begin
-   * @param end
-   * @return true if at least 1 event exists, false otherwise.
-   */
-  @Query(
-      nativeQuery = true,
-      value =
-          "select exists(select 1 from events where org_id=:orgId and data->>'service_type'=:serviceType and timestamp >= :begin and timestamp < :end order by timestamp)")
-  boolean existsByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThan(
-      @Param("orgId") String orgId,
-      @Param("serviceType") String serviceType,
-      @Param("begin") OffsetDateTime begin,
-      @Param("end") OffsetDateTime end);
-
-  /**
-   * Find all the events based on the account number and service type that exist during the
-   * specified range.
-   *
-   * @param orgId
-   * @param serviceType
-   * @param begin
-   * @param end
-   * @return a stream of Event objects matching the specified criteria.
-   */
-  @Query(
-      nativeQuery = true,
-      value =
-          "select * from events where org_id=:orgId and data->>'service_type'=:serviceType and timestamp >= :begin and timestamp < :end order by timestamp")
-  Stream<EventRecord>
-      findByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
-          @Param("orgId") String orgId,
-          @Param("serviceType") String serviceType,
-          @Param("begin") OffsetDateTime begin,
-          @Param("end") OffsetDateTime end);
-
   void deleteByOrgId(String orgId);
 
   void deleteByEventId(UUID eventId);
-
-  /**
-   * Fetch all Events in a batch, where the recordDate is after the specified date, and before the
-   * cutoff date.
-   *
-   * @param orgId match Events with this org ID.
-   * @param serviceType match Events with this service type.
-   * @param after only match Events with a record_date AFTER this date.
-   * @return All matching Events in ascending order by record_date.
-   */
-  @Query(
-      nativeQuery = true,
-      value =
-          """
-          select * from events
-            where org_id=:orgId and data->>'service_type'=:serviceType and
-              record_date > :after
-              order by record_date asc
-              limit :limit
-          """)
-  Stream<EventRecord> fetchEventsInBatchByRecordDate(
-      @Param("orgId") String orgId,
-      @Param("serviceType") String serviceType,
-      @Param("after") OffsetDateTime after,
-      @Param("limit") int limit);
-
-  /**
-   * We want to obtain the first event record for the hourly tally based on timestamp actual_date.
-   * This helps in determining whether we need to recalculate the earlier events.
-   *
-   * @param orgId
-   * @param serviceType
-   * @param begin
-   * @param end
-   * @return
-   */
-  @Query(
-      nativeQuery = true,
-      value =
-          "select min(timestamp) from events where org_id=:orgId and data->>'service_type'=:serviceType and record_date >= :begin and record_date < :end")
-  Instant findFirstEventTimestampInRange(
-      @Param("orgId") String orgId,
-      @Param("serviceType") String serviceType,
-      @Param("begin") OffsetDateTime begin,
-      @Param("end") OffsetDateTime end);
 
   @Query(
       nativeQuery = true,
