@@ -52,6 +52,7 @@ import org.candlepin.subscriptions.subscription.SubscriptionPruneController;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.candlepin.subscriptions.utilization.admin.api.model.AwsUsageContext;
 import org.candlepin.subscriptions.utilization.admin.api.model.RhmUsageContext;
+import org.candlepin.subscriptions.utilization.admin.api.model.RpcResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,7 +102,7 @@ class InternalSubscriptionResourceTest {
 
   @Test
   void forceSyncForOrgShouldReturnSuccess() {
-    assertEquals("Sync started.", resource.forceSyncSubscriptionsForOrg("123"));
+    assertEquals(new RpcResponse(), resource.forceSyncSubscriptionsForOrg("123"));
   }
 
   @Test
