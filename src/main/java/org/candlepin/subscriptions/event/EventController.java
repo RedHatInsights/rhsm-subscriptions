@@ -137,13 +137,6 @@ public class EventController {
   }
 
   @Transactional
-  public boolean hasEventsInTimeRange(
-      String orgId, String serviceType, OffsetDateTime startDate, OffsetDateTime endDate) {
-    return repo.existsByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThan(
-        orgId, serviceType, startDate, endDate);
-  }
-
-  @Transactional
   public Optional<OffsetDateTime> findFirstEventTimestampInRange(
       String orgId, String serviceType, OffsetDateTime startDate, OffsetDateTime endDate) {
     return Optional.ofNullable(
@@ -272,29 +265,6 @@ public class EventController {
     event.setProductTag(getPaygEligibleProductTags(event));
   }
 
-  private Set<String> getPaygEligibleProductTags(Event event) {
-    Set<String> productTags = new HashSet<>();
-    // Filter tags that are paygEligible
-
-    if (Objects.nonNull(event.getRole())) {
-      String role = event.getRole().toString();
-      SubscriptionDefinition.lookupSubscriptionByRole(role)
-          .filter(SubscriptionDefinition::isPaygEligible)
-          .flatMap(s -> s.findVariantForRole(role).map(Variant::getTag))
-          .ifPresent(productTags::add);
-    }
-
-    var engIds = Optional.ofNullable(event.getProductIds()).orElse(Collections.emptyList());
-    for (String engId : engIds) {
-      productTags.addAll(
-          SubscriptionDefinition.lookupSubscriptionByEngId(engId).stream()
-              .filter(SubscriptionDefinition::isPaygEligible)
-              .flatMap(s -> s.findVariantForEngId(engId).map(Variant::getTag).stream())
-              .toList());
-    }
-    return productTags;
-  }
-
   /**
    * Deduplicate eventJsonList while preserving indexes of events in batch Returns a map ordered by
    * the event record index.
@@ -315,6 +285,29 @@ public class EventController {
     } catch (Exception e) {
       log.error("Error while attempting to automatically opt-in for orgId={} ", orgId, e);
     }
+  }
+
+  public static Set<String> getPaygEligibleProductTags(Event event) {
+    Set<String> productTags = new HashSet<>();
+    // Filter tags that are paygEligible
+
+    if (Objects.nonNull(event.getRole())) {
+      String role = event.getRole().toString();
+      SubscriptionDefinition.lookupSubscriptionByRole(role)
+          .filter(SubscriptionDefinition::isPaygEligible)
+          .flatMap(s -> s.findVariantForRole(role).map(Variant::getTag))
+          .ifPresent(productTags::add);
+    }
+
+    var engIds = Optional.ofNullable(event.getProductIds()).orElse(Collections.emptyList());
+    for (String engId : engIds) {
+      productTags.addAll(
+          SubscriptionDefinition.lookupSubscriptionByEngId(engId).stream()
+              .filter(SubscriptionDefinition::isPaygEligible)
+              .flatMap(s -> s.findVariantForEngId(engId).map(Variant::getTag).stream())
+              .toList());
+    }
+    return productTags;
   }
 
   private static class ServiceInstancesResult {
