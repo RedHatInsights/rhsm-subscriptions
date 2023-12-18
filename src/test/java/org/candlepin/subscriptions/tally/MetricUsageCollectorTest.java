@@ -137,18 +137,6 @@ class MetricUsageCollectorTest {
   }
 
   @Test
-  void testPopulatesUsageCalculationsWithProductTag() {
-    Event event = createEvent().withProductTag(Set.of(OSD_PRODUCT_TAG));
-    assertUsageCalculationForEvent(event);
-  }
-
-  @Test
-  void testPopulatesUsageCalculationsWithoutProductTag() {
-    Event event = createEvent().withProductTag(null);
-    assertUsageCalculationForEvent(event);
-  }
-
-  @Test
   void testUpdateHostsCreatesNewInstanceRecords() {
     Measurement measurement =
         new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
@@ -221,41 +209,15 @@ class MetricUsageCollectorTest {
   }
 
   @Test
-  void testCalculateUsagePopulatesUsageCalculations() {
-    Measurement measurement =
-        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
-    Event event =
-        createEvent()
-            .withEventId(UUID.randomUUID())
-            .withRole(Event.Role.OSD)
-            .withProductTag(Set.of(OSD_PRODUCT_TAG))
-            .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
-            .withServiceType(SERVICE_TYPE)
-            .withMeasurements(Collections.singletonList(measurement))
-            .withBillingProvider(Event.BillingProvider.RED_HAT)
-            .withBillingAccountId(Optional.of("sellerAcct"));
+  void testPopulatesUsageCalculationsWithProductTag() {
+    Event event = createEvent().withProductTag(Set.of(OSD_PRODUCT_TAG));
+    assertUsageCalculationForEvent(event);
+  }
 
-    AccountUsageCalculationCache cache = new AccountUsageCalculationCache();
-    metricUsageCollector.calculateUsage(List.of(event), cache);
-
-    assertEquals(1, cache.getCalculations().size());
-    assertTrue(cache.contains(event));
-
-    AccountUsageCalculation accountUsageCalculation = cache.get(event);
-    UsageCalculation.Key usageCalculationKey =
-        new UsageCalculation.Key(
-            OSD_PRODUCT_TAG,
-            ServiceLevel.PREMIUM,
-            Usage.PRODUCTION,
-            BillingProvider.RED_HAT,
-            "sellerAcct");
-    assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
-    assertEquals(
-        Double.valueOf(42.0),
-        accountUsageCalculation
-            .getCalculation(usageCalculationKey)
-            .getTotals(HardwareMeasurementType.PHYSICAL)
-            .getMeasurement(MetricIdUtils.getCores()));
+  @Test
+  void testPopulatesUsageCalculationsWithoutProductTag() {
+    Event event = createEvent().withProductTag(null);
+    assertUsageCalculationForEvent(event);
   }
 
   static Stream<Arguments> hardwareTypeParams() {
@@ -988,11 +950,16 @@ class MetricUsageCollectorTest {
   private static Event createEvent(String instanceId) {
     return new Event()
         .withEventId(UUID.randomUUID())
+        .withRole(Event.Role.OSD)
         .withOrgId("test-org")
+        .withServiceType(SERVICE_TYPE)
         .withInstanceId(instanceId)
+        .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
         .withProductTag(Set.of(OSD_PRODUCT_TAG))
         // MICROS precision to match the DB.
-        .withRecordDate(OffsetDateTime.now().truncatedTo(ChronoUnit.MICROS));
+        .withRecordDate(OffsetDateTime.now().truncatedTo(ChronoUnit.MICROS))
+        .withBillingProvider(Event.BillingProvider.RED_HAT)
+        .withBillingAccountId(Optional.of("sellerAcct"));
   }
 
   private TallySnapshot createSnapshot(OffsetDateTime snapshotDate, double value) {
@@ -1015,5 +982,33 @@ class MetricUsageCollectorTest {
         .billingProvider(BillingProvider.RED_HAT)
         .billingAccountId("sellerAcct")
         .build();
+  }
+
+  private void assertUsageCalculationForEvent(Event event) {
+    double expectedValue = 42.0;
+    Measurement measurement =
+        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(expectedValue);
+    event.withMeasurements(List.of(measurement));
+    AccountUsageCalculationCache cache = new AccountUsageCalculationCache();
+    metricUsageCollector.calculateUsage(List.of(event), cache);
+
+    assertEquals(1, cache.getCalculations().size());
+    assertTrue(cache.contains(event));
+
+    AccountUsageCalculation accountUsageCalculation = cache.get(event);
+    UsageCalculation.Key usageCalculationKey =
+        new UsageCalculation.Key(
+            OSD_PRODUCT_TAG,
+            ServiceLevel.PREMIUM,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            "sellerAcct");
+    assertTrue(accountUsageCalculation.containsCalculation(usageCalculationKey));
+    assertEquals(
+        Double.valueOf(expectedValue),
+        accountUsageCalculation
+            .getCalculation(usageCalculationKey)
+            .getTotals(HardwareMeasurementType.PHYSICAL)
+            .getMeasurement(MetricIdUtils.getCores()));
   }
 }
