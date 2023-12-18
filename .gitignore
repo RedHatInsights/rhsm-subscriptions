@@ -31,6 +31,8 @@
 config/*
 !config/codestyle
 !config/kafka
+!config/otel
+!config/rabbitmq
 
 #VS Code
 .project

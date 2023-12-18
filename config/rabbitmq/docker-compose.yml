@@ -1,0 +1,9 @@
+---
+version: '3.1'
+services:
+  rabbitmq:
+    image: rabbitmq
+    ports:
+      - "5672:5672"
+    volumes:
+      - ./rabbit_enabled_plugins:/etc/rabbitmq/enabled_plugins
