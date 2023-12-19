@@ -23,9 +23,9 @@ package org.candlepin.subscriptions.tally;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -158,7 +158,7 @@ class MetricUsageCollectorTest {
 
   @Test
   void updateHostsOnlyUpdatesLastSeenAndMeasurementsWhenEventTimestampMostRecent() {
-    Measurement measurement1 =
+    Measurement coresMeasurement =
         new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
     Event event1 =
         createEvent()
@@ -166,20 +166,33 @@ class MetricUsageCollectorTest {
             .withProductIds(List.of(RHEL_FOR_X86))
             .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z"))
             .withServiceType("RHEL System")
-            .withMeasurements(Collections.singletonList(measurement1))
+            .withMeasurements(List.of(coresMeasurement))
             .withSla(Event.Sla.PREMIUM)
             .withBillingProvider(Event.BillingProvider.RED_HAT)
             .withBillingAccountId(Optional.of("sellerAcctId"));
 
-    Measurement measurement2 =
+    Measurement oldCoresMeasurement =
         new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(100.0);
     Event event2 =
-        createEvent()
+        createEvent(event1.getInstanceId())
             .withEventId(UUID.randomUUID())
             .withProductIds(List.of(RHEL_FOR_X86))
             .withTimestamp(event1.getTimestamp().minusMonths(1))
             .withServiceType("RHEL System")
-            .withMeasurements(Collections.singletonList(measurement2))
+            .withMeasurements(List.of(oldCoresMeasurement))
+            .withSla(Event.Sla.PREMIUM)
+            .withBillingProvider(Event.BillingProvider.RED_HAT)
+            .withBillingAccountId(Optional.of("sellerAcctId"));
+
+    Measurement instanceHoursMeasurement =
+        new Measurement().withUom(MetricIdUtils.getInstanceHours().toString()).withValue(5.0);
+    Event event3 =
+        createEvent(event1.getInstanceId())
+            .withEventId(UUID.randomUUID())
+            .withProductIds(List.of(RHEL_FOR_X86))
+            .withTimestamp(event1.getTimestamp())
+            .withServiceType("RHEL System")
+            .withMeasurements(List.of(instanceHoursMeasurement))
             .withSla(Event.Sla.PREMIUM)
             .withBillingProvider(Event.BillingProvider.RED_HAT)
             .withBillingAccountId(Optional.of("sellerAcctId"));
@@ -190,14 +203,15 @@ class MetricUsageCollectorTest {
     activeInstance.setInstanceType(SERVICE_TYPE);
     activeInstance.setLastSeen(instanceDate);
 
-    when(hostRepository.findAllByOrgIdAndInstanceIdIn(ORG_ID, Set.of(event1.getInstanceId())))
-        .thenReturn(Stream.of(activeInstance));
+    doAnswer(invocation -> Stream.of(activeInstance))
+        .when(hostRepository)
+        .findAllByOrgIdAndInstanceIdIn(ORG_ID, Set.of(event1.getInstanceId()));
 
     // First update should change the date.
     metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event1));
     assertEquals(event1.getTimestamp(), activeInstance.getLastSeen());
     assertTrue(activeInstance.getMeasurements().containsKey("CORES"));
-    assertEquals(measurement1.getValue(), activeInstance.getMeasurement("CORES"));
+    assertEquals(coresMeasurement.getValue(), activeInstance.getMeasurement("CORES"));
 
     // Second update should have the Event applied, but the lastSeen date should
     // not change since this event represents older usage.
@@ -205,7 +219,16 @@ class MetricUsageCollectorTest {
     assertEquals(event1.getTimestamp(), activeInstance.getLastSeen());
     assertTrue(activeInstance.getMeasurements().containsKey("CORES"));
     // Should remain the same as the first event.
-    assertEquals(measurement1.getValue(), activeInstance.getMeasurement("CORES"));
+    assertEquals(coresMeasurement.getValue(), activeInstance.getMeasurement("CORES"));
+
+    // Third update should have the third event applied because it's the same timestamp, but
+    // includes
+    // a different measurement.
+    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event3));
+    assertEquals(event1.getTimestamp(), activeInstance.getLastSeen());
+    assertEquals(coresMeasurement.getValue(), activeInstance.getMeasurement("CORES"));
+    assertEquals(
+        instanceHoursMeasurement.getValue(), activeInstance.getMeasurement("INSTANCE_HOURS"));
   }
 
   @Test
@@ -740,45 +763,6 @@ class MetricUsageCollectorTest {
     assertEquals(
         Double.valueOf(42.0),
         activeInstance.getMonthlyTotal(pastEventMonthId, MetricIdUtils.getCores()));
-  }
-
-  @Test
-  void updateHostsClearsUnseenMeasurements() {
-    String instanceId = UUID.randomUUID().toString();
-    OffsetDateTime eventDate = clock.startOfCurrentHour();
-    double expectedCoresMeasurement = 150.0;
-
-    OffsetDateTime instanceDate = eventDate.minusDays(1);
-    Host activeInstance = new Host();
-    activeInstance.setInstanceId(instanceId);
-    activeInstance.setInstanceType(SERVICE_TYPE);
-    activeInstance.setLastSeen(instanceDate);
-    activeInstance.setMeasurement(MetricIdUtils.getCores().toString(), 122.5);
-    activeInstance.setMeasurement(MetricIdUtils.getInstanceHours().toString(), 50.0);
-
-    Measurement coresMeasurement =
-        new Measurement()
-            .withUom(MetricIdUtils.getCores().toString())
-            .withValue(expectedCoresMeasurement);
-    Event coresEvent =
-        createEvent(instanceId)
-            .withEventId(UUID.randomUUID())
-            .withTimestamp(eventDate)
-            .withServiceType(SERVICE_TYPE)
-            .withMeasurements(Collections.singletonList(coresMeasurement))
-            .withUsage(Event.Usage.PRODUCTION);
-
-    when(hostRepository.findAllByOrgIdAndInstanceIdIn(
-            ORG_ID, Set.of(activeInstance.getInstanceId())))
-        .thenReturn(Stream.of(activeInstance));
-
-    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(coresEvent));
-    // Cores measurement should be present and updated to the new expected value from the event.
-    assertEquals(
-        Double.valueOf(expectedCoresMeasurement),
-        activeInstance.getMeasurement(MetricIdUtils.getCores().toString()));
-    // Instance hours measurement should no longer be present since it was not reported by an event.
-    assertNull(activeInstance.getMeasurement(MetricIdUtils.getInstanceHours().toString()));
   }
 
   @Test

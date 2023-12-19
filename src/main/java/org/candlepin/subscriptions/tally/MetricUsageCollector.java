@@ -25,10 +25,8 @@ import com.google.common.collect.Sets;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
-import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -114,7 +112,6 @@ public class MetricUsageCollector {
       }
 
       updateInstanceFromEvent(event, host);
-      cleanUpHostMeasurements(host, event);
       hostsByInstanceId.put(host.getInstanceId(), host);
 
       hostRepository.save(host);
@@ -421,29 +418,6 @@ public class MetricUsageCollector {
       billingAcctIds.add(billingAcctId);
     }
     return billingAcctIds;
-  }
-
-  /**
-   * If the event is the latest known event, update the current measurements based on the Event.
-   *
-   * @param host the target host.
-   * @param event the event measurements that should remain.
-   */
-  private void cleanUpHostMeasurements(Host host, Event event) {
-    // If the last seen date is not recent, we don't do anything. We must support a last seen date
-    // that is equal to the event date because, in theory, we could get multiple events that
-    // represent the same timestamp.
-    if (isUsageAlreadyApplied(host, event)) {
-      return;
-    }
-
-    List<String> seenMetricIds =
-        Optional.ofNullable(event.getMeasurements()).orElse(new LinkedList<>()).stream()
-            .map(measurement -> MetricIdUtils.toUpperCaseFormatted(measurement.getUom()))
-            .toList();
-    List<String> toRemove =
-        host.getMeasurements().keySet().stream().filter(k -> !seenMetricIds.contains(k)).toList();
-    toRemove.forEach(host.getMeasurements()::remove);
   }
 
   /**
