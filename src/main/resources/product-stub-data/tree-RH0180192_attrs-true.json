@@ -1,7 +1,7 @@
 {
   "products": [
     {
-      "sku": "RH0180191",
+      "sku": "RH0180192",
       "description": "Red Hat Enterprise Linux Server, Standard (1-2 sockets) (Up to 4 guests) with Smart Management",
       "status": "ACTIVE",
       "attributes": [
@@ -24,10 +24,6 @@
         {
           "code": "PRODUCT_NAME",
           "value": "RHEL Server"
-        },
-        {
-          "code": "METERED",
-          "value": "Y"
         }
       ],
       "roles": [

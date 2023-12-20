@@ -192,23 +192,6 @@ public class SubscriptionDefinition {
   }
 
   /**
-   * Looks for productName matching a variant
-   *
-   * @param productName a product name string
-   * @return List<Subscription> multiple SubscriptionDefinitions can have the same product names:
-   *     e.g. rosa and Openshift-dedicated-metrics
-   */
-  public static List<SubscriptionDefinition> lookupSubscriptionByProductName(String productName) {
-    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
-        .filter(subscription -> !subscription.getVariants().isEmpty())
-        .filter(
-            subscription ->
-                subscription.getVariants().stream()
-                    .anyMatch(variant -> variant.getProductNames().contains(productName)))
-        .collect(Collectors.toList());
-  }
-
-  /**
    * Looks for role matching a variant
    *
    * @param role

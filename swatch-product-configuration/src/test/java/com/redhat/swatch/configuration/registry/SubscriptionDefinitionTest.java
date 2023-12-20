@@ -214,17 +214,6 @@ class SubscriptionDefinitionTest {
   }
 
   @Test
-  void testVariantProductNameLookup() {
-    var openshiftContainerPlatform =
-        SubscriptionDefinition.lookupSubscriptionByProductName("OpenShift Container Platform");
-
-    var expected = "OpenShift-metrics";
-    var actual = openshiftContainerPlatform.get(0).getId();
-
-    assertEquals(expected, actual);
-  }
-
-  @Test
   void testVariantRoleLookup() {
     var rosa = SubscriptionDefinition.lookupSubscriptionByRole("moa-hostedcontrolplane");
 

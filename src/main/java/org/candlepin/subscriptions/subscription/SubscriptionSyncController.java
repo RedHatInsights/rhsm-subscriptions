@@ -24,7 +24,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.google.common.collect.MoreCollectors;
-import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -266,19 +265,14 @@ public class SubscriptionSyncController {
 
   private void checkForMissingBillingProvider(
       org.candlepin.subscriptions.db.model.Subscription subscription) {
-    if (subscription.getBillingProvider() == null
-        || subscription.getBillingProvider().equals(BillingProvider.EMPTY)) {
+    if ((subscription.getBillingProvider() == null
+            || subscription.getBillingProvider().equals(BillingProvider.EMPTY))
+        && subscription.getOffering().isMetered()) {
       // The offering here is going to be a proxy object created by getReferenceById.  Hibernate
       // should take care of actually performing the select from the database if one is needed.
-      var subscriptionDefinition =
-          SubscriptionDefinition.lookupSubscriptionByProductName(
-              subscription.getOffering().getProductName());
-      if (!subscriptionDefinition.isEmpty()
-          && subscriptionDefinition.stream().anyMatch(SubscriptionDefinition::isPaygEligible)) {
-        log.warn(
-            "PAYG eligible subscription with subscriptionId:{} has no billing provider.",
-            subscription.getSubscriptionId());
-      }
+      log.warn(
+          "PAYG eligible subscription with subscriptionId:{} has no billing provider.",
+          subscription.getSubscriptionId());
     }
   }
 
@@ -621,12 +615,7 @@ public class SubscriptionSyncController {
     // between the two temporals. For example, the amount in hours between the times 11:30 and
     // 12:29 will zero hours as it is one minute short of an hour.
     var delta = Math.abs(ChronoUnit.HOURS.between(terminationDate, now));
-    var subDefinitions =
-        SubscriptionDefinition.lookupSubscriptionByProductName(
-            subscription.getOffering().getProductName());
-    if (!subDefinitions.isEmpty()
-        && subDefinitions.stream().anyMatch(SubscriptionDefinition::isPaygEligible)
-        && delta > 0) {
+    if (subscription.getOffering().isMetered() && delta > 0) {
       var msg =
           String.format(
               "Subscription %s terminated at %s with out of range termination date %s.",

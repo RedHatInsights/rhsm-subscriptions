@@ -491,6 +491,7 @@ class SubscriptionSyncControllerTest {
     Subscription s = createSubscription();
     Offering o = new Offering();
     o.setProductName(PAYG_PRODUCT_NAME);
+    o.setMetered(true);
     when(offeringRepository.findById(SKU)).thenReturn(Optional.of(o));
     when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
 
@@ -503,7 +504,7 @@ class SubscriptionSyncControllerTest {
   @Test
   void lateTerminateActivePAYGSubscriptionTest() {
     Subscription s = createSubscription();
-    Offering offering = Offering.builder().productName(PAYG_PRODUCT_NAME).build();
+    Offering offering = Offering.builder().productName(PAYG_PRODUCT_NAME).metered(true).build();
     s.setOffering(offering);
     when(offeringRepository.findById(SKU)).thenReturn(Optional.of(offering));
     when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
@@ -520,6 +521,7 @@ class SubscriptionSyncControllerTest {
   void terminateInTheFutureActivePAYGSubscriptionTest() {
     Subscription s = createSubscription();
     s.getOffering().setProductName(PAYG_PRODUCT_NAME);
+    s.getOffering().setMetered(true);
     when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
 
     var termination = OffsetDateTime.now().plusDays(1);
