@@ -262,7 +262,7 @@ class UpstreamProductData {
     if (offering.getHypervisorCores() != null) {
       data.attrs.put(Attr.CORES, offering.getHypervisorCores().toString());
     }
-    if (Objects.equals(Boolean.TRUE, offering.getHasUnlimitedUsage())) {
+    if (offering.isHasUnlimitedUsage()) {
       data.attrs.put(Attr.CORES, UNLIMITED_CORES_OR_SOCKETS);
       data.attrs.put(Attr.SOCKET_LIMIT, UNLIMITED_CORES_OR_SOCKETS);
     }

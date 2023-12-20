@@ -164,8 +164,8 @@ public class Offering implements Serializable {
     return metered != null && metered;
   }
 
-  public Boolean getHasUnlimitedUsage() {
-    return hasUnlimitedUsage;
+  public boolean isHasUnlimitedUsage() {
+    return hasUnlimitedUsage != null && hasUnlimitedUsage;
   }
 
   public List<String> getProductIdsAsStrings() {

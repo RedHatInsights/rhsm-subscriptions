@@ -223,7 +223,7 @@ class UpstreamProductDataTest {
     var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
 
     // Then hasUnlimitedUsage should be true
-    assertEquals(true, actual.getHasUnlimitedUsage());
+    assertTrue(actual.isHasUnlimitedUsage());
   }
 
   @Test
@@ -235,7 +235,7 @@ class UpstreamProductDataTest {
     var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
 
     // Then hasUnlimitedUsage should be true
-    assertEquals(true, actual.getHasUnlimitedUsage());
+    assertTrue(actual.isHasUnlimitedUsage());
   }
 
   @Test
