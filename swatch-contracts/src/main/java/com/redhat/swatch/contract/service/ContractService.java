@@ -387,7 +387,7 @@ public class ContractService {
     return Objects.nonNull(contract.getRedHatSubscriptionNumber())
         && Objects.nonNull(contract.getCloudIdentifiers())
         && Objects.nonNull(contract.getCloudIdentifiers().getAzureResourceId())
-        && Objects.nonNull(contract.getCloudIdentifiers().getOfferId());
+        && Objects.nonNull(contract.getCloudIdentifiers().getAzureOfferId());
   }
 
   private boolean validAwsEntitlementContract(PartnerEntitlementContract contract) {
