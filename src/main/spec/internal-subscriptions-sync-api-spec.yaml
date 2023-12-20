@@ -110,7 +110,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DefaultResponse"
+                $ref: "#/components/schemas/RpcResponse"
         '400':
           $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
@@ -134,13 +134,12 @@ paths:
       tags:
         - internalSubscriptions
       responses:
-        '202':
-          description: "The request for syncing organization's subscription is processing."
+        '200':
+          description: The request for syncing a single organization's subscription is processing.
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
-                example: Sync started.
+                $ref: "#/components/schemas/RpcResponse"
         '400':
           $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
@@ -162,7 +161,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DefaultResponse"
+                $ref: "#/components/schemas/RpcResponse"
         '400':
           $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
         '403':
@@ -587,10 +586,10 @@ components:
           properties:
             termination_message:
               type: string
-    DefaultResponse:
+    RpcResponse:
       properties:
-        status:
-          type: string
+        result:
+          description: Result of the operation. Empty when succeeded.
     SubscriptionResponse:
       properties:
         detail:

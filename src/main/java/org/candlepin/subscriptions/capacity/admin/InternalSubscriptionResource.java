@@ -40,15 +40,14 @@ import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
 import org.candlepin.subscriptions.utilization.admin.api.InternalApi;
 import org.candlepin.subscriptions.utilization.admin.api.model.AwsUsageContext;
 import org.candlepin.subscriptions.utilization.admin.api.model.AzureUsageContext;
-import org.candlepin.subscriptions.utilization.admin.api.model.DefaultResponse;
 import org.candlepin.subscriptions.utilization.admin.api.model.Metric;
 import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTags;
 import org.candlepin.subscriptions.utilization.admin.api.model.OfferingResponse;
 import org.candlepin.subscriptions.utilization.admin.api.model.RhmUsageContext;
+import org.candlepin.subscriptions.utilization.admin.api.model.RpcResponse;
 import org.candlepin.subscriptions.utilization.admin.api.model.SubscriptionResponse;
 import org.candlepin.subscriptions.utilization.admin.api.model.TerminationRequest;
 import org.candlepin.subscriptions.utilization.admin.api.model.TerminationRequestData;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -57,6 +56,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class InternalSubscriptionResource implements InternalApi {
 
+  public static final String FEATURE_NOT_ENABLED_MESSAGE = "This feature is not currently enabled.";
   private static final String SUCCESS_STATUS = "Success";
 
   private final SubscriptionSyncController subscriptionSyncController;
@@ -71,9 +71,6 @@ public class InternalSubscriptionResource implements InternalApi {
   private final MetricMapper metricMapper;
 
   private final ApplicationProperties applicationProperties;
-
-  public static final String FEATURE_NOT_ENABLED_MESSSAGE =
-      "This feature is not currently enabled.";
 
   @Autowired
   public InternalSubscriptionResource(
@@ -125,7 +122,7 @@ public class InternalSubscriptionResource implements InternalApi {
       Boolean reconcileCapacity, String subscriptionsJson) {
     var response = new SubscriptionResponse();
     if (!properties.isDevMode() && !properties.isManualSubscriptionEditingEnabled()) {
-      response.setDetail(FEATURE_NOT_ENABLED_MESSSAGE);
+      response.setDetail(FEATURE_NOT_ENABLED_MESSAGE);
       return response;
     }
     try {
@@ -142,32 +139,34 @@ public class InternalSubscriptionResource implements InternalApi {
 
   /** Enqueue all sync-enabled orgs to sync their subscriptions with upstream. */
   @Override
-  public DefaultResponse syncAllSubscriptions(Boolean forceSync) {
+  public RpcResponse syncAllSubscriptions(Boolean forceSync) {
+    var response = new RpcResponse();
     if (Boolean.FALSE.equals(forceSync) && !applicationProperties.isSubscriptionSyncEnabled()) {
       log.info(
           "Will not sync subscriptions for all opted-in orgs even though job was scheduled because subscriptionSyncEnabled=false.");
-      return getDefaultResponse(FEATURE_NOT_ENABLED_MESSSAGE);
+      response.setResult(FEATURE_NOT_ENABLED_MESSAGE);
+      return response;
     }
 
     Object principal = ResourceUtils.getPrincipal();
     log.info("Sync for all sync enabled orgs triggered by {}", principal);
     subscriptionSyncController.syncAllSubscriptionsForAllOrgs();
-    return getDefaultResponse(SUCCESS_STATUS);
+    return response;
   }
 
   @Override
-  public String forceSyncSubscriptionsForOrg(String orgId) {
+  public RpcResponse forceSyncSubscriptionsForOrg(String orgId) {
     subscriptionSyncController.forceSyncSubscriptionsForOrgAsync(orgId);
-    return "Sync started.";
+    return new RpcResponse();
   }
 
   /** Remove subscription and capacity records that are in the denylist */
   @Override
-  public DefaultResponse pruneUnlistedSubscriptions() {
+  public RpcResponse pruneUnlistedSubscriptions() {
     Object principal = ResourceUtils.getPrincipal();
     log.info("Prune of unlisted subscriptions triggered by {}", principal);
     subscriptionPruneController.pruneAllUnlistedSubscriptions();
-    return getDefaultResponse(SUCCESS_STATUS);
+    return new RpcResponse();
   }
 
   @Override
@@ -326,12 +325,5 @@ public class InternalSubscriptionResource implements InternalApi {
       throw new NotFoundException(
           "Subscription " + subscriptionId + " either does not exist or is already terminated");
     }
-  }
-
-  @NotNull
-  private DefaultResponse getDefaultResponse(String status) {
-    var response = new DefaultResponse();
-    response.setStatus(status);
-    return response;
   }
 }

@@ -148,6 +148,7 @@ objects:
     dependencies:
       - swatch-tally
       - swatch-subscription-sync
+      - rbac
 
     kafkaTopics:
       - replicas: ${{KAFKA_TALLY_REPLICAS}}

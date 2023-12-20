@@ -433,7 +433,7 @@ public class MetricUsageCollector {
             .orElse(BillingProvider.RED_HAT);
     String effectiveBillingAcctId =
         Optional.ofNullable(event.getBillingAccountId()).orElse(Optional.empty()).orElse("");
-    Set<String> productTags = event.getProductTag();
+    Set<String> productTags = getProductTag(event);
     Set<ServiceLevel> slas = Set.of(effectiveSla, ServiceLevel._ANY);
     Set<Usage> usages = Set.of(effectiveUsage, Usage._ANY);
     Set<BillingProvider> billingProviders = Set.of(effectiveProvider, BillingProvider._ANY);
@@ -460,6 +460,21 @@ public class MetricUsageCollector {
                   false));
           host.addBucket(bucket);
         });
+  }
+
+  /**
+   * Logic to extract the product tag using this order: - From the event productTag field which you
+   * have been populated after <a
+   * href="https://issues.redhat.com/browse/SWATCH-1928">SWATCH-1928</a> - Last case, using the
+   * subscription configuration (the same that was doing before SWATCH-1928).
+   */
+  private Set<String> getProductTag(Event event) {
+    if (event.getProductTag() != null) {
+      return event.getProductTag();
+    }
+
+    // remain old logic
+    return EventController.getPaygEligibleProductTags(event);
   }
 
   private Set<String> getBillingAccountIds(String billingAcctId) {
