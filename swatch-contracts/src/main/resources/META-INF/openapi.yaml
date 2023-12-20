@@ -538,7 +538,7 @@ components:
               type: string
             azureTenantId:
               type: string
-            offerId:
+            azureOfferId:
               type: string
             planId:
               type: string
