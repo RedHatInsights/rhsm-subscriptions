@@ -24,6 +24,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.google.common.collect.MoreCollectors;
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -695,19 +696,17 @@ public class SubscriptionSyncController {
    */
   public OfferingProductTags findProductTags(String sku) {
     OfferingProductTags productTags = new OfferingProductTags();
-    var productTag = offeringRepository.findProductNameBySku(sku);
-    if (productTag.isPresent()) {
-      var variant = Variant.findByProductName(productTag.get());
-      if (variant.isPresent()) {
-        return productTags.data(List.of(variant.get().getTag()));
-      }
-    } else {
+    var offering = offeringRepository.findOfferingBySku(sku);
+    if (offering == null) {
       throw new MissingOfferingException(
           ErrorCode.OFFERING_MISSING_ERROR,
           Response.Status.NOT_FOUND,
           String.format("Sku %s not found in Offering", sku),
           null);
     }
+    SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
+            offering.getRole(), offering.getProductIds())
+        .forEach(productTags::addDataItem);
     return productTags;
   }
 }

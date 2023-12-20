@@ -41,7 +41,16 @@ import lombok.Getter;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
-import org.candlepin.subscriptions.db.model.*;
+import org.candlepin.subscriptions.db.model.AccountServiceInventory;
+import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostBucketKey;
+import org.candlepin.subscriptions.db.model.HostHardwareType;
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.util.DateRange;
@@ -474,7 +483,9 @@ public class MetricUsageCollector {
     }
 
     // remain old logic
-    return EventController.getPaygEligibleProductTags(event);
+    String role = Optional.ofNullable(event.getRole()).map(Object::toString).orElse(null);
+    return SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
+        role, event.getProductIds());
   }
 
   private Set<String> getBillingAccountIds(String billingAcctId) {

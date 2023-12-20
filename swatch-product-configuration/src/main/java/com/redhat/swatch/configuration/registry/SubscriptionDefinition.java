@@ -25,6 +25,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -172,6 +173,32 @@ public class SubscriptionDefinition {
         .flatMap(Collection::stream)
         .map(Variant::getTag)
         .collect(Collectors.toUnmodifiableSet());
+  }
+
+  public static Set<String> getAllProductTagsWithPaygEligibleByRoleOrEngIds(
+      String role, Collection<?> engIds) {
+    Set<String> productTags = new HashSet<>();
+    // Filter tags that are paygEligible
+
+    if (role != null) {
+      SubscriptionDefinition.lookupSubscriptionByRole(role)
+          .filter(SubscriptionDefinition::isPaygEligible)
+          .flatMap(s -> s.findVariantForRole(role).map(Variant::getTag))
+          .ifPresent(productTags::add);
+    }
+
+    if (engIds != null) {
+      for (Object engIdValue : engIds) {
+        String engId = engIdValue.toString();
+        productTags.addAll(
+            SubscriptionDefinition.lookupSubscriptionByEngId(engId).stream()
+                .filter(SubscriptionDefinition::isPaygEligible)
+                .flatMap(s -> s.findVariantForEngId(engId).map(Variant::getTag).stream())
+                .toList());
+      }
+    }
+
+    return productTags;
   }
 
   /**

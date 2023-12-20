@@ -464,8 +464,9 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void findProductTagsBySku_WhenSkuPresent() {
-    when(offeringRepository.findProductNameBySku("sku"))
-        .thenReturn(Optional.of("OpenShift Container Platform"));
+    Offering offering = new Offering();
+    offering.setRole("ocp");
+    when(offeringRepository.findOfferingBySku("sku")).thenReturn(offering);
 
     OfferingProductTags productTags = subscriptionSyncController.findProductTags("sku");
     assertEquals(1, productTags.getData().size());
@@ -474,14 +475,14 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void findProductTagsBySku_WhenSkuNotPresent() {
-    when(offeringRepository.findProductNameBySku("sku")).thenReturn(Optional.empty());
+    when(offeringRepository.findOfferingBySku("sku")).thenReturn(null);
     RuntimeException e =
         assertThrows(
             MissingOfferingException.class,
             () -> subscriptionSyncController.findProductTags("sku"));
     assertEquals("Sku sku not found in Offering", e.getMessage());
 
-    when(offeringRepository.findProductNameBySku("sku")).thenReturn(Optional.of("placeholder"));
+    when(offeringRepository.findOfferingBySku("sku")).thenReturn(new Offering());
     OfferingProductTags productTags2 = subscriptionSyncController.findProductTags("sku");
     assertNull(productTags2.getData());
   }
