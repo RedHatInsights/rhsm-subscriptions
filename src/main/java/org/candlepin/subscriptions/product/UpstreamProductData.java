@@ -51,6 +51,7 @@ class UpstreamProductData {
       "offeringSku=\"%s\" already has field=%s original=\"%s\" so will ignore value=\"%s\".";
   private static final int CONVERSION_RATIO_IFL_TO_CORES = 4;
   private static final String UNLIMITED_CORES_OR_SOCKETS = "Unlimited";
+  private static final String YES = "y";
 
   /** List of opProd attribute codes used in the making of an Offering. */
   // Non-standard attribute codes are prefixed by "X_". They are not actually attribute codes
@@ -65,6 +66,7 @@ class UpstreamProductData {
     PRODUCT_FAMILY,
     USAGE,
     PRODUCT_NAME,
+    METERED,
     X_DESCRIPTION,
     /** Role originates from opProd roles field, not an attribute. */
     X_ROLE;
@@ -324,6 +326,8 @@ class UpstreamProductData {
     if (usageVal != null && usage == Usage.EMPTY) {
       LOGGER.warn("offeringSku=\"{}\" has unsupported USAGE=\"{}\"", sku, usageVal);
     }
+
+    offering.setMetered(YES.equalsIgnoreCase(attrs.get(Attr.METERED)));
 
     return offering;
   }

@@ -147,6 +147,11 @@ class OperationalProductMessageTest {
                                               .code("USAGE")
                                               .name("Usage")
                                               .value("Production")
+                                              .build(),
+                                          ProductAttribute.builder()
+                                              .code("METERED")
+                                              .name("Metered")
+                                              .value("Y")
                                               .build()
                                         })
                                     .sku("RH0180191")

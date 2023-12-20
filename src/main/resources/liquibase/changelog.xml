@@ -135,6 +135,7 @@
     <include file="/liquibase/202310131200-remove-account-config.xml"/>
     <include file="/liquibase/202310251600-replace-account-config-table.xml"/>
     <include file="/liquibase/202311161207-drop-account-config-table.xml"/>
+    <include file="/liquibase/202312200751-add-metered-column-for-offering-table.xml"/>
     <include file="/liquibase/202401151414-add-retry_after-column-to-billable_usage_remittance-table.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
