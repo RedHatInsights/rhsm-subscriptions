@@ -87,7 +87,8 @@ public interface ContractMapper {
     String providerId = null;
     if ("azure_marketplace".equals(code.getPartner())) {
       providerId =
-          String.format("%s;%s;%s", code.getAzureResourceId(), code.getPlanId(), code.getAzureOfferId());
+          String.format(
+              "%s;%s;%s", code.getAzureResourceId(), code.getPlanId(), code.getAzureOfferId());
     }
     return providerId;
   }
