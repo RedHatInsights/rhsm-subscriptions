@@ -12,7 +12,7 @@ buildscript {
 }
 
 ext {
-    quarkusVersion='3.6.3'
+    quarkusVersion='3.6.4'
     libraries = [:]
     plugins = []
 }
