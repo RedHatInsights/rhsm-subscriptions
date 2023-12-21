@@ -109,10 +109,15 @@ COPY buildSrc buildSrc
 COPY . .
 RUN ./gradlew assemble -x test
 
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.17-1
+FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.17-1.1705573249
+USER root
+RUN microdnf \
+    --disablerepo=* \
+    --enablerepo=ubi-9-baseos-rpms \
+    install -y tar rsync
 
+USER default
 ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en'
-
 
 # We make four distinct layers so if there are application changes the library layers can be re-used
 COPY --from=0 --chown=185 /stage/swatch-metrics/build/quarkus-app/lib/ /deployments/lib/
