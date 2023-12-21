@@ -1,0 +1,42 @@
+[tool.poetry]
+name = "swatchdog"
+version = "0.1.0"
+description = ""
+authors = ["Alex Wood <awood@redhat.com>"]
+readme = "README.md"
+
+[tool.poetry.scripts]
+swatchdog = "swatchdog.swatchdog.cli:cli"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+crc-bonfire = "^5.3.1"
+openshift-client = "^1.0.18"
+rich = "^13.7.0"
+click = "^8.1.7"
+invoke = "^2.2.0"
+prompt-toolkit = "^3.0.43"
+iterfzf = "^1.1.0.44.0"
+
+[tool.poetry.group.dev.dependencies]
+black = "^22.10.0"
+flake8 = "^6.0.0"
+pytest = "^7.2.0"
+pytest-cov = "^4.0.0"
+mypy = "^0.991"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers"
+markers = [
+    "integration_test: marks tests as slow integration tests (deselect with '-m \"not integration_test\"')",
+]
+
+[envs.lint.scripts]
+format = "black swatchdog tests"
+check = "black --check swatchdog tests"
+typing = "mypy swatchdog"
