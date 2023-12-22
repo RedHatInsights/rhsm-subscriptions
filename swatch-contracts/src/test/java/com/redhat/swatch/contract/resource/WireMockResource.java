@@ -33,7 +33,6 @@ import com.redhat.swatch.contract.PathUtils;
 import io.quarkus.test.common.QuarkusTestResourceConfigurableLifecycleManager;
 import java.nio.file.Paths;
 import java.util.Map;
-import java.util.Optional;
 
 public class WireMockResource
     implements QuarkusTestResourceConfigurableLifecycleManager<WireMockTest> {
@@ -47,18 +46,6 @@ public class WireMockResource
   private static final String TRUSTSTORE_PATH = String.format("%s/test-ca.jks", BASE_KEYSTORE_PATH);
   public static final String STORE_PASSWORD = "password";
   private WireMockServer wireMockServer;
-
-  public static void main(String[] args) {
-    int wiremockPort =
-        Integer.parseInt(Optional.ofNullable(System.getenv("WIREMOCK_PORT")).orElse("8101"));
-    System.out.printf("Running mock services on port %d%n", wiremockPort);
-    var resource = new WireMockResource();
-    resource.wireMockServer =
-        new WireMockServer(
-            WireMockConfiguration.options().port(wiremockPort).notifier(new ConsoleNotifier(true)));
-    resource.stubApis();
-    resource.wireMockServer.start();
-  }
 
   @Override
   public Map<String, String> start() {
@@ -86,10 +73,10 @@ public class WireMockResource
   private void stubApis() {
     stubForRhPartnerApi(wireMockServer);
     stubForInternalSubscriptionService(wireMockServer);
-    stubForSubscriptioinService(wireMockServer);
+    stubForSubscriptionService(wireMockServer);
   }
 
-  private void stubForSubscriptioinService(WireMockServer wireMockServer) {
+  private void stubForSubscriptionService(WireMockServer wireMockServer) {
     wireMockServer.stubFor(
         any(urlMatching("/mock/subscription/search.*subscription_number.*"))
             .willReturn(
