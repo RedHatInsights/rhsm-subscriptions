@@ -37,7 +37,7 @@ ext.plugins = [
 
 // BOMs
 libraries["quarkus-bom"] = "io.quarkus.platform:quarkus-bom:${quarkusVersion}"
-libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-dependencies:3.1.6"
+libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-dependencies:3.2.1"
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:2.1.1"
