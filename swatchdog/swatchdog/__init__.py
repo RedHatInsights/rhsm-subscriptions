@@ -16,7 +16,7 @@ LOG_DATEFMT = "%Y-%m-%d %H:%M:%S"
 
 # Rich setup
 console = Console()
-# install(show_locals=False)
+install(show_locals=False)
 
 
 def init_log_level(log_level):

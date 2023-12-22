@@ -1,3 +1,4 @@
+import logging
 import os
 
 import click
@@ -83,25 +84,14 @@ class GradleWatcher(StreamWatcher):
 @pass_swatch
 @click.pass_context
 def ee(ctx, swatch: SwatchContext, ee_token: str):
+    ctx.obj = dict()
     if ee_token is None:
         ee_token = openshift.whoami("-t")
     if not swatch.has_config("ee_token"):
         swatch.set_config("ee_token", ee_token)
     # Create a simple dictionary for commands in this group to communicate over
     # The SwatchContext will be in the parent context to this one
-    ctx.obj = dict()
-
-
-@ee.command()
-@click.option("-c", "--clean", type=bool, default=True, show_default=True)
-@pass_swatch
-@click.pass_context
-def build(ctx, swatch: SwatchContext, clean: bool):
     c = InvokeContext(invoke_config)
-    clean_arg = ""
-    if clean:
-        clean_arg = "clean"
-
     try:
         result: t.Optional[Result] = c.run("git rev-parse --show-toplevel", hide=True)
     except UnexpectedExit as e:
@@ -110,25 +100,39 @@ def build(ctx, swatch: SwatchContext, clean: bool):
         sys.exit(e.result.exited)
 
     project_root: str = result.stdout.rstrip()
-    # version_scrapper = GradleWatcher(pattern = r"Inferred project:.*")
+    ctx.obj["project_root"] = project_root
+
+
+@ee.command()
+# TODO allow passage of a gradle coordinate to build a specific project and pass that
+#   down to the selection dialog in deploy so only the artifacts built are shown
+@click.option("-c", "--clean", type=bool, default=True, show_default=True)
+@pass_swatch
+@click.pass_context
+def build(ctx, swatch: SwatchContext, clean: bool):
+    c = InvokeContext(invoke_config)
+    project_root: str = ctx["project_root"]
+    clean_arg = ""
+    if clean:
+        clean_arg = "clean"
 
     with c.cd(project_root):
         info("Running build")
         try:
             results: t.List = []
-            version_scrapper = GradleWatcher(
+            version_scraper = GradleWatcher(
                 # Use a positive lookbehind to avoid pulling the "Inferred project"
                 # into the match
                 pattern=r"(?<=Inferred project:).*",
                 results=results,
             )
-            c.run(f"./gradlew {clean_arg} assemble", watchers=[version_scrapper])
+            c.run(f"./gradlew {clean_arg} assemble", watchers=[version_scraper])
         except UnexpectedExit as e:
             err("Build failed")
             sys.exit(e.result.exited)
 
     # TODO Handle multiple results in the future
-    if len(version_scrapper.results) != 1:
+    if len(version_scraper.results) != 1:
         raise SwatchDogError("Build did not result in a single version")
     else:
         version = results[0]
@@ -144,33 +148,157 @@ def find_artifacts(project_root, version) -> t.List:
 
 
 @ee.command()
+@click.option("--clean/--no-clean", default=True)
+@click.option("-p", "--pod-prefix", type=str)
+@click.option("--project", type=str)
 @click.pass_context
-def deploy(ctx):
-    # TODO need to set back to true
-    ctx.invoke(build, clean=False)
+def deploy(ctx, clean: bool, pod_prefix: str, project: str):
+    try:
+        openshift.whoami()
+    except Exception as e:
+        logging.exception(e)
+        err("Could not communicate with Openshift. Are you logged in?")
+        sys.exit(1)
 
-    artifacts = ctx.obj["artifacts"]
-    version = ctx.obj["version"]
-    common_prefix = os.path.commonpath(artifacts)
-
-    display_artifacts = collections.OrderedDict()
-    for text in sorted(artifacts):
-        display_text = os.path.relpath(text).removesuffix(f"{version}.jar")
-        display_text += "[...].jar"
-        display_artifacts[display_text] = text
-
-    deployable = choose_artifact(display_artifacts)
-    deployment_selector = choose_pods()
+    project_root = ctx.obj["project_root"]
+    project: str = choose_project(project_root, selection=project)
+    rsync_dir: str = build_project(project, project_root, clean)
+    deployment_selector: openshift.Selector = choose_pods(pod_prefix)
+    sync_code(rsync_dir, deployment_selector)
 
 
-def choose_pods() -> openshift.Selector:
+def build_project(project: str, project_root: str, clean: bool) -> str:
+    clean_arg = ""
+    if clean:
+        clean_arg = "clean"
+
+    c = InvokeContext(invoke_config)
+
+    with c.cd(project_root):
+        info("Running build")
+        # Compile the class files
+        try:
+            c.run(f"./gradlew {clean_arg} {project}:classes")
+        except UnexpectedExit as e:
+            err("Build failed")
+            sys.exit(e.result.exited)
+
+        # Determine where those class files were placed
+        try:
+            results: t.List = []
+            build_dir_scraper = GradleWatcher(
+                pattern=r"(?<=buildDir: )\S+", results=results
+            )
+            c.run(
+                f"./gradlew {project}:properties --property buildDir",
+                watchers=[build_dir_scraper],
+            )
+        except UnexpectedExit as e:
+            err("Could not determine build directory")
+            sys.exit(e.result.exited)
+
+        # Get the path to the directory to rsync to the pod
+        if len(results) == 1:
+            rsync_dir = os.path.join(results[0], "classes", "java", "main")
+            # This is important.  Without the trailing slash, rsync will sync the
+            # directory by name rather than the contents of the directory. I.e. you will
+            # end up with "/deployments/main/META-INF" rather than
+            # "/deployments/META-INF".  See the rsync man page's USAGE section and
+            # look for the phrase "trailing slash".
+            rsync_dir = f"{rsync_dir}{os.path.sep}"
+        else:
+            raise SwatchDogError(f"Ambiguous build location: {results}")
+
+        if os.path.exists(rsync_dir):
+            return rsync_dir
+        else:
+            raise SwatchDogError(f"No directory {rsync_dir} to sync class files from")
+
+
+def choose_project(project_root: str, selection: str) -> str:
+    c = InvokeContext(invoke_config)
+    with c.cd(project_root):
+        try:
+            results: t.List = []
+            project_scraper = GradleWatcher(
+                # Use a positive lookbehind to avoid pulling the "Project"
+                # into the match
+                pattern=r"[\|\+\-\\ ]+(?<=Project )'[:\w\-]+'",
+                results=results,
+            )
+            c.run("./gradlew projects", watchers=[project_scraper])
+        except UnexpectedExit as e:
+            err("Build failed")
+            sys.exit(e.result.exited)
+    # Add the root project
+    results = [r.strip("' ") for r in results]
+
+    results_dict: dict = dict(zip(results, results))
+    results_dict[": <root project>"] = ""
+    choice: str = iterfzf.iterfzf(
+        sorted(results_dict.keys()),
+        query=selection,
+        # TODO get select-1 working
+        # __extra__=["--select-1"]
+    )
+    return results_dict[choice]
+
+
+def sync_code(rsync_dir, deployment_selector):
+    # oc cp/rsync deployable to /deployments*
+    # Need to also handle container name selection from the pod
+
+    for pod in deployment_selector.objects():
+        containers: t.List = [
+            p.name
+            for p in pod.model.spec.containers
+            if "web" in map(lambda x: x["name"], p["ports"])
+        ]
+
+        if len(containers) == 1:
+            container = containers[0]
+        else:
+            raise SwatchDogError(
+                f"Could not determine container to deploy to from list {containers}"
+            )
+
+        # TODO there's an option for oc rync: -w to watch a directory.  Worth exploring
+        #   for an even tighter deployment loop.  The difficulty is with handling clean
+        #   operations.  Would definitely want --delete=false on for that
+        # NB: if you add non-long form options be sure to use two strings.
+        # E.g. ["-x", "something"] and not ["-x something"]
+        rsync_args = [
+            "--no-perms=true",
+            "--progress=true",
+            # TODO need to handle deleting a class file properly. Right now
+            #  the rsync delete will trash everything else under /deployments (e.g.
+            #  "/lib").  We'd need to do an rsync for each directory under "main".  Not
+            #  too hard but we'll need to remove the os.path.sep from the source
+            #  argument since we'll want the directory itself to appear in
+            #  /deployments, not just the contents
+            # "--delete=true",  # TODO might want to make this an option people can set
+            "--strategy=rsync",
+            f"--container={container}",
+            f"{rsync_dir}",
+            f"{pod.name()}:/deployments/",
+        ]
+        result: openshift.Result = openshift.invoke(
+            "rsync", rsync_args, auto_raise=True
+        )
+        print(result.out())
+
+
+def choose_pods(pod_prefix: str) -> openshift.Selector:
     pod_choices: t.Dict[str, str] = {}
     for pod in openshift.selector("pods").objects():
         pod_choices[pod.name()] = pod.qname()
 
     # TODO: Could we be using openshift labels better?  Tagging our pods with a swatch label so we
     # can actually select on it instead of pulling back everything and then filtering?
-    selections = iterfzf.iterfzf(pod_choices.keys(), query="swatch", multi=True)
+    header: str = "TAB/SHIFT-TAB for multiple selections"
+    selections = iterfzf.iterfzf(
+        pod_choices.keys(), query=pod_prefix, multi=True, __extra__=["--header", header]
+    )
     return openshift.selector([pod_choices[x] for x in selections])
 
 
