@@ -154,6 +154,20 @@ The OTEL exporter will be listening for gRPC connections on port 4317.
 for the SWATCH contracts service, we need to provide the OTEL_ENDPOINT property to point out to the 
 local otel exporter: `java -DOTEL_ENDPOINT=http://localhost:4317 -jar swatch-contracts/build/quarkus-app/quarkus-run.jar`
 
+### Splunk
+
+Some services integrate the log traces into Splunk. For these services, we can start Splunk via:
+
+```
+podman-compose -f config/splunk/docker-compose.yml up -d
+```
+
+Splunk will be listening on port 8088. 
+
+*NOTE*: We need to configure our services to work with this Splunk instance. For example,
+for the SWATCH contracts service, we need: 
+`java -DENABLE_SPLUNK_HEC=false -DSPLUNK_HEC_URL=https://localhost:8088 -DSPLUNK_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 -DSWATCH_SELF_PSK=placeholder -DSPLUNK_DISABLE_CERTIFICATE_VALIDATION=true -jar swatch-contracts/build/quarkus-app/quarkus-run.jar`
+
 ### Build and Run rhsm-subscriptions
 
 ```

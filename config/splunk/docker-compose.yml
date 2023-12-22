@@ -1,0 +1,13 @@
+---
+version: '3.1'
+services:
+  splunk:
+    image: splunk/splunk
+    ports:
+      - '8088:8088'
+      - '8089' # SPLUNK API
+      - '8000' # SPLUNK CONSOLE
+    environment:
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_PASSWORD=admin123
+      - SPLUNK_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75
