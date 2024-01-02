@@ -85,7 +85,7 @@ public interface ContractMapper {
   @Named("billingProviderId")
   default String extractBillingProviderId(PartnerEntitlementContractCloudIdentifiers code) {
     String providerId = null;
-    if ("azure_marketplace".equals(code.getPartner())) {
+    if (Objects.equals("azure_marketplace", code.getPartner())) {
       providerId =
           String.format(
               "%s;%s;%s", code.getAzureResourceId(), code.getPlanId(), code.getAzureOfferId());
@@ -149,6 +149,17 @@ public interface ContractMapper {
         && !rhEntitlements.isEmpty()
         && Objects.nonNull(rhEntitlements.get(0))) {
       return rhEntitlements.get(0).getSku();
+    } else {
+      return null;
+    }
+  }
+
+  @Named("rhSubscriptionNumber")
+  default String getRhSubscriptionNumber(List<RhEntitlementV1> rhEntitlements) {
+    if (Objects.nonNull(rhEntitlements)
+        && !rhEntitlements.isEmpty()
+        && Objects.nonNull(rhEntitlements.get(0))) {
+      return rhEntitlements.get(0).getSubscriptionNumber();
     } else {
       return null;
     }
