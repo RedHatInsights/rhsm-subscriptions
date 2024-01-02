@@ -55,6 +55,7 @@ fi
 # Exit script if a podman command fails
 trap build_failed ERR
 
+./gradlew clean
 for p in "${projects[@]}"; do
   case "$p" in
     "rhsm")
