@@ -156,13 +156,11 @@ public interface ContractMapper {
 
   @Named("rhSubscriptionNumber")
   default String getRhSubscriptionNumber(List<RhEntitlementV1> rhEntitlements) {
-    if (Objects.nonNull(rhEntitlements)
-        && !rhEntitlements.isEmpty()
-        && Objects.nonNull(rhEntitlements.get(0))) {
-      return rhEntitlements.get(0).getSubscriptionNumber();
-    } else {
-      return null;
-    }
+    return Objects.nonNull(rhEntitlements)
+            && !rhEntitlements.isEmpty()
+            && Objects.nonNull(rhEntitlements.get(0))
+        ? rhEntitlements.get(0).getSubscriptionNumber()
+        : null;
   }
 
   Set<ContractMetricEntity> dimensionV1ToContractMetricEntity(Set<DimensionV1> dimension);
