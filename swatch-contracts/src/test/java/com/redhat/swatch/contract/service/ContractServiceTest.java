@@ -243,6 +243,14 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
+  void testCreateAzureContractMissingRHSubscriptionId() throws Exception {
+    var contract = givenAzurePartnerEntitlementContract();
+    mockPartnerApi();
+    StatusResponse statusResponse = contractService.createPartnerContract(contract);
+    assertEquals("New contract created", statusResponse.getMessage());
+  }
+
+  @Test
   void testCreatePartnerContractCreatesCorrectBillingProviderId() throws Exception {
     var contract = new PartnerEntitlementContract();
     contract.setRedHatSubscriptionNumber("subnum");
@@ -309,6 +317,20 @@ class ContractServiceTest extends BaseUnitTest {
     cloudIdentifiers.setAwsCustomerAccountId("568056954830");
     cloudIdentifiers.setProductCode("product123");
     contract.setCloudIdentifiers(cloudIdentifiers);
+    return contract;
+  }
+
+  private static PartnerEntitlementContract givenAzurePartnerEntitlementContract() {
+    var contract = new PartnerEntitlementContract();
+    contract.setCurrentDimensions(
+        List.of(new Dimension().dimensionName("vCPU").dimensionValue("4")));
+    contract.setCloudIdentifiers(
+        new PartnerEntitlementContractCloudIdentifiers()
+            .partner(SourcePartnerEnum.AZURE_MARKETPLACE.value())
+            .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
+            .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
+            .azureOfferId("azureProductCode")
+            .planId("rh-rhel-sub-1yr"));
     return contract;
   }
 
@@ -383,7 +405,8 @@ class ContractServiceTest extends BaseUnitTest {
                     .azureSubscriptionId("fa650050-dedd-4958-b901-d8e5118c0a5f")
                     .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
                     .azureCustomerId("eadf26ee-6fbc-4295-9a9e-25d4fea8951d_2019-05-31"))
-            .rhEntitlements(List.of(new RhEntitlementV1().sku("MCT4249")))
+            .rhEntitlements(
+                List.of(new RhEntitlementV1().sku("MCT4249").subscriptionNumber("testSubId")))
             .purchase(
                 new PurchaseV1()
                     .vendorProductCode("azureProductCode")

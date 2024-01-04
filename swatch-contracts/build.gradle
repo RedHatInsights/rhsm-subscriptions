@@ -93,9 +93,3 @@ openApiGenerate {
 }
 
 sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
-
-tasks.register("wiremock", JavaExec) {
-    description = "Run mock REST services for this service"
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = "com.redhat.swatch.contract.resource.WireMockResource"
-}

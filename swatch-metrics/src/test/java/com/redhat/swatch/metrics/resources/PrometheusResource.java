@@ -26,24 +26,17 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import java.util.Map;
-import java.util.Optional;
 
 public class PrometheusResource implements QuarkusTestResourceLifecycleManager {
-
-  private static final String PROMETHEUS_DEFAULT_PORT = "8101";
-  private static final String WIREMOCK_PORT = "WIREMOCK_PORT";
-
   private WireMockServer wireMockServer;
 
   @Override
   public Map<String, String> start() {
-    int wiremockPort =
-        Integer.parseInt(
-            Optional.ofNullable(System.getenv(WIREMOCK_PORT)).orElse(PROMETHEUS_DEFAULT_PORT));
     wireMockServer =
-        new WireMockServer(wireMockConfig().port(wiremockPort).notifier(new ConsoleNotifier(true)));
+        new WireMockServer(wireMockConfig().dynamicPort().notifier(new ConsoleNotifier(true)));
     wireMockServer.resetAll();
     wireMockServer.start();
+    System.out.printf("Running mock services on port %d%n", wireMockServer.port());
     return Map.of(
         "rhsm-subscriptions.metering.prometheus.client.url",
         "http://localhost:" + wireMockServer.port());
@@ -52,6 +45,7 @@ public class PrometheusResource implements QuarkusTestResourceLifecycleManager {
   @Override
   public void stop() {
     if (wireMockServer != null) {
+      System.out.printf("Stopping mock services on port %d%n", wireMockServer.port());
       wireMockServer.stop();
       wireMockServer = null;
     }
