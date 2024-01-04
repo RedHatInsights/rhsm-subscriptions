@@ -39,6 +39,8 @@ parameters:
     value: '3'
   - name: QUARKUS_PROFILE
     value: prod
+  - name: ENABLE_AZURE_DRY_RUN
+    value: true
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -132,6 +134,8 @@ objects:
               value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
             - name: QUARKUS_PROFILE
               value: ${QUARKUS_PROFILE}
+            - name: ENABLE_AZURE_DRY_RUN
+              value: ${ENABLE_AZURE_DRY_RUN}
           volumeMounts:
             - name: logs
               mountPath: /logs
