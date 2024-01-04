@@ -40,7 +40,7 @@ parameters:
   - name: QUARKUS_PROFILE
     value: prod
   - name: ENABLE_AZURE_DRY_RUN
-    value: true
+    value: 'true'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
