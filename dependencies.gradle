@@ -13,6 +13,7 @@ buildscript {
 
 ext {
     quarkusVersion='3.6.4'
+    springVersion='3.2.1'
     libraries = [:]
     plugins = []
 }
@@ -31,13 +32,13 @@ ext.plugins = [
         "org.liquibase:liquibase-gradle-plugin:2.2.1",
         "org.kordamp.gradle:jandex-gradle-plugin:1.1.0",
         "org.openapitools:openapi-generator-gradle-plugin:7.2.0",
-        "org.springframework.boot:spring-boot-gradle-plugin:3.2.1",
+        "org.springframework.boot:spring-boot-gradle-plugin:${springVersion}",
         "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:4.4.1.3373",
 ]
 
 // BOMs
 libraries["quarkus-bom"] = "io.quarkus.platform:quarkus-bom:${quarkusVersion}"
-libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-dependencies:3.2.1"
+libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-dependencies:${springVersion}"
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:2.1.1"
