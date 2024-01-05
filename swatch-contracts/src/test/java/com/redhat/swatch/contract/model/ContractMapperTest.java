@@ -25,7 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.contract.openapi.model.Contract;
+import com.redhat.swatch.contract.openapi.model.Dimension;
 import com.redhat.swatch.contract.openapi.model.Metric;
+import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
+import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContractCloudIdentifiers;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import com.redhat.swatch.contract.repository.OfferingEntity;
@@ -35,6 +38,7 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -204,5 +208,38 @@ class ContractMapperTest {
     assertEquals(metric.getMetricId(), measurement.getMetricId());
     assertEquals(metric.getValue(), measurement.getValue());
     assertEquals("PHYSICAL", measurement.getMeasurementType());
+  }
+
+  @Test
+  void testUmbContractToEntityWithDimensions() {
+    String metricId = "vcpu_hours";
+
+    PartnerEntitlementContract partnerContractFromUmb = new PartnerEntitlementContract();
+
+    PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
+        new PartnerEntitlementContractCloudIdentifiers();
+    cloudIdentifiers
+        .azureResourceId("azure_resource_id_placeholder")
+        .azureOfferId("azure_offer_id_placeholder")
+        .planId("vcpu-hours")
+        .azureTenantId("azure_tenant_id_placeholder")
+        .partner("azure_marketplace");
+
+    var dimension = new Dimension();
+
+    dimension.dimensionName(metricId);
+    dimension.dimensionValue("0");
+    List<Dimension> dimensions = List.of(dimension);
+
+    partnerContractFromUmb
+        .action("contract-updated")
+        .currentDimensions(dimensions)
+        .cloudIdentifiers(cloudIdentifiers);
+
+    var entity = mapper.partnerContractToContractEntity(partnerContractFromUmb);
+
+    var expectedMetricEntity = ContractMetricEntity.builder().metricId(metricId).value(0.0).build();
+
+    assertEquals(Set.of(expectedMetricEntity), entity.getMetrics());
   }
 }

@@ -103,6 +103,10 @@ public class ContractEntity extends PanacheEntityBase {
       mappedBy = "contract")
   private Set<ContractMetricEntity> metrics = new HashSet<>();
 
+  public void addMetrics(Set<ContractMetricEntity> metrics) {
+    metrics.forEach(this::addMetric);
+  }
+
   public void addMetric(ContractMetricEntity metric) {
     metrics.add(metric);
     metric.setContract(this);

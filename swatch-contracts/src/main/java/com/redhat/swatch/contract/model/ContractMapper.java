@@ -67,6 +67,7 @@ public interface ContractMapper {
       target = "vendorProductCode",
       source = "cloudIdentifiers",
       qualifiedByName = "vendorProductCode")
+  @Mapping(target = "metrics", source = "currentDimensions")
   @BeanMapping(ignoreByDefault = true)
   ContractEntity partnerContractToContractEntity(PartnerEntitlementContract contract);
 
@@ -117,9 +118,7 @@ public interface ContractMapper {
 
   @Mapping(target = "metricId", source = "dimension.dimensionName")
   @Mapping(target = "value", source = "dimension.dimensionValue")
-  @Mapping(target = "contract", ignore = true)
-  @Mapping(target = "contractUuid", ignore = true)
-  ContractMetricEntity dimensionToContractMetricEntity(Dimension dimension);
+  ContractMetricEntity umbDimensionToEntityDimension(Dimension dimension);
 
   @Mapping(target = "orgId", source = "entitlement.rhAccountId")
   @Mapping(target = "billingAccountId", source = "entitlement.partnerIdentities")
