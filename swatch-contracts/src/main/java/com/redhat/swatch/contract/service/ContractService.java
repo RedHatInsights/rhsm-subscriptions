@@ -243,7 +243,7 @@ public class ContractService {
             "Duplicate contract found that matches the record for uuid {}",
             existingContract.getUuid());
         statusResponse.setMessage("Duplicate record found");
-        statusResponse.setStatus(SUCCESS_MESSAGE);
+        statusResponse.setStatus(FAILURE_MESSAGE);
       } else {
         // Record found in contract table but, the contract has changed
         var now = OffsetDateTime.now();
@@ -262,6 +262,7 @@ public class ContractService {
       persistSubscription(createSubscriptionForContract(entity, billingProviderId, true), now);
       persistContract(entity, now);
       statusResponse.setMessage("New contract created");
+      statusResponse.setStatus(SUCCESS_MESSAGE);
     }
 
     return statusResponse;
