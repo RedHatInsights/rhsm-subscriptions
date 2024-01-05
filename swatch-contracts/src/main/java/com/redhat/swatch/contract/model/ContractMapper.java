@@ -35,11 +35,9 @@ import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionMeasurementEntity;
 import com.redhat.swatch.contract.repository.SubscriptionProductIdEntity;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Builder;
 import org.mapstruct.CollectionMappingStrategy;
@@ -120,7 +118,7 @@ public interface ContractMapper {
 
   @Mapping(target = "metricId", source = "dimension.dimensionName")
   @Mapping(target = "value", source = "dimension.dimensionValue")
-  ContractMetricEntity umbDimentionToEntityDimension(Dimension dimension);
+  ContractMetricEntity umbDimensionToEntityDimension(Dimension dimension);
 
   @Mapping(target = "orgId", source = "entitlement.rhAccountId")
   @Mapping(target = "billingAccountId", source = "entitlement.partnerIdentities")
