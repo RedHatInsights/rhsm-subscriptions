@@ -203,6 +203,7 @@ public class ContractService {
 
     if (!validPartnerEntitlementContract(contract)) {
       statusResponse.setMessage("Empty value found in UMB message");
+      statusResponse.setStatus(FAILURE_MESSAGE);
       log.info("Empty value found in UMB message {}", contract);
       return statusResponse;
     }
@@ -217,16 +218,19 @@ public class ContractService {
       billingProviderId = mapper.extractBillingProviderId(contract.getCloudIdentifiers());
       if (!isValidEntity(entity)) {
         statusResponse.setMessage("Empty value in non-null fields");
+        statusResponse.setStatus(FAILURE_MESSAGE);
         log.warn("Empty value in non-null fields for contract entity {}", entity);
         return statusResponse;
       }
     } catch (NumberFormatException e) {
       log.error(e.getMessage());
       statusResponse.setMessage("An Error occurred while reconciling contract");
+      statusResponse.setStatus(FAILURE_MESSAGE);
       return statusResponse;
     } catch (ProcessingException | ApiException e) {
       log.error(e.getMessage());
       statusResponse.setMessage("An Error occurred while calling Partner Api");
+      statusResponse.setStatus(FAILURE_MESSAGE);
       return statusResponse;
     }
 
@@ -240,6 +244,7 @@ public class ContractService {
             "Duplicate contract found that matches the record for uuid {}",
             existingContract.getUuid());
         statusResponse.setMessage("Duplicate record found");
+        statusResponse.setStatus(SUCCESS_MESSAGE);
       } else {
         // Record found in contract table but, the contract has changed
         var now = OffsetDateTime.now();
@@ -249,6 +254,7 @@ public class ContractService {
 
         persistContract(entity, now); // Persist new contract
         log.info("Previous contract archived and new contract created");
+        statusResponse.setStatus(SUCCESS_MESSAGE);
         statusResponse.setMessage("Previous contract archived and new contract created");
       }
     } else {
