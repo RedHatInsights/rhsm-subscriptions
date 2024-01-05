@@ -212,6 +212,7 @@ public class ContractService {
     try {
       // Fill up information from upstream and swatch
       entity = mapper.partnerContractToContractEntity(contract);
+      entity.setMetrics(mapper.dimensionToContractMetricEntity(contract.getCurrentDimensions()));
       collectMissingUpStreamContractDetails(entity, contract);
       billingProviderId = mapper.extractBillingProviderId(contract.getCloudIdentifiers());
       if (!isValidEntity(entity)) {
@@ -573,12 +574,14 @@ public class ContractService {
               .filter(contract -> Objects.isNull(contract.getEndDate()))
               .flatMap(contract -> contract.getDimensions().stream())
               .collect(Collectors.toSet());
-      entity.setMetrics(mapper.dimensionV1ToContractMetricEntity(dimensionV1s));
+      entity.addMetrics(mapper.dimensionV1ToContractMetricEntity(dimensionV1s));
       if (Objects.isNull(entity.getSubscriptionNumber())) {
         entity.setSubscriptionNumber(
             mapper.getRhSubscriptionNumber(entitlement.getRhEntitlements()));
       }
       populateProductIdBySku(entity);
+    } else {
+      log.error("No results found from partner entitlement for contract {}", entity.toString());
     }
   }
 

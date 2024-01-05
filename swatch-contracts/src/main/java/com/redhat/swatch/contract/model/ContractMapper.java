@@ -35,9 +35,11 @@ import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import com.redhat.swatch.contract.repository.SubscriptionEntity;
 import com.redhat.swatch.contract.repository.SubscriptionMeasurementEntity;
 import com.redhat.swatch.contract.repository.SubscriptionProductIdEntity;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Builder;
 import org.mapstruct.CollectionMappingStrategy;
@@ -115,11 +117,19 @@ public interface ContractMapper {
     return BillingProvider.fromString(value);
   }
 
-  @Mapping(target = "metricId", source = "dimension.dimensionName")
-  @Mapping(target = "value", source = "dimension.dimensionValue")
-  @Mapping(target = "contract", ignore = true)
-  @Mapping(target = "contractUuid", ignore = true)
-  ContractMetricEntity dimensionToContractMetricEntity(Dimension dimension);
+  default Set<ContractMetricEntity> dimensionToContractMetricEntity(List<Dimension> dimensions) {
+    if (Objects.isNull(dimensions)) {
+      return new HashSet<>();
+    }
+    return dimensions.stream()
+        .map(
+            dimension ->
+                ContractMetricEntity.builder()
+                    .metricId(dimension.getDimensionName())
+                    .value(Double.valueOf(dimension.getDimensionValue()))
+                    .build())
+        .collect(Collectors.toSet());
+  }
 
   @Mapping(target = "orgId", source = "entitlement.rhAccountId")
   @Mapping(target = "billingAccountId", source = "entitlement.partnerIdentities")

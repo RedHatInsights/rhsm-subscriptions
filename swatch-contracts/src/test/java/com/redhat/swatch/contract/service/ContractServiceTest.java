@@ -21,6 +21,7 @@
 package com.redhat.swatch.contract.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -53,6 +54,7 @@ import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContractCloudIdentifiers;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.repository.ContractEntity;
+import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import com.redhat.swatch.contract.repository.ContractRepository;
 import com.redhat.swatch.contract.repository.OfferingEntity;
 import com.redhat.swatch.contract.repository.OfferingRepository;
@@ -220,6 +222,37 @@ class ContractServiceTest extends BaseUnitTest {
   void syncContractWithEmptyContractsList() {
     StatusResponse statusResponse = contractService.syncContractByOrgId(ORG_ID);
     assertEquals(ORG_ID + " not found in table", statusResponse.getMessage());
+  }
+
+  @Test
+  void testCreatePartnerContractSetsCorrectDimensionAzure() throws Exception {
+    var contract = new PartnerEntitlementContract();
+    contract.setRedHatSubscriptionNumber("subnum");
+    contract.setCurrentDimensions(
+        List.of(new Dimension().dimensionName("vCPU").dimensionValue("4")));
+    contract.setCloudIdentifiers(
+        new PartnerEntitlementContractCloudIdentifiers()
+            .partner(SourcePartnerEnum.AZURE_MARKETPLACE.value())
+            .azureResourceId("a69ff71c-aa8b-43d9-dea8-822fab4bbb86")
+            .azureTenantId("64dc69e4-d083-49fc-9569-ebece1dd1408")
+            .azureOfferId("azureProductCode")
+            .planId("rh-rhel-sub-1yr"));
+
+    mockPartnerApi();
+
+    ArgumentCaptor<ContractEntity> contractSaveCapture =
+        ArgumentCaptor.forClass(ContractEntity.class);
+    contractService.createPartnerContract(contract);
+    verify(contractRepository).persist(contractSaveCapture.capture());
+    var actualContract = contractSaveCapture.getValue();
+    var expectedMetric =
+        ContractMetricEntity.builder()
+            .metricId("vCPU")
+            .value(4)
+            .contract(actualContract)
+            .contractUuid(actualContract.getUuid())
+            .build();
+    assertTrue(contractSaveCapture.getValue().getMetrics().contains(expectedMetric));
   }
 
   @Test
@@ -394,6 +427,7 @@ class ContractServiceTest extends BaseUnitTest {
     when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
   }
 
+  // TODO: this is not being used because of wiremocks, either need to remove or replace wiremock
   private void mockPartnerApi() throws Exception {
     PartnerApi partnerApi = mock(PartnerApi.class);
     var entitlement =
