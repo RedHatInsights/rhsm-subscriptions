@@ -69,6 +69,7 @@ public interface ContractMapper {
       target = "vendorProductCode",
       source = "cloudIdentifiers",
       qualifiedByName = "vendorProductCode")
+  @Mapping(target = "metrics", source = "currentDimensions")
   @BeanMapping(ignoreByDefault = true)
   ContractEntity partnerContractToContractEntity(PartnerEntitlementContract contract);
 
@@ -117,19 +118,9 @@ public interface ContractMapper {
     return BillingProvider.fromString(value);
   }
 
-  default Set<ContractMetricEntity> dimensionToContractMetricEntity(List<Dimension> dimensions) {
-    if (Objects.isNull(dimensions)) {
-      return new HashSet<>();
-    }
-    return dimensions.stream()
-        .map(
-            dimension ->
-                ContractMetricEntity.builder()
-                    .metricId(dimension.getDimensionName())
-                    .value(Double.valueOf(dimension.getDimensionValue()))
-                    .build())
-        .collect(Collectors.toSet());
-  }
+  @Mapping(target = "metricId", source = "dimension.dimensionName")
+  @Mapping(target = "value", source = "dimension.dimensionValue")
+  ContractMetricEntity umbDimentionToEntityDimension(Dimension dimension);
 
   @Mapping(target = "orgId", source = "entitlement.rhAccountId")
   @Mapping(target = "billingAccountId", source = "entitlement.partnerIdentities")

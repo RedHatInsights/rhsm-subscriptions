@@ -212,7 +212,6 @@ public class ContractService {
     try {
       // Fill up information from upstream and swatch
       entity = mapper.partnerContractToContractEntity(contract);
-      entity.setMetrics(mapper.dimensionToContractMetricEntity(contract.getCurrentDimensions()));
       collectMissingUpStreamContractDetails(entity, contract);
       billingProviderId = mapper.extractBillingProviderId(contract.getCloudIdentifiers());
       if (!isValidEntity(entity)) {
