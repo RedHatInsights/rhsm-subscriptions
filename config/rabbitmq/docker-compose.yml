@@ -2,7 +2,7 @@
 version: '3.1'
 services:
   rabbitmq:
-    image: rabbitmq
+    image: docker.io/library/rabbitmq
     ports:
       - "5672:5672"
     volumes:
