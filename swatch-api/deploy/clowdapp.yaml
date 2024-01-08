@@ -7,6 +7,8 @@ parameters:
   - name: JAVA_DEBUG
     # Set to "true" to enable remote debugging
     value: ''
+  - name: JAVA_OPTS_APPEND
+    value: ''
   - name: DEV_MODE
     value: 'false'
   - name: ENV_NAME
@@ -143,6 +145,8 @@ objects:
             env:
               - name: JAVA_DEBUG
                 value: ${JAVA_DEBUG}
+              - name: JAVA_OPTS_APPEND
+                value: ${JAVA_OPTS_APPEND}
               - name: DEV_MODE
                 value: ${DEV_MODE}
               - name: SERVER_MAX_HTTP_HEADER_SIZE

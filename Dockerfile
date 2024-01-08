@@ -31,6 +31,7 @@ COPY buildSrc buildSrc
 
 COPY . .
 RUN ./gradlew assemble -x test
+RUN jar -xf ./build/libs/*.jar
 
 FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.18-1
 USER root
@@ -39,8 +40,16 @@ RUN microdnf \
     --enablerepo=ubi-9-baseos-rpms \
     install -y tar rsync
 
-USER default
-COPY --from=0 /stage/build/libs/* /deployments/
-COPY --from=0 /stage/build/javaagent/* /opt/
-ENV JAVA_OPTS_APPEND=-javaagent:/opt/splunk-otel-javaagent.jar
+# TODO: Investigate layertools? See https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#container-images.efficient-images.layering
+# and https://spring.io/guides/topicals/spring-boot-docker/#_spring_boot_layer_index
+COPY --from=0 /stage/BOOT-INF/lib /deployments/lib
+COPY --from=0 /stage/META-INF /deployments/META-INF
+COPY --from=0 /stage/BOOT-INF/classes /deployments/
 
+COPY --from=0 /stage/build/javaagent/* /opt/
+RUN chmod -R g=u /deployments
+
+USER default
+ENV JAVA_OPTS_APPEND=-javaagent:/opt/splunk-otel-javaagent.jar
+ENV JAVA_MAIN_CLASS=org.candlepin.subscriptions.BootApplication
+ENV JAVA_LIB_DIR=/deployments/lib/*
