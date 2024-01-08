@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.db;
 
+import static org.candlepin.subscriptions.resource.InstancesResource.FIELD_SORT_PARAM_MAPPING;
+import static org.candlepin.subscriptions.resource.InstancesResource.METRICS_SORT_PARAM;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -32,8 +34,10 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -47,14 +51,13 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.InstancesResource;
-import org.candlepin.subscriptions.utilization.api.model.InstanceReportSort;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
@@ -73,6 +76,8 @@ class TallyInstanceViewRepositoryTest {
   private static final String RHEL = "RHEL";
   private static final String COOL_PROD = "COOL_PROD";
   private static final String DEFAULT_DISPLAY_NAME = "REDHAT_PWNS";
+  private static final String SORT_BY_CORES = "cores";
+  private static final String SORT_BY_BILLING_PROVIDER = "hostBillingProvider";
 
   @Autowired private TallyInstanceViewRepository repo;
   @Autowired private HostRepository hostRepo;
@@ -142,16 +147,17 @@ class TallyInstanceViewRepositoryTest {
 
   @Transactional
   @ParameterizedTest
-  @EnumSource(
-      value = InstanceReportSort.class,
-      mode = EnumSource.Mode.EXCLUDE,
-      names = "CORE_SECONDS")
-  void canSortByInstanceBasedSortMethods(InstanceReportSort sort) {
+  @MethodSource("instanceSortParams")
+  void canSortByInstanceBasedSortMethods(String sort) {
 
-    String sortValue = InstancesResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
+    MetricId referenceMetricId = MetricIdUtils.getCores();
+    String sortValue = FIELD_SORT_PARAM_MAPPING.get(sort);
+    if (sortValue == null) {
+      // it's a metric
+      sortValue = METRICS_SORT_PARAM;
+      referenceMetricId = MetricId.fromString(sort);
+    }
     Pageable page = PageRequest.of(0, 2, Sort.by(sortValue));
-    MetricId referenceMetricId =
-        InstancesResource.SORT_TO_METRIC_ID_MAP.getOrDefault(sort, MetricIdUtils.getCores());
     Page<TallyInstanceView> results =
         repo.findAllBy(
             "ORG_account123",
@@ -232,9 +238,7 @@ class TallyInstanceViewRepositoryTest {
 
     persistHosts(host1, host2, host3);
 
-    InstanceReportSort sort = InstanceReportSort.CORES;
-    String sortValue = InstancesResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
-    Pageable page = PageRequest.of(0, 10, Sort.by(sortValue));
+    Pageable page = PageRequest.of(0, 10, Sort.by(SORT_BY_CORES));
 
     Page<TallyInstanceView> results =
         repo.findAllBy(
@@ -363,10 +367,7 @@ class TallyInstanceViewRepositoryTest {
     persistHosts(host1, host2, host3, host4);
     hostRepo.flush();
 
-    Sort asc =
-        Sort.by(
-            Direction.DESC,
-            InstancesResource.INSTANCE_SORT_PARAM_MAPPING.get(InstanceReportSort.BILLING_PROVIDER));
+    Sort asc = Sort.by(Direction.DESC, SORT_BY_BILLING_PROVIDER);
     Pageable page = PageRequest.of(0, 10, asc);
 
     Page<TallyInstanceView> results =
@@ -425,9 +426,7 @@ class TallyInstanceViewRepositoryTest {
 
     persistHosts(host1, host2, host3);
 
-    InstanceReportSort sort = InstanceReportSort.CORES;
-    String sortValue = InstancesResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
-    Pageable page = PageRequest.of(0, 10, Sort.by(sortValue));
+    Pageable page = PageRequest.of(0, 10, Sort.by(SORT_BY_CORES));
 
     Page<TallyInstanceView> results =
         repo.findAllBy(
@@ -496,9 +495,7 @@ class TallyInstanceViewRepositoryTest {
 
     persistHosts(host1);
 
-    InstanceReportSort sort = InstanceReportSort.CORES;
-    String sortValue = InstancesResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
-    Pageable page = PageRequest.of(0, 10, Sort.by(sortValue));
+    Pageable page = PageRequest.of(0, 10, Sort.by(SORT_BY_CORES));
 
     Page<TallyInstanceView> results =
         repo.findAllBy(
@@ -563,9 +560,7 @@ class TallyInstanceViewRepositoryTest {
 
     persistHosts(host1, host2, host3, host5);
 
-    InstanceReportSort sort = InstanceReportSort.CORES;
-    String sortValue = InstancesResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
-    Pageable page = PageRequest.of(0, 10, Sort.by(sortValue));
+    Pageable page = PageRequest.of(0, 10, Sort.by(SORT_BY_CORES));
 
     Page<TallyInstanceView> results =
         repo.findAllBy(
@@ -585,8 +580,7 @@ class TallyInstanceViewRepositoryTest {
     assertEquals(3L, results.getTotalElements());
     Map<String, TallyInstanceView> hostToBill =
         results.stream()
-            .collect(
-                Collectors.toMap(t -> t.getKey().getInstanceId().toString(), Function.identity()));
+            .collect(Collectors.toMap(t -> t.getKey().getInstanceId(), Function.identity()));
     assertTrue(
         hostToBill
             .keySet()
@@ -641,9 +635,7 @@ class TallyInstanceViewRepositoryTest {
 
     persistHosts(host1, host2, host3);
 
-    InstanceReportSort sort = InstanceReportSort.CORES;
-    String sortValue = InstancesResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
-    Pageable page = PageRequest.of(0, 10, Sort.by(sortValue));
+    Pageable page = PageRequest.of(0, 10, Sort.by(SORT_BY_CORES));
 
     Page<TallyInstanceView> coresResults =
         repo.findAllBy(
@@ -662,7 +654,7 @@ class TallyInstanceViewRepositoryTest {
             page);
     assertEquals(2L, coresResults.getTotalElements());
     List<String> coreResultsIds =
-        coresResults.stream().map(r -> r.getKey().getInstanceId()).collect(Collectors.toList());
+        coresResults.stream().map(r -> r.getKey().getInstanceId()).toList();
     assertTrue(coreResultsIds.containsAll(List.of(host1.getInstanceId(), host3.getInstanceId())));
 
     Page<TallyInstanceView> socketsResults =
@@ -759,5 +751,11 @@ class TallyInstanceViewRepositoryTest {
         sockets,
         cores,
         measurementType);
+  }
+
+  static String[] instanceSortParams() {
+    Set<String> params = new HashSet<>(InstancesResource.METRICS_TO_SORT);
+    params.addAll(FIELD_SORT_PARAM_MAPPING.keySet());
+    return params.toArray(new String[0]);
   }
 }

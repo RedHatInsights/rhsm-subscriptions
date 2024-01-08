@@ -54,7 +54,6 @@ import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
 import org.candlepin.subscriptions.utilization.api.model.CloudProvider;
 import org.candlepin.subscriptions.utilization.api.model.InstanceData;
 import org.candlepin.subscriptions.utilization.api.model.InstanceMeta;
-import org.candlepin.subscriptions.utilization.api.model.InstanceReportSort;
 import org.candlepin.subscriptions.utilization.api.model.InstanceResponse;
 import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
@@ -75,6 +74,8 @@ class InstancesResourceTest {
 
   private static final ProductId ROSA = ProductId.fromString("rosa");
   private static final ProductId RHEL_FOR_X86 = ProductId.fromString("RHEL for x86");
+  private static final String SORT_BY_DISPLAY_NAME = "display_name";
+
   @MockBean TallyInstanceViewRepository repository;
   @MockBean HostRepository hostRepository;
   @MockBean PageLinkCreator pageLinkCreator;
@@ -162,7 +163,7 @@ class InstancesResourceTest {
             null,
             null,
             null,
-            InstanceReportSort.DISPLAY_NAME,
+            SORT_BY_DISPLAY_NAME,
             null);
 
     assertEquals(expected, report);
@@ -260,7 +261,7 @@ class InstancesResourceTest {
             null,
             null,
             null,
-            InstanceReportSort.DISPLAY_NAME,
+            SORT_BY_DISPLAY_NAME,
             null);
 
     assertEquals(expected, report);
@@ -342,7 +343,7 @@ class InstancesResourceTest {
             null,
             null,
             null,
-            InstanceReportSort.DISPLAY_NAME,
+            SORT_BY_DISPLAY_NAME,
             null);
 
     assertEquals(expected, report);
@@ -406,7 +407,7 @@ class InstancesResourceTest {
         null,
         OffsetDateTime.now(),
         OffsetDateTime.now(),
-        InstanceReportSort.DISPLAY_NAME,
+        SORT_BY_DISPLAY_NAME,
         null);
 
     Mockito.when(
@@ -505,7 +506,7 @@ class InstancesResourceTest {
         null,
         OffsetDateTime.now(),
         OffsetDateTime.now(),
-        InstanceReportSort.DISPLAY_NAME,
+        SORT_BY_DISPLAY_NAME,
         null);
 
     verify(repository)
@@ -570,7 +571,7 @@ class InstancesResourceTest {
         null,
         OffsetDateTime.now(),
         OffsetDateTime.now(),
-        InstanceReportSort.DISPLAY_NAME,
+        SORT_BY_DISPLAY_NAME,
         null);
 
     verify(repository)
@@ -590,7 +591,7 @@ class InstancesResourceTest {
             any());
   }
 
-  @Test()
+  @Test
   void testGetInstancesByProductThrowsExceptionForUnknownMetricId() {
     assertThrows(
         BadRequestException.class,
@@ -608,7 +609,7 @@ class InstancesResourceTest {
                 null,
                 null,
                 null,
-                InstanceReportSort.DISPLAY_NAME,
+                SORT_BY_DISPLAY_NAME,
                 null));
   }
 }

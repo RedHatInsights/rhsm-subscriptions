@@ -725,8 +725,9 @@ paths:
         - name: sort
           in: query
           schema:
-            $ref: "#/components/schemas/InstanceReportSort"
-          description: "What property to sort by (optional)"
+            type: string
+          description: "What property to sort by. Options are: display_name, last_seen, billing_provider, 
+                     number_of_guests, category, or by a metric ID. (optional)"
         - name: dir
           in: query
           schema:
@@ -1548,21 +1549,6 @@ components:
           next: string
         meta:
           count: 10
-    InstanceReportSort:
-      type: string
-      enum:
-        - display_name
-        - last_seen
-        - Cores
-        - Sockets
-        - Core-seconds
-        - Instance-hours
-        - Storage-gibibyte-months
-        - Transfer-gibibytes
-        - vCPUs
-        - billing_provider
-        - number_of_guests
-        - category
     InstanceData:
       title: Root Type for Instance
       description: The representation of a product cluster data
