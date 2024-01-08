@@ -146,7 +146,7 @@ objects:
               - name: JAVA_DEBUG
                 value: ${JAVA_DEBUG}
               - name: JAVA_OPTS_APPEND
-                value: ${JAVA_OPTS_APPEND}
+                value: -javaagent:/opt/splunk-otel-javaagent.jar ${JAVA_OPTS_APPEND}
               - name: DEV_MODE
                 value: ${DEV_MODE}
               - name: SERVER_MAX_HTTP_HEADER_SIZE

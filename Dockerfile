@@ -50,6 +50,5 @@ COPY --from=0 /stage/build/javaagent/* /opt/
 RUN chmod -R g=u /deployments
 
 USER default
-ENV JAVA_OPTS_APPEND=-javaagent:/opt/splunk-otel-javaagent.jar
 ENV JAVA_MAIN_CLASS=org.candlepin.subscriptions.BootApplication
 ENV JAVA_LIB_DIR=/deployments/lib/*
