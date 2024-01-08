@@ -11,3 +11,6 @@ services:
       - SPLUNK_START_ARGS=--accept-license
       - SPLUNK_PASSWORD=admin123
       - SPLUNK_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75
+      # workaround rootless selinux issues, see https://github.com/splunk/splunk-ansible/issues/607
+      security_opt:
+        - label=disable
