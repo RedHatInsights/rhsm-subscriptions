@@ -6,4 +6,4 @@ services:
     ports:
       - "5672:5672"
     volumes:
-      - ./rabbit_enabled_plugins:/etc/rabbitmq/enabled_plugins
+      - ./rabbit_enabled_plugins:/etc/rabbitmq/enabled_plugins:z
