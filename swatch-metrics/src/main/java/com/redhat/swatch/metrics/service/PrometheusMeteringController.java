@@ -158,7 +158,8 @@ public class PrometheusMeteringController {
               metricProperties.step(),
               metricProperties.queryTimeout(),
               item ->
-                  sendEventFromData(item, eventsSent, tag, orgId, meteringBatchId, metric, subDef));
+                  createEventFromDataAndSend(
+                      item, eventsSent, tag, orgId, meteringBatchId, metric, subDef));
 
       if (StatusType.ERROR.equals(metricData.getStatus())) {
         throw new MeteringException(
@@ -183,7 +184,7 @@ public class PrometheusMeteringController {
     }
   }
 
-  private void sendEventFromData(
+  private void createEventFromDataAndSend(
       QueryResultDataResultInner item,
       Set<EventKey> eventsSent,
       String productTag,
@@ -250,7 +251,7 @@ public class PrometheusMeteringController {
       // Send if and only if it has not been sent yet.
       // Related to https://github.com/RedHatInsights/rhsm-subscriptions/pull/374.
       if (eventsSent.add(EventKey.fromEvent(event))) {
-        send(event);
+        sendToServiceInstanceTopic(event);
       }
     }
   }
@@ -262,7 +263,7 @@ public class PrometheusMeteringController {
       OffsetDateTime start,
       OffsetDateTime end,
       UUID meteringBatchId) {
-    send(
+    sendToServiceInstanceTopic(
         createCleanUpEvent(
             orgId,
             MeteringEventFactory.getEventType(tagMetric.getId(), productTag),
@@ -311,10 +312,12 @@ public class PrometheusMeteringController {
     return event;
   }
 
-  private void send(BaseEvent event) {
+  private void sendToServiceInstanceTopic(BaseEvent event) {
     if (event instanceof Event eventToSend) {
       log.debug(
-          "Sending event {} for organization {}", eventToSend.getEventId(), eventToSend.getOrgId());
+          "Sending event with id {} for organization {}",
+          eventToSend.getEventId(),
+          eventToSend.getOrgId());
     } else if (event instanceof CleanUpEvent) {
       log.debug("Sending clean-up event for organization {}", event.getOrgId());
     }
