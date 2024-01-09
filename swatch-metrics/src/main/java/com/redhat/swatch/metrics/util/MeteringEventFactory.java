@@ -24,6 +24,7 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.candlepin.subscriptions.json.CleanUpEvent;
@@ -158,6 +159,7 @@ public final class MeteringEventFactory {
         .withEventType(MeteringEventFactory.getEventType(measuredMetric.getValue(), productTag))
         .withOrgId(orgId)
         .withInstanceId(instanceId)
+        .withProductTag(Set.of(productTag))
         .withMeteringBatchId(meteringBatchId);
   }
 
