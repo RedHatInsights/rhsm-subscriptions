@@ -64,6 +64,8 @@ dependencies {
     compileOnly 'org.springframework.boot:spring-boot'
     testImplementation libraries["wiremock"]
     testImplementation libraries["guava"]
+    // Necessary to test the serialization of JSON payloads
+    testImplementation libraries["resteasy-jackson2-provider"]
 }
 
 sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"

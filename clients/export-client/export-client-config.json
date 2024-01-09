@@ -1,0 +1,8 @@
+{
+  "modelPackage": "com.redhat.swatch.clients.export.api.model",
+  "apiPackage": "com.redhat.swatch.clients.export.api.resources",
+  "invokerPackage": "com.redhat.swatch.clients.export.api.client",
+  "groupId": "org.candlepin",
+  "artifactId": "export-client",
+  "java8": true
+}
