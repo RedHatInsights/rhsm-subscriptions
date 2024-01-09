@@ -63,7 +63,7 @@ class EventRecordRepositoryTest {
     EventRecord record = new EventRecord(event);
     repository.saveAndFlush(record);
 
-    EventRecord found = repository.getReferenceById(record.getEventRecordId());
+    EventRecord found = repository.getReferenceById(record.getEventId());
     assertNull(found.getEvent().getInventoryId());
     assertNotNull(found.getEvent().getDisplayName());
     assertFalse(found.getEvent().getDisplayName().isPresent());
