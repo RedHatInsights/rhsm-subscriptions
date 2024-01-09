@@ -25,10 +25,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.IdClass;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -53,7 +51,6 @@ import org.candlepin.subscriptions.json.Event;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@IdClass(EventRecordId.class)
 public class EventRecord {
 
   /**
@@ -76,29 +73,26 @@ public class EventRecord {
     this.recordDate = event.getRecordDate();
   }
 
-  @Column(name = "event_id", updatable = false)
+  @Id
+  @Column(name = "event_id")
   private UUID eventId;
 
-  @Id
   @Column(name = "org_id")
   private String orgId;
 
-  @Id
   @Column(name = "event_type")
   private String eventType;
 
-  @Id
   @Column(name = "event_source")
   private String eventSource;
 
-  @Id
   @Column(name = "instance_id")
   private String instanceId;
 
   @Column(name = "metering_batch_id")
   private UUID meteringBatchId;
 
-  @Id private OffsetDateTime timestamp;
+  private OffsetDateTime timestamp;
 
   /*
   Since we have a bitemporal pattern, the "timestamp" and "actual_date" means the same.
@@ -106,8 +100,6 @@ public class EventRecord {
 
   For reference: https://martinfowler.com/articles/bitemporal-history.html#TheTwoDimensions
   */
-
-  @Id
   @Column(name = "record_date", updatable = false)
   private OffsetDateTime recordDate;
 
@@ -152,21 +144,5 @@ public class EventRecord {
   @Override
   public int hashCode() {
     return Objects.hash(orgId, eventType, eventSource, instanceId, timestamp, recordDate);
-  }
-
-  /**
-   * Provides a convenient way to fetch the embedded record ID as an Object.
-   *
-   * @return the EventRecordId for this event object.
-   */
-  @Transient
-  public EventRecordId getEventRecordId() {
-    return new EventRecordId(
-        this.orgId,
-        this.eventType,
-        this.eventSource,
-        this.instanceId,
-        this.timestamp,
-        this.recordDate);
   }
 }

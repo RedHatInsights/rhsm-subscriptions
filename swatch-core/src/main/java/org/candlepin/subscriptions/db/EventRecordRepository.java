@@ -27,7 +27,6 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.EventRecord;
-import org.candlepin.subscriptions.db.model.EventRecordId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -42,7 +41,7 @@ import org.springframework.data.repository.query.Param;
  */
 @SuppressWarnings({"linelength", "indentation"})
 public interface EventRecordRepository
-    extends JpaRepository<EventRecord, EventRecordId>, EntityManagerLookup {
+    extends JpaRepository<EventRecord, UUID>, EntityManagerLookup {
 
   /**
    * Fetch a stream of events for a given account for a given time range.
