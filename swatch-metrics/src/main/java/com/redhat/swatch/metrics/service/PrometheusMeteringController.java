@@ -42,6 +42,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.BadRequestException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -162,7 +164,8 @@ public class PrometheusMeteringController {
               metricProperties.step(),
               metricProperties.queryTimeout(),
               item ->
-                  sendEventFromData(item, eventsSent, tag, orgId, meteringBatchId, metric, subDef));
+                  createEventFromDataAndSend(
+                      item, eventsSent, tag, orgId, meteringBatchId, metric, subDef));
 
       if (StatusType.ERROR.equals(metricData.getStatus())) {
         throw new MeteringException(
@@ -194,7 +197,7 @@ public class PrometheusMeteringController {
     }
   }
 
-  private void sendEventFromData(
+  private void createEventFromDataAndSend(
       QueryResultDataResultInner item,
       Set<EventKey> eventsSent,
       String productTag,
@@ -212,11 +215,20 @@ public class PrometheusMeteringController {
     String product = labels.get("product");
     String resourceName = labels.get("resource_name");
 
-    // NOTE: Role comes from the product label despite its name. The values set
-    // here are NOT engineering or swatch product IDs. They map to the roles in
-    // the swatch-product-configuration library. For openshift, the values will
-    // be 'ocp' or 'osd'.
+    // NOTE: With data sourced from openshift telemeter instance, role comes from the product label
+    // despite its name. The values set here are NOT engineering or swatch product IDs. They map to
+    // the roles in the swatch-product-configuration library. For openshift, the values will be
+    // 'ocp' or 'osd'. For rhel data sourced from rhelemeter, role isn't applicable and the  product
+    // label contains engineering ids used to map to a product tag in swatch-product-configuration
+    // library.
     String role = product == null ? resourceName : product;
+
+    List<String> productIds = extractProductIdsFromProductLabel(product);
+    if (!productIds.isEmpty()) {
+      // Force lookup of productTag later to use productIds instead of role
+      role = null;
+    }
+
     String billingProvider = labels.get("billing_marketplace");
     String billingAccountId = labels.get("billing_marketplace_account");
 
@@ -248,11 +260,12 @@ public class PrometheusMeteringController {
               MetricId.fromString(tagMetric.getId()),
               value,
               productTag,
-              meteringBatchId);
+              meteringBatchId,
+              productIds);
       // Send if and only if it has not been sent yet.
       // Related to https://github.com/RedHatInsights/rhsm-subscriptions/pull/374.
       if (eventsSent.add(EventKey.fromEvent(event))) {
-        send(event);
+        sendToServiceInstanceTopic(event);
       }
     }
   }
@@ -264,7 +277,7 @@ public class PrometheusMeteringController {
       OffsetDateTime start,
       OffsetDateTime end,
       UUID meteringBatchId) {
-    send(
+    sendToServiceInstanceTopic(
         createCleanUpEvent(
             orgId,
             MeteringEventFactory.getEventType(tagMetric.getId(), productTag),
@@ -289,7 +302,8 @@ public class PrometheusMeteringController {
       MetricId metric,
       BigDecimal value,
       String productTag,
-      UUID meteringBatchId) {
+      UUID meteringBatchId,
+      List<String> productIds) {
     Event event = new Event();
     MeteringEventFactory.updateMetricEvent(
         event,
@@ -307,14 +321,17 @@ public class PrometheusMeteringController {
         metric,
         value.doubleValue(),
         productTag,
-        meteringBatchId);
+        meteringBatchId,
+        productIds);
     return event;
   }
 
-  private void send(BaseEvent event) {
+  private void sendToServiceInstanceTopic(BaseEvent event) {
     if (event instanceof Event eventToSend) {
       log.debug(
-          "Sending event {} for organization {}", eventToSend.getEventId(), eventToSend.getOrgId());
+          "Sending event with id {} for organization {}",
+          eventToSend.getEventId(),
+          eventToSend.getOrgId());
     } else if (event instanceof CleanUpEvent) {
       log.debug("Sending clean-up event for organization {}", event.getOrgId());
     }
@@ -344,5 +361,39 @@ public class PrometheusMeteringController {
               productTag, metric.getId()));
     }
     return instanceKey;
+  }
+
+  protected List<String> extractProductIdsFromProductLabel(String product) {
+    List<String> productIds = new ArrayList<>();
+
+    /*
+      The regular expression pattern matches a sequence of numbers separated by commas with optional spaces in between.
+
+      Explanation:
+      ^          : Asserts the start of the line.
+      \d+        : Matches one or more digits (0-9).
+      (          : Starts a group that contains the following sequence:
+        ,        : Matches a comma.
+        \s*      : Matches zero or more whitespace characters.
+        \d+      : Matches one or more digits (0-9).
+      )*+        : The whole group can repeat zero or more times (including the comma followed by digits),
+                   and the possessive quantifier (*+) prevents excessive backtracking.
+
+      Example:
+      - 123,456,789: Matches a sequence of numbers separated by commas and optional spaces: 123, 456, 789.
+      - 1,23,4:     Matches a sequence of numbers separated by commas and optional spaces: 1, 23, 4.
+      - 100:        Matches a single number: 100.
+
+      Note: This pattern may lead to catastrophic backtracking for extremely large inputs due to its repetitive nature.
+    */
+
+    String pattern = "^\\d+(,\\s*\\d+)*+";
+
+    boolean isEngIdList = product != null && product.matches(pattern);
+
+    if (isEngIdList) {
+      productIds = Arrays.asList(product.split(","));
+    }
+    return productIds;
   }
 }
