@@ -34,6 +34,9 @@ import com.redhat.swatch.metrics.service.prometheus.model.QuerySummaryResult;
 import com.redhat.swatch.metrics.service.promql.QueryBuilder;
 import com.redhat.swatch.metrics.service.promql.QueryDescriptor;
 import com.redhat.swatch.metrics.util.MeteringEventFactory;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.Sample;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.BadRequestException;
@@ -71,6 +74,7 @@ public class PrometheusMeteringController {
   private final MetricProperties metricProperties;
   private final SpanGenerator spanGenerator;
   private final QueryBuilder prometheusQueryBuilder;
+  private final MeterRegistry registry;
 
   public PrometheusMeteringController(
       PrometheusService prometheusService,
@@ -78,12 +82,14 @@ public class PrometheusMeteringController {
       MetricProperties metricProperties,
       SpanGenerator spanGenerator,
       QueryBuilder prometheusQueryBuilder,
+      MeterRegistry registry,
       @Channel("events-out") Emitter<BaseEvent> emitter) {
     this.prometheusService = prometheusService;
     this.clock = clock;
     this.metricProperties = metricProperties;
     this.spanGenerator = spanGenerator;
     this.prometheusQueryBuilder = prometheusQueryBuilder;
+    this.registry = registry;
     this.emitter = emitter;
   }
 
@@ -146,6 +152,7 @@ public class PrometheusMeteringController {
       AtomicInteger counter) {
     try {
       log.info("Collecting metrics for orgId={}: {} {}", orgId, tag, metric);
+      Sample sample = Timer.start(registry);
       Set<EventKey> eventsSent = new HashSet<>();
       QuerySummaryResult metricData =
           prometheusService.runRangeQuery(
@@ -163,6 +170,13 @@ public class PrometheusMeteringController {
                 "Unable to fetch %s %s %s metrics: %s",
                 tag, instanceKey, metric, metricData.getError()));
       }
+      sample.stop(
+          registry.timer(
+              "metrics.collection.timer",
+              "productTag",
+              tag,
+              "status",
+              metricData.getStatus().toString()));
 
       log.info("Sent {} events for {} {} metrics.", eventsSent.size(), tag, metric);
       // Send event to delete any stale events found during the period

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-_psql () { psql --set ON_ERROR_STOP=1 "$@" ; }
+_psql () { psql --set ON_ERROR_STOP=0 "$@" ; }
 
 _psql --set=adminpass="$POSTGRESQL_ADMIN_PASSWORD" \
 <<<"ALTER USER \"postgres\" WITH ENCRYPTED PASSWORD :'adminpass';"
