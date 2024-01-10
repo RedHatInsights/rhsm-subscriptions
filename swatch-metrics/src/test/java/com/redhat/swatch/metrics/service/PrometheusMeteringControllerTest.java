@@ -316,7 +316,7 @@ class PrometheusMeteringControllerTest {
             .addValuesItem(List.of(BigDecimal.valueOf(1616787308L), BigDecimal.valueOf(4.0)));
     QueryResultData queryResultData =
         new QueryResultData().addResultItem(standardResultItem).addResultItem(premiumResultItem);
-    QueryResult data = new QueryResult().data(queryResultData);
+    QueryResult data = new QueryResult().data(queryResultData).status(StatusType.SUCCESS);
 
     prometheusServer.stubQueryRange(data);
 
