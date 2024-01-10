@@ -34,7 +34,6 @@ import com.redhat.swatch.metrics.service.prometheus.model.QuerySummaryResult;
 import com.redhat.swatch.metrics.service.promql.QueryBuilder;
 import com.redhat.swatch.metrics.service.promql.QueryDescriptor;
 import com.redhat.swatch.metrics.util.MeteringEventFactory;
-import io.smallrye.common.constraint.NotNull;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.BadRequestException;
@@ -202,11 +201,12 @@ public class PrometheusMeteringController {
     String product = labels.get("product");
     String resourceName = labels.get("resource_name");
 
-    // TODO update this note
-    // NOTE: Role comes from the product label despite its name. The values set
-    // here are NOT engineering or swatch product IDs. They map to the roles in
-    // the swatch-product-configuration library. For openshift, the values will
-    // be 'ocp' or 'osd'.
+    // NOTE: With data sourced from openshift telemeter instance, role comes from the product label
+    // despite its name. The values set here are NOT engineering or swatch product IDs. They map to
+    // the roles in the swatch-product-configuration library. For openshift, the values will be
+    // 'ocp' or 'osd'. For rhel data sourced from rhelemeter, role isn't applicable and the  product
+    // label contains engineering ids used to map to a product tag in swatch-product-configuration
+    // library.
     String role = product == null ? resourceName : product;
 
     List<String> productIds = extractProductIdsFromProductLabel(product);
@@ -349,7 +349,6 @@ public class PrometheusMeteringController {
     return instanceKey;
   }
 
-  @NotNull
   protected List<String> extractProductIdsFromProductLabel(String product) {
     List<String> productIds = new ArrayList<>();
 
