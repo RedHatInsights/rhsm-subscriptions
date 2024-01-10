@@ -122,6 +122,52 @@ consumers:
 These changes are permanent, committed the next time the kafka consumer is detected
 as idle.
 
+### RabbitMQ
+
+Some services like swatch-contracts need an AMQ service to handle the UMB messages. 
+For these services, we can start RabbitMQ as an AMQ service locally via:
+
+```
+podman-compose -f config/rabbitmq/docker-compose.yml up -d
+```
+
+RabbitMQ will be listening on the port 5672.
+
+*NOTE*: Our services might be configured to listen on a different hostname and port. For example, 
+for the SWATCH contracts service, we need to provide the UMB_HOSTNAME and UMB_PORT to point out to RabbitMQ: 
+`java -DUMB_HOSTNAME=localhost -DUMB_PORT=5672 -jar swatch-contracts/build/quarkus-app/quarkus-run.jar`
+
+### Opentelemetry (OTEL) Exporter
+
+Some services export the logging traces to an externalize service via an exporter. 
+Exporters act like a broker to configure what to do with these traces. 
+For local development, we can start an OTEL exporter that simply log the traces into the container logs. 
+We can start it via:
+
+```
+podman-compose -f config/otel/docker-compose.yml up -d
+```
+
+The OTEL exporter will be listening for gRPC connections on port 4317.
+
+*NOTE*: Our services might be configured to listen on a different hostname and port. For example,
+for the SWATCH contracts service, we need to provide the OTEL_ENDPOINT property to point out to the 
+local otel exporter: `java -DOTEL_ENDPOINT=http://localhost:4317 -jar swatch-contracts/build/quarkus-app/quarkus-run.jar`
+
+### Splunk
+
+Some services integrate the log traces into Splunk. For these services, we can start Splunk via:
+
+```
+podman-compose -f config/splunk/docker-compose.yml up -d
+```
+
+Splunk will be listening on port 8088. 
+
+*NOTE*: We need to configure our services to work with this Splunk instance. For example,
+for the SWATCH contracts service, we need: 
+`java -DENABLE_SPLUNK_HEC=false -DSPLUNK_HEC_URL=https://localhost:8088 -DSPLUNK_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 -DSWATCH_SELF_PSK=placeholder -DSPLUNK_DISABLE_CERTIFICATE_VALIDATION=true -jar swatch-contracts/build/quarkus-app/quarkus-run.jar`
+
 ### Build and Run rhsm-subscriptions
 
 ```
