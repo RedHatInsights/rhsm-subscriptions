@@ -187,6 +187,7 @@ objects:
       dependencies:
         - swatch-tally
         - rbac
+        - export-service
 
       # Creates a database if local mode, or uses RDS in production
       # database:

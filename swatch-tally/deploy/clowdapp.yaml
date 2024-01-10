@@ -227,6 +227,7 @@ objects:
       - host-inventory
       - swatch-contracts
       - rbac
+      - export-service
     # IQE plugin your ClowdApp is associated with
     testing:
       iqePlugin: rhsm-subscriptions
