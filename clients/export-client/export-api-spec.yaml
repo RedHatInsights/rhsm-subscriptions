@@ -1,0 +1,113 @@
+# This is a file maintained by the rhsm-subscription project that describes
+# a portion of the Export Service API.
+openapi: 3.0.2
+
+servers:
+  - url: http://localhost:10010
+
+info:
+  title: export-service-api
+  description: Third-party specification for the Export Service API, see
+    https://raw.githubusercontent.com/RedHatInsights/export-service-go/main/static/spec/private.yaml
+  version: 1.0.0
+
+paths:
+  /app/export/v1/{id}/{application}/{resource}/upload:
+    post:
+      operationId: downloadExportUpload
+      tags:
+        - export
+      parameters:
+        - name: id
+          description: The ID of the export
+          in: path
+          schema:
+            $ref: '#/components/schemas/UUID'
+          required: true
+        - name: application
+          description: The name of the application that is exporting data
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: resource
+          description: The ID of the resource that is being exported
+          in: path
+          schema:
+            $ref: '#/components/schemas/UUID'
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+          application/csv:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '202':
+          description: OK
+      security:
+        - psk: []
+  /app/export/v1/{id}/{application}/{resource}/error:
+    post:
+      operationId: downloadExportError
+      tags:
+        - export
+      parameters:
+        - name: id
+          description: The ID of the export
+          in: path
+          schema:
+            $ref: '#/components/schemas/UUID'
+          required: true
+        - name: application
+          description: The name of the application that is exporting data
+          in: path
+          schema:
+            type: string
+          required: true
+        - name: resource
+          description: The ID of the resource that is being exported
+          in: path
+          schema:
+            $ref: '#/components/schemas/UUID'
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message, error]
+              properties:
+                message:
+                  type: string
+                  description: A human-readable error message describing the problem
+                  example: "The requested resource does not exist"
+                error:
+                  type: integer
+                  description: The HTTP status code of the error
+                  minimum: 400
+                  maximum: 599
+                  example: 404
+      responses:
+        '202':
+          description: OK
+      security:
+        - psk: []
+components:
+  schemas:
+    UUID:
+      type: string
+      format: uuid
+      pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+      minLength: 36
+      maxLength: 36
+  securitySchemes:
+    psk:
+      type: apiKey
+      in: header
+      name: x-rh-exports-psk

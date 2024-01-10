@@ -59,6 +59,10 @@ project(":clients:azure-marketplace-client") {
     apply plugin: "swatch.quarkus-rest-client-conventions"
 }
 
+project(":clients:export-client") {
+    apply plugin: "swatch.spring-boot-rest-client-conventions"
+}
+
 project(":clients:contracts-client") {
     apply plugin: "swatch.spring-boot-rest-client-conventions"
     openApiGenerate {
