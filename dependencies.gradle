@@ -12,7 +12,7 @@ buildscript {
 }
 
 ext {
-    quarkusVersion='3.6.4'
+    quarkusVersion='3.6.5'
     springVersion='3.2.1'
     libraries = [:]
     plugins = []
