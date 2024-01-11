@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.db.model;
 
 import com.redhat.swatch.configuration.registry.MetricId;
-import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -111,103 +110,6 @@ public class TallySnapshot implements Serializable {
   public void setMeasurement(HardwareMeasurementType type, MetricId metricId, Double value) {
     TallyMeasurementKey key = new TallyMeasurementKey(type, metricId.getValue());
     tallyMeasurements.put(key, value);
-  }
-
-  public org.candlepin.subscriptions.utilization.api.model.TallySnapshot asApiSnapshot() {
-    org.candlepin.subscriptions.utilization.api.model.TallySnapshot snapshot =
-        new org.candlepin.subscriptions.utilization.api.model.TallySnapshot();
-
-    snapshot.setDate(this.getSnapshotDate());
-    snapshot.setCores(
-        this.getMeasurementAsInteger(HardwareMeasurementType.TOTAL, MetricIdUtils.getCores()));
-    snapshot.setSockets(
-        this.getMeasurementAsInteger(HardwareMeasurementType.TOTAL, MetricIdUtils.getSockets()));
-    snapshot.setInstanceCount(
-        this.getMeasurementAsInteger(
-            HardwareMeasurementType.TOTAL, MetricIdUtils.getInstanceHours()));
-
-    snapshot.setPhysicalCores(
-        this.getMeasurementAsInteger(HardwareMeasurementType.PHYSICAL, MetricIdUtils.getCores()));
-    snapshot.setPhysicalSockets(
-        this.getMeasurementAsInteger(HardwareMeasurementType.PHYSICAL, MetricIdUtils.getSockets()));
-    snapshot.setPhysicalInstanceCount(
-        this.getMeasurementAsInteger(
-            HardwareMeasurementType.PHYSICAL, MetricIdUtils.getInstanceHours()));
-
-    // Sum "HYPERVISOR" and "VIRTUAL" records in the short term
-    int totalVirtualCores = 0;
-    int totalVirtualSockets = 0;
-    int totalVirtualInstanceCount = 0;
-
-    totalVirtualCores +=
-        Optional.ofNullable(
-                this.getMeasurement(HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getCores()))
-            .orElse(0.0);
-    totalVirtualSockets +=
-        Optional.ofNullable(
-                this.getMeasurement(HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getSockets()))
-            .orElse(0.0);
-    totalVirtualInstanceCount +=
-        Optional.ofNullable(
-                this.getMeasurement(
-                    HardwareMeasurementType.HYPERVISOR, MetricIdUtils.getInstanceHours()))
-            .orElse(0.0);
-
-    totalVirtualCores +=
-        Optional.ofNullable(
-                this.getMeasurement(HardwareMeasurementType.VIRTUAL, MetricIdUtils.getCores()))
-            .orElse(0.0);
-    totalVirtualSockets +=
-        Optional.ofNullable(
-                this.getMeasurement(HardwareMeasurementType.VIRTUAL, MetricIdUtils.getSockets()))
-            .orElse(0.0);
-    totalVirtualInstanceCount +=
-        Optional.ofNullable(
-                this.getMeasurement(
-                    HardwareMeasurementType.VIRTUAL, MetricIdUtils.getInstanceHours()))
-            .orElse(0.0);
-
-    snapshot.setHypervisorCores(totalVirtualCores);
-    snapshot.setHypervisorSockets(totalVirtualSockets);
-    snapshot.setHypervisorInstanceCount(totalVirtualInstanceCount);
-
-    // Tally up all the cloud providers that we support. We count/store them separately in the DB
-    // so that we can report on each provider if required in the future.
-    int cloudInstances = 0;
-    int cloudCores = 0;
-    int cloudSockets = 0;
-    for (HardwareMeasurementType type : HardwareMeasurementType.getCloudProviderTypes()) {
-      Double measurement = getMeasurement(type, MetricIdUtils.getSockets());
-      if (measurement != null) {
-        cloudInstances +=
-            Optional.ofNullable(getMeasurement(type, MetricIdUtils.getInstanceHours()))
-                .map(Double::intValue)
-                .orElse(0);
-        cloudCores +=
-            Optional.ofNullable(getMeasurement(type, MetricIdUtils.getCores()))
-                .map(Double::intValue)
-                .orElse(0);
-        cloudSockets +=
-            Optional.ofNullable(getMeasurement(type, MetricIdUtils.getSockets()))
-                .map(Double::intValue)
-                .orElse(0);
-      }
-    }
-    snapshot.setCloudInstanceCount(cloudInstances);
-    snapshot.setCloudCores(cloudCores);
-    snapshot.setCloudSockets(cloudSockets);
-
-    snapshot.setCoreHours(
-        tallyMeasurements.get(
-            new TallyMeasurementKey(
-                HardwareMeasurementType.TOTAL, MetricIdUtils.getCores().getValue())));
-    snapshot.setInstanceHours(
-        tallyMeasurements.get(
-            new TallyMeasurementKey(
-                HardwareMeasurementType.TOTAL, MetricIdUtils.getInstanceHours().getValue())));
-
-    snapshot.setHasData(id != null);
-    return snapshot;
   }
 
   @Override
