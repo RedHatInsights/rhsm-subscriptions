@@ -29,8 +29,8 @@ rhsm-subscriptions:
     weekly: ${TALLY_RETENTION_WEEKLY:12}
     # A year's worth
     monthly: ${TALLY_RETENTION_MONTHLY:12}
-    # Four year's worth
-    quarterly: ${TALLY_RETENTION_QUARTERLY:16}
+    # Five years' worth
+    quarterly: ${TALLY_RETENTION_QUARTERLY:20}
     yearly: ${TALLY_RETENTION_YEARLY:5}
   remittance-retention-policy:
     # 70 days worth
