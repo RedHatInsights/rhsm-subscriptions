@@ -7,6 +7,13 @@ SERVICE_INSTANCE_INGRESS_DEAD_LETTER_TOPIC: ${clowder.kafka.topics[?(@.requested
 
 rhsm-subscriptions:
   hourlyTallyDurationLimitDays: 90d
+  # Defines the number of Events to process in a batch during the hourly tally. Since a Host
+  # update can require many DB inserts (host,buckets,measurements,monthly totals), increasing
+  # the batch size too high has a direct negative impact hourly tally performance due to the
+  # increase of resulting DB insert/update statements.
+  #
+  # A default value of 16000 was chosen since it provided a good balance between memory usage and
+  # performance when executing an hourly tally requiring many batches.
   hourlyTallyEventBatchSize: ${HOURLY_TALLY_EVENT_BATCH_SIZE:16000}
   inventory-service:
     datasource:
