@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.util.StdDateFormat;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationModule;
+import com.redhat.cloud.event.parser.ConsoleCloudEventParser;
 import io.micrometer.core.aop.TimedAspect;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.Validator;
@@ -53,6 +54,7 @@ import org.candlepin.subscriptions.tally.TallyWorkerConfiguration;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.LiquibaseUpdateOnlyConfiguration;
 import org.candlepin.subscriptions.util.UtilConfiguration;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.actuate.autoconfigure.info.ConditionalOnEnabledInfoContributor;
 import org.springframework.boot.actuate.autoconfigure.info.InfoContributorFallback;
@@ -121,6 +123,13 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   }
 
   @Bean
+  @Qualifier("subscriptionExport")
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription-export.tasks")
+  TaskQueueProperties subscriptionExportProperties() {
+    return new TaskQueueProperties();
+  }
+
+  @Bean
   AuthProperties authProperties() {
     return new AuthProperties();
   }
@@ -185,5 +194,10 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   @ConditionalOnEnabledInfoContributor(value = "certs", fallback = InfoContributorFallback.DISABLE)
   public CertInfoContributor certInfoContributor(ApplicationContext context) {
     return new CertInfoContributor(context);
+  }
+
+  @Bean
+  public ConsoleCloudEventParser cloudEventParser(@Autowired ObjectMapper objectMapper) {
+    return new ConsoleCloudEventParser(objectMapper);
   }
 }
