@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.resource;
 
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlements;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
@@ -31,7 +32,11 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.ProcessingException;
+import jakarta.ws.rs.Produces;
 import java.time.OffsetDateTime;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -122,5 +127,14 @@ public class ContractsTestingResource implements DefaultApi {
   public StatusResponse createPartnerEntitlementContract(PartnerEntitlementContract contract)
       throws ProcessingException {
     return service.createPartnerContract(contract);
+  }
+
+  @GET
+  @Path("/api/swatch-contracts/internal/rpc/partner/contracts/{orgId}")
+  @Produces({"application/json"})
+  @RolesAllowed({"test"})
+  public PartnerEntitlements getPartnerEntitlementContracts(@PathParam("orgId") String orgId)
+      throws ProcessingException {
+    return service.getPartnerEntitlementContracts(orgId);
   }
 }

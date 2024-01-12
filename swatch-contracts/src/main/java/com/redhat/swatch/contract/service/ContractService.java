@@ -611,4 +611,12 @@ public class ContractService {
       }
     }
   }
+
+  public PartnerEntitlements getPartnerEntitlementContracts(String orgId) {
+    try {
+      return partnerApi.getPartnerEntitlements(new QueryPartnerEntitlementV1().rhAccountId(orgId));
+    } catch (ApiException e) {
+      throw new RuntimeException(e);
+    }
+  }
 }
