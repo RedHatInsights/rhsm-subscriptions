@@ -101,8 +101,12 @@ public class MetricUsageCollector {
     for (Event event : events) {
       Host host = hostsByInstanceId.getOrDefault(event.getInstanceId(), new Host());
 
-      // Determine if the Event has already been applied to this host and skip it if it is.
-      // This is important in the case that we attempt to apply the same Event multiple times.
+      // During the hourly tally, hosts and snapshots are updated in separate transactions.
+      // If an error occurs somewhere in the overall tally process while processing a batch of
+      // Events, when the retry on error logic kicks in, an Event may have already been applied
+      // to a Host, but has not yet been applied to the snapshots. Because of this, we need to
+      // determine if the Event has already been applied to this host and skip it if it is. This
+      // is to ensure that the Event measurements are not applied to the host multiple times.
       if (isEventAlreadyAppliedToHost(host, event)) {
         log.debug(
             "Skipping host update. Event already applied to the host orgId={} instanceId={}",

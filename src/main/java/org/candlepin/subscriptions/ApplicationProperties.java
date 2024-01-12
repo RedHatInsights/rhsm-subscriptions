@@ -170,6 +170,11 @@ public class ApplicationProperties {
    */
   private boolean useCpuSystemFactsToAllProducts = true;
 
-  /** Defines the number of Events to process in a batch during the hourly tally. */
-  private int hourlyTallyEventBatchSize = 16000;
+  /**
+   * Defines the number of Events to process in a batch during the hourly tally. Since a Host update
+   * can require many DB inserts (host,buckets,measurements,monthly totals), increasing the batch
+   * size too high has a direct negative impact hourly tally performance due to the increase of
+   * resulting DB insert/update statements.
+   */
+  private int hourlyTallyEventBatchSize;
 }
