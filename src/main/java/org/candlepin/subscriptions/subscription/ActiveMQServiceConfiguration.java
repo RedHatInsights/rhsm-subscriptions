@@ -51,6 +51,14 @@ public class ActiveMQServiceConfiguration {
       ActiveMQProperties activeMQProperties) throws Exception {
     ActiveMQSslConnectionFactory factory = new ActiveMQSslConnectionFactory();
     factory.setExceptionListener(e -> log.error("Exception thrown in ActiveMQ connection", e));
+    if (StringUtils.hasText(activeMQProperties.getUser())) {
+      factory.setUserName(activeMQProperties.getUser());
+    }
+
+    if (StringUtils.hasText(activeMQProperties.getPassword())) {
+      factory.setPassword(activeMQProperties.getPassword());
+    }
+
     if (StringUtils.hasText(activeMQProperties.getBrokerUrl())) {
       factory.setBrokerURL(activeMQProperties.getBrokerUrl());
       if (!umbProperties.providesTruststore() || !umbProperties.usesClientAuth()) {

@@ -64,15 +64,15 @@ public interface SubscriptionRepository
         SELECT s FROM Subscription s
         WHERE (s.endDate IS NULL OR s.endDate > CURRENT_TIMESTAMP)
           AND s.subscriptionId = :subscriptionId
-        ORDER BY s.subscriptionId, s.startDate
+        ORDER BY s.startDate DESC
+        LIMIT 1
       """)
   @EntityGraph(value = "graph.SubscriptionSync")
   Optional<Subscription> findActiveSubscription(@Param("subscriptionId") String subscriptionId);
 
   @EntityGraph(value = "graph.SubscriptionSync")
-  // Added an order by clause to avoid Hibernate issue HHH-17040
   @Query(
-      "SELECT s FROM Subscription s WHERE s.subscriptionNumber = :subscriptionNumber ORDER BY s.subscriptionId, s.startDate")
+      "SELECT s FROM Subscription s WHERE s.subscriptionNumber = :subscriptionNumber ORDER BY s.startDate DESC LIMIT 1")
   Optional<Subscription> findBySubscriptionNumber(String subscriptionNumber);
 
   // Added an order by clause to avoid Hibernate issue HHH-17040
