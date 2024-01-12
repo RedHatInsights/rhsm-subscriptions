@@ -111,6 +111,10 @@ spring:
       # -+BEGIN\\s*.*CERTIFICATE[^-]*-+\\s+(?:\\s*[^\\r\\n]*:[^\\r\\n]*[\\r\\n]+)*([a-zA-Z0-9/+=\\s]*)-+END\\s*.*CERTIFICATE[^-]*-+\\s+")
       # A notable point about this expression is that the "----BEGIN CERTIFICATE-----" piece must be
       # followed by a newline which makes it challenging to place the value in a properties or YAML file.
+
+      # Important: these values need to default to the empty string.  An empty string is what tells
+      # the KafkaSslBeanPostProcessor to reset the values back to null in the KafkaProperties.Ssl
+      # object (which will result in Kafka using the system truststore).  See SWATCH-2088.
       trust-store-certificates: ${clowder.kafka.brokers.cacert:}
       trust-store-type: ${clowder.kafka.brokers.cacert.type:}
     listener:
