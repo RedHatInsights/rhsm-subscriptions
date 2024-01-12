@@ -23,11 +23,11 @@ package org.candlepin.subscriptions.event;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -101,7 +101,7 @@ public class EventController {
       OffsetDateTime begin,
       int batchSize,
       Consumer<List<Event>> eventConsumer) {
-    List<Event> toProcess = new LinkedList<>();
+    List<Event> toProcess = new ArrayList<>(batchSize);
     try (Stream<EventRecord> eventStream =
         repo.fetchOrderedEventStream(orgId, serviceType, begin)) {
       eventStream.forEach(
