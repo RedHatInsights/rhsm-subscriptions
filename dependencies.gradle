@@ -22,7 +22,7 @@ ext {
 // buildSrc/build.gradle adds them to the gradle classpath
 ext.plugins = [
         "com.adarshr:gradle-test-logger-plugin:4.0.0",
-        "com.diffplug.spotless:spotless-plugin-gradle:6.23.3",
+        "com.diffplug.spotless:spotless-plugin-gradle:6.24.0",
         "com.netflix.nebula:nebula-release-plugin:18.0.8",
         "io.quarkus:gradle-application-plugin:${quarkusVersion}",
         // swagger-parser manually upgraded for compatibility with snakeyaml 2.0
