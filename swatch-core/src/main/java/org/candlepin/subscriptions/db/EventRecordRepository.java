@@ -22,10 +22,16 @@ package org.candlepin.subscriptions.db;
 
 import static org.hibernate.jpa.HibernateHints.HINT_FETCH_SIZE;
 
+import com.google.common.collect.Lists;
 import jakarta.persistence.QueryHint;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -158,4 +164,46 @@ public interface EventRecordRepository
       @Param("orgId") String orgId,
       @Param("serviceType") String serviceType,
       @Param("after") OffsetDateTime after);
+
+  /**
+   * Find all {@link EventRecord}s that share the same lookup key.
+   *
+   * <pre>
+   *   NOTE: This method builds a set of tuples from the supplied keys and executes
+   *         a native Postgres query. This is not possible in JPA.
+   * </pre>
+   *
+   * @param keys the {@link EventKey} to match on.
+   * @return a list of conflicting events
+   */
+  default List<EventRecord> findConflictingEvents(List<EventKey> keys) {
+    List<EventRecord> found = new ArrayList<>();
+    // Partition the incoming keys to ensure we do not exceed the IN clause limit
+    // for Postgres.
+    for (List<EventKey> nextBatch : Lists.partition(keys, Short.MAX_VALUE)) {
+      Set<String> matchingTuples =
+          nextBatch.stream()
+              .map(
+                  e ->
+                      String.format(
+                          "('%s', '%s', '%s', '%s', '%s')",
+                          e.getOrgId(),
+                          e.getEventType(),
+                          e.getEventSource(),
+                          e.getInstanceId(),
+                          e.getTimestamp()))
+              .collect(Collectors.toSet());
+
+      String query =
+          String.format(
+              """
+              select * from events
+              where (org_id, event_type, event_source, instance_id, timestamp)
+              in (%s)
+              """,
+              String.join(",", matchingTuples));
+      found.addAll(getEntityManager().createNativeQuery(query, EventRecord.class).getResultList());
+    }
+    return found;
+  }
 }
