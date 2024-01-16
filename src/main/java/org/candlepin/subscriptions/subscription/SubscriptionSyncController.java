@@ -181,7 +181,10 @@ public class SubscriptionSyncController {
     }
 
     subscriptionOptional.ifPresentOrElse(
-        subscription -> newOrUpdated.setOffering(subscription.getOffering()),
+        subscription -> {
+          newOrUpdated.setOffering(subscription.getOffering());
+          newOrUpdated.setSubscriptionProductIds(subscription.getSubscriptionProductIds());
+        },
         // Set the offering via a proxy object rather than performing a full lookup.  See
         // https://thorben-janssen.com/jpa-getreference/
         () -> newOrUpdated.setOffering(offeringRepository.getReferenceById(sku)));
@@ -308,6 +311,9 @@ public class SubscriptionSyncController {
               }
               if (subscription.getBillingProviderId() == null) {
                 subscription.setBillingProviderId(existingData.getBillingProviderId());
+              }
+              if (subscription.getSubscriptionProductIds() == null) {
+                subscription.setSubscriptionProductIds(existingData.getSubscriptionProductIds());
               }
             });
   }
