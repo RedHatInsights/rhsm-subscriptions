@@ -70,6 +70,9 @@ public class TallyInstanceView implements Serializable {
   @Column(name = "last_seen")
   private OffsetDateTime lastSeen;
 
+  @Column(name = "last_applied_event_record_date")
+  private OffsetDateTime lastAppliedEventRecordDate;
+
   private int cores;
 
   private int sockets;

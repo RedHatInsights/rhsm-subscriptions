@@ -98,6 +98,7 @@ class InstancesResourceTest {
     tallyInstanceView.setDisplayName("rhv.example.com");
     tallyInstanceView.setNumOfGuests(3);
     tallyInstanceView.setLastSeen(OffsetDateTime.now());
+    tallyInstanceView.setLastAppliedEventRecordDate(OffsetDateTime.now());
     tallyInstanceView.getKey().setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
     tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
@@ -134,6 +135,7 @@ class InstancesResourceTest {
     data.setDisplayName(tallyInstanceView.getDisplayName());
     data.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
     data.setLastSeen(tallyInstanceView.getLastSeen());
+    data.setLastAppliedEventRecordDate(tallyInstanceView.getLastAppliedEventRecordDate());
     data.setMeasurements(expectedMeasurement);
     data.setNumberOfGuests(tallyInstanceView.getNumOfGuests());
     data.setCategory(ReportCategory.VIRTUAL);

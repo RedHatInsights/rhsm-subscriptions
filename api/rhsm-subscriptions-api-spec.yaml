@@ -1136,6 +1136,12 @@ components:
         last_seen:
           format: date-time
           type: string
+        last_applied_event_record_date:
+          description: >-
+            The record_date of the latest Event that was last applied to the Host. This date
+            is different from the last_seen date, in that, last seen is the Event's timestamp.
+          format: date-time
+          type: string
         number_of_guests:
           type: integer
         category:

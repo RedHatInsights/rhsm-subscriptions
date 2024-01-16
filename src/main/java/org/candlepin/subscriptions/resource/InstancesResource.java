@@ -310,6 +310,7 @@ public class InstancesResource implements InstancesApi {
     instance.setMeasurements(
         getInstanceMeasurements(tallyInstanceView, monthId, measurements, isPAYG));
     instance.setLastSeen(tallyInstanceView.getLastSeen());
+    instance.setLastAppliedEventRecordDate(tallyInstanceView.getLastAppliedEventRecordDate());
     instance.setNumberOfGuests(tallyInstanceView.getNumOfGuests());
     instance.setSubscriptionManagerId(tallyInstanceView.getSubscriptionManagerId());
     return instance;
