@@ -1,90 +1,112 @@
 # swatch-metrics
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+## Running in "default" mode
 
-If you want to learn more about Quarkus, please visit its website: https://quarkus.io/ .
+Without additional configuration values, swatch-metrics will use "telemeter" as the EVENT_SOURCE, which indicates metrics are sourced from the OpenShift Telemeter observatorium instance.
 
-## Running the application in dev mode
-
-You can run your application in dev mode that enables live coding using:
-
-```shell script
-./gradlew :swatch-metrics:quarkusDev
+```
+EVENT_SOURCE=telemeter PROM_URL="http://localhost:8082/api/v1" ./gradlew :swatch-metrics:quarkusDev
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only
-> at http://localhost:8080/q/dev/.
+## Running in "rhelemeter" mode
 
-## Packaging and running the application
-
-The application can be packaged using:
-
-```shell script
-./gradlew build
+```
+EVENT_SOURCE=rhelemeter PROM_URL="http://localhost:8082/api/v1" ./gradlew :swatch-metrics:quarkusDev
 ```
 
-It produces the `quarkus-run.jar` file in the `build/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into
-the `build/quarkus-app/lib/` directory.
+## PromQL Templates
 
-The application is now runnable using `java -jar build/quarkus-app/quarkus-run.jar`.
+The [application.yaml](./src/main/resources/application.yaml) file defines templates for promql queries used when fetching metrics from `PROM_URL` under the `rhsm-subscriptions.metering.prometheus.metric` section.
 
-If you want to build an _über-jar_, execute the following command:
+### accountQueryTemplates vs queryTemplates
 
-```shell script
-./gradlew build -Dquarkus.package.type=uber-jar
+**accountQueryTemplates** are used to determine which org ids have metrics for the timeframe we care about for a product we care about.
+
+**queryTemplates** are used to fetch the actual metrics and values we care about, filtered by a bunch of criteria.
+
+Parameterized values come from [swatch-product-configuration](../swatch-product-configuration/src/main/resources/subscription_configs) yaml files.
+
+### PromQL breakdown
+
+#### queryTemplates.rhelemeter
+
+Example
+```promql
+(
+      max by (_id) (
+        sum_over_time(system_cpu_logical_count[1h:10m])
+      )
+    /
+      scalar(count_over_time(vector(1)[1h:10m]))
+  )
+* on (_id) group_right
+  topk by (_id) (
+    1,
+    group without (swatch_placeholder_label) (
+      min_over_time(
+        system_cpu_logical_count{
+    product=~".*(^|,)(69)($|,).*",
+    external_organization="11789772",
+    billing_model="marketplace",
+    support=~"Premium|Standard|Self-Support|None"
+  }[1h]
+      )
+    )
+  )
 ```
 
-The application, packaged as an _über-jar_, is now runnable using `java -jar build/*-runner.jar`.
+It's easiest to think about this query by breaking it in half at the join.  The left side provides us with the usage values we care about, and the right side provides us with the associated metadata labels we care about while tallying.  
 
-## Creating a native executable
+## "Left Side" of the join
 
-You can create a native executable using:
+It calculates the maximum sum of `system_cpu_logical_count` over 1-hour windows (shifted by 10 minutes) for each `_id`, and normalizes this value by the number of 10-minute intervals in an hour.  This is a way to find the maximum average `system_cpu_logical_count` per 10-minute interval for each `_id` in the last hour.
 
-```shell script
-./gradlew build -Dquarkus.package.type=native
-```
+### Numerator
 
-Or, if you don't have GraalVM installed, you can run the native executable build in a container
-using:
+`max by (_id) (sum_over_time(system_cpu_logical_count[1h:10m]))`
 
-```shell script
-./gradlew build -Dquarkus.package.type=native -Dquarkus.native.container-build=true
-```
+1. **`sum_over_time(system_cpu_logical_count[1h:10m])`:**
+    - This calculates the sum of the `system_cpu_logical_count` metric over a 1-hr window, using data sampled every 10 minutes.  This creates a series of overlapping windows covering the last hour.
 
-You can then execute your native executable with: `./build/swatch-metrics-1.0-SNAPSHOT-runner`
+2. **`max by (_id) (...)`:**
+    - This finds the maximum value of the previously calculated sums for each unique `_id`.  For each `_id`, it picks the highest sum observed in any of the overlapping 1-hour windows.
 
-If you want to learn more about building native executables, please
-consult https://quarkus.io/guides/gradle-tooling.
+### Denominator: `scalar(count_over_time(vector(1)[1h:10m]))`
 
-## Related Guides
+1. **`vector(1)`:**
+    - This creates a constant vector with the value 1.
 
-- SmallRye Reactive Messaging ([guide](https://quarkus.io/guides/reactive-messaging)): Produce and
-  consume messages and implement event driven and data streaming applications
-- SmallRye Reactive Messaging - Kafka
-  Connector ([guide](https://quarkus.io/guides/kafka-reactive-getting-started)): Connect to Kafka
-  with Reactive Messaging
-- YAML Configuration ([guide](https://quarkus.io/guides/config#yaml)): Use YAML to configure your
-  Quarkus application
+2. **`count_over_time(vector(1)[1h:10m])`:**
+    - Counts how many samples are in each 10-minute interval over the last hour.
+    - Since `vector(1)` is a constant value, this effectively counts the number of 10-minute intervals in an hour.
 
-## Provided Code
+3. **`scalar(...)`:**
+    - Converts the count, which is a vector, into a scalar (a single numeric value).
 
-### YAML Config
+## "Right Side" of the join
+- The query retrieves the minimum value of `system_cpu_logical_count`, with the specified filters, over a 1-hour period for each `_id`, then selects the top result for each `_id`.
+- This identifies the `_id` with the lowest `system_cpu_logical_count` under the specified filters conditions.
 
-Configure your application with YAML
+### `topk` Function
 
-[Related guide section...](https://quarkus.io/guides/config-reference#configuration-examples)
+**`topk by (_id) (1, ...)`**
+- The `topk` function is used to return the top `k` elements for each group. In this case, `k` is set to 1, which means it returns the highest value for each group specified by `_id`.
 
-The Quarkus application configuration is located in `src/main/resources/application.yml`.
+## Grouping and Aggregation
 
-### Reactive Messaging codestart
+- **Grouping Modifier:** `group without (swatch_placeholder_label)`
+    - We need to `group` here to prevent multiplying metric values during the join.
+    - The `without` modifier indicates that the grouping should be done on all labels except for `swatch_placeholder_label`.
+    - The label `swatch_placeholder_label` doesn't actually exist, so it doesn't actually DO anything.  If it did, it would remove the `swatch_placeholder_label` label from consideration in the grouping process.
+    - All we're using it for here is to avoid having to explicitly list out every label that we care about in a `by (_id,...)` clause with the `group`.
 
-Use SmallRye Reactive Messaging
+## `min_over_time` Function
+- This calculates the minimum value of the `system_cpu_logical_count` metric over a 1-hour window (`[1h]`).
 
-[Related Apache Kafka guide section...](https://quarkus.io/guides/kafka-reactive-getting-started)
+## Metric Filtering
 
-### RESTEasy Reactive
-
-Easily start your Reactive RESTful Web Services
-
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+- The metric `system_cpu_logical_count` is filtered based on these labels:
+    1. **`product`**
+    2. **`external_organization`**
+    3. **`billing_model`**
+    4. **`support`**
