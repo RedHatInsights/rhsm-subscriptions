@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.metrics.service;
 
-import static com.redhat.swatch.metrics.util.MeteringEventFactory.getEventType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -245,14 +244,7 @@ class PrometheusMeteringControllerTest {
                 expectedProductTag,
                 expectedSpanId,
                 List.of(),
-                expectedDisplayName),
-            MeteringEventFactory.createCleanUpEvent(
-                expectedOrgId,
-                getEventType(expectedMetricId.toString(), expectedProductTag),
-                PROMETHEUS,
-                start,
-                end,
-                expectedSpanId));
+                expectedDisplayName));
 
     whenCollectMetrics(start, end);
 
@@ -324,14 +316,7 @@ class PrometheusMeteringControllerTest {
                 expectedProductTag,
                 expectedSpanId,
                 List.of(),
-                expectedDisplayName),
-            MeteringEventFactory.createCleanUpEvent(
-                expectedOrgId,
-                getEventType(expectedMetricId.toString(), expectedProductTag),
-                PROMETHEUS,
-                start,
-                end,
-                expectedSpanId));
+                expectedDisplayName));
 
     whenCollectMetrics(start, end);
     assertEquals(expectedEvents.size(), results.received().size());
@@ -391,16 +376,7 @@ class PrometheusMeteringControllerTest {
             List.of(),
             expectedClusterId);
 
-    List<BaseEvent> expectedEvents =
-        List.of(
-            updatedEvent,
-            MeteringEventFactory.createCleanUpEvent(
-                expectedOrgId,
-                getEventType(expectedMetricId.toString(), expectedProductTag),
-                PROMETHEUS,
-                start,
-                end,
-                expectedSpanId));
+    List<BaseEvent> expectedEvents = List.of(updatedEvent);
     whenCollectMetrics(start, end);
     assertEquals(expectedEvents.size(), results.received().size());
 
@@ -472,14 +448,7 @@ class PrometheusMeteringControllerTest {
                 expectedProductTag,
                 expectedSpanId,
                 List.of(),
-                expectedClusterId),
-            MeteringEventFactory.createCleanUpEvent(
-                expectedOrgId,
-                getEventType(expectedMetricId.toString(), expectedProductTag),
-                PROMETHEUS,
-                start,
-                end,
-                expectedSpanId));
+                expectedClusterId));
 
     whenCollectMetrics(start, end);
 

@@ -68,7 +68,6 @@ class EventControllerTest {
   String eventRecord5;
   String azureEventRecord1;
   String eventRecordNegativeMeasurement;
-  String cleanUpEvent;
 
   @BeforeEach
   void setup() {
@@ -223,18 +222,6 @@ class EventControllerTest {
                    "service_type": "OpenShift Cluster"
                  }
         """;
-    cleanUpEvent =
-        """
-                {
-                   "org_id": "7",
-                   "start": "2023-05-02T00:00:00Z",
-                   "end": "2023-05-02T01:00:00Z",
-                   "metering_batch_id": "e3a62bd1-fd00-405c-9401-f2288808588d",
-                   "event_type": "snapshot_redhat.com:openshift_dedicated:cluster_hour",
-                   "event_source": "prometheus",
-                   "action": "cleanup"
-                 }
-        """;
     when(eventRecordRepository.getEntityManager()).thenReturn(mockEntityManager);
   }
 
@@ -273,17 +260,6 @@ class EventControllerTest {
     List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
     assertEquals(2, events.size());
     verifyDeletionOfStaleEventsIsNotDone();
-  }
-
-  @Test
-  void testPersistServiceInstances_ProcessCleanUpEvent() {
-    List<String> eventRecords = List.of(eventRecord1, eventRecord2, cleanUpEvent);
-    eventController.persistServiceInstances(eventRecords);
-    verify(optInController, times(3)).optInByOrgId(any(), any());
-    verify(eventRecordRepository).saveAll(eventsSaved.capture());
-    List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
-    assertEquals(2, events.size());
-    verifyDeletionOfStaleEventsIsDone();
   }
 
   @Test
