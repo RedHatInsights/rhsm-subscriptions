@@ -26,6 +26,7 @@ import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import java.io.Serializable;
+import java.time.OffsetDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -44,4 +45,7 @@ public class BillableUsageRemittanceEntity implements Serializable {
   @Basic
   @Column(name = "remitted_pending_value", nullable = false, precision = 0)
   private Double remittedPendingValue;
+
+  @Column(name = "retry_after")
+  private OffsetDateTime retryAfter;
 }
