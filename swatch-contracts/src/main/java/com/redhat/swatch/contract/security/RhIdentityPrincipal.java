@@ -48,8 +48,9 @@ public class RhIdentityPrincipal implements Principal {
       case "Associate" -> identity.getSamlAssertions().getEmail();
       case "X509" -> identity.getX509().getSubjectDn();
       case "User" -> identity.getOrgId();
-      default -> throw new IllegalArgumentException(
-          String.format("Unsupported RhIdentity type %s", getIdentity().getType()));
+      default ->
+          throw new IllegalArgumentException(
+              String.format("Unsupported RhIdentity type %s", getIdentity().getType()));
     };
   }
 

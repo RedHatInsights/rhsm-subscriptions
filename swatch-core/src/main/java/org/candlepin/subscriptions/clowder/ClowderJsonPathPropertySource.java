@@ -309,21 +309,22 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
       String username = getKafkaBrokerSaslProperty(brokerConfig, "username");
       String password = getKafkaBrokerSaslProperty(brokerConfig, "password");
       return switch (saslMechanism) {
-        case "PLAIN" -> "org.apache.kafka.common.security.plain.PlainLoginModule required "
-            + "username=\""
-            + username
-            + "\" password=\""
-            + password
-            + "\";";
-        case "SCRAM-SHA-512",
-            "SCRAM-SHA-256" -> "org.apache.kafka.common.security.scram.ScramLoginModule required "
-            + "username=\""
-            + username
-            + "\" password=\""
-            + password
-            + "\";";
-        default -> throw new IllegalArgumentException(
-            "Invalid SASL mechanism defined: " + saslMechanism);
+        case "PLAIN" ->
+            "org.apache.kafka.common.security.plain.PlainLoginModule required "
+                + "username=\""
+                + username
+                + "\" password=\""
+                + password
+                + "\";";
+        case "SCRAM-SHA-512", "SCRAM-SHA-256" ->
+            "org.apache.kafka.common.security.scram.ScramLoginModule required "
+                + "username=\""
+                + username
+                + "\" password=\""
+                + password
+                + "\";";
+        default ->
+            throw new IllegalArgumentException("Invalid SASL mechanism defined: " + saslMechanism);
       };
     }
 
