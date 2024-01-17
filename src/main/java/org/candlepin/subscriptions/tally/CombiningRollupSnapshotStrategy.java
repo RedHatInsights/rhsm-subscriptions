@@ -244,8 +244,8 @@ public class CombiningRollupSnapshotStrategy {
       case WEEKLY -> Granularity.MONTHLY;
       case MONTHLY -> Granularity.YEARLY;
       case YEARLY -> null;
-      default -> throw new IllegalArgumentException(
-          String.format(BAD_GRANULARITY_MESSAGE, granularity));
+      default ->
+          throw new IllegalArgumentException(String.format(BAD_GRANULARITY_MESSAGE, granularity));
     };
   }
 
@@ -452,8 +452,8 @@ public class CombiningRollupSnapshotStrategy {
       case MONTHLY -> clock.startOfMonth(toAdjust);
       case QUARTERLY -> clock.startOfQuarter(toAdjust);
       case YEARLY -> clock.startOfYear(toAdjust);
-      default -> throw new IllegalArgumentException(
-          String.format(BAD_GRANULARITY_MESSAGE, granularity));
+      default ->
+          throw new IllegalArgumentException(String.format(BAD_GRANULARITY_MESSAGE, granularity));
     };
   }
 
@@ -465,8 +465,8 @@ public class CombiningRollupSnapshotStrategy {
       case MONTHLY -> clock.endOfMonth(toAdjust);
       case QUARTERLY -> clock.endOfQuarter(toAdjust);
       case YEARLY -> clock.endOfYear(toAdjust);
-      default -> throw new IllegalArgumentException(
-          String.format(BAD_GRANULARITY_MESSAGE, granularity));
+      default ->
+          throw new IllegalArgumentException(String.format(BAD_GRANULARITY_MESSAGE, granularity));
     };
   }
 }
