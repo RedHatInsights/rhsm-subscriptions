@@ -269,8 +269,6 @@ public class SubscriptionSyncController {
     if ((subscription.getBillingProvider() == null
             || subscription.getBillingProvider().equals(BillingProvider.EMPTY))
         && subscription.getOffering().isMetered()) {
-      // The offering here is going to be a proxy object created by getReferenceById.  Hibernate
-      // should take care of actually performing the select from the database if one is needed.
       log.warn(
           "PAYG eligible subscription with subscriptionId:{} has no billing provider.",
           subscription.getSubscriptionId());

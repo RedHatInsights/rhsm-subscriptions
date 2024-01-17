@@ -9,8 +9,5 @@
     <addColumn tableName="offering">
       <column name="metered" type="BOOLEAN"/>
     </addColumn>
-    <rollback>
-      <dropColumn tableName="offering" columnName="metered"/>
-    </rollback>
   </changeSet>
 </databaseChangeLog>
