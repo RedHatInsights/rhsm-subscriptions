@@ -203,7 +203,7 @@ class SubscriptionSyncControllerTest {
   @Test
   void shouldUpdateSubscriptionWhenUpdateProductIds() {
     var dto = createDto(123, "456", 4);
-    var offering = givenOfferingWithProductIds(290);
+    givenOfferingWithProductIds(290);
     subscriptionSyncController.syncSubscription(dto);
     verify(subscriptionRepository).save(any());
     verify(capacityReconciliationController).reconcileCapacityForSubscription(any());
@@ -211,10 +211,9 @@ class SubscriptionSyncControllerTest {
     // let's update only the product IDs
     givenOfferingWithProductIds(290, 69);
     reset(subscriptionRepository, capacityReconciliationController);
-    subscriptionSyncController.syncSubscription(
-        dto, Optional.of(createSubscriptionFrom(offering, dto)));
+    subscriptionSyncController.syncSubscription(dto);
     verify(subscriptionRepository).save(any());
-    verify(capacityReconciliationController, times(2)).reconcileCapacityForSubscription(any());
+    verify(capacityReconciliationController).reconcileCapacityForSubscription(any());
   }
 
   @Test
