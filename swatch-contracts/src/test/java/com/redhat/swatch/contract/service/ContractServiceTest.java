@@ -195,12 +195,13 @@ class ContractServiceTest extends BaseUnitTest {
     PartnerEntitlementContract request = givenPartnerEntitlementContractRequest();
     contractService.createPartnerContract(request);
 
-    request.getCloudIdentifiers().setAzureResourceId("dupeId");
+    request.getCloudIdentifiers().azureResourceId("dupeId");
+    request.getCloudIdentifiers().azureTenantId("dupeId");
     request.getCloudIdentifiers().setAzureOfferId("dupeId");
     request.getCloudIdentifiers().setPlanId("dupeId");
     request.getCloudIdentifiers().setPartner("azure_marketplace");
 
-    givenExistingSubscription("dupeId;dupeId;dupeId");
+    givenExistingSubscription("dupeId;dupeId;dupeId;dupeId");
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
     assertEquals("Duplicate record found", statusResponse.getMessage());
@@ -305,7 +306,7 @@ class ContractServiceTest extends BaseUnitTest {
     verify(subscriptionRepository).persist(subscriptionSaveCapture.capture());
     subscriptionSaveCapture.getValue();
     assertEquals(
-        "a69ff71c-aa8b-43d9-dea8-822fab4bbb86;rh-rhel-sub-1yr;azureProductCode",
+        "a69ff71c-aa8b-43d9-dea8-822fab4bbb86;64dc69e4-d083-49fc-9569-ebece1dd1408;rh-rhel-sub-1yr;azureProductCode",
         subscriptionSaveCapture.getValue().getBillingProviderId());
   }
 

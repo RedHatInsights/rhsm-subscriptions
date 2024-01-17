@@ -140,7 +140,7 @@ public interface SubscriptionRepository
     if (Objects.nonNull(dbReportCriteria.getBillingAccountId())
         && !dbReportCriteria.getBillingAccountId().equals("_ANY")) {
       searchCriteria =
-          searchCriteria.and(billingAccountIdEquals(dbReportCriteria.getBillingAccountId()));
+          searchCriteria.and(billingAccountIdLike(dbReportCriteria.getBillingAccountId()));
     }
     if (Objects.nonNull(dbReportCriteria.getMetricId())
         || Objects.nonNull(dbReportCriteria.getHypervisorReportCategory())) {
@@ -277,9 +277,11 @@ public interface SubscriptionRepository
         builder.equal(root.get(Subscription_.billingProvider), billingProvider);
   }
 
-  private static Specification<Subscription> billingAccountIdEquals(String billingAccountId) {
+  private static Specification<Subscription> billingAccountIdLike(String billingAccountId) {
     return (root, query, builder) ->
-        builder.equal(root.get(Subscription_.billingAccountId), billingAccountId);
+        // If multiple ID's exist, match on firstID or firstID;secondID (azureTenantId or
+        // azureTenantId;azureSubscriptionId)
+        builder.like(root.get(Subscription_.billingAccountId), billingAccountId + "%");
   }
 
   private static Specification<Subscription> metricsCriteria(

@@ -192,6 +192,14 @@ public class BillableUsageConsumer {
         if (isRecentlyTerminatedError) {
           throw new SubscriptionRecentlyTerminatedException(e);
         }
+        var isSubscriptionCannotBeDeterminedError =
+            optionalErrors.get().getErrors().stream()
+                .anyMatch(error -> ("SUBSCRIPTIONS1006").equals(error.getCode()));
+        // TODO: https://issues.redhat.com/browse/SWATCH-2099 put messages on dead-letter topic to
+        // be reprocessed
+        if (isSubscriptionCannotBeDeterminedError) {
+          log.warn("Subscription could not be determined due to ambiguois billingAccountId");
+        }
       }
       throw new AzureUsageContextLookupException(e);
     } catch (ProcessingException | ApiException e) {
