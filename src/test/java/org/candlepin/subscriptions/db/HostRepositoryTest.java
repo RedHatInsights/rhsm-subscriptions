@@ -20,7 +20,10 @@
  */
 package org.candlepin.subscriptions.db;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
@@ -38,12 +41,18 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.db.model.*;
-import org.candlepin.subscriptions.resource.HostsResource;
-import org.candlepin.subscriptions.resource.InstancesResource;
+import org.candlepin.subscriptions.db.model.AccountServiceInventory;
+import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.Host;
+import org.candlepin.subscriptions.db.model.HostApiProjection;
+import org.candlepin.subscriptions.db.model.HostHardwareType;
+import org.candlepin.subscriptions.db.model.HostTallyBucket;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.TallyHostView;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
-import org.candlepin.subscriptions.utilization.api.model.HostReportSort;
-import org.candlepin.subscriptions.utilization.api.model.InstanceReportSort;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -51,7 +60,6 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -68,10 +76,11 @@ import org.springframework.transaction.annotation.Transactional;
 @TestInstance(Lifecycle.PER_CLASS)
 @Import(TestClockConfiguration.class)
 class HostRepositoryTest {
-  private final String RHEL = "RHEL";
-  private final String COOL_PROD = "COOL_PROD";
+  private static final String RHEL = "RHEL";
+  private static final String COOL_PROD = "COOL_PROD";
   private static final String DEFAULT_DISPLAY_NAME = "REDHAT_PWNS";
   private static final String SANITIZED_MISSING_DISPLAY_NAME = "";
+  private static final String SORT_BY_MONTHLY_TOTALS = "monthlyTotals";
 
   @Autowired private HostRepository repo;
   @Autowired private ApplicationClock clock;
@@ -493,81 +502,6 @@ class HostRepositoryTest {
 
   @Transactional
   @Test
-  void testCanSortByDisplayName() {
-    Page<TallyHostView> hosts =
-        repo.getTallyHostViews(
-            "ORG_account2",
-            "RHEL",
-            ServiceLevel.PREMIUM,
-            Usage.PRODUCTION,
-            BillingProvider._ANY,
-            "_ANY",
-            SANITIZED_MISSING_DISPLAY_NAME,
-            0,
-            0,
-            PageRequest.of(
-                0,
-                10,
-                Sort.Direction.ASC,
-                HostsResource.HOST_SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)));
-    List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
-
-    assertEquals(1, found.size());
-    assertTallyHostView(found.get(0), "inventory3");
-  }
-
-  @Transactional
-  @Test
-  void testCanSortByMeasurementType() {
-    Page<TallyHostView> hosts =
-        repo.getTallyHostViews(
-            "ORG_account3",
-            RHEL,
-            ServiceLevel.PREMIUM,
-            Usage.PRODUCTION,
-            BillingProvider._ANY,
-            "_ANY",
-            SANITIZED_MISSING_DISPLAY_NAME,
-            0,
-            0,
-            PageRequest.of(
-                0,
-                10,
-                Sort.Direction.ASC,
-                HostsResource.HOST_SORT_PARAM_MAPPING.get(HostReportSort.DISPLAY_NAME)));
-    List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
-
-    assertEquals(1, found.size());
-    assertTallyHostView(found.get(0), "inventory7");
-  }
-
-  @Transactional
-  @Test
-  void testCanSortByCores() {
-    Page<TallyHostView> hosts =
-        repo.getTallyHostViews(
-            "ORG_account2",
-            "RHEL",
-            ServiceLevel.PREMIUM,
-            Usage.PRODUCTION,
-            BillingProvider._ANY,
-            "_ANY",
-            SANITIZED_MISSING_DISPLAY_NAME,
-            0,
-            0,
-            PageRequest.of(
-                0,
-                10,
-                Sort.Direction.ASC,
-                HostsResource.HOST_SORT_PARAM_MAPPING.get(HostReportSort.CORES)));
-    List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
-
-    assertEquals(1, found.size());
-    assertTallyHostView(found.get(0), "inventory3");
-  }
-
-  @Transactional
-  @Test
   void testCanSortBySockets() {
     Page<TallyHostView> hosts =
         repo.getTallyHostViews(
@@ -580,62 +514,8 @@ class HostRepositoryTest {
             SANITIZED_MISSING_DISPLAY_NAME,
             0,
             0,
-            PageRequest.of(
-                0,
-                10,
-                Sort.Direction.ASC,
-                HostsResource.HOST_SORT_PARAM_MAPPING.get(HostReportSort.SOCKETS)));
-    List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
-
-    assertEquals(1, found.size());
-    assertTallyHostView(found.get(0), "inventory3");
-  }
-
-  @Transactional
-  @Test
-  void testCanSortByLastSeen() {
-    Page<TallyHostView> hosts =
-        repo.getTallyHostViews(
-            "ORG_account2",
-            "RHEL",
-            ServiceLevel.PREMIUM,
-            Usage.PRODUCTION,
-            BillingProvider._ANY,
-            "_ANY",
-            SANITIZED_MISSING_DISPLAY_NAME,
-            0,
-            0,
-            PageRequest.of(
-                0,
-                10,
-                Sort.Direction.ASC,
-                HostsResource.HOST_SORT_PARAM_MAPPING.get(HostReportSort.LAST_SEEN)));
-    List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
-
-    assertEquals(1, found.size());
-    assertTallyHostView(found.get(0), "inventory3");
-  }
-
-  @Transactional
-  @Test
-  void testCanSortByHardwareType() {
-    Page<TallyHostView> hosts =
-        repo.getTallyHostViews(
-            "ORG_account2",
-            "RHEL",
-            ServiceLevel.PREMIUM,
-            Usage.PRODUCTION,
-            BillingProvider._ANY,
-            "_ANY",
-            SANITIZED_MISSING_DISPLAY_NAME,
-            0,
-            0,
-            PageRequest.of(
-                0,
-                10,
-                Sort.Direction.ASC,
-                HostsResource.HOST_SORT_PARAM_MAPPING.get(HostReportSort.HARDWARE_TYPE)));
-    List<TallyHostView> found = hosts.stream().collect(Collectors.toList());
+            PageRequest.of(0, 10, Sort.Direction.ASC, "sockets"));
+    List<TallyHostView> found = hosts.stream().toList();
 
     assertEquals(1, found.size());
     assertTallyHostView(found.get(0), "inventory3");
@@ -722,35 +602,6 @@ class HostRepositoryTest {
     assertEquals(host1.getNumOfGuests(), hypervisor.getNumberOfGuests());
     assertEquals(10, hypervisor.getSockets());
     assertEquals(5, hypervisor.getCores());
-  }
-
-  static InstanceReportSort[] instanceSortParams() {
-    return InstancesResource.INSTANCE_SORT_PARAM_MAPPING
-        .keySet()
-        .toArray(new InstanceReportSort[0]);
-  }
-
-  static String[] tallyViewSortParams() {
-    return HostsResource.HOST_SORT_PARAM_MAPPING.values().toArray(new String[0]);
-  }
-
-  @Transactional
-  @ParameterizedTest
-  @MethodSource("org.candlepin.subscriptions.db.HostRepositoryTest#tallyViewSortParams")
-  void canSortByHostBasedSortMethods(String sort) {
-    Pageable page = PageRequest.of(0, 1, Sort.by(sort));
-    assertNotNull(
-        repo.getTallyHostViews(
-            "ORG_account1234",
-            "product",
-            ServiceLevel._ANY,
-            Usage._ANY,
-            null,
-            null,
-            "",
-            1,
-            0,
-            page));
   }
 
   @Transactional
@@ -982,9 +833,7 @@ class HostRepositoryTest {
 
     persistHosts(host1, host2, host3);
 
-    HostReportSort sort = HostReportSort.CORES;
-    String sortValue = HostsResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
-    Pageable page = PageRequest.of(0, 10, Sort.by(sortValue));
+    Pageable page = PageRequest.of(0, 10, Sort.by(SORT_BY_MONTHLY_TOTALS));
 
     Page<HostApiProjection> results =
         repo.findAllBy(
@@ -1109,9 +958,7 @@ class HostRepositoryTest {
 
     persistHosts(host1, host2, host3);
 
-    HostReportSort sort = HostReportSort.CORES;
-    String sortValue = HostsResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
-    Pageable page = PageRequest.of(0, 10, Sort.by(sortValue));
+    Pageable page = PageRequest.of(0, 10, Sort.by(SORT_BY_MONTHLY_TOTALS));
 
     Page<HostApiProjection> results =
         repo.findAllBy(
@@ -1201,9 +1048,7 @@ class HostRepositoryTest {
 
     persistHosts(host1, host2, host3, host5);
 
-    HostReportSort sort = HostReportSort.CORES;
-    String sortValue = HostsResource.INSTANCE_SORT_PARAM_MAPPING.get(sort);
-    Pageable page = PageRequest.of(0, 10, Sort.by(sortValue));
+    Pageable page = PageRequest.of(0, 10, Sort.by(SORT_BY_MONTHLY_TOTALS));
 
     Page<HostApiProjection> results =
         repo.findAllBy(

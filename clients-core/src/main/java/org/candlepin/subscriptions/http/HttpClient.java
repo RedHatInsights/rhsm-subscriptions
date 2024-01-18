@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -35,6 +36,7 @@ import javax.net.ssl.TrustManagerFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.jboss.resteasy.client.jaxrs.ClientHttpEngine;
@@ -121,7 +123,8 @@ public class HttpClient {
         var keystoreResource = serviceProperties.getKeystore();
         var keystorePass =
             Objects.requireNonNullElse(serviceProperties.getKeystorePassword(), emptyPass);
-        kmf.init(loadKeyStore(keystoreResource, keystorePass), keystorePass);
+        kmf.init(
+            loadKeyStore(keystoreResource, keystorePass, KeyStore.getDefaultType()), keystorePass);
         keyManagers = kmf.getKeyManagers();
       }
 
@@ -129,11 +132,13 @@ public class HttpClient {
         var truststoreResource = serviceProperties.getTruststore();
         var truststorePass =
             Objects.requireNonNullElse(serviceProperties.getTruststorePassword(), emptyPass);
-        tmf.init(loadKeyStore(truststoreResource, truststorePass));
+        tmf.init(
+            loadKeyStore(
+                truststoreResource, truststorePass, serviceProperties.getTruststoreType()));
         trustManagers = tmf.getTrustManagers();
       }
 
-      final SSLContext ctx = SSLContext.getInstance("TLSv1.2");
+      final SSLContext ctx = SSLContext.getInstance(SSLConnectionSocketFactory.TLS);
       ctx.init(keyManagers, trustManagers, null);
       return ctx;
     } catch (GeneralSecurityException e) {
@@ -141,9 +146,11 @@ public class HttpClient {
     }
   }
 
-  private static KeyStore loadKeyStore(Resource keyStoreResource, char[] keyStorePassword) {
+  private static KeyStore loadKeyStore(
+      Resource keyStoreResource, char[] keyStorePassword, String type) {
     try {
-      final KeyStore store = KeyStore.getInstance(KeyStore.getDefaultType());
+      final KeyStore store =
+          KeyStore.getInstance(Optional.ofNullable(type).orElse(KeyStore.getDefaultType()));
       store.load(keyStoreResource.getInputStream(), keyStorePassword);
       return store;
     } catch (IOException | GeneralSecurityException e) {

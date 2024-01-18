@@ -22,11 +22,13 @@ package com.redhat.swatch.contract.model;
 
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.DimensionV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerIdentityV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.RhEntitlementV1;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.Dimension;
 import com.redhat.swatch.contract.openapi.model.Metric;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
+import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContractCloudIdentifiers;
 import com.redhat.swatch.contract.repository.BillingProvider;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
@@ -61,9 +63,36 @@ public interface ContractMapper {
   ContractMetricEntity metricDtoToMetricEntity(Metric metric);
 
   @Mapping(target = "subscriptionNumber", source = "contract.redHatSubscriptionNumber")
-  @Mapping(target = "vendorProductCode", source = "cloudIdentifiers.productCode")
+  @Mapping(
+      target = "vendorProductCode",
+      source = "cloudIdentifiers",
+      qualifiedByName = "vendorProductCode")
+  @Mapping(target = "metrics", source = "currentDimensions")
   @BeanMapping(ignoreByDefault = true)
   ContractEntity partnerContractToContractEntity(PartnerEntitlementContract contract);
+
+  // this method uses the partner field in PartnerEntitlementContractCloudIdentifiers
+  //  to determine how product code is mapped for a specific provider
+  @Named("vendorProductCode")
+  default String extractVendorProductCode(PartnerEntitlementContractCloudIdentifiers code) {
+    if (code.getProductCode() != null) {
+      return code.getProductCode();
+    } else if (code.getPartner().equals("azure_marketplace")) {
+      return code.getAzureOfferId();
+    }
+    return null;
+  }
+
+  @Named("billingProviderId")
+  default String extractBillingProviderId(PartnerEntitlementContractCloudIdentifiers code) {
+    String providerId = null;
+    if (Objects.equals("azure_marketplace", code.getPartner())) {
+      providerId =
+          String.format(
+              "%s;%s;%s", code.getAzureResourceId(), code.getPlanId(), code.getAzureOfferId());
+    }
+    return providerId;
+  }
 
   @Mapping(target = "subscriptionId", ignore = true)
   @Mapping(target = "billingProviderId", ignore = true)
@@ -89,14 +118,10 @@ public interface ContractMapper {
 
   @Mapping(target = "metricId", source = "dimension.dimensionName")
   @Mapping(target = "value", source = "dimension.dimensionValue")
-  @Mapping(target = "contract", ignore = true)
-  @Mapping(target = "contractUuid", ignore = true)
-  ContractMetricEntity dimensionToContractMetricEntity(Dimension dimension);
+  ContractMetricEntity umbDimensionToEntityDimension(Dimension dimension);
 
   @Mapping(target = "orgId", source = "entitlement.rhAccountId")
-  @Mapping(
-      target = "billingAccountId",
-      source = "entitlement.partnerIdentities.customerAwsAccountId")
+  @Mapping(target = "billingAccountId", source = "entitlement.partnerIdentities")
   @Mapping(
       target = "sku",
       source = "entitlement.rhEntitlements",
@@ -104,6 +129,18 @@ public interface ContractMapper {
   @BeanMapping(ignoreByDefault = true)
   void mapRhEntitlementsToContractEntity(
       @MappingTarget ContractEntity contractEntity, PartnerEntitlementV1 entitlement);
+
+  // this method is to properly map value from entitlement partnerIdentities
+  // as these fields are populated differently based on the marketplace
+  default String extractBillingAccountId(PartnerIdentityV1 accountId) {
+
+    if (accountId.getCustomerAwsAccountId() != null) {
+      return accountId.getCustomerAwsAccountId();
+    } else if (accountId.getAzureTenantId() != null) {
+      return accountId.getAzureTenantId();
+    }
+    return null;
+  }
 
   @Named("rhEntitlementSku")
   default String getRhEntitlementSku(List<RhEntitlementV1> rhEntitlements) {
@@ -114,6 +151,15 @@ public interface ContractMapper {
     } else {
       return null;
     }
+  }
+
+  @Named("rhSubscriptionNumber")
+  default String getRhSubscriptionNumber(List<RhEntitlementV1> rhEntitlements) {
+    return Objects.nonNull(rhEntitlements)
+            && !rhEntitlements.isEmpty()
+            && Objects.nonNull(rhEntitlements.get(0))
+        ? rhEntitlements.get(0).getSubscriptionNumber()
+        : null;
   }
 
   Set<ContractMetricEntity> dimensionV1ToContractMetricEntity(Set<DimensionV1> dimension);

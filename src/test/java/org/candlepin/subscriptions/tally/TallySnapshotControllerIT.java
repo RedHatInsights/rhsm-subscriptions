@@ -20,7 +20,6 @@
  */
 package org.candlepin.subscriptions.tally;
 
-import static org.candlepin.subscriptions.metering.MeteringEventFactory.getEventType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,12 +34,16 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.HostTallyBucketRepository;
+import org.candlepin.subscriptions.db.model.AccountServiceInventory;
 import org.candlepin.subscriptions.db.model.EventRecord;
+import org.candlepin.subscriptions.db.model.Host;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
@@ -82,6 +85,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   @Autowired EventRecordRepository eventRecordRepository;
   @Autowired OptInResource optInResource;
   @Autowired HostTallyBucketRepository hostTallyBucketRepository;
+  @Autowired AccountServiceInventoryRepository accountServiceInventoryRepository;
 
   @MockBean(answer = Answers.CALLS_REAL_METHODS)
   InventoryRepository inventoryRepository;
@@ -100,7 +104,8 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   void testProduceHourlySnapshotsForOrgFromEvents() {
     givenOrgAndAccountInConfig();
     givenFiveDaysOfRangeForReport();
-
+    // prevent retally
+    givenExistingHostInformation();
     givenEventAtDay(1, 78.4390);
     givenEventAtDay(3, 89.716);
 
@@ -160,14 +165,27 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
     optInResource.putOptInConfig();
   }
 
+  private void givenExistingHostInformation() {
+    var host = new Host();
+    host.setOrgId(ORG_ID);
+    host.setInstanceId("1c474d4e-c277-472c-94ab-8229a40417eb");
+    host.setDisplayName("name");
+    host.setInstanceType("rosa Instance");
+    host.setLastSeen(clock.startOfCurrentMonth().minusMonths(1));
+    AccountServiceInventory service = new AccountServiceInventory(ORG_ID, "rosa Instance");
+    service.getServiceInstances().put(host.getInstanceId(), host);
+    accountServiceInventoryRepository.save(service);
+  }
+
   private void givenEventAtDay(int dayAt, double value) {
     Event event = new Event();
     event.setEventId(UUID.randomUUID());
     event.setTimestamp(start.plusDays(dayAt));
     event.setSla(Event.Sla.PREMIUM);
     event.setRole(Event.Role.MOA_HOSTEDCONTROLPLANE);
+    event.setProductTag(Set.of(PRODUCT_TAG));
     event.setOrgId(ORG_ID);
-    event.setEventType(getEventType(METRIC, PRODUCT_TAG));
+    event.setEventType("snapshot_" + METRIC.toLowerCase() + "_" + PRODUCT_TAG.toLowerCase());
     event.setInstanceId(PROMETHEUS);
     event.setEventSource("any");
     event.setExpiration(Optional.of(event.getTimestamp().plusHours(5)));

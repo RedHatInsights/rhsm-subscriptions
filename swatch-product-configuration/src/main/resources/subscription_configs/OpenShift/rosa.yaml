@@ -21,7 +21,8 @@ contractEnabled: true
 
 metrics:
   - id: Instance-hours
-    awsDimension: control_plane_0
+    awsDimension: control_plane
+    azureDimension: control_plane
     prometheus:
       queryKey: default
       queryParams:
@@ -30,7 +31,8 @@ metrics:
         metric: cluster:usage:workload:capacity_physical_instance_hours
         metadataMetric: ocm_subscription
   - id: Cores
-    awsDimension: four_vcpu_0
+    awsDimension: four_vcpu_hour
+    azureDimension: four_vcpu_hour
     billingFactor: 0.25
     prometheus:
       queryKey: default

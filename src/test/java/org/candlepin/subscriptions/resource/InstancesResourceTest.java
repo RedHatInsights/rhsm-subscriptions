@@ -49,12 +49,10 @@ import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.TallyInstanceViewKey;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
 import org.candlepin.subscriptions.utilization.api.model.CloudProvider;
 import org.candlepin.subscriptions.utilization.api.model.InstanceData;
 import org.candlepin.subscriptions.utilization.api.model.InstanceMeta;
-import org.candlepin.subscriptions.utilization.api.model.InstanceReportSort;
 import org.candlepin.subscriptions.utilization.api.model.InstanceResponse;
 import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
@@ -73,8 +71,10 @@ import org.springframework.test.context.ActiveProfiles;
 @WithMockRedHatPrincipal("123456")
 class InstancesResourceTest {
 
-  private static final ProductId RHOSAK = ProductId.fromString("rhosak");
+  private static final ProductId ROSA = ProductId.fromString("rosa");
   private static final ProductId RHEL_FOR_X86 = ProductId.fromString("RHEL for x86");
+  private static final String SORT_BY_DISPLAY_NAME = "display_name";
+
   @MockBean TallyInstanceViewRepository repository;
   @MockBean HostRepository hostRepository;
   @MockBean PageLinkCreator pageLinkCreator;
@@ -82,7 +82,7 @@ class InstancesResourceTest {
   @Autowired InstancesResource resource;
 
   @BeforeEach
-  public void setup() throws AccountListSourceException {
+  public void setup() {
     when(orgConfigRepository.existsByOrgId("owner123456")).thenReturn(true);
   }
 
@@ -118,9 +118,7 @@ class InstancesResourceTest {
                 any()))
         .thenReturn(new PageImpl<>(List.of(tallyInstanceView)));
 
-    var expectUom =
-        List.of(
-            "Instance-hours", "Storage-gibibyte-months", "Storage-gibibytes", "Transfer-gibibytes");
+    var expectUom = List.of("Cores", "Instance-hours");
     List<Double> expectedMeasurement = new ArrayList<>();
     String month = InstanceMonthlyTotalKey.formatMonthId(tallyInstanceView.getLastSeen());
     for (String uom : expectUom) {
@@ -130,7 +128,7 @@ class InstancesResourceTest {
     }
     var data = new InstanceData();
     data.setId("testHostId");
-    data.setInstanceId(tallyInstanceView.getKey().getInstanceId().toString());
+    data.setInstanceId(tallyInstanceView.getKey().getInstanceId());
     data.setDisplayName(tallyInstanceView.getDisplayName());
     data.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
     data.setLastSeen(tallyInstanceView.getLastSeen());
@@ -140,7 +138,7 @@ class InstancesResourceTest {
 
     var meta = new InstanceMeta();
     meta.setCount(1);
-    meta.setProduct(RHOSAK.toString());
+    meta.setProduct(ROSA.toString());
     meta.setServiceLevel(ServiceLevelType.PREMIUM);
     meta.setUsage(UsageType.PRODUCTION);
     meta.setMeasurements(expectUom);
@@ -152,7 +150,7 @@ class InstancesResourceTest {
 
     InstanceResponse report =
         resource.getInstancesByProduct(
-            RHOSAK,
+            ROSA,
             null,
             null,
             ServiceLevelType.PREMIUM,
@@ -164,7 +162,7 @@ class InstancesResourceTest {
             null,
             null,
             null,
-            InstanceReportSort.DISPLAY_NAME,
+            SORT_BY_DISPLAY_NAME,
             null);
 
     assertEquals(expected, report);
@@ -262,7 +260,7 @@ class InstancesResourceTest {
             null,
             null,
             null,
-            InstanceReportSort.DISPLAY_NAME,
+            SORT_BY_DISPLAY_NAME,
             null);
 
     assertEquals(expected, report);
@@ -307,31 +305,23 @@ class InstancesResourceTest {
                 any()))
         .thenReturn(new PageImpl<>(List.of(tallyInstanceView)));
 
-    var expectUom =
-        List.of(
-            "Instance-hours", "Storage-gibibyte-months", "Storage-gibibytes", "Transfer-gibibytes");
-    List<Double> expectedMeasurement = new ArrayList<>();
-    expectedMeasurement.add(5.0);
-    expectedMeasurement.add(0.0);
-    expectedMeasurement.add(0.0);
-    expectedMeasurement.add(0.0);
     var data = new InstanceData();
     data.setId(tallyInstanceView.getId());
-    data.setInstanceId(tallyInstanceView.getKey().getInstanceId().toString());
+    data.setInstanceId(tallyInstanceView.getKey().getInstanceId());
     data.setDisplayName(tallyInstanceView.getDisplayName());
     data.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
     data.setLastSeen(tallyInstanceView.getLastSeen());
-    data.setMeasurements(expectedMeasurement);
+    data.setMeasurements(List.of(0.0, 5.0));
     data.setNumberOfGuests(tallyInstanceView.getNumOfGuests());
     data.setCloudProvider(CloudProvider.AWS);
     data.setCategory(ReportCategory.CLOUD);
 
     var meta = new InstanceMeta();
     meta.setCount(1);
-    meta.setProduct(RHOSAK.toString());
+    meta.setProduct(ROSA.toString());
     meta.setServiceLevel(ServiceLevelType.PREMIUM);
     meta.setUsage(UsageType.PRODUCTION);
-    meta.setMeasurements(expectUom);
+    meta.setMeasurements(List.of("Cores", "Instance-hours"));
     meta.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
 
     var expected = new InstanceResponse();
@@ -340,7 +330,7 @@ class InstancesResourceTest {
 
     InstanceResponse report =
         resource.getInstancesByProduct(
-            RHOSAK,
+            ROSA,
             null,
             null,
             ServiceLevelType.PREMIUM,
@@ -352,7 +342,7 @@ class InstancesResourceTest {
             null,
             null,
             null,
-            InstanceReportSort.DISPLAY_NAME,
+            SORT_BY_DISPLAY_NAME,
             null);
 
     assertEquals(expected, report);
@@ -364,11 +354,11 @@ class InstancesResourceTest {
     var laterDayInJanuary = OffsetDateTime.of(2023, 1, 29, 10, 0, 0, 0, ZoneOffset.UTC);
     var dayInFebruary = OffsetDateTime.of(2023, 2, 23, 10, 0, 0, 0, ZoneOffset.UTC);
 
-    // RHOSAK is a PAYG product
-    resource.validateBeginningAndEndingDates(RHOSAK, dayInJanuary, laterDayInJanuary);
+    // ROSA is a PAYG product
+    resource.validateBeginningAndEndingDates(ROSA, dayInJanuary, laterDayInJanuary);
     assertThrows(
         BadRequestException.class,
-        () -> resource.validateBeginningAndEndingDates(RHOSAK, dayInJanuary, dayInFebruary));
+        () -> resource.validateBeginningAndEndingDates(ROSA, dayInJanuary, dayInFebruary));
   }
 
   @Test
@@ -416,7 +406,7 @@ class InstancesResourceTest {
         null,
         OffsetDateTime.now(),
         OffsetDateTime.now(),
-        InstanceReportSort.DISPLAY_NAME,
+        SORT_BY_DISPLAY_NAME,
         null);
 
     Mockito.when(
@@ -515,7 +505,7 @@ class InstancesResourceTest {
         null,
         OffsetDateTime.now(),
         OffsetDateTime.now(),
-        InstanceReportSort.DISPLAY_NAME,
+        SORT_BY_DISPLAY_NAME,
         null);
 
     verify(repository)
@@ -580,7 +570,7 @@ class InstancesResourceTest {
         null,
         OffsetDateTime.now(),
         OffsetDateTime.now(),
-        InstanceReportSort.DISPLAY_NAME,
+        SORT_BY_DISPLAY_NAME,
         null);
 
     verify(repository)
@@ -600,13 +590,13 @@ class InstancesResourceTest {
             any());
   }
 
-  @Test()
+  @Test
   void testGetInstancesByProductThrowsExceptionForUnknownMetricId() {
     assertThrows(
         BadRequestException.class,
         () ->
             resource.getInstancesByProduct(
-                RHOSAK,
+                ROSA,
                 null,
                 null,
                 ServiceLevelType.PREMIUM,
@@ -618,7 +608,7 @@ class InstancesResourceTest {
                 null,
                 null,
                 null,
-                InstanceReportSort.DISPLAY_NAME,
+                SORT_BY_DISPLAY_NAME,
                 null));
   }
 }

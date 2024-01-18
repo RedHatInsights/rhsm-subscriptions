@@ -21,20 +21,43 @@
 package org.candlepin.subscriptions.deployment;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.candlepin.subscriptions.SystemConduitApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest(useMainMethod = SpringBootTest.UseMainMethod.ALWAYS)
+@SpringBootTest(
+    useMainMethod = SpringBootTest.UseMainMethod.ALWAYS,
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles({"test"})
 class SystemConduitDeploymentTest {
+
+  private static final String LOCALHOST = "http://localhost:";
+
   @Autowired SystemConduitApplication configuration;
+  @LocalServerPort int port;
+
+  private final TestRestTemplate restTemplate =
+      new TestRestTemplate(TestRestTemplate.HttpClientOption.ENABLE_REDIRECTS);
 
   @Test
   void testDeployment() {
     assertNotNull(configuration);
+  }
+
+  @Test
+  void testSwaggerPage() {
+    ResponseEntity<String> response =
+        restTemplate.getForEntity(
+            LOCALHOST + port + "/api/swatch-system-conduit/internal/swagger-ui", String.class);
+    assertTrue(response.getStatusCode().is2xxSuccessful());
+    assertNotNull(response.getBody());
+    assertTrue(response.getBody().contains("API Docs"));
   }
 }

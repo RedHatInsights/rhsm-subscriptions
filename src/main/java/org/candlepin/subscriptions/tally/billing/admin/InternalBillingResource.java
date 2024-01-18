@@ -21,11 +21,13 @@
 package org.candlepin.subscriptions.tally.billing.admin;
 
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.InternalServerErrorException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import org.candlepin.subscriptions.billing.admin.api.InternalApi;
 import org.candlepin.subscriptions.billing.admin.api.model.MonthlyRemittance;
+import org.candlepin.subscriptions.billing.admin.api.model.RetriesResponse;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
 import org.springframework.stereotype.Component;
 
@@ -67,5 +69,15 @@ public class InternalBillingResource implements InternalApi {
             .ending(ending)
             .build();
     return billingController.process(filter);
+  }
+
+  /**
+   * @param asOf
+   * @return
+   */
+  @Override
+  public RetriesResponse processRetries(OffsetDateTime asOf) {
+
+    throw new InternalServerErrorException("not yet implemented");
   }
 }

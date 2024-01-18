@@ -21,10 +21,10 @@ liquibase {
 dependencies {
     compileOnly libraries["lombok"]
     implementation 'io.quarkus:quarkus-hibernate-validator'
-    implementation 'io.quarkus:quarkus-jsonb'
+    implementation 'io.quarkus:quarkus-jackson'
     implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
     implementation 'io.quarkus:quarkus-opentelemetry'
-    implementation 'io.quarkus:quarkus-resteasy-reactive-jsonb'
+    implementation 'io.quarkus:quarkus-resteasy-reactive-jackson'
     implementation 'io.quarkus:quarkus-security'
     implementation 'io.quarkus:quarkus-smallrye-fault-tolerance'
     implementation 'io.quarkus:quarkus-smallrye-health'
@@ -75,6 +75,7 @@ openApiGenerate {
                      library          : "microprofile",
                      java8            : "true",
                      dateLibrary      : "java8",
+                     serializationLibrary: "jackson",
                      useBeanValidation: "true",
                      microprofileRestClientVersion: "3.0",
                      useJakartaEE: "true",
@@ -92,9 +93,3 @@ openApiGenerate {
 }
 
 sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
-
-tasks.register("wiremock", JavaExec) {
-    description = "Run mock REST services for this service"
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = "com.redhat.swatch.contract.resource.WireMockResource"
-}

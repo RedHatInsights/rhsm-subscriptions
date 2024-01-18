@@ -7,11 +7,11 @@ dependencies {
     compileOnly libraries["lombok"]
     implementation platform(libraries["awssdk-bom"])
     implementation 'io.quarkus:quarkus-hibernate-validator'
-    implementation 'io.quarkus:quarkus-jsonb'
+    implementation 'io.quarkus:quarkus-jackson'
     implementation 'io.quarkus:quarkus-logging-json'
     implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
     implementation 'io.quarkus:quarkus-opentelemetry'
-    implementation 'io.quarkus:quarkus-resteasy-reactive-jsonb'
+    implementation 'io.quarkus:quarkus-resteasy-reactive-jackson'
     implementation 'io.quarkus:quarkus-smallrye-fault-tolerance'
     implementation 'io.quarkus:quarkus-smallrye-health'
     implementation 'io.quarkus:quarkus-smallrye-openapi'
@@ -34,7 +34,6 @@ dependencies {
     testImplementation 'org.testcontainers:postgresql'
     testImplementation 'org.testcontainers:testcontainers'
     testImplementation libraries["junit-jupiter"]
-    testImplementation libraries["wiremock"]
     testImplementation project(':swatch-common-testcontainers')
 }
 
@@ -54,6 +53,7 @@ openApiGenerate {
             library: "microprofile",
             java8: "true",
             dateLibrary: "java8",
+            serializationLibrary: "jackson",
             microprofileRestClientVersion: "3.0",
             useJakartaEE: "true",
     ]
@@ -66,9 +66,3 @@ openApiGenerate {
 tasks.openApiGenerate.inputs.file("../swatch-core/schemas/billable_usage.yaml")
 
 sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]
-
-tasks.register("wiremock", JavaExec) {
-    description = "Run mock REST services for this service"
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = "com.redhat.swatch.aws.test.wiremock.WiremockRunner"
-}

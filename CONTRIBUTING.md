@@ -74,6 +74,12 @@ Liquibase Hub or Liquibase Pro.
 
 DB migrations should be written to roll back cleanly (exceptions should be discussed with the team).
 
+To generate a new changeset, you can use a helper script in `bin/`:
+
+```shell
+bin/liquibase-new-changeset.sh change set description
+```
+
 -------------
 # swatch-product-configuration
 

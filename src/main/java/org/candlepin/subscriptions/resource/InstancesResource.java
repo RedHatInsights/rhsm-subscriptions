@@ -31,12 +31,11 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.UriInfo;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.HostRepository;
@@ -55,7 +54,6 @@ import org.candlepin.subscriptions.utilization.api.model.CloudProvider;
 import org.candlepin.subscriptions.utilization.api.model.InstanceData;
 import org.candlepin.subscriptions.utilization.api.model.InstanceGuestReport;
 import org.candlepin.subscriptions.utilization.api.model.InstanceMeta;
-import org.candlepin.subscriptions.utilization.api.model.InstanceReportSort;
 import org.candlepin.subscriptions.utilization.api.model.InstanceResponse;
 import org.candlepin.subscriptions.utilization.api.model.MetaCount;
 import org.candlepin.subscriptions.utilization.api.model.PageLinks;
@@ -75,23 +73,21 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class InstancesResource implements InstancesApi {
 
-  private final TallyInstanceViewRepository repository;
-  private final HostRepository hostRepository;
-  private final PageLinkCreator pageLinkCreator;
-
-  public static final Map<InstanceReportSort, String> INSTANCE_SORT_PARAM_MAPPING =
-      ImmutableMap.<InstanceReportSort, String>builder()
-          .put(InstanceReportSort.DISPLAY_NAME, "displayName")
-          .put(InstanceReportSort.LAST_SEEN, "lastSeen")
-          .put(InstanceReportSort.BILLING_PROVIDER, "hostBillingProvider")
-          .put(InstanceReportSort.NUMBER_OF_GUESTS, "numOfGuests")
-          .put(InstanceReportSort.CATEGORY, "key.measurementType")
-          .putAll(getUomSorts())
-          .put(InstanceReportSort.SOCKETS, "sockets")
+  public static final Map<String, String> FIELD_SORT_PARAM_MAPPING =
+      ImmutableMap.<String, String>builder()
+          .put("display_name", "displayName")
+          .put("last_seen", "lastSeen")
+          .put("billing_provider", "hostBillingProvider")
+          .put("number_of_guests", "numOfGuests")
+          .put("category", "key.measurementType")
+          .put("Sockets", "sockets")
+          .put("Cores", "cores")
           .build();
 
-  public static final Map<InstanceReportSort, MetricId> SORT_TO_METRIC_ID_MAP =
-      ImmutableMap.copyOf(getSortToMetricIdMap());
+  public static final Set<String> METRICS_TO_SORT =
+      MetricId.getAll().stream().map(MetricId::getValue).collect(Collectors.toUnmodifiableSet());
+  public static final String METRICS_SORT_PARAM = "value";
+  private static final Sort.Order IMPLICIT_ORDER_TO_SORT = Sort.Order.by("id");
 
   private static final Map<ReportCategory, List<HardwareMeasurementType>> CATEGORY_MAP =
       Map.of(
@@ -99,6 +95,10 @@ public class InstancesResource implements InstancesApi {
           ReportCategory.VIRTUAL, List.of(HardwareMeasurementType.VIRTUAL),
           ReportCategory.HYPERVISOR, List.of(HardwareMeasurementType.HYPERVISOR),
           ReportCategory.CLOUD, new ArrayList<>(HardwareMeasurementType.getCloudProviderTypes()));
+
+  private final TallyInstanceViewRepository repository;
+  private final HostRepository hostRepository;
+  private final PageLinkCreator pageLinkCreator;
 
   @Context UriInfo uriInfo;
 
@@ -145,19 +145,12 @@ public class InstancesResource implements InstancesApi {
       ReportCategory reportCategory,
       OffsetDateTime beginning,
       OffsetDateTime ending,
-      InstanceReportSort sort,
+      String sort,
       SortDirection dir) {
 
     String orgId = ResourceUtils.getOrgId();
 
     log.debug("Get instances api called for org_id: {} and product: {}", orgId, productId);
-
-    Sort.Direction dirValue = Sort.Direction.ASC;
-    if (dir == SortDirection.DESC) {
-      dirValue = Sort.Direction.DESC;
-    }
-    Sort.Order implicitOrder = Sort.Order.by("id");
-    Sort sortValue = Sort.by(implicitOrder);
 
     Optional<MetricId> metricIdOptional = Optional.empty();
     if (Objects.nonNull(uom)) {
@@ -189,11 +182,8 @@ public class InstancesResource implements InstancesApi {
 
     List<InstanceData> payload;
     Page<TallyInstanceView> instances;
-    if (sort != null) {
-      Sort.Order userDefinedOrder = new Sort.Order(dirValue, INSTANCE_SORT_PARAM_MAPPING.get(sort));
-      sortValue = Sort.by(userDefinedOrder, implicitOrder);
-    }
-    Pageable page = ResourceUtils.getPageable(offset, limit, sortValue);
+
+    Pageable page = ResourceUtils.getPageable(offset, limit, toSort(sort, dir));
 
     OffsetDateTime now = OffsetDateTime.now();
     OffsetDateTime start = Optional.ofNullable(beginning).orElse(now);
@@ -213,7 +203,10 @@ public class InstancesResource implements InstancesApi {
     // the selected month. This is also used for sorting purposes (same join). See
     // org.candlepin.subscriptions.db.TallyInstanceViewSpecification#toPredicate and
     // org.candlepin.subscriptions.db.TallyInstanceViewRepository#findAllBy.
-    MetricId referenceMetricId = metricIdOptional.orElse(SORT_TO_METRIC_ID_MAP.get(sort));
+    MetricId referenceMetricId = metricIdOptional.orElse(null);
+    if (referenceMetricId == null && sort != null && METRICS_TO_SORT.contains(sort)) {
+      referenceMetricId = MetricId.fromString(sort);
+    }
 
     instances =
         repository.findAllBy(
@@ -256,6 +249,24 @@ public class InstancesResource implements InstancesApi {
                 .billingAccountId(billingAccountId)
                 .measurements(measurements))
         .data(payload);
+  }
+
+  private static Sort toSort(String sort, SortDirection dir) {
+    Sort.Direction dirValue =
+        SortDirection.DESC.equals(dir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+
+    Sort sortValue;
+
+    if (sort != null) {
+      String column =
+          METRICS_TO_SORT.contains(sort) ? METRICS_SORT_PARAM : FIELD_SORT_PARAM_MAPPING.get(sort);
+      Sort.Order userDefinedOrder = new Sort.Order(dirValue, column);
+      sortValue = Sort.by(userDefinedOrder, IMPLICIT_ORDER_TO_SORT);
+    } else {
+      sortValue = Sort.by(IMPLICIT_ORDER_TO_SORT);
+    }
+
+    return sortValue;
   }
 
   private static Boolean isPayg(Optional<Variant> variant) {
@@ -356,25 +367,5 @@ public class InstancesResource implements InstancesApi {
       case AZURE -> CloudProvider.AZURE;
       default -> null;
     };
-  }
-
-  private static Map<InstanceReportSort, MetricId> getSortToMetricIdMap() {
-    return MetricId.getAll().stream()
-        .filter(
-            metricId ->
-                Arrays.stream(InstanceReportSort.values())
-                    .map(InstanceReportSort::toString)
-                    .filter(value -> !value.equals(MetricIdUtils.getSockets().getValue()))
-                    .collect(Collectors.toSet())
-                    .contains(metricId.getValue()))
-        .collect(
-            Collectors.toMap(
-                metricId -> InstanceReportSort.fromValue(metricId.getValue()),
-                Function.identity()));
-  }
-
-  private static Map<InstanceReportSort, String> getUomSorts() {
-    return getSortToMetricIdMap().keySet().stream()
-        .collect(Collectors.toMap(Function.identity(), key -> "value"));
   }
 }

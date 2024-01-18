@@ -22,16 +22,24 @@ package com.redhat.swatch.contract.resource;
 
 import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.openapi.model.Error;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
+import jakarta.ws.rs.core.UriInfo;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Provider
 public class DefaultExceptionMapper implements ExceptionMapper<Exception> {
 
+  @Context UriInfo info;
+
   @Override
   public Response toResponse(Exception exception) {
+    log.error(
+        "Request '{}' failed with error '{}'", info.getPath(), exception.getMessage(), exception);
     var status = Status.INTERNAL_SERVER_ERROR;
     return Response.status(status)
         .entity(

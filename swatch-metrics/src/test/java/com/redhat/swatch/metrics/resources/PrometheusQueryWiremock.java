@@ -106,6 +106,11 @@ public class PrometheusQueryWiremock {
             .willReturn(okJson(toJson(expectedResult))));
   }
 
+  public void stubQueryRange(QueryResult expectedResult) {
+    wireMockServer.stubFor(
+        get(urlPathEqualTo(QUERY_RANGE_PATH)).willReturn(okJson(toJson(expectedResult))));
+  }
+
   public void stubQueryRange(QueryResult... expectedResults) {
     String scenarioId = UUID.randomUUID().toString();
     int stepId = 0;

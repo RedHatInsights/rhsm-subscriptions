@@ -20,17 +20,26 @@
  */
 package com.redhat.swatch.contract.security;
 
+import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.runtime.QuarkusSecurityIdentity;
+import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
+import jakarta.inject.Inject;
+import java.io.IOException;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
+@QuarkusTest
 class RolesAugmentorTest {
-  private static QuarkusSecurityIdentity securityIdentityForRhIdentityJson(String json) {
-    return QuarkusSecurityIdentity.builder()
-        .setPrincipal(RhIdentityPrincipal.fromJson(json))
-        .build();
+  @Inject RhIdentityPrincipalFactory identityFactory;
+
+  private QuarkusSecurityIdentity securityIdentityForRhIdentityJson(String json) {
+    try {
+      return QuarkusSecurityIdentity.builder().setPrincipal(identityFactory.fromJson(json)).build();
+    } catch (IOException e) {
+      throw new AuthenticationFailedException(e);
+    }
   }
 
   @Test

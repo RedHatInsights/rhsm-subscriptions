@@ -101,6 +101,8 @@ public class InventoryController {
   public static final String NET_INTERFACE_LO_IPV6_ADDRESS = "net.interface.lo.ipv6_address";
   public static final String CPU_SOCKETS = "cpu.cpu_socket(s)";
   public static final String CPU_CORES_PER_SOCKET = "cpu.core(s)_per_socket";
+  public static final String NUMBER_OF_CPUS = "cpu.cpu(s)";
+  public static final String THREADS_PER_CORE = "cpu.thread(s)_per_core";
   public static final String MEMORY_MEMTOTAL = "memory.memtotal";
   public static final String UNAME_MACHINE = "uname.machine";
   public static final String VIRT_IS_GUEST = "virt.is_guest";
@@ -174,6 +176,7 @@ public class InventoryController {
 
   protected ConduitFacts getFactsFromConsumer(Consumer consumer) {
     final Map<String, String> rhsmFacts = consumer.getFacts();
+    log.debug("Received message from consumer: {}", consumer);
     ConduitFacts facts = new ConduitFacts();
     facts.setOrgId(consumer.getOrgId());
     String clusterUuid = rhsmFacts.get(OPENSHIFT_CLUSTER_UUID);
@@ -293,6 +296,14 @@ public class InventoryController {
     }
     if (StringUtils.hasLength(coresPerSocket)) {
       facts.setCoresPerSocket(Integer.parseInt(coresPerSocket));
+    }
+    String numberOfCpus = rhsmFacts.get(NUMBER_OF_CPUS);
+    if (StringUtils.hasLength(numberOfCpus)) {
+      facts.setNumberOfCpus(Integer.parseInt(numberOfCpus));
+    }
+    String threadsPerCore = rhsmFacts.get(THREADS_PER_CORE);
+    if (StringUtils.hasLength(threadsPerCore)) {
+      facts.setThreadsPerCore(Integer.parseInt(threadsPerCore));
     }
 
     setMemoryFacts(rhsmFacts, facts);

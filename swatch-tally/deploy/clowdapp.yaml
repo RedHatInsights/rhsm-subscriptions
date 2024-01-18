@@ -165,12 +165,12 @@ parameters:
     value: '2147483647'  # Integer.MAX_VALUE by default
   - name: HBI_RECONCILIATION_FLUSH_INTERVAL
     value: '1024'
+  - name: USE_CPU_SYSTEM_FACTS_TO_ALL_PRODUCTS
+    value: 'true'
   - name: MACHINE_POOL
     value: '' # don't restrict to a specific machine pool by default
   - name: JOB_MACHINE_POOL
     value: ''
-  - name: SWATCH_CONTRACTS_INTERNAL_SERVICE_URL
-    value: http://swatch-contracts-service:8000
   - name: CONTRACT_CLIENT_BACK_OFF_INITIAL_INTERVAL_MILLIS
     value: '1000'
   - name: CONTRACT_CLIENT_BACK_OFF_MAX_INTERVAL_MILLIS
@@ -223,11 +223,14 @@ objects:
   spec:
     # The name of the ClowdEnvironment providing the services
     envName: ${ENV_NAME}
+    dependencies:
+      - host-inventory
+      - swatch-contracts
+      - rbac
+      - export-service
     # IQE plugin your ClowdApp is associated with
     testing:
       iqePlugin: rhsm-subscriptions
-    dependencies:
-      - host-inventory
 
     kafkaTopics:
       - replicas: ${{KAFKA_TALLY_REPLICAS}}
@@ -408,10 +411,10 @@ objects:
               value: ${TALLY_MAX_HBI_ACCOUNT_SIZE}
             - name: HBI_RECONCILIATION_FLUSH_INTERVAL
               value: ${HBI_RECONCILIATION_FLUSH_INTERVAL}
+            - name: USE_CPU_SYSTEM_FACTS_TO_ALL_PRODUCTS
+              value: ${USE_CPU_SYSTEM_FACTS_TO_ALL_PRODUCTS}
             - name: HOST_LAST_SYNC_THRESHOLD
               value: ${HOST_LAST_SYNC_THRESHOLD}
-            - name: SWATCH_CONTRACTS_INTERNAL_SERVICE_URL
-              value: ${SWATCH_CONTRACTS_INTERNAL_SERVICE_URL}
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
             - name: OTEL_SERVICE_NAME

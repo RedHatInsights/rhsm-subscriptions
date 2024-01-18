@@ -23,19 +23,16 @@ parser.add_argument("--metric", help="Limit to a specific metric")
 parser.add_argument("--org", help="Limit metric queries to a specific org")
 args = parser.parse_args()
 
-with open("src/main/resources/application.yaml") as config_file:
-    config = yaml.safe_load(config_file)
-    account_query_templates = config["rhsm-subscriptions"]["metering"]["prometheus"][
-        "metric"
-    ]["accountQueryTemplates"]
-
 with open(
-    "src/main/resources/application-openshift-metering-worker.yaml"
+    "swatch-metrics/src/main/resources/application.yaml"
 ) as config_file:
     config = yaml.safe_load(config_file)
     query_templates = config["rhsm-subscriptions"]["metering"]["prometheus"]["metric"][
         "queryTemplates"
     ]
+    account_query_templates = config["rhsm-subscriptions"]["metering"]["prometheus"][
+        "metric"
+    ]["accountQueryTemplates"]
 
 
 def promql(template, query_params):

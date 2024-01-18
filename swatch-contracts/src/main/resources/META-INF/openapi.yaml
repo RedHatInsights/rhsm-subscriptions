@@ -526,11 +526,21 @@ components:
         cloudIdentifiers:
           type: object
           properties:
+            partner:
+              type: string
             awsCustomerId:
               type: string
             awsCustomerAccountId:
               type: string
             productCode:
+              type: string
+            azureResourceId:
+              type: string
+            azureTenantId:
+              type: string
+            azureOfferId:
+              type: string
+            planId:
               type: string
     Dimension:
       properties:

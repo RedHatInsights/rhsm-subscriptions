@@ -33,7 +33,6 @@ import com.redhat.swatch.contract.PathUtils;
 import io.quarkus.test.common.QuarkusTestResourceConfigurableLifecycleManager;
 import java.nio.file.Paths;
 import java.util.Map;
-import java.util.Optional;
 
 public class WireMockResource
     implements QuarkusTestResourceConfigurableLifecycleManager<WireMockTest> {
@@ -47,18 +46,6 @@ public class WireMockResource
   private static final String TRUSTSTORE_PATH = String.format("%s/test-ca.jks", BASE_KEYSTORE_PATH);
   public static final String STORE_PASSWORD = "password";
   private WireMockServer wireMockServer;
-
-  public static void main(String[] args) {
-    int wiremockPort =
-        Integer.parseInt(Optional.ofNullable(System.getenv("WIREMOCK_PORT")).orElse("8101"));
-    System.out.printf("Running mock services on port %d%n", wiremockPort);
-    var resource = new WireMockResource();
-    resource.wireMockServer =
-        new WireMockServer(
-            WireMockConfiguration.options().port(wiremockPort).notifier(new ConsoleNotifier(true)));
-    resource.stubApis();
-    resource.wireMockServer.start();
-  }
 
   @Override
   public Map<String, String> start() {
@@ -86,10 +73,10 @@ public class WireMockResource
   private void stubApis() {
     stubForRhPartnerApi(wireMockServer);
     stubForInternalSubscriptionService(wireMockServer);
-    stubForSubscriptioinService(wireMockServer);
+    stubForSubscriptionService(wireMockServer);
   }
 
-  private void stubForSubscriptioinService(WireMockServer wireMockServer) {
+  private void stubForSubscriptionService(WireMockServer wireMockServer) {
     wireMockServer.stubFor(
         any(urlMatching("/mock/subscription/search.*subscription_number.*"))
             .willReturn(
@@ -126,7 +113,7 @@ public class WireMockResource
                                       "rhEntitlements": [
                                         {
                                           "sku": "RH000000",
-                                          "redHatSubscriptionNumber": "123456"
+                                          "subscriptionNumber": "123456"
                                         }
                                       ],
                                       "purchase": {
@@ -168,40 +155,42 @@ public class WireMockResource
                                       }
                                     },
                                     {
-                                      "rhAccountId": "org223",
-                                      "sourcePartner": "aws_marketplace",
-                                      "partnerIdentities": {
-                                        "awsCustomerId": "568056954830",
-                                        "customerAwsAccountId": "568056954830",
-                                        "sellerAccountId": "568056954830"
-                                      },
-                                      "rhEntitlements": [
-                                        {
-                                          "sku": "RH000000",
-                                          "redHatSubscriptionNumber": "121256"
-                                        }
-                                      ],
-                                      "purchase": {
-                                        "vendorProductCode": "1234567890abcdefghijklmno",
-                                        "contracts": [
-                                          {
-                                            "startDate": "2022-09-23T20:07:51.010445Z",
-                                            "dimensions": [
-                                              {
-                                                "name": "foobar",
-                                                "value": "1000000"
-                                              }
-                                            ]
-                                          }
-                                        ]
-                                      },
-                                      "status": "STATUS",
-                                      "entitlementDates": {
-                                        "startDate": "2023-03-17T12:29:48.569Z",
-                                        "endDate": "2023-03-17T12:29:48.569Z"
-                                      }
-                                    }
-                                  ],
+                                     "rhAccountId": "7186626",
+                                     "sourcePartner": "azure_marketplace",
+                                     "partnerIdentities": {
+                                         "azureSubscriptionId": "fa650050-dedd-4958-b901-d8e5118c0a5f",
+                                         "azureTenantId": "64dc69e4-d083-49fc-9569-ebece1dd1408",
+                                         "azureCustomerId": "eadf26ee-6fbc-4295-9a9e-25d4fea8951d_2019-05-31"
+                                     },
+                                     "rhEntitlements": [
+                                         {
+                                             "sku": "BASILISK",
+                                             "subscriptionNumber": "13294886"
+                                         }
+                                     ],
+                                     "purchase": {
+                                         "vendorProductCode": "rh-rhel-sub-preview",
+                                         "azureResourceId": "a69ff71c-aa8b-43d9-dea8-822fab4bbb86",
+                                         "contracts": [
+                                             {
+                                                 "startDate": "2023-06-09T13:59:43.035365Z",
+                                                 "planId": "rh-rhel-sub-1yr",
+                                                 "dimensions": [
+                                                     {
+                                                         "name": "vCPU",
+                                                         "value": 4
+                                                     }
+                                                 ]
+                                             }
+                                         ]
+                                     },
+                                     "status": "UNSUBSCRIBED",
+                                     "entitlementDates": {
+                                         "startDate": "2023-06-09T13:59:43.035365Z",
+                                         "endDate": "2023-06-09T19:37:46.651363Z"
+                                     }
+                                 }
+                                ],
                                   "page": {
                                     "size": 0,
                                     "totalElements": 0,

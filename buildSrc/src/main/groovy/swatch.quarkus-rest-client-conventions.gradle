@@ -32,7 +32,8 @@ openApiGenerate {
     configOptions = [
             generatePom: "false",
             library: "microprofile",
-            dateLibrary: "java8"
+            dateLibrary: "java8",
+            serializationLibrary: "jackson"
     ]
     additionalProperties = [
             disableMultipart: "true", // see https://github.com/OpenAPITools/openapi-generator/pull/4713#issuecomment-633906581
@@ -43,7 +44,8 @@ openApiGenerate {
 
 dependencies {
     implementation enforcedPlatform(libraries["quarkus-bom"])
-    api 'io.quarkus:quarkus-rest-client-reactive-jsonb'
+    api 'io.quarkus:quarkus-rest-client-reactive-jackson'
+    api libraries["jackson-databind-nullable"]
     testImplementation 'io.rest-assured:rest-assured'
 }
 

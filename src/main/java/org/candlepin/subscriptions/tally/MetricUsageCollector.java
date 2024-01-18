@@ -24,7 +24,6 @@ import com.google.common.collect.MoreCollectors;
 import com.google.common.collect.Sets;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
-import com.redhat.swatch.configuration.registry.Variant;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.OffsetDateTime;
 import java.util.Collections;
@@ -32,7 +31,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -435,7 +433,7 @@ public class MetricUsageCollector {
             .orElse(BillingProvider.RED_HAT);
     String effectiveBillingAcctId =
         Optional.ofNullable(event.getBillingAccountId()).orElse(Optional.empty()).orElse("");
-    Set<String> productIds = getProductIds(event);
+    Set<String> productTags = getProductTag(event);
     Set<ServiceLevel> slas = Set.of(effectiveSla, ServiceLevel._ANY);
     Set<Usage> usages = Set.of(effectiveUsage, Usage._ANY);
     Set<BillingProvider> billingProviders = Set.of(effectiveProvider, BillingProvider._ANY);
@@ -451,7 +449,7 @@ public class MetricUsageCollector {
             .orElse(null);
 
     Set<List<Object>> bucketTuples =
-        Sets.cartesianProduct(productIds, slas, usages, billingProviders, billingAccountIds);
+        Sets.cartesianProduct(productTags, slas, usages, billingProviders, billingAccountIds);
     bucketTuples.forEach(
         tuple -> {
           String productId = (String) tuple.get(0);
@@ -475,28 +473,19 @@ public class MetricUsageCollector {
         });
   }
 
-  private Set<String> getProductIds(Event event) {
-    Set<String> productIds = new HashSet<>();
-    // Filter tags that are paygEligible for hourly tally
-
-    if (Objects.nonNull(event.getRole())) {
-      String role = event.getRole().toString();
-      SubscriptionDefinition.lookupSubscriptionByRole(role)
-          .filter(SubscriptionDefinition::isPaygEligible)
-          .flatMap(s -> s.findVariantForRole(role).map(Variant::getTag))
-          .ifPresent(productIds::add);
+  /**
+   * Logic to extract the product tag using this order: - From the event productTag field which you
+   * have been populated after <a
+   * href="https://issues.redhat.com/browse/SWATCH-1928">SWATCH-1928</a> - Last case, using the
+   * subscription configuration (the same that was doing before SWATCH-1928).
+   */
+  private Set<String> getProductTag(Event event) {
+    if (event.getProductTag() != null) {
+      return event.getProductTag();
     }
 
-    var engIds = Optional.ofNullable(event.getProductIds()).orElse(Collections.emptyList());
-    for (String engId : engIds) {
-      productIds.addAll(
-          SubscriptionDefinition.lookupSubscriptionByEngId(engId).stream()
-              .filter(SubscriptionDefinition::isPaygEligible)
-              .flatMap(s -> s.findVariantForEngId(engId).map(Variant::getTag).stream())
-              .toList());
-    }
-
-    return productIds;
+    // remain old logic
+    return EventController.getPaygEligibleProductTags(event);
   }
 
   private Set<String> getBillingAccountIds(String billingAcctId) {

@@ -31,7 +31,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Offering;
@@ -40,7 +39,6 @@ import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resource.SubscriptionTableController;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
-import org.candlepin.subscriptions.tally.AccountListSourceException;
 import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.SkuCapacity;
@@ -51,9 +49,11 @@ import org.candlepin.subscriptions.utilization.api.model.SubscriptionEventType;
 import org.candlepin.subscriptions.utilization.api.model.UsageType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
@@ -61,16 +61,16 @@ import org.springframework.test.context.ActiveProfiles;
 @WithMockRedHatPrincipal("123456")
 class SubscriptionTableControllerOnDemandTest {
 
-  private static final ProductId RHOSAK = ProductId.fromString("rhosak");
+  private static final ProductId ROSA = ProductId.fromString("rosa");
+  private static final ProductId RHEL_x86_ELS_PAYG = ProductId.fromString("rhel-for-x86-els-payg");
   private static final String OFFERING_DESCRIPTION_SUFFIX = " test description";
 
   @MockBean SubscriptionRepository subscriptionRepository;
-  @MockBean OfferingRepository offeringRepository;
   @Autowired ApplicationClock clock;
   @Autowired SubscriptionTableController subscriptionTableController;
 
   @BeforeEach
-  void setup() throws AccountListSourceException {
+  void setup() {
     // The @ReportingAccessRequired annotation checks if the org of the user is allowlisted
     // to receive reports or not. This org will be used throughout most tests.
   }
@@ -108,6 +108,17 @@ class SubscriptionTableControllerOnDemandTest {
           ServiceLevel.STANDARD,
           Usage.DEVELOPMENT_TEST,
           false);
+  private static final SubCapSpec RH02781HR =
+      SubCapSpec.offering(
+          "RH02781HR",
+          "RHEL Server",
+          2,
+          null,
+          null,
+          null,
+          ServiceLevel.PREMIUM,
+          Usage.PRODUCTION,
+          true);
 
   private enum Org {
     STANDARD("711497");
@@ -145,7 +156,7 @@ class SubscriptionTableControllerOnDemandTest {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            RHOSAK, null, null, null, null, null, null, null, null, null, null);
+            ROSA, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the sub and appropriate
     // quantity and capacities.
@@ -178,7 +189,7 @@ class SubscriptionTableControllerOnDemandTest {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            RHOSAK, null, null, null, null, null, null, null, null, null, null);
+            ROSA, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the subs and appropriate
     // quantity and capacities.
@@ -214,17 +225,7 @@ class SubscriptionTableControllerOnDemandTest {
     // When requesting a SKU capacity report for the eng product, sorted by SKU
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            RHOSAK,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            SkuCapacityReportSort.SKU,
-            null);
+            ROSA, null, null, null, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
 
     // Then the report contains two inventory items containing a sub with appropriate
     // quantity and capacities, and RH00604F5 is listed first.
@@ -258,7 +259,7 @@ class SubscriptionTableControllerOnDemandTest {
     // When requesting a SKU capacity report for an eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            RHOSAK, null, null, null, null, null, null, null, null, null, null);
+            ROSA, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains no inventory items.
     assertEquals(0, actual.getData().size(), "An empty inventory list should be returned.");
@@ -277,17 +278,7 @@ class SubscriptionTableControllerOnDemandTest {
 
     SkuCapacityReport report =
         subscriptionTableController.capacityReportBySku(
-            RHOSAK,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            SkuCapacityReportSort.SKU,
-            null);
+            ROSA, null, null, null, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
     assertEquals(1, report.getData().size());
   }
 
@@ -304,7 +295,7 @@ class SubscriptionTableControllerOnDemandTest {
 
     SkuCapacityReport reportForMatchingSLA =
         subscriptionTableController.capacityReportBySku(
-            RHOSAK,
+            ROSA,
             null,
             null,
             null,
@@ -331,7 +322,7 @@ class SubscriptionTableControllerOnDemandTest {
 
     SkuCapacityReport reportForMatchingUsage =
         subscriptionTableController.capacityReportBySku(
-            RHOSAK,
+            ROSA,
             null,
             null,
             null,
@@ -358,7 +349,7 @@ class SubscriptionTableControllerOnDemandTest {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            RHOSAK, null, null, null, null, null, null, null, null, null, null);
+            ROSA, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the sub and HasInfiniteQuantity
     // should be true.
@@ -381,7 +372,7 @@ class SubscriptionTableControllerOnDemandTest {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            RHOSAK, null, null, null, null, null, null, null, null, null, null);
+            ROSA, null, null, null, null, null, null, null, null, null, null);
     SkuCapacity actualItem = actual.getData().get(0);
 
     // Then the report should contain end date of the contributing subscription
@@ -403,22 +394,37 @@ class SubscriptionTableControllerOnDemandTest {
 
     SkuCapacityReport reportForMatchingUsage =
         subscriptionTableController.capacityReportBySku(
-            RHOSAK,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            SkuCapacityReportSort.SKU,
-            null);
+            ROSA, null, null, null, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
     assertEquals(2, reportForMatchingUsage.getData().size());
     var billingProvidersReturned =
         reportForMatchingUsage.getData().stream().map(SkuCapacity::getBillingProvider).toList();
     assertTrue(billingProvidersReturned.contains(BillingProviderType.AWS));
     assertTrue(billingProvidersReturned.contains(BillingProviderType.RED_HAT));
+  }
+
+  @Test
+  void testGetSkuCapacityReportWithBillingProvider() {
+    Sub expectedSub = Sub.sub("1234", RH02781HR.sku, "1235", 1, BillingProvider.AWS, 6, 6);
+
+    List<Subscription> givenSubs = givenSubscriptions(Org.STANDARD, RH02781HR.withSub(expectedSub));
+
+    when(subscriptionRepository.findByCriteria(any(), any())).thenReturn(givenSubs);
+
+    when(subscriptionRepository.findAll(Mockito.<Specification<Subscription>>any()))
+        .thenReturn(givenSubs);
+
+    // When requesting a SKU capacity report for the eng product,
+    SkuCapacityReport actual =
+        subscriptionTableController.capacityReportBySku(
+            RHEL_x86_ELS_PAYG, null, null, null, null, null, null, null, null, null, null);
+
+    // Then the report contains a single inventory item containing the sub and HasInfiniteQuantity
+    // should be true.
+    assertEquals(1, actual.getData().size(), "Wrong number of items returned");
+    SkuCapacity actualItem = actual.getData().get(0);
+    assertTrue(actualItem.getHasInfiniteQuantity(), "HasInfiniteQuantity should be true");
+    assertEquals(actualItem.getSku() + OFFERING_DESCRIPTION_SUFFIX, actualItem.getProductName());
+    assertEquals("aws", actual.getData().get(0).getBillingProvider().toString());
   }
 
   private static void assertSubscription(Sub expectedSub, SkuCapacitySubscription actual) {

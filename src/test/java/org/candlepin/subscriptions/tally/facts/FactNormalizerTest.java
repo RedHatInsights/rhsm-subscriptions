@@ -31,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.time.OffsetDateTime;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
@@ -45,12 +44,11 @@ import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.OrgHostsData;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,25 +59,20 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.util.StringUtils;
 
-@TestInstance(Lifecycle.PER_CLASS)
 @SpringBootTest
-@ActiveProfiles("test")
+@ActiveProfiles({"worker", "test"})
 @Import(TestClockConfiguration.class)
 class FactNormalizerTest {
 
-  private FactNormalizer normalizer;
-
-  @Autowired private ApplicationClock clock;
-
+  @Autowired FactNormalizer normalizer;
+  @Autowired ApplicationClock clock;
+  @Autowired ApplicationProperties applicationProperties;
   @MockBean BuildProperties buildProperties;
 
-  @BeforeAll
+  @BeforeEach
   void setup() {
-    normalizer = new FactNormalizer(new ApplicationProperties(), clock);
-  }
-
-  private OrgHostsData hypervisorData() {
-    return new OrgHostsData("Dummy Org");
+    // restore default value
+    applicationProperties.setUseCpuSystemFactsToAllProducts(true);
   }
 
   @Test
@@ -91,7 +84,7 @@ class FactNormalizerTest {
 
   @Test
   void testRhsmNormalization() {
-    InventoryHostFacts rhsmHost = createRhsmHost(Arrays.asList(69), null, clock.now());
+    InventoryHostFacts rhsmHost = createRhsmHost(List.of(69), null, clock.now());
     rhsmHost.setSystemProfileCoresPerSocket(6);
     rhsmHost.setSystemProfileSockets(2);
     NormalizedFacts normalized = normalizer.normalize(rhsmHost, hypervisorData());
@@ -121,7 +114,7 @@ class FactNormalizerTest {
 
   @Test
   void testNormalizeNonRhelProduct() {
-    InventoryHostFacts rhsmHost = createRhsmHost(Arrays.asList(42), null, clock.now());
+    InventoryHostFacts rhsmHost = createRhsmHost(List.of(42), null, clock.now());
     rhsmHost.setSystemProfileCoresPerSocket(4);
     rhsmHost.setSystemProfileSockets(8);
     NormalizedFacts normalized = normalizer.normalize(rhsmHost, hypervisorData());
@@ -176,8 +169,7 @@ class FactNormalizerTest {
   @Test
   void testNormalizeWhenCoresAndSocketsMissingFromFacts() {
     NormalizedFacts normalized =
-        normalizer.normalize(
-            createRhsmHost(Arrays.asList(69), null, clock.now()), hypervisorData());
+        normalizer.normalize(createRhsmHost(List.of(69), null, clock.now()), hypervisorData());
     assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for x86"));
     assertNull(normalized.getCores());
     assertNull(normalized.getSockets());
@@ -239,7 +231,7 @@ class FactNormalizerTest {
   void testDetectsMultipleProductsBasedOnProductId() {
     NormalizedFacts normalized =
         normalizer.normalize(
-            createRhsmHost(Arrays.asList(69, 419, 72), null, clock.now()), hypervisorData());
+            createRhsmHost(List.of(69, 419, 72), null, clock.now()), hypervisorData());
     assertThat(
         normalized.getProducts(),
         Matchers.containsInAnyOrder("RHEL for x86", "RHEL for ARM", "RHEL for IBM z"));
@@ -267,7 +259,7 @@ class FactNormalizerTest {
   void variantFromSyspurposeWinsIfMultipleVariants() {
     NormalizedFacts normalized =
         normalizer.normalize(
-            createRhsmHost(Arrays.asList(9, 10), "Red Hat Enterprise Linux Server", clock.now()),
+            createRhsmHost(List.of(9, 10), "Red Hat Enterprise Linux Server", clock.now()),
             hypervisorData());
     assertThat(normalized.getProducts(), Matchers.contains("RHEL for x86"));
   }
@@ -294,18 +286,14 @@ class FactNormalizerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(
-      ints = {
-        290, // OpenShift Container Platform
-        250, // Satellite Server
-        269 // Satellite Capsule
-      })
-  void testNormalizationDiscardsRHELWhenProductExists() {
-    InventoryHostFacts host = createRhsmHost(Arrays.asList(69, 290), null, clock.now());
+  @CsvSource(
+      value = {"290,OpenShift Container Platform", "250,Satellite Server", "269,Satellite Capsule"})
+  void testNormalizationDiscardsRHELWhenProductExists(int productId, String productName) {
+    InventoryHostFacts host = createRhsmHost(List.of(productId), null, clock.now());
     host.setSystemProfileCoresPerSocket(6);
     host.setSystemProfileSockets(2);
     NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
-    assertThat(normalized.getProducts(), Matchers.contains("OpenShift Container Platform"));
+    assertThat(normalized.getProducts(), Matchers.contains(productName));
     assertEquals(Integer.valueOf(12), normalized.getCores());
     assertEquals(Integer.valueOf(2), normalized.getSockets());
   }
@@ -327,7 +315,7 @@ class FactNormalizerTest {
 
   @Test
   void testModulo2SocketNormalizationForPhysicalHosts() {
-    InventoryHostFacts host = createRhsmHost(Arrays.asList(69), null, clock.now());
+    InventoryHostFacts host = createRhsmHost(List.of(69), null, clock.now());
     host.setSystemProfileCoresPerSocket(4);
     host.setSystemProfileSockets(3);
     NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
@@ -464,7 +452,7 @@ class FactNormalizerTest {
 
   @Test
   void testPhysicalClassification() {
-    InventoryHostFacts physical = createRhsmHost(Arrays.asList(12), null, clock.now());
+    InventoryHostFacts physical = createRhsmHost(List.of(12), null, clock.now());
     NormalizedFacts facts = normalizer.normalize(physical, hypervisorData());
     assertClassification(facts, false, true, false);
   }
@@ -618,6 +606,50 @@ class FactNormalizerTest {
   }
 
   @Test
+  void testCalculationOfVirtualCPUUsingSystemProfileThreadsPerCore() {
+    InventoryHostFacts facts = givenInventoryHostFactsForX86AndVirtual();
+    facts.setSystemProfileThreadsPerCore(3); // this will overwrite the default value
+    NormalizedFacts normalized = normalizer.normalize(facts, hypervisorData());
+    // cores changed from 8 to 6 because we're using 3 threads per core.
+    assertEquals(Integer.valueOf(6), normalized.getCores());
+  }
+
+  @Test
+  void testCalculationOfVirtualCPUUsingSystemProfileCPUs() {
+    InventoryHostFacts facts = givenInventoryHostFactsForX86AndVirtual();
+    facts.setSystemProfileCpus(
+        24); // this will trigger the usage of the formula to calculate the threads per core
+    NormalizedFacts normalized = normalizer.normalize(facts, hypervisorData());
+    // cores changed from 8 to 11
+    assertEquals(Integer.valueOf(11), normalized.getCores());
+  }
+
+  @Test
+  void testCalculationOfVirtualCPUShouldUseDefaultWhenDisableForAllProducts() {
+    // disable the new formula for all products, but OpenShift
+    applicationProperties.setUseCpuSystemFactsToAllProducts(false);
+    InventoryHostFacts facts = givenInventoryHostFactsForX86AndVirtual();
+    facts.setSystemProfileThreadsPerCore(3);
+    NormalizedFacts normalized = normalizer.normalize(facts, hypervisorData());
+    // cores kept with 8 because the system profile cpus was not used
+    assertEquals(Integer.valueOf(8), normalized.getCores());
+  }
+
+  @Test
+  void testCalculationOfVirtualCPUShouldUseSystemFactsCpuWhenOpenShift() {
+    // disable the new formula for all products, but OpenShift
+    applicationProperties.setUseCpuSystemFactsToAllProducts(false);
+
+    InventoryHostFacts facts = givenInventoryHostFactsForX86AndVirtual();
+    facts.setSystemProfileProductIds("290"); // product ID for OpenShift
+    facts.setSystemProfileThreadsPerCore(3);
+    NormalizedFacts normalized = normalizer.normalize(facts, hypervisorData());
+    // cores changed from 8 to 6 because we're using 3 threads per core and product is OpenShift.
+    assertEquals(Integer.valueOf(6), normalized.getCores());
+    assertTrue(normalized.getProducts().contains("OpenShift Container Platform"));
+  }
+
+  @Test
   void testCalculationOfVirtualCPURoundsUP() {
     InventoryHostFacts facts = createBaseHost("01");
     facts.setSystemProfileArch("x86_64");
@@ -631,7 +663,7 @@ class FactNormalizerTest {
 
   @Test
   void testCalculationOfRhsmVirtualCPUFacts() {
-    InventoryHostFacts facts = createRhsmHost(Arrays.asList(1), null, clock.now());
+    InventoryHostFacts facts = createRhsmHost(List.of(1), null, clock.now());
 
     facts.setSystemProfileArch("x86_64");
     facts.setSystemProfileCoresPerSocket(7);
@@ -696,10 +728,23 @@ class FactNormalizerTest {
     assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for x86"));
   }
 
+  private InventoryHostFacts givenInventoryHostFactsForX86AndVirtual() {
+    InventoryHostFacts facts = createBaseHost("01");
+    facts.setSystemProfileArch("x86_64");
+    facts.setSystemProfileCoresPerSocket(16);
+    facts.setSystemProfileSockets(1);
+    facts.setSystemProfileInfrastructureType("virtual");
+    return facts;
+  }
+
   private void assertClassification(
       NormalizedFacts check, boolean isHypervisor, boolean isHypervisorUnknown, boolean isVirtual) {
     assertEquals(isHypervisor, check.isHypervisor());
     assertEquals(isHypervisorUnknown, check.isHypervisorUnknown());
     assertEquals(isVirtual, check.isVirtual());
+  }
+
+  private OrgHostsData hypervisorData() {
+    return new OrgHostsData("Dummy Org");
   }
 }

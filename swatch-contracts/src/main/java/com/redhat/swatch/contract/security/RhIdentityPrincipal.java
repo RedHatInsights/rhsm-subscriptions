@@ -20,13 +20,8 @@
  */
 package com.redhat.swatch.contract.security;
 
-import jakarta.json.bind.Jsonb;
-import jakarta.json.bind.JsonbBuilder;
-import jakarta.json.bind.annotation.JsonbTransient;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.security.Principal;
-import java.util.Base64;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -42,26 +37,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RhIdentityPrincipal implements Principal {
-  private static Jsonb jsonb = JsonbBuilder.create();
-
   private Identity identity;
 
-  /* header value captured so it can be easily forwarded to rbac service */
-  @JsonbTransient private String headerValue;
-
-  public static RhIdentityPrincipal fromHeader(String header) {
-    return fromJson(new ByteArrayInputStream(Base64.getDecoder().decode(header)), header);
-  }
-
-  public static RhIdentityPrincipal fromJson(String json) {
-    return jsonb.fromJson(json, RhIdentityPrincipal.class);
-  }
-
-  public static RhIdentityPrincipal fromJson(InputStream inputStream, String headerValue) {
-    var identity = jsonb.fromJson(inputStream, RhIdentityPrincipal.class);
-    identity.setHeaderValue(headerValue);
-    return identity;
-  }
+  /* Base64 encoded header value retained so that it can be easily forwarded to rbac service */
+  @JsonIgnore private String headerValue;
 
   @Override
   public String getName() {
@@ -69,8 +48,9 @@ public class RhIdentityPrincipal implements Principal {
       case "Associate" -> identity.getSamlAssertions().getEmail();
       case "X509" -> identity.getX509().getSubjectDn();
       case "User" -> identity.getOrgId();
-      default -> throw new IllegalArgumentException(
-          String.format("Unsupported RhIdentity type %s", getIdentity().getType()));
+      default ->
+          throw new IllegalArgumentException(
+              String.format("Unsupported RhIdentity type %s", getIdentity().getType()));
     };
   }
 

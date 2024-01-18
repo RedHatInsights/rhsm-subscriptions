@@ -33,13 +33,6 @@ IMAGES=""
 export COMPONENT_NAME="rhsm"  # name of app-sre "resourceTemplate" in deploy.yaml for this component
 # prebuild artifacts for quarkus builds
 for service in $SERVICES; do
-  # Ignore the swatch-metrics service until it's fully ported.
-  # To be uncommented in SWATCH-1806.
-  if [ "$service" == "swatch-metrics" ]
-  then
-    continue;
-  fi
-
   export IMAGE="quay.io/cloudservices/$service"  # the image location on quay
   export DOCKERFILE="$(get_dockerfile $service)"
 
@@ -57,12 +50,15 @@ export IQE_IBUTSU_SOURCE="rhsm-ephemeral-${IMAGE_TAG}"
 EXTRA_DEPLOY_ARGS="--timeout 1800 ${IMAGES}"
 OPTIONAL_DEPS_METHOD=none
 
-#each gets appended with --component
-export COMPONENTS_W_RESOURCES="rhsm swatch-api swatch-contracts swatch-producer-aws swatch-producer-red-hat-marketplace swatch-metrics swatch-subscription-sync swatch-system-conduit swatch-tally swatch-producer-azure"
+# set CLI option for --no-remove-resources
+export COMPONENTS_W_RESOURCES="app:rhsm"
+
 # NOTE: this ensures that all of the other services end up deployed with the latest template
-for EXTRA_COMPONENT_NAME in $COMPONENTS_W_RESOURCES; do
+export EXTRA_COMPONENTS="rhsm swatch-api swatch-contracts swatch-producer-aws swatch-producer-red-hat-marketplace swatch-metrics swatch-subscription-sync swatch-system-conduit swatch-tally swatch-producer-azure"
+for EXTRA_COMPONENT_NAME in $EXTRA_COMPONENTS; do
   export EXTRA_DEPLOY_ARGS="${EXTRA_DEPLOY_ARGS} --set-template-ref ${EXTRA_COMPONENT_NAME}=${GIT_COMMIT}"
 done
+
 # Deploy to an ephemeral namespace for testing
 source deploy_ephemeral_env.sh
 

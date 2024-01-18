@@ -66,6 +66,8 @@ components:
           type: string
         vendorProductCode:
           type: string
+        azureResourceId :
+          type: string
         page:
           $ref: '#/components/schemas/PageRequest'
     PageRequest:
@@ -92,6 +94,7 @@ components:
           type: string
           enum:
             - aws_marketplace
+            - azure_marketplace
         partnerIdentities:
           $ref: '#/components/schemas/PartnerIdentityV1'
         rhEntitlements:
@@ -119,9 +122,17 @@ components:
           type: string
         sellerAccountId:
           type: string
+        azureSubscriptionId:
+          type: string
+        azureTenantId:
+          type: string
+        azureCustomerId:
+          type: string
     PurchaseV1:
       properties:
         vendorProductCode:
+          type: string
+        azureResourceId:
           type: string
         contracts:
           type: array
@@ -135,6 +146,8 @@ components:
         endDate:
           type: string
           format: date-time
+        planId:
+          type: string
         dimensions:
           type: array
           items:
@@ -149,7 +162,7 @@ components:
       properties:
         sku:
           type: string
-        redHatSubscriptionNumber:
+        subscriptionNumber:
           type: string
     ApiErrorV1:
       properties:

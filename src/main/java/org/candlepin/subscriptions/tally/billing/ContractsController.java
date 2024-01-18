@@ -143,6 +143,8 @@ public class ContractsController {
       return SubscriptionDefinition.getAwsDimension(productId, measurementMetricId);
     } else if (BillingProvider.RED_HAT.equals(billingProvider)) {
       return SubscriptionDefinition.getRhmMetricId(productId, measurementMetricId);
+    } else if (BillingProvider.AZURE.equals(billingProvider)) {
+      return SubscriptionDefinition.getAzureDimension(productId, measurementMetricId);
     }
     return null;
   }

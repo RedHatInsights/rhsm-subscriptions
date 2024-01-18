@@ -20,8 +20,21 @@
  */
 package com.redhat.swatch.azure.service;
 
+import com.redhat.swatch.azure.exception.AzureDimensionNotConfiguredException;
+import com.redhat.swatch.azure.exception.AzureMarketplaceRequestFailedException;
+import com.redhat.swatch.azure.exception.AzureUnprocessedRecordsException;
+import com.redhat.swatch.azure.exception.AzureUsageContextLookupException;
+import com.redhat.swatch.azure.exception.DefaultApiException;
+import com.redhat.swatch.azure.exception.SubscriptionRecentlyTerminatedException;
+import com.redhat.swatch.azure.exception.UsageTimestampOutOfBoundsException;
 import com.redhat.swatch.azure.openapi.model.BillableUsage;
 import com.redhat.swatch.azure.openapi.model.BillableUsage.BillingProviderEnum;
+import com.redhat.swatch.azure.openapi.model.BillableUsage.SlaEnum;
+import com.redhat.swatch.azure.openapi.model.BillableUsage.UsageEnum;
+import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEvent;
+import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventStatusEnum;
+import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AzureUsageContext;
+import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
 import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
@@ -30,10 +43,12 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.ProcessingException;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.slf4j.MDC;
@@ -41,22 +56,23 @@ import org.slf4j.MDC;
 @Slf4j
 @ApplicationScoped
 public class BillableUsageConsumer {
-  private final Counter
-      acceptedCounter; // TODO https://issues.redhat.com/browse/SWATCH-1726 //NOSONAR
-  private final Counter
-      rejectedCounter; // TODO https://issues.redhat.com/browse/SWATCH-1726 //NOSONAR
-  private final InternalSubscriptionsApi
-      internalSubscriptionsApi; // TODO https://issues.redhat.com/browse/SWATCH-1726 //NOSONAR
-  private final Optional<Boolean>
-      isDryRun; // TODO https://issues.redhat.com/browse/SWATCH-1726 //NOSONAR
+
+  private final AzureMarketplaceService azureMarketplaceService;
+
+  private final Counter acceptedCounter;
+  private final Counter rejectedCounter;
+  private final InternalSubscriptionsApi internalSubscriptionsApi;
+  private final Optional<Boolean> isDryRun;
 
   public BillableUsageConsumer(
       MeterRegistry meterRegistry,
       @RestClient InternalSubscriptionsApi internalSubscriptionsApi,
+      AzureMarketplaceService azureMarketplaceService,
       @ConfigProperty(name = "ENABLE_AZURE_DRY_RUN") Optional<Boolean> isDryRun) {
     acceptedCounter = meterRegistry.counter("swatch_azure_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_azure_marketplace_batch_rejected_total");
     this.internalSubscriptionsApi = internalSubscriptionsApi;
+    this.azureMarketplaceService = azureMarketplaceService;
     this.isDryRun = isDryRun;
   }
 
@@ -73,15 +89,114 @@ public class BillableUsageConsumer {
     }
 
     Optional<Metric> metric = validateUsageAndLookupMetric(billableUsage);
+
+    AzureUsageContext context;
     if (metric.isEmpty()) {
       log.debug("Skipping billable usage because it is not applicable: {}", billableUsage);
-      return; // please remove me after below TODO implemented! NOSONAR
+      return;
     }
-    /* TODO https://issues.redhat.com/browse/SWATCH-1726 //NOSONAR
-    (reference swatch-producer-aws BillableUsageProcessor)
-    - lookup azure usage context
-    - transform and send
-     */
+    try {
+      context = lookupAzureUsageContext(billableUsage);
+    } catch (SubscriptionRecentlyTerminatedException e) {
+      log.info(
+          "Subscription recently terminated for tallySnapshotId={} orgId={}",
+          billableUsage.getId(),
+          billableUsage.getOrgId());
+      return;
+    } catch (AzureUsageContextLookupException e) {
+      log.error(
+          "Error looking up usage context for tallySnapshotId={} orgId={}",
+          billableUsage.getId(),
+          billableUsage.getOrgId(),
+          e);
+      return;
+    }
+    try {
+      transformAndSend(context, billableUsage, metric.get());
+    } catch (Exception e) {
+      log.error(
+          "Error sending usage for tallySnapshotId={} azureResourceId={} orgId={}",
+          billableUsage.getId(),
+          context.getAzureResourceId(),
+          billableUsage.getOrgId(),
+          e);
+    }
+  }
+
+  private void transformAndSend(
+      AzureUsageContext context, BillableUsage billableUsage, Metric metric)
+      throws AzureUnprocessedRecordsException,
+          AzureDimensionNotConfiguredException,
+          UsageTimestampOutOfBoundsException {
+    var usageEvent = transformToAzureUsage(context, billableUsage, metric);
+    if (isDryRun.isPresent() && Boolean.TRUE.equals(isDryRun.get())) {
+      log.info(
+          "[DRY RUN] Sending usage request to Azure: {}, organization={}, product_id={}",
+          usageEvent,
+          billableUsage.getOrgId(),
+          billableUsage.getProductId());
+      return;
+    } else {
+      log.info(
+          "Sending usage request to Azure: {}, organization={}, product_id={}",
+          usageEvent,
+          billableUsage.getOrgId(),
+          billableUsage.getProductId());
+    }
+
+    try {
+      var response = azureMarketplaceService.sendUsageEventToAzureMarketplace(usageEvent);
+      log.debug("{}", response);
+      if (response.getStatus() != UsageEventStatusEnum.ACCEPTED) {
+        log.warn("{}, organization={}", response, billableUsage.getOrgId());
+      } else {
+        log.info("{}, organization={},", response, billableUsage.getOrgId());
+        acceptedCounter.increment();
+      }
+    } catch (AzureMarketplaceRequestFailedException e) {
+      rejectedCounter.increment();
+      throw new AzureUnprocessedRecordsException(e);
+    }
+  }
+
+  private UsageEvent transformToAzureUsage(
+      AzureUsageContext context, BillableUsage billableUsage, Metric metric)
+      throws AzureDimensionNotConfiguredException {
+
+    var usage = new UsageEvent();
+    usage.setDimension(metric.getAzureDimension());
+    usage.setPlanId(context.getPlanId());
+    usage.setResourceId(context.getAzureResourceId());
+    usage.setQuantity(billableUsage.getValue().doubleValue());
+    usage.setEffectiveStartTime(billableUsage.getSnapshotDate());
+    return usage;
+  }
+
+  @Retry(retryOn = AzureUsageContextLookupException.class)
+  public AzureUsageContext lookupAzureUsageContext(BillableUsage billableUsage)
+      throws AzureUsageContextLookupException {
+    try {
+      return internalSubscriptionsApi.getAzureMarketplaceContext(
+          billableUsage.getOrgId(),
+          billableUsage.getSnapshotDate(),
+          billableUsage.getProductId(),
+          Optional.ofNullable(billableUsage.getSla()).map(SlaEnum::value).orElse(null),
+          Optional.ofNullable(billableUsage.getUsage()).map(UsageEnum::value).orElse(null),
+          Optional.ofNullable(billableUsage.getBillingAccountId()).orElse("_ANY"));
+    } catch (DefaultApiException e) {
+      var optionalErrors = Optional.ofNullable(e.getErrors());
+      if (optionalErrors.isPresent()) {
+        var isRecentlyTerminatedError =
+            optionalErrors.get().getErrors().stream()
+                .anyMatch(error -> ("SUBSCRIPTIONS1005").equals(error.getCode()));
+        if (isRecentlyTerminatedError) {
+          throw new SubscriptionRecentlyTerminatedException(e);
+        }
+      }
+      throw new AzureUsageContextLookupException(e);
+    } catch (ProcessingException | ApiException e) {
+      throw new AzureUsageContextLookupException(e);
+    }
   }
 
   private Optional<Metric> validateUsageAndLookupMetric(BillableUsage billableUsage) {

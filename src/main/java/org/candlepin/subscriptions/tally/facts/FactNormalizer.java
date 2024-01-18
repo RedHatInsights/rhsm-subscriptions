@@ -21,11 +21,13 @@
 package org.candlepin.subscriptions.tally.facts;
 
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
-import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
@@ -35,25 +37,25 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.OrgHostsData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
 /**
  * Responsible for examining an inventory host and producing normalized and condensed facts based on
  * the host's facts.
  */
+@Slf4j
 public class FactNormalizer {
 
-  private static final Logger log = LoggerFactory.getLogger(FactNormalizer.class);
+  private static final String OPEN_SHIFT_CONTAINER_PLATFORM = "OpenShift Container Platform";
+  private static final double THREADS_PER_CORE_DEFAULT = 2.0;
 
   private final ApplicationClock clock;
-  private final Duration hostSyncThreshold;
+  private final ApplicationProperties props;
 
   public FactNormalizer(ApplicationProperties props, ApplicationClock clock) {
     this.clock = clock;
-    this.hostSyncThreshold = props.getHostLastSyncThreshold();
-    log.info("rhsm-conduit stale threshold: {}", this.hostSyncThreshold);
+    this.props = props;
+    log.info("rhsm-conduit stale threshold: {}", props.getHostLastSyncThreshold());
   }
 
   public static boolean isRhelVariant(String product) {
@@ -207,14 +209,16 @@ public class FactNormalizer {
       normalizedFacts.setCores(
           hostFacts.getSystemProfileCoresPerSocket() * hostFacts.getSystemProfileSockets());
     }
+    normalizedFacts
+        .getProducts()
+        .addAll(getProductsFromProductIds(hostFacts.getSystemProfileProductIds()));
     if ("x86_64".equals(hostFacts.getSystemProfileArch())
         && HardwareMeasurementType.VIRTUAL
             .toString()
             .equalsIgnoreCase(hostFacts.getSystemProfileInfrastructureType())) {
-      var effectiveCores = calculateVirtualCPU(hostFacts);
+      var effectiveCores = calculateVirtualCPU(normalizedFacts.getProducts(), hostFacts);
       normalizedFacts.setCores(effectiveCores);
     }
-    getProductsFromProductIds(normalizedFacts, hostFacts.getSystemProfileProductIds());
   }
 
   private void normalizeMarketplace(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
@@ -237,23 +241,55 @@ public class FactNormalizer {
     }
   }
 
-  private Integer calculateVirtualCPU(InventoryHostFacts virtualFacts) {
-    //  For x86, guests: if we know the number of threads per core and its greater than one,
+  private Integer calculateVirtualCPU(Set<String> products, InventoryHostFacts virtualFacts) {
+    //  For x86, guests: if we know the number of threads per core and is greater than one,
     //  then we divide the number of cores by that number.
-    //  Otherwise we divide by two.
+    //  Otherwise, we divide by two.
     int cpu =
         virtualFacts.getSystemProfileCoresPerSocket() * virtualFacts.getSystemProfileSockets();
 
-    var threadsPerCore = 2.0;
+    var threadsPerCore = THREADS_PER_CORE_DEFAULT;
+    if (props.isUseCpuSystemFactsToAllProducts()
+        || products.contains(OPEN_SHIFT_CONTAINER_PLATFORM)) {
+      if (isGreaterThanZero(virtualFacts.getSystemProfileThreadsPerCore())) {
+        threadsPerCore = virtualFacts.getSystemProfileThreadsPerCore();
+
+        if (threadsPerCore != THREADS_PER_CORE_DEFAULT) {
+          log.warn(
+              "Using '{}' threads per core from system profile for products '{}' to calculate vCPUs",
+              threadsPerCore,
+              String.join(", ", products));
+        }
+
+      } else if (isGreaterThanZero(
+          virtualFacts.getSystemProfileCpus(),
+          virtualFacts.getSystemProfileSockets(),
+          virtualFacts.getSystemProfileCoresPerSocket())) {
+        threadsPerCore =
+            (double) virtualFacts.getSystemProfileCpus()
+                / (virtualFacts.getSystemProfileSockets()
+                    * virtualFacts.getSystemProfileCoresPerSocket());
+        if (threadsPerCore != THREADS_PER_CORE_DEFAULT) {
+          log.warn(
+              "Using '{}' threads per core from formula 'number of cpus as {}' / ('number of sockets as {}' * 'cores per socket as {}') profile for products '{}' to calculate vCPUs",
+              threadsPerCore,
+              virtualFacts.getSystemProfileCpus(),
+              virtualFacts.getSystemProfileSockets(),
+              virtualFacts.getSystemProfileCoresPerSocket(),
+              String.join(", ", products));
+        }
+      }
+    }
+
     return (int) Math.ceil(cpu / threadsPerCore);
   }
 
-  private void getProductsFromProductIds(
-      NormalizedFacts normalizedFacts, Collection<String> productIds) {
+  private Set<String> getProductsFromProductIds(Collection<String> productIds) {
     if (productIds == null) {
-      return;
+      return Set.of();
     }
 
+    Set<String> products = new HashSet<>();
     for (String productId : productIds) {
       try {
         var subscriptions = SubscriptionDefinition.lookupSubscriptionByEngId(productId);
@@ -262,12 +298,14 @@ public class FactNormalizer {
               subscriptionDefinition ->
                   subscriptionDefinition
                       .findVariantForEngId(productId)
-                      .ifPresent(v -> normalizedFacts.getProducts().add(v.getTag())));
+                      .ifPresent(v -> products.add(v.getTag())));
         }
       } catch (NumberFormatException e) {
         log.debug("Skipping non-numeric productId: {}", productId);
       }
     }
+
+    return products;
   }
 
   private void normalizeRhsmFacts(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
@@ -280,7 +318,7 @@ public class FactNormalizer {
     boolean skipRhsmFacts =
         StringUtils.hasText(syncTimestamp) && hostUnregistered(OffsetDateTime.parse(syncTimestamp));
     if (!skipRhsmFacts) {
-      getProductsFromProductIds(normalizedFacts, hostFacts.getProducts());
+      normalizedFacts.getProducts().addAll(getProductsFromProductIds(hostFacts.getProducts()));
 
       // Check for cores and sockets. If not included, default to 0.
 
@@ -375,6 +413,16 @@ public class FactNormalizer {
     }
     // NOTE: sync threshold is relative to conduit schedule - i.e. midnight UTC
     // otherwise the sync threshold would be offset by the tally schedule, which would be confusing
-    return lastSync.isBefore(clock.startOfToday().minus(hostSyncThreshold));
+    return lastSync.isBefore(clock.startOfToday().minus(props.getHostLastSyncThreshold()));
+  }
+
+  private boolean isGreaterThanZero(Integer... values) {
+    for (Integer value : values) {
+      if (value == null || value == 0) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }

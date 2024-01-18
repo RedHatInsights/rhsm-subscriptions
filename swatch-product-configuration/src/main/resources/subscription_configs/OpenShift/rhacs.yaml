@@ -20,6 +20,7 @@ metrics:
   - id: Cores
     rhmMetricId: redhat.com:rhacs:cpu_hour
     awsDimension: vCPU_Hour
+    azureDimension: vcpu_hour
     prometheus:
       queryKey: default
       queryParams:

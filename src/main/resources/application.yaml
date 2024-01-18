@@ -13,26 +13,8 @@ spring:
       - capacity-ingress
       - rhsm-conduit
       - worker
-      - openshift-metering-worker
       - rh-marketplace
       - kafka-queue
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_HOST}:${KAFKA_BOOTSTRAP_PORT}
-    listener:
-      # The number of threads that will be processing messages (should match
-      # the number of partitions on the queue)
-      concurrency: ${KAFKA_MESSAGE_THREADS:1}
-      idle-event-interval: ${KAFKA_IDLE_EVENT_INTERVAL:5s}
-    consumer:
-      properties:
-        # Required kafka defaults
-        max.poll.interval.ms: ${KAFKA_CONSUMER_MAX_POLL_INTERVAL_MS:1800000}
-        reconnect.backoff.ms: ${KAFKA_CONSUMER_RECONNECT_BACKOFF_MS:2000}
-        reconnect.backoff.max.ms: ${KAFKA_CONSUMER_RECONNECT_BACKOFF_MAX_MS:10000}
-        default.api.timeout.ms: ${KAFKA_API_RECONNECT_TIMEOUT_MS:480000}
-      # if no offset commit exists yet, set to earliest
-      auto-offset-reset: earliest
-      max-poll-records: 1
   jms:
     listener:
       auto-startup: ${UMB_ENABLED:false}
@@ -43,20 +25,6 @@ rhsm-subscriptions:
     purge-events-schedule: ${PURGE_EVENTS_SCHEDULE:0 0 1 * * ?}
   account-batch-size: ${ACCOUNT_BATCH_SIZE:1}
   product-denylist-resource-location: ${PRODUCT_DENYLIST_RESOURCE_LOCATION:}
-  metering:
-    prometheus:
-      client:
-        token: ${PROM_AUTH_TOKEN:}
-        url: ${PROM_URL:https://localhost/api/v1}
-      metric:
-        accountQueryTemplates:
-          default: >-
-            ${OPENSHIFT_ENABLED_ACCOUNT_PROMQL:group(min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{product='#{metric.prometheus.queryParams[product]}', external_organization != '', billing_model='marketplace'}[1h]))
-            by (external_organization)}
-          addonSamples: >-
-            ${OPENSHIFT_ENABLED_ACCOUNT_PROMQL:group(min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{resource_type="addon", resource_name='#{metric.prometheus.queryParams[resourceName]}', external_organization != '', billing_model='marketplace'}[1h]))
-            by (external_organization)}
-  prometheus-latency-duration: ${PROMETHEUS_LATENCY_DURATION:0h}
   hourly-tally-offset: ${HOURLY_TALLY_OFFSET:60m}
   metric-lookup-range-duration: ${METRIC_LOOKUP_RANGE:1h}
   subscription-sync-enabled: ${SUBSCRIPTION_SYNC_ENABLED:false}
