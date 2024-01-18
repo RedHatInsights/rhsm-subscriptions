@@ -36,6 +36,7 @@ import jakarta.validation.Validator;
 import org.candlepin.subscriptions.actuator.CertInfoContributor;
 import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationWorkerConfiguration;
+import org.candlepin.subscriptions.clowder.KafkaSslBeanPostProcessor;
 import org.candlepin.subscriptions.clowder.RdsSslBeanPostProcessor;
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.json.BaseEvent;
@@ -174,6 +175,20 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   @Bean
   public TimedAspect timedAspect(MeterRegistry registry) {
     return new TimedAspect(registry);
+  }
+
+  /**
+   * A bean post-processor responsible for setting up Kafka truststores correctly. It's declared
+   * here so that this bean will always be created. In other words, the creation of this bean isn't
+   * dependent on the web of Import annotations that we have declared across our Configuration
+   * classes. ApplicationConfiguration is the one Configuration class we can always count on to
+   * load.
+   *
+   * @return a KafkaJaasBeanPostProcessor object
+   */
+  @Bean
+  public KafkaSslBeanPostProcessor kafkaJaasBeanPostProcessor() {
+    return new KafkaSslBeanPostProcessor();
   }
 
   @Bean
