@@ -529,7 +529,6 @@ class PrometheusMeteringControllerTest {
             .putMetricItem("azure_tenant_id", azureTenantId)
             .putMetricItem("azure_subscription_id", azureSubscriptionId);
 
-
     // NOTE: A tuple is [unix_time,value]
     timeValueTuples.forEach(dataResult::addValuesItem);
 

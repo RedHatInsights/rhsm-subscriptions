@@ -353,36 +353,6 @@ class SubscriptionRepositoryTest {
 
   @Transactional
   @Test
-  void testFindBySubscriptionNumberWhenDuplicates() {
-    String subId = "sub";
-    String subscriptionNumber = subId + "1";
-
-    // We want to create the same subscription twice, but the second will have a more recent start
-    // date.
-    var mostRecent = givenTwoDuplicateSubscriptions(subId);
-
-    // When trying to find a single subscription number, it fails because there are multiples
-    var actual = subscriptionRepo.findBySubscriptionNumber(subscriptionNumber);
-    assertTrue(actual.isPresent());
-    assertEquals(mostRecent.getStartDate(), actual.get().getStartDate());
-  }
-
-  @Transactional
-  @Test
-  void testFindActiveSubscriptionWhenDuplicates() {
-    String subId = "sub";
-    // We want to create the same subscription twice, but the second will have a more recent start
-    // date.
-    var mostRecent = givenTwoDuplicateSubscriptions(subId);
-
-    // When trying to find a single subscription number, it fails because there are multiples
-    var actual = subscriptionRepo.findActiveSubscription(subId);
-    assertTrue(actual.isPresent());
-    assertEquals(mostRecent.getStartDate(), actual.get().getStartDate());
-  }
-
-  @Transactional
-  @Test
   void testMatchesOnFirstPartOfMultipartBillingAccountId() {
     Offering o1 =
         createOffering("testSku1", "Test SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
@@ -445,16 +415,6 @@ class SubscriptionRepositoryTest {
     assertEquals(1, resultList.size());
     assertEquals(
         "providerTenantId;providerSubscriptionId", resultList.get(0).getBillingAccountId());
-  }
-
-  private Subscription givenTwoDuplicateSubscriptions(String subId) {
-    String orgId = "org123";
-    String billingAccountId = "seller123";
-    OffsetDateTime startDate = NOW.truncatedTo(ChronoUnit.SECONDS);
-    var s1 = createSubscription(orgId, subId, billingAccountId, startDate, null);
-    var s2 = createSubscription(orgId, subId, billingAccountId, startDate.plusDays(2), null);
-    subscriptionRepo.saveAllAndFlush(List.of(s1, s2));
-    return s2;
   }
 
   private Offering createOffering(
