@@ -25,6 +25,7 @@ import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -314,9 +315,14 @@ public class FactNormalizer {
     //
     // NOTE: This logic is applied since currently the inventory service does not prune inventory
     //       records once a host no longer exists.
-    String syncTimestamp = hostFacts.getSyncTimestamp();
+    var syncTimestampOptional = Optional.ofNullable(hostFacts.getSyncTimestamp());
     boolean skipRhsmFacts =
-        StringUtils.hasText(syncTimestamp) && hostUnregistered(OffsetDateTime.parse(syncTimestamp));
+        syncTimestampOptional
+            .map(
+                syncTimestamp ->
+                    StringUtils.hasText(syncTimestamp)
+                        && hostUnregistered(OffsetDateTime.parse(syncTimestamp)))
+            .orElse(false);
     if (!skipRhsmFacts) {
       normalizedFacts.getProducts().addAll(getProductsFromProductIds(hostFacts.getProducts()));
 
