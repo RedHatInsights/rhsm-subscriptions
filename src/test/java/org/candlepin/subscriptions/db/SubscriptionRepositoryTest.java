@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.db;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import jakarta.transaction.Transactional;
@@ -75,7 +76,8 @@ class SubscriptionRepositoryTest {
     offeringRepo.save(offering);
     subscriptionRepo.saveAndFlush(subscription);
 
-    Subscription retrieved = subscriptionRepo.findActiveSubscription("123").orElse(null);
+    Subscription retrieved =
+        subscriptionRepo.findActiveSubscription("123").stream().findFirst().orElse(null);
 
     // because of an issue with precision related to findActiveSubscription passing the entity
     // cache, we'll have to check fields
@@ -319,8 +321,8 @@ class SubscriptionRepositoryTest {
     offeringRepo.save(offering1);
     subscriptionRepo.saveAllAndFlush(List.of(s1, s2));
 
-    assertTrue(subscriptionRepo.findActiveSubscription(s1.getSubscriptionId()).isPresent());
-    assertTrue(subscriptionRepo.findActiveSubscription(s2.getSubscriptionId()).isPresent());
+    assertFalse(subscriptionRepo.findActiveSubscription(s1.getSubscriptionId()).isEmpty());
+    assertFalse(subscriptionRepo.findActiveSubscription(s2.getSubscriptionId()).isEmpty());
   }
 
   @Transactional

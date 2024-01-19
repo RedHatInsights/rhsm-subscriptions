@@ -30,7 +30,6 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -67,13 +66,13 @@ public interface SubscriptionRepository
         ORDER BY s.subscriptionId, s.startDate
       """)
   @EntityGraph(value = "graph.SubscriptionSync")
-  Optional<Subscription> findActiveSubscription(@Param("subscriptionId") String subscriptionId);
+  List<Subscription> findActiveSubscription(@Param("subscriptionId") String subscriptionId);
 
   @EntityGraph(value = "graph.SubscriptionSync")
   // Added an order by clause to avoid Hibernate issue HHH-17040
   @Query(
       "SELECT s FROM Subscription s WHERE s.subscriptionNumber = :subscriptionNumber ORDER BY s.subscriptionId, s.startDate")
-  Optional<Subscription> findBySubscriptionNumber(String subscriptionNumber);
+  List<Subscription> findBySubscriptionNumber(String subscriptionNumber);
 
   // Added an order by clause to avoid Hibernate issue HHH-17040
   @Query(

@@ -84,9 +84,11 @@ public class SubscriptionWorker extends SeekableKafkaConsumer {
         xmlMapper.readValue(subscriptionMessageXml, CanonicalMessage.class);
     UmbSubscription subscription = subscriptionMessage.getPayload().getSync().getSubscription();
     log.info(
-        "Received UMB message for subscriptionNumber={} webCustomerId={}",
+        "Received UMB message for subscriptionNumber={} webCustomerId={} startDate={} endDate={}",
         subscription.getSubscriptionNumber(),
-        subscription.getWebCustomerId());
+        subscription.getWebCustomerId(),
+        subscription.getEffectiveStartDate(),
+        subscription.getEffectiveEndDate());
     subscriptionSyncController.saveUmbSubscription(subscription);
   }
 }

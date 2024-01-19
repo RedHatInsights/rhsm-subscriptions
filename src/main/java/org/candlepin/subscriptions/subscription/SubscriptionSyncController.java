@@ -582,11 +582,16 @@ public class SubscriptionSyncController {
   @Transactional
   public void saveUmbSubscription(UmbSubscription umbSubscription) {
     org.candlepin.subscriptions.db.model.Subscription subscription = convertDto(umbSubscription);
-    syncSubscription(
-        umbSubscription.getSku(),
-        subscription,
-        subscriptionRepository.findBySubscriptionNumber(subscription.getSubscriptionNumber()));
-  }
+
+    var subscriptions =
+        subscriptionRepository.findBySubscriptionNumber(subscription.getSubscriptionNumber());
+    if (subscriptions.size() > 1) {
+      log.warn(
+          "Skipping UMB message because multiple subscriptions were found for subscriptionNumber={}",
+          subscription.getSubscriptionNumber());
+    } else {
+      syncSubscription(umbSubscription.getSku(), subscription, subscriptions.stream().findFirst());
+    }
 
   public void deleteSubscription(String subscriptionId) {
     subscriptionRepository.deleteBySubscriptionId(subscriptionId);
@@ -594,10 +599,23 @@ public class SubscriptionSyncController {
 
   @Transactional
   public String terminateSubscription(String subscriptionId, OffsetDateTime terminationDate) {
-    var subscription =
-        subscriptionRepository
-            .findActiveSubscription(subscriptionId)
-            .orElseThrow(EntityNotFoundException::new);
+    var subscriptions = subscriptionRepository.findActiveSubscription(subscriptionId);
+    if (subscriptions.isEmpty()) {
+      throw new EntityNotFoundException(
+          String.format(
+              "Cannot terminate subscription because no active subscription was found with subscription ID '%s'",
+              subscriptionId));
+    } else if (subscriptions.size() > 1) {
+      throw new SubscriptionsException(
+          ErrorCode.UNHANDLED_EXCEPTION_ERROR,
+          Response.Status.INTERNAL_SERVER_ERROR,
+          "Multiple active subscription found",
+          String.format(
+              "Cannot terminate subscription because multiple active subscriptions were found for subscription ID '%s'",
+              subscriptionId));
+    }
+
+    var subscription = subscriptions.get(0);
 
     // Wait until after we are sure there's an offering for this subscription before setting the
     // end date.  We want validation to occur before we start mutating data.

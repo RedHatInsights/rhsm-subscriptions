@@ -131,7 +131,7 @@ class SubscriptionSyncControllerTest {
   @Test
   void shouldCreateNewRecordOnQuantityChange() {
     Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
-        .thenReturn(Optional.of(createSubscription()));
+        .thenReturn(List.of(createSubscription()));
     Mockito.when(offeringRepository.existsById(SKU)).thenReturn(true);
     Offering offering = Offering.builder().sku(SKU).build();
     when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
@@ -498,7 +498,7 @@ class SubscriptionSyncControllerTest {
     o.setProductName(PAYG_PRODUCT_NAME);
     o.setMetered(true);
     when(offeringRepository.findById(SKU)).thenReturn(Optional.of(o));
-    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
+    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(List.of(s));
 
     var termination = OffsetDateTime.now();
     var result = subscriptionSyncController.terminateSubscription("456", termination);
@@ -512,7 +512,7 @@ class SubscriptionSyncControllerTest {
     Offering offering = Offering.builder().productName(PAYG_PRODUCT_NAME).metered(true).build();
     s.setOffering(offering);
     when(offeringRepository.findById(SKU)).thenReturn(Optional.of(offering));
-    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
+    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(List.of(s));
 
     var termination = OffsetDateTime.now().minusDays(1);
     var result = subscriptionSyncController.terminateSubscription("456", termination);
@@ -527,7 +527,7 @@ class SubscriptionSyncControllerTest {
     Subscription s = createSubscription();
     s.getOffering().setProductName(PAYG_PRODUCT_NAME);
     s.getOffering().setMetered(true);
-    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
+    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(List.of(s));
 
     var termination = OffsetDateTime.now().plusDays(1);
     var result = subscriptionSyncController.terminateSubscription("456", termination);
@@ -541,7 +541,7 @@ class SubscriptionSyncControllerTest {
   void terminateActiveNonPAYGSubscriptionTest() {
     Subscription s = createSubscription();
     s.getOffering().setProductName("Random Product");
-    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
+    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(List.of(s));
 
     var termination = OffsetDateTime.now();
     var result = subscriptionSyncController.terminateSubscription("456", termination);
