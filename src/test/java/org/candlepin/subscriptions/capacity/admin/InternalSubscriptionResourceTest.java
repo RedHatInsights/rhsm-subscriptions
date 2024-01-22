@@ -124,7 +124,7 @@ class InternalSubscriptionResourceTest {
         NotFoundException.class,
         () ->
             resource.getAwsUsageContext(
-                null, defaultLookUpDate, "rosa", "Premium", "Production", "123"));
+                defaultLookUpDate, "rosa", null, "Premium", "Production", "123"));
     Counter counter = meterRegistry.counter("swatch_missing_aws_subscription");
     assertEquals(1.0, counter.count());
   }
@@ -148,7 +148,7 @@ class InternalSubscriptionResourceTest {
         NotFoundException.class,
         () ->
             resource.getAwsUsageContext(
-                "org123", defaultLookUpDate, "rosa", "Premium", "Production", "123"));
+                defaultLookUpDate, "rosa", "org123", "Premium", "Production", "123"));
     Counter counter = meterRegistry.counter("swatch_missing_aws_subscription");
     assertEquals(1.0, counter.count());
   }
@@ -176,7 +176,7 @@ class InternalSubscriptionResourceTest {
         .thenReturn(List.of(sub1, sub2));
     AwsUsageContext awsUsageContext =
         resource.getAwsUsageContext(
-            "org123", defaultLookUpDate, "rosa", "Premium", "Production", "123");
+            defaultLookUpDate, "rosa", "org123", "Premium", "Production", "123");
     Counter counter = meterRegistry.counter("swatch_ambiguous_aws_subscription");
     assertEquals(1.0, counter.count());
     assertEquals("foo1", awsUsageContext.getProductCode());
@@ -198,7 +198,7 @@ class InternalSubscriptionResourceTest {
             SubscriptionsException.class,
             () -> {
               resource.getAwsUsageContext(
-                  "org123", lookupDate, "rosa", "Premium", "Production", "123");
+                  lookupDate, "rosa", "org123", "Premium", "Production", "123");
             });
 
     assertEquals(
@@ -219,7 +219,7 @@ class InternalSubscriptionResourceTest {
         .thenReturn(List.of(sub1, sub2));
     var lookupDate = endDate.plusMinutes(30);
     AwsUsageContext awsUsageContext =
-        resource.getAwsUsageContext("org123", lookupDate, "rosa", "Premium", "Production", "123");
+        resource.getAwsUsageContext(lookupDate, "rosa", "org123", "Premium", "Production", "123");
     assertEquals("bar1", awsUsageContext.getProductCode());
     assertEquals("bar2", awsUsageContext.getCustomerId());
     assertEquals("bar3", awsUsageContext.getAwsSellerAccountId());
@@ -234,7 +234,7 @@ class InternalSubscriptionResourceTest {
     when(syncController.findSubscriptions(any(), any(), any(), any())).thenReturn(List.of(sub));
     var azureUsageContext =
         resource.getAzureMarketplaceContext(
-            "org123", endDate, "BASILISK", "Premium", "Production", "123");
+            endDate, "BASILISK", "org123", "Premium", "Production", "123");
     assertEquals("resourceId", azureUsageContext.getAzureResourceId());
     assertEquals("planId", azureUsageContext.getPlanId());
     assertEquals("offerId", azureUsageContext.getOfferId());

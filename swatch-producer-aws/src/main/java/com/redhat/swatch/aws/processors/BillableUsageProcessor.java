@@ -155,12 +155,12 @@ public class BillableUsageProcessor {
       throws AwsUsageContextLookupException {
     try {
       return internalSubscriptionsApi.getAwsUsageContext(
-          billableUsage.getOrgId(),
           billableUsage.getSnapshotDate(),
           billableUsage.getProductId(),
+          Optional.ofNullable(billableUsage.getBillingAccountId()).orElse("_ANY"),
+          billableUsage.getOrgId(),
           Optional.ofNullable(billableUsage.getSla()).map(SlaEnum::value).orElse(null),
-          Optional.ofNullable(billableUsage.getUsage()).map(UsageEnum::value).orElse(null),
-          Optional.ofNullable(billableUsage.getBillingAccountId()).orElse("_ANY"));
+          Optional.ofNullable(billableUsage.getUsage()).map(UsageEnum::value).orElse(null));
     } catch (DefaultApiException e) {
       var optionalErrors = Optional.ofNullable(e.getErrors());
       if (optionalErrors.isPresent()) {

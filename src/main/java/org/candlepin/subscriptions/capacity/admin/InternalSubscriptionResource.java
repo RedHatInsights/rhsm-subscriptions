@@ -190,9 +190,9 @@ public class InternalSubscriptionResource implements InternalApi {
 
   @Override
   public AwsUsageContext getAwsUsageContext(
+      @jakarta.validation.constraints.NotNull OffsetDateTime date,
+      @jakarta.validation.constraints.NotNull String productId,
       String orgId,
-      OffsetDateTime date,
-      String productId,
       String sla,
       String usage,
       String awsAccountId) {
@@ -205,9 +205,9 @@ public class InternalSubscriptionResource implements InternalApi {
 
   @Override
   public AzureUsageContext getAzureMarketplaceContext(
-      @jakarta.validation.constraints.NotNull String orgId,
       @jakarta.validation.constraints.NotNull OffsetDateTime date,
       @jakarta.validation.constraints.NotNull String productId,
+      String orgId,
       String sla,
       String usage,
       String azureAccountId) {
