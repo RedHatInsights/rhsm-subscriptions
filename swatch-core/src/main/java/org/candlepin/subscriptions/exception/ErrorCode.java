@@ -53,6 +53,14 @@ public enum ErrorCode {
   SUBSCRIPTION_RECENTLY_TERMINATED(
       1005, "Subscription recently terminated. No active subscriptions."),
 
+  /**
+   * Subscription could not be determined. Likely caused by a subscription missing the
+   * azureSubscriptionId from the billingAccountId.
+   */
+  SUBSCRIPTION_CANNOT_BE_DETERMINED(
+      1006,
+      "Multiple possible matches found. Likely a subscription is missing part of its billingAccountId. (check azureSubscriptionId)"),
+
   /** An unexpected exception was thrown by the inventory service client. */
   INVENTORY_SERVICE_ERROR(2000, "Inventory Service Error"),
 

@@ -23,6 +23,7 @@ package com.redhat.swatch.contract.service;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PageRequest;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlements;
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerIdentityV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
@@ -36,6 +37,7 @@ import com.redhat.swatch.contract.model.MeasurementMetricIdTransformer;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
+import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContractCloudIdentifiers;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractRepository;
@@ -539,6 +541,7 @@ public class ContractService {
       // azureResourceId is a unique identifier per SaaS purchase,
       // so it should be sufficient by itself
       customerAccountId = contract.getCloudIdentifiers().getAzureResourceId();
+      entity.setBillingAccountId(extractAzureTenantId(contract.getCloudIdentifiers()));
       if (Objects.nonNull(contract.getCloudIdentifiers()) && Objects.nonNull(customerAccountId)) {
         // get the entitlement query from partner api for azure marketplace
         PageRequest page = new PageRequest();
@@ -574,6 +577,7 @@ public class ContractService {
       mapper.mapRhEntitlementsToContractEntity(entity, entitlement);
       entity.setBillingProvider(
           ContractSourcePartnerEnum.getByCode(entitlement.getSourcePartner().value()));
+      enhanceAzureBillingAccountId(entity, entitlement);
 
       var dimensionV1s =
           entitlement.getPurchase().getContracts().stream()
@@ -610,5 +614,25 @@ public class ContractService {
         log.error("Unable to connect to swatch api to get product tags");
       }
     }
+  }
+
+  private String extractAzureTenantId(PartnerEntitlementContractCloudIdentifiers code) {
+    return Objects.equals("azure_marketplace", code.getPartner()) ? code.getAzureTenantId() : null;
+  }
+
+  private void enhanceAzureBillingAccountId(
+      ContractEntity contractEntity, PartnerEntitlementV1 entitlementV1) {
+    var azureSubscriptionId = extractAzureSubscriptionId(entitlementV1);
+    if (azureSubscriptionId.isPresent()) {
+      var azureTenantId = contractEntity.getBillingAccountId();
+      contractEntity.setBillingAccountId(
+          String.format("%s;%s", azureTenantId, azureSubscriptionId));
+    }
+  }
+
+  private Optional<String> extractAzureSubscriptionId(PartnerEntitlementV1 entitlementV1) {
+    return Optional.ofNullable(entitlementV1)
+        .map(PartnerEntitlementV1::getPartnerIdentities)
+        .map(PartnerIdentityV1::getAzureSubscriptionId);
   }
 }

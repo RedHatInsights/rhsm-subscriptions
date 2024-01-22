@@ -353,6 +353,72 @@ class SubscriptionRepositoryTest {
     assertThat(resultList, Matchers.containsInAnyOrder(s1, s2));
   }
 
+  @Transactional
+  @Test
+  void testMatchesOnFirstPartOfMultipartBillingAccountId() {
+    Offering o1 =
+        createOffering("testSku1", "Test SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+    offeringRepo.save(o1);
+
+    Subscription subscription1 =
+        createSubscription("1", "123", "providerTenantId;providerSubscriptionId");
+    Subscription subscription2 = createSubscription("1", "124", "providerTenantId");
+    subscription1.setOffering(o1);
+    subscription2.setOffering(o1);
+    subscriptionRepo.saveAndFlush(subscription1);
+    subscriptionRepo.saveAndFlush(subscription2);
+
+    Set<String> productNames = Set.of("Test SKU 1");
+    var resultList =
+        subscriptionRepo.findByCriteria(
+            DbReportCriteria.builder()
+                .productNames(productNames)
+                .serviceLevel(ServiceLevel.STANDARD)
+                .usage(Usage.PRODUCTION)
+                .billingProvider(BillingProvider._ANY)
+                .billingAccountId("providerTenantId")
+                .beginning(NOW)
+                .ending(NOW)
+                .build(),
+            Sort.by(Subscription_.START_DATE).descending());
+
+    assertEquals(2, resultList.size());
+  }
+
+  @Transactional
+  @Test
+  void testMatchesOnBothPartsOfMultipartBillingAccountId() {
+    Offering o1 =
+        createOffering("testSku1", "Test SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+    offeringRepo.save(o1);
+
+    Subscription subscription1 =
+        createSubscription("1", "123", "providerTenantId;providerSubscriptionId");
+    Subscription subscription2 = createSubscription("1", "124", "providerTenantId");
+    subscription1.setOffering(o1);
+    subscription2.setOffering(o1);
+    subscriptionRepo.saveAndFlush(subscription1);
+    subscriptionRepo.saveAndFlush(subscription2);
+
+    Set<String> productNames = Set.of("Test SKU 1");
+    var resultList =
+        subscriptionRepo.findByCriteria(
+            DbReportCriteria.builder()
+                .productNames(productNames)
+                .serviceLevel(ServiceLevel.STANDARD)
+                .usage(Usage.PRODUCTION)
+                .billingProvider(BillingProvider._ANY)
+                .billingAccountId("providerTenantId;providerSubscriptionId")
+                .beginning(NOW)
+                .ending(NOW)
+                .build(),
+            Sort.by(Subscription_.START_DATE).descending());
+
+    assertEquals(1, resultList.size());
+    assertEquals(
+        "providerTenantId;providerSubscriptionId", resultList.get(0).getBillingAccountId());
+  }
+
   private Offering createOffering(
       String sku, String productName, int productId, ServiceLevel sla, Usage usage, String role) {
     return Offering.builder()

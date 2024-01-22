@@ -195,7 +195,7 @@ class ContractServiceTest extends BaseUnitTest {
     PartnerEntitlementContract request = givenPartnerEntitlementContractRequest();
     contractService.createPartnerContract(request);
 
-    request.getCloudIdentifiers().setAzureResourceId("dupeId");
+    request.getCloudIdentifiers().azureResourceId("dupeId");
     request.getCloudIdentifiers().setAzureOfferId("dupeId");
     request.getCloudIdentifiers().setPlanId("dupeId");
     request.getCloudIdentifiers().setPartner("azure_marketplace");
