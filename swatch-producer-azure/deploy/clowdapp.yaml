@@ -136,6 +136,11 @@ objects:
               value: ${QUARKUS_PROFILE}
             - name: ENABLE_AZURE_DRY_RUN
               value: ${ENABLE_AZURE_DRY_RUN}
+            - name: AZURE_MARKETPLACE_CREDENTIALS
+              valueFrom:
+                secretKeyRef:
+                  name: azure-marketplace-credentials
+                  key: credentials
           volumeMounts:
             - name: logs
               mountPath: /logs
