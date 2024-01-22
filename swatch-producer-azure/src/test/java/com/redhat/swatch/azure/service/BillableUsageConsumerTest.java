@@ -51,10 +51,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
 import java.math.BigDecimal;
 import java.time.Clock;
-import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -68,11 +65,7 @@ import org.junit.jupiter.api.Test;
 class BillableUsageConsumerTest {
 
   private static final String INSTANCE_HOURS = "INSTANCE_HOURS";
-  private static final String CORES = "CORES";
   private static final String STORAGE_GIB_MONTHS = "STORAGE_GIBIBYTE_MONTHS";
-
-  private static final Clock clock =
-      Clock.fixed(Instant.parse("2023-10-02T12:30:00Z"), ZoneId.of("UTC"));
 
   private static final BillableUsage BASILISK_INSTANCE_HOURS_RECORD =
       new BillableUsage()
@@ -224,7 +217,7 @@ class BillableUsageConsumerTest {
     Errors errors = new Errors();
     Error error = new Error();
     error.setCode("SUBSCRIPTIONS1005");
-    errors.setErrors(Arrays.asList(error));
+    errors.setErrors(List.of(error));
     var response = Response.serverError().entity(errors).build();
     var exception = new DefaultApiException(response, errors);
     when(internalSubscriptionsApi.getAzureMarketplaceContext(
