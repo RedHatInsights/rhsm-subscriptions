@@ -133,11 +133,8 @@ public interface ContractMapper {
   // this method is to properly map value from entitlement partnerIdentities
   // as these fields are populated differently based on the marketplace
   default String extractBillingAccountId(PartnerIdentityV1 accountId) {
-
     if (accountId.getCustomerAwsAccountId() != null) {
       return accountId.getCustomerAwsAccountId();
-    } else if (accountId.getAzureTenantId() != null) {
-      return accountId.getAzureTenantId();
     }
     return null;
   }

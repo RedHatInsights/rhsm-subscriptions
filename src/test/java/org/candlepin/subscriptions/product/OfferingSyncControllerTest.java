@@ -82,6 +82,7 @@ class OfferingSyncControllerTest {
         .usage(Usage.PRODUCTION)
         .sockets(2)
         .hasUnlimitedUsage(false)
+        .metered(true)
         .build();
   }
 
@@ -172,6 +173,7 @@ class OfferingSyncControllerTest {
     persisted.setServiceLevel(ServiceLevel.PREMIUM);
     persisted.setUsage(Usage.EMPTY);
     persisted.setHasUnlimitedUsage(false);
+    persisted.setMetered(false);
 
     when(repo.findById(anyString())).thenReturn(Optional.of(persisted));
 
@@ -279,6 +281,7 @@ class OfferingSyncControllerTest {
     verify(repo).saveAndFlush(actual.capture());
     // this shows that the eng ids were derived from the product service's definition of the SVC sku
     assertEquals(30, actual.getValue().getProductIds().size());
+    assertTrue(actual.getValue().isMetered());
   }
 
   @Test
@@ -406,6 +409,7 @@ class OfferingSyncControllerTest {
     expectedOffering.setServiceLevel(ServiceLevel.PREMIUM);
     expectedOffering.setHasUnlimitedUsage(false);
     expectedOffering.setUsage(Usage.EMPTY);
+    expectedOffering.setMetered(false);
     return expectedOffering;
   }
 }

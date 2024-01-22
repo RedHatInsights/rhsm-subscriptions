@@ -20,8 +20,6 @@
  */
 package org.candlepin.subscriptions.db;
 
-import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.Offering;
@@ -32,11 +30,6 @@ import org.springframework.data.repository.query.Param;
 
 /** Repository interface for the Offering entity */
 public interface OfferingRepository extends JpaRepository<Offering, String> {
-
-  List<Offering> findByProductName(String productName);
-
-  List<Offering> findBySkuIn(Set<String> skus);
-
   @EntityGraph(value = "graph.offering")
   @Query(value = "select o from Offering o where o.sku = :sku order by o.sku")
   Offering findOfferingBySku(@Param("sku") String sku);
@@ -46,9 +39,6 @@ public interface OfferingRepository extends JpaRepository<Offering, String> {
 
   @Query(value = "select sku from Offering where derivedSku in :derivedSkus")
   Stream<String> findSkusForDerivedSkus(@Param("derivedSkus") Set<String> derivedSkus);
-
-  @Query("select distinct o.productName from Offering o where o.sku = :sku")
-  Optional<String> findProductNameBySku(@Param("sku") String sku);
 
   @Query(value = "select distinct sku from Offering")
   Set<String> findAllDistinctSkus();

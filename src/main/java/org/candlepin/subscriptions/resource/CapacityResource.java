@@ -48,11 +48,8 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.resteasy.PageLinkCreator;
 import org.candlepin.subscriptions.security.auth.ReportingAccessRequired;
 import org.candlepin.subscriptions.util.SnapshotTimeAdjuster;
-import org.candlepin.subscriptions.utilization.api.model.CapacityReport;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReportByMetricId;
 import org.candlepin.subscriptions.utilization.api.model.CapacityReportByMetricIdMeta;
-import org.candlepin.subscriptions.utilization.api.model.CapacityReportMeta;
-import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshot;
 import org.candlepin.subscriptions.utilization.api.model.CapacitySnapshotByMetricId;
 import org.candlepin.subscriptions.utilization.api.model.GranularityType;
 import org.candlepin.subscriptions.utilization.api.model.PageLinks;
@@ -90,78 +87,6 @@ public class CapacityResource implements CapacityApi {
     this.subscriptionRepository = subscriptionRepository;
     this.pageLinkCreator = pageLinkCreator;
     this.clock = clock;
-  }
-
-  /**
-   * @deprecated for removal once <a
-   *     href="https://issues.redhat.com/browse/SWATCH-218">SWATCH-218</a> is completed
-   */
-  @Override
-  @Deprecated(since = "https://issues.redhat.com/browse/ENT-4384")
-  @ReportingAccessRequired
-  public CapacityReport getCapacityReport(
-      ProductId productId,
-      @NotNull GranularityType granularityType,
-      @NotNull OffsetDateTime beginning,
-      @NotNull OffsetDateTime ending,
-      Integer offset,
-      @Min(1) Integer limit,
-      ServiceLevelType sla,
-      UsageType usage) {
-    // capacity records do not include _ANY rows
-    ServiceLevel sanitizedServiceLevel = ResourceUtils.sanitizeServiceLevel(sla);
-    if (sanitizedServiceLevel == ServiceLevel._ANY) {
-      sanitizedServiceLevel = null;
-    }
-
-    Usage sanitizedUsage = ResourceUtils.sanitizeUsage(usage);
-    if (sanitizedUsage == Usage._ANY) {
-      sanitizedUsage = null;
-    }
-
-    Granularity granularityValue = Granularity.fromString(granularityType.toString());
-    String orgId = ResourceUtils.getOrgId();
-    List<CapacitySnapshot> capacities =
-        getCapacities(
-            orgId,
-            productId,
-            sanitizedServiceLevel,
-            sanitizedUsage,
-            granularityValue,
-            beginning,
-            ending);
-
-    List<CapacitySnapshot> data;
-    PageLinks links;
-    if (offset != null || limit != null) {
-      Pageable pageable = ResourceUtils.getPageable(offset, limit);
-      data = paginate(capacities, pageable);
-      Page<CapacitySnapshot> snapshotPage =
-          new PageImpl<>(data, pageable, capacities.size()); // NOSONAR
-      links = pageLinkCreator.getPaginationLinks(uriInfo, snapshotPage);
-    } else {
-      data = capacities;
-      links = null;
-    }
-
-    CapacityReport report = new CapacityReport();
-    report.setData(data);
-    report.setMeta(new CapacityReportMeta());
-    report.getMeta().setGranularity(granularityType);
-    report.getMeta().setProduct(productId.toString());
-    report.getMeta().setCount(report.getData().size());
-
-    if (sanitizedServiceLevel != null) {
-      report.getMeta().setServiceLevel(sanitizedServiceLevel.asOpenApiEnum());
-    }
-
-    if (sanitizedUsage != null) {
-      report.getMeta().setUsage(sanitizedUsage.asOpenApiEnum());
-    }
-
-    report.setLinks(links);
-
-    return report;
   }
 
   @Override
@@ -249,55 +174,6 @@ public class CapacityResource implements CapacityApi {
     return report;
   }
 
-  protected List<CapacitySnapshot> getCapacities(
-      String orgId,
-      ProductId productId,
-      ServiceLevel sla,
-      Usage usage,
-      Granularity granularity,
-      @NotNull OffsetDateTime reportBegin,
-      @NotNull OffsetDateTime reportEnd) {
-
-    /* Throw an error if we are asked to generate capacity reports at a finer granularity than what is
-     * supported by the product.  The reports created would be technically accurate, but would convey the
-     * false impression that we have capacity information at that fine of a granularity.  This decision is
-     * on of personal judgment and it may be appropriate to reverse it at a later date. */
-    validateGranularity(productId, granularity);
-
-    var dbReportCriteria =
-        DbReportCriteria.builder()
-            .orgId(orgId)
-            .productId(productId.toString())
-            .serviceLevel(sla)
-            .usage(usage)
-            .beginning(reportBegin)
-            .ending(reportEnd)
-            .build();
-
-    List<Subscription> subscriptions =
-        subscriptionRepository.findByCriteria(dbReportCriteria, Sort.unsorted());
-    List<Subscription> unlimitedSubscriptions =
-        subscriptionRepository.findUnlimited(dbReportCriteria);
-
-    SnapshotTimeAdjuster timeAdjuster = SnapshotTimeAdjuster.getTimeAdjuster(clock, granularity);
-
-    OffsetDateTime start = timeAdjuster.adjustToPeriodStart(reportBegin);
-    OffsetDateTime end = timeAdjuster.adjustToPeriodEnd(reportEnd);
-    TemporalAmount offset = timeAdjuster.getSnapshotOffset();
-
-    List<CapacitySnapshot> result = new ArrayList<>();
-    OffsetDateTime next = OffsetDateTime.from(start);
-
-    while (next.isBefore(end) || next.isEqual(end)) {
-      CapacitySnapshot capacitySnapshot = createCapacitySnapshot(next, subscriptions);
-      capacitySnapshot.setHasInfiniteQuantity(hasInfiniteQuantity(next, unlimitedSubscriptions));
-      result.add(capacitySnapshot);
-      next = timeAdjuster.adjustToPeriodStart(next.plus(offset));
-    }
-
-    return result;
-  }
-
   private boolean hasInfiniteQuantity(
       OffsetDateTime date, List<Subscription> unlimitedSubscriptions) {
     for (Subscription subscription : unlimitedSubscriptions) {
@@ -370,62 +246,6 @@ public class CapacityResource implements CapacityApi {
     int offset = pageable.getPageNumber() * pageable.getPageSize();
     int lastIndex = Math.min(capacities.size(), offset + pageable.getPageSize());
     return capacities.subList(offset, lastIndex);
-  }
-
-  @SuppressWarnings("java:S3776")
-  protected CapacitySnapshot createCapacitySnapshot(
-      OffsetDateTime date, List<Subscription> subscriptions) {
-    // NOTE there is room for future optimization here, as we're *generally* calculating the
-    // same sum across a time range, also we might opt to do some of this in the DB query in the
-    // future.
-    int sockets = 0;
-    int physicalSockets = 0;
-    int hypervisorSockets = 0;
-    int cores = 0;
-    int physicalCores = 0;
-    int hypervisorCores = 0;
-
-    for (Subscription subscription : subscriptions) {
-      var begin = subscription.getStartDate();
-      var end = subscription.getEndDate();
-
-      if ((begin == null || begin.isBefore(date)) && (end == null || end.isAfter(date))) {
-        for (var entry : subscription.getSubscriptionMeasurements().entrySet()) {
-          var measurementKey = entry.getKey();
-          var measurementValue = entry.getValue();
-          var measurementType = measurementKey.getMeasurementType();
-          var isPhysical = PHYSICAL.equals(measurementType);
-          var isHypervisor = HYPERVISOR.equals(measurementType);
-
-          if (CORES.equals(measurementKey.getMetricId())) {
-            var val = measurementValue.intValue();
-            cores += val;
-            if (isPhysical) {
-              physicalCores += val;
-            } else if (isHypervisor) {
-              hypervisorCores += val;
-            }
-          } else if (SOCKETS.equals(measurementKey.getMetricId())) {
-            var val = measurementValue.intValue();
-            sockets += val;
-            if (isPhysical) {
-              physicalSockets += val;
-            } else if (isHypervisor) {
-              hypervisorSockets += val;
-            }
-          }
-        }
-      }
-    }
-
-    return new CapacitySnapshot()
-        .date(date)
-        .sockets(sockets)
-        .physicalSockets(physicalSockets)
-        .hypervisorSockets(hypervisorSockets)
-        .cores(cores)
-        .physicalCores(physicalCores)
-        .hypervisorCores(hypervisorCores);
   }
 
   @SuppressWarnings("java:S3776")

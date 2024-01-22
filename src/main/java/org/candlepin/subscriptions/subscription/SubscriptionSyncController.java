@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.subscription;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.google.common.collect.MoreCollectors;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
@@ -63,12 +62,12 @@ import org.candlepin.subscriptions.db.model.Subscription_;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
 import org.candlepin.subscriptions.exception.MissingOfferingException;
+import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.product.OfferingSyncController;
 import org.candlepin.subscriptions.product.SyncResult;
 import org.candlepin.subscriptions.subscription.api.model.Subscription;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
-import org.candlepin.subscriptions.umb.CanonicalMessage;
 import org.candlepin.subscriptions.umb.SubscriptionProductStatus;
 import org.candlepin.subscriptions.umb.UmbSubscription;
 import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTags;
@@ -84,8 +83,6 @@ import org.springframework.util.Assert;
 @Component
 @Slf4j
 public class SubscriptionSyncController {
-
-  private static final XmlMapper umbMessageMapper = CanonicalMessage.createMapper();
   private final SubscriptionRepository subscriptionRepository;
   private final OrgConfigRepository orgRepository;
   private final OfferingRepository offeringRepository;
@@ -131,13 +128,6 @@ public class SubscriptionSyncController {
     this.syncSubscriptionsTopic = props.getTopic();
     this.syncSubscriptionsByOrgKafkaTemplate = syncSubscriptionsByOrgKafkaTemplate;
     this.entityManager = entityManager;
-  }
-
-  @Transactional
-  public void syncSubscription(Subscription subscription) {
-    syncSubscription(
-        subscription,
-        subscriptionRepository.findActiveSubscription(String.valueOf(subscription.getId())));
   }
 
   @Transactional
@@ -263,19 +253,12 @@ public class SubscriptionSyncController {
 
   private void checkForMissingBillingProvider(
       org.candlepin.subscriptions.db.model.Subscription subscription) {
-    if (subscription.getBillingProvider() == null
-        || subscription.getBillingProvider().equals(BillingProvider.EMPTY)) {
-      // The offering here is going to be a proxy object created by getReferenceById.  Hibernate
-      // should take care of actually performing the select from the database if one is needed.
-      var subscriptionDefinition =
-          SubscriptionDefinition.lookupSubscriptionByProductName(
-              subscription.getOffering().getProductName());
-      if (!subscriptionDefinition.isEmpty()
-          && subscriptionDefinition.stream().anyMatch(SubscriptionDefinition::isPaygEligible)) {
-        log.warn(
-            "PAYG eligible subscription with subscriptionId:{} has no billing provider.",
-            subscription.getSubscriptionId());
-      }
+    if ((subscription.getBillingProvider() == null
+            || subscription.getBillingProvider().equals(BillingProvider.EMPTY))
+        && subscription.getOffering().isMetered()) {
+      log.warn(
+          "PAYG eligible subscription with subscriptionId:{} has no billing provider.",
+          subscription.getSubscriptionId());
     }
   }
 
@@ -316,12 +299,6 @@ public class SubscriptionSyncController {
       String subscriptionNumber) {
     return Optional.of(
         convertDto(subscriptionService.getSubscriptionBySubscriptionNumber(subscriptionNumber)));
-  }
-
-  @Transactional
-  public void syncSubscription(String subscriptionId) {
-    Subscription subscription = subscriptionService.getSubscriptionById(subscriptionId);
-    syncSubscription(subscription);
   }
 
   @Transactional
@@ -577,34 +554,39 @@ public class SubscriptionSyncController {
   }
 
   @Transactional
-  public void saveUmbSubscriptionFromXml(String subscriptionXml) throws JsonProcessingException {
-    saveUmbSubscription(
-        umbMessageMapper
-            .readValue(subscriptionXml, org.candlepin.subscriptions.umb.CanonicalMessage.class)
-            .getPayload()
-            .getSync()
-            .getSubscription());
-  }
-
-  @Transactional
   public void saveUmbSubscription(UmbSubscription umbSubscription) {
     org.candlepin.subscriptions.db.model.Subscription subscription = convertDto(umbSubscription);
-    syncSubscription(
-        umbSubscription.getSku(),
-        subscription,
-        subscriptionRepository.findBySubscriptionNumber(subscription.getSubscriptionNumber()));
-  }
 
-  public void deleteSubscription(String subscriptionId) {
-    subscriptionRepository.deleteBySubscriptionId(subscriptionId);
+    var subscriptions =
+        subscriptionRepository.findBySubscriptionNumber(subscription.getSubscriptionNumber());
+    if (subscriptions.size() > 1) {
+      log.warn(
+          "Skipping UMB message because multiple subscriptions were found for subscriptionNumber={}",
+          subscription.getSubscriptionNumber());
+    } else {
+      syncSubscription(umbSubscription.getSku(), subscription, subscriptions.stream().findFirst());
+    }
   }
 
   @Transactional
   public String terminateSubscription(String subscriptionId, OffsetDateTime terminationDate) {
-    var subscription =
-        subscriptionRepository
-            .findActiveSubscription(subscriptionId)
-            .orElseThrow(EntityNotFoundException::new);
+    var subscriptions = subscriptionRepository.findActiveSubscription(subscriptionId);
+    if (subscriptions.isEmpty()) {
+      throw new EntityNotFoundException(
+          String.format(
+              "Cannot terminate subscription because no active subscription was found with subscription ID '%s'",
+              subscriptionId));
+    } else if (subscriptions.size() > 1) {
+      throw new SubscriptionsException(
+          ErrorCode.UNHANDLED_EXCEPTION_ERROR,
+          Response.Status.INTERNAL_SERVER_ERROR,
+          "Multiple active subscription found",
+          String.format(
+              "Cannot terminate subscription because multiple active subscriptions were found for subscription ID '%s'",
+              subscriptionId));
+    }
+
+    var subscription = subscriptions.get(0);
 
     // Wait until after we are sure there's an offering for this subscription before setting the
     // end date.  We want validation to occur before we start mutating data.
@@ -615,12 +597,7 @@ public class SubscriptionSyncController {
     // between the two temporals. For example, the amount in hours between the times 11:30 and
     // 12:29 will zero hours as it is one minute short of an hour.
     var delta = Math.abs(ChronoUnit.HOURS.between(terminationDate, now));
-    var subDefinitions =
-        SubscriptionDefinition.lookupSubscriptionByProductName(
-            subscription.getOffering().getProductName());
-    if (!subDefinitions.isEmpty()
-        && subDefinitions.stream().anyMatch(SubscriptionDefinition::isPaygEligible)
-        && delta > 0) {
+    if (subscription.getOffering().isMetered() && delta > 0) {
       var msg =
           String.format(
               "Subscription %s terminated at %s with out of range termination date %s.",
@@ -700,19 +677,17 @@ public class SubscriptionSyncController {
    */
   public OfferingProductTags findProductTags(String sku) {
     OfferingProductTags productTags = new OfferingProductTags();
-    var productTag = offeringRepository.findProductNameBySku(sku);
-    if (productTag.isPresent()) {
-      var variant = Variant.findByProductName(productTag.get());
-      if (variant.isPresent()) {
-        return productTags.data(List.of(variant.get().getTag()));
-      }
-    } else {
+    var offering = offeringRepository.findOfferingBySku(sku);
+    if (offering == null) {
       throw new MissingOfferingException(
           ErrorCode.OFFERING_MISSING_ERROR,
           Response.Status.NOT_FOUND,
           String.format("Sku %s not found in Offering", sku),
           null);
     }
+    SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
+            offering.getRole(), offering.getProductIds())
+        .forEach(productTags::addDataItem);
     return productTags;
   }
 }

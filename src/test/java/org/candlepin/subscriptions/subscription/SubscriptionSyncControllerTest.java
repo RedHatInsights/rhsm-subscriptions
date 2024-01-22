@@ -21,11 +21,21 @@
 package org.candlepin.subscriptions.subscription;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.matchesPattern;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -59,7 +69,6 @@ import org.candlepin.subscriptions.subscription.api.model.ExternalReference;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
-import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTags;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,7 +76,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -109,10 +117,6 @@ class SubscriptionSyncControllerTest {
   private OffsetDateTime rangeStart = OffsetDateTime.now().minusDays(5);
   private OffsetDateTime rangeEnd = OffsetDateTime.now().plusDays(5);
 
-  @Autowired
-  @Qualifier("syncSubscriptionTasks")
-  private TaskQueueProperties taskQueueProperties;
-
   @BeforeEach
   void setUp() {
     var offering =
@@ -126,14 +130,12 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void shouldCreateNewRecordOnQuantityChange() {
-    Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
-        .thenReturn(Optional.of(createSubscription()));
     Mockito.when(offeringRepository.existsById(SKU)).thenReturn(true);
     Offering offering = Offering.builder().sku(SKU).build();
     when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
     when(denylist.productIdMatches(any())).thenReturn(false);
     var dto = createDto("456", 10);
-    subscriptionSyncController.syncSubscription(dto);
+    subscriptionSyncController.syncSubscription(dto, Optional.of(createSubscription()));
     verify(subscriptionRepository, Mockito.times(2)).save(Mockito.any(Subscription.class));
     verify(capacityReconciliationController, Mockito.times(2))
         .reconcileCapacityForSubscription(Mockito.any(Subscription.class));
@@ -141,14 +143,12 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void shouldUpdateRecordOnNoQuantityChange() {
-    Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
-        .thenReturn(Optional.of(createSubscription()));
     Mockito.when(offeringRepository.existsById(SKU)).thenReturn(true);
     Offering offering = Offering.builder().sku(SKU).build();
     when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
     when(denylist.productIdMatches(any())).thenReturn(false);
     var dto = createDto("456", 4);
-    subscriptionSyncController.syncSubscription(dto);
+    subscriptionSyncController.syncSubscription(dto, Optional.of(createSubscription()));
     verify(subscriptionRepository, Mockito.times(1)).save(Mockito.any(Subscription.class));
     verify(capacityReconciliationController, Mockito.times(2))
         .reconcileCapacityForSubscription(Mockito.any(Subscription.class));
@@ -156,47 +156,31 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void shouldCreateNewRecordOnNotFound() {
-    Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
-        .thenReturn(Optional.empty());
     Mockito.when(offeringRepository.existsById(SKU)).thenReturn(true);
     Offering offering = Offering.builder().sku(SKU).build();
     when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
     when(denylist.productIdMatches(any())).thenReturn(false);
     var dto = createDto("456", 10);
-    subscriptionSyncController.syncSubscription(dto);
+    subscriptionSyncController.syncSubscription(dto, Optional.empty());
     verify(subscriptionRepository, Mockito.times(1)).save(Mockito.any(Subscription.class));
     verify(capacityReconciliationController)
         .reconcileCapacityForSubscription(Mockito.any(Subscription.class));
   }
 
   @Test
-  void shouldSyncSubscriptionFromServiceForASubscriptionID() {
-    Offering offering = Offering.builder().sku(SKU).build();
-    Subscription s = createSubscription();
-    s.setOffering(offering);
-    Mockito.when(subscriptionRepository.findActiveSubscription(Mockito.anyString()))
-        .thenReturn(Optional.of(s));
-    var dto = createDto("456", 10);
-    Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
-    subscriptionSyncController.syncSubscription(dto.getId().toString());
-    verify(subscriptionService).getSubscriptionById(Mockito.anyString());
-  }
-
-  @Test
   void shouldSkipSyncSubscriptionIfSkuIsOnDenyList() {
-    when(denylist.productIdMatches(any())).thenReturn(true);
-    var dto = createDto("456", 10);
-    Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
-    subscriptionSyncController.syncSubscription(dto.getId().toString());
+    String sku = "MW0001";
+    when(denylist.productIdMatches(sku)).thenReturn(true);
+    subscriptionSyncController.syncSubscription(sku, new Subscription(), Optional.empty());
     verify(subscriptionRepository, never()).save(any());
   }
 
   @Test
   void shouldSkipSyncSubscriptionIfSkuIsNotInOfferingRepository() {
-    when(denylist.productIdMatches(any())).thenReturn(false);
-    var dto = createDto("456", 10);
-    Mockito.when(subscriptionService.getSubscriptionById("456")).thenReturn(dto);
-    subscriptionSyncController.syncSubscription(dto.getId().toString());
+    String sku = "MW0001";
+    when(denylist.productIdMatches(sku)).thenReturn(false);
+    when(offeringRepository.existsById(sku)).thenReturn(false);
+    subscriptionSyncController.syncSubscription(sku, new Subscription(), Optional.empty());
     verify(subscriptionRepository, never()).save(any());
   }
 
@@ -204,14 +188,14 @@ class SubscriptionSyncControllerTest {
   void shouldUpdateSubscriptionWhenUpdateProductIds() {
     var dto = createDto(123, "456", 4);
     givenOfferingWithProductIds(290);
-    subscriptionSyncController.syncSubscription(dto);
+    subscriptionSyncController.syncSubscription(dto, Optional.empty());
     verify(subscriptionRepository).save(any());
     verify(capacityReconciliationController).reconcileCapacityForSubscription(any());
 
     // let's update only the product IDs
     givenOfferingWithProductIds(290, 69);
     reset(subscriptionRepository, capacityReconciliationController);
-    subscriptionSyncController.syncSubscription(dto);
+    subscriptionSyncController.syncSubscription(dto, Optional.empty());
     verify(subscriptionRepository).save(any());
     verify(capacityReconciliationController).reconcileCapacityForSubscription(any());
   }
@@ -464,8 +448,9 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void findProductTagsBySku_WhenSkuPresent() {
-    when(offeringRepository.findProductNameBySku("sku"))
-        .thenReturn(Optional.of("OpenShift Container Platform"));
+    Offering offering = new Offering();
+    offering.setRole("ocp");
+    when(offeringRepository.findOfferingBySku("sku")).thenReturn(offering);
 
     OfferingProductTags productTags = subscriptionSyncController.findProductTags("sku");
     assertEquals(1, productTags.getData().size());
@@ -474,14 +459,14 @@ class SubscriptionSyncControllerTest {
 
   @Test
   void findProductTagsBySku_WhenSkuNotPresent() {
-    when(offeringRepository.findProductNameBySku("sku")).thenReturn(Optional.empty());
+    when(offeringRepository.findOfferingBySku("sku")).thenReturn(null);
     RuntimeException e =
         assertThrows(
             MissingOfferingException.class,
             () -> subscriptionSyncController.findProductTags("sku"));
     assertEquals("Sku sku not found in Offering", e.getMessage());
 
-    when(offeringRepository.findProductNameBySku("sku")).thenReturn(Optional.of("placeholder"));
+    when(offeringRepository.findOfferingBySku("sku")).thenReturn(new Offering());
     OfferingProductTags productTags2 = subscriptionSyncController.findProductTags("sku");
     assertNull(productTags2.getData());
   }
@@ -491,8 +476,9 @@ class SubscriptionSyncControllerTest {
     Subscription s = createSubscription();
     Offering o = new Offering();
     o.setProductName(PAYG_PRODUCT_NAME);
+    o.setMetered(true);
     when(offeringRepository.findById(SKU)).thenReturn(Optional.of(o));
-    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
+    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(List.of(s));
 
     var termination = OffsetDateTime.now();
     var result = subscriptionSyncController.terminateSubscription("456", termination);
@@ -503,10 +489,10 @@ class SubscriptionSyncControllerTest {
   @Test
   void lateTerminateActivePAYGSubscriptionTest() {
     Subscription s = createSubscription();
-    Offering offering = Offering.builder().productName(PAYG_PRODUCT_NAME).build();
+    Offering offering = Offering.builder().productName(PAYG_PRODUCT_NAME).metered(true).build();
     s.setOffering(offering);
     when(offeringRepository.findById(SKU)).thenReturn(Optional.of(offering));
-    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
+    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(List.of(s));
 
     var termination = OffsetDateTime.now().minusDays(1);
     var result = subscriptionSyncController.terminateSubscription("456", termination);
@@ -520,7 +506,8 @@ class SubscriptionSyncControllerTest {
   void terminateInTheFutureActivePAYGSubscriptionTest() {
     Subscription s = createSubscription();
     s.getOffering().setProductName(PAYG_PRODUCT_NAME);
-    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
+    s.getOffering().setMetered(true);
+    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(List.of(s));
 
     var termination = OffsetDateTime.now().plusDays(1);
     var result = subscriptionSyncController.terminateSubscription("456", termination);
@@ -534,7 +521,7 @@ class SubscriptionSyncControllerTest {
   void terminateActiveNonPAYGSubscriptionTest() {
     Subscription s = createSubscription();
     s.getOffering().setProductName("Random Product");
-    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(Optional.of(s));
+    when(subscriptionRepository.findActiveSubscription("456")).thenReturn(List.of(s));
 
     var termination = OffsetDateTime.now();
     var result = subscriptionSyncController.terminateSubscription("456", termination);

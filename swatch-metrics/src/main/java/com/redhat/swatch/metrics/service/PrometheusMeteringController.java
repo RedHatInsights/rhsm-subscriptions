@@ -230,7 +230,16 @@ public class PrometheusMeteringController {
     }
 
     String billingProvider = labels.get("billing_marketplace");
-    String billingAccountId = labels.get("billing_marketplace_account");
+    String billingAccountId;
+
+    // extract azure IDs
+    String azureTenantId = labels.get("azure_tenant_id");
+    String azureSubscriptionId = labels.get("azure_subscription_id");
+    if (StringUtils.isNotEmpty(azureTenantId) && StringUtils.isNotEmpty(azureSubscriptionId)) {
+      billingAccountId = String.format("%s;%s", azureTenantId, azureSubscriptionId);
+    } else {
+      billingAccountId = labels.get("billing_marketplace_account");
+    }
 
     // For the openshift metrics, we expect our results to be a 'matrix'
     // vector [(instant_time,value), ...] so we only look at the result's

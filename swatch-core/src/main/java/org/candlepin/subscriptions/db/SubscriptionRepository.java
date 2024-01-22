@@ -30,7 +30,6 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -67,13 +66,13 @@ public interface SubscriptionRepository
         ORDER BY s.subscriptionId, s.startDate
       """)
   @EntityGraph(value = "graph.SubscriptionSync")
-  Optional<Subscription> findActiveSubscription(@Param("subscriptionId") String subscriptionId);
+  List<Subscription> findActiveSubscription(@Param("subscriptionId") String subscriptionId);
 
   @EntityGraph(value = "graph.SubscriptionSync")
   // Added an order by clause to avoid Hibernate issue HHH-17040
   @Query(
       "SELECT s FROM Subscription s WHERE s.subscriptionNumber = :subscriptionNumber ORDER BY s.subscriptionId, s.startDate")
-  Optional<Subscription> findBySubscriptionNumber(String subscriptionNumber);
+  List<Subscription> findBySubscriptionNumber(String subscriptionNumber);
 
   // Added an order by clause to avoid Hibernate issue HHH-17040
   @Query(
@@ -140,7 +139,7 @@ public interface SubscriptionRepository
     if (Objects.nonNull(dbReportCriteria.getBillingAccountId())
         && !dbReportCriteria.getBillingAccountId().equals("_ANY")) {
       searchCriteria =
-          searchCriteria.and(billingAccountIdEquals(dbReportCriteria.getBillingAccountId()));
+          searchCriteria.and(billingAccountIdLike(dbReportCriteria.getBillingAccountId()));
     }
     if (Objects.nonNull(dbReportCriteria.getMetricId())
         || Objects.nonNull(dbReportCriteria.getHypervisorReportCategory())) {
@@ -277,9 +276,11 @@ public interface SubscriptionRepository
         builder.equal(root.get(Subscription_.billingProvider), billingProvider);
   }
 
-  private static Specification<Subscription> billingAccountIdEquals(String billingAccountId) {
+  private static Specification<Subscription> billingAccountIdLike(String billingAccountId) {
     return (root, query, builder) ->
-        builder.equal(root.get(Subscription_.billingAccountId), billingAccountId);
+        // If multiple ID's exist, match on firstID or firstID;secondID (azureTenantId or
+        // azureTenantId;azureSubscriptionId)
+        builder.like(root.get(Subscription_.billingAccountId), billingAccountId + "%");
   }
 
   private static Specification<Subscription> metricsCriteria(

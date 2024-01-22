@@ -389,6 +389,84 @@ class PrometheusMeteringControllerTest {
         results.received().stream().map(Message::getPayload).allMatch(expectedEvents::contains));
   }
 
+  @Test
+  @SuppressWarnings("indentation")
+  void testCollectAzureOpenShiftMetricsWillPersistCorrectBillingAccountId() {
+    BigDecimal time1 = BigDecimal.valueOf(123456.234);
+    BigDecimal val1 = BigDecimal.valueOf(100L);
+    BigDecimal time2 = BigDecimal.valueOf(222222.222);
+    BigDecimal val2 = BigDecimal.valueOf(120L);
+    var expectedAzureTenantId = "testTenantId";
+    var expectedAzureSubscriptionId = "testSubscriptionId";
+    var expectedAzureBillingAccountId = "testTenantId;testSubscriptionId";
+
+    QueryResult data =
+        buildAzureOpenShiftClusterQueryResult(
+            expectedOrgId,
+            expectedClusterId,
+            expectedSla,
+            expectedUsage,
+            expectedBillingProvider,
+            expectedAzureTenantId,
+            expectedAzureSubscriptionId,
+            List.of(List.of(time1, val1), List.of(time2, val2)));
+    prometheusServer.stubQueryRange(data);
+
+    OffsetDateTime start = clock.startOfCurrentHour();
+    OffsetDateTime end = start.plusDays(1);
+
+    List<BaseEvent> expectedEvents =
+        List.of(
+            MeteringEventFactory.createMetricEvent(
+                expectedOrgId,
+                expectedClusterId,
+                expectedSla,
+                expectedUsage,
+                expectedRole,
+                PROMETHEUS,
+                clock.dateFromUnix(time1).minusSeconds(metricProperties.step()),
+                clock.dateFromUnix(time1),
+                expectedServiceType,
+                expectedBillingProvider,
+                expectedAzureBillingAccountId,
+                expectedMetricId,
+                val1.doubleValue(),
+                expectedProductTag,
+                expectedSpanId,
+                List.of()),
+            MeteringEventFactory.createMetricEvent(
+                expectedOrgId,
+                expectedClusterId,
+                expectedSla,
+                expectedUsage,
+                expectedRole,
+                PROMETHEUS,
+                clock.dateFromUnix(time2).minusSeconds(metricProperties.step()),
+                clock.dateFromUnix(time2),
+                expectedServiceType,
+                expectedBillingProvider,
+                expectedAzureBillingAccountId,
+                expectedMetricId,
+                val2.doubleValue(),
+                expectedProductTag,
+                expectedSpanId,
+                List.of()),
+            MeteringEventFactory.createCleanUpEvent(
+                expectedOrgId,
+                getEventType(expectedMetricId.toString(), expectedProductTag),
+                PROMETHEUS,
+                start,
+                end,
+                expectedSpanId));
+
+    whenCollectMetrics(start, end);
+
+    assertEquals(expectedEvents.size(), results.received().size());
+    verifyQueryRange(start, end);
+    assertTrue(
+        results.received().stream().map(Message::getPayload).allMatch(expectedEvents::contains));
+  }
+
   private void whenCollectMetrics(OffsetDateTime start, OffsetDateTime end) {
     whenCollectMetrics(expectedOrgId, start, end);
   }
@@ -423,6 +501,33 @@ class PrometheusMeteringControllerTest {
             .putMetricItem("external_organization", orgId)
             .putMetricItem("billing_marketplace", billingProvider)
             .putMetricItem("billing_marketplace_account", billingAccountId);
+
+    // NOTE: A tuple is [unix_time,value]
+    timeValueTuples.forEach(dataResult::addValuesItem);
+
+    return new QueryResult()
+        .status(StatusType.SUCCESS)
+        .data(new QueryResultData().resultType(ResultType.MATRIX).addResultItem(dataResult));
+  }
+
+  private QueryResult buildAzureOpenShiftClusterQueryResult(
+      String orgId,
+      String clusterId,
+      String sla,
+      String usage,
+      String billingProvider,
+      String azureTenantId,
+      String azureSubscriptionId,
+      List<List<BigDecimal>> timeValueTuples) {
+    QueryResultDataResultInner dataResult =
+        new QueryResultDataResultInner()
+            .putMetricItem("_id", clusterId)
+            .putMetricItem("support", sla)
+            .putMetricItem("usage", usage)
+            .putMetricItem("external_organization", orgId)
+            .putMetricItem("billing_marketplace", billingProvider)
+            .putMetricItem("azure_tenant_id", azureTenantId)
+            .putMetricItem("azure_subscription_id", azureSubscriptionId);
 
     // NOTE: A tuple is [unix_time,value]
     timeValueTuples.forEach(dataResult::addValuesItem);

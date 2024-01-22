@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.db;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import jakarta.transaction.Transactional;
@@ -75,7 +76,8 @@ class SubscriptionRepositoryTest {
     offeringRepo.save(offering);
     subscriptionRepo.saveAndFlush(subscription);
 
-    Subscription retrieved = subscriptionRepo.findActiveSubscription("123").orElse(null);
+    Subscription retrieved =
+        subscriptionRepo.findActiveSubscription("123").stream().findFirst().orElse(null);
 
     // because of an issue with precision related to findActiveSubscription passing the entity
     // cache, we'll have to check fields
@@ -319,8 +321,8 @@ class SubscriptionRepositoryTest {
     offeringRepo.save(offering1);
     subscriptionRepo.saveAllAndFlush(List.of(s1, s2));
 
-    assertTrue(subscriptionRepo.findActiveSubscription(s1.getSubscriptionId()).isPresent());
-    assertTrue(subscriptionRepo.findActiveSubscription(s2.getSubscriptionId()).isPresent());
+    assertFalse(subscriptionRepo.findActiveSubscription(s1.getSubscriptionId()).isEmpty());
+    assertFalse(subscriptionRepo.findActiveSubscription(s2.getSubscriptionId()).isEmpty());
   }
 
   @Transactional
@@ -349,6 +351,72 @@ class SubscriptionRepositoryTest {
     assertTrue(resultList.contains(s2));
     assertTrue(resultList.contains(s1));
     assertThat(resultList, Matchers.containsInAnyOrder(s1, s2));
+  }
+
+  @Transactional
+  @Test
+  void testMatchesOnFirstPartOfMultipartBillingAccountId() {
+    Offering o1 =
+        createOffering("testSku1", "Test SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+    offeringRepo.save(o1);
+
+    Subscription subscription1 =
+        createSubscription("1", "123", "providerTenantId;providerSubscriptionId");
+    Subscription subscription2 = createSubscription("1", "124", "providerTenantId");
+    subscription1.setOffering(o1);
+    subscription2.setOffering(o1);
+    subscriptionRepo.saveAndFlush(subscription1);
+    subscriptionRepo.saveAndFlush(subscription2);
+
+    Set<String> productNames = Set.of("Test SKU 1");
+    var resultList =
+        subscriptionRepo.findByCriteria(
+            DbReportCriteria.builder()
+                .productNames(productNames)
+                .serviceLevel(ServiceLevel.STANDARD)
+                .usage(Usage.PRODUCTION)
+                .billingProvider(BillingProvider._ANY)
+                .billingAccountId("providerTenantId")
+                .beginning(NOW)
+                .ending(NOW)
+                .build(),
+            Sort.by(Subscription_.START_DATE).descending());
+
+    assertEquals(2, resultList.size());
+  }
+
+  @Transactional
+  @Test
+  void testMatchesOnBothPartsOfMultipartBillingAccountId() {
+    Offering o1 =
+        createOffering("testSku1", "Test SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+    offeringRepo.save(o1);
+
+    Subscription subscription1 =
+        createSubscription("1", "123", "providerTenantId;providerSubscriptionId");
+    Subscription subscription2 = createSubscription("1", "124", "providerTenantId");
+    subscription1.setOffering(o1);
+    subscription2.setOffering(o1);
+    subscriptionRepo.saveAndFlush(subscription1);
+    subscriptionRepo.saveAndFlush(subscription2);
+
+    Set<String> productNames = Set.of("Test SKU 1");
+    var resultList =
+        subscriptionRepo.findByCriteria(
+            DbReportCriteria.builder()
+                .productNames(productNames)
+                .serviceLevel(ServiceLevel.STANDARD)
+                .usage(Usage.PRODUCTION)
+                .billingProvider(BillingProvider._ANY)
+                .billingAccountId("providerTenantId;providerSubscriptionId")
+                .beginning(NOW)
+                .ending(NOW)
+                .build(),
+            Sort.by(Subscription_.START_DATE).descending());
+
+    assertEquals(1, resultList.size());
+    assertEquals(
+        "providerTenantId;providerSubscriptionId", resultList.get(0).getBillingAccountId());
   }
 
   private Offering createOffering(

@@ -25,6 +25,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -174,6 +175,32 @@ public class SubscriptionDefinition {
         .collect(Collectors.toUnmodifiableSet());
   }
 
+  public static Set<String> getAllProductTagsWithPaygEligibleByRoleOrEngIds(
+      String role, Collection<?> engIds) {
+    Set<String> productTags = new HashSet<>();
+    // Filter tags that are paygEligible
+
+    if (role != null) {
+      SubscriptionDefinition.lookupSubscriptionByRole(role)
+          .filter(SubscriptionDefinition::isPaygEligible)
+          .flatMap(s -> s.findVariantForRole(role).map(Variant::getTag))
+          .ifPresent(productTags::add);
+    }
+
+    if (engIds != null) {
+      for (Object engIdValue : engIds) {
+        String engId = engIdValue.toString();
+        productTags.addAll(
+            SubscriptionDefinition.lookupSubscriptionByEngId(engId).stream()
+                .filter(SubscriptionDefinition::isPaygEligible)
+                .flatMap(s -> s.findVariantForEngId(engId).map(Variant::getTag).stream())
+                .toList());
+      }
+    }
+
+    return productTags;
+  }
+
   /**
    * An engineering id can be found in either a fingerprint or variant. Check the variant first. If
    * not found, check the fingerprint.
@@ -189,23 +216,6 @@ public class SubscriptionDefinition {
                 subscription.getVariants().stream()
                     .anyMatch(variant -> variant.getEngineeringIds().contains(engProductId)))
         .collect(Collectors.toUnmodifiableSet());
-  }
-
-  /**
-   * Looks for productName matching a variant
-   *
-   * @param productName a product name string
-   * @return List<Subscription> multiple SubscriptionDefinitions can have the same product names:
-   *     e.g. rosa and Openshift-dedicated-metrics
-   */
-  public static List<SubscriptionDefinition> lookupSubscriptionByProductName(String productName) {
-    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
-        .filter(subscription -> !subscription.getVariants().isEmpty())
-        .filter(
-            subscription ->
-                subscription.getVariants().stream()
-                    .anyMatch(variant -> variant.getProductNames().contains(productName)))
-        .collect(Collectors.toList());
   }
 
   /**
