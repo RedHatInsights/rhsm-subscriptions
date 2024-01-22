@@ -50,6 +50,11 @@
           <Name>Usage</Name>
           <Value>Production</Value>
         </Attribute>
+        <Attribute>
+          <Code>METERED</Code>
+          <Name>Metered</Name>
+          <Value>Y</Value>
+        </Attribute>
       </OperationalProduct>
     </Sync>
   </Payload>

@@ -57,6 +57,7 @@ class UpstreamProductDataTest {
     expected.setServiceLevel(ServiceLevel.PREMIUM);
     expected.setUsage(Usage.EMPTY);
     expected.setHasUnlimitedUsage(false);
+    expected.setMetered(false);
 
     // When getting the upstream Offering,
     var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
@@ -79,6 +80,7 @@ class UpstreamProductDataTest {
     expected.setServiceLevel(ServiceLevel.PREMIUM);
     expected.setUsage(Usage.EMPTY);
     expected.setHasUnlimitedUsage(false);
+    expected.setMetered(false);
 
     // When getting the upstream Offering,
     var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
@@ -128,6 +130,7 @@ class UpstreamProductDataTest {
     // (Usage ends up coming from derived SKU RH00618F5)
     expected.setUsage(Usage.PRODUCTION);
     expected.setHasUnlimitedUsage(false);
+    expected.setMetered(false);
 
     // When getting the upstream Offering,
     var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
@@ -160,6 +163,7 @@ class UpstreamProductDataTest {
     expected.setServiceLevel(ServiceLevel.STANDARD);
     expected.setUsage(Usage.PRODUCTION);
     expected.setHasUnlimitedUsage(false);
+    expected.setMetered(true);
 
     // When getting the upstream Offering,
     var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
@@ -189,6 +193,7 @@ class UpstreamProductDataTest {
     expected.setServiceLevel(ServiceLevel.EMPTY); // Because Dev-Enterprise isn't a ServiceLevel yet
     expected.setUsage(Usage.DEVELOPMENT_TEST);
     expected.setHasUnlimitedUsage(false);
+    expected.setMetered(false);
 
     // When getting the upstream Offering,
     var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
@@ -218,7 +223,7 @@ class UpstreamProductDataTest {
     var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
 
     // Then hasUnlimitedUsage should be true
-    assertEquals(true, actual.getHasUnlimitedUsage());
+    assertTrue(actual.isHasUnlimitedUsage());
   }
 
   @Test
@@ -230,7 +235,7 @@ class UpstreamProductDataTest {
     var actual = UpstreamProductData.offeringFromUpstream(sku, stub).orElseThrow();
 
     // Then hasUnlimitedUsage should be true
-    assertEquals(true, actual.getHasUnlimitedUsage());
+    assertTrue(actual.isHasUnlimitedUsage());
   }
 
   @Test

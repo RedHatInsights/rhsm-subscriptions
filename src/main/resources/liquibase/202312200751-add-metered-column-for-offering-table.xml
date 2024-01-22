@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <changeSet id="202312200751-01" author="jcarvaja">
+    <comment>Add column for metered column to the offering table</comment>
+    <addColumn tableName="offering">
+      <column name="metered" type="BOOLEAN"/>
+    </addColumn>
+  </changeSet>
+</databaseChangeLog>

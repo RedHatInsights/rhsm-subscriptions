@@ -263,19 +263,12 @@ public class SubscriptionSyncController {
 
   private void checkForMissingBillingProvider(
       org.candlepin.subscriptions.db.model.Subscription subscription) {
-    if (subscription.getBillingProvider() == null
-        || subscription.getBillingProvider().equals(BillingProvider.EMPTY)) {
-      // The offering here is going to be a proxy object created by getReferenceById.  Hibernate
-      // should take care of actually performing the select from the database if one is needed.
-      var subscriptionDefinition =
-          SubscriptionDefinition.lookupSubscriptionByProductName(
-              subscription.getOffering().getProductName());
-      if (!subscriptionDefinition.isEmpty()
-          && subscriptionDefinition.stream().anyMatch(SubscriptionDefinition::isPaygEligible)) {
-        log.warn(
-            "PAYG eligible subscription with subscriptionId:{} has no billing provider.",
-            subscription.getSubscriptionId());
-      }
+    if ((subscription.getBillingProvider() == null
+            || subscription.getBillingProvider().equals(BillingProvider.EMPTY))
+        && subscription.getOffering().isMetered()) {
+      log.warn(
+          "PAYG eligible subscription with subscriptionId:{} has no billing provider.",
+          subscription.getSubscriptionId());
     }
   }
 
@@ -615,12 +608,7 @@ public class SubscriptionSyncController {
     // between the two temporals. For example, the amount in hours between the times 11:30 and
     // 12:29 will zero hours as it is one minute short of an hour.
     var delta = Math.abs(ChronoUnit.HOURS.between(terminationDate, now));
-    var subDefinitions =
-        SubscriptionDefinition.lookupSubscriptionByProductName(
-            subscription.getOffering().getProductName());
-    if (!subDefinitions.isEmpty()
-        && subDefinitions.stream().anyMatch(SubscriptionDefinition::isPaygEligible)
-        && delta > 0) {
+    if (subscription.getOffering().isMetered() && delta > 0) {
       var msg =
           String.format(
               "Subscription %s terminated at %s with out of range termination date %s.",
@@ -700,19 +688,17 @@ public class SubscriptionSyncController {
    */
   public OfferingProductTags findProductTags(String sku) {
     OfferingProductTags productTags = new OfferingProductTags();
-    var productTag = offeringRepository.findProductNameBySku(sku);
-    if (productTag.isPresent()) {
-      var variant = Variant.findByProductName(productTag.get());
-      if (variant.isPresent()) {
-        return productTags.data(List.of(variant.get().getTag()));
-      }
-    } else {
+    var offering = offeringRepository.findOfferingBySku(sku);
+    if (offering == null) {
       throw new MissingOfferingException(
           ErrorCode.OFFERING_MISSING_ERROR,
           Response.Status.NOT_FOUND,
           String.format("Sku %s not found in Offering", sku),
           null);
     }
+    SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
+            offering.getRole(), offering.getProductIds())
+        .forEach(productTags::addDataItem);
     return productTags;
   }
 }

@@ -299,7 +299,7 @@ public class SubscriptionTableController {
         Optional.ofNullable(offering.getServiceLevel()).orElse(ServiceLevel.EMPTY).asOpenApiEnum());
     inventory.setUsage(
         Optional.ofNullable(offering.getUsage()).orElse(Usage.EMPTY).asOpenApiEnum());
-    inventory.setHasInfiniteQuantity(offering.getHasUnlimitedUsage());
+    inventory.setHasInfiniteQuantity(offering.isHasUnlimitedUsage());
     inventory.setBillingProvider(
         Optional.ofNullable(sub.getBillingProvider())
             .orElse(BillingProvider.EMPTY)
@@ -403,15 +403,13 @@ public class SubscriptionTableController {
       }
     }
 
-    boolean hasInfiniteQuantity =
-        Optional.ofNullable(subscription.getOffering().getHasUnlimitedUsage()).orElse(false);
-    if (hasInfiniteQuantity) {
+    if (subscription.getOffering().isHasUnlimitedUsage()) {
       log.warn(
           "Subscription for SKU {} has both capacity and unlimited quantity", skuCapacity.getSku());
     }
 
     skuCapacity.setTotalCapacity(skuCapacity.getCapacity() + skuCapacity.getHypervisorCapacity());
-    skuCapacity.setHasInfiniteQuantity(hasInfiniteQuantity);
+    skuCapacity.setHasInfiniteQuantity(subscription.getOffering().isHasUnlimitedUsage());
   }
 
   private static void sortCapacities(
