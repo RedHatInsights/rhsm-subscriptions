@@ -30,5 +30,5 @@ metrics:
       queryKey: rhelemeter
       queryParams:
         productLabelRegex: .*(^|,)(204)($|,).* # this regex is used to fetch metrics for the product label that contains the product/engineering ID 204. the number here needs to map to a tag defined in the variant section of this file
-        metric: max by(_id) (sum_over_time(system_cpu_logical_count[1h:10m])) / scalar(count_over_time(vector(1)[1h:10m])) #To be replaced with recording rule in SWATCH-2075
+        metric: system_cpu_logical_count
         instanceKey: _id
