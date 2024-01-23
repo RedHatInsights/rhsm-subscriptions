@@ -451,6 +451,9 @@ components:
           description: ""
           type: string
           example: aws
+        billing_provider_id:
+          description: Encoded additional information needed for billing
+          type: string
         billing_account_id:
           description: AWS billing account ids are 12 digits
           type: string

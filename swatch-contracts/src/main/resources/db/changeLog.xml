@@ -9,5 +9,7 @@
   <include file="db/202302030707_create_contracts_table.xml"/>
   <include file="db/202304061624_add_vendorproductcode_to_contracts_table.xml"/>
   <include file="db/202310091227_fix_contract_metrics_for_rosa.xml"/>
-
+  <include file="db/202401111039_make_subscription_number_nullable.xml"/>
+  <include file="db/202401121651_add_billingproviderid_to_contracts.xml"/>
+  <include file="/db/202401171354_add_subscription_and_offering_h2_only.xml"/>
 </databaseChangeLog>
