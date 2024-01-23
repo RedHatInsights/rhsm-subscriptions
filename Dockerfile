@@ -32,7 +32,7 @@ COPY buildSrc buildSrc
 COPY . .
 RUN ./gradlew assemble -x test
 
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.17-1
+FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.17-1.1705573249
 
 COPY --from=0 /stage/build/libs/* /deployments/
 COPY --from=0 /stage/build/javaagent/* /opt/
