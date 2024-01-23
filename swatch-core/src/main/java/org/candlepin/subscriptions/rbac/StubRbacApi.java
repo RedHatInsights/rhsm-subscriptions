@@ -39,4 +39,11 @@ public class StubRbacApi implements RbacApi {
         .map(p -> new Access().permission(p))
         .collect(Collectors.toList());
   }
+
+  @Override
+  public List<Access> getCurrentIdentityAccess(String rbacAppName, String identity) {
+    return serviceProperties.getStubPermissions().stream()
+        .map(p -> new Access().permission(p))
+        .collect(Collectors.toList());
+  }
 }
