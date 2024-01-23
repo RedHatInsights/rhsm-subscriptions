@@ -25,6 +25,7 @@ import com.redhat.swatch.azure.exception.AzureMarketplaceRequestFailedException;
 import com.redhat.swatch.azure.exception.AzureUnprocessedRecordsException;
 import com.redhat.swatch.azure.exception.AzureUsageContextLookupException;
 import com.redhat.swatch.azure.exception.DefaultApiException;
+import com.redhat.swatch.azure.exception.SubscriptionCanNotBeDeterminedException;
 import com.redhat.swatch.azure.exception.SubscriptionRecentlyTerminatedException;
 import com.redhat.swatch.azure.exception.UsageTimestampOutOfBoundsException;
 import com.redhat.swatch.azure.openapi.model.BillableUsage;
@@ -44,6 +45,10 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.ProcessingException;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
@@ -58,22 +63,28 @@ import org.slf4j.MDC;
 public class BillableUsageConsumer {
 
   private final AzureMarketplaceService azureMarketplaceService;
+  private final BillableUsageDeadLetterTopicProducer billableUsageDeadLetterTopicProducer;
 
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
   private final InternalSubscriptionsApi internalSubscriptionsApi;
   private final Optional<Boolean> isDryRun;
+  private final Duration azureUsageWindow;
 
   public BillableUsageConsumer(
       MeterRegistry meterRegistry,
       @RestClient InternalSubscriptionsApi internalSubscriptionsApi,
       AzureMarketplaceService azureMarketplaceService,
-      @ConfigProperty(name = "ENABLE_AZURE_DRY_RUN") Optional<Boolean> isDryRun) {
+      BillableUsageDeadLetterTopicProducer billableUsageDeadLetterTopicProducer,
+      @ConfigProperty(name = "ENABLE_AZURE_DRY_RUN") Optional<Boolean> isDryRun,
+      @ConfigProperty(name = "AZURE_MARKETPLACE_USAGE_WINDOW") Duration azureUsageWindow) {
     acceptedCounter = meterRegistry.counter("swatch_azure_marketplace_batch_accepted_total");
     rejectedCounter = meterRegistry.counter("swatch_azure_marketplace_batch_rejected_total");
     this.internalSubscriptionsApi = internalSubscriptionsApi;
     this.azureMarketplaceService = azureMarketplaceService;
+    this.billableUsageDeadLetterTopicProducer = billableUsageDeadLetterTopicProducer;
     this.isDryRun = isDryRun;
+    this.azureUsageWindow = azureUsageWindow;
   }
 
   @Incoming("tally-in")
@@ -103,6 +114,23 @@ public class BillableUsageConsumer {
           billableUsage.getId(),
           billableUsage.getOrgId());
       return;
+    } catch (SubscriptionCanNotBeDeterminedException e) {
+      if (!isUsageDateValid(billableUsage)) {
+        log.warn(
+            "Skipping billable usage with id={} orgId={} because the subscription was not found and the snapshot '{}' is past the azure time window of '{}'",
+            billableUsage.getId(),
+            billableUsage.getOrgId(),
+            billableUsage.getSnapshotDate(),
+            azureUsageWindow);
+      } else {
+        billableUsageDeadLetterTopicProducer.send(billableUsage);
+        log.warn(
+            "Skipping billable usage with id={} orgId={} because the subscription was not found. Will retry again after one hour.",
+            billableUsage.getId(),
+            billableUsage.getOrgId());
+      }
+
+      return;
     } catch (AzureUsageContextLookupException e) {
       log.error(
           "Error looking up usage context for tallySnapshotId={} orgId={}",
@@ -121,6 +149,13 @@ public class BillableUsageConsumer {
           billableUsage.getOrgId(),
           e);
     }
+  }
+
+  private boolean isUsageDateValid(BillableUsage usage) {
+    OffsetDateTime startOfCurrentHour =
+        OffsetDateTime.now(Clock.systemUTC()).truncatedTo(ChronoUnit.HOURS);
+    OffsetDateTime cutoff = startOfCurrentHour.minus(azureUsageWindow);
+    return !usage.getSnapshotDate().isBefore(cutoff);
   }
 
   private void transformAndSend(
@@ -195,12 +230,11 @@ public class BillableUsageConsumer {
         var isSubscriptionCannotBeDeterminedError =
             optionalErrors.get().getErrors().stream()
                 .anyMatch(error -> ("SUBSCRIPTIONS1006").equals(error.getCode()));
-        // TODO: https://issues.redhat.com/browse/SWATCH-2099 put messages on dead-letter topic to
-        // be reprocessed
         if (isSubscriptionCannotBeDeterminedError) {
-          log.warn("Subscription could not be determined due to ambiguois billingAccountId");
+          throw new SubscriptionCanNotBeDeterminedException(e);
         }
       }
+
       throw new AzureUsageContextLookupException(e);
     } catch (ProcessingException | ApiException e) {
       throw new AzureUsageContextLookupException(e);

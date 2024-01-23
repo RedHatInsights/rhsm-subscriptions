@@ -20,8 +20,11 @@
  */
 package com.redhat.swatch.azure.service;
 
+import static com.redhat.swatch.azure.service.BillableUsageDeadLetterTopicProducer.RETRY_AFTER_HEADER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -30,6 +33,7 @@ import static org.mockito.Mockito.when;
 import com.redhat.swatch.azure.exception.AzureMarketplaceRequestFailedException;
 import com.redhat.swatch.azure.exception.AzureUsageContextLookupException;
 import com.redhat.swatch.azure.exception.DefaultApiException;
+import com.redhat.swatch.azure.exception.SubscriptionCanNotBeDeterminedException;
 import com.redhat.swatch.azure.exception.SubscriptionRecentlyTerminatedException;
 import com.redhat.swatch.azure.openapi.model.BillableUsage;
 import com.redhat.swatch.azure.openapi.model.BillableUsage.BillingProviderEnum;
@@ -47,6 +51,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
+import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
+import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
 import java.math.BigDecimal;
@@ -54,6 +60,7 @@ import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -70,16 +77,22 @@ class BillableUsageConsumerTest {
   private static final BillableUsage BASILISK_INSTANCE_HOURS_RECORD =
       new BillableUsage()
           .productId("BASILISK")
-          .snapshotDate(OffsetDateTime.MAX)
           .billingProvider(BillingProviderEnum.AZURE)
           .uom(INSTANCE_HOURS)
           .snapshotDate(OffsetDateTime.now(Clock.systemUTC()))
           .value(new BigDecimal("42.0"));
 
+  private static final BillableUsage BASILISK_INSTANCE_HOURS_RECORD_OLD =
+      new BillableUsage()
+          .productId("BASILISK")
+          .billingProvider(BillingProviderEnum.AZURE)
+          .uom(INSTANCE_HOURS)
+          .snapshotDate(OffsetDateTime.now(Clock.systemUTC()).minusHours(73))
+          .value(new BigDecimal("42.0"));
+
   private static final BillableUsage BASILISK_STORAGE_GIB_MONTHS_RECORD =
       new BillableUsage()
           .productId("BASILISK")
-          .snapshotDate(OffsetDateTime.MAX)
           .billingProvider(BillingProviderEnum.AZURE)
           .uom(STORAGE_GIB_MONTHS)
           .snapshotDate(OffsetDateTime.now(Clock.systemUTC()))
@@ -101,6 +114,11 @@ class BillableUsageConsumerTest {
   Counter rejectedCounter;
   Counter ignoredCounter;
   @Inject BillableUsageConsumer consumer;
+  @Inject BillableUsageDeadLetterTopicProducer deadLetterTopicProducer;
+
+  @Inject
+  @Connector("smallrye-in-memory")
+  InMemoryConnector connector;
 
   @BeforeEach
   void setup() {
@@ -138,6 +156,33 @@ class BillableUsageConsumerTest {
         .thenReturn(MOCK_AZURE_USAGE_CONTEXT);
     consumer.process(BASILISK_INSTANCE_HOURS_RECORD);
     verify(marketplaceService).sendUsageEventToAzureMarketplace(any(UsageEvent.class));
+  }
+
+  @Test
+  void shouldSendMessageToDeadLetterQueueIfSubscriptionNotFound() throws ApiException {
+    var dlq = connector.sink("tally-dlt");
+    dlq.clear();
+    when(internalSubscriptionsApi.getAzureMarketplaceContext(
+            any(), any(), any(), any(), any(), any()))
+        .thenThrow(new SubscriptionCanNotBeDeterminedException(null));
+    consumer.process(BASILISK_INSTANCE_HOURS_RECORD);
+    assertEquals(1, dlq.received().size());
+    var metadata = dlq.received().get(0).getMetadata(OutgoingKafkaRecordMetadata.class);
+    assertTrue(metadata.isPresent());
+    assertNotNull(metadata.get().getHeaders().lastHeader(RETRY_AFTER_HEADER));
+  }
+
+  @Test
+  void shouldNotSendMessageToDeadLetterQueueIfSnapshotDateIsOutOfTheTimeWindow()
+      throws ApiException {
+    var dlq = connector.sink("tally-dlt");
+    dlq.clear();
+
+    when(internalSubscriptionsApi.getAzureMarketplaceContext(
+            any(), any(), any(), any(), any(), any()))
+        .thenThrow(new SubscriptionCanNotBeDeterminedException(null));
+    consumer.process(BASILISK_INSTANCE_HOURS_RECORD_OLD);
+    assertEquals(0, dlq.received().size());
   }
 
   @Test
@@ -204,7 +249,12 @@ class BillableUsageConsumerTest {
   void shouldNotMakeAzureUsageRequestWhenDryRunEnabled() throws ApiException {
     BillableUsageConsumer consumer =
         new BillableUsageConsumer(
-            meterRegistry, internalSubscriptionsApi, marketplaceService, Optional.of(true));
+            meterRegistry,
+            internalSubscriptionsApi,
+            marketplaceService,
+            deadLetterTopicProducer,
+            Optional.of(true),
+            null);
     when(internalSubscriptionsApi.getAzureMarketplaceContext(
             any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AZURE_USAGE_CONTEXT);
@@ -245,6 +295,25 @@ class BillableUsageConsumerTest {
 
     consumer.process(BASILISK_INSTANCE_HOURS_RECORD);
     verifyNoInteractions(marketplaceService);
+  }
+
+  @Test
+  void shouldThrowSubscriptionNotFoundException() throws ApiException {
+    Errors errors = new Errors();
+    Error error = new Error();
+    error.setCode("SUBSCRIPTIONS1006");
+    errors.setErrors(List.of(error));
+    var response = Response.serverError().entity(errors).build();
+    var exception = new DefaultApiException(response, errors);
+    when(internalSubscriptionsApi.getAzureMarketplaceContext(
+            any(), any(), any(), any(), any(), any()))
+        .thenThrow(exception);
+
+    assertThrows(
+        SubscriptionCanNotBeDeterminedException.class,
+        () -> {
+          consumer.lookupAzureUsageContext(BASILISK_INSTANCE_HOURS_RECORD);
+        });
   }
 
   private static UsageEventOkResponse getDefaultUsageEventResponse() {

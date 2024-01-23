@@ -357,9 +357,9 @@ class InternalSubscriptionResourceTest {
             SubscriptionsException.class,
             () -> {
               resource.getAzureMarketplaceContext(
-                  "org123",
                   lookupDate,
                   "rosa",
+                  "org123",
                   "Premium",
                   "Production",
                   "azureTenantId;azureSubscriptionId");
@@ -386,7 +386,7 @@ class InternalSubscriptionResourceTest {
     var lookupDate = OffsetDateTime.now().minusMinutes(30);
     var azureUsageContext =
         resource.getAzureMarketplaceContext(
-            "org123", lookupDate, "BASILISK", "Premium", "Production", "azureTenantId");
+            lookupDate, "BASILISK", "org123", "Premium", "Production", "azureTenantId");
     assertEquals("resourceId1", azureUsageContext.getAzureResourceId());
   }
 
@@ -406,9 +406,9 @@ class InternalSubscriptionResourceTest {
     var lookupDate = OffsetDateTime.now().minusMinutes(30);
     var azureUsageContext =
         resource.getAzureMarketplaceContext(
-            "org123",
             lookupDate,
             "BASILISK",
+            "org123",
             "Premium",
             "Production",
             "azureTenantId;azureSubscriptionId2");
