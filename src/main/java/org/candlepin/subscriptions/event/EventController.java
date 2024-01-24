@@ -235,7 +235,7 @@ public class EventController {
         }
 
         if (baseEvent instanceof Event eventToSave) {
-          if (Objects.equals(eventToSave.getBillingProvider(), (BillingProvider.AZURE))) {
+          if (BillingProvider.AZURE.equals(eventToSave.getBillingProvider())) {
             setAzureBillingAccountId(eventToSave);
           }
           enrichServiceInstanceFromIncomingFeed(eventToSave);
