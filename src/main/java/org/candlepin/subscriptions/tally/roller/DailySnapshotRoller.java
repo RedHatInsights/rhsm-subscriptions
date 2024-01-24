@@ -22,14 +22,16 @@ package org.candlepin.subscriptions.tally.roller;
 
 import static org.candlepin.subscriptions.db.model.Granularity.DAILY;
 
+import io.micrometer.core.annotation.Timed;
 import java.util.Collection;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -38,14 +40,16 @@ import org.springframework.transaction.annotation.Transactional;
  * new snapshot will be created. A snapshot's cores, sockets, and instances will only be updated if
  * the incoming calculated values are greater than those existing for the current day.
  */
+@Slf4j
+@Component
 public class DailySnapshotRoller extends BaseSnapshotRoller {
 
-  private static final Logger log = LoggerFactory.getLogger(DailySnapshotRoller.class);
-
+  @Autowired
   public DailySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
     super(tallyRepo, clock);
   }
 
+  @Timed("rhsm-subscriptions.tally.snapshots.roller.daily")
   @Override
   @Transactional
   public Collection<TallySnapshot> rollSnapshots(AccountUsageCalculation accountCalc) {
