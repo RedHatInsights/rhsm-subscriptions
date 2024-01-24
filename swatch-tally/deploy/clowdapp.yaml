@@ -702,7 +702,7 @@ objects:
         AND snapshot_date at time zone 'utc' = date_trunc('day', now() at time zone 'utc' - interval '2 day');
     - prefix: swatch/subscriptions
       query: >-
-        select
+        select distinct
         subscription.org_id,
         subscription.sku,
         subscription.subscription_id,
