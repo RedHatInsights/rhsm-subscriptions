@@ -701,7 +701,7 @@ objects:
         AND snapshot_date > now() - interval '2 day'; 
     - prefix: swatch/subscriptions
       query: >-
-        select
+        select distinct
         subscription.org_id,
         subscription.sku,
         subscription.subscription_id,
