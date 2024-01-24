@@ -47,6 +47,7 @@ import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.json.BaseEvent;
 import org.candlepin.subscriptions.json.CleanUpEvent;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.Event.BillingProvider;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.util.TransactionHandler;
 import org.springframework.kafka.listener.BatchListenerFailedException;
@@ -234,6 +235,9 @@ public class EventController {
         }
 
         if (baseEvent instanceof Event eventToSave) {
+          if (BillingProvider.AZURE.equals(eventToSave.getBillingProvider())) {
+            setAzureBillingAccountId(eventToSave);
+          }
           enrichServiceInstanceFromIncomingFeed(eventToSave);
           result.addEvent(eventToSave, eventIndex.getValue());
         } else if (baseEvent instanceof CleanUpEvent cleanUpEvent) {
@@ -254,6 +258,15 @@ public class EventController {
       }
     }
     return result;
+  }
+
+  private void setAzureBillingAccountId(Event event) {
+    if (event.getAzureTenantId().isPresent() && event.getAzureSubscriptionId().isPresent()) {
+      String billingAccountId =
+          String.format(
+              "%s;%s", event.getAzureTenantId().get(), event.getAzureSubscriptionId().get());
+      event.setBillingAccountId(Optional.of(billingAccountId));
+    }
   }
 
   private void enrichServiceInstanceFromIncomingFeed(Event event) {
