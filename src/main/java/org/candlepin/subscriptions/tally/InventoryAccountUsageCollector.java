@@ -215,6 +215,7 @@ public class InventoryAccountUsageCollector {
     return orgHostsData;
   }
 
+  @Timed("rhsm-subscriptions.tally.inventory.db")
   @Transactional
   public AccountUsageCalculation tally(String orgId) {
     log.info("Running tally via DB for orgId={}", orgId);
