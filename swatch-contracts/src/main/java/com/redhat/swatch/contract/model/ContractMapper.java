@@ -179,24 +179,22 @@ public interface ContractMapper {
 
   /** Extract billingProviderId from Partner Gateway API response */
   default String extractBillingProviderId(PartnerEntitlementV1 entitlement) {
-    switch (entitlement.getSourcePartner()) {
-      case AWS_MARKETPLACE -> {
-        return String.format(
-            "%s;%s;%s",
-            entitlement.getPurchase().getVendorProductCode(),
-            entitlement.getPartnerIdentities().getAwsCustomerId(),
-            entitlement.getPartnerIdentities().getSellerAccountId());
-      }
-      case AZURE_MARKETPLACE -> {
-        var azurePlanId =
-            entitlement.getPurchase().getContracts().stream()
-                .map(SaasContractV1::getPlanId)
-                .findFirst()
-                .orElse("");
-        var azureOfferId = entitlement.getPurchase().getVendorProductCode();
-        return String.format(
-            "%s;%s;%s", entitlement.getPurchase().getAzureResourceId(), azurePlanId, azureOfferId);
-      }
+    var partner = entitlement.getSourcePartner();
+    if (partner == SourcePartnerEnum.AWS_MARKETPLACE) {
+      return String.format(
+          "%s;%s;%s",
+          entitlement.getPurchase().getVendorProductCode(),
+          entitlement.getPartnerIdentities().getAwsCustomerId(),
+          entitlement.getPartnerIdentities().getSellerAccountId());
+    } else if (partner == SourcePartnerEnum.AZURE_MARKETPLACE) {
+      var azurePlanId =
+          entitlement.getPurchase().getContracts().stream()
+              .map(SaasContractV1::getPlanId)
+              .findFirst()
+              .orElse("");
+      var azureOfferId = entitlement.getPurchase().getVendorProductCode();
+      return String.format(
+          "%s;%s;%s", entitlement.getPurchase().getAzureResourceId(), azurePlanId, azureOfferId);
     }
     return null;
   }

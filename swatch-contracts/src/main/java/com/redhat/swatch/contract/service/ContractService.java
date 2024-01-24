@@ -64,6 +64,17 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 @ApplicationScoped
 public class ContractService {
 
+  public enum ContractMessageProcessingResult {
+    INVALID_MESSAGE_UNPROCESSED,
+    RH_ORG_NOT_ASSOCIATED,
+    CONTRACT_DETAILS_MISSING,
+    PARTNER_API_FAILURE,
+    REDUNDANT_MESSAGE_IGNORED,
+    METADATA_UPDATED,
+    CONTRACT_SPLIT_DUE_TO_CAPACITY_UPDATE,
+    NEW_CONTRACT_CREATED,
+  };
+
   private static final String SUCCESS_MESSAGE = "SUCCESS";
   private static final String FAILURE_MESSAGE = "FAILED";
 
@@ -194,13 +205,34 @@ public class ContractService {
 
   @Transactional
   public StatusResponse createPartnerContract(PartnerEntitlementContract contract) {
-    StatusResponse statusResponse = new StatusResponse();
+    return switch (processContract(contract)) {
+      case INVALID_MESSAGE_UNPROCESSED ->
+          new StatusResponse().message("Bad message, see logs for details").status(FAILURE_MESSAGE);
+      case RH_ORG_NOT_ASSOCIATED ->
+          new StatusResponse().message("Contract missing RH orgId").status(FAILURE_MESSAGE);
+      case CONTRACT_DETAILS_MISSING ->
+          new StatusResponse().message("Empty value in non-null fields").status(FAILURE_MESSAGE);
+      case PARTNER_API_FAILURE ->
+          new StatusResponse()
+              .message("An Error occurred while calling Partner Api")
+              .status(FAILURE_MESSAGE);
+      case REDUNDANT_MESSAGE_IGNORED ->
+          new StatusResponse().message("Redundant message ignored").status(SUCCESS_MESSAGE);
+      case METADATA_UPDATED ->
+          new StatusResponse().message("Contract metadata updated").status(SUCCESS_MESSAGE);
+      case CONTRACT_SPLIT_DUE_TO_CAPACITY_UPDATE ->
+          new StatusResponse()
+              .message("Previous contract archived and new contract created")
+              .status(SUCCESS_MESSAGE);
+      case NEW_CONTRACT_CREATED ->
+          new StatusResponse().message("New contract created").status(SUCCESS_MESSAGE);
+    };
+  }
 
+  public ContractMessageProcessingResult processContract(PartnerEntitlementContract contract) {
     if (!validPartnerEntitlementContract(contract)) {
-      statusResponse.setMessage("Empty value found in UMB message");
-      statusResponse.setStatus(FAILURE_MESSAGE);
       log.info("Empty value found in UMB message {}", contract);
-      return statusResponse;
+      return ContractMessageProcessingResult.INVALID_MESSAGE_UNPROCESSED;
     }
 
     ContractEntity entity;
@@ -209,86 +241,94 @@ public class ContractService {
       entity = mapper.partnerContractToContractEntity(contract);
       collectMissingUpStreamContractDetails(entity, contract);
       if (entity.getOrgId() == null) {
-        statusResponse.setMessage("Contract missing RH orgId");
-        statusResponse.setStatus(FAILURE_MESSAGE);
-        return statusResponse;
+        return ContractMessageProcessingResult.RH_ORG_NOT_ASSOCIATED;
       }
       if (!isValidEntity(entity)) {
-        statusResponse.setMessage("Empty value in non-null fields");
-        statusResponse.setStatus(FAILURE_MESSAGE);
         log.warn("Empty value in non-null fields for contract entity {}", entity);
-        return statusResponse;
+        return ContractMessageProcessingResult.CONTRACT_DETAILS_MISSING;
       }
     } catch (NumberFormatException e) {
       log.error(e.getMessage());
-      statusResponse.setMessage("An Error occurred while reconciling contract");
-      statusResponse.setStatus(FAILURE_MESSAGE);
-      return statusResponse;
+      return ContractMessageProcessingResult.INVALID_MESSAGE_UNPROCESSED;
     } catch (ProcessingException | ApiException e) {
       log.error(e.getMessage());
-      statusResponse.setMessage("An Error occurred while calling Partner Api");
-      statusResponse.setStatus(FAILURE_MESSAGE);
-      return statusResponse;
+      return ContractMessageProcessingResult.PARTNER_API_FAILURE;
     }
 
     List<ContractEntity> existingContractRecords = findExistingContractRecords(entity);
     // There may be multiple "versions" of a contract, e.g. if a contract quantity changes.
     // We should make updates as necessary to each, it's possible to update both the metadata and
     // the quantity at once.
-    boolean hasExistingRecord = false;
-    for (var existingContract : existingContractRecords) {
-      hasExistingRecord = true;
-      if (Objects.equals(entity, existingContract)) {
-        log.info(
-            "Duplicate contract found that matches the record for uuid {}",
-            existingContract.getUuid());
-        statusResponse.setMessage("Duplicate record found");
-        statusResponse.setStatus(FAILURE_MESSAGE);
-        break;
-      } else if (isContractQuantityChanged(entity, existingContract)) {
-        // Record found in contract table but the contract quantities or dates have changed
-        if (!Objects.equals(entity.getEndDate(), existingContract.getEndDate())) {
-          // Skip this particular record because it's already been terminated for a quantity change.
-          continue;
-        }
-        var now = OffsetDateTime.now();
-        if (existingContract.getSubscriptionNumber() != null) {
-          persistExistingSubscription(existingContract, now); // end current subscription
-          var newSubscription = createSubscriptionForContract(entity, true);
-          newSubscription.setStartDate(now);
-          persistSubscription(newSubscription);
-        }
-        persistExistingContract(existingContract, now); // Persist previous contract
-        entity.setStartDate(now);
-        persistContract(entity, now); // Persist new contract
-        log.info("Previous contract archived and new contract created");
-        statusResponse.setStatus(SUCCESS_MESSAGE);
-        statusResponse.setMessage("Previous contract archived and new contract created");
-      } else {
-        // Record found in contract table but a non-quantity change occurred (e.g. an identifier was
-        // updated).
-        mapper.updateContract(existingContract, entity);
-        persistContract(existingContract, OffsetDateTime.now());
-        if (existingContract.getSubscriptionNumber() != null) {
-          SubscriptionEntity subscription = createOrUpdateSubscription(existingContract);
-          subscriptionRepository.persist(subscription);
-        }
-        log.info("Contract metadata updated");
-        statusResponse.setStatus(SUCCESS_MESSAGE);
-        statusResponse.setMessage("Contract metadata updated");
-      }
-    }
-    if (!hasExistingRecord) {
+    var statuses =
+        existingContractRecords.stream()
+            .map(existing -> updateContractRecord(existing, entity))
+            .toList();
+    if (!statuses.isEmpty()) {
+      return combineStatuses(statuses);
+    } else {
       // New contract
       if (entity.getSubscriptionNumber() != null) {
         persistSubscription(createSubscriptionForContract(entity, true));
       }
       persistContract(entity, OffsetDateTime.now());
-      statusResponse.setMessage("New contract created");
-      statusResponse.setStatus(SUCCESS_MESSAGE);
+      return ContractMessageProcessingResult.NEW_CONTRACT_CREATED;
     }
+  }
 
-    return statusResponse;
+  private ContractMessageProcessingResult combineStatuses(
+      List<ContractMessageProcessingResult> results) {
+    // Different things happen to the contract records during processing...
+    // Elevate some specific results, logging will have further details of all that happened during
+    // message processing
+    for (var result :
+        List.of(
+            ContractMessageProcessingResult.CONTRACT_SPLIT_DUE_TO_CAPACITY_UPDATE,
+            ContractMessageProcessingResult.METADATA_UPDATED)) {
+      if (results.contains(result)) {
+        return result;
+      }
+    }
+    // Otherwise, just return the first result
+    return results.get(0);
+  }
+
+  private ContractMessageProcessingResult updateContractRecord(
+      ContractEntity existingContract, ContractEntity entity) {
+    if (Objects.equals(entity, existingContract)) {
+      log.info(
+          "Duplicate contract found that matches the record for uuid {}",
+          existingContract.getUuid());
+      return ContractMessageProcessingResult.REDUNDANT_MESSAGE_IGNORED;
+    } else if (isContractQuantityChanged(entity, existingContract)) {
+      // Record found in contract table but the contract quantities or dates have changed
+      if (!Objects.equals(entity.getEndDate(), existingContract.getEndDate())) {
+        // Skip this particular record because it's already been terminated for a quantity change.
+        return ContractMessageProcessingResult.REDUNDANT_MESSAGE_IGNORED;
+      }
+      var now = OffsetDateTime.now();
+      if (existingContract.getSubscriptionNumber() != null) {
+        persistExistingSubscription(existingContract, now); // end current subscription
+        var newSubscription = createSubscriptionForContract(entity, true);
+        newSubscription.setStartDate(now);
+        persistSubscription(newSubscription);
+      }
+      persistExistingContract(existingContract, now); // Persist previous contract
+      entity.setStartDate(now);
+      persistContract(entity, now); // Persist new contract
+      log.info("Previous contract archived and new contract created");
+      return ContractMessageProcessingResult.CONTRACT_SPLIT_DUE_TO_CAPACITY_UPDATE;
+    } else {
+      // Record found in contract table but a non-quantity change occurred (e.g. an identifier was
+      // updated).
+      mapper.updateContract(existingContract, entity);
+      persistContract(existingContract, OffsetDateTime.now());
+      if (existingContract.getSubscriptionNumber() != null) {
+        SubscriptionEntity subscription = createOrUpdateSubscription(existingContract);
+        subscriptionRepository.persist(subscription);
+      }
+      log.info("Contract metadata updated");
+      return ContractMessageProcessingResult.METADATA_UPDATED;
+    }
   }
 
   private boolean isContractQuantityChanged(

@@ -160,7 +160,7 @@ class ContractServiceTest extends BaseUnitTest {
   void whenInvalidPartnerContract_DoNotPersist() {
     var contract = givenPartnerEntitlementContractWithoutProductCode();
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
-    assertEquals("Empty value found in UMB message", statusResponse.getMessage());
+    assertEquals("Bad message, see logs for details", statusResponse.getMessage());
   }
 
   @Test
@@ -181,7 +181,7 @@ class ContractServiceTest extends BaseUnitTest {
     contractService.createPartnerContract(request);
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
-    assertEquals("Duplicate record found", statusResponse.getMessage());
+    assertEquals("Redundant message ignored", statusResponse.getMessage());
   }
 
   @Test
@@ -197,7 +197,7 @@ class ContractServiceTest extends BaseUnitTest {
     givenExistingSubscription("dupeId;dupeId;dupeId");
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
-    assertEquals("Duplicate record found", statusResponse.getMessage());
+    assertEquals("Redundant message ignored", statusResponse.getMessage());
   }
 
   @Test
@@ -424,7 +424,6 @@ class ContractServiceTest extends BaseUnitTest {
     when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
   }
 
-  // TODO: this is not being used because of wiremocks, either need to remove or replace wiremock
   private void mockPartnerApi() throws Exception {
     var entitlement =
         new PartnerEntitlementV1()

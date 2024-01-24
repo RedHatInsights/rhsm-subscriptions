@@ -29,7 +29,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.repository.ContractRepository;
 import com.redhat.swatch.contract.repository.OfferingEntity;
@@ -41,16 +40,13 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 @QuarkusTestResource(value = WireMockResource.class, restrictToAnnotatedClass = true)
-public class AzureContractLifecycleIntegrationTest {
-
-  @Inject @RestClient PartnerApi partnerApi;
+class AzureContractLifecycleIntegrationTest {
 
   @Inject ContractService contractService;
 
