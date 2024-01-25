@@ -29,10 +29,16 @@ import io.quarkus.oidc.client.OidcClients;
 import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.client.ClientRequestContext;
 import jakarta.ws.rs.client.ClientRequestFilter;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
+// https://learn.microsoft.com/en-us/partner-center/marketplace/partner-center-portal/pc-saas-registration#get-the-token-with-an-http-post
 @Slf4j
 public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
+
+  private static final String AZURE_RESOURCE_GRANT = "resource";
+  private static final String AZURE_RESOURCE_GRANT_VALUE = "20e940b3-4c77-4b0b-9a53-9e16a1b010a7";
 
   private OidcClients oidcClients;
 
@@ -66,6 +72,9 @@ public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
     cfg.setClientId(clientInfo.getClientId());
     cfg.getGrant().setType(Type.CLIENT);
     cfg.getCredentials().setSecret(clientInfo.getClientSecret());
+    var grantOptions = new HashMap<String, Map<String, String>>();
+    grantOptions.put("client", Map.of(AZURE_RESOURCE_GRANT, AZURE_RESOURCE_GRANT_VALUE));
+    cfg.setGrantOptions(grantOptions);
     return oidcClients.newClient(cfg);
   }
 
