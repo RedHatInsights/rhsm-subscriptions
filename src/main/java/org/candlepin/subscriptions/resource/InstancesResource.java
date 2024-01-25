@@ -131,6 +131,7 @@ public class InstancesResource implements InstancesApi {
   }
 
   @Override
+  @ReportingAccessRequired
   @Transactional(readOnly = true)
   public InstanceResponse getInstancesByProduct(
       ProductId productId,
