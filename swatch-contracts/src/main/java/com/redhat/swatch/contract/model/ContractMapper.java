@@ -91,7 +91,12 @@ public interface ContractMapper {
     return null;
   }
 
-  /** Extract billingProviderId from Partner Gateway UMB message */
+  /**
+   * Extract billingProviderId from Partner Gateway UMB message.
+   *
+   * <p>Note: currently the value here will be overwritten by the API response, but future work may
+   * make the Partner Gateway API call unnecessary.
+   */
   @Named("billingProviderId")
   default String extractBillingProviderId(PartnerEntitlementContractCloudIdentifiers code) {
     String providerId = null;
