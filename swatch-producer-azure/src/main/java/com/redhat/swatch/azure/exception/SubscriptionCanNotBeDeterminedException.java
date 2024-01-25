@@ -18,26 +18,11 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.azure.test.resources;
+package com.redhat.swatch.azure.exception;
 
-import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
-import io.smallrye.reactive.messaging.memory.InMemoryConnector;
-import java.util.HashMap;
-import java.util.Map;
+public class SubscriptionCanNotBeDeterminedException extends AzureProducerException {
 
-public class InMemoryMessageBrokerKafkaResource implements QuarkusTestResourceLifecycleManager {
-
-  @Override
-  public Map<String, String> start() {
-    Map<String, String> env = new HashMap<>();
-    env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory("tally-in"));
-    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory("tally-out"));
-    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory("tally-dlt"));
-    return env;
-  }
-
-  @Override
-  public void stop() {
-    InMemoryConnector.clear();
+  public SubscriptionCanNotBeDeterminedException(Exception e) {
+    super(ErrorCode.SUBSCRIPTION_CANNOT_BE_DETERMINED, e);
   }
 }

@@ -30,7 +30,10 @@ public enum ErrorCode {
   SUBSCRIPTION_RECENTLY_TERMINATED(1006, "Subscription recently terminated"),
   USAGE_TIMESTAMP_OUT_OF_RANGE(1007, "Usage timestamp will not be accepted by AWS"),
   AZURE_MARKETPLACE_API_REQUEST_FAILED(1008, "Azure Marketplace Api request failed."),
-  AZURE_USAGE_CONTEXT_LOOKUP_ERROR(1009, "Error looking up Azure Usage Context.");
+  AZURE_USAGE_CONTEXT_LOOKUP_ERROR(1009, "Error looking up Azure Usage Context."),
+  SUBSCRIPTION_CANNOT_BE_DETERMINED(
+      1010,
+      "Multiple possible matches found. Likely a subscription is missing part of its billingAccountId.");
 
   private static final String CODE_PREFIX = "AZURE";
 
