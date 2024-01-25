@@ -62,7 +62,7 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
       topics = "#{__listener.topic}",
       containerFactory = "exportListenerContainerFactory")
   public void receive(String exportEvent) throws ApiException {
-    log.info("New Export event message has been received : {} ", exportEvent);
+    log.info("New Export request has been received");
     ConsoleCloudEvent cloudEvent = parser.fromJsonString(exportEvent);
     var exportData = cloudEvent.getData(ResourceRequest.class).stream().findFirst().orElse(null);
     var exportRequest = new ResourceRequestClass();
