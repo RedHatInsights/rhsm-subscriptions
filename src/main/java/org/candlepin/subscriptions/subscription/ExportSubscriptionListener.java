@@ -46,7 +46,6 @@ import org.springframework.stereotype.Service;
 public class ExportSubscriptionListener extends SeekableKafkaConsumer {
   private final ConsoleCloudEventParser parser;
   private final ExportApi exportApi;
-  private ResourceRequestClass resourceRequest;
 
   protected ExportSubscriptionListener(
       @Qualifier("subscriptionExport") TaskQueueProperties taskQueueProperties,
@@ -64,30 +63,32 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
       containerFactory = "exportListenerContainerFactory")
   public void receive(String exportEvent) throws ApiException {
     log.info("New Export event message has been received : {} ", exportEvent);
-    ConsoleCloudEvent event = parser.fromJsonString(exportEvent);
+    ConsoleCloudEvent cloudEvent = parser.fromJsonString(exportEvent);
+    var exportData = cloudEvent.getData(ResourceRequest.class).stream().findFirst().orElse(null);
+    var exportRequest = new ResourceRequestClass();
+
     try {
-      var data = event.getData(ResourceRequest.class);
-      if (data.isPresent()
-          && Objects.equals(data.get().getResourceRequest().getApplication(), "subscription")
-          && Objects.equals(data.get().getResourceRequest().getResource(), "subscription")) {
-        // Global variable to hold data for exportDownload
-        this.resourceRequest = data.get().getResourceRequest();
-        uploadData(event);
+      if (Objects.isNull(exportData)) {
+        throw new MissingFormatArgumentException("Cannot process export message");
       }
-      throw new MissingFormatArgumentException("Cannot process export message");
+      exportRequest = exportData.getResourceRequest();
+      if (Objects.equals(exportRequest.getApplication(), "subscription")
+          && Objects.equals(exportRequest.getResource(), "subscription")) {
+        uploadData(cloudEvent, exportRequest);
+      }
+
     } catch (Exception e) {
-      log.error(
-          "Error getting data from Export service: {}", resourceRequest.getExportRequestUUID());
+      log.error("Error getting data from Export service: {}", exportRequest.getExportRequestUUID());
       var errorMsg = new DownloadExportErrorRequest().message("Unexpected error").error(500);
       exportApi.downloadExportError(
-          resourceRequest.getUUID(),
-          resourceRequest.getApplication(),
-          resourceRequest.getExportRequestUUID(),
+          exportRequest.getUUID(),
+          exportRequest.getApplication(),
+          exportRequest.getExportRequestUUID(),
           errorMsg);
     }
   }
 
-  private void uploadData(ConsoleCloudEvent cloudEvent) {
+  private void uploadData(ConsoleCloudEvent cloudEvent, ResourceRequestClass resourceRequest) {
     checkRbac(resourceRequest.getXRhIdentity());
     // Here we need to determine format (csv or json, if other throw error)
     if (Objects.equals(resourceRequest.getFormat(), Format.CSV)) {
