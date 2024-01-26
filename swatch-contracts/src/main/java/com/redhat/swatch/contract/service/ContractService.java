@@ -73,7 +73,7 @@ public class ContractService {
     METADATA_UPDATED,
     CONTRACT_SPLIT_DUE_TO_CAPACITY_UPDATE,
     NEW_CONTRACT_CREATED,
-  };
+  }
 
   private static final String SUCCESS_MESSAGE = "SUCCESS";
   private static final String FAILURE_MESSAGE = "FAILED";
