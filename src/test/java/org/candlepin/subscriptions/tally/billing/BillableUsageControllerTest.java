@@ -437,7 +437,8 @@ class BillableUsageControllerTest {
   static Stream<Arguments> remittanceParameters() {
     OffsetDateTime startOfUsage = CLOCK.startOfCurrentMonth().plusDays(4);
     return Stream.of(
-        // arguments(currentUsage, currentRemittance, expectedRemitted, expectedBilledValue)
+        // arguments(usageDate, currentUsage, currentRemittance, expectedRemitted,
+        // expectedBilledValue)
         // NOTE: currantUsage is the sum of all snapshots, NOT the value from BillableUsage.
         arguments(startOfUsage, 0.5, 0.0, 1.0, 1.0),
         arguments(startOfUsage.plusDays(5), 1.0, 1.0, 0.0, 0.0),
@@ -596,12 +597,12 @@ class BillableUsageControllerTest {
           usage.getProductId(), usage.getUom().toString(), billingFactor, false);
     }
 
-    controller.submitBillableUsage(usage);
-
     // Remittance should only be saved when it changes.
     // NOTE: Using argument captors make errors caught by mocks a little easier to debug.
     BillableUsageRemittanceEntity expectedRemittance =
         remittance(usage, CLOCK.now(), expectedRemitted);
+
+    controller.submitBillableUsage(usage);
 
     ArgumentCaptor<BillableUsageRemittanceEntity> remitted =
         ArgumentCaptor.forClass(BillableUsageRemittanceEntity.class);

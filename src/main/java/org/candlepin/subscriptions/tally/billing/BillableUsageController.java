@@ -198,10 +198,7 @@ public class BillableUsageController {
         currentlyMeasuredTotal,
         totalRemitted,
         usageCalc);
-    // There were issues with transmitting usage to AWS since the cost event timestamps were in the
-    // past. This modification allows us to send usage to AWS if we get it during the current hour
-    // of event tally.
-    usage.setSnapshotDate(usageCalc.getRemittanceDate());
+
     // Update the reported usage value to the newly calculated one.
     usage.setValue(usageCalc.getBillableValue());
     usage.setBillingFactor(usageCalc.getBillingFactor());
@@ -211,6 +208,11 @@ public class BillableUsageController {
     } else {
       log.debug("Nothing to remit. Remittance record will not be created.");
     }
+
+    // There were issues with transmitting usage to AWS since the cost event timestamps were in the
+    // past. This modification allows us to send usage to AWS if we get it during the current hour
+    // of event tally.
+    usage.setSnapshotDate(usageCalc.getRemittanceDate());
 
     log.info(
         "Finished producing monthly billable for orgId={} productId={} uom={} provider={}, snapshotDate={}",
