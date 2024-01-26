@@ -38,7 +38,6 @@ import lombok.extern.slf4j.Slf4j;
 public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
 
   private static final String AZURE_RESOURCE_GRANT = "resource";
-  private static final String AZURE_RESOURCE_GRANT_VALUE = "20e940b3-4c77-4b0b-9a53-9e16a1b010a7";
 
   private OidcClients oidcClients;
 
@@ -47,6 +46,8 @@ public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
   private Client clientInfo;
 
   private String tokenUrl;
+
+  private String resourceGrantValue;
 
   public AzureMarketplaceHeaderProvider(
       AzureMarketplaceProperties azureMarketplaceProperties,
@@ -59,6 +60,7 @@ public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
             .getOauthTokenUrl()
             .replace("[TenantIdPlaceholder]", clientInfo.getTenantId());
     this.client = createOidcClient().await().indefinitely();
+    this.resourceGrantValue = azureMarketplaceProperties.getOidcSaasMarketplaceResource();
   }
 
   public String getAccessToken() {
@@ -73,7 +75,7 @@ public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
     cfg.getGrant().setType(Type.CLIENT);
     cfg.getCredentials().setSecret(clientInfo.getClientSecret());
     var grantOptions = new HashMap<String, Map<String, String>>();
-    grantOptions.put("client", Map.of(AZURE_RESOURCE_GRANT, AZURE_RESOURCE_GRANT_VALUE));
+    grantOptions.put("client", Map.of(AZURE_RESOURCE_GRANT, resourceGrantValue));
     cfg.setGrantOptions(grantOptions);
     return oidcClients.newClient(cfg);
   }

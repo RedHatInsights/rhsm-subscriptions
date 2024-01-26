@@ -36,4 +36,7 @@ public class AzureMarketplaceProperties {
 
   @ConfigProperty(name = "AZURE_MARKETPLACE_API_VERSION")
   String marketplaceApiVersion;
+
+  @ConfigProperty(name = "AZURE_OIDC_SAAS_MARKETPLACE_RESOURCE")
+  String oidcSaasMarketplaceResource;
 }
