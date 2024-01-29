@@ -20,15 +20,18 @@
  */
 package org.candlepin.subscriptions.tally.billing.admin;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.billing.admin.api.model.MonthlyRemittance;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.model.RemittanceSummaryProjection;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Component
@@ -84,5 +87,11 @@ public class InternalBillingController {
     }
     log.debug("Found {} remittances for this account", remittances.size());
     return remittances;
+  }
+
+  @Transactional
+  public int resetBillableUsageRemittance(
+      String productId, OffsetDateTime start, OffsetDateTime end, Set<String> orgIds) {
+    return remittanceRepository.resetBillableUsageRemittance(productId, start, end, orgIds);
   }
 }
