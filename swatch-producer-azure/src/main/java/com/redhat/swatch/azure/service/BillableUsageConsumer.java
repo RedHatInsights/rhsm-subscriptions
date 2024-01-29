@@ -44,6 +44,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.ProcessingException;
 import java.time.Clock;
 import java.time.Duration;
@@ -62,7 +63,7 @@ import org.slf4j.MDC;
 @ApplicationScoped
 public class BillableUsageConsumer {
 
-  private final AzureMarketplaceService azureMarketplaceService;
+  @Inject private final AzureMarketplaceService azureMarketplaceService;
   private final BillableUsageDeadLetterTopicProducer billableUsageDeadLetterTopicProducer;
 
   private final Counter acceptedCounter;
@@ -71,6 +72,7 @@ public class BillableUsageConsumer {
   private final Optional<Boolean> isDryRun;
   private final Duration azureUsageWindow;
 
+  @Inject
   public BillableUsageConsumer(
       MeterRegistry meterRegistry,
       @RestClient InternalSubscriptionsApi internalSubscriptionsApi,
@@ -87,10 +89,10 @@ public class BillableUsageConsumer {
     this.azureUsageWindow = azureUsageWindow;
   }
 
-  @Incoming("tally-in")
-  @Blocking
+//  @Incoming("tally-in")
+//  @Blocking
   public void process(BillableUsage billableUsage) {
-    log.debug("Picked up billable usage message {} to process", billableUsage);
+    log.info("Picked up billable usage message {} to process", billableUsage);
     if (billableUsage == null) {
       log.warn("Skipping null billable usage: deserialization failure?");
       return;
