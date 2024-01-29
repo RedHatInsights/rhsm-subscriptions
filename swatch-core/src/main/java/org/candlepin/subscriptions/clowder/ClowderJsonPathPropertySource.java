@@ -149,7 +149,7 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
         return getKafkaBrokerConfig(name, configFunction);
       }
     }
-    // handling for rest-clients for public or private ports
+    // handling for rest-clients for public or ports and determine the type
     if (name.contains(ENDPOINTS) || name.contains(PRIVATE_ENDPOINTS)) {
       for (Map.Entry<String, EndpointConfigMapper> entry : ENDPOINTS_PROPERTIES.entrySet()) {
         if (name.endsWith(entry.getKey())) {
