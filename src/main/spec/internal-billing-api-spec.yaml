@@ -83,6 +83,54 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - internalBilling
+  /internal/rpc/remittance/reset_billable_usage_remittance:
+    put:
+      description: Reset remittance_pending_value in Billable Usage Remittance table when it matches certain criteria
+      summary: Update billable usage remittance records.
+      operationId: resetBillableUsageRemittance
+      parameters:
+        - in: query
+          name: org_id
+          schema:
+            type: array
+            uniqueItems: true
+            items:
+              $ref: "#/components/schemas/OrgIds"
+          required: true
+          allowEmptyValue: false
+        - name: product_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: start
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            description: "The start date timestamp for remittance pending date."
+        - name: end
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+            description: "The end date timestamp for remittance pending date."
+      responses:
+        '200':
+          description: Updated billable usage remittance for the orgs.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '400':
+          $ref: "../../../spec/error-responses.yaml#/$defs/BadRequest"
+        '403':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Forbidden"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+
   /internal-billing-openapi.json:
     $ref: "../../../spec/openapi-paths.yaml#/openapi-json"
   /internal-billing-openapi.yaml:
@@ -115,6 +163,15 @@ components:
         remittanceDate:
           type: string
           format: date-time
+    OrgIds:
+      type: string
+      properties:
+        orgIds:
+          type: string
+    DefaultResponse:
+      properties:
+        status:
+          type: string
   securitySchemes:
     PskIdentity:
       type: apiKey
