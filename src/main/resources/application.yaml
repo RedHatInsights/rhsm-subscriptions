@@ -53,9 +53,6 @@ rhsm-subscriptions:
     back-off-max-interval: ${USER_BACK_OFF_MAX_INTERVAL:1m}
     back-off-multiplier: ${USER_BACK_OFF_MULTIPLIER:2}
     max-attempts: ${USER_MAX_ATTEMPTS:1}
-  export-service:
-    url: ${clowder.privateEndpoints.export-service-service.url:http://localhost:10000}
-    psk: ${SWATCH_EXPORT_PSK:placeholder}
 management:
   health:
     jms:
