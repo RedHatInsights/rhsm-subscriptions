@@ -2,8 +2,13 @@ OFFERING_SYNC_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-
 SUBSCRIPTION_SYNC_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.subscription-sync')].name:platform.rhsm-subscriptions.subscription-sync}
 SUBSCRIPTION_PRUNE_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.subscription-prune')].name:platform.rhsm-subscriptions.subscription-prune}
 CAPACITY_RECONCILE_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.capacity-reconcile')].name:platform.rhsm-subscriptions.capacity-reconcile}
+SUBSCRIPTION_EXPORT_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.export.requests')].name:platform.export.requests}
+
 
 rhsm-subscriptions:
+  export-service:
+    url: ${clowder.privateEndpoints.export-service-service.url:http://localhost:10000}
+    psk: ${SWATCH_EXPORT_PSK:placeholder}
   subscription-sync-enabled: ${SUBSCRIPTION_SYNC_ENABLED:true}
   product:
     tasks:
@@ -21,3 +26,7 @@ rhsm-subscriptions:
     tasks:
       topic: ${CAPACITY_RECONCILE_TOPIC}
       kafka-group-id: capacity-reconciliation-worker
+  subscription-export:
+    tasks:
+      topic: ${SUBSCRIPTION_EXPORT_TOPIC}
+      kafka-group-id: swatch-subscription-export

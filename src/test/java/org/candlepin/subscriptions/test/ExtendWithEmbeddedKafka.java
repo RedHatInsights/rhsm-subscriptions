@@ -31,7 +31,8 @@ import org.springframework.test.context.DynamicPropertySource;
       "${rhsm-subscriptions.subscription.tasks.topic}",
       "${rhsm-subscriptions.billing-producer.incoming.topic}",
       "${rhsm-subscriptions.billing-producer.outgoing.topic}",
-      "${rhsm-subscriptions.service-instance-ingress.incoming.topic}"
+      "${rhsm-subscriptions.service-instance-ingress.incoming.topic}",
+      "${rhsm-subscriptions.subscription-export.tasks.topic}"
     })
 public interface ExtendWithEmbeddedKafka {
   @DynamicPropertySource
