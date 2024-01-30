@@ -1,6 +1,9 @@
 package com.redhat.swatch.azure.kafka;
 
 import com.redhat.swatch.azure.openapi.model.BillableUsage;
+import com.redhat.swatch.azure.openapi.model.BillableUsage.BillingProviderEnum;
+import com.redhat.swatch.azure.openapi.model.BillableUsage.SlaEnum;
+import com.redhat.swatch.azure.openapi.model.BillableUsage.UsageEnum;
 import com.redhat.swatch.azure.service.BillableUsageConsumer;
 import io.quarkus.kafka.client.serialization.ObjectMapperSerde;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -26,7 +29,9 @@ import org.apache.kafka.streams.kstream.Suppressed.StrictBufferConfig;
 import org.apache.kafka.streams.kstream.TimeWindows;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.WindowedSerdes;
+import org.apache.kafka.streams.kstream.internals.suppress.StrictBufferConfigImpl;
 import org.apache.kafka.streams.state.KeyValueBytesStoreSupplier;
+import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.Stores;
 import org.apache.kafka.streams.state.WindowStore;
 
@@ -50,7 +55,7 @@ public class StreamTopologyProducer {
    var aggregationKeySerde = new ObjectMapperSerde<>(BillableUsageAggregationKey.class);
     ObjectMapperSerde<BillableUsageAggregation> aggregationSerde = new ObjectMapperSerde<>(BillableUsageAggregation.class);
 
-    KeyValueBytesStoreSupplier storeSupplier = Stores.persistentKeyValueStore(
+    KeyValueBytesStoreSupplier storeSupplier = Stores.persistentTimestampedKeyValueStore(
         BILLABLE_USAGE_STORE);
 
 
@@ -63,16 +68,15 @@ public class StreamTopologyProducer {
         .aggregate(
             BillableUsageAggregation::new,
             (key, value, billableUsageAggregation) -> billableUsageAggregation.updateFrom(value),
-            Materialized.<BillableUsageAggregationKey, BillableUsageAggregation, WindowStore<Bytes, byte[]>>as(BILLABLE_USAGE_STORE)
+            Materialized.<BillableUsageAggregationKey, BillableUsageAggregation, WindowStore<Bytes, byte[]>>as(storeSupplier.name())
                 .withKeySerde(aggregationKeySerde)
                 .withValueSerde(aggregationSerde)
         )
         //Need some analysis on BufferConfig size
-        .suppress(Suppressed.untilTimeLimit(Duration.ofSeconds(10), BufferConfig.unbounded()))
+        .suppress(Suppressed.untilWindowCloses(BufferConfig.unbounded()))
         .toStream()
         .process(new BillableUsageAggregateProcessorSupplier(billableUsageConsumer), storeSupplier.name());
 
     return builder.build();
   }
-
 }

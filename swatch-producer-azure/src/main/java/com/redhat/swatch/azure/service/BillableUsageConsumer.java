@@ -93,6 +93,10 @@ public class BillableUsageConsumer {
 //  @Blocking
   public void process(BillableUsage billableUsage) {
     log.info("Picked up billable usage message {} to process", billableUsage);
+    //TODO: remove this, gets rid of log noise for testing
+    if(0 == 0) {
+      return;
+    }
     if (billableUsage == null) {
       log.warn("Skipping null billable usage: deserialization failure?");
       return;

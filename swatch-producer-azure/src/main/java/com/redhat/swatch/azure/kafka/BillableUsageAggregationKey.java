@@ -17,8 +17,6 @@ public class BillableUsageAggregationKey {
 
   private String metricId;
 
-  private String accumulationPeriod;
-
   private String sla;
 
   private String usage;
