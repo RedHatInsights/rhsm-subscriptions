@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.task.queue.kafka;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import com.redhat.swatch.clients.export.api.client.ApiException;
+import org.candlepin.subscriptions.rbac.RbacService;
 import org.candlepin.subscriptions.subscription.ExportSubscriptionListener;
 import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
 import org.candlepin.subscriptions.test.ExtendWithExportServiceWireMock;
@@ -30,6 +31,7 @@ import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
@@ -37,6 +39,8 @@ import org.springframework.test.context.ActiveProfiles;
 class ExportSubscriptionListenerTest extends ExtendWithExportServiceWireMock
     implements ExtendWithSwatchDatabase, ExtendWithEmbeddedKafka {
   @Autowired ExportSubscriptionListener listener;
+
+  @MockBean RbacService rbacService;
 
   static final String EXPORTMSG =
       """
@@ -55,9 +59,9 @@ class ExportSubscriptionListenerTest extends ExtendWithExportServiceWireMock
                     "resource_request": {
                         "uuid": "b24c269d-33d6-410e-8808-c71c9635e84f",
                         "export_request_uuid": "2e3d7746-2cf2-441e-84fe-cf28863d22ae",
-                        "application": "subscription",
+                        "application": "subscriptions",
                         "format": "csv",
-                        "resource": "subscription",
+                        "resource": "subscriptions",
                         "x-rh-identity": "base64-encoded-identity",
                         "filters": {
                             "filter1": "value1",

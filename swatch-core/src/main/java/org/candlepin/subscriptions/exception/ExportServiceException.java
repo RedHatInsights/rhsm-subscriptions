@@ -18,16 +18,16 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.rbac;
+package org.candlepin.subscriptions.exception;
 
-import java.util.List;
-import org.candlepin.subscriptions.rbac.model.Access;
+import lombok.Getter;
 
-/** Defines wrapper functions around all RBAC API calls that we want to make. */
-public interface RbacApi {
+public class ExportServiceException extends RuntimeException {
+  @Getter private final String message;
+  @Getter private final Integer status;
 
-  List<Access> getCurrentUserAccess(String applicationName) throws RbacApiException;
-
-  List<Access> getCurrentIdentityAccess(String rbacAppName, String identity)
-      throws RbacApiException;
+  public ExportServiceException(Integer status, String message) {
+    this.status = status;
+    this.message = message;
+  }
 }

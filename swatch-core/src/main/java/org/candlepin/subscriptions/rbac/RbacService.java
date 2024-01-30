@@ -41,4 +41,15 @@ public class RbacService {
           .collect(Collectors.toList());
     }
   }
+
+  public List<String> getPermissions(String rbacAppName, String identity) throws RbacApiException {
+    // Get all permissions for the configured application name.
+    try (Stream<Access> accessStream =
+        api.getCurrentIdentityAccess(rbacAppName, identity).stream()) {
+      return accessStream
+          .filter(access -> access != null && StringUtils.hasText(access.getPermission()))
+          .map(Access::getPermission)
+          .collect(Collectors.toList());
+    }
+  }
 }

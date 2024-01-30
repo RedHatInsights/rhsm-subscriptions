@@ -32,7 +32,7 @@ public class ExtendWithExportServiceWireMock {
 
   static WireMockServer wireMockServer = start();
   private static final String EXPORT_ERROR_REQUEST =
-      "/app/export/v1/b24c269d-33d6-410e-8808-c71c9635e84f/subscription/2e3d7746-2cf2-441e-84fe-cf28863d22ae/error";
+      "/app/export/v1/b24c269d-33d6-410e-8808-c71c9635e84f/subscriptions/2e3d7746-2cf2-441e-84fe-cf28863d22ae/error";
 
   static WireMockServer start() {
     wireMockServer =
