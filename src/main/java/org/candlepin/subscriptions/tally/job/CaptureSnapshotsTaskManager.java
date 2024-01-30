@@ -36,6 +36,7 @@ import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
 import org.candlepin.subscriptions.util.DateRange;
+import org.candlepin.subscriptions.util.LogUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,10 +84,12 @@ public class CaptureSnapshotsTaskManager {
    */
   @SuppressWarnings("indentation")
   public void updateOrgSnapshots(String orgId) {
+    LogUtils.addOrgIdToMdc(orgId);
     queue.enqueue(
         TaskDescriptor.builder(TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic(), orgId)
             .setSingleValuedArg("orgs", orgId)
             .build());
+    LogUtils.clearOrgIdFromMdc();
   }
 
   /**
@@ -102,6 +105,7 @@ public class CaptureSnapshotsTaskManager {
       AtomicInteger count = new AtomicInteger(0);
       orgStream.forEach(
           org -> {
+            LogUtils.addOrgIdToMdc(org);
             queue.enqueue(
                 TaskDescriptor.builder(
                         TaskType.UPDATE_SNAPSHOTS, taskQueueProperties.getTopic(), org)
@@ -110,6 +114,7 @@ public class CaptureSnapshotsTaskManager {
             count.addAndGet(1);
           });
 
+      LogUtils.clearOrgIdFromMdc();
       log.info("Done queuing snapshot production for {} org list.", count.intValue());
     } catch (Exception e) {
       throw new TaskManagerException("Could not list org for update snapshot task generation", e);
@@ -117,6 +122,7 @@ public class CaptureSnapshotsTaskManager {
   }
 
   public void tallyOrgByHourly(String orgId, DateRange tallyRange) {
+    LogUtils.addOrgIdToMdc(orgId);
     if (!applicationClock.isHourlyRange(tallyRange.getStartDate(), tallyRange.getEndDate())) {
       log.error(
           "Hourly snapshot production for orgId {} will not be queued. "
@@ -141,6 +147,7 @@ public class CaptureSnapshotsTaskManager {
             .setSingleValuedArg("startDateTime", tallyRange.getStartString())
             .setSingleValuedArg("endDateTime", tallyRange.getEndString())
             .build());
+    LogUtils.clearOrgIdFromMdc();
   }
 
   @Transactional
