@@ -3,12 +3,14 @@ package com.redhat.swatch.azure.kafka;
 import com.redhat.swatch.azure.openapi.model.BillableUsage;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import java.math.BigDecimal;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
 @RegisterForReflection
 @Getter
 @Setter
+@EqualsAndHashCode
 public class BillableUsageAggregation {
 
   private BillableUsageAggregationKey key;
