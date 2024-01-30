@@ -23,10 +23,22 @@ package org.candlepin.subscriptions.db;
 import org.candlepin.subscriptions.db.model.AccountServiceInventory;
 import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /** Defines all operations for interacting with the AccountServiceInventory aggregate */
 public interface AccountServiceInventoryRepository
     extends JpaRepository<AccountServiceInventory, AccountServiceInventoryId> {
+
+  @Modifying
+  @Query(
+      value =
+          """
+INSERT INTO account_services (org_id, service_type) VALUES (:orgId, :serviceType) ON CONFLICT DO NOTHING
+""",
+      nativeQuery = true)
+  void saveIfDoesNotExist(@Param("orgId") String orgId, @Param("serviceType") String serviceType);
 
   void deleteByIdOrgId(String orgId);
 }

@@ -371,10 +371,7 @@ public class InventoryAccountUsageCollector {
   @Transactional
   @Timed("swatch_hbi_system_reconcile")
   public void reconcileSystemDataWithHbi(String orgId, Set<String> applicableProducts) {
-    if (!accountServiceInventoryRepository.existsById(
-        AccountServiceInventoryId.builder().orgId(orgId).serviceType(HBI_INSTANCE_TYPE).build())) {
-      accountServiceInventoryRepository.save(new AccountServiceInventory(orgId, HBI_INSTANCE_TYPE));
-    }
+    accountServiceInventoryRepository.saveIfDoesNotExist(orgId, HBI_INSTANCE_TYPE);
     List<Host> detachHosts = new ArrayList<>();
     int systemsUpdatedForOrg =
         collator.collateData(
