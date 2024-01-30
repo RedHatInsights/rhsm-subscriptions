@@ -488,7 +488,8 @@ public class InventoryAccountUsageCollector {
     host.setInstanceType(HBI_INSTANCE_TYPE);
     populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
     applyNonHypervisorBuckets(host, normalizedFacts, usageKeys);
-    return hostRepository.save(host);
+    entityManager.persist(host);
+    return host;
   }
 
   private Set<Key> createHostUsageKeys(Set<String> products, NormalizedFacts facts) {
@@ -537,6 +538,6 @@ public class InventoryAccountUsageCollector {
       Set<Key> usageKeys) {
     populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
     applyNonHypervisorBuckets(host, normalizedFacts, usageKeys);
-    return hostRepository.save(host);
+    return entityManager.merge(host);
   }
 }

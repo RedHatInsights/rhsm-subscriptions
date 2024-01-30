@@ -47,7 +47,6 @@ import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.inventory.db.InventoryDatabaseOperations;
-import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
@@ -62,7 +61,6 @@ class InventoryAccountUsageCollectorReconcileTest {
   @Mock FactNormalizer factNormalizer;
   @Mock InventoryDatabaseOperations inventory;
   @Mock AccountServiceInventoryRepository accountServiceInventoryRepository;
-  @Mock InventoryRepository inventoryRepository;
   @Mock HostRepository hostRepository;
   @Mock EntityManager entityManager;
   @Mock HostTallyBucketRepository tallyBucketRepository;
@@ -91,7 +89,6 @@ class InventoryAccountUsageCollectorReconcileTest {
     when(props.getHbiReconciliationFlushInterval()).thenReturn(2L);
     when(collator.collateData(any(), anyInt(), captor.capture())).thenReturn(5);
     when(factNormalizer.normalize(any(), any())).thenReturn(new NormalizedFacts());
-    when(hostRepository.save(any())).thenReturn(new Host());
 
     var collector = setupCollector();
     collector.reconcileSystemDataWithHbi("org123", Set.of("RHEL"));
@@ -109,12 +106,11 @@ class InventoryAccountUsageCollectorReconcileTest {
   @Test
   void testCreate() {
     when(factNormalizer.normalize(any(), any())).thenReturn(new NormalizedFacts());
-    when(hostRepository.save(any())).thenReturn(new Host());
     var collector = setupCollector();
     InventoryHostFacts hbiSystem = InventoryHostFactTestHelper.createHypervisor("org123", 1);
     collector.reconcileHbiSystemWithSwatchSystem(
         hbiSystem, null, new OrgHostsData("org123"), Set.of("RHEL"), new ArrayList<>());
-    verify(hostRepository).save(any());
+    verify(entityManager).persist(any());
   }
 
   @Test
@@ -126,7 +122,7 @@ class InventoryAccountUsageCollectorReconcileTest {
     Host swatchSystem = new Host();
     collector.reconcileHbiSystemWithSwatchSystem(
         hbiSystem, swatchSystem, new OrgHostsData("org123"), Set.of("RHEL"), new ArrayList<>());
-    verify(hostRepository).save(swatchSystem);
+    verify(entityManager).merge(swatchSystem);
   }
 
   @Test
