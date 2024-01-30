@@ -26,7 +26,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -44,6 +46,7 @@ import java.lang.reflect.Field;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
@@ -689,5 +692,37 @@ class BillableUsageControllerTest {
     variant.setSubscription(subscriptionDefinition);
     when(subscriptionDefinitionRegistry.getSubscriptions())
         .thenReturn(List.of(subscriptionDefinition));
+  }
+
+  @Test
+  void testUpdateBillableUsageRemittanceWithRetryAfter() {
+    var retryAfter = OffsetDateTime.now();
+    var expectedRemittance = new BillableUsageRemittanceEntity();
+    when(remittanceRepo.findById(any()))
+        .thenReturn(Optional.of(new BillableUsageRemittanceEntity()));
+    var billableUsage = new BillableUsage();
+    billableUsage.setUsage(Usage.PRODUCTION);
+    billableUsage.setBillingProvider(BillingProvider.AZURE);
+    billableUsage.setSla(Sla.STANDARD);
+    billableUsage.setSnapshotDate(OffsetDateTime.now());
+    billableUsage.setUom(CORES);
+    createSubscriptionDefinition("osd", CORES, 0.25, false);
+    controller.updateBillableUsageRemittanceWithRetryAfter(billableUsage, retryAfter);
+    expectedRemittance.setRetryAfter(retryAfter);
+    verify(remittanceRepo).save(expectedRemittance);
+  }
+
+  @Test
+  void testUpdateBillableUsageRemittanceWithRetryAfterMissingRemittance() {
+    var retryAfter = OffsetDateTime.now();
+    var billableUsage = new BillableUsage();
+    billableUsage.setUsage(Usage.PRODUCTION);
+    billableUsage.setBillingProvider(BillingProvider.AZURE);
+    billableUsage.setSla(Sla.STANDARD);
+    billableUsage.setSnapshotDate(OffsetDateTime.now());
+    billableUsage.setUom(CORES);
+    createSubscriptionDefinition("osd", CORES, 0.25, false);
+    controller.updateBillableUsageRemittanceWithRetryAfter(billableUsage, retryAfter);
+    verify(remittanceRepo, never()).save(any());
   }
 }
