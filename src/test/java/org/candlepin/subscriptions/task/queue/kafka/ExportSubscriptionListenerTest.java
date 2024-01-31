@@ -41,7 +41,6 @@ class ExportSubscriptionListenerTest extends ExtendWithExportServiceWireMock
   @Autowired ExportSubscriptionListener listener;
 
   @MockBean RbacService rbacService;
-
   static final String EXPORTMSG =
       """
             {

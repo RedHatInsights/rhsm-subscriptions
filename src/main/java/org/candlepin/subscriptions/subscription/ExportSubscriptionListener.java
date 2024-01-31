@@ -28,11 +28,23 @@ import com.redhat.cloud.event.parser.ConsoleCloudEventParser;
 import com.redhat.swatch.clients.export.api.client.ApiException;
 import com.redhat.swatch.clients.export.api.model.DownloadExportErrorRequest;
 import com.redhat.swatch.clients.export.api.resources.ExportApi;
+import jakarta.transaction.Transactional;
 import jakarta.ws.rs.core.Response.Status;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.db.HypervisorReportCategory;
+import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.DbReportCriteria;
+import org.candlepin.subscriptions.db.model.ServiceLevel;
+import org.candlepin.subscriptions.db.model.Subscription;
+import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ExportServiceException;
+import org.candlepin.subscriptions.json.SubscriptionSummary;
+import org.candlepin.subscriptions.json.SubscriptionsExport;
 import org.candlepin.subscriptions.rbac.RbacApiException;
 import org.candlepin.subscriptions.rbac.RbacService;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -46,9 +58,11 @@ import org.springframework.stereotype.Service;
 /** Listener for Export messages from Kafka */
 @Service
 @Slf4j
+@Transactional
 @Profile("capacity-ingress")
 public class ExportSubscriptionListener extends SeekableKafkaConsumer {
   private final ConsoleCloudEventParser parser;
+  private final SubscriptionRepository subscriptionRepository;
 
   private static final String ADMIN_ROLE = ":*:*";
   private static final String REPORT_READER = ":reports:read";
@@ -58,6 +72,7 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
 
   protected ExportSubscriptionListener(
       @Qualifier("subscriptionExport") TaskQueueProperties taskQueueProperties,
+      SubscriptionRepository subscriptionRepository,
       KafkaConsumerRegistry kafkaConsumerRegistry,
       ConsoleCloudEventParser parser,
       ExportApi exportApi,
@@ -66,6 +81,7 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
     this.parser = parser;
     this.exportApi = exportApi;
     this.rbacService = rbacService;
+    this.subscriptionRepository = subscriptionRepository;
   }
 
   @KafkaListener(
@@ -112,27 +128,39 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
   private void uploadData(ConsoleCloudEvent cloudEvent, ResourceRequestClass exportData) {
     checkRbac(exportData.getApplication(), exportData.getXRhIdentity());
     // Here we need to determine format (csv or json)
+    var dataRequest = fetchData(cloudEvent.getOrgId(), exportData);
     if (Objects.equals(exportData.getFormat(), Format.CSV)) {
-      fetchData(cloudEvent);
-      uploadCsv(exportData);
+      uploadCsv(exportData, dataRequest);
     } else if (Objects.equals(exportData.getFormat(), Format.JSON)) {
-      fetchData(cloudEvent);
-      uploadJson(exportData);
+      uploadJson(exportData, dataRequest);
     } else {
       throw new ExportServiceException(Status.FORBIDDEN.getStatusCode(), "Format isn't supported");
     }
   }
 
-  private void uploadCsv(ResourceRequestClass data) {
-    log.debug("Uploading CSV for request {}", data.getExportRequestUUID());
+  private void uploadCsv(ResourceRequestClass exportData, SubscriptionsExport data) {
+    log.debug(
+        "Uploading CSV for request {} with orgId: {}",
+        exportData.getExportRequestUUID(),
+        data.getSubscriptions().get(0).getOrgId());
     throw new ExportServiceException(
         Status.NOT_IMPLEMENTED.getStatusCode(), "Export upload csv isn't implemented ");
   }
 
-  private void uploadJson(ResourceRequestClass data) {
-    log.debug("Uploading Json for request {}", data.getExportRequestUUID());
-    throw new ExportServiceException(
-        Status.NOT_IMPLEMENTED.getStatusCode(), "Export Upload json isn't implemented");
+  private void uploadJson(ResourceRequestClass exportData, SubscriptionsExport data) {
+    log.debug(
+        "Uploading Json for request {} for orgId: {}",
+        exportData.getExportRequestUUID(),
+        data.getSubscriptions().get(0).getOrgId());
+    try {
+      exportApi.downloadExportUpload(
+          exportData.getUUID(),
+          exportData.getApplication(),
+          exportData.getExportRequestUUID(),
+          data);
+    } catch (ApiException e) {
+      throw new ExportServiceException(Status.BAD_REQUEST.getStatusCode(), e.getMessage());
+    }
   }
 
   private void checkRbac(String appName, String identity) {
@@ -153,11 +181,81 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
     throw new ExportServiceException(Status.FORBIDDEN.getStatusCode(), "Insufficient permission");
   }
 
-  private void fetchData(ConsoleCloudEvent cloudEvent) {
+  private SubscriptionsExport fetchData(String orgId, ResourceRequestClass exportData) {
     // Check subscription table for data for the event
-    log.debug("Fetching subscriptionOrg for {}", cloudEvent.getOrgId());
-    throw new ExportServiceException(
-        Status.NOT_IMPLEMENTED.getStatusCode(),
-        "Fetching data from subscription table isn't implemented");
+    log.debug("Fetching subscriptions for {}", orgId);
+
+    var reportCriteria = extractExportFilter(exportData, orgId);
+
+    var searchSpec = SubscriptionRepository.buildSearchSpecification(reportCriteria);
+
+    var subscriptions = subscriptionRepository.streamAll(searchSpec);
+
+    // pass streams for json and csv upload method
+    if (Objects.nonNull(subscriptions)) {
+      return transformSubscriptionForExport(subscriptions);
+    } else {
+      throw new ExportServiceException(
+          Status.NOT_FOUND.getStatusCode(), "Unable to find subscriptions for orgId: " + orgId);
+    }
+  }
+
+  private DbReportCriteria extractExportFilter(ResourceRequestClass data, String orgId) {
+    var filters = data.getFilters().entrySet();
+    var report = DbReportCriteria.builder().orgId(orgId);
+    for (var entry : filters) {
+      switch (entry.getKey().toLowerCase()) {
+        case "productid" -> report.productId(entry.getValue().toString());
+        case "usage" -> report.usage(Usage.fromString(entry.getValue().toString()));
+        case "category" ->
+            report.hypervisorReportCategory(
+                HypervisorReportCategory.valueOf(entry.getValue().toString()));
+        case "sla" -> report.serviceLevel(ServiceLevel.fromString(entry.getValue().toString()));
+        case "uom" -> report.metricId(entry.getValue().toString());
+        case "billingprovider" ->
+            report.billingProvider(BillingProvider.fromString(entry.getValue().toString()));
+        case "billingaccountid" -> report.billingAccountId(entry.getValue().toString());
+        default -> log.warn("Filter {} isn't supported currently", entry.getKey());
+      }
+    }
+    return report.build();
+  }
+
+  private SubscriptionsExport transformSubscriptionForExport(Stream<Subscription> subscriptions) {
+
+    var subscriptionExport = new SubscriptionsExport();
+
+    var subscriptionsStream =
+        subscriptions
+            .map(
+                subscription -> {
+                  var subscriptionJson = new org.candlepin.subscriptions.json.Subscription();
+                  var summaries = new ArrayList<SubscriptionSummary>();
+                  subscriptionJson.setOrgId(subscription.getOrgId());
+                  subscriptionJson.setSku(subscription.getOffering().getSku());
+                  subscriptionJson.setUsage(subscription.getOffering().getUsage().getValue());
+                  subscriptionJson.setProductName(subscription.getOffering().getProductName());
+                  subscriptionJson.setServiceLevel(
+                      subscription.getOffering().getServiceLevel().getValue());
+
+                  for (var entry : subscription.getSubscriptionMeasurements().entrySet()) {
+                    var summary = new SubscriptionSummary();
+                    summary.setMeasurementType(entry.getKey().getMeasurementType());
+                    summary.setCapacity(entry.getValue());
+                    summary.setMetricId(entry.getKey().getMetricId());
+                    summary.setSubscriptionNumber(subscription.getSubscriptionNumber());
+                    summary.setQuantity(subscription.getQuantity());
+                    summary.setBeginning(subscription.getStartDate());
+                    summary.setEnding(subscription.getEndDate());
+                    summaries.add(summary);
+                  }
+                  subscriptionJson.setSubscriptionSummaries(summaries);
+                  return subscriptionJson;
+                })
+            .toList();
+
+    subscriptionExport.setSubscriptions(subscriptionsStream);
+
+    return subscriptionExport;
   }
 }

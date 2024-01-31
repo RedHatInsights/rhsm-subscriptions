@@ -7,7 +7,7 @@ SUBSCRIPTION_EXPORT_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform
 
 rhsm-subscriptions:
   export-service:
-    url: ${clowder.privateEndpoints.export-service-service.url:http://localhost:10000}
+    url: ${clowder.privateEndpoints.export-service-service.url:http://localhost:8081}
     psk: ${SWATCH_EXPORT_PSK:placeholder}
   subscription-sync-enabled: ${SUBSCRIPTION_SYNC_ENABLED:true}
   product:

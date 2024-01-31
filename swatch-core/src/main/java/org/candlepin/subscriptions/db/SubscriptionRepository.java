@@ -55,7 +55,8 @@ import org.springframework.util.ObjectUtils;
 /** Repository for Subscription Entities */
 public interface SubscriptionRepository
     extends JpaRepository<Subscription, Subscription.SubscriptionCompoundId>,
-        JpaSpecificationExecutor<Subscription> {
+        JpaSpecificationExecutor<Subscription>,
+        StreamSpecificationExecutor<Subscription> {
 
   // Added an order by clause to avoid Hibernate issue HHH-17040
   @Query(
@@ -165,6 +166,11 @@ public interface SubscriptionRepository
   @Override
   @EntityGraph(attributePaths = {"subscriptionMeasurements"})
   List<Subscription> findAll(Specification<Subscription> spec, Sort sort);
+
+  @EntityGraph(attributePaths = {"subscriptionMeasurements"})
+  default Stream<Subscription> streamAll(Specification<Subscription> spec) {
+    return streamAll(Subscription.class, spec);
+  }
 
   private static Specification<Subscription> hasUnlimitedUsage() {
     return (root, query, builder) -> {
