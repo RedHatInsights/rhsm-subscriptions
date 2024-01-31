@@ -23,7 +23,9 @@ package org.candlepin.subscriptions.tally.admin;
 import static org.mockito.Mockito.verify;
 
 import org.candlepin.subscriptions.tally.AccountResetService;
+import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.tally.billing.ContractsController;
+import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -33,15 +35,31 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
 class InternalTallyDataControllerTest {
+
+  private static final String ORG_ID = "org1";
+
   @MockBean ContractsController contractsController;
   @MockBean AccountResetService accountResetService;
+  @MockBean TallySnapshotController snapshotController;
+  @MockBean CaptureSnapshotsTaskManager tasks;
   @Autowired InternalTallyDataController controller;
 
   @Test
   void testDeleteDataAssociatedWithOrg() {
-    String orgId = "org1";
-    controller.deleteDataAssociatedWithOrg(orgId);
-    verify(contractsController).deleteContractsWithOrg(orgId);
-    verify(accountResetService).deleteDataForOrg(orgId);
+    controller.deleteDataAssociatedWithOrg(ORG_ID);
+    verify(contractsController).deleteContractsWithOrg(ORG_ID);
+    verify(accountResetService).deleteDataForOrg(ORG_ID);
+  }
+
+  @Test
+  void testTallyOrg() {
+    controller.tallyOrg(ORG_ID);
+    verify(tasks).updateOrgSnapshots(ORG_ID);
+  }
+
+  @Test
+  void testTallyOrgSync() {
+    controller.tallyOrgSync(ORG_ID);
+    verify(snapshotController).produceSnapshotsForOrg(ORG_ID);
   }
 }

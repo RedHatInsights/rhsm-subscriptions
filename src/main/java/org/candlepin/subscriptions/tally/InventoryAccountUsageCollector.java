@@ -371,10 +371,7 @@ public class InventoryAccountUsageCollector {
   @Transactional
   @Timed("swatch_hbi_system_reconcile")
   public void reconcileSystemDataWithHbi(String orgId, Set<String> applicableProducts) {
-    if (!accountServiceInventoryRepository.existsById(
-        AccountServiceInventoryId.builder().orgId(orgId).serviceType(HBI_INSTANCE_TYPE).build())) {
-      accountServiceInventoryRepository.save(new AccountServiceInventory(orgId, HBI_INSTANCE_TYPE));
-    }
+    accountServiceInventoryRepository.saveIfDoesNotExist(orgId, HBI_INSTANCE_TYPE);
     List<Host> detachHosts = new ArrayList<>();
     int systemsUpdatedForOrg =
         collator.collateData(
@@ -488,7 +485,8 @@ public class InventoryAccountUsageCollector {
     host.setInstanceType(HBI_INSTANCE_TYPE);
     populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
     applyNonHypervisorBuckets(host, normalizedFacts, usageKeys);
-    return hostRepository.save(host);
+    entityManager.persist(host);
+    return host;
   }
 
   private Set<Key> createHostUsageKeys(Set<String> products, NormalizedFacts facts) {
@@ -537,6 +535,6 @@ public class InventoryAccountUsageCollector {
       Set<Key> usageKeys) {
     populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
     applyNonHypervisorBuckets(host, normalizedFacts, usageKeys);
-    return hostRepository.save(host);
+    return entityManager.merge(host);
   }
 }
