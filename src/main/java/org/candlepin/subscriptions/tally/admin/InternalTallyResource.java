@@ -47,6 +47,7 @@ import org.candlepin.subscriptions.tally.admin.api.model.UuidList;
 import org.candlepin.subscriptions.tally.events.EventRecordsRetentionProperties;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.util.DateRange;
+import org.candlepin.subscriptions.util.LogUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.stereotype.Component;
@@ -272,10 +273,21 @@ public class InternalTallyResource implements InternalApi {
 
   /** Trigger a tally for an org */
   @Override
-  public DefaultResponse tallyOrg(String orgId) {
+  public DefaultResponse tallyOrg(String orgId, Boolean xRhSwatchSynchronousRequest) {
     Object principal = ResourceUtils.getPrincipal();
+    LogUtils.addOrgIdToMdc(orgId);
     log.info("Tally for org {} triggered over API by {}", orgId, principal);
-    internalTallyDataController.tallyOrg(orgId);
+    if (ResourceUtils.sanitizeBoolean(xRhSwatchSynchronousRequest, false)) {
+      if (!applicationProperties.isEnableSynchronousOperations()) {
+        throw new BadRequestException("Synchronous tally operations are not enabled.");
+      }
+      log.info("Synchronous tally requested for orgId {}", orgId);
+      internalTallyDataController.tallyOrgSync(orgId);
+    } else {
+      internalTallyDataController.tallyOrg(orgId);
+    }
+
+    LogUtils.clearOrgIdFromMdc();
     return getDefaultResponse(SUCCESS_STATUS);
   }
 

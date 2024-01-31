@@ -279,6 +279,13 @@ paths:
           schema:
             type: string
           required: true
+        - name: x-rh-swatch-synchronous-request
+          in: header
+          required: false
+          schema:
+            type: boolean
+            default: "false"
+            description: "When present, a synchronous request is made."
       responses:
         '200':
           description: Updated snapshots for the org.
