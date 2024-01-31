@@ -1,0 +1,18 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: Subscription
+properties:
+  sku:
+    type: string
+  product_name:
+    type: string
+  service_level:
+    type: string
+  usage:
+    type: string
+  org_id:
+    type: string
+  subscription_summaries:
+    description: List of subscription data per organization
+    type: array
+    items:
+      $ref: subscription_summary.yaml

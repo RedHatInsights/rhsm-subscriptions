@@ -1,0 +1,8 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: SubscriptionExport
+properties:
+  subscriptions:
+    type: array
+    existingJavaType: java.util.stream.Stream<org.candlepin.subscriptions.json.Subscription>
+    items:
+      $ref: subscription.yaml
