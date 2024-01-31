@@ -300,7 +300,7 @@ public class TallyWorkerConfiguration {
       KafkaProperties kafkaProperties,
       @Qualifier("billableUsageDeadLetterTopicProperties")
           TaskQueueProperties taskQueueProperties) {
-    var props = kafkaProperties.buildConsumerProperties();
+    var props = kafkaProperties.buildConsumerProperties(null);
     props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, taskQueueProperties.getMaxPollRecords());
     var factory =
         new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), jsonDeserializer);

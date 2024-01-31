@@ -38,7 +38,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class BillableUsageDeadLetterConsumerTest {
+class BillableUsageDeadLetterConsumerTest {
 
   @Mock BillableUsageController controller;
   BillableUsageDeadLetterConsumer consumer;
