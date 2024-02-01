@@ -22,8 +22,8 @@ package com.redhat.swatch.contract.service;
 
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PageRequest;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1.SourcePartnerEnum;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlements;
-import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerIdentityV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
@@ -37,7 +37,6 @@ import com.redhat.swatch.contract.model.MeasurementMetricIdTransformer;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
-import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContractCloudIdentifiers;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractRepository;
@@ -65,6 +64,17 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 @ApplicationScoped
 public class ContractService {
 
+  public enum ContractMessageProcessingResult {
+    INVALID_MESSAGE_UNPROCESSED,
+    RH_ORG_NOT_ASSOCIATED,
+    CONTRACT_DETAILS_MISSING,
+    PARTNER_API_FAILURE,
+    REDUNDANT_MESSAGE_IGNORED,
+    METADATA_UPDATED,
+    CONTRACT_SPLIT_DUE_TO_CAPACITY_UPDATE,
+    NEW_CONTRACT_CREATED,
+  }
+
   private static final String SUCCESS_MESSAGE = "SUCCESS";
   private static final String FAILURE_MESSAGE = "FAILED";
 
@@ -91,8 +101,7 @@ public class ContractService {
 
   /**
    * If there's not an already active contract in the database, create a new Contract for the given
-   * payload. This method will always set the end date to 'null', which indicates an active
-   * contract.
+   * payload.
    *
    * @param contract the contract dto to create.
    * @return Contract dto
@@ -100,7 +109,7 @@ public class ContractService {
   @Transactional
   public Contract createContract(Contract contract) {
 
-    List<ContractEntity> contracts = listCurrentlyActiveContracts(contract);
+    List<ContractEntity> contracts = listCurrentlyActiveContracts(contract, OffsetDateTime.now());
     log.info("{}", contracts);
 
     if (!contracts.isEmpty()) {
@@ -118,13 +127,7 @@ public class ContractService {
     var now = OffsetDateTime.now();
     entity.setLastUpdated(now);
 
-    // Force end date to be null to indicate this it the current/applicable record
-    if (Objects.nonNull(contract.getEndDate())) {
-      log.warn("Ignoring end date from payload and saving as null");
-    }
-    entity.setEndDate(null);
-
-    var subscription = createSubscriptionForContract(entity, null, false);
+    var subscription = createSubscriptionForContract(entity, false);
     subscription.setSubscriptionId(contract.getUuid());
     contractRepository.persist(entity);
     subscriptionRepository.persist(subscription);
@@ -132,11 +135,12 @@ public class ContractService {
     return contract;
   }
 
-  private List<ContractEntity> listCurrentlyActiveContracts(Contract contract) {
+  private List<ContractEntity> listCurrentlyActiveContracts(
+      Contract contract, OffsetDateTime asOfTimestamp) {
     Specification<ContractEntity> specification =
         ContractEntity.productIdEquals(contract.getProductId())
             .and(ContractEntity.subscriptionNumberEquals(contract.getSubscriptionNumber()))
-            .and(ContractEntity.isActive());
+            .and(ContractEntity.activeOn(asOfTimestamp));
     return contractRepository.getContracts(specification);
   }
 
@@ -201,98 +205,178 @@ public class ContractService {
 
   @Transactional
   public StatusResponse createPartnerContract(PartnerEntitlementContract contract) {
-    StatusResponse statusResponse = new StatusResponse();
+    return switch (processContract(contract)) {
+      case INVALID_MESSAGE_UNPROCESSED ->
+          new StatusResponse().message("Bad message, see logs for details").status(FAILURE_MESSAGE);
+      case RH_ORG_NOT_ASSOCIATED ->
+          new StatusResponse().message("Contract missing RH orgId").status(FAILURE_MESSAGE);
+      case CONTRACT_DETAILS_MISSING ->
+          new StatusResponse().message("Empty value in non-null fields").status(FAILURE_MESSAGE);
+      case PARTNER_API_FAILURE ->
+          new StatusResponse()
+              .message("An Error occurred while calling Partner Api")
+              .status(FAILURE_MESSAGE);
+      case REDUNDANT_MESSAGE_IGNORED ->
+          new StatusResponse().message("Redundant message ignored").status(SUCCESS_MESSAGE);
+      case METADATA_UPDATED ->
+          new StatusResponse().message("Contract metadata updated").status(SUCCESS_MESSAGE);
+      case CONTRACT_SPLIT_DUE_TO_CAPACITY_UPDATE ->
+          new StatusResponse()
+              .message("Previous contract archived and new contract created")
+              .status(SUCCESS_MESSAGE);
+      case NEW_CONTRACT_CREATED ->
+          new StatusResponse().message("New contract created").status(SUCCESS_MESSAGE);
+    };
+  }
 
+  public ContractMessageProcessingResult processContract(PartnerEntitlementContract contract) {
     if (!validPartnerEntitlementContract(contract)) {
-      statusResponse.setMessage("Empty value found in UMB message");
-      statusResponse.setStatus(FAILURE_MESSAGE);
       log.info("Empty value found in UMB message {}", contract);
-      return statusResponse;
+      return ContractMessageProcessingResult.INVALID_MESSAGE_UNPROCESSED;
     }
 
     ContractEntity entity;
-    String billingProviderId = null;
     try {
       // Fill up information from upstream and swatch
       entity = mapper.partnerContractToContractEntity(contract);
       collectMissingUpStreamContractDetails(entity, contract);
-      billingProviderId = mapper.extractBillingProviderId(contract.getCloudIdentifiers());
+      if (entity.getOrgId() == null) {
+        return ContractMessageProcessingResult.RH_ORG_NOT_ASSOCIATED;
+      }
       if (!isValidEntity(entity)) {
-        statusResponse.setMessage("Empty value in non-null fields");
-        statusResponse.setStatus(FAILURE_MESSAGE);
         log.warn("Empty value in non-null fields for contract entity {}", entity);
-        return statusResponse;
+        return ContractMessageProcessingResult.CONTRACT_DETAILS_MISSING;
       }
     } catch (NumberFormatException e) {
       log.error(e.getMessage());
-      statusResponse.setMessage("An Error occurred while reconciling contract");
-      statusResponse.setStatus(FAILURE_MESSAGE);
-      return statusResponse;
+      return ContractMessageProcessingResult.INVALID_MESSAGE_UNPROCESSED;
     } catch (ProcessingException | ApiException e) {
       log.error(e.getMessage());
-      statusResponse.setMessage("An Error occurred while calling Partner Api");
-      statusResponse.setStatus(FAILURE_MESSAGE);
-      return statusResponse;
+      return ContractMessageProcessingResult.PARTNER_API_FAILURE;
     }
 
-    Optional<ContractEntity> existing = currentlyActiveContract(entity);
-    boolean isDuplicateContract;
-    if (existing.isPresent()) {
-      ContractEntity existingContract = existing.get();
-      isDuplicateContract = isDuplicateContract(entity, existingContract, billingProviderId);
-      if (isDuplicateContract) {
-        log.info(
-            "Duplicate contract found that matches the record for uuid {}",
-            existingContract.getUuid());
-        statusResponse.setMessage("Duplicate record found");
-        statusResponse.setStatus(FAILURE_MESSAGE);
-      } else {
-        // Record found in contract table but, the contract has changed
-        var now = OffsetDateTime.now();
-        persistExistingSubscription(
-            existingContract, billingProviderId, now); // end current subscription
-        persistExistingContract(existingContract, now); // Persist previous contract
-
-        persistContract(entity, now); // Persist new contract
-        log.info("Previous contract archived and new contract created");
-        statusResponse.setStatus(SUCCESS_MESSAGE);
-        statusResponse.setMessage("Previous contract archived and new contract created");
-      }
+    List<ContractEntity> existingContractRecords = findExistingContractRecords(entity);
+    // There may be multiple "versions" of a contract, e.g. if a contract quantity changes.
+    // We should make updates as necessary to each, it's possible to update both the metadata and
+    // the quantity at once.
+    var statuses =
+        existingContractRecords.stream()
+            .map(existing -> updateContractRecord(existing, entity))
+            .toList();
+    if (!statuses.isEmpty()) {
+      return combineStatuses(statuses);
     } else {
       // New contract
-      var now = OffsetDateTime.now();
-      persistSubscription(createSubscriptionForContract(entity, billingProviderId, true), now);
-      persistContract(entity, now);
-      statusResponse.setMessage("New contract created");
-      statusResponse.setStatus(SUCCESS_MESSAGE);
+      if (entity.getSubscriptionNumber() != null) {
+        persistSubscription(createSubscriptionForContract(entity, true));
+      }
+      persistContract(entity, OffsetDateTime.now());
+      return ContractMessageProcessingResult.NEW_CONTRACT_CREATED;
     }
-
-    return statusResponse;
   }
 
-  private void persistExistingSubscription(
-      ContractEntity contract, String billingProviderId, OffsetDateTime now) {
+  private ContractMessageProcessingResult combineStatuses(
+      List<ContractMessageProcessingResult> results) {
+    // Different things happen to the contract records during processing...
+    // Elevate some specific results, logging will have further details of all that happened during
+    // message processing
+    for (var result :
+        List.of(
+            ContractMessageProcessingResult.CONTRACT_SPLIT_DUE_TO_CAPACITY_UPDATE,
+            ContractMessageProcessingResult.METADATA_UPDATED)) {
+      if (results.contains(result)) {
+        return result;
+      }
+    }
+    // Otherwise, just return the first result
+    return results.get(0);
+  }
+
+  private ContractMessageProcessingResult updateContractRecord(
+      ContractEntity existingContract, ContractEntity entity) {
+    if (Objects.equals(entity, existingContract)) {
+      log.info(
+          "Duplicate contract found that matches the record for uuid {}",
+          existingContract.getUuid());
+      return ContractMessageProcessingResult.REDUNDANT_MESSAGE_IGNORED;
+    } else if (isContractQuantityChanged(entity, existingContract)) {
+      // Record found in contract table but the contract quantities or dates have changed
+      if (!Objects.equals(entity.getEndDate(), existingContract.getEndDate())) {
+        // Skip this particular record because it's already been terminated for a quantity change.
+        return ContractMessageProcessingResult.REDUNDANT_MESSAGE_IGNORED;
+      }
+      var now = OffsetDateTime.now();
+      if (existingContract.getSubscriptionNumber() != null) {
+        persistExistingSubscription(existingContract, now); // end current subscription
+        var newSubscription = createSubscriptionForContract(entity, true);
+        newSubscription.setStartDate(now);
+        persistSubscription(newSubscription);
+      }
+      persistExistingContract(existingContract, now); // Persist previous contract
+      entity.setStartDate(now);
+      persistContract(entity, now); // Persist new contract
+      log.info("Previous contract archived and new contract created");
+      return ContractMessageProcessingResult.CONTRACT_SPLIT_DUE_TO_CAPACITY_UPDATE;
+    } else {
+      // Record found in contract table but a non-quantity change occurred (e.g. an identifier was
+      // updated).
+      mapper.updateContract(existingContract, entity);
+      persistContract(existingContract, OffsetDateTime.now());
+      if (existingContract.getSubscriptionNumber() != null) {
+        SubscriptionEntity subscription = createOrUpdateSubscription(existingContract);
+        subscriptionRepository.persist(subscription);
+      }
+      log.info("Contract metadata updated");
+      return ContractMessageProcessingResult.METADATA_UPDATED;
+    }
+  }
+
+  private boolean isContractQuantityChanged(
+      ContractEntity entity, ContractEntity existingContract) {
+    return !Objects.equals(entity.getMetrics(), existingContract.getMetrics());
+  }
+
+  private void persistExistingSubscription(ContractEntity contract, OffsetDateTime now) {
     var subscription =
         subscriptionRepository
             .findOne(SubscriptionEntity.class, SubscriptionEntity.forContract(contract))
-            .orElseGet(() -> createSubscriptionForContract(contract, billingProviderId, true));
+            .orElseGet(() -> createSubscriptionForContract(contract, true));
     subscription.setEndDate(now);
     subscriptionRepository.persist(subscription);
   }
 
+  private SubscriptionEntity createOrUpdateSubscription(ContractEntity contract) {
+    Optional<SubscriptionEntity> existingSubscription =
+        subscriptionRepository
+            .find(SubscriptionEntity.class, SubscriptionEntity.forContract(contract))
+            .stream()
+            .findFirst();
+    if (existingSubscription.isEmpty()) {
+      return createSubscriptionForContract(contract, true);
+    } else {
+      updateSubscriptionForContract(existingSubscription.get(), contract);
+      return existingSubscription.get();
+    }
+  }
+
   private SubscriptionEntity createSubscriptionForContract(
-      ContractEntity contract, String billingProviderId, boolean lookupSubscriptionId) {
+      ContractEntity contract, boolean lookupSubscriptionId) {
     var subscription = new SubscriptionEntity();
-    mapper.mapContractEntityToSubscriptionEntity(subscription, contract);
+    subscription.setStartDate(contract.getStartDate());
+    updateSubscriptionForContract(subscription, contract);
+    if (lookupSubscriptionId) {
+      subscription.setSubscriptionId(lookupSubscriptionId(contract.getSubscriptionNumber()));
+    }
+    return subscription;
+  }
+
+  private void updateSubscriptionForContract(
+      SubscriptionEntity subscription, ContractEntity contract) {
+    mapper.updateSubscriptionEntityFromContractEntity(subscription, contract);
     measurementMetricIdTransformer.translateContractMetricIdsToSubscriptionMetricIds(subscription);
     if (subscription.getSubscriptionMeasurements().size() != contract.getMetrics().size()) {
       measurementMetricIdTransformer.resolveConflictingMetrics(contract);
     }
-    if (lookupSubscriptionId) {
-      subscription.setSubscriptionId(lookupSubscriptionId(contract.getSubscriptionNumber()));
-    }
-    subscription.setBillingProviderId(billingProviderId);
-    return subscription;
   }
 
   private String lookupSubscriptionId(String subscriptionNumber) {
@@ -310,11 +394,11 @@ public class ContractService {
   }
 
   @Transactional
-  public StatusResponse syncContractByOrgId(String contractOrgSync) {
+  public StatusResponse syncContractByOrgId(String contractOrgSync, OffsetDateTime asOfTimestamp) {
     StatusResponse statusResponse = new StatusResponse();
 
     try {
-      var currentContracts = listCurrentlyActiveContractsByOrgId(contractOrgSync);
+      var currentContracts = listCurrentlyActiveContractsByOrgId(contractOrgSync, asOfTimestamp);
 
       if (currentContracts.isEmpty()) {
         log.debug("No active contract for {}", contractOrgSync);
@@ -338,7 +422,9 @@ public class ContractService {
             log.info("Syncing new Contract for {}", contractOrgSync);
             statusResponse.setStatus(SUCCESS_MESSAGE);
             var now = OffsetDateTime.now();
-            persistSubscription(createSubscriptionForContract(entitlementEntity, null, true), now);
+            if (entitlementEntity.getSubscriptionNumber() != null) {
+              persistSubscription(createSubscriptionForContract(entitlementEntity, true));
+            }
             persistContract(entitlementEntity, now);
           } else {
             statusResponse.setStatus(FAILURE_MESSAGE);
@@ -394,8 +480,7 @@ public class ContractService {
 
   private boolean validAzureEntitlementContract(PartnerEntitlementContract contract) {
     return Objects.nonNull(contract.getCloudIdentifiers())
-        && Objects.nonNull(contract.getCloudIdentifiers().getAzureResourceId())
-        && Objects.nonNull(contract.getCloudIdentifiers().getAzureOfferId());
+        && Objects.nonNull(contract.getCloudIdentifiers().getAzureResourceId());
   }
 
   private boolean validAwsEntitlementContract(PartnerEntitlementContract contract) {
@@ -414,7 +499,6 @@ public class ContractService {
   private boolean isValidEntity(ContractEntity entity) {
     // Check all non-null fields
     return Objects.nonNull(entity)
-        && Objects.nonNull(entity.getSubscriptionNumber())
         && Objects.nonNull(entity.getOrgId())
         && Objects.nonNull(entity.getSku())
         && Objects.nonNull(entity.getBillingProvider())
@@ -424,8 +508,7 @@ public class ContractService {
         && !entity.getMetrics().isEmpty();
   }
 
-  private void persistSubscription(SubscriptionEntity subscription, OffsetDateTime now) {
-    subscription.setStartDate(now);
+  private void persistSubscription(SubscriptionEntity subscription) {
     subscriptionRepository.persist(subscription);
   }
 
@@ -435,36 +518,38 @@ public class ContractService {
     }
 
     entity.getMetrics().forEach(f -> f.setContractUuid(entity.getUuid()));
-    entity.setStartDate(now);
     entity.setLastUpdated(now);
     contractRepository.persist(entity);
     log.info("New contract created/updated with UUID {}", entity.getUuid());
   }
 
-  private Optional<ContractEntity> currentlyActiveContract(ContractEntity contract) {
-    var specification =
-        ContractEntity.subscriptionNumberEquals(contract.getSubscriptionNumber())
-            .and(ContractEntity.isActive());
-    return contractRepository.getContracts(specification).stream().findFirst();
+  /**
+   * Locates an existing contract record based on matching identifiers
+   *
+   * @param contract contract having identifiers
+   * @return existing contract record, or null
+   */
+  private List<ContractEntity> findExistingContractRecords(ContractEntity contract) {
+    var specification = ContractEntity.activeDuringTimeRange(contract);
+    if (contract.getBillingProvider().startsWith("aws")) {
+      specification =
+          specification.and(
+              ContractEntity.billingProviderIdEquals(contract.getBillingProviderId()));
+    } else if (contract.getBillingProvider().startsWith("azure")) {
+      specification =
+          specification.and(ContractEntity.azureResourceIdEquals(contract.getAzureResourceId()));
+    } else {
+      throw new UnsupportedOperationException(
+          String.format("Billing provider %s not implemented", contract.getBillingProvider()));
+    }
+    return contractRepository.findContracts(specification).toList();
   }
 
-  private List<ContractEntity> listCurrentlyActiveContractsByOrgId(String orgId) {
+  private List<ContractEntity> listCurrentlyActiveContractsByOrgId(
+      String orgId, OffsetDateTime asOfTimestamp) {
     Specification<ContractEntity> specification =
-        ContractEntity.orgIdEquals(orgId).and(ContractEntity.isActive());
+        ContractEntity.orgIdEquals(orgId).and(ContractEntity.activeOn(asOfTimestamp));
     return contractRepository.getContracts(specification);
-  }
-
-  private boolean isDuplicateContract(
-      ContractEntity newEntity, ContractEntity existing, String newBillingProviderId) {
-    return (Objects.equals(newEntity, existing)
-        && Objects.equals(newBillingProviderId, getSubscriptionBillingProviderId(existing)));
-  }
-
-  private String getSubscriptionBillingProviderId(ContractEntity contractEntity) {
-    return subscriptionRepository
-        .findOne(SubscriptionEntity.class, SubscriptionEntity.forContract(contractEntity))
-        .map(SubscriptionEntity::getBillingProviderId)
-        .orElse(null);
   }
 
   private ContractEntity transformEntitlementToContractEntity( // NOSONAR
@@ -541,7 +626,6 @@ public class ContractService {
       // azureResourceId is a unique identifier per SaaS purchase,
       // so it should be sufficient by itself
       customerAccountId = contract.getCloudIdentifiers().getAzureResourceId();
-      entity.setBillingAccountId(extractAzureTenantId(contract.getCloudIdentifiers()));
       if (Objects.nonNull(contract.getCloudIdentifiers()) && Objects.nonNull(customerAccountId)) {
         // get the entitlement query from partner api for azure marketplace
         PageRequest page = new PageRequest();
@@ -574,10 +658,15 @@ public class ContractService {
         && Objects.nonNull(result.getContent().get(0))) {
       var entitlement = result.getContent().get(0);
 
+      if (Objects.equals(entitlement.getSourcePartner(), SourcePartnerEnum.AWS_MARKETPLACE)) {
+        entity.setBillingProviderId(
+            String.format(
+                "%s;%s;%s",
+                entitlement.getPurchase().getVendorProductCode(),
+                entitlement.getPartnerIdentities().getAwsCustomerId(),
+                entitlement.getPartnerIdentities().getSellerAccountId()));
+      }
       mapper.mapRhEntitlementsToContractEntity(entity, entitlement);
-      entity.setBillingProvider(
-          ContractSourcePartnerEnum.getByCode(entitlement.getSourcePartner().value()));
-      enhanceAzureBillingAccountId(entity, entitlement);
 
       var dimensionV1s =
           entitlement.getPurchase().getContracts().stream()
@@ -614,25 +703,5 @@ public class ContractService {
         log.error("Unable to connect to swatch api to get product tags");
       }
     }
-  }
-
-  private String extractAzureTenantId(PartnerEntitlementContractCloudIdentifiers code) {
-    return Objects.equals("azure_marketplace", code.getPartner()) ? code.getAzureTenantId() : null;
-  }
-
-  private void enhanceAzureBillingAccountId(
-      ContractEntity contractEntity, PartnerEntitlementV1 entitlementV1) {
-    var azureSubscriptionId = extractAzureSubscriptionId(entitlementV1);
-    if (azureSubscriptionId.isPresent()) {
-      var azureTenantId = contractEntity.getBillingAccountId();
-      contractEntity.setBillingAccountId(
-          String.format("%s;%s", azureTenantId, azureSubscriptionId));
-    }
-  }
-
-  private Optional<String> extractAzureSubscriptionId(PartnerEntitlementV1 entitlementV1) {
-    return Optional.ofNullable(entitlementV1)
-        .map(PartnerEntitlementV1::getPartnerIdentities)
-        .map(PartnerIdentityV1::getAzureSubscriptionId);
   }
 }

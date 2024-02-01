@@ -26,12 +26,15 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import com.redhat.swatch.contract.PathUtils;
 import io.quarkus.test.common.QuarkusTestResourceConfigurableLifecycleManager;
+import jakarta.inject.Inject;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Map;
 
 public class WireMockResource
@@ -62,12 +65,34 @@ public class WireMockResource
                 .notifier(new ConsoleNotifier(true)));
     stubApis();
     wireMockServer.start();
-    return Map.of(
-        "KEYSTORE_RESOURCE", String.format("file:%s", CLIENT_KEYSTORE_PATH),
-        "KEYSTORE_PASSWORD", STORE_PASSWORD,
-        "TRUSTSTORE_RESOURCE", String.format("file:%s", TRUSTSTORE_PATH),
-        "TRUSTSTORE_PASSWORD", STORE_PASSWORD,
+    // allow static stubbing methods for this thread
+    WireMock.configureFor(new WireMock(wireMockServer));
+    // setup static wiremock methods to affect this wiremock server
+    WireMock.configureFor("localhost", wireMockServer.httpsPort());
+    var config = new HashMap<String, String>();
+    config.put("KEYSTORE_RESOURCE", String.format("file:%s", CLIENT_KEYSTORE_PATH));
+    config.put("KEYSTORE_PASSWORD", STORE_PASSWORD);
+    config.put("TRUSTSTORE_RESOURCE", String.format("file:%s", TRUSTSTORE_PATH));
+    config.put("TRUSTSTORE_PASSWORD", STORE_PASSWORD);
+    config.put(
         "ENTITLEMENT_GATEWAY_URL", String.format("%s/mock/partnerApi", wireMockServer.baseUrl()));
+    config.put("SUBSCRIPTION_URL", String.format("%s/mock/subscription", wireMockServer.baseUrl()));
+    config.put(
+        "quarkus.rest-client.\"com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi\".url",
+        String.format("%s/mock/internalSubs", wireMockServer.baseUrl()));
+    config.put(
+        "quarkus.rest-client.\"com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi\".key-store",
+        String.format("file:%s", CLIENT_KEYSTORE_PATH));
+    config.put(
+        "quarkus.rest-client.\"com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi\".key-store-password",
+        STORE_PASSWORD);
+    config.put(
+        "quarkus.rest-client.\"com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi\".trust-store",
+        String.format("file:%s", TRUSTSTORE_PATH));
+    config.put(
+        "quarkus.rest-client.\"com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi\".trust-store-password",
+        STORE_PASSWORD);
+    return config;
   }
 
   private void stubApis() {
@@ -151,7 +176,7 @@ public class WireMockResource
                                       "status": "STATUS",
                                       "entitlementDates": {
                                         "startDate": "2023-03-17T12:29:48.569Z",
-                                        "endDate": "2023-03-17T12:29:48.569Z"
+                                        "endDate": "2024-03-17T12:29:48.569Z"
                                       }
                                     },
                                     {
@@ -187,7 +212,7 @@ public class WireMockResource
                                      "status": "UNSUBSCRIBED",
                                      "entitlementDates": {
                                          "startDate": "2023-06-09T13:59:43.035365Z",
-                                         "endDate": "2023-06-09T19:37:46.651363Z"
+                                         "endDate": "2024-06-09T19:37:46.651363Z"
                                      }
                                  }
                                 ],
@@ -237,5 +262,14 @@ public class WireMockResource
   @Override
   public void stop() {
     wireMockServer.stop();
+  }
+
+  @Override
+  public void inject(TestInjector testInjector) {
+    testInjector.injectIntoFields(
+        wireMockServer,
+        new TestInjector.AnnotatedAndMatchesType(Inject.class, WireMockServer.class));
+    // allow static stubbing methods for test threads
+    WireMock.configureFor(new WireMock(wireMockServer));
   }
 }
