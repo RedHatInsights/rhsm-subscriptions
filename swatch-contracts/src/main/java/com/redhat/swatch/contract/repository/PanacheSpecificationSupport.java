@@ -22,8 +22,10 @@ package com.redhat.swatch.contract.repository;
 
 import io.quarkus.hibernate.orm.panache.PanacheRepositoryBase;
 import io.quarkus.panache.common.Page;
+import jakarta.persistence.TypedQuery;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * Mixin providing specification support to Panache-based repositories.
@@ -36,6 +38,11 @@ import java.util.Optional;
 @SuppressWarnings("java:S119") // Sonar doesn't like the generic type names
 public interface PanacheSpecificationSupport<Entity, Id> extends PanacheRepositoryBase<Entity, Id> {
   default List<Entity> find(Class<Entity> clazz, Specification<Entity> specification, Page page) {
+    return query(clazz, specification, page).getResultList();
+  }
+
+  default TypedQuery<Entity> query(
+      Class<Entity> clazz, Specification<Entity> specification, Page page) {
     var entityManager = getEntityManager();
     var criteriaBuilder = entityManager.getCriteriaBuilder();
     var criteriaQuery = criteriaBuilder.createQuery(clazz);
@@ -46,7 +53,11 @@ public interface PanacheSpecificationSupport<Entity, Id> extends PanacheReposito
       query.setMaxResults(page.size);
       query.setFirstResult(page.index * page.size);
     }
-    return query.getResultList();
+    return query;
+  }
+
+  default Stream<Entity> stream(Class<Entity> clazz, Specification<Entity> specification) {
+    return query(clazz, specification, null).getResultStream();
   }
 
   default List<Entity> find(Class<Entity> clazz, Specification<Entity> specification) {
@@ -54,6 +65,6 @@ public interface PanacheSpecificationSupport<Entity, Id> extends PanacheReposito
   }
 
   default Optional<Entity> findOne(Class<Entity> clazz, Specification<Entity> specification) {
-    return find(clazz, specification, null).stream().findFirst();
+    return query(clazz, specification, Page.of(0, 1)).getResultStream().findFirst();
   }
 }

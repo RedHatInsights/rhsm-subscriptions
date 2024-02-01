@@ -20,6 +20,9 @@
  */
 package com.redhat.swatch.contract.service;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -27,20 +30,21 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.DimensionV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1.SourcePartnerEnum;
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1EntitlementDates;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlements;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerIdentityV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.PurchaseV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.RhEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.SaasContractV1;
-import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
 import com.redhat.swatch.clients.subscription.api.model.Subscription;
 import com.redhat.swatch.clients.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
@@ -87,6 +91,7 @@ class ContractServiceTest extends BaseUnitTest {
   private static final String SUBSCRIPTION_NUMBER = "subs123";
 
   @Inject ContractService contractService;
+  @Inject ObjectMapper objectMapper;
   @InjectSpy ContractRepository contractRepository;
   @InjectMock OfferingRepository offeringRepository;
   @InjectMock SubscriptionRepository subscriptionRepository;
@@ -155,7 +160,7 @@ class ContractServiceTest extends BaseUnitTest {
   void whenInvalidPartnerContract_DoNotPersist() {
     var contract = givenPartnerEntitlementContractWithoutProductCode();
     StatusResponse statusResponse = contractService.createPartnerContract(contract);
-    assertEquals("Empty value found in UMB message", statusResponse.getMessage());
+    assertEquals("Bad message, see logs for details", statusResponse.getMessage());
   }
 
   @Test
@@ -176,18 +181,7 @@ class ContractServiceTest extends BaseUnitTest {
     contractService.createPartnerContract(request);
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
-    assertEquals("Duplicate record found", statusResponse.getMessage());
-  }
-
-  @Test
-  void testCreatePartnerContractNewBillingProviderIdPersist() {
-    PartnerEntitlementContract request = givenPartnerEntitlementContractRequest();
-    contractService.createPartnerContract(request);
-
-    givenExistingSubscription("new:new:new");
-    StatusResponse statusResponse = contractService.createPartnerContract(request);
-    assertEquals(
-        "Previous contract archived and new contract created", statusResponse.getMessage());
+    assertEquals("Redundant message ignored", statusResponse.getMessage());
   }
 
   @Test
@@ -203,13 +197,14 @@ class ContractServiceTest extends BaseUnitTest {
     givenExistingSubscription("dupeId;dupeId;dupeId");
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
-    assertEquals("Duplicate record found", statusResponse.getMessage());
+    assertEquals("Redundant message ignored", statusResponse.getMessage());
   }
 
   @Test
   void syncContractWithExistingAndNewContracts() {
     givenExistingContract();
-    StatusResponse statusResponse = contractService.syncContractByOrgId(ORG_ID);
+    StatusResponse statusResponse =
+        contractService.syncContractByOrgId(ORG_ID, OffsetDateTime.parse("2024-01-01T00:00Z"));
     assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
     // 2 instances of subscription are created, one for the original contract, and one for the
     // update
@@ -220,7 +215,8 @@ class ContractServiceTest extends BaseUnitTest {
 
   @Test
   void syncContractWithEmptyContractsList() {
-    StatusResponse statusResponse = contractService.syncContractByOrgId(ORG_ID);
+    StatusResponse statusResponse =
+        contractService.syncContractByOrgId(ORG_ID, OffsetDateTime.parse("2024-01-01T00:00Z"));
     assertEquals(ORG_ID + " not found in table", statusResponse.getMessage());
   }
 
@@ -389,9 +385,10 @@ class ContractServiceTest extends BaseUnitTest {
     Contract contractRequest = new Contract();
     contractRequest.setUuid(UUID.randomUUID().toString());
     contractRequest.setBillingAccountId("billAcct123");
-    contractRequest.setStartDate(OffsetDateTime.now());
-    contractRequest.setEndDate(OffsetDateTime.now());
+    contractRequest.setStartDate(OffsetDateTime.parse("2023-03-17T12:29:48.569Z"));
+    contractRequest.setEndDate(OffsetDateTime.parse("2024-03-17T12:29:48.569Z"));
     contractRequest.setBillingProvider("test123");
+    contractRequest.setBillingProviderId("1234567890abcdefghijklmno;HSwCpt6sqkC;568056954830");
     contractRequest.setSku("BAS123");
     contractRequest.setProductId(PRODUCT_ID);
     contractRequest.setVendorProductCode("product123");
@@ -427,11 +424,13 @@ class ContractServiceTest extends BaseUnitTest {
     when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
   }
 
-  // TODO: this is not being used because of wiremocks, either need to remove or replace wiremock
   private void mockPartnerApi() throws Exception {
-    PartnerApi partnerApi = mock(PartnerApi.class);
     var entitlement =
         new PartnerEntitlementV1()
+            .entitlementDates(
+                new PartnerEntitlementV1EntitlementDates()
+                    .startDate(OffsetDateTime.parse("2023-03-17T12:29:48.569Z"))
+                    .endDate(OffsetDateTime.parse("2024-03-17T12:29:48.569Z")))
             .rhAccountId("7186626")
             .sourcePartner(SourcePartnerEnum.AZURE_MARKETPLACE)
             .partnerIdentities(
@@ -456,6 +455,11 @@ class ContractServiceTest extends BaseUnitTest {
     OfferingProductTags productTags = new OfferingProductTags();
     productTags.data(List.of("MCT4249"));
     when(syncService.getOfferingProductTags(any())).thenReturn(productTags);
-    when(partnerApi.getPartnerEntitlements(any())).thenReturn(azureQuery);
+    stubFor(
+        WireMock.any(urlMatching("/mock/partnerApi/v1/partnerSubscriptions"))
+            .willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(objectMapper.writeValueAsString(azureQuery))));
   }
 }
