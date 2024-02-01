@@ -23,20 +23,15 @@ package com.redhat.swatch.metrics.service;
 import static com.redhat.swatch.metrics.util.MeteringEventFactory.createCleanUpEvent;
 
 import com.redhat.swatch.clients.prometheus.api.model.QueryResultDataResultInner;
-import com.redhat.swatch.clients.prometheus.api.model.StatusType;
 import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.metrics.configuration.MetricProperties;
-import com.redhat.swatch.metrics.exception.MeteringException;
 import com.redhat.swatch.metrics.service.prometheus.PrometheusService;
-import com.redhat.swatch.metrics.service.prometheus.model.QuerySummaryResult;
 import com.redhat.swatch.metrics.service.promql.QueryBuilder;
 import com.redhat.swatch.metrics.service.promql.QueryDescriptor;
 import com.redhat.swatch.metrics.util.MeteringEventFactory;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
-import io.micrometer.core.instrument.Timer.Sample;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.BadRequestException;
@@ -44,7 +39,6 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -154,37 +148,13 @@ public class PrometheusMeteringController {
       AtomicInteger counter) {
     try {
       log.info("Collecting metrics for orgId={}: {} {}", orgId, tag, metric);
-      Sample sample = Timer.start(registry);
-      Set<EventKey> eventsSent = new HashSet<>();
-      QuerySummaryResult metricData =
-          prometheusService.runRangeQuery(
-              buildPromQLForMetering(orgId, metric),
-              start,
-              end,
-              metricProperties.step(),
-              metricProperties.queryTimeout(),
-              item ->
-                  createEventFromDataAndSend(
-                      item, eventsSent, tag, orgId, meteringBatchId, metric, subDef));
-
-      if (StatusType.ERROR.equals(metricData.getStatus())) {
-        throw new MeteringException(
-            String.format(
-                "Unable to fetch %s %s %s metrics: %s",
-                tag, instanceKey, metric, metricData.getError()));
+      // simulate long task:
+      try {
+        Thread.sleep(100000);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
       }
-      sample.stop(
-          registry.timer(
-              "metrics.collection.timer",
-              "productTag",
-              tag,
-              "status",
-              metricData.getStatus().toString()));
 
-      log.info("Sent {} events for {} {} metrics.", eventsSent.size(), tag, metric);
-      // Send event to delete any stale events found during the period
-      sendCleanUpEvent(
-          tag, orgId, metric, start.minusSeconds(metricProperties.step()), end, meteringBatchId);
     } catch (Exception e) {
       log.warn(
           "Exception thrown while updating {} {} {} metrics. [Attempt: {}]: {}",
