@@ -27,6 +27,7 @@ import com.redhat.swatch.clients.prometheus.api.model.StatusType;
 import com.redhat.swatch.configuration.registry.Metric;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.kafka.EmitterService;
 import com.redhat.swatch.metrics.configuration.MetricProperties;
 import com.redhat.swatch.metrics.exception.MeteringException;
 import com.redhat.swatch.metrics.service.prometheus.PrometheusService;
@@ -71,7 +72,7 @@ public class PrometheusMeteringController {
   private static final String PROMETHEUS_QUERY_PARAM_INSTANCE_KEY = "instanceKey";
 
   private final PrometheusService prometheusService;
-  private final Emitter<BaseEvent> emitter;
+  private final EmitterService<BaseEvent> emitter;
   private final ApplicationClock clock;
   private final MetricProperties metricProperties;
   private final SpanGenerator spanGenerator;
@@ -92,7 +93,7 @@ public class PrometheusMeteringController {
     this.spanGenerator = spanGenerator;
     this.prometheusQueryBuilder = prometheusQueryBuilder;
     this.registry = registry;
-    this.emitter = emitter;
+    this.emitter = new EmitterService<>(emitter);
   }
 
   public void collectMetrics(
