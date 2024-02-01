@@ -135,6 +135,9 @@ mp:
         # it does not properly resolve `${...}` properties.
         # This should be fixed by https://github.com/RedHatInsights/clowder-quarkus-config-source/pull/181
         topic: ${METERING_TASK_TOPIC}
+        throttled:
+          unprocessed-record-max-age:
+            ms: 120000
         fail-on-deserialization-failure: ${METRICS_IN_FAIL_ON_DESER_FAILURE}
         auto:
           offset:
