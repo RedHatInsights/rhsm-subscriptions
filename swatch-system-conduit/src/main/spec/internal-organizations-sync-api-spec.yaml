@@ -287,6 +287,11 @@ components:
           type: string
         is_marketplace:
           type: boolean
+        provider_id:
+          type: string
+        provider_type:
+          type: string
+          enum: [ aws, azure, gcp ]
     DefaultResponse:
       properties:
         status:

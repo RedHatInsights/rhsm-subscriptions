@@ -31,10 +31,12 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.conduit.inventory.ConduitFacts;
 import org.candlepin.subscriptions.conduit.inventory.InventoryServiceProperties;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiFactSet;
+import org.candlepin.subscriptions.utilization.api.model.ConsumerInventory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -96,6 +98,8 @@ class KafkaEnabledInventoryServiceTest {
     expectedFacts.setOsVersion("6.3");
     expectedFacts.setNumberOfCpus(NUMBER_OF_CPUS);
     expectedFacts.setThreadsPerCore(THREADS_PER_CORE);
+    expectedFacts.setProviderType(ConsumerInventory.ProviderTypeEnum.AZURE);
+    expectedFacts.setProviderId(UUID.randomUUID().toString());
 
     InventoryServiceProperties props = new InventoryServiceProperties();
     props.setKafkaHostIngressTopic("placeholder");
@@ -129,6 +133,8 @@ class KafkaEnabledInventoryServiceTest {
     assertEquals(3, message.getData().getSystemProfile().getOperatingSystem().getMinor());
     assertEquals(NUMBER_OF_CPUS, message.getData().getSystemProfile().getNumberOfCpus());
     assertEquals(THREADS_PER_CORE, message.getData().getSystemProfile().getThreadsPerCore());
+    assertEquals(expectedFacts.getProviderId(), message.getData().getProviderId());
+    assertEquals(expectedFacts.getProviderType(), message.getData().getProviderType());
   }
 
   @Test

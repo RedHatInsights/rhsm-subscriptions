@@ -69,6 +69,7 @@ public class StubRhsmApi extends RhsmApi {
     consumer1.getFacts().put("cpu.core(s)_per_socket", "2");
     consumer1.getFacts().put("cpu.cpu(s)", "3");
     consumer1.getFacts().put("cpu.thread(s)_per_core", "5");
+    consumer1.getFacts().put("aws_instance_id", "123456");
 
     consumer1.getFacts().put("memory.memtotal", "32757812");
     consumer1.getFacts().put("uname.machine", "x86_64");
