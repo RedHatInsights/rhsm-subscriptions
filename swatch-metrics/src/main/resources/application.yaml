@@ -159,6 +159,9 @@ mp:
         # it does not properly resolve `${...}` properties.
         # This should be fixed by https://github.com/RedHatInsights/clowder-quarkus-config-source/pull/181
         topic: ${SERVICE_INSTANCE_INGRESS_TOPIC}
+        # Workaround for https://github.com/smallrye/smallrye-reactive-messaging/issues/2465
+        # where 128 is the current default value for the buffer size
+        max-inflight-messages: 128
         value:
           serializer: io.quarkus.kafka.client.serialization.ObjectMapperSerializer
 
