@@ -254,4 +254,19 @@ public class BillableUsageController {
         ending,
         measurementKey);
   }
+
+  public void updateBillableUsageRemittanceWithRetryAfter(
+      BillableUsage billableUsage, OffsetDateTime retryAfter) {
+    var billableUsageRemittance =
+        billableUsageRemittanceRepository.findById(
+            BillableUsageRemittanceEntityPK.keyFrom(
+                billableUsage, billableUsage.getSnapshotDate()));
+    if (billableUsageRemittance.isPresent()) {
+      billableUsageRemittance.get().setRetryAfter(retryAfter);
+      billableUsageRemittanceRepository.save(billableUsageRemittance.get());
+    } else {
+      log.warn(
+          "Unable to find billable usage to update retry_after. BillableUsage: {}", billableUsage);
+    }
+  }
 }
