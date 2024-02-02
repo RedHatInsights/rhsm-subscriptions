@@ -9,6 +9,8 @@ services:
       - POSTGRESQL_ADMIN_PASSWORD=admin
     volumes:
       - ./init_dbs.sh:/usr/share/container-scripts/postgresql/start/set_passwords.sh:z
+      - ./postgresql.conf:/opt/app-root/src/postgresql-cfg/postgresql.conf:z
+      - ./pg_hba.conf:/pg_hba.conf:z
     ports:
       - "5432:5432"
   kafka:
