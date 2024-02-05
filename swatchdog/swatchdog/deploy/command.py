@@ -104,50 +104,6 @@ def ee(ctx, swatch: SwatchContext, ee_token: str):
 
 
 @ee.command()
-# TODO allow passage of a gradle coordinate to build a specific project and pass that
-#   down to the selection dialog in deploy so only the artifacts built are shown
-@click.option("-c", "--clean", type=bool, default=True, show_default=True)
-@pass_swatch
-@click.pass_context
-def build(ctx, swatch: SwatchContext, clean: bool):
-    c = InvokeContext(invoke_config)
-    project_root: str = ctx["project_root"]
-    clean_arg = ""
-    if clean:
-        clean_arg = "clean"
-
-    with c.cd(project_root):
-        info("Running build")
-        try:
-            results: t.List = []
-            version_scraper = GradleWatcher(
-                # Use a positive lookbehind to avoid pulling the "Inferred project"
-                # into the match
-                pattern=r"(?<=Inferred project:).*",
-                results=results,
-            )
-            c.run(f"./gradlew {clean_arg} assemble", watchers=[version_scraper])
-        except UnexpectedExit as e:
-            err("Build failed")
-            sys.exit(e.result.exited)
-
-    # TODO Handle multiple results in the future
-    if len(version_scraper.results) != 1:
-        raise SwatchDogError("Build did not result in a single version")
-    else:
-        version = results[0]
-        match = re.search(r".*, version:\s+(?P<version>\S+)", version)
-        ctx.obj["artifacts"] = find_artifacts(project_root, match.group("version"))
-        ctx.obj["version"] = match.group("version")
-
-
-def find_artifacts(project_root, version) -> t.List:
-    search_glob = f"{project_root}{os.sep}**{os.sep}*{version}.jar"
-    info(f"Searching for {search_glob}")
-    return glob.glob(search_glob, root_dir=project_root, recursive=True)
-
-
-@ee.command()
 @click.option("--clean/--no-clean", default=True)
 @click.option("-p", "--pod-prefix", type=str)
 @click.option("--project", type=str)
@@ -300,14 +256,3 @@ def choose_pods(pod_prefix: str) -> openshift.Selector:
         pod_choices.keys(), query=pod_prefix, multi=True, __extra__=["--header", header]
     )
     return openshift.selector([pod_choices[x] for x in selections])
-
-
-def choose_artifact(display_artifacts) -> str:
-    # Extracting this to a method in case we want to change how this selection is
-    # performed.  There are several other promising libraries: bullet,
-    # simple-term-menu, console-menu but none of them yet offer the unique
-    # combination of features that I want.  Namely, a fuzzy searching functionality
-    # coupled with arrow key selections.  I feel like those two put together are the
-    # fastest way to make a selection, especially on a long list.
-    choice = iterfzf.iterfzf(display_artifacts.keys(), query="build/libs/")
-    return display_artifacts[choice]
