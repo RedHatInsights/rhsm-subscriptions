@@ -33,12 +33,16 @@ import org.apache.kafka.streams.kstream.internals.suppress.StrictBufferConfigImp
 import org.apache.kafka.streams.state.KeyValueBytesStoreSupplier;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.Stores;
+import org.apache.kafka.streams.state.WindowBytesStoreSupplier;
 import org.apache.kafka.streams.state.WindowStore;
 
 @ApplicationScoped
 public class StreamTopologyProducer {
 
   static final String BILLABLE_USAGE_STORE = "billable-usage-store";
+
+  static final String BILLABLE_USAGE_SUPPRESS_STORE = "billable-usage-suppress";
+
 
   private static final String BILLABLE_USAGE_TOPIC = "platform.rhsm-subscriptions.billable-usage";
 
@@ -49,10 +53,11 @@ public class StreamTopologyProducer {
   public Topology buildTopology() {
     StreamsBuilder builder = new StreamsBuilder();
 
+    Duration duration = Duration.ofMinutes(1);
+
     ObjectMapperSerde<BillableUsage> billableUsageSerde = new ObjectMapperSerde<>(
         BillableUsage.class);
-    //var windowedAggregationKeySerde = WindowedSerdes.timeWindowedSerdeFrom(BillableUsageAggregationKey.class, TimeWindows.ofSizeWithNoGrace(Duration.ofSeconds(10)).size());
-   var aggregationKeySerde = new ObjectMapperSerde<>(BillableUsageAggregationKey.class);
+    var aggregationKeySerde = new ObjectMapperSerde<>(BillableUsageAggregationKey.class);
     ObjectMapperSerde<BillableUsageAggregation> aggregationSerde = new ObjectMapperSerde<>(BillableUsageAggregation.class);
 
     KeyValueBytesStoreSupplier storeSupplier = Stores.persistentTimestampedKeyValueStore(
@@ -68,14 +73,16 @@ public class StreamTopologyProducer {
         .aggregate(
             BillableUsageAggregation::new,
             (key, value, billableUsageAggregation) -> billableUsageAggregation.updateFrom(value),
-            Materialized.<BillableUsageAggregationKey, BillableUsageAggregation, WindowStore<Bytes, byte[]>>as(storeSupplier.name())
+            Materialized.<BillableUsageAggregationKey, BillableUsageAggregation, WindowStore<Bytes, byte[]>>as(BILLABLE_USAGE_STORE)
                 .withKeySerde(aggregationKeySerde)
                 .withValueSerde(aggregationSerde)
+                //we don't need a changelog topic for this since they will be stored in the suppress state store
+                .withLoggingDisabled()
         )
         //Need some analysis on BufferConfig size
-        .suppress(Suppressed.untilWindowCloses(BufferConfig.unbounded()))
+        .suppress(Suppressed.untilWindowCloses(BufferConfig.unbounded()).withName(BILLABLE_USAGE_SUPPRESS_STORE))
         .toStream()
-        .process(new BillableUsageAggregateProcessorSupplier(billableUsageConsumer), storeSupplier.name());
+        .process(new BillableUsageAggregateProcessorSupplier(billableUsageConsumer));
 
     return builder.build();
   }
