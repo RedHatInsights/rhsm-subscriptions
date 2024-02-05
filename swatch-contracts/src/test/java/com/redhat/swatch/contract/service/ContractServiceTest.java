@@ -171,6 +171,7 @@ class ContractServiceTest extends BaseUnitTest {
     PartnerEntitlementContract request = givenPartnerEntitlementContractRequest();
 
     StatusResponse statusResponse = contractService.createPartnerContract(request);
+    verify(subscriptionRepository, times(3)).persist(any(SubscriptionEntity.class));
     assertEquals(
         "Previous contract archived and new contract created", statusResponse.getMessage());
   }
