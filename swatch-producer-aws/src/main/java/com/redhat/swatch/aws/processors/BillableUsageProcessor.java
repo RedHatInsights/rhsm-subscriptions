@@ -157,10 +157,10 @@ public class BillableUsageProcessor {
       return internalSubscriptionsApi.getAwsUsageContext(
           billableUsage.getSnapshotDate(),
           billableUsage.getProductId(),
-          Optional.ofNullable(billableUsage.getBillingAccountId()).orElse("_ANY"),
           billableUsage.getOrgId(),
           Optional.ofNullable(billableUsage.getSla()).map(SlaEnum::value).orElse(null),
-          Optional.ofNullable(billableUsage.getUsage()).map(UsageEnum::value).orElse(null));
+          Optional.ofNullable(billableUsage.getUsage()).map(UsageEnum::value).orElse(null),
+          Optional.ofNullable(billableUsage.getBillingAccountId()).orElse("_ANY"));
     } catch (DefaultApiException e) {
       var optionalErrors = Optional.ofNullable(e.getErrors());
       if (optionalErrors.isPresent()) {
