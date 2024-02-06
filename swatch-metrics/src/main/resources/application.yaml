@@ -142,6 +142,9 @@ mp:
         auto:
           offset:
             reset: earliest
+        enable:
+          auto:
+            commit: true
         value:
           deserializer: com.redhat.swatch.metrics.service.json.MetricsTaskDescriptorDeserializer
     outgoing:
