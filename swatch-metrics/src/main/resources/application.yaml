@@ -19,7 +19,7 @@ SERVICE_INSTANCE_INGRESS_TOPIC: platform.rhsm-subscriptions.service-instance-ing
   SWATCH_SELF_PSK: placeholder
   ENABLE_SPLUNK_HEC: false
   SPLUNK_HEC_URL: https://splunk-hec.prod.utility-us-east-2.redhat.com:8088/
-  SPLUNKMETA_host: ${USER}@${HOSTNAME}
+  HOST_NAME: ${USER}@${HOSTNAME}
   SPLUNKMETA_namespace: local
   SPLUNK_HEC_INCLUDE_EX: true
   quarkus:
@@ -31,7 +31,7 @@ SERVICE_INSTANCE_INGRESS_TOPIC: platform.rhsm-subscriptions.service-instance-ing
 "%test":
   SWATCH_SELF_PSK: ${%dev.SWATCH_SELF_PSK}
   ENABLE_SPLUNK_HEC: ${%dev.ENABLE_SPLUNK_HEC}
-  SPLUNKMETA_host: unit_tests
+  HOST_NAME: unit_tests
   quarkus:
     log:
       console:
@@ -77,7 +77,7 @@ quarkus:
         metadata-source: ${SPLUNK_SOURCE:swatch-metrics}
         max-retries: ${SPLUNK_HEC_RETRY_COUNT:0}
         metadata-source-type: ${SPLUNK_SOURCE_TYPE:quarkus_service}
-        metadata-host: ${SPLUNKMETA_host:${USER}@${HOSTNAME}}
+        metadata-host: ${HOST_NAME:${USER}@${HOSTNAME}}
         metadata-fields:
           namespace: ${SPLUNKMETA_namespace:local}
         token: ${SPLUNK_HEC_TOKEN:replaceme}
