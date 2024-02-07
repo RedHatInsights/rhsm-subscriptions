@@ -35,9 +35,11 @@ import com.redhat.swatch.metrics.service.prometheus.model.QuerySummaryResult;
 import com.redhat.swatch.metrics.service.promql.QueryBuilder;
 import com.redhat.swatch.metrics.service.promql.QueryDescriptor;
 import com.redhat.swatch.metrics.util.MeteringEventFactory;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.Timer.Sample;
+import io.micrometer.core.instrument.binder.BaseUnits;
 import io.smallrye.reactive.messaging.kafka.api.OutgoingKafkaRecordMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.BadRequestException;
@@ -71,6 +73,7 @@ import org.eclipse.microprofile.reactive.messaging.Message;
 public class PrometheusMeteringController {
 
   private static final String PROMETHEUS_QUERY_PARAM_INSTANCE_KEY = "instanceKey";
+  private static final String PRODUCT_TAG = "productTag";
 
   private final PrometheusService prometheusService;
   private final EmitterService<BaseEvent> emitter;
@@ -175,13 +178,8 @@ public class PrometheusMeteringController {
                 "Unable to fetch %s %s %s metrics: %s",
                 tag, instanceKey, metric, metricData.getError()));
       }
-      sample.stop(
-          registry.timer(
-              "metrics.collection.timer",
-              "productTag",
-              tag,
-              "status",
-              metricData.getStatus().toString()));
+
+      updateMetrics(tag, sample, metricData, eventsSent);
 
       log.info("Sent {} events for {} {} metrics.", eventsSent.size(), tag, metric);
       // Send event to delete any stale events found during the period
@@ -197,6 +195,22 @@ public class PrometheusMeteringController {
           e.getMessage());
       throw e;
     }
+  }
+
+  private void updateMetrics(
+      String tag, Sample sample, QuerySummaryResult metricData, Set<EventKey> eventsSent) {
+    sample.stop(
+        registry.timer(
+            "metrics.collection.timer",
+            PRODUCT_TAG,
+            tag,
+            "status",
+            metricData.getStatus().toString()));
+
+    Gauge.builder("metrics.events.count", eventsSent::size)
+        .baseUnit(BaseUnits.EVENTS)
+        .tags(PRODUCT_TAG, tag)
+        .register(registry);
   }
 
   private void createEventFromDataAndSend(
