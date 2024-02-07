@@ -9,8 +9,10 @@ services:
       - POSTGRESQL_ADMIN_PASSWORD=admin
     volumes:
       - ./init_dbs.sh:/usr/share/container-scripts/postgresql/start/set_passwords.sh:z
+      - ./postgresql.conf:/opt/app-root/src/postgresql-cfg/postgresql.conf:z
+      - ./pg_hba.conf:/pg_hba.conf:z
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
   kafka:
     image: quay.io/strimzi/kafka:latest-kafka-3.1.0
     command: sh /init_kafka.sh
@@ -31,10 +33,10 @@ services:
         # Note that as of this writing (20 Jul 2022), Kraft mode does not support SCRAM
       - KAFKA_SASL_MECHANISM=PLAIN
     ports:
-      - "9092:9092"
+      - "127.0.0.1:9092:9092"
       # Port 9093 is used by the Kraft configuration
-      - "9094:9094"
-      - "29092:29092"
+      - "127.0.0.1:9094:9094"
+      - "127.0.0.1:29092:29092"
     volumes:
       - ./config/kafka/init_kafka.sh:/init_kafka.sh:z
       - ./config/kafka/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:z
@@ -51,7 +53,7 @@ services:
       - KAFKA_REST_PROXY_URL=http://kafka-rest:8082
       - PROXY=true
     ports:
-      - "3030:8000"
+      - "127.0.0.1:3030:8000"
     depends_on:
       - kafka-rest
   inventory:
