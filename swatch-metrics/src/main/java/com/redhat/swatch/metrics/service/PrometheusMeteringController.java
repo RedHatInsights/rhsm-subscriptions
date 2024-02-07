@@ -43,6 +43,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.BadRequestException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -142,7 +143,7 @@ public class PrometheusMeteringController {
   }
 
   @SuppressWarnings("java:S107")
-  @Retry
+  @Retry(maxDuration = 120, durationUnit = ChronoUnit.SECONDS)
   public void collectMetricsForRange(
       String tag,
       String orgId,
