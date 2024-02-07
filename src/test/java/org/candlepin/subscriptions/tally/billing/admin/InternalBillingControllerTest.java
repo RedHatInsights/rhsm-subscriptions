@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Set;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billing.admin.api.model.MonthlyRemittance;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
@@ -71,9 +72,19 @@ class InternalBillingControllerTest {
         remittance("org345", "product2", BillingProvider.RED_HAT, 8.0, clock.startOfCurrentMonth());
     BillableUsageRemittanceEntity remittance5 =
         remittance("org345", "product3", BillingProvider.AZURE, 4.0, clock.startOfCurrentMonth());
-
+    BillableUsageRemittanceEntity remittance6 =
+        remittance("1234", "rosa", BillingProvider.AWS, 24.0, clock.startOfCurrentMonth());
+    BillableUsageRemittanceEntity remittance7 =
+        remittance("5678", "rosa", BillingProvider.AWS, 24.0, clock.startOfCurrentMonth());
     remittanceRepo.saveAllAndFlush(
-        List.of(remittance1, remittance2, remittance3, remittance4, remittance5));
+        List.of(
+            remittance1,
+            remittance2,
+            remittance3,
+            remittance4,
+            remittance5,
+            remittance6,
+            remittance7));
   }
 
   @Test
@@ -184,6 +195,24 @@ class InternalBillingControllerTest {
     assertEquals("org345", result.getOrgId());
     assertEquals(BillingProvider.AZURE.value(), result.getBillingProvider());
     assertEquals(4, result.getRemittedValue());
+  }
+
+  @Test
+  void testResetRemittanceValueForCriteria() {
+    int remittancePresent =
+        controller.resetBillableUsageRemittance(
+            "rosa",
+            clock.startOfCurrentMonth().minusDays(1),
+            clock.startOfCurrentMonth().plusDays(1),
+            Set.of("1234", "5678"));
+    int remittanceNotPresent =
+        controller.resetBillableUsageRemittance(
+            "rosa",
+            clock.startOfCurrentMonth().plusDays(1),
+            clock.startOfCurrentMonth().plusDays(2),
+            Set.of("1234"));
+    assertEquals(2, remittancePresent);
+    assertEquals(0, remittanceNotPresent);
   }
 
   private BillableUsageRemittanceEntity remittance(
