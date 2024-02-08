@@ -228,6 +228,8 @@ public class BillableUsageController {
     var newRemittance =
         BillableUsageRemittanceEntity.builder()
             .key(BillableUsageRemittanceEntityPK.keyFrom(usage, clock.now()))
+            .tallyId(usage.getId())
+            .hardwareMeasurementType(usage.getHardwareMeasurementType())
             .build();
     // Remitted value should be set to usages metric_value rather than billing_value
     newRemittance.setRemittedPendingValue(usageCalc.getRemittedValue());

@@ -552,7 +552,12 @@ class BillableUsageControllerTest {
   private BillableUsageRemittanceEntity remittance(
       BillableUsage usage, OffsetDateTime remittedDate, Double value) {
     BillableUsageRemittanceEntityPK remKey = keyFrom(usage, remittedDate);
-    return BillableUsageRemittanceEntity.builder().key(remKey).remittedPendingValue(value).build();
+    return BillableUsageRemittanceEntity.builder()
+        .key(remKey)
+        .remittedPendingValue(value)
+        .tallyId(usage.getId())
+        .hardwareMeasurementType(usage.getHardwareMeasurementType())
+        .build();
   }
 
   private void performRemittanceTesting(
