@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+  <changeSet id="202401151414-01" author="lburnett">
+
+    <comment>Add billable_usage_remittance.tally_id and billable_usage_remittance.hardware_measurement_type columns.</comment>
+    <addColumn tableName="billable_usage_remittance">
+      <column name="tally_id" type="UUID"/>
+      <column name="hardware_measurement_type" type="VARCHAR(32)"/>
+    </addColumn>
+    <rollback>
+      <dropColumn tableName="billable_usage_remittance" columnName="tally_id"/>
+      <dropColumn tableName="billable_usage_remittance" columnName="hardware_measurement_type"/>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

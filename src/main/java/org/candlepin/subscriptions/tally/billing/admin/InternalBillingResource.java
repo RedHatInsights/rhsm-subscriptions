@@ -21,30 +21,33 @@
 package org.candlepin.subscriptions.tally.billing.admin;
 
 import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.InternalServerErrorException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billing.admin.api.InternalApi;
 import org.candlepin.subscriptions.billing.admin.api.model.DefaultResponse;
 import org.candlepin.subscriptions.billing.admin.api.model.MonthlyRemittance;
-import org.candlepin.subscriptions.billing.admin.api.model.RetriesResponse;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
 import org.springframework.stereotype.Component;
 
 /** This resource is for exposing administrator REST endpoints for Remittance. */
-@Component
 @Slf4j
+@Component
 public class InternalBillingResource implements InternalApi {
-
-  private final InternalBillingController billingController;
   private static final String SUCCESS_STATUS = "Success";
   private static final String REJECTED_STATUS = "Rejected";
 
-  public InternalBillingResource(InternalBillingController billingController) {
+  private final InternalBillingController billingController;
+  private final ApplicationClock clock;
+
+  public InternalBillingResource(
+      InternalBillingController billingController, ApplicationClock clock) {
     this.billingController = billingController;
+    this.clock = clock;
   }
 
   public List<MonthlyRemittance> getRemittances(
@@ -74,17 +77,21 @@ public class InternalBillingResource implements InternalApi {
             .beginning(beginning)
             .ending(ending)
             .build();
-    return billingController.process(filter);
+    return billingController.getRemittances(filter);
   }
 
-  /**
-   * @param asOf
-   * @return
-   */
   @Override
-  public RetriesResponse processRetries(OffsetDateTime asOf) {
-
-    throw new InternalServerErrorException("not yet implemented");
+  public DefaultResponse processRetries(OffsetDateTime asOf) {
+    OffsetDateTime effectiveAsOf = Optional.ofNullable(asOf).orElse(clock.now());
+    log.info("Retry billable usage remittances as of {}", effectiveAsOf);
+    try {
+      long remittances = billingController.processRetries(effectiveAsOf);
+      log.debug("Retried {} billable usage remittances with as of {}", remittances, effectiveAsOf);
+      return getDefaultResponse(SUCCESS_STATUS);
+    } catch (Exception e) {
+      log.error("Error retrying billable usage remittances", e);
+      return getDefaultResponse(REJECTED_STATUS);
+    }
   }
 
   @Override

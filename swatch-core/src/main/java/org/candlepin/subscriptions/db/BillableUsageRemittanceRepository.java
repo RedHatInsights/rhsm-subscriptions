@@ -46,6 +46,8 @@ public interface BillableUsageRemittanceRepository
   @Query
   void deleteByKeyOrgId(String orgId);
 
+  List<BillableUsageRemittanceEntity> findByRetryAfterLessThan(OffsetDateTime asOf);
+
   default boolean existsBy(BillableUsageRemittanceFilter filter) {
     return this.exists(buildSearchSpecification(filter));
   }

@@ -151,7 +151,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RetriesResponse'
+                $ref: "#/components/schemas/DefaultResponse"
           description: Accepted request to retry billable usage remittance
       tags: ['internalBilling']
   /internal-billing-openapi.json:
@@ -160,14 +160,6 @@ paths:
     $ref: "../../../spec/openapi-paths.yaml#/openapi-yaml"
 components:
   schemas:
-    RetriesResponse:
-      description: ''
-      type: object
-      properties:
-        detail:
-          description: success status
-          type: string
-          example: "Success"
     AccountRemittances:
       type: array
       items:
