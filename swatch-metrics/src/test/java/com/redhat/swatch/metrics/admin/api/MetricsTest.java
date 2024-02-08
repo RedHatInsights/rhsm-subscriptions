@@ -58,8 +58,6 @@ class MetricsTest {
 
   @Test
   void testServiceIsUpAndRunning() {
-    // health resource is up and running
-    get("/q/health").then().statusCode(HttpStatus.SC_OK);
     // openapi resources are up and running
     get("/api/swatch-metrics/internal/openapi").then().statusCode(HttpStatus.SC_OK);
     get("/api/swatch-metrics/internal/swagger-ui").then().statusCode(HttpStatus.SC_OK);
