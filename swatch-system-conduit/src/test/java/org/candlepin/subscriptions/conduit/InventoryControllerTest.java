@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.conduit;
 
+import static org.candlepin.subscriptions.conduit.InventoryController.INSTANCE_ID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -49,6 +50,7 @@ import java.util.stream.Collectors;
 import org.candlepin.subscriptions.conduit.inventory.ConduitFacts;
 import org.candlepin.subscriptions.conduit.inventory.InventoryService;
 import org.candlepin.subscriptions.conduit.inventory.InventoryServiceProperties;
+import org.candlepin.subscriptions.conduit.inventory.ProviderFact;
 import org.candlepin.subscriptions.conduit.job.DatabaseOrgList;
 import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiNetworkInterface;
@@ -62,6 +64,8 @@ import org.candlepin.subscriptions.conduit.rhsm.client.model.Pagination;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -975,5 +979,18 @@ class InventoryControllerTest {
     // verify when cpu.thread(s)_per_core is unset
     conduitFacts = controller.getFactsFromConsumer(new Consumer());
     assertNull(conduitFacts.getThreadsPerCore());
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = ProviderFact.class)
+  void testProviderIdAndProviderTypeToConduitFacts(ProviderFact provider) {
+    String expectedInstanceId = UUID.randomUUID().toString();
+    Consumer consumer = new Consumer();
+    consumer.getFacts().put(provider.getFactPropertyName(INSTANCE_ID), expectedInstanceId);
+
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+
+    assertEquals(provider.getType(), conduitFacts.getProviderType());
+    assertEquals(expectedInstanceId, conduitFacts.getProviderId());
   }
 }
