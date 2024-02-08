@@ -35,7 +35,6 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
             'facts': json.dumps({
                 'rhsm': {
                     'orgId': org_id or f'org_{account}',
-                    'VM_HOST_UUID': str(hypervisor_uuid) if hypervisor_uuid else None,
                     'IS_VIRTUAL': is_guest,
                 },
             }),
@@ -50,7 +49,8 @@ def generate_host(inventory_id=None, insights_id=None, account_number=None, org_
                 'number_of_sockets': sockets,
                 'cloud_provider': cloud_provider,
                 'is_marketplace': is_marketplace,
-                'host_type': host_type
+                'host_type': host_type,
+                'virtual_host_uuid': str(hypervisor_uuid) if hypervisor_uuid else None,
             }),
             'stale_timestamp': '2030-01-01',
             'reporter': 'rhsm-conduit',

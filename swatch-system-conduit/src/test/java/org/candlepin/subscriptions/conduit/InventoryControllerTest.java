@@ -230,7 +230,7 @@ class InventoryControllerTest {
     assertEquals(uuid, conduitFacts.getSubscriptionManagerId());
     assertEquals("test_org", conduitFacts.getOrgId());
     assertEquals("hypervisor1.test.com", conduitFacts.getVmHost());
-    assertEquals(hypervisorUuid, conduitFacts.getVmHostUuid());
+    assertEquals(hypervisorUuid, conduitFacts.getVirtualHostUuid());
     assertEquals("guest", conduitFacts.getGuestId());
     assertEquals("host1.test.com", conduitFacts.getFqdn());
     assertEquals(systemUuid, conduitFacts.getBiosUuid());
