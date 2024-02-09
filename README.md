@@ -716,3 +716,9 @@ or use `bin/import-events.py --file bin/BASILISK.csv` to import BASILISK data di
 ## License
 
 Subscription watch components are licensed GPLv3 (see LICENSE for more details).
+
+
+
+---------------
+
+Kartik SetupNotes
