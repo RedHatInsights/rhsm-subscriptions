@@ -458,6 +458,35 @@ class SubscriptionSyncControllerTest {
   }
 
   @Test
+  void
+      findProductTagsBySku_WhenSkuPresentWithNoRoleOrEngIDsThenItShouldUseProductNameWhenMeteredFlagIsTrue() {
+    Offering offering = new Offering();
+    offering.setProductName("OpenShift Online");
+    offering.setRole(null);
+    offering.setProductIds(null);
+    offering.setMetered(true);
+    when(offeringRepository.findOfferingBySku("sku")).thenReturn(offering);
+
+    OfferingProductTags productTags = subscriptionSyncController.findProductTags("sku");
+    assertEquals(1, productTags.getData().size());
+    assertEquals("rosa", productTags.getData().get(0));
+  }
+
+  @Test
+  void
+      findProductTagsBySku_WhenSkuPresentWithNoRoleOrEngIDsThenItShouldNotUseProductNameWhenMeteredFlagIsFalse() {
+    Offering offering = new Offering();
+    offering.setProductName("OpenShift Online");
+    offering.setRole(null);
+    offering.setProductIds(null);
+    offering.setMetered(false);
+    when(offeringRepository.findOfferingBySku("sku")).thenReturn(offering);
+
+    OfferingProductTags productTags = subscriptionSyncController.findProductTags("sku");
+    assertNull(productTags.getData());
+  }
+
+  @Test
   void findProductTagsBySku_WhenSkuNotPresent() {
     when(offeringRepository.findOfferingBySku("sku")).thenReturn(null);
     RuntimeException e =
