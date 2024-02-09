@@ -28,6 +28,8 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitl
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
 import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
+import com.redhat.swatch.contract.exception.ContractNotAssociatedToOrgException;
+import com.redhat.swatch.contract.exception.ContractValidationFailedException;
 import com.redhat.swatch.contract.exception.ContractsException;
 import com.redhat.swatch.contract.exception.CreateContractException;
 import com.redhat.swatch.contract.exception.ErrorCode;
@@ -46,6 +48,7 @@ import com.redhat.swatch.contract.repository.SubscriptionRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.validation.Validator;
 import jakarta.ws.rs.ProcessingException;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -54,6 +57,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 /**
@@ -85,6 +89,7 @@ public class ContractService {
   private final SubscriptionSyncService syncService;
   @Inject @RestClient PartnerApi partnerApi;
   @Inject @RestClient SearchApi subscriptionApi;
+  @Inject Validator validator;
 
   ContractService(
       ContractRepository contractRepository,
@@ -240,13 +245,15 @@ public class ContractService {
       // Fill up information from upstream and swatch
       entity = mapper.partnerContractToContractEntity(contract);
       collectMissingUpStreamContractDetails(entity, contract);
-      if (entity.getOrgId() == null) {
-        return ContractMessageProcessingResult.RH_ORG_NOT_ASSOCIATED;
+    } catch (ContractNotAssociatedToOrgException e) {
+      return ContractMessageProcessingResult.RH_ORG_NOT_ASSOCIATED;
+    } catch (ContractValidationFailedException e) {
+      var violations = e.getViolations();
+      log.warn("Contract missing required details {}", e.getEntity());
+      for (var violation : violations) {
+        log.warn("Property {} {}", violation.getPropertyPath(), violation.getMessage());
       }
-      if (!isValidEntity(entity)) {
-        log.warn("Empty value in non-null fields for contract entity {}", entity);
-        return ContractMessageProcessingResult.CONTRACT_DETAILS_MISSING;
-      }
+      return ContractMessageProcessingResult.CONTRACT_DETAILS_MISSING;
     } catch (NumberFormatException e) {
       log.error(e.getMessage());
       return ContractMessageProcessingResult.INVALID_MESSAGE_UNPROCESSED;
@@ -496,18 +503,6 @@ public class ContractService {
     contractRepository.persist(existingContract);
   }
 
-  private boolean isValidEntity(ContractEntity entity) {
-    // Check all non-null fields
-    return Objects.nonNull(entity)
-        && Objects.nonNull(entity.getOrgId())
-        && Objects.nonNull(entity.getSku())
-        && Objects.nonNull(entity.getBillingProvider())
-        && Objects.nonNull(entity.getBillingAccountId())
-        && Objects.nonNull(entity.getProductId())
-        && Objects.nonNull(entity.getMetrics())
-        && !entity.getMetrics().isEmpty();
-  }
-
   private void persistSubscription(SubscriptionEntity subscription) {
     subscriptionRepository.persist(subscription);
   }
@@ -594,8 +589,12 @@ public class ContractService {
     return null;
   }
 
-  private void collectMissingUpStreamContractDetails( // NOSONAR
-      ContractEntity entity, PartnerEntitlementContract contract) throws ApiException {
+  // Retry, except when the org has not yet been associated, as that requires some lengthy backend
+  // processing, and there will be a follow-up message.
+  @Retry(delay = 500, maxRetries = 10, abortOn = ContractNotAssociatedToOrgException.class)
+  public void collectMissingUpStreamContractDetails( // NOSONAR
+      ContractEntity entity, PartnerEntitlementContract contract)
+      throws ApiException, ContractValidationFailedException, ContractNotAssociatedToOrgException {
     String customerAccountId;
     String productCode;
     var marketplace = determineMarketplaceForContract(contract);
@@ -639,6 +638,13 @@ public class ContractService {
                 new QueryPartnerEntitlementV1().azureResourceId(customerAccountId).page(page));
         mapUpstreamContractToContractEntity(entity, result);
       }
+    }
+    if (entity.getOrgId() == null) {
+      throw new ContractNotAssociatedToOrgException();
+    }
+    var violations = validator.validate(entity);
+    if (!violations.isEmpty()) {
+      throw new ContractValidationFailedException(entity, violations);
     }
   }
 

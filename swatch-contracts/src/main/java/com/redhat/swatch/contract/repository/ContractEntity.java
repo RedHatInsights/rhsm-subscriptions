@@ -29,6 +29,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Objects;
@@ -41,6 +43,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+@NotNull
 @Entity
 @Table(name = "contracts")
 @AllArgsConstructor
@@ -71,14 +74,17 @@ public class ContractEntity extends PanacheEntityBase {
   @Column(name = "end_date")
   private OffsetDateTime endDate;
 
+  @NotNull
   @Basic
   @Column(name = "org_id", nullable = false)
   private String orgId;
 
+  @NotNull
   @Basic
   @Column(name = "sku", nullable = false)
   private String sku;
 
+  @NotNull
   @Basic
   @Column(name = "billing_provider", nullable = false)
   private String billingProvider;
@@ -87,10 +93,12 @@ public class ContractEntity extends PanacheEntityBase {
   @Column(name = "billing_provider_id")
   private String billingProviderId;
 
+  @NotNull
   @Basic
   @Column(name = "billing_account_id", nullable = false)
   private String billingAccountId;
 
+  @NotNull
   @Basic
   @Column(name = "product_id", nullable = false)
   private String productId;
@@ -99,6 +107,8 @@ public class ContractEntity extends PanacheEntityBase {
   @Column(name = "vendor_product_code", nullable = false)
   private String vendorProductCode;
 
+  @NotEmpty
+  @NotNull
   @Builder.Default
   @OneToMany(
       targetEntity = ContractMetricEntity.class,

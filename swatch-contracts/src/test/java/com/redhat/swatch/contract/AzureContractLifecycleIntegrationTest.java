@@ -22,8 +22,12 @@ package com.redhat.swatch.contract;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
+import static com.github.tomakehurst.wiremock.client.WireMock.exactly;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -137,6 +141,50 @@ class AzureContractLifecycleIntegrationTest {
           }
           """,
           AZURE_RESOURCE_ID, AZURE_TENANT_ID, RH_SUBSCRIPTION_NUMBER);
+
+  static String AZURE_PARTNER_API_RESPONSE_SKU_MISSING =
+      String.format(
+          """
+          {
+            "content": [
+              {
+                "entitlementDates": {
+                  "endDate": "2030-01-01T00:00:00.000000Z",
+                  "startDate": "2024-01-01T00:00:00.000000Z"
+                },
+                "partnerIdentities": {
+                  "azureTenantId": "%s"
+                },
+                "purchase": {
+                  "azureResourceId": "%s",
+                  "contracts": [
+                    {
+                      "endDate": "2030-01-01T00:00:00.000000Z",
+                      "planId": "vcpu-hours",
+                      "startDate": "2024-01-01T00:00:00.000000Z"
+                    }
+                  ],
+                  "vendorProductCode": "azureOfferId"
+                },
+                "rhAccountId": "%s",
+                "rhEntitlements": [
+                  {
+                    "subscriptionNumber": "%s"
+                  }
+                ],
+                "sourcePartner": "azure_marketplace",
+                "status": "SUBSCRIBED"
+              }
+            ],
+            "page": {
+              "size": 0,
+              "totalElements": 0,
+              "totalPages": 0,
+              "number": 0
+            }
+          }
+          """,
+          AZURE_TENANT_ID, AZURE_RESOURCE_ID, RH_ORG_ID, RH_SUBSCRIPTION_NUMBER);
 
   static String AZURE_PARTNER_API_RESPONSE_ORG_ASSOCIATED =
       String.format(
@@ -279,6 +327,21 @@ class AzureContractLifecycleIntegrationTest {
     assertEquals("Contract missing RH orgId", status.getMessage());
     assertEquals(0, contractRepository.count());
     assertEquals(0, subscriptionRepository.count());
+    // verifies that no retries are made when org ID is missing from the contract
+    verify(exactly(1), postRequestedFor(urlEqualTo("/mock/partnerApi/v1/partnerSubscriptions")));
+
+    stubPartnerSubscriptionApi(AZURE_PARTNER_API_RESPONSE_SKU_MISSING);
+    status =
+        contractService.createPartnerContract(
+            objectMapper.readValue(
+                AZURE_UMB_MESSAGE_ORG_ASSOCIATED, PartnerEntitlementContract.class));
+    assertEquals("FAILED", status.getStatus());
+    assertEquals("Empty value in non-null fields", status.getMessage());
+    assertEquals(0, contractRepository.count());
+    assertEquals(0, subscriptionRepository.count());
+    // verifies that 10 retries are made when SKU is missing from the contract (plus 2 original
+    // requests)
+    verify(exactly(12), postRequestedFor(urlEqualTo("/mock/partnerApi/v1/partnerSubscriptions")));
 
     stubPartnerSubscriptionApi(AZURE_PARTNER_API_RESPONSE_ORG_ASSOCIATED);
     status =
