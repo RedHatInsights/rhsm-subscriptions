@@ -20,6 +20,8 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import static org.candlepin.subscriptions.ApplicationConfiguration.SUBSCRIPTION_EXPORT_QUALIFIER;
+
 import com.redhat.cloud.event.apps.exportservice.v1.Format;
 import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequest;
 import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequestClass;
@@ -33,6 +35,7 @@ import jakarta.ws.rs.core.Response.Status;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.HypervisorReportCategory;
@@ -61,17 +64,19 @@ import org.springframework.stereotype.Service;
 @Transactional
 @Profile("capacity-ingress")
 public class ExportSubscriptionListener extends SeekableKafkaConsumer {
+
+  public static final String SWATCH_APP = "subscriptions";
+  public static final String ADMIN_ROLE = ":*:*";
+  private static final String REPORT_READER = ":reports:read";
+
   private final ConsoleCloudEventParser parser;
   private final SubscriptionRepository subscriptionRepository;
 
-  private static final String ADMIN_ROLE = ":*:*";
-  private static final String REPORT_READER = ":reports:read";
-  private static final String SWATCH_APP = "subscriptions";
   private final ExportApi exportApi;
   private final RbacService rbacService;
 
   protected ExportSubscriptionListener(
-      @Qualifier("subscriptionExport") TaskQueueProperties taskQueueProperties,
+      @Qualifier(SUBSCRIPTION_EXPORT_QUALIFIER) TaskQueueProperties taskQueueProperties,
       SubscriptionRepository subscriptionRepository,
       KafkaConsumerRegistry kafkaConsumerRegistry,
       ConsoleCloudEventParser parser,
@@ -105,6 +110,8 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
       exportRequest = exportData.getResourceRequest();
       if (Objects.equals(exportRequest.getApplication(), SWATCH_APP)
           && Objects.equals(exportRequest.getResource(), SWATCH_APP)) {
+
+        checkRbac(exportRequest);
         uploadData(cloudEvent, exportRequest);
       }
     } catch (ExportServiceException e) {
@@ -126,7 +133,6 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
   }
 
   private void uploadData(ConsoleCloudEvent cloudEvent, ResourceRequestClass exportData) {
-    checkRbac(exportData.getApplication(), exportData.getXRhIdentity());
     // Here we need to determine format (csv or json)
     var dataRequest = fetchData(cloudEvent.getOrgId(), exportData);
     if (Objects.equals(exportData.getFormat(), Format.CSV)) {
@@ -148,10 +154,7 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
   }
 
   private void uploadJson(ResourceRequestClass exportData, SubscriptionsExport data) {
-    log.debug(
-        "Uploading Json for request {} for orgId: {}",
-        exportData.getExportRequestUUID(),
-        data.getSubscriptions().get(0).getOrgId());
+    log.debug("Uploading Json for request {}", exportData.getExportRequestUUID());
     try {
       exportApi.downloadExportUpload(
           exportData.getUUID(),
@@ -163,13 +166,13 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
     }
   }
 
-  private void checkRbac(String appName, String identity) {
+  private void checkRbac(ResourceRequestClass exportData) {
     // role base access control, service check for correct permissions
     // two permissions for rbac check for "subscriptions:*:*" or subscriptions:reports:read
-    log.debug("Verifying identity: {}", identity);
+    log.debug("Verifying identity: {}", exportData.getXRhIdentity());
     List<String> access;
     try {
-      access = rbacService.getPermissions(appName, identity);
+      access = rbacService.getPermissions(exportData.getApplication(), exportData.getXRhIdentity());
     } catch (RbacApiException e) {
       throw new ExportServiceException(Status.NOT_FOUND.getStatusCode(), e.getMessage());
     }
@@ -201,27 +204,30 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
   }
 
   private DbReportCriteria extractExportFilter(ResourceRequestClass data, String orgId) {
-    var filters = data.getFilters().entrySet();
     var report = DbReportCriteria.builder().orgId(orgId);
-    for (var entry : filters) {
-      switch (entry.getKey().toLowerCase()) {
-        case "productid" -> report.productId(entry.getValue().toString());
-        case "usage" -> report.usage(Usage.fromString(entry.getValue().toString()));
-        case "category" ->
-            report.hypervisorReportCategory(
-                HypervisorReportCategory.valueOf(entry.getValue().toString()));
-        case "sla" -> report.serviceLevel(ServiceLevel.fromString(entry.getValue().toString()));
-        case "uom" -> report.metricId(entry.getValue().toString());
-        case "billingprovider" ->
-            report.billingProvider(BillingProvider.fromString(entry.getValue().toString()));
-        case "billingaccountid" -> report.billingAccountId(entry.getValue().toString());
-        default -> log.warn("Filter {} isn't supported currently", entry.getKey());
+    if (data.getFilters() != null) {
+      var filters = data.getFilters().entrySet();
+      for (var entry : filters) {
+        switch (entry.getKey().toLowerCase()) {
+          case "productid" -> report.productId(entry.getValue().toString());
+          case "usage" -> report.usage(Usage.fromString(entry.getValue().toString()));
+          case "category" ->
+              report.hypervisorReportCategory(
+                  HypervisorReportCategory.valueOf(entry.getValue().toString()));
+          case "sla" -> report.serviceLevel(ServiceLevel.fromString(entry.getValue().toString()));
+          case "uom" -> report.metricId(entry.getValue().toString());
+          case "billingprovider" ->
+              report.billingProvider(BillingProvider.fromString(entry.getValue().toString()));
+          case "billingaccountid" -> report.billingAccountId(entry.getValue().toString());
+          default -> log.warn("Filter {} isn't supported currently", entry.getKey());
+        }
       }
     }
+
     return report.build();
   }
 
-  private SubscriptionsExport transformSubscriptionForExport(Stream<Subscription> subscriptions) {
+  protected SubscriptionsExport transformSubscriptionForExport(Stream<Subscription> subscriptions) {
 
     var subscriptionExport = new SubscriptionsExport();
 
@@ -229,15 +235,22 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
         subscriptions
             .map(
                 subscription -> {
-                  var subscriptionJson = new org.candlepin.subscriptions.json.Subscription();
-                  var summaries = new ArrayList<SubscriptionSummary>();
-                  subscriptionJson.setOrgId(subscription.getOrgId());
-                  subscriptionJson.setSku(subscription.getOffering().getSku());
-                  subscriptionJson.setUsage(subscription.getOffering().getUsage().getValue());
-                  subscriptionJson.setProductName(subscription.getOffering().getProductName());
-                  subscriptionJson.setServiceLevel(
-                      subscription.getOffering().getServiceLevel().getValue());
+                  var item = new org.candlepin.subscriptions.json.Subscription();
+                  item.setOrgId(subscription.getOrgId());
+                  item.setSubscriptionSummaries(new ArrayList<>());
 
+                  // map offering
+                  var offering = subscription.getOffering();
+                  item.setSku(offering.getSku());
+                  Optional.ofNullable(offering.getUsage())
+                      .map(Usage::getValue)
+                      .ifPresent(item::setUsage);
+                  Optional.ofNullable(offering.getServiceLevel())
+                      .map(ServiceLevel::getValue)
+                      .ifPresent(item::setServiceLevel);
+                  item.setProductName(offering.getProductName());
+
+                  // map measurements
                   for (var entry : subscription.getSubscriptionMeasurements().entrySet()) {
                     var summary = new SubscriptionSummary();
                     summary.setMeasurementType(entry.getKey().getMeasurementType());
@@ -247,10 +260,10 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
                     summary.setQuantity(subscription.getQuantity());
                     summary.setBeginning(subscription.getStartDate());
                     summary.setEnding(subscription.getEndDate());
-                    summaries.add(summary);
+                    item.getSubscriptionSummaries().add(summary);
                   }
-                  subscriptionJson.setSubscriptionSummaries(summaries);
-                  return subscriptionJson;
+
+                  return item;
                 })
             .toList();
 

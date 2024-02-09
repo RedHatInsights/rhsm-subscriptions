@@ -20,32 +20,71 @@
  */
 package org.candlepin.subscriptions.test;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
+import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequest;
+import com.redhat.cloud.event.parser.GenericConsoleCloudEvent;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.shaded.org.awaitility.Awaitility;
 
-public class ExtendWithExportServiceWireMock {
+public interface ExtendWithExportServiceWireMock {
 
-  static WireMockServer wireMockServer = start();
-  private static final String EXPORT_ERROR_REQUEST =
-      "/app/export/v1/b24c269d-33d6-410e-8808-c71c9635e84f/subscriptions/2e3d7746-2cf2-441e-84fe-cf28863d22ae/error";
+  WireMockServer EXPORT_SERVICE_WIRE_MOCK_SERVER = startWireMockServer();
 
-  static WireMockServer start() {
-    wireMockServer =
-        new WireMockServer(wireMockConfig().dynamicPort().notifier(new ConsoleNotifier(true)));
-    wireMockServer.resetAll();
-    wireMockServer.start();
-    wireMockServer.stubFor(post(EXPORT_ERROR_REQUEST));
-    System.out.printf("Running mock export services on port %d%n", wireMockServer.port());
-    return wireMockServer;
+  @BeforeEach
+  default void resetExportServiceWireMock() {
+    EXPORT_SERVICE_WIRE_MOCK_SERVER.resetAll();
+    EXPORT_SERVICE_WIRE_MOCK_SERVER.stubFor(post(urlPathMatching("/app/export/.*")));
   }
 
   @DynamicPropertySource
   static void registerExportApiProperties(DynamicPropertyRegistry registry) {
-    registry.add("rhsm-subscriptions.export-service.url", wireMockServer::baseUrl);
+    registry.add("rhsm-subscriptions.export-service.url", EXPORT_SERVICE_WIRE_MOCK_SERVER::baseUrl);
+  }
+
+  default void verifyRequestWasSentToExportServiceWithError(
+      GenericConsoleCloudEvent<ResourceRequest> request) {
+    Awaitility.await()
+        .untilAsserted(
+            () ->
+                EXPORT_SERVICE_WIRE_MOCK_SERVER.verify(
+                    postRequestedFor(
+                        urlEqualTo(
+                            String.format(
+                                "/app/export/v1/%s/subscriptions/%s/error",
+                                request.getData().getResourceRequest().getUUID(),
+                                request.getData().getResourceRequest().getExportRequestUUID())))));
+  }
+
+  default void verifyRequestWasSentToExportServiceWithUploadData(
+      GenericConsoleCloudEvent<ResourceRequest> request, String expected) {
+    Awaitility.await()
+        .untilAsserted(
+            () ->
+                EXPORT_SERVICE_WIRE_MOCK_SERVER.verify(
+                    postRequestedFor(
+                            urlEqualTo(
+                                String.format(
+                                    "/app/export/v1/%s/subscriptions/%s/upload",
+                                    request.getData().getResourceRequest().getUUID(),
+                                    request.getData().getResourceRequest().getExportRequestUUID())))
+                        .withRequestBody(equalToJson(expected, true, true))));
+  }
+
+  static WireMockServer startWireMockServer() {
+    var wireMockServer =
+        new WireMockServer(wireMockConfig().dynamicPort().notifier(new ConsoleNotifier(true)));
+    wireMockServer.start();
+    System.out.printf("Running export service on port %d%n", wireMockServer.port());
+    return wireMockServer;
   }
 }
