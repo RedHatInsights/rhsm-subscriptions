@@ -34,6 +34,7 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
@@ -59,7 +60,7 @@ class AwsUsageContextLookupApiTest {
     }
     verify(
         getRequestedFor(urlMatching(".*/awsUsageContext.*"))
-            .withQueryParam("date", equalTo(now.toString()))
+            .withQueryParam("date", equalTo(DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(now)))
             .withQueryParam("productId", equalTo("productId"))
             .withQueryParam("sla", equalTo("Premium"))
             .withQueryParam("usage", equalTo("Production"))
