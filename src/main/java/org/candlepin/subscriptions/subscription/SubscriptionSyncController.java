@@ -48,6 +48,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
@@ -685,9 +686,19 @@ public class SubscriptionSyncController {
           String.format("Sku %s not found in Offering", sku),
           null);
     }
+
+    // lookup product tags by either role or eng IDs
     SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
             offering.getRole(), offering.getProductIds())
         .forEach(productTags::addDataItem);
+    // if not found, let's use the product name
+    if (offering.isMetered()
+        && (productTags.getData() == null || productTags.getData().isEmpty())
+        && StringUtils.isNotEmpty(offering.getProductName())) {
+      Variant.findByProductName(offering.getProductName())
+          .ifPresent(v -> productTags.addDataItem(v.getTag()));
+    }
+
     return productTags;
   }
 }
