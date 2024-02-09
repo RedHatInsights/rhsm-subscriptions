@@ -137,7 +137,12 @@ mp:
         topic: ${METERING_TASK_TOPIC}
         throttled:
           unprocessed-record-max-age:
-            ms: 120000
+            # This value needs to be synced with the retry configuration which will retry up to
+            # 3 times with a max duration of 120 seconds, so the correct value would be 3 x 120 =
+            ms: 360000
+        # By default, when a message is nack, the application stops consuming messages.
+        # With the "ignore" strategy, we ignore the error (it's logged internally) and continue processing messages.
+        failure-strategy: ignore
         fail-on-deserialization-failure: ${METRICS_IN_FAIL_ON_DESER_FAILURE}
         auto:
           offset:
@@ -218,6 +223,3 @@ rhsm-subscriptions:
         backOffMultiplier: ${OPENSHIFT_BACK_OFF_MULTIPLIER:1.5}
         eventSource: ${EVENT_SOURCE:prometheus}
         rangeInMinutes: ${OPENSHIFT_METERING_RANGE:60}
-        jobMaxAttempts: ${METERING_JOB_MAX_ATTEMPTS:3}
-        jobBackOffMaxInterval: ${METERING_JOB_BACK_OFF_MAX_INTERVAL:50000}
-        jobBackOffInitialInterval: ${METERING_JOB_BACK_OFF_INITIAL_INTERVAL:1000}
