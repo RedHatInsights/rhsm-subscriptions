@@ -36,18 +36,18 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.ProcessingException;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** Wraps prometheus specific API calls to make them more application specific. */
+@Slf4j
 @ApplicationScoped
 public class PrometheusService {
-
-  private static final Logger log = LoggerFactory.getLogger(PrometheusService.class);
   private static final String JSON_PROPERTY_RESULT_TYPE = "resultType";
   private static final String JSON_PROPERTY_RESULT = "result";
   public static final String JSON_PROPERTY_STATUS = "status";
@@ -120,6 +120,14 @@ public class PrometheusService {
    */
   private QuerySummaryResult parseQueryResult(
       File data, Consumer<QueryResultDataResultInner> itemConsumer) {
+    if (log.isDebugEnabled()) {
+      try {
+        log.debug(
+            "Response from prometheus: {}", Files.readString(Path.of(data.getAbsolutePath())));
+      } catch (IOException ignored) {
+        // intentionally ignored
+      }
+    }
 
     var builder = QuerySummaryResult.builder();
     try (JsonParser parser = factory.createParser(data)) {
