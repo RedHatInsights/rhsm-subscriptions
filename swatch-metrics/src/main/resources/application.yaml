@@ -70,6 +70,11 @@ quarkus:
     category:
       "com.redhat.swatch":
         level: ${LOGGING_LEVEL_COM_REDHAT_SWATCH}
+      # Needed to troubleshoot issues with swatch metrics service became stuck:
+      "org.jboss.resteasy.reactive.client.logging.DefaultClientLogger":
+        level: DEBUG
+      "com.redhat.swatch.metrics.service.prometheus.PrometheusService":
+        level: DEBUG
     handler:
       splunk:
         enabled: ${ENABLE_SPLUNK_HEC:false}
@@ -108,6 +113,9 @@ quarkus:
       serializer-generation:
         enabled: false
   rest-client:
+    logging:
+      scope: request-response
+      body-limit: 5000
     "com.redhat.swatch.clients.prometheus.api.resources.QueryApi":
       url: ${rhsm-subscriptions.metering.prometheus.client.url}
       scope: jakarta.enterprise.context.ApplicationScoped
