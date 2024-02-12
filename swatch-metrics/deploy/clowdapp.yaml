@@ -131,11 +131,11 @@ parameters:
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: 'http://localhost:4317'
   - name: METRICS_HEALTH_LIVENESS_PATH
-    value: /q/health/live
+    value: /health/live
   - name: METRICS_HEALTH_READY_PATH
-    value: /q/health/ready
+    value: /health/ready
   - name: METRICS_HEALTH_PORT
-    value: '8000'
+    value: '9000'
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
     kind: ClowdApp
