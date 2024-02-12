@@ -25,7 +25,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import jakarta.enterprise.context.ApplicationScoped;
-import java.util.Objects;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -40,8 +39,6 @@ public class DebugClientLogger implements ClientLogger {
   @ConfigProperty(name = "rest-client-debug-logging.uri-filter")
   Pattern uriFilterPattern;
 
-  private ThreadLocal<Boolean> shouldLog = new ThreadLocal<Boolean>();
-
   @Override
   public void setBodySize(int bodySize) {
     // intentionally ignored
@@ -49,7 +46,7 @@ public class DebugClientLogger implements ClientLogger {
 
   @Override
   public void logResponse(HttpClientResponse response, boolean redirect) {
-    if (Objects.equals(shouldLog.get(), Boolean.TRUE)) {
+    if (uriFilterPattern.matcher(response.request().getURI()).matches()) {
       response.bodyHandler(body -> log.debug("Response: \n{}", body.toString()));
     }
   }
@@ -57,11 +54,8 @@ public class DebugClientLogger implements ClientLogger {
   @Override
   public void logRequest(HttpClientRequest request, Buffer body, boolean omitBody) {
     if (uriFilterPattern.matcher(request.getURI()).matches()) {
-      shouldLog.set(true);
       log.debug(
           "Request method={} URI={}: \n{}", request.getMethod(), request.getURI(), body.toString());
-    } else {
-      shouldLog.set(false);
     }
   }
 }
