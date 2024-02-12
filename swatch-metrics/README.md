@@ -32,27 +32,20 @@ Parameterized values come from [swatch-product-configuration](../swatch-product-
 
 Example
 ```promql
-(
-      max by (_id) (
-        sum_over_time(system_cpu_logical_count[1h:10m])
-      )
-    /
-      scalar(count_over_time(vector(1)[1h:10m]))
-  )
-* on (_id) group_right
-  topk by (_id) (
-    1,
+sum_over_time((max by (_id) (system_cpu_logical_count))[1h:10m]) / scalar(count_over_time(vector(1)[1h:10m]))
+* on (_id) group_right topk by (_id) (
+  1,
     group without (swatch_placeholder_label) (
       min_over_time(
-        system_cpu_logical_count{
-    product=~".*(^|,)(69)($|,).*",
-    external_organization="11789772",
-    billing_model="marketplace",
-    support=~"Premium|Standard|Self-Support|None"
-  }[1h]
-      )
+      system_cpu_logical_count{
+      product=~".*(^|,)(69)($|,).*",
+      external_organization="11789772",
+      billing_model="marketplace",
+      support=~"Premium|Standard|Self-Support|None"
+      }[1h]
     )
   )
+)
 ```
 
 It's easiest to think about this query by breaking it in half at the join.  The left side provides us with the usage values we care about, and the right side provides us with the associated metadata labels we care about while tallying.  
@@ -63,13 +56,13 @@ It calculates the maximum sum of `system_cpu_logical_count` over 1-hour windows 
 
 ### Numerator
 
-`max by (_id) (sum_over_time(system_cpu_logical_count[1h:10m]))`
+`sum_over_time((max by (_id) (system_cpu_logical_count))[1h:10m])`
 
-1. **`sum_over_time(system_cpu_logical_count[1h:10m])`:**
-    - This calculates the sum of the `system_cpu_logical_count` metric over a 1-hr window, using data sampled every 10 minutes.  This creates a series of overlapping windows covering the last hour.
+1. **`max by (_id) (system_cpu_logical_count)`:**
+    - This gets all the `system_cpu_logical_count` for all the `_id` and does a max on it for overlapping 1-hour windows.
 
-2. **`max by (_id) (...)`:**
-    - This finds the maximum value of the previously calculated sums for each unique `_id`.  For each `_id`, it picks the highest sum observed in any of the overlapping 1-hour windows.
+2. **`sum_over_time (...[1h:10m])`:**
+    - This sums the result of above metric over a 1-hr window, using data sampled every 10 minutes.
 
 ### Denominator: `scalar(count_over_time(vector(1)[1h:10m]))`
 

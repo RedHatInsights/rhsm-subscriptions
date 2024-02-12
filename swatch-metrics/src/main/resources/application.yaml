@@ -211,7 +211,7 @@ rhsm-subscriptions:
             * on(#{metric.prometheus.queryParams[instanceKey]}) group_right
             min_over_time(#{metric.prometheus.queryParams[metadataMetric]}{resource_type="addon",resource_name="#{metric.prometheus.queryParams[resourceName]}", external_organization="#{runtime[orgId]}", billing_model="marketplace", support=~"Premium|Standard|Self-Support|None"}[1h])
           rhelemeter: >-
-            max by (#{metric.prometheus.queryParams[instanceKey]}) (sum_over_time(#{metric.prometheus.queryParams[metric]}[1h:10m]))
+            sum_over_time((max by (#{metric.prometheus.queryParams[instanceKey]}) (#{metric.prometheus.queryParams[metric]}))[1h:10m])
             /
             scalar(count_over_time(vector(1)[1h:10m]))
 
