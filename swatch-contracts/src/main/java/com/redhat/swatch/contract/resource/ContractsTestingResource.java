@@ -108,7 +108,7 @@ public class ContractsTestingResource implements DefaultApi {
   @Override
   @RolesAllowed({"test", "support"})
   public StatusResponse syncContractsByOrg(String orgId) throws ProcessingException {
-    return service.syncContractByOrgId(orgId);
+    return service.syncContractByOrgId(orgId, OffsetDateTime.now());
   }
 
   @Override

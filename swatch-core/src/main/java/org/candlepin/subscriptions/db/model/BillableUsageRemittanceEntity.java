@@ -27,6 +27,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -48,4 +49,10 @@ public class BillableUsageRemittanceEntity implements Serializable {
 
   @Column(name = "retry_after")
   private OffsetDateTime retryAfter;
+
+  @Column(name = "tally_id")
+  private UUID tallyId;
+
+  @Column(name = "hardware_measurement_type")
+  private String hardwareMeasurementType;
 }

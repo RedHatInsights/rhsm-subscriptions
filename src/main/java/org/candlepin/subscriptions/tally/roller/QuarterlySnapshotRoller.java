@@ -22,14 +22,16 @@ package org.candlepin.subscriptions.tally.roller;
 
 import static org.candlepin.subscriptions.db.model.Granularity.QUARTERLY;
 
+import io.micrometer.core.annotation.Timed;
 import java.util.Collection;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.tally.AccountUsageCalculation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -42,13 +44,16 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>A quarter is considered to be chunked by a 3 month interval. In a given year, the quarters are
  * defined as: Jan-Mar, Apr-Jun, Jul-Sept, Oct-Dec
  */
+@Slf4j
+@Component
 public class QuarterlySnapshotRoller extends BaseSnapshotRoller {
-  private static final Logger log = LoggerFactory.getLogger(QuarterlySnapshotRoller.class);
 
+  @Autowired
   public QuarterlySnapshotRoller(TallySnapshotRepository tallyRepo, ApplicationClock clock) {
     super(tallyRepo, clock);
   }
 
+  @Timed("rhsm-subscriptions.tally.snapshots.roller.quarterly")
   @Override
   @Transactional
   public Collection<TallySnapshot> rollSnapshots(AccountUsageCalculation accountCalc) {

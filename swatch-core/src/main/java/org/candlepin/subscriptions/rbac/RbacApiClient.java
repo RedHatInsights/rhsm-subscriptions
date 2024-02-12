@@ -51,7 +51,7 @@ public class RbacApiClient extends ApiClient {
       GenericType<T> returnType)
       throws ApiException {
 
-    String idHeader = getIdentityHeader();
+    String idHeader = getIdentityHeader(headerParams);
     if (idHeader == null || idHeader.isEmpty()) {
       throw new BadRequestException("Missing identity header while accessing RBAC service.");
     }
@@ -72,10 +72,10 @@ public class RbacApiClient extends ApiClient {
         returnType);
   }
 
-  protected static String getIdentityHeader() {
+  protected static String getIdentityHeader(Map<String, String> headerParams) {
     RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
     if (requestAttributes == null) {
-      return null;
+      return headerParams.get(RH_IDENTITY_HEADER);
     }
     HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
     return request.getHeader(RH_IDENTITY_HEADER);

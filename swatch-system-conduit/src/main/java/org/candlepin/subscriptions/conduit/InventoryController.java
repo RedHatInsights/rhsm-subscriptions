@@ -46,6 +46,7 @@ import java.util.stream.Stream;
 import org.candlepin.subscriptions.conduit.inventory.ConduitFacts;
 import org.candlepin.subscriptions.conduit.inventory.InventoryService;
 import org.candlepin.subscriptions.conduit.inventory.InventoryServiceProperties;
+import org.candlepin.subscriptions.conduit.inventory.ProviderFact;
 import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
 import org.candlepin.subscriptions.conduit.json.inventory.HbiNetworkInterface;
 import org.candlepin.subscriptions.conduit.rhsm.RhsmService;
@@ -115,7 +116,8 @@ public class InventoryController {
   public static final String OCM_BILLING_MODEL = "ocm.billing_model";
   public static final String UNKNOWN = "unknown";
   public static final String TRUE = "True";
-  public static final String NONE = "none";
+  public static final String INSTANCE_ID = "instance_id";
+
   public static final Set<String> IGNORED_CONSUMER_TYPES = Set.of("candlepin", "satellite", "sam");
   public static final long MAX_ALLOWED_SYSTEM_MEMORY_BYTES = 9007199254740991L;
 
@@ -202,6 +204,7 @@ public class InventoryController {
     extractNetworkFacts(rhsmFacts, facts);
     extractHardwareFacts(rhsmFacts, facts);
     extractVirtualizationFacts(consumer, rhsmFacts, facts);
+    extractProviderFacts(rhsmFacts, facts);
     facts.setCloudProvider(extractCloudProvider(rhsmFacts));
 
     List<String> productIds =
@@ -210,6 +213,17 @@ public class InventoryController {
 
     extractMarketPlaceFacts(rhsmFacts, facts);
     return facts;
+  }
+
+  private void extractProviderFacts(Map<String, String> rhsmFacts, ConduitFacts facts) {
+    for (ProviderFact provider : ProviderFact.values()) {
+      String instanceId = rhsmFacts.get(provider.getFactPropertyName(INSTANCE_ID));
+      if (instanceId != null && !instanceId.isEmpty()) {
+        facts.setProviderId(instanceId);
+        facts.setProviderType(provider.getType());
+        break;
+      }
+    }
   }
 
   private void extractMarketPlaceFacts(Map<String, String> rhsmFacts, ConduitFacts facts) {

@@ -36,6 +36,7 @@ import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.tally.AccountResetService;
+import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.tally.billing.ContractsController;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.util.DateRange;
@@ -51,6 +52,7 @@ public class InternalTallyDataController {
   private final ObjectMapper objectMapper;
   private final OptInController controller;
   private final ContractsController contractsController;
+  private final TallySnapshotController snapshotController;
 
   public InternalTallyDataController(
       AccountResetService accountResetService,
@@ -58,13 +60,15 @@ public class InternalTallyDataController {
       CaptureSnapshotsTaskManager tasks,
       ObjectMapper objectMapper,
       OptInController controller,
-      ContractsController contractsController) {
+      ContractsController contractsController,
+      TallySnapshotController snapshotController) {
     this.accountResetService = accountResetService;
     this.eventController = eventController;
     this.tasks = tasks;
     this.objectMapper = objectMapper;
     this.controller = controller;
     this.contractsController = contractsController;
+    this.snapshotController = snapshotController;
   }
 
   public void deleteDataAssociatedWithOrg(String orgId) {
@@ -83,6 +87,10 @@ public class InternalTallyDataController {
 
   public void tallyOrg(String orgId) {
     tasks.updateOrgSnapshots(orgId);
+  }
+
+  public void tallyOrgSync(String orgId) {
+    snapshotController.produceSnapshotsForOrg(orgId);
   }
 
   public String saveEvents(String jsonListOfEvents) {

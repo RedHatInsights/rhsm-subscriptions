@@ -30,10 +30,9 @@ public class InMemoryMessageBrokerKafkaResource implements QuarkusTestResourceLi
   @Override
   public Map<String, String> start() {
     Map<String, String> env = new HashMap<>();
-    Map<String, String> props1 = InMemoryConnector.switchIncomingChannelsToInMemory("tally-in");
-    Map<String, String> props2 = InMemoryConnector.switchOutgoingChannelsToInMemory("tally-out");
-    env.putAll(props1);
-    env.putAll(props2);
+    env.putAll(InMemoryConnector.switchIncomingChannelsToInMemory("tally-in"));
+    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory("tally-out"));
+    env.putAll(InMemoryConnector.switchOutgoingChannelsToInMemory("tally-dlt"));
     return env;
   }
 

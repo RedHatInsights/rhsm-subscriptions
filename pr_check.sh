@@ -28,6 +28,10 @@ curl -s $CICD_URL/bootstrap.sh > .cicd_bootstrap.sh && source .cicd_bootstrap.sh
 # Disable the validation of topics for now until SWATCH-1904 is resolved.
 # python bin/validate-topics.py
 
+# Initialize the GIT config which is required by the Gradle Nebula plugin to build the images
+git config user.name "$(git --no-pager log --format=format:'%an' -n 1)"
+git config user.email "$(git --no-pager log --format=format:'%ae' -n 1)"
+
 IMAGES=""
 
 export COMPONENT_NAME="rhsm"  # name of app-sre "resourceTemplate" in deploy.yaml for this component

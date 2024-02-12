@@ -131,18 +131,18 @@ parameters:
   - name: OTEL_EXPORTER_OTLP_ENDPOINT
     value: 'http://localhost:4317'
   - name: METRICS_HEALTH_LIVENESS_PATH
-    value: /q/health/live
+    value: /health/live
   - name: METRICS_HEALTH_READY_PATH
-    value: /q/health/ready
+    value: /health/ready
   - name: METRICS_HEALTH_PORT
-    value: '8000'
+    value: '9000'
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
     kind: ClowdApp
     metadata:
       name: swatch-metrics
       labels:
-        prometheus: quarkus
+        prometheus: rhsm
     spec: # The name of the ClowdEnvironment providing the services
       envName: ${ENV_NAME}
 
@@ -340,7 +340,7 @@ objects:
     metadata:
       name: swatch-metrics-rhel
       labels:
-        prometheus: quarkus
+        prometheus: rhsm
     spec:
       envName: ${ENV_NAME}
 

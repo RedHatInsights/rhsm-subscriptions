@@ -76,6 +76,13 @@ class ClowderJsonPathPropertySourceTest {
   }
 
   @Test
+  void testGetPrivateProperty() throws Exception {
+    var source = new ClowderJsonPathPropertySource(jsonFromResource(TEST_CLOWDER_CONFIG_JSON));
+    var result = source.getProperty("clowder.privateEndpoints[?(@.app == 'export-service')]");
+    assertNotNull(result);
+  }
+
+  @Test
   void testJsonPathForInt() throws Exception {
     var s = "{\"foo\": 3}";
     var source = new ClowderJsonPathPropertySource(jsonFromString(s));
@@ -271,7 +278,8 @@ class ClowderJsonPathPropertySourceTest {
         "clowder.endpoints.index-service.url|https://index.rhsm.svc:8800",
         "clowder.endpoints.index-service.trust-store-path|file:/tmp/truststore.*.trust",
         "clowder.endpoints.index-service.trust-store-password|.+",
-        "clowder.endpoints.index-service.trust-store-type|PKCS12"
+        "clowder.endpoints.index-service.trust-store-type|PKCS12",
+        "clowder.privateEndpoints.export-service-service.url|http://export-service-service.svc:10000"
       },
       delimiter = '|')
   void testCustomLogicInProperties(String property, String expectedValue) throws Exception {

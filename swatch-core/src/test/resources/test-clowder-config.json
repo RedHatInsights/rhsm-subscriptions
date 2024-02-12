@@ -30,6 +30,15 @@
             "tlsPort": 8800
         }
     ],
+    "privateEndpoints": [
+        {
+            "app": "export-service",
+            "hostname": "export-service-service.svc",
+            "name": "service",
+            "port": 10000,
+            "tlsPort": 0
+        }
+    ],
     "featureFlags": {
         "hostname": "env-rhsm-featureflags.rhsm.svc",
         "port": 4242

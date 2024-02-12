@@ -224,7 +224,6 @@ paths:
     parameters:
       - name: orgId
         in: query
-        required: true
         schema:
           type: string
         description: "Customer's Org Id"
@@ -251,6 +250,8 @@ paths:
         in: query
         schema:
           type: string
+          default: _ANY
+
     get:
       summary: "Lookup necessary info to submit a usage record to AWS"
       operationId: getAwsUsageContext
@@ -285,7 +286,6 @@ paths:
           schema:
             type: string
           in: query
-          required: true
         - name: date
           description: 'Look at subscriptions starting on this date'
           example: 2023-10-31T00:00:00Z
@@ -313,12 +313,12 @@ paths:
           schema:
             type: string
           in: query
-        - name: billingAccountId
+        - name: azureAccountId
           description: 'Look at subscriptions matching this billing_account_id'
           schema:
             type: string
+            default: _ANY
           in: query
-          required: false
       responses:
         '200':
           content:

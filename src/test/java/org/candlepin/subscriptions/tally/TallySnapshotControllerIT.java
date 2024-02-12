@@ -68,7 +68,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest(properties = "CONTRACT_USE_STUB=true")
-@ActiveProfiles(value = {"worker", "kafka-queue", "api", "test-inventory"})
+@ActiveProfiles(value = {"worker", "kafka-queue", "api", "test-inventory", "capacity-ingress"})
 class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithEmbeddedKafka {
   static final String PROMETHEUS = "prometheus";
   static final String METRIC = "Cores";

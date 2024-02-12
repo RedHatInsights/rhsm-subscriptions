@@ -20,10 +20,15 @@
  */
 package org.candlepin.subscriptions.tally.billing.admin;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.verify;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Set;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.billing.admin.api.model.MonthlyRemittance;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
@@ -33,9 +38,13 @@ import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
+import org.candlepin.subscriptions.tally.billing.BillingProducer;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -48,16 +57,18 @@ import org.springframework.transaction.annotation.Transactional;
 @ActiveProfiles("test")
 @Transactional
 @Import(TestClockConfiguration.class)
+@ExtendWith(MockitoExtension.class)
 class InternalBillingControllerTest {
 
   @Autowired BillableUsageRemittanceRepository remittanceRepo;
-  @Autowired private ApplicationClock clock;
+  @Autowired ApplicationClock clock;
+  @Mock BillingProducer billingProducer;
 
   InternalBillingController controller;
 
   @BeforeEach
   void setup() {
-    controller = new InternalBillingController(remittanceRepo);
+    controller = new InternalBillingController(remittanceRepo, billingProducer);
 
     BillableUsageRemittanceEntity remittance1 =
         remittance("111", "product1", BillingProvider.AWS, 24.0, clock.startOfCurrentMonth());
@@ -71,15 +82,25 @@ class InternalBillingControllerTest {
         remittance("org345", "product2", BillingProvider.RED_HAT, 8.0, clock.startOfCurrentMonth());
     BillableUsageRemittanceEntity remittance5 =
         remittance("org345", "product3", BillingProvider.AZURE, 4.0, clock.startOfCurrentMonth());
-
+    BillableUsageRemittanceEntity remittance6 =
+        remittance("1234", "rosa", BillingProvider.AWS, 24.0, clock.startOfCurrentMonth());
+    BillableUsageRemittanceEntity remittance7 =
+        remittance("5678", "rosa", BillingProvider.AWS, 24.0, clock.startOfCurrentMonth());
     remittanceRepo.saveAllAndFlush(
-        List.of(remittance1, remittance2, remittance3, remittance4, remittance5));
+        List.of(
+            remittance1,
+            remittance2,
+            remittance3,
+            remittance4,
+            remittance5,
+            remittance6,
+            remittance7));
   }
 
   @Test
   void ifAccountNotFoundDisplayEmptyAccountRemittance() {
     var response =
-        controller.process(
+        controller.getRemittances(
             BillableUsageRemittanceFilter.builder()
                 .orgId("not_found")
                 .productId("product1")
@@ -91,7 +112,7 @@ class InternalBillingControllerTest {
   @Test
   void testFilterByOrgId() {
     var response =
-        controller.process(
+        controller.getRemittances(
             BillableUsageRemittanceFilter.builder().productId("product1").orgId("111").build());
     assertFalse(response.isEmpty());
     assertEquals(24.0, response.get(0).getRemittedValue());
@@ -101,7 +122,7 @@ class InternalBillingControllerTest {
   @Test
   void testFilterByAccountAndProduct() {
     var response =
-        controller.process(
+        controller.getRemittances(
             BillableUsageRemittanceFilter.builder().orgId("org123").productId("product1").build());
     assertFalse(response.isEmpty());
     assertEquals(2, response.size());
@@ -111,7 +132,7 @@ class InternalBillingControllerTest {
   @Test
   void testFilterByAccountAndProductAndMetricId() {
     var response =
-        controller.process(
+        controller.getRemittances(
             BillableUsageRemittanceFilter.builder()
                 .orgId("org123")
                 .productId("product1")
@@ -127,7 +148,7 @@ class InternalBillingControllerTest {
   @Test
   void testFilterByOrgIdAndProductAndMetricId() {
     var response =
-        controller.process(
+        controller.getRemittances(
             BillableUsageRemittanceFilter.builder()
                 .orgId("org123")
                 .productId("product1")
@@ -145,7 +166,7 @@ class InternalBillingControllerTest {
   @Test
   void testAccountAndOrgIdShouldReturnEmpty() {
     var response =
-        controller.process(
+        controller.getRemittances(
             BillableUsageRemittanceFilter.builder()
                 .productId("product1")
                 .metricId("Instance-hours")
@@ -156,7 +177,7 @@ class InternalBillingControllerTest {
   @Test
   void testFilterByBillingProviderAndOrgId() {
     var response =
-        controller.process(
+        controller.getRemittances(
             BillableUsageRemittanceFilter.builder()
                 .orgId("org123")
                 .billingProvider(BillingProvider.RED_HAT.value())
@@ -172,7 +193,7 @@ class InternalBillingControllerTest {
   @Test
   void testFilterByBillingAccountIdAndOrgId() {
     var response =
-        controller.process(
+        controller.getRemittances(
             BillableUsageRemittanceFilter.builder()
                 .orgId("org345")
                 .billingAccountId("org345_product3_ba")
@@ -184,6 +205,47 @@ class InternalBillingControllerTest {
     assertEquals("org345", result.getOrgId());
     assertEquals(BillingProvider.AZURE.value(), result.getBillingProvider());
     assertEquals(4, result.getRemittedValue());
+  }
+
+  @Test
+  void testResetRemittanceValueForCriteria() {
+    int remittancePresent =
+        controller.resetBillableUsageRemittance(
+            "rosa",
+            clock.startOfCurrentMonth().minusDays(1),
+            clock.startOfCurrentMonth().plusDays(1),
+            Set.of("1234", "5678"));
+    int remittanceNotPresent =
+        controller.resetBillableUsageRemittance(
+            "rosa",
+            clock.startOfCurrentMonth().plusDays(1),
+            clock.startOfCurrentMonth().plusDays(2),
+            Set.of("1234"));
+    assertEquals(2, remittancePresent);
+    assertEquals(0, remittanceNotPresent);
+  }
+
+  @Test
+  void testProcessRetries() {
+    String orgId = "testProcessRetriesOrg123";
+    givenRemittanceWithOldRetryAfter(orgId);
+
+    controller.processRetries(OffsetDateTime.now());
+
+    // verify remittance has been sent
+    verify(billingProducer).produce(argThat(b -> b.getOrgId().equals(orgId)));
+    // verify retry after is reset
+    assertTrue(
+        remittanceRepo.findAll().stream()
+            .filter(b -> b.getKey().getOrgId().equals(orgId))
+            .allMatch(b -> b.getRetryAfter() == null));
+  }
+
+  private void givenRemittanceWithOldRetryAfter(String orgId) {
+    var remittance =
+        remittance(orgId, "product", BillingProvider.AZURE, 4.0, clock.startOfCurrentMonth());
+    remittance.setRetryAfter(clock.now().minusMonths(30));
+    remittanceRepo.saveAndFlush(remittance);
   }
 
   private BillableUsageRemittanceEntity remittance(

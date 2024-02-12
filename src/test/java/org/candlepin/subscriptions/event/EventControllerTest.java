@@ -59,6 +59,7 @@ class EventControllerTest {
   String eventRecord3;
   String eventRecord4;
   String eventRecord5;
+  String azureEventRecord1;
   String cleanUpEvent;
 
   @BeforeEach
@@ -166,6 +167,30 @@ class EventControllerTest {
                      }
                    ],
                    "service_type": "OpenShift Cluster"
+                 }
+                """;
+    azureEventRecord1 =
+        """
+                {
+                   "sla": "Premium",
+                   "role": "Red Hat Enterprise Linux Server",
+                   "org_id": "7",
+                   "timestamp": "2023-05-02T00:00:00Z",
+                   "event_type": "snapshot",
+                   "expiration": "2023-05-02T01:00:00Z",
+                   "instance_id": "e3a62bd1-fd00-405c-9401-f2288808588d",
+                   "display_name": "automation_osd_cluster_e3a62bd1-fd00-405c-9401-f2288808588d",
+                   "event_source": "cost-management",
+                   "measurements": [
+                     {
+                       "uom": "vCPUs",
+                       "value": 1.0
+                     }
+                   ],
+                   "service_type": "RHEL System",
+                   "billing_provider": "azure",
+                   "azure_tenant_id": "TestAzureTenantId",
+                   "azure_subscription_id": "TestAzureSubscriptionId"
                  }
                 """;
     cleanUpEvent =
@@ -296,6 +321,21 @@ class EventControllerTest {
     assertEquals(1, exception.getIndex());
     // Last event is never attempted to save since second event fails
     verify(eventRecordRepository, times(2)).save(any());
+  }
+
+  @Test
+  void testPersistServiceInstances_AzureBillingAccountIdSet() {
+    List<String> eventRecords = new ArrayList<>();
+    eventRecords.add(azureEventRecord1);
+    eventController.persistServiceInstances(eventRecords);
+    when(eventRecordRepository.saveAll(any())).thenReturn(new ArrayList<>());
+
+    verify(eventRecordRepository).saveAll(eventsSaved.capture());
+    List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
+    assertEquals(1, events.size());
+    assertEquals(
+        "TestAzureTenantId;TestAzureSubscriptionId",
+        events.get(0).getEvent().getBillingAccountId().get());
   }
 
   private void verifyDeletionOfStaleEventsIsDone() {

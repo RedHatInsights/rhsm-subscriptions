@@ -68,6 +68,7 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
   public static final String PREFIX = "clowder.";
   private static final String KAFKA_BROKERS = "kafka.brokers";
   private static final String ENDPOINTS = "endpoints";
+  private static final String PRIVATE_ENDPOINTS = "privateEndpoints";
   private static final Integer PORT_NOT_SET = 0;
   private static final String ENDPOINT_TLS_PORT_PROPERTY = "tlsPort";
 
@@ -148,16 +149,24 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
         return getKafkaBrokerConfig(name, configFunction);
       }
     }
-    // handling for rest-clients
-    if (name.contains(ENDPOINTS)) {
+    // handling for rest-clients for public or ports and determine the type
+    if (name.contains(ENDPOINTS) || name.contains(PRIVATE_ENDPOINTS)) {
       for (Map.Entry<String, EndpointConfigMapper> entry : ENDPOINTS_PROPERTIES.entrySet()) {
         if (name.endsWith(entry.getKey())) {
-          return getEndpointConfig(name, entry.getValue());
+          return determineEndpointConfig(name, entry.getValue());
         }
       }
     }
 
     return getJsonPathValue(name.substring(PREFIX.length()));
+  }
+
+  private Object determineEndpointConfig(String name, EndpointConfigMapper value) {
+    if (name.contains(ENDPOINTS)) {
+      return getEndpointConfig(name, value);
+    } else {
+      return getPrivateEndpointConfig(name, value);
+    }
   }
 
   protected String getTruststorePath() {
@@ -537,6 +546,31 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
     }
   }
 
+  private Object getPrivateEndpointConfig(String name, EndpointConfigMapper configFunction) {
+    Object value = getJsonPathValue(PRIVATE_ENDPOINTS);
+    if (value instanceof Collection<?> list) {
+      if (list.isEmpty()) {
+        return null;
+      }
+
+      String endpoint = extractPrivateEndpointName(name);
+      Map<String, Object> found =
+          list.stream()
+              .map(o -> (Map<String, Object>) o)
+              .filter(c -> endpoint.equals(getEndpointName(c)))
+              .findFirst()
+              .orElseThrow(
+                  () ->
+                      new IllegalStateException(
+                          "Could not find the private endpoint configuration for property: "
+                              + name));
+      return configFunction.apply(this, found);
+    } else {
+      throw new IllegalStateException(
+          "Unknown type found in clowder configuration for private endpoint property: " + name);
+    }
+  }
+
   @SuppressWarnings("unchecked")
   private static String getKafkaBrokerSaslProperty(
       List<Map<String, Object>> brokerConfig, String propertyName) {
@@ -565,6 +599,11 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
 
   private String extractEndpointName(String name) {
     String part = name.substring(PREFIX.length() + ENDPOINTS.length() + 1);
+    return part.substring(0, part.indexOf("."));
+  }
+
+  private String extractPrivateEndpointName(String name) {
+    String part = name.substring(PREFIX.length() + PRIVATE_ENDPOINTS.length() + 1);
     return part.substring(0, part.indexOf("."));
   }
 

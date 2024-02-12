@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -44,6 +45,7 @@ import java.lang.reflect.Field;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
@@ -437,7 +439,8 @@ class BillableUsageControllerTest {
   static Stream<Arguments> remittanceParameters() {
     OffsetDateTime startOfUsage = CLOCK.startOfCurrentMonth().plusDays(4);
     return Stream.of(
-        // arguments(currentUsage, currentRemittance, expectedRemitted, expectedBilledValue)
+        // arguments(usageDate, currentUsage, currentRemittance, expectedRemitted,
+        // expectedBilledValue)
         // NOTE: currantUsage is the sum of all snapshots, NOT the value from BillableUsage.
         arguments(startOfUsage, 0.5, 0.0, 1.0, 1.0),
         arguments(startOfUsage.plusDays(5), 1.0, 1.0, 0.0, 0.0),
@@ -549,7 +552,12 @@ class BillableUsageControllerTest {
   private BillableUsageRemittanceEntity remittance(
       BillableUsage usage, OffsetDateTime remittedDate, Double value) {
     BillableUsageRemittanceEntityPK remKey = keyFrom(usage, remittedDate);
-    return BillableUsageRemittanceEntity.builder().key(remKey).remittedPendingValue(value).build();
+    return BillableUsageRemittanceEntity.builder()
+        .key(remKey)
+        .remittedPendingValue(value)
+        .tallyId(usage.getId())
+        .hardwareMeasurementType(usage.getHardwareMeasurementType())
+        .build();
   }
 
   private void performRemittanceTesting(
@@ -596,12 +604,12 @@ class BillableUsageControllerTest {
           usage.getProductId(), usage.getUom().toString(), billingFactor, false);
     }
 
-    controller.submitBillableUsage(usage);
-
     // Remittance should only be saved when it changes.
     // NOTE: Using argument captors make errors caught by mocks a little easier to debug.
     BillableUsageRemittanceEntity expectedRemittance =
         remittance(usage, CLOCK.now(), expectedRemitted);
+
+    controller.submitBillableUsage(usage);
 
     ArgumentCaptor<BillableUsageRemittanceEntity> remitted =
         ArgumentCaptor.forClass(BillableUsageRemittanceEntity.class);
@@ -689,5 +697,37 @@ class BillableUsageControllerTest {
     variant.setSubscription(subscriptionDefinition);
     when(subscriptionDefinitionRegistry.getSubscriptions())
         .thenReturn(List.of(subscriptionDefinition));
+  }
+
+  @Test
+  void testUpdateBillableUsageRemittanceWithRetryAfter() {
+    var retryAfter = OffsetDateTime.now();
+    var expectedRemittance = new BillableUsageRemittanceEntity();
+    when(remittanceRepo.findById(any()))
+        .thenReturn(Optional.of(new BillableUsageRemittanceEntity()));
+    var billableUsage = new BillableUsage();
+    billableUsage.setUsage(Usage.PRODUCTION);
+    billableUsage.setBillingProvider(BillingProvider.AZURE);
+    billableUsage.setSla(Sla.STANDARD);
+    billableUsage.setSnapshotDate(OffsetDateTime.now());
+    billableUsage.setUom(CORES);
+    createSubscriptionDefinition("osd", CORES, 0.25, false);
+    controller.updateBillableUsageRemittanceWithRetryAfter(billableUsage, retryAfter);
+    expectedRemittance.setRetryAfter(retryAfter);
+    verify(remittanceRepo).save(expectedRemittance);
+  }
+
+  @Test
+  void testUpdateBillableUsageRemittanceWithRetryAfterMissingRemittance() {
+    var retryAfter = OffsetDateTime.now();
+    var billableUsage = new BillableUsage();
+    billableUsage.setUsage(Usage.PRODUCTION);
+    billableUsage.setBillingProvider(BillingProvider.AZURE);
+    billableUsage.setSla(Sla.STANDARD);
+    billableUsage.setSnapshotDate(OffsetDateTime.now());
+    billableUsage.setUom(CORES);
+    createSubscriptionDefinition("osd", CORES, 0.25, false);
+    controller.updateBillableUsageRemittanceWithRetryAfter(billableUsage, retryAfter);
+    verify(remittanceRepo, never()).save(any());
   }
 }

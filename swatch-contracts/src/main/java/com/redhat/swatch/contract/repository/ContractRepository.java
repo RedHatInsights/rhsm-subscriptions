@@ -23,6 +23,7 @@ package com.redhat.swatch.contract.repository;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -30,6 +31,10 @@ import lombok.extern.slf4j.Slf4j;
 public class ContractRepository implements PanacheSpecificationSupport<ContractEntity, UUID> {
   public List<ContractEntity> getContracts(Specification<ContractEntity> specification) {
     return find(ContractEntity.class, specification, null);
+  }
+
+  public Stream<ContractEntity> findContracts(Specification<ContractEntity> specification) {
+    return stream(ContractEntity.class, specification);
   }
 
   public List<ContractEntity> getContractsByOrgId(String orgId) {

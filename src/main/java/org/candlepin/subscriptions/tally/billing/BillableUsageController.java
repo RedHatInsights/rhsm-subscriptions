@@ -198,10 +198,7 @@ public class BillableUsageController {
         currentlyMeasuredTotal,
         totalRemitted,
         usageCalc);
-    // There were issues with transmitting usage to AWS since the cost event timestamps were in the
-    // past. This modification allows us to send usage to AWS if we get it during the current hour
-    // of event tally.
-    usage.setSnapshotDate(usageCalc.getRemittanceDate());
+
     // Update the reported usage value to the newly calculated one.
     usage.setValue(usageCalc.getBillableValue());
     usage.setBillingFactor(usageCalc.getBillingFactor());
@@ -211,6 +208,11 @@ public class BillableUsageController {
     } else {
       log.debug("Nothing to remit. Remittance record will not be created.");
     }
+
+    // There were issues with transmitting usage to AWS since the cost event timestamps were in the
+    // past. This modification allows us to send usage to AWS if we get it during the current hour
+    // of event tally.
+    usage.setSnapshotDate(usageCalc.getRemittanceDate());
 
     log.info(
         "Finished producing monthly billable for orgId={} productId={} uom={} provider={}, snapshotDate={}",
@@ -226,6 +228,8 @@ public class BillableUsageController {
     var newRemittance =
         BillableUsageRemittanceEntity.builder()
             .key(BillableUsageRemittanceEntityPK.keyFrom(usage, clock.now()))
+            .tallyId(usage.getId())
+            .hardwareMeasurementType(usage.getHardwareMeasurementType())
             .build();
     // Remitted value should be set to usages metric_value rather than billing_value
     newRemittance.setRemittedPendingValue(usageCalc.getRemittedValue());
@@ -253,5 +257,20 @@ public class BillableUsageController {
         beginning,
         ending,
         measurementKey);
+  }
+
+  public void updateBillableUsageRemittanceWithRetryAfter(
+      BillableUsage billableUsage, OffsetDateTime retryAfter) {
+    var billableUsageRemittance =
+        billableUsageRemittanceRepository.findById(
+            BillableUsageRemittanceEntityPK.keyFrom(
+                billableUsage, billableUsage.getSnapshotDate()));
+    if (billableUsageRemittance.isPresent()) {
+      billableUsageRemittance.get().setRetryAfter(retryAfter);
+      billableUsageRemittanceRepository.save(billableUsageRemittance.get());
+    } else {
+      log.warn(
+          "Unable to find billable usage to update retry_after. BillableUsage: {}", billableUsage);
+    }
   }
 }

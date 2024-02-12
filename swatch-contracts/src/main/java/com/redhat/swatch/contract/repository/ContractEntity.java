@@ -29,6 +29,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Objects;
@@ -41,6 +43,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+@NotNull
 @Entity
 @Table(name = "contracts")
 @AllArgsConstructor
@@ -56,7 +59,7 @@ public class ContractEntity extends PanacheEntityBase {
   private UUID uuid;
 
   @Basic
-  @Column(name = "subscription_number", nullable = false)
+  @Column(name = "subscription_number")
   private String subscriptionNumber;
 
   @Basic
@@ -71,22 +74,31 @@ public class ContractEntity extends PanacheEntityBase {
   @Column(name = "end_date")
   private OffsetDateTime endDate;
 
+  @NotNull
   @Basic
   @Column(name = "org_id", nullable = false)
   private String orgId;
 
+  @NotNull
   @Basic
   @Column(name = "sku", nullable = false)
   private String sku;
 
+  @NotNull
   @Basic
   @Column(name = "billing_provider", nullable = false)
   private String billingProvider;
 
   @Basic
+  @Column(name = "billing_provider_id")
+  private String billingProviderId;
+
+  @NotNull
+  @Basic
   @Column(name = "billing_account_id", nullable = false)
   private String billingAccountId;
 
+  @NotNull
   @Basic
   @Column(name = "product_id", nullable = false)
   private String productId;
@@ -95,6 +107,8 @@ public class ContractEntity extends PanacheEntityBase {
   @Column(name = "vendor_product_code", nullable = false)
   private String vendorProductCode;
 
+  @NotEmpty
+  @NotNull
   @Builder.Default
   @OneToMany(
       targetEntity = ContractMetricEntity.class,
@@ -146,6 +160,13 @@ public class ContractEntity extends PanacheEntityBase {
         vendorProductCode);
   }
 
+  public String getAzureResourceId() {
+    if (!billingProvider.startsWith("azure") || billingProviderId == null) {
+      return null;
+    }
+    return billingProviderId.split(";")[0];
+  }
+
   public static Specification<ContractEntity> orgIdEquals(String orgId) {
     return (root, query, builder) -> builder.equal(root.get(ContractEntity_.orgId), orgId);
   }
@@ -180,10 +201,6 @@ public class ContractEntity extends PanacheEntityBase {
         builder.equal(root.get(ContractEntity_.vendorProductCode), vendorProductCode);
   }
 
-  public static Specification<ContractEntity> isActive() {
-    return (root, query, builder) -> builder.isNull(root.get(ContractEntity_.endDate));
-  }
-
   public static Specification<ContractEntity> activeOn(OffsetDateTime timestamp) {
     return (root, query, builder) ->
         builder.and(
@@ -191,5 +208,29 @@ public class ContractEntity extends PanacheEntityBase {
             builder.or(
                 builder.isNull(root.get(ContractEntity_.endDate)),
                 builder.greaterThan(root.get(ContractEntity_.endDate), timestamp)));
+  }
+
+  public static Specification<ContractEntity> activeDuringTimeRange(ContractEntity contract) {
+    return (root, query, builder) -> {
+      if (contract.getEndDate() != null) {
+        return builder.and(
+            builder.greaterThanOrEqualTo(
+                root.get(ContractEntity_.startDate), contract.getStartDate()),
+            builder.lessThanOrEqualTo(root.get(ContractEntity_.startDate), contract.getEndDate()));
+      } else {
+        return builder.greaterThanOrEqualTo(
+            root.get(ContractEntity_.startDate), contract.getStartDate());
+      }
+    };
+  }
+
+  public static Specification<ContractEntity> azureResourceIdEquals(String azureResourceId) {
+    return (root, query, builder) ->
+        builder.like(root.get(ContractEntity_.billingProviderId), azureResourceId + "%");
+  }
+
+  public static Specification<ContractEntity> billingProviderIdEquals(String billingProviderId) {
+    return (root, query, builder) ->
+        builder.equal(root.get(ContractEntity_.billingProviderId), billingProviderId);
   }
 }

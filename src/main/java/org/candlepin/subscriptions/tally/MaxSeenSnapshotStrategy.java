@@ -25,8 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.db.TallySnapshotRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.tally.roller.BaseSnapshotRoller;
 import org.candlepin.subscriptions.tally.roller.DailySnapshotRoller;
@@ -35,17 +34,14 @@ import org.candlepin.subscriptions.tally.roller.MonthlySnapshotRoller;
 import org.candlepin.subscriptions.tally.roller.QuarterlySnapshotRoller;
 import org.candlepin.subscriptions.tally.roller.WeeklySnapshotRoller;
 import org.candlepin.subscriptions.tally.roller.YearlySnapshotRoller;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Strategy for producing snapshots that captures the largest value recorded. */
+@Slf4j
 @Service
 public class MaxSeenSnapshotStrategy {
-
-  private static final Logger log = LoggerFactory.getLogger(MaxSeenSnapshotStrategy.class);
 
   private final HourlySnapshotRoller hourlyRoller;
   private final DailySnapshotRoller dailyRoller;
@@ -57,16 +53,20 @@ public class MaxSeenSnapshotStrategy {
 
   @Autowired
   public MaxSeenSnapshotStrategy(
-      TallySnapshotRepository tallyRepo,
-      ApplicationClock clock,
+      HourlySnapshotRoller hourlyRoller,
+      DailySnapshotRoller dailyRoller,
+      WeeklySnapshotRoller weeklyRoller,
+      MonthlySnapshotRoller monthlyRoller,
+      YearlySnapshotRoller yearlyRoller,
+      QuarterlySnapshotRoller quarterlyRoller,
       SnapshotSummaryProducer summaryProducer) {
     this.summaryProducer = summaryProducer;
-    hourlyRoller = new HourlySnapshotRoller(tallyRepo, clock);
-    dailyRoller = new DailySnapshotRoller(tallyRepo, clock);
-    weeklyRoller = new WeeklySnapshotRoller(tallyRepo, clock);
-    monthlyRoller = new MonthlySnapshotRoller(tallyRepo, clock);
-    yearlyRoller = new YearlySnapshotRoller(tallyRepo, clock);
-    quarterlyRoller = new QuarterlySnapshotRoller(tallyRepo, clock);
+    this.hourlyRoller = hourlyRoller;
+    this.dailyRoller = dailyRoller;
+    this.weeklyRoller = weeklyRoller;
+    this.monthlyRoller = monthlyRoller;
+    this.yearlyRoller = yearlyRoller;
+    this.quarterlyRoller = quarterlyRoller;
   }
 
   @Transactional

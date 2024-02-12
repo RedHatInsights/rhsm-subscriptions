@@ -27,4 +27,7 @@ import org.candlepin.subscriptions.rbac.model.Access;
 public interface RbacApi {
 
   List<Access> getCurrentUserAccess(String applicationName) throws RbacApiException;
+
+  List<Access> getCurrentIdentityAccess(String rbacAppName, String identity)
+      throws RbacApiException;
 }

@@ -29,10 +29,15 @@ import io.quarkus.oidc.client.OidcClients;
 import io.smallrye.mutiny.Uni;
 import jakarta.ws.rs.client.ClientRequestContext;
 import jakarta.ws.rs.client.ClientRequestFilter;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
+// https://learn.microsoft.com/en-us/partner-center/marketplace/partner-center-portal/pc-saas-registration#get-the-token-with-an-http-post
 @Slf4j
 public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
+
+  private static final String AZURE_RESOURCE_GRANT = "resource";
 
   private OidcClients oidcClients;
 
@@ -41,6 +46,8 @@ public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
   private Client clientInfo;
 
   private String tokenUrl;
+
+  private String resourceGrantValue;
 
   public AzureMarketplaceHeaderProvider(
       AzureMarketplaceProperties azureMarketplaceProperties,
@@ -52,6 +59,9 @@ public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
         azureMarketplaceProperties
             .getOauthTokenUrl()
             .replace("[TenantIdPlaceholder]", clientInfo.getTenantId());
+    this.resourceGrantValue = azureMarketplaceProperties.getOidcSaasMarketplaceResource();
+
+    // set other fields before calling awaited method.
     this.client = createOidcClient().await().indefinitely();
   }
 
@@ -66,6 +76,9 @@ public class AzureMarketplaceHeaderProvider implements ClientRequestFilter {
     cfg.setClientId(clientInfo.getClientId());
     cfg.getGrant().setType(Type.CLIENT);
     cfg.getCredentials().setSecret(clientInfo.getClientSecret());
+    var grantOptions = new HashMap<String, Map<String, String>>();
+    grantOptions.put("client", Map.of(AZURE_RESOURCE_GRANT, resourceGrantValue));
+    cfg.setGrantOptions(grantOptions);
     return oidcClients.newClient(cfg);
   }
 

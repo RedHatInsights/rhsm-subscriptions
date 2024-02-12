@@ -118,6 +118,8 @@ public abstract class InventoryService {
     host.setIpAddresses(facts.getIpAddresses());
     host.setMacAddresses(facts.getMacAddresses());
     host.setInsightsId(facts.getInsightsId());
+    host.setProviderId(facts.getProviderId());
+    host.setProviderType(facts.getProviderType());
 
     host.setSystemProfile(createSystemProfile(facts));
 

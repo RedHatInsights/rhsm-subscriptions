@@ -64,11 +64,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles({"api", "test"})
-@WithMockRedHatPrincipal("123456")
 class InstancesResourceTest {
 
   private static final ProductId ROSA = ProductId.fromString("rosa");
@@ -86,6 +86,7 @@ class InstancesResourceTest {
     when(orgConfigRepository.existsByOrgId("owner123456")).thenReturn(true);
   }
 
+  @WithMockRedHatPrincipal("123456")
   @Test
   void testShouldPopulateInstanceResponse() {
     BillingProvider expectedBillingProvider = BillingProvider.AWS;
@@ -168,6 +169,7 @@ class InstancesResourceTest {
     assertEquals(expected, report);
   }
 
+  @WithMockRedHatPrincipal("123456")
   @Test
   void testShouldPopulateInstanceResponseWithHypervisorAndPhysical() {
     BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
@@ -266,6 +268,7 @@ class InstancesResourceTest {
     assertEquals(expected, report);
   }
 
+  @WithMockRedHatPrincipal("123456")
   @Test
   void testShouldPopulateCategoryWithCloud() {
     BillingProvider expectedBillingProvider = BillingProvider.AWS;
@@ -361,6 +364,7 @@ class InstancesResourceTest {
         () -> resource.validateBeginningAndEndingDates(ROSA, dayInJanuary, dayInFebruary));
   }
 
+  @WithMockRedHatPrincipal("123456")
   @Test
   void testCallRepoWithNullMonthForNonPAYGProduct() {
     BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
@@ -443,6 +447,7 @@ class InstancesResourceTest {
             any());
   }
 
+  @WithMockRedHatPrincipal("123456")
   @Test
   void testGetInstanceGuestsReturnInstanceData() {
     var host = new Host();
@@ -460,6 +465,7 @@ class InstancesResourceTest {
     assertEquals(1, response.getData().size());
   }
 
+  @WithMockRedHatPrincipal("123456")
   @Test
   void testMinCoresZeroWhenUomIsCores() {
     BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
@@ -525,6 +531,7 @@ class InstancesResourceTest {
             any());
   }
 
+  @WithMockRedHatPrincipal("123456")
   @Test
   void testMinSocketsZeroWhenUomIsSockets() {
     BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
@@ -590,6 +597,7 @@ class InstancesResourceTest {
             any());
   }
 
+  @WithMockRedHatPrincipal("123456")
   @Test
   void testGetInstancesByProductThrowsExceptionForUnknownMetricId() {
     assertThrows(
@@ -610,5 +618,34 @@ class InstancesResourceTest {
                 null,
                 SORT_BY_DISPLAY_NAME,
                 null));
+  }
+
+  @Test
+  void testGetInstancesByProductThrowsAuthenticationCredentialsNotFoundExceptionWhenNoSecurity() {
+    assertThrows(
+        AuthenticationCredentialsNotFoundException.class,
+        () ->
+            resource.getInstancesByProduct(
+                ROSA,
+                null,
+                null,
+                ServiceLevelType.PREMIUM,
+                UsageType.PRODUCTION,
+                "Sockets",
+                BillingProviderType.RED_HAT,
+                null,
+                null,
+                null,
+                null,
+                null,
+                SORT_BY_DISPLAY_NAME,
+                null));
+  }
+
+  @Test
+  void testGetInstanceGuestsThrowsAuthenticationCredentialsNotFoundExceptionWhenNoSecurity() {
+    assertThrows(
+        AuthenticationCredentialsNotFoundException.class,
+        () -> resource.getInstanceGuests("instance123", null, null));
   }
 }
