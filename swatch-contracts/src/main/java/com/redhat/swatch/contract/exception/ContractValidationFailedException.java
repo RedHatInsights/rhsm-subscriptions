@@ -29,6 +29,6 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ContractValidationFailedException extends Exception {
-  private final ContractEntity entity;
-  private final Set<ConstraintViolation<ContractEntity>> violations;
+  private final transient ContractEntity entity;
+  private final transient Set<ConstraintViolation<ContractEntity>> violations;
 }
