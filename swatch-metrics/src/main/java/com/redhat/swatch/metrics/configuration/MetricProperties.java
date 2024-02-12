@@ -22,6 +22,7 @@ package com.redhat.swatch.metrics.configuration;
 
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 
@@ -80,6 +81,15 @@ public interface MetricProperties {
    */
   @WithDefault("3")
   int templateParameterDepth();
+
+  /** How many attempts before giving up on the MeteringJob. */
+  Integer jobMaxAttempts();
+
+  /** Retry backoff initial interval of the MeteringJob. */
+  Duration jobBackOffInitialInterval();
+
+  /** Retry backoff interval of the MeteringJob. */
+  Duration jobBackOffMaxInterval();
 
   /** The event source type. */
   String eventSource();
