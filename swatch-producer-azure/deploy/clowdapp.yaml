@@ -62,6 +62,15 @@ objects:
       - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}
         partitions: ${{KAFKA_BILLABLE_USAGE_PARTITIONS}}
         topicName: platform.rhsm-subscriptions.billable-usage
+      - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}
+        partitions: ${{KAFKA_BILLABLE_USAGE_PARTITIONS}}
+        topicName: platform.rhsm-subscriptions.billable-usage-hourly-aggregate
+      - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}
+        partitions: ${{KAFKA_BILLABLE_USAGE_PARTITIONS}}
+        topicName: platform.rhsm-subscriptions.swatch-billable-usage-aggregator-billable-usage-store-repartition
+      - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}
+        partitions: ${{KAFKA_BILLABLE_USAGE_PARTITIONS}}
+        topicName: platform.rhsm-subscriptions.swatch-billable-usage-aggregator-billable-usage-suppress-store-changelog
 
     pullSecrets:
       name: ${IMAGE_PULL_SECRET}
