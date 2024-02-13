@@ -2,19 +2,11 @@ import logging
 import os
 
 import click
-import collections
 import re
 import sys
-import glob
+import iterfzf
 import openshift
 import typing as t
-
-from rich.columns import Columns
-from rich.text import Text
-
-import iterfzf
-from prompt_toolkit import prompt
-from prompt_toolkit.completion import Completer, Completion, FuzzyCompleter
 
 from .. import SwatchContext, SwatchDogError
 from .. import console, info, err, invoke_config, pass_swatch
@@ -107,8 +99,9 @@ def ee(ctx, swatch: SwatchContext, ee_token: str):
 @click.option("--clean/--no-clean", default=True)
 @click.option("-p", "--pod-prefix", type=str)
 @click.option("--project", type=str)
+@click.option("--container", type=str)
 @click.pass_context
-def deploy(ctx, clean: bool, pod_prefix: str, project: str):
+def deploy(ctx, clean: bool, pod_prefix: str, project: str, container: str):
     try:
         openshift.whoami()
     except Exception as e:
@@ -120,7 +113,7 @@ def deploy(ctx, clean: bool, pod_prefix: str, project: str):
     project: str = choose_project(project_root, selection=project)
     rsync_dir: str = build_project(project, project_root, clean)
     deployment_selector: openshift.Selector = choose_pods(pod_prefix)
-    sync_code(rsync_dir, deployment_selector)
+    sync_code(rsync_dir, deployment_selector, container)
 
 
 def build_project(project: str, project_root: str, clean: bool) -> str:
@@ -193,39 +186,40 @@ def choose_project(project_root: str, selection: str) -> str:
     results_dict[": <root project>"] = ""
     choice: str = iterfzf.iterfzf(
         sorted(results_dict.keys()),
-        query=selection,
-        # TODO get select-1 working
-        # __extra__=["--select-1"]
+        query=selection
     )
     return results_dict[choice]
 
 
-def sync_code(rsync_dir, deployment_selector):
+def sync_code(rsync_dir, deployment_selector, container):
     # oc cp/rsync deployable to /deployments*
     # Need to also handle container name selection from the pod
 
     for pod in deployment_selector.objects():
-        containers: t.List = [
-            p.name
-            for p in pod.model.spec.containers
-            if "web" in map(lambda x: x["name"], p["ports"])
-        ]
-
-        if len(containers) == 1:
-            container = containers[0]
+        if container:
+            dest_container = container
         else:
-            raise SwatchDogError(
-                f"Could not determine container to deploy to from list {containers}"
-            )
+            containers: t.List = [
+                p.name
+                for p in pod.model.spec.containers
+                if "web" in map(lambda x: x["name"], p["ports"])
+            ]
+
+            if len(containers) == 1:
+                dest_container = containers[0]
+            else:
+                raise SwatchDogError(
+                    f"Could not determine container to deploy to from list {containers}"
+                )
 
         # TODO there's an option for oc rync: -w to watch a directory.  Worth exploring
         #   for an even tighter deployment loop.  The difficulty is with handling clean
         #   operations.  Would definitely want --delete=false on for that
         # NB: if you add non-long form options be sure to use two strings.
         # E.g. ["-x", "something"] and not ["-x something"]
+        info(f"Syncing code to {container} in {pod.name()}")
         rsync_args = [
             "--no-perms=true",
-            "--progress=true",
             # TODO need to handle deleting a class file properly. Right now
             #  the rsync delete will trash everything else under /deployments (e.g.
             #  "/lib").  We'd need to do an rsync for each directory under "main".  Not
@@ -234,7 +228,7 @@ def sync_code(rsync_dir, deployment_selector):
             #  /deployments, not just the contents
             # "--delete=true",  # TODO might want to make this an option people can set
             "--strategy=rsync",
-            f"--container={container}",
+            f"--container={dest_container}",
             f"{rsync_dir}",
             f"{pod.name()}:/deployments/",
         ]
