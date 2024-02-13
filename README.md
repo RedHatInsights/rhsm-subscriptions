@@ -86,6 +86,17 @@ Ensure the checkout has the HBI submodule initialized:
 git submodule update --init --recursive
 ```
 
+Make sure you have `user.email` and `user.name` set in the local `.git/config`.
+The Nebula release plugin has an annoying property where it introspects the Git
+config for the name and email address.  When doing container builds, there is no
+global Git config so if you haven't set the name and email locally, the
+container build will fail.  Use `git config --local` to set these values.
+
+```
+git config --local user.name "John Doe"
+git config --local user.email johndoe@example.com
+```
+
 ### Dependent services
 
 NOTE: in order to deploy insights-inventory (not always useful), you'll need to login to quay.io first.
