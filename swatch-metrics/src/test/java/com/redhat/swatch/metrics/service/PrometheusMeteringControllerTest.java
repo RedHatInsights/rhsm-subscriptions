@@ -22,6 +22,7 @@ package com.redhat.swatch.metrics.service;
 
 import static com.redhat.swatch.metrics.util.MeteringEventFactory.getEventType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +34,7 @@ import com.redhat.swatch.clients.prometheus.api.model.StatusType;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.metrics.configuration.MetricProperties;
+import com.redhat.swatch.metrics.exception.ExternalServiceException;
 import com.redhat.swatch.metrics.resources.InjectPrometheus;
 import com.redhat.swatch.metrics.resources.PrometheusQueryWiremock;
 import com.redhat.swatch.metrics.resources.PrometheusResource;
@@ -151,6 +153,14 @@ class PrometheusMeteringControllerTest {
 
     whenCollectMetrics("account", start, end);
     prometheusServer.verifyQueryRangeWasCalled(3);
+  }
+
+  @Test
+  void testCollectMetricsShouldRetryWhenPrometheusReturnsEmptyBody() {
+    OffsetDateTime start = OffsetDateTime.now();
+    OffsetDateTime end = start.plusDays(1);
+    prometheusServer.stubQueryRangeWithEmptyBody();
+    assertThrows(ExternalServiceException.class, () -> whenCollectMetrics(start, end));
   }
 
   @Test

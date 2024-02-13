@@ -106,6 +106,10 @@ public class PrometheusQueryWiremock {
             .willReturn(okJson(toJson(expectedResult))));
   }
 
+  public void stubQueryRangeWithEmptyBody() {
+    wireMockServer.stubFor(get(urlPathEqualTo(QUERY_RANGE_PATH)).willReturn(ok()));
+  }
+
   public void stubQueryRange(QueryResult expectedResult) {
     wireMockServer.stubFor(
         get(urlPathEqualTo(QUERY_RANGE_PATH)).willReturn(okJson(toJson(expectedResult))));
