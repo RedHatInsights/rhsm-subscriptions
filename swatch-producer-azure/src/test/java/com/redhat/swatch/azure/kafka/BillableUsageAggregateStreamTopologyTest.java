@@ -53,8 +53,8 @@ class BillableUsageAggregateStreamTopologyTest {
   private static final String BILLABLE_USAGE_AGGREGATE_TOPIC = "billable-usage-aggregate-topic";
   private static final String BILLABLE_USAGE_STORE = "billable-usage-store";
   private static final String BILLABLE_USAGE_SUPPRESS_STORE = "billable-usage-suppress-store";
-  private static final int WINDOW_SECONDS = 1;
-  private static final int GRACE_SECONDS = 0;
+  private static final Duration WINDOW_DURATION = Duration.ofSeconds(1);
+  private static final Duration GRACE_DURATION = Duration.ofSeconds(0);
   private ObjectMapperSerde<BillableUsage> billableUsageSerde;
   private ObjectMapperSerde<BillableUsageAggregate> billableUsageAggregateSerde;
   private ObjectMapperSerde<BillableUsageAggregateKey> billableUsageAggregateKeySerde;
@@ -68,8 +68,8 @@ class BillableUsageAggregateStreamTopologyTest {
     properties.setBillableUsageTopicName(BILLABLE_USAGE_TOPIC);
     properties.setBillableUsageHourlyAggregateTopicName(BILLABLE_USAGE_AGGREGATE_TOPIC);
     properties.setBillableUsageStoreName(BILLABLE_USAGE_STORE);
-    properties.setWindowSeconds(WINDOW_SECONDS);
-    properties.setGraceSeconds(GRACE_SECONDS);
+    properties.setWindowDuration(WINDOW_DURATION);
+    properties.setGradeDuration(GRACE_DURATION);
     ObjectMapper objectMapper = new ObjectMapper();
     objectMapper.registerModule(new JavaTimeModule());
     StreamTopologyProducer topologyProducer = new StreamTopologyProducer(properties, objectMapper);
@@ -95,7 +95,7 @@ class BillableUsageAggregateStreamTopologyTest {
     var usage = createBillableUsage("testAccountId", 36, snapshotDate);
     inputTopic.pipeInput("org123", usage);
     // Make the window pass then input a new message to trigger sending suppressed messages.
-    inputTopic.advanceTime(Duration.ofSeconds(WINDOW_SECONDS + 5));
+    inputTopic.advanceTime(WINDOW_DURATION.plusSeconds(5));
     inputTopic.pipeInput("org124", usage);
     var expectedAggregateKey = new BillableUsageAggregateKey(usage);
     var keyValue = outputTopic.readKeyValue();
@@ -126,7 +126,7 @@ class BillableUsageAggregateStreamTopologyTest {
     inputTopic.pipeInput("org123", usage2);
     inputTopic.pipeInput("org123", usage3);
     // Make the window pass then input a new message to trigger sending suppressed messages.
-    inputTopic.advanceTime(Duration.ofSeconds(WINDOW_SECONDS + 5));
+    inputTopic.advanceTime(WINDOW_DURATION.plusSeconds(5));
     inputTopic.pipeInput("org123", usage1);
     var expectedAggregateKey = new BillableUsageAggregateKey(usage1);
     var keyValue = outputTopic.readKeyValue();
@@ -160,7 +160,7 @@ class BillableUsageAggregateStreamTopologyTest {
     inputTopic.pipeInput("org123", fistSubUsage2);
     inputTopic.pipeInput("org123", secondSubUsage2);
     // Make the window pass then input a new message to trigger sending suppressed messages.
-    inputTopic.advanceTime(Duration.ofSeconds(WINDOW_SECONDS + 5));
+    inputTopic.advanceTime(WINDOW_DURATION.plusSeconds(5));
     inputTopic.pipeInput("org123", firstSubUsage1);
     var expectedFirstAggregateKey = new BillableUsageAggregateKey(firstSubUsage1);
     var expectedSecondAggregateKey = new BillableUsageAggregateKey(secondSubUsage1);

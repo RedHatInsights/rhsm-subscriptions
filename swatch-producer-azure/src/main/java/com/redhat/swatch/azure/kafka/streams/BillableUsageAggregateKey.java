@@ -45,13 +45,13 @@ public class BillableUsageAggregateKey {
   private String billingAccountId;
 
   public BillableUsageAggregateKey(BillableUsage billableUsage) {
-    super();
-    this.orgId = billableUsage.getOrgId();
-    this.billingAccountId = billableUsage.getBillingAccountId();
-    this.billingProvider = billableUsage.getBillingProvider().value();
-    this.usage = billableUsage.getUsage().value();
-    this.productId = billableUsage.getProductId();
-    this.sla = billableUsage.getSla().value();
-    this.metricId = billableUsage.getUom();
+    this(
+        billableUsage.getOrgId(),
+        billableUsage.getProductId(),
+        billableUsage.getUom(),
+        billableUsage.getSla().value(),
+        billableUsage.getUsage().value(),
+        billableUsage.getBillingProvider().value(),
+        billableUsage.getBillingAccountId());
   }
 }

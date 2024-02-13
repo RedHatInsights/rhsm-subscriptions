@@ -124,7 +124,16 @@ class BillableUsageConsumerTest {
   @Test
   void shouldSkipNonAzureSnapshots() {
     var aggregate = createAggregate(BASILISK, INSTANCE_HOURS, OffsetDateTime.now(), 10);
-    aggregate.getAggregateKey().setBillingProvider(BillingProviderEnum.RED_HAT.value());
+    var key =
+        new BillableUsageAggregateKey(
+            "testOrg",
+            BASILISK,
+            INSTANCE_HOURS,
+            SlaEnum.PREMIUM.value(),
+            Usage.PRODUCTION.getValue(),
+            BillingProviderEnum.RED_HAT.value(),
+            "testBillingAccountId");
+    aggregate.setAggregateKey(key);
     consumer.process(aggregate);
     verifyNoInteractions(internalSubscriptionsApi, marketplaceService);
   }
@@ -308,12 +317,15 @@ class BillableUsageConsumerTest {
     aggregate.setWindowTimestamp(timestamp);
     aggregate.setTotalValue(new BigDecimal(totalValue));
     aggregate.setSnapshotDates(Set.of(timestamp));
-    var key = new BillableUsageAggregateKey();
-    key.setBillingProvider(BillingProviderEnum.AZURE.value());
-    key.setProductId(productId);
-    key.setMetricId(metricId);
-    key.setUsage(Usage.PRODUCTION.getValue());
-    key.setSla(SlaEnum.PREMIUM.value());
+    var key =
+        new BillableUsageAggregateKey(
+            "testOrg",
+            productId,
+            metricId,
+            SlaEnum.PREMIUM.value(),
+            Usage.PRODUCTION.getValue(),
+            BillingProviderEnum.AZURE.value(),
+            "testBillingAccountId");
     aggregate.setAggregateKey(key);
     return aggregate;
   }

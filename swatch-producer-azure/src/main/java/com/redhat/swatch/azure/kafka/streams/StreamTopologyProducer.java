@@ -25,7 +25,6 @@ import com.redhat.swatch.azure.openapi.model.BillableUsage;
 import io.quarkus.kafka.client.serialization.ObjectMapperSerde;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
-import java.time.Duration;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -54,9 +53,6 @@ public class StreamTopologyProducer {
   public Topology buildTopology() {
     StreamsBuilder builder = new StreamsBuilder();
 
-    Duration windowDuration = Duration.ofSeconds(properties.getWindowSeconds());
-    Duration graceDuration = Duration.ofSeconds(properties.getWindowSeconds());
-
     ObjectMapperSerde<BillableUsage> billableUsageSerde =
         new ObjectMapperSerde<>(BillableUsage.class, objectMapper);
     ObjectMapperSerde<BillableUsageAggregateKey> aggregationKeySerde =
@@ -70,7 +66,9 @@ public class StreamTopologyProducer {
         .groupBy(
             (k, v) -> new BillableUsageAggregateKey(v),
             Grouped.with(aggregationKeySerde, billableUsageSerde))
-        .windowedBy(TimeWindows.ofSizeAndGrace(windowDuration, graceDuration))
+        .windowedBy(
+            TimeWindows.ofSizeAndGrace(
+                properties.getWindowDuration(), properties.getGradeDuration()))
         .aggregate(
             BillableUsageAggregate::new,
             (key, value, billableUsageAggregate) -> billableUsageAggregate.updateFrom(value),

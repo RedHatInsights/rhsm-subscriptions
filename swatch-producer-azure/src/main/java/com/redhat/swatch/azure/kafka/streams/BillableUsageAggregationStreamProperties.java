@@ -21,6 +21,7 @@
 package com.redhat.swatch.azure.kafka.streams;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import java.time.Duration;
 import lombok.Data;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -29,20 +30,20 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 public class BillableUsageAggregationStreamProperties {
 
   @ConfigProperty(name = "KSTREAM_BILLABLE_USAGE_STORE")
-  private String billableUsageStoreName;
+  String billableUsageStoreName;
 
   @ConfigProperty(name = "KSTREAM_BILLABLE_USAGE_SUPPRESS_STORE")
-  private String billableUsageSuppressStoreName;
+  String billableUsageSuppressStoreName;
 
   @ConfigProperty(name = "BILLABLE_USAGE_TOPIC")
-  private String billableUsageTopicName;
+  String billableUsageTopicName;
 
   @ConfigProperty(name = "BILLABLE_USAGE_HOURLY_AGGREGATE_TOPIC")
-  private String billableUsageHourlyAggregateTopicName;
+  String billableUsageHourlyAggregateTopicName;
 
-  @ConfigProperty(name = "KSTREAM_BILLABLE_USAGE_AGGREGATION_WINDOW_SECONDS")
-  private int windowSeconds;
+  @ConfigProperty(name = "KSTREAM_BILLABLE_USAGE_AGGREGATION_WINDOW_DURATION")
+  Duration windowDuration;
 
-  @ConfigProperty(name = "KSTREAM_BILLABLE_USAGE_AGGREGATION_GRACE_SECONDS")
-  private int graceSeconds;
+  @ConfigProperty(name = "KSTREAM_BILLABLE_USAGE_AGGREGATION_GRACE_DURATION")
+  Duration gradeDuration;
 }

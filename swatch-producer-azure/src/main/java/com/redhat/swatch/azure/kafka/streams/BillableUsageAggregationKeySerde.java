@@ -42,31 +42,24 @@ public class BillableUsageAggregationKeySerde implements Serde<BillableUsageAggr
 
   @Override
   public Serializer<BillableUsageAggregateKey> serializer() {
-    return new Serializer<BillableUsageAggregateKey>() {
-      @Override
-      public byte[] serialize(String topic, BillableUsageAggregateKey data) {
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-          return mapper.writeValueAsBytes(data);
-        } catch (JsonProcessingException e) {
-          throw new IllegalArgumentException("Cannot serialize data");
-        }
+    return (topic, data) -> {
+      ObjectMapper mapper = new ObjectMapper();
+      try {
+        return mapper.writeValueAsBytes(data);
+      } catch (JsonProcessingException e) {
+        throw new IllegalArgumentException("Cannot serialize data");
       }
     };
   }
 
   @Override
   public Deserializer<BillableUsageAggregateKey> deserializer() {
-    return new Deserializer<BillableUsageAggregateKey>() {
-
-      @Override
-      public BillableUsageAggregateKey deserialize(String topic, byte[] data) {
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-          return mapper.readValue(data, BillableUsageAggregateKey.class);
-        } catch (IOException e) {
-          throw new IllegalArgumentException("Cannot deserialize data");
-        }
+    return (topic, data) -> {
+      ObjectMapper mapper = new ObjectMapper();
+      try {
+        return mapper.readValue(data, BillableUsageAggregateKey.class);
+      } catch (IOException e) {
+        throw new IllegalArgumentException("Cannot deserialize data");
       }
     };
   }

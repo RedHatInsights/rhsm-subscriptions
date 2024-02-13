@@ -115,7 +115,7 @@ public class BillableUsageAggregateConsumer {
       context = lookupAzureUsageContext(billableUsageAggregate);
     } catch (SubscriptionRecentlyTerminatedException e) {
       log.info(
-          "Subscription recently terminated for tallySnapshotId={} orgId={}",
+          "Subscription recently terminated for billableUsageAggregateId={} orgId={}",
           billableUsageAggregate.getAggregateId(),
           billableUsageAggregate.getAggregateKey().getOrgId());
       return;
