@@ -35,10 +35,8 @@ import com.redhat.swatch.azure.exception.AzureUsageContextLookupException;
 import com.redhat.swatch.azure.exception.DefaultApiException;
 import com.redhat.swatch.azure.exception.SubscriptionCanNotBeDeterminedException;
 import com.redhat.swatch.azure.exception.SubscriptionRecentlyTerminatedException;
-import com.redhat.swatch.azure.kafka.streams.BillableUsageAggregate;
-import com.redhat.swatch.azure.kafka.streams.BillableUsageAggregateKey;
+import com.redhat.swatch.azure.openapi.model.BillableUsage;
 import com.redhat.swatch.azure.openapi.model.BillableUsage.BillingProviderEnum;
-import com.redhat.swatch.azure.openapi.model.BillableUsage.SlaEnum;
 import com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEvent;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventOkResponse;
@@ -48,7 +46,6 @@ import com.redhat.swatch.clients.swatch.internal.subscription.api.model.Error;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.model.Errors;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
-import com.redhat.swatch.configuration.registry.Usage;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.test.InjectMock;
@@ -63,7 +60,6 @@ import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,20 +71,32 @@ import org.junit.jupiter.api.Test;
     restrictToAnnotatedClass = true)
 class BillableUsageConsumerTest {
 
-  private static final String BASILISK = "BASILISK";
   private static final String INSTANCE_HOURS = "INSTANCE_HOURS";
   private static final String STORAGE_GIB_MONTHS = "STORAGE_GIBIBYTE_MONTHS";
 
-  private static final BillableUsageAggregate BASILISK_INSTANCE_HOURS_RECORD =
-      createAggregate(BASILISK, INSTANCE_HOURS, OffsetDateTime.now(Clock.systemUTC()), 42);
+  private static final BillableUsage BASILISK_INSTANCE_HOURS_RECORD =
+      new BillableUsage()
+          .productId("BASILISK")
+          .billingProvider(BillingProviderEnum.AZURE)
+          .uom(INSTANCE_HOURS)
+          .snapshotDate(OffsetDateTime.now(Clock.systemUTC()))
+          .value(new BigDecimal("42.0"));
 
-  private static final BillableUsageAggregate BASILISK_INSTANCE_HOURS_RECORD_OLD =
-      createAggregate(
-          BASILISK, INSTANCE_HOURS, OffsetDateTime.now(Clock.systemUTC()).minusHours(73), 42);
+  private static final BillableUsage BASILISK_INSTANCE_HOURS_RECORD_OLD =
+      new BillableUsage()
+          .productId("BASILISK")
+          .billingProvider(BillingProviderEnum.AZURE)
+          .uom(INSTANCE_HOURS)
+          .snapshotDate(OffsetDateTime.now(Clock.systemUTC()).minusHours(73))
+          .value(new BigDecimal("42.0"));
 
-  private static final BillableUsageAggregate BASILISK_STORAGE_GIB_MONTHS_RECORD =
-      createAggregate(
-          BASILISK, STORAGE_GIB_MONTHS, OffsetDateTime.now(Clock.systemUTC()).minusHours(73), 42);
+  private static final BillableUsage BASILISK_STORAGE_GIB_MONTHS_RECORD =
+      new BillableUsage()
+          .productId("BASILISK")
+          .billingProvider(BillingProviderEnum.AZURE)
+          .uom(STORAGE_GIB_MONTHS)
+          .snapshotDate(OffsetDateTime.now(Clock.systemUTC()))
+          .value(new BigDecimal("42.0"));
 
   public static final AzureUsageContext MOCK_AZURE_USAGE_CONTEXT =
       new AzureUsageContext()
@@ -105,7 +113,7 @@ class BillableUsageConsumerTest {
   Counter acceptedCounter;
   Counter rejectedCounter;
   Counter ignoredCounter;
-  @Inject BillableUsageAggregateConsumer consumer;
+  @Inject BillableUsageConsumer consumer;
   @Inject BillableUsageDeadLetterTopicProducer deadLetterTopicProducer;
 
   @Inject
@@ -123,18 +131,11 @@ class BillableUsageConsumerTest {
 
   @Test
   void shouldSkipNonAzureSnapshots() {
-    var aggregate = createAggregate(BASILISK, INSTANCE_HOURS, OffsetDateTime.now(), 10);
-    var key =
-        new BillableUsageAggregateKey(
-            "testOrg",
-            BASILISK,
-            INSTANCE_HOURS,
-            SlaEnum.PREMIUM.value(),
-            Usage.PRODUCTION.getValue(),
-            BillingProviderEnum.RED_HAT.value(),
-            "testBillingAccountId");
-    aggregate.setAggregateKey(key);
-    consumer.process(aggregate);
+    BillableUsage usage =
+        new BillableUsage()
+            .billingProvider(BillingProviderEnum.RED_HAT)
+            .snapshotDate(OffsetDateTime.now(Clock.systemUTC()));
+    consumer.process(usage);
     verifyNoInteractions(internalSubscriptionsApi, marketplaceService);
   }
 
@@ -186,20 +187,30 @@ class BillableUsageConsumerTest {
 
   @Test
   void shouldSkipMessageIfAzureContextCannotBeLookedUp() throws ApiException {
-    var aggregate =
-        createAggregate("rosa", INSTANCE_HOURS, OffsetDateTime.now(Clock.systemUTC()), 42);
+    BillableUsage usage =
+        new BillableUsage()
+            .productId("rosa")
+            .billingProvider(BillingProviderEnum.AZURE)
+            .uom(INSTANCE_HOURS)
+            .snapshotDate(OffsetDateTime.now(Clock.systemUTC()))
+            .value(new BigDecimal("42.0"));
     when(internalSubscriptionsApi.getAzureMarketplaceContext(
             any(), any(), any(), any(), any(), any()))
         .thenThrow(AzureUsageContextLookupException.class);
-    consumer.process(aggregate);
+    consumer.process(usage);
     verifyNoInteractions(marketplaceService);
   }
 
   @Test
   void shouldSkipMessageIfUnknownAzureDimensionCannotBeLookedUp() {
-    var aggregate =
-        createAggregate("foobar", INSTANCE_HOURS, OffsetDateTime.now(Clock.systemUTC()), 42);
-    consumer.process(aggregate);
+    BillableUsage usage =
+        new BillableUsage()
+            .productId("foobar")
+            .billingProvider(BillingProviderEnum.AZURE)
+            .uom(INSTANCE_HOURS)
+            .snapshotDate(OffsetDateTime.now(Clock.systemUTC()))
+            .value(new BigDecimal("42.0"));
+    consumer.process(usage);
     verifyNoInteractions(internalSubscriptionsApi, marketplaceService);
   }
 
@@ -236,8 +247,8 @@ class BillableUsageConsumerTest {
 
   @Test
   void shouldNotMakeAzureUsageRequestWhenDryRunEnabled() throws ApiException {
-    BillableUsageAggregateConsumer consumer =
-        new BillableUsageAggregateConsumer(
+    BillableUsageConsumer consumer =
+        new BillableUsageConsumer(
             meterRegistry,
             internalSubscriptionsApi,
             marketplaceService,
@@ -309,24 +320,5 @@ class BillableUsageConsumerTest {
     var response = new UsageEventOkResponse();
     response.setStatus(UsageEventStatusEnum.ACCEPTED);
     return response;
-  }
-
-  private static BillableUsageAggregate createAggregate(
-      String productId, String metricId, OffsetDateTime timestamp, double totalValue) {
-    var aggregate = new BillableUsageAggregate();
-    aggregate.setWindowTimestamp(timestamp);
-    aggregate.setTotalValue(new BigDecimal(totalValue));
-    aggregate.setSnapshotDates(Set.of(timestamp));
-    var key =
-        new BillableUsageAggregateKey(
-            "testOrg",
-            productId,
-            metricId,
-            SlaEnum.PREMIUM.value(),
-            Usage.PRODUCTION.getValue(),
-            BillingProviderEnum.AZURE.value(),
-            "testBillingAccountId");
-    aggregate.setAggregateKey(key);
-    return aggregate;
   }
 }
