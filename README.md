@@ -630,7 +630,7 @@ OR
 Use the following command to update the configmap YAML:
 
 ```
-oc create configmap grafana-dashboard-subscription-watch --from-file=subscription-watch.json -o yaml --dry-run=client > ./grafana-dashboard-subscription-watch.configmap.yaml
+oc create configmap grafana-dashboard-subscription-watch --from-file=subscription-watch.json -o yaml --dry-run=true > ./grafana-dashboard-subscription-watch.configmap.yaml
 cat << EOF >> ./grafana-dashboard-subscription-watch.configmap.yaml
   annotations:
     grafana-folder: /grafana-dashboard-definitions/Insights
