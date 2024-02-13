@@ -157,7 +157,9 @@ mp:
         topic: ${METERING_TASK_TOPIC}
         throttled:
           unprocessed-record-max-age:
-            ms: 120000
+            # This value needs to be synced with the retry configuration which will retry up to
+            # 3 times with a max duration of 120 seconds, so the correct value would be 3 x 120 =
+            ms: 360000
         fail-on-deserialization-failure: ${METRICS_IN_FAIL_ON_DESER_FAILURE}
         auto:
           offset:
