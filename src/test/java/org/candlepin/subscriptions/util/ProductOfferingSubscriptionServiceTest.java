@@ -1,0 +1,105 @@
+/*
+ * Copyright Red Hat, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Red Hat trademarks are not licensed under GPLv3. No permission is
+ * granted to use or replicate Red Hat trademarks that are incorporated
+ * in this software or its documentation.
+ */
+package org.candlepin.subscriptions.util;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.when;
+
+import java.util.Set;
+import org.candlepin.subscriptions.db.OfferingRepository;
+import org.candlepin.subscriptions.db.model.Offering;
+import org.candlepin.subscriptions.exception.MissingOfferingException;
+import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTags;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
+
+@SpringBootTest
+@DirtiesContext
+@ActiveProfiles({"capacity-ingress", "test"})
+class ProductOfferingSubscriptionServiceTest {
+  @MockBean OfferingRepository offeringRepository;
+
+  @Autowired ProductOfferingSubscriptionService productOfferingSubscriptionService;
+
+  @Test
+  void findProductTagsBySku_WhenSkuNotPresent() {
+    when(offeringRepository.findOfferingBySku("sku")).thenReturn(null);
+    RuntimeException e =
+        assertThrows(
+            MissingOfferingException.class,
+            () -> productOfferingSubscriptionService.findPersistedProductTagsBySku("sku"));
+    assertEquals("Sku sku not found in Offering", e.getMessage());
+
+    when(offeringRepository.findOfferingBySku("sku")).thenReturn(new Offering());
+    OfferingProductTags productTags2 =
+        productOfferingSubscriptionService.findPersistedProductTagsBySku("sku");
+    assertNull(productTags2.getData());
+  }
+
+  @Test
+  void
+      findProductTagsBySku_WhenSkuPresentWithNoRoleOrEngIDsThenItShouldNotUseProductNameWhenMeteredFlagIsFalse() {
+    Offering offering = new Offering();
+    offering.setProductName("OpenShift Online");
+    offering.setRole(null);
+    offering.setProductIds(null);
+    offering.setMetered(false);
+    when(offeringRepository.findOfferingBySku("sku")).thenReturn(offering);
+
+    OfferingProductTags productTags =
+        productOfferingSubscriptionService.findPersistedProductTagsBySku("sku");
+    assertNull(productTags.getData());
+  }
+
+  @Test
+  void
+      findProductTagsBySku_WhenSkuPresentWithNoRoleOrEngIDsThenItShouldUseProductNameWhenMeteredFlagIsTrue() {
+    Offering offering = new Offering();
+    offering.setProductName("OpenShift Online");
+    offering.setRole(null);
+    offering.setProductIds(null);
+    offering.setMetered(true);
+    when(offeringRepository.findOfferingBySku("sku")).thenReturn(offering);
+
+    OfferingProductTags productTags =
+        productOfferingSubscriptionService.findPersistedProductTagsBySku("sku");
+    assertEquals(1, productTags.getData().size());
+    assertEquals("rosa", productTags.getData().get(0));
+  }
+
+  @Test
+  void findProductTagsBySku_WhenEngIdPresent() {
+    Offering offering = new Offering();
+    offering.setProductIds(Set.of(290));
+    when(offeringRepository.findOfferingBySku("sku")).thenReturn(offering);
+
+    OfferingProductTags productTags =
+        productOfferingSubscriptionService.findPersistedProductTagsBySku("sku");
+    assertEquals(1, productTags.getData().size());
+    assertEquals("OpenShift Container Platform", productTags.getData().get(0));
+  }
+}

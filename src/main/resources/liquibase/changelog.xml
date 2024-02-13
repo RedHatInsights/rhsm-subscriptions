@@ -138,5 +138,6 @@
     <include file="/liquibase/202312200751-add-metered-column-for-offering-table.xml"/>
     <include file="/liquibase/202401151414-add-retry_after-column-to-billable_usage_remittance-table.xml"/>
     <include file="/liquibase/202402051200-add-id-and-hardware-columns-to-billable_usage_remittance-table.xml"/>
+    <include file="/liquibase/202402121151-add-producttag-column-for-offering-table.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

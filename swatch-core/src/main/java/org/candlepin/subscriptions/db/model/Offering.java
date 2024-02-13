@@ -160,6 +160,9 @@ public class Offering implements Serializable {
   @Column(name = "metered")
   private Boolean metered;
 
+  @Column(name = "product_tag")
+  private String productTag;
+
   public boolean isMetered() {
     return metered != null && metered;
   }
@@ -194,7 +197,8 @@ public class Offering implements Serializable {
         && usage == offering.usage
         && Objects.equals(hasUnlimitedUsage, offering.hasUnlimitedUsage)
         && Objects.equals(derivedSku, offering.derivedSku)
-        && Objects.equals(metered, offering.metered);
+        && Objects.equals(metered, offering.metered)
+        && Objects.equals(productTag, offering.productTag);
   }
 
   @Override
@@ -213,6 +217,7 @@ public class Offering implements Serializable {
         usage,
         hasUnlimitedUsage,
         derivedSku,
-        metered);
+        metered,
+        productTag);
   }
 }
