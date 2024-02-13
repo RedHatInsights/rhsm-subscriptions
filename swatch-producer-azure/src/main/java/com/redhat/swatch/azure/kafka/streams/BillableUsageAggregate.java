@@ -42,11 +42,14 @@ public class BillableUsageAggregate {
 
   private BigDecimal totalValue = new BigDecimal(0);
   private OffsetDateTime windowTimestamp;
-  private UUID aggregateId = UUID.randomUUID();
+  private UUID aggregateId;
   private BillableUsageAggregateKey aggregateKey;
   private Set<OffsetDateTime> snapshotDates = new HashSet<>();
 
   public BillableUsageAggregate updateFrom(BillableUsage billableUsage) {
+    if (aggregateId == null) {
+      aggregateId = UUID.randomUUID();
+    }
     if (aggregateKey == null) {
       aggregateKey = new BillableUsageAggregateKey(billableUsage);
     }
