@@ -160,9 +160,6 @@ mp:
             # This value needs to be synced with the retry configuration which will retry up to
             # 3 times with a max duration of 120 seconds, so the correct value would be 3 x 120 =
             ms: 360000
-        # By default, when a message is nack, the application stops consuming messages.
-        # With the "ignore" strategy, we ignore the error (it's logged internally) and continue processing messages.
-        failure-strategy: ignore
         fail-on-deserialization-failure: ${METRICS_IN_FAIL_ON_DESER_FAILURE}
         auto:
           offset:
