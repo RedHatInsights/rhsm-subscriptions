@@ -221,7 +221,7 @@ rhsm-subscriptions:
                   product=~"#{metric.prometheus.queryParams[productLabelRegex]}",
                   external_organization="#{runtime[orgId]}",
                   billing_model="marketplace",
-                  support=~"Premium|Standard|Self-Support|None"
+                  support=~"Premium|Standard|Self-Support|None|"
                   }[1h]
                 )
               )
