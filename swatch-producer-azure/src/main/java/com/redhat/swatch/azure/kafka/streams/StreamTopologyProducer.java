@@ -25,6 +25,7 @@ import com.redhat.swatch.azure.openapi.model.BillableUsage;
 import io.quarkus.kafka.client.serialization.ObjectMapperSerde;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -38,6 +39,7 @@ import org.apache.kafka.streams.kstream.TimeWindows;
 import org.apache.kafka.streams.state.WindowStore;
 
 @ApplicationScoped
+@Slf4j
 public class StreamTopologyProducer {
 
   private BillableUsageAggregationStreamProperties properties;
@@ -85,6 +87,7 @@ public class StreamTopologyProducer {
             Suppressed.untilWindowCloses(BufferConfig.unbounded())
                 .withName(properties.getBillableUsageSuppressStoreName()))
         .toStream()
+        .peek((key, aggregate) -> log.debug("Sending aggregate to hourly topic: {}", aggregate))
         .to(properties.getBillableUsageHourlyAggregateTopicName());
 
     return builder.build();

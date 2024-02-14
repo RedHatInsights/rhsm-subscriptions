@@ -31,12 +31,14 @@ import java.util.UUID;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 @RegisterForReflection
 @Getter
 @Setter
 @EqualsAndHashCode
+@ToString
 @Slf4j
 public class BillableUsageAggregate {
 
