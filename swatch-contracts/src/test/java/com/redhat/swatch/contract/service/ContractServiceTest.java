@@ -51,8 +51,9 @@ import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
 import com.redhat.swatch.contract.BaseUnitTest;
 import com.redhat.swatch.contract.model.MeasurementMetricIdTransformer;
 import com.redhat.swatch.contract.openapi.model.Contract;
+import com.redhat.swatch.contract.openapi.model.ContractRequest;
+import com.redhat.swatch.contract.openapi.model.ContractResponse;
 import com.redhat.swatch.contract.openapi.model.Dimension;
-import com.redhat.swatch.contract.openapi.model.Metric;
 import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContractCloudIdentifiers;
@@ -87,7 +88,7 @@ import org.mockito.ArgumentCaptor;
 class ContractServiceTest extends BaseUnitTest {
 
   private static final String ORG_ID = "org123";
-  private static final String PRODUCT_ID = "BASILISK123";
+  private static final String PRODUCT_ID = "MH123";
   private static final String SUBSCRIPTION_NUMBER = "subs123";
 
   @Inject ContractService contractService;
@@ -120,11 +121,12 @@ class ContractServiceTest extends BaseUnitTest {
 
   @Test
   void testSaveContracts() {
-    Contract request = givenContractRequest();
-    Contract response = contractService.createContract(request);
+    ContractRequest request = givenContractRequest();
+    Contract response = contractService.createContract(request).getContract();
 
     ContractEntity entity = contractRepository.findById(UUID.fromString(response.getUuid()));
-    assertEquals(request.getSku(), entity.getSku());
+    assertEquals(
+        request.getPartnerEntitlement().getRhEntitlements().get(0).getSku(), entity.getSku());
     assertEquals(response.getUuid(), entity.getUuid().toString());
     verify(subscriptionRepository).persist(any(SubscriptionEntity.class));
     verify(measurementMetricIdTransformer).translateContractMetricIdsToSubscriptionMetricIds(any());
@@ -343,7 +345,7 @@ class ContractServiceTest extends BaseUnitTest {
         new PartnerEntitlementContractCloudIdentifiers();
     cloudIdentifiers.setAwsCustomerId("HSwCpt6sqkC");
     cloudIdentifiers.setAwsCustomerAccountId("568056954830");
-    cloudIdentifiers.setProductCode("product123");
+    cloudIdentifiers.setProductCode("1234567890abcdefghijklmno");
     contract.setCloudIdentifiers(cloudIdentifiers);
     return contract;
   }
@@ -376,33 +378,53 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   private ContractEntity givenExistingContract() {
-    Contract created = contractService.createContract(givenContractRequest());
-    return contractRepository.findById(UUID.fromString(created.getUuid()));
+    ContractResponse created = contractService.createContract(givenContractRequest());
+    return contractRepository.findById(UUID.fromString(created.getContract().getUuid()));
   }
 
-  private Contract givenContractRequest() {
-    Contract contractRequest = new Contract();
-    contractRequest.setUuid(UUID.randomUUID().toString());
-    contractRequest.setBillingAccountId("billAcct123");
-    contractRequest.setStartDate(OffsetDateTime.parse("2023-03-17T12:29:48.569Z"));
-    contractRequest.setEndDate(OffsetDateTime.parse("2024-03-17T12:29:48.569Z"));
-    contractRequest.setBillingProvider("test123");
-    contractRequest.setBillingProviderId("1234567890abcdefghijklmno;HSwCpt6sqkC;568056954830");
-    contractRequest.setSku("BAS123");
-    contractRequest.setProductId(PRODUCT_ID);
-    contractRequest.setVendorProductCode("product123");
-    contractRequest.setOrgId(ORG_ID);
-    contractRequest.setSubscriptionNumber(SUBSCRIPTION_NUMBER);
+  private ContractRequest givenContractRequest() {
+    var contract = new PartnerEntitlementContract();
+    var entitlement = new PartnerEntitlementV1();
+    var cloudIdentifiers = new PartnerEntitlementContractCloudIdentifiers();
+    var partnerIdentity = new PartnerIdentityV1();
+    var rhEntitlement = new RhEntitlementV1();
+    var purchase = new PurchaseV1();
 
-    Metric metric1 = new Metric();
-    metric1.setMetricId("instance-hours");
-    metric1.setValue(2);
+    partnerIdentity.setCustomerAwsAccountId("billAcct123");
+    partnerIdentity.setAwsCustomerId("HSwCpt6sqkC");
+    partnerIdentity.setSellerAccountId("568056954830");
+    entitlement.setEntitlementDates(new PartnerEntitlementV1EntitlementDates());
+    entitlement
+        .getEntitlementDates()
+        .setStartDate(OffsetDateTime.parse("2023-03-17T12:29:48.569Z"));
+    entitlement.getEntitlementDates().setEndDate(OffsetDateTime.parse("2024-03-17T12:29:48.569Z"));
+    entitlement.setSourcePartner(SourcePartnerEnum.AWS_MARKETPLACE);
+    rhEntitlement.setSku("BAS123");
+    purchase.setVendorProductCode("1234567890abcdefghijklmno");
+    cloudIdentifiers.setProductCode("1234567890abcdefghijklmno");
+    entitlement.setRhAccountId(ORG_ID);
+    rhEntitlement.setSubscriptionNumber(SUBSCRIPTION_NUMBER);
+    contract.setRedHatSubscriptionNumber(SUBSCRIPTION_NUMBER);
 
-    Metric metric2 = new Metric();
-    metric2.setMetricId("cpu-hours");
-    metric2.setValue(4);
+    var metric1 = new DimensionV1();
+    metric1.setName("instance-hours");
+    metric1.setValue("2");
 
-    contractRequest.setMetrics(List.of(metric1, metric2));
+    var metric2 = new DimensionV1();
+    metric2.setName("cpu-hours");
+    metric2.setValue("4");
+
+    var saasContract = new SaasContractV1();
+    purchase.setContracts(List.of(saasContract));
+    saasContract.setDimensions(List.of(metric1, metric2));
+    contract.setCloudIdentifiers(cloudIdentifiers);
+
+    ContractRequest contractRequest = new ContractRequest();
+    contractRequest.setPartnerEntitlementContract(contract);
+    contractRequest.setPartnerEntitlement(entitlement);
+    entitlement.setPartnerIdentities(partnerIdentity);
+    entitlement.setPurchase(purchase);
+    entitlement.setRhEntitlements(List.of(rhEntitlement));
     return contractRequest;
   }
 

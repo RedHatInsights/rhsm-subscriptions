@@ -21,12 +21,9 @@
 package com.redhat.swatch.contract.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
 
-import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.Dimension;
-import com.redhat.swatch.contract.openapi.model.Metric;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContractCloudIdentifiers;
 import com.redhat.swatch.contract.repository.ContractEntity;
@@ -40,7 +37,6 @@ import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -53,122 +49,6 @@ class ContractMapperTest {
 
   @Inject ContractMapper mapper;
   @InjectMock OfferingRepository offeringRepository;
-
-  @Test
-  void testEntityToDto() {
-
-    var uuid = UUID.randomUUID();
-    var startDate = OffsetDateTime.now();
-
-    var entity = new ContractEntity();
-
-    entity.setUuid(uuid);
-    entity.setSku("BAS123");
-    entity.setEndDate(null);
-    entity.setStartDate(startDate);
-    entity.setOrgId("org123");
-    entity.setBillingAccountId("billAcct123");
-    entity.setBillingProvider("aws");
-    entity.setProductId("BASILISK");
-    entity.setSubscriptionNumber("subs123");
-
-    var contractMetric = new ContractMetricEntity();
-    contractMetric.setContractUuid(uuid);
-    contractMetric.setMetricId("Instance-hours");
-    contractMetric.setValue(1);
-    entity.addMetric(contractMetric);
-
-    var dto = mapper.contractEntityToDto(entity);
-
-    assertEquals(entity.getUuid(), UUID.fromString(dto.getUuid()));
-    assertEquals(entity.getOrgId(), dto.getOrgId());
-    assertEquals(entity.getStartDate(), dto.getStartDate());
-    assertEquals(entity.getEndDate(), dto.getEndDate());
-    assertEquals(entity.getSku(), dto.getSku());
-    assertEquals(entity.getProductId(), dto.getProductId());
-    assertEquals(entity.getSubscriptionNumber(), dto.getSubscriptionNumber());
-    assertEquals(entity.getBillingProvider(), dto.getBillingProvider());
-    assertEquals(entity.getBillingAccountId(), dto.getBillingAccountId());
-
-    // verify size, metric ids, and values
-    assertEquals(entity.getMetrics().size(), dto.getMetrics().size());
-    assertEquals(
-        entity.getMetrics().stream().map(ContractMetricEntity::getMetricId).toList(),
-        dto.getMetrics().stream().map(Metric::getMetricId).toList());
-    assertEquals(
-        entity.getMetrics().stream().map(ContractMetricEntity::getValue).toList(),
-        dto.getMetrics().stream().map(Metric::getValue).map(Double::valueOf).toList());
-  }
-
-  @Test
-  void testDtoToEntity() {
-
-    var uuid = UUID.randomUUID();
-    var startDate = OffsetDateTime.now();
-
-    var dto = new Contract();
-
-    dto.setUuid(uuid.toString());
-    dto.setSku("BAS123");
-    dto.setEndDate(null);
-    dto.setStartDate(startDate);
-    dto.setOrgId("org123");
-    dto.setBillingAccountId("billAcct123");
-    dto.setBillingProvider("aws");
-    dto.setProductId("BASILISK");
-    dto.setSubscriptionNumber("subs123");
-
-    var metric = new Metric();
-    metric.setMetricId("Instance-hours");
-    metric.setValue(1);
-
-    dto.addMetricsItem(metric);
-
-    var entity = mapper.dtoToContractEntity(dto);
-
-    assertEquals(dto.getUuid(), entity.getUuid().toString());
-    assertEquals(dto.getOrgId(), entity.getOrgId());
-    assertEquals(dto.getStartDate(), entity.getStartDate());
-    assertEquals(dto.getEndDate(), entity.getEndDate());
-    assertEquals(dto.getSku(), entity.getSku());
-    assertEquals(dto.getProductId(), entity.getProductId());
-    assertEquals(dto.getSubscriptionNumber(), entity.getSubscriptionNumber());
-    assertEquals(dto.getBillingProvider(), entity.getBillingProvider());
-    assertEquals(dto.getBillingAccountId(), entity.getBillingAccountId());
-
-    // verify size, metric ids, and values
-    assertEquals(dto.getMetrics().size(), entity.getMetrics().size());
-    assertEquals(
-        dto.getMetrics().stream().map(Metric::getMetricId).toList(),
-        dto.getMetrics().stream().map(Metric::getMetricId).toList());
-    assertEquals(
-        dto.getMetrics().stream().map(Metric::getValue).toList(),
-        dto.getMetrics().stream().map(Metric::getValue).toList());
-
-    // verify UUID populates in metrics collection
-
-    assertEquals(
-        entity.getUuid(), entity.getMetrics().stream().findFirst().get().getContractUuid());
-  }
-
-  @Test
-  void testDtoToEntity_WhenMetricNull() {
-
-    var uuid = UUID.randomUUID();
-
-    var dto = new Contract();
-    dto.setUuid(uuid.toString());
-    dto.setMetrics(null);
-    var entity = mapper.dtoToContractEntity(dto);
-
-    assertEquals(dto.getUuid(), entity.getUuid().toString());
-    assertNull(dto.getMetrics());
-  }
-
-  @Test
-  void testDtoToEntity_WhenContractNull() {
-    assertNull(mapper.dtoToContractEntity(null));
-  }
 
   @Test
   void testMapContractEntityToSubscriptionEntity() {

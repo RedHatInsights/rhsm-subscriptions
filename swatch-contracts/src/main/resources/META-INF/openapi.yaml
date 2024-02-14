@@ -214,28 +214,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Contract'
-            examples:
-              create contract payload:
-                value:
-                  subscription_number: sn789
-                  sku: MW999
-                  start_date: 2022-03-05T00:00:00Z
-                  org_id: RACEMS
-                  billing_provider: aws
-                  billing_account_id: bp1
-                  product_id: BASILISK
-                  vendor_product_code: VPC
-                  metrics:
-                    - metric_id: instance-hours
-                      value: 100
+              $ref: '#/components/schemas/ContractRequest'
         required: true
       responses:
         "200":
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Contract'
+                $ref: '#/components/schemas/ContractResponse'
           description: success
         default:
           $ref: '#/components/responses/ErrorResponse'
@@ -414,6 +400,30 @@ components:
           type: string
         detail:
           type: string
+    ContractRequest:
+      description: ""
+      required:
+        - partner_entitlement_contract
+        - partner_entitlement
+        - subscription_id
+      type: object
+      properties:
+        partner_entitlement_contract:
+          $ref: '#/components/schemas/PartnerEntitlementContract'
+        partner_entitlement:
+          $ref: '../../../../../clients/rh-partner-gateway-client/rh-partner-gateway-api-spec.yaml#/components/schemas/PartnerEntitlementV1'
+        subscription_id:
+          description: The subscription ID provided by the Subscription API using the subscription number.
+          type: string
+    ContractResponse:
+      required:
+        - status
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/StatusResponse'
+        contract:
+          $ref: '#/components/schemas/Contract'
     Contract:
       description: ""
       required:

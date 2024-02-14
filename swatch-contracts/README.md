@@ -9,18 +9,18 @@ If you want to learn more about Quarkus, please visit its website: https://quark
 You can run your application in dev mode that enables live coding using:
 
 ```shell script
-./gradlew quarkusDev
+../gradlew :swatch-contracts:quarkusDev
 ```
 
 > **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only
-> at http://localhost:8080/q/dev/.
+> at http://localhost:8000/q/dev/.
 
 ## Packaging and running the application
 
 The application can be packaged using:
 
 ```shell script
-./gradlew build
+../gradlew build
 ```
 
 It produces the `quarkus-run.jar` file in the `build/quarkus-app/` directory.
@@ -29,33 +29,129 @@ the `build/quarkus-app/lib/` directory.
 
 The application is now runnable using `java -jar build/quarkus-app/quarkus-run.jar`.
 
-If you want to build an _über-jar_, execute the following command:
+## Mapping Partner API with Swatch data
 
-```shell script
-./gradlew build -Dquarkus.package.type=uber-jar
+We enrich our data (contracts and subscriptions) from different third parties like Partner API and the Subscription API. 
+In swatch-contracts, we trigger the enrichment when receiving events <1> from the Partner Gateway, then 
+we call again the Partner API to gather extra information <2> we need to move forward and 
+finally, we call the Subscription API to find the subscription ID that matches with the event <1> we received. 
+Each of these sources are enumerated as follows:
+<1> the event from Partner Gateway is of type [PartnerEntitlementContract](https://github.com/RedHatInsights/rhsm-subscriptions/blob/5bce20986bb3c1b2750502db63efc694461cce57/swatch-contracts/src/main/resources/META-INF/openapi.yaml#L513)
+<2> the response from Partner API is of type [PartnerEntitlements](https://github.com/RedHatInsights/rhsm-subscriptions/blob/5bce20986bb3c1b2750502db63efc694461cce57/clients/rh-partner-gateway-client/rh-partner-gateway-api-spec.yaml#L41)
+<3> from the response from Subscription API, we simply extract the subscription ID. 
+
+For testing purposes, we can use the POST endpoint `/api/swatch-contracts/internal/contracts` with payload:
+
+```
+{
+  "partner_entitlement_contract": <1>
+  "partner_entitlement": <2>,
+  "subscription_id": <3>
+}
 ```
 
-The application, packaged as an _über-jar_, is now runnable using `java -jar build/*-runner.jar`.
+You can find more information about how to fill the request using the following table:
 
-## Creating a native executable
+| Table            | Column               | Source                                                                                                                                                                                 |
+|------------------|----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| 
+| contracts        | subscription_number  | <1>.redHatSubscriptionNumber <br> <2>.rhEntitlements[0].subscriptionNumber                                                                                                             |
+| contracts        | org_id               | <2>.rhAccountId                                                                                                                                                                        |
+| contracts        | sku                  | <2>.rhEntitlements[0].sku                                                                                                                                                              |
+| contracts        | start_date           | <2>.entitlementDates.startDate                                                                                                                                                         |
+| contracts        | end_date             | <2>.entitlementDates.endDate                                                                                                                                                           |
+| contracts        | vendor_product_code  | <1>.cloudIdentifiers.productCode                                                                                                                                                       |
+| ^                | ^                    | If above is null and <1>.cloudIdentifiers.partner is "azure_marketplace", then <1>.cloudIdentifiers.azureOfferId                                                                       |
+| contracts        | billing_account_id   | if not null: <2>.partnerIdentities.customerAwsAccountId                                                                                                                                |
+| ^                | ^                    | if not null: <2>.partnerIdentities.azureTenantId,<2>.partnerIdentities.azureSubscriptionId                                                                                             |
+| ^                | ^                    | if not null: <2>.partnerIdentities.azureTenantId                                                                                                                                       |
+| contracts        | billing_provider_id  | if <2>.sourcePartner is "azure_marketplace", <br>then combination of <2>.purchase.azureResourceId,<2>.purchase.contracts[*].planId and <2>.purchase.vendorProductCode                  |
+| ^                | ^                    | if <1>.cloudIdentifiers.partner is "azure_marketplace", <br>then combination of <1>.cloudIdentifiers.azureResourceId,<1>.cloudIdentifiers.planId and <1>.cloudIdentifiers.azureOfferId |
+| ^                | ^                    | if <2>.sourcePartner is "aws_marketplace", <br>then combination of <2>.purchase.vendorProductCode,<2>.partnerIdentities.awsCustomerId and <1>.partnerIdentities.sellerAccountId        |
+| contracts        | billing_provider     | <2>.sourcePartner                                                                                                                                                                      |
+| contract_metrics | metric_id            | <1>.currentDimensions[*].dimensionName AND <2>.purchase.contracts[*].dimensions[*].name (if <2>.purchase.contracts[*].endDate is null                                                  |
+| contract_metrics | metric_value         | <1>.currentDimensions[*].dimensionValue AND <2>.purchase.contracts[*].dimensions[*].value (if <2>.purchase.contracts[*].endDate is null                                                |
+| subscription     | subscription_id      | <3>                                                                                                                                                                                    |
 
-You can create a native executable using:
+You can find a full example as follows:
 
-```shell script
-./gradlew build -Dquarkus.package.type=native
+```
+curl -v -X POST http://localhost:8000/api/swatch-contracts/internal/contracts \
+-H 'Content-Type: application/json' \
+--data-binary @- << EOF
+{
+  "partner_entitlement_contract": {
+    "redHatSubscriptionNumber": "12585274",
+    "cloudIdentifiers": {
+      "productCode": "ezcoaphi4bqc7lktoy2qfd6zi"
+    },
+    "currentDimensions": [
+      {
+        "dimensionName": "Cores",
+        "dimensionValue": "8"
+      }
+    ]
+  },
+  "partner_entitlement": {
+    "rhAccountId": "123456",
+    "sourcePartner": "aws_marketplace",
+    "entitlementDates": {
+      "startDate": "2023-05-24T18:46:05Z",
+      "endDate": "2023-05-24T20:46:06.273014Z"
+    },
+    "rhEntitlements": [
+      {
+        "subscriptionNumber": "12585274",
+        "sku": "MW01485"
+      }
+    ],
+    "purchase": {
+      "vendorProductCode": "AAAA",
+      "contracts": [
+        {
+          "planId": "<only for azure>",
+          "endDate": "2023-05-24T20:46:06.273014Z",
+          "dimensions": [
+            {
+              "name": "Cores",
+              "value": "8"
+            }
+          ]
+        }
+      ]
+    },
+    "partnerIdentities": {
+      "awsCustomerId": "BBB",
+      "sellerAccountId": "CCC",
+      "customerAwsAccountId": "DDD"
+    }
+  },
+  "subscription_id": "123456456"
+}
+EOF
 ```
 
-Or, if you don't have GraalVM installed, you can run the native executable build in a container
-using:
-
-```shell script
-./gradlew build -Dquarkus.package.type=native -Dquarkus.native.container-build=true
+Output:
+```json
+{
+  "status": {
+    "status": "SUCCESS",
+    "message": "New contract created"
+  },
+  "contract": {
+    "uuid": "baa1dc70-9912-490b-94b6-76ffa67e6ca0",
+    "subscription_number": "12585274",
+    "sku": "MW01485",
+    "start_date": "2023-05-24T18:46:05Z",
+    "end_date": "2023-05-24T20:46:06.273014Z",
+    "org_id": "123456",
+    "billing_provider": "aws",
+    "billing_provider_id": "AAAA;BBB;CCC",
+    "billing_account_id": "DDD",
+    "product_id": "OpenShift-metrics",
+    "vendor_product_code": "ezcoaphi4bqc7lktoy2qfd6zi"
+  }
+}
 ```
-
-You can then execute your native executable with: `./build/swatch-contracts-1.0-SNAPSHOT-runner`
-
-If you want to learn more about building native executables, please
-consult https://quarkus.io/guides/gradle-tooling.
 
 ## Related Guides
 
@@ -64,8 +160,6 @@ consult https://quarkus.io/guides/gradle-tooling.
 - SmallRye Reactive Messaging - Kafka
   Connector ([guide](https://quarkus.io/guides/kafka-reactive-getting-started)): Connect to Kafka
   with Reactive Messaging
-- YAML Configuration ([guide](https://quarkus.io/guides/config#yaml)): Use YAML to configure your
-  Quarkus application
 - Hibernate ORM with Panache ([guide](https://quarkus.io/guides/hibernate-orm-panache)): Simplify
   your persistence code for Hibernate ORM via the active record or the repository pattern
 - Liquibase ([guide](https://quarkus.io/guides/liquibase)): Handle your database schema migrations
@@ -74,14 +168,6 @@ consult https://quarkus.io/guides/gradle-tooling.
   PostgreSQL database via JDBC
 
 ## Provided Code
-
-### YAML Config
-
-Configure your application with YAML
-
-[Related guide section...](https://quarkus.io/guides/config-reference#configuration-examples)
-
-The Quarkus application configuration is located in `src/main/resources/application.yml`.
 
 ### Hibernate ORM
 

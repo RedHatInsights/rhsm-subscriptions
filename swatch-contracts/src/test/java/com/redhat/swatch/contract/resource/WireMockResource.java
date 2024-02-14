@@ -237,7 +237,7 @@ public class WireMockResource
                         """
                         [
                           {
-                            "aws_dimension": "cpu-hours",
+                            "aws_dimension": "vcpu_hours",
                             "uom": "CORES",
                             "billing_factor": "1.0"
                           },

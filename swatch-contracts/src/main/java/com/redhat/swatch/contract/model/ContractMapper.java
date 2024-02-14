@@ -58,9 +58,6 @@ public interface ContractMapper {
 
   Contract contractEntityToDto(ContractEntity contract);
 
-  @Mapping(target = "lastUpdated", ignore = true)
-  ContractEntity dtoToContractEntity(Contract contract);
-
   @Mapping(target = "contract", ignore = true)
   @Mapping(target = "contractUuid", ignore = true)
   ContractMetricEntity metricDtoToMetricEntity(Metric metric);
