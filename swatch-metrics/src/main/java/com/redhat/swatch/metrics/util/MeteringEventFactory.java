@@ -54,8 +54,9 @@ public final class MeteringEventFactory {
    * @param role the role of the cluster.
    * @param measuredTime the time the measurement was taken.
    * @param expired the time the measurement had ended.
-   * @param measuredValue the value that was measured./
-   * @param productTag
+   * @param measuredValue the value that was measured.
+   * @param productTag the product tag.
+   * @param displayName the display name.
    * @return a populated Event instance.
    */
   @SuppressWarnings("java:S107")
@@ -75,7 +76,8 @@ public final class MeteringEventFactory {
       Double measuredValue,
       String productTag,
       UUID meteringBatchId,
-      List<String> productIds) {
+      List<String> productIds,
+      String displayName) {
     Event event = new Event();
     updateMetricEvent(
         event,
@@ -94,7 +96,8 @@ public final class MeteringEventFactory {
         measuredValue,
         productTag,
         meteringBatchId,
-        productIds);
+        productIds,
+        displayName);
     return event;
   }
 
@@ -145,12 +148,13 @@ public final class MeteringEventFactory {
       Double measuredValue,
       String productTag,
       UUID meteringBatchId,
-      List<String> productIds) {
+      List<String> productIds,
+      String displayName) {
     toUpdate
         .withServiceType(serviceType)
         .withTimestamp(measuredTime)
         .withExpiration(Optional.of(expired))
-        .withDisplayName(Optional.of(instanceId))
+        .withDisplayName(Optional.of(displayName))
         .withSla(getSla(serviceLevel, orgId, instanceId))
         .withUsage(getUsage(usage, orgId, instanceId))
         .withBillingProvider(getBillingProvider(billingProvider, orgId, instanceId))

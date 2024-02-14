@@ -225,6 +225,7 @@ public class PrometheusMeteringController {
     String clusterId = labels.get(getPrometheusInstanceKeyFromMetric(productTag, tagMetric));
     String sla = labels.get("support");
     String usage = labels.get("usage");
+    String displayName = Optional.ofNullable(labels.get("display_name")).orElse(clusterId);
 
     // These were added as an edge case with RHODS as it doesn't have product as a
     // label in prometheus
@@ -286,7 +287,8 @@ public class PrometheusMeteringController {
               value,
               productTag,
               meteringBatchId,
-              productIds);
+              productIds,
+              displayName);
       // Send if and only if it has not been sent yet.
       // Related to https://github.com/RedHatInsights/rhsm-subscriptions/pull/374.
       if (eventsSent.add(EventKey.fromEvent(event))) {
@@ -328,7 +330,8 @@ public class PrometheusMeteringController {
       BigDecimal value,
       String productTag,
       UUID meteringBatchId,
-      List<String> productIds) {
+      List<String> productIds,
+      String displayName) {
     Event event = new Event();
     MeteringEventFactory.updateMetricEvent(
         event,
@@ -347,7 +350,8 @@ public class PrometheusMeteringController {
         value.doubleValue(),
         productTag,
         meteringBatchId,
-        productIds);
+        productIds,
+        displayName);
     return event;
   }
 

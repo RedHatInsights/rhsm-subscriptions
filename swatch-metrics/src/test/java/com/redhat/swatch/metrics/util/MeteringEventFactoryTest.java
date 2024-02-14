@@ -28,7 +28,6 @@ import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.BillingProvider;
@@ -40,6 +39,7 @@ import org.junit.jupiter.api.Test;
 class MeteringEventFactoryTest {
 
   private static final String EVENT_SOURCE = "any";
+  private static final String DISPLAY_NAME = "display name";
 
   private final String productTag = "OpenShift-dedicated-metrics";
 
@@ -75,13 +75,13 @@ class MeteringEventFactoryTest {
             measuredValue,
             productTag,
             meteringBatchId,
-            List.of());
+            List.of(),
+            DISPLAY_NAME);
 
     assertEquals(orgId, event.getOrgId());
     assertEquals(measuredTime, event.getTimestamp());
     assertEquals(expiry, event.getExpiration().get());
     assertEquals(clusterId, event.getInstanceId());
-    assertEquals(Optional.of(clusterId), event.getDisplayName());
     assertEquals(Sla.PREMIUM, event.getSla());
     assertEquals(Usage.PRODUCTION, event.getUsage());
     assertEquals(EVENT_SOURCE, event.getEventSource());
@@ -93,6 +93,8 @@ class MeteringEventFactoryTest {
     Measurement measurement = event.getMeasurements().get(0);
     assertEquals(uom.toString(), measurement.getUom());
     assertEquals(measuredValue, measurement.getValue());
+    assertTrue(event.getDisplayName().isPresent());
+    assertEquals(DISPLAY_NAME, event.getDisplayName().get());
   }
 
   @Test
@@ -114,7 +116,8 @@ class MeteringEventFactoryTest {
             12.5,
             productTag,
             UUID.randomUUID(),
-            List.of());
+            List.of(),
+            DISPLAY_NAME);
     assertNull(event.getSla());
   }
 
@@ -137,7 +140,8 @@ class MeteringEventFactoryTest {
             12.5,
             productTag,
             UUID.randomUUID(),
-            List.of());
+            List.of(),
+            DISPLAY_NAME);
     assertEquals(Sla.__EMPTY__, event.getSla());
   }
 
@@ -160,7 +164,8 @@ class MeteringEventFactoryTest {
             12.5,
             productTag,
             UUID.randomUUID(),
-            List.of());
+            List.of(),
+            DISPLAY_NAME);
     assertNull(event.getSla());
   }
 
@@ -183,7 +188,8 @@ class MeteringEventFactoryTest {
             12.5,
             productTag,
             UUID.randomUUID(),
-            List.of());
+            List.of(),
+            DISPLAY_NAME);
     assertNull(event.getUsage());
   }
 
@@ -206,7 +212,8 @@ class MeteringEventFactoryTest {
             12.5,
             productTag,
             UUID.randomUUID(),
-            List.of());
+            List.of(),
+            DISPLAY_NAME);
     assertNull(event.getUsage());
   }
 
@@ -229,7 +236,8 @@ class MeteringEventFactoryTest {
             12.5,
             productTag,
             UUID.randomUUID(),
-            List.of());
+            List.of(),
+            DISPLAY_NAME);
     assertNull(event.getRole());
   }
 
@@ -252,7 +260,8 @@ class MeteringEventFactoryTest {
             12.5,
             productTag,
             UUID.randomUUID(),
-            List.of());
+            List.of(),
+            DISPLAY_NAME);
     assertNull(event.getRole());
   }
 
@@ -275,7 +284,8 @@ class MeteringEventFactoryTest {
             12.5,
             productTag,
             UUID.randomUUID(),
-            List.of());
+            List.of(),
+            DISPLAY_NAME);
     assertEquals(BillingProvider.AWS, event.getBillingProvider());
     assertTrue(event.getBillingAccountId().isPresent());
     assertEquals("aws_account_123", event.getBillingAccountId().get());
@@ -300,7 +310,8 @@ class MeteringEventFactoryTest {
             12.5,
             productTag,
             UUID.randomUUID(),
-            List.of());
+            List.of(),
+            DISPLAY_NAME);
     assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());
     assertTrue(event.getBillingAccountId().isEmpty());
   }
@@ -324,7 +335,8 @@ class MeteringEventFactoryTest {
             12.5,
             productTag,
             UUID.randomUUID(),
-            List.of());
+            List.of(),
+            DISPLAY_NAME);
     assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());
   }
 
@@ -347,7 +359,8 @@ class MeteringEventFactoryTest {
             12.5,
             productTag,
             UUID.randomUUID(),
-            List.of());
+            List.of(),
+            DISPLAY_NAME);
     assertNull(event.getBillingProvider());
   }
 
@@ -370,7 +383,8 @@ class MeteringEventFactoryTest {
             12.5,
             productTag,
             UUID.randomUUID(),
-            List.of());
+            List.of(),
+            DISPLAY_NAME);
     assertEquals("snapshot_openshift-dedicated-metrics_cores", event.getEventType());
   }
 
@@ -401,7 +415,8 @@ class MeteringEventFactoryTest {
             12.5,
             productTag,
             UUID.randomUUID(),
-            List.of());
+            List.of(),
+            DISPLAY_NAME);
     assertEquals(BillingProvider.RED_HAT, event.getBillingProvider());
   }
 }
