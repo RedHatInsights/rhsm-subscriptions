@@ -125,6 +125,7 @@ public class Offering implements Serializable {
   @Column(name = "oid")
   private Set<Integer> productIds = new HashSet<>();
 
+  /** Product tags related to a sku */
   @Builder.Default
   @ElementCollection
   @CollectionTable(name = "sku_product_tag", joinColumns = @JoinColumn(name = "sku"))
