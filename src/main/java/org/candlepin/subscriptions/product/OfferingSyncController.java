@@ -26,6 +26,7 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -131,7 +132,7 @@ public class OfferingSyncController {
   private Optional<Offering> getUpstreamOffering(String sku) {
     LOGGER.debug("Retrieving product tree for offeringSku=\"{}\"", sku);
     var offering = UpstreamProductData.offeringFromUpstream(sku, productService);
-    discoverProductTagsBySku(sku, offering);
+    discoverProductTagsBySku(offering);
     return offering;
   }
 
@@ -231,7 +232,7 @@ public class OfferingSyncController {
   private Optional<Offering> enrichUpstreamOfferingData(
       String sku, JsonProductDataSource productDataSource) {
     var offering = UpstreamProductData.offeringFromUpstream(sku, productDataSource);
-    discoverProductTagsBySku(sku, offering);
+    discoverProductTagsBySku(offering);
     return offering;
   }
 
@@ -285,7 +286,7 @@ public class OfferingSyncController {
     Optional<Offering> newState =
         UpstreamProductData.offeringFromUmbData(
             umbOperationalProduct, existing.orElse(null), productService);
-    discoverProductTagsBySku(umbOperationalProduct.getSku(), newState);
+    discoverProductTagsBySku(newState);
     if (newState.isPresent()) {
       return syncOffering(newState.get(), existing);
     } else {
@@ -296,12 +297,10 @@ public class OfferingSyncController {
     }
   }
 
-  private void discoverProductTagsBySku(String sku, Optional<Offering> newState) {
-    var productTags = productOfferingSubscriptionService.discoverProductTagsBySku(sku, newState);
+  private void discoverProductTagsBySku(Optional<Offering> newState) {
+    var productTags = productOfferingSubscriptionService.discoverProductTagsBySku(newState);
     if (Objects.nonNull(productTags) && Objects.nonNull(productTags.getData())) {
-      productTags.getData().stream()
-          .findFirst()
-          .ifPresent(tag -> newState.ifPresent(off -> off.setProductTag(tag)));
+      newState.ifPresent(off -> off.setProductTags(new HashSet<>(productTags.getData())));
     }
   }
 

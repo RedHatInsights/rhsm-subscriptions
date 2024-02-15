@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.util;
 
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import jakarta.ws.rs.core.Response;
-import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.OfferingRepository;
@@ -32,7 +31,6 @@ import org.candlepin.subscriptions.exception.MissingOfferingException;
 import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTags;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 /** Common methods to identify product tags between subscription and offering products */
 @Component
@@ -52,19 +50,11 @@ public class ProductOfferingSubscriptionService {
    * If the offering does not exist then return 404. If it does exist, then return an empty list if
    * there are no tags found for that particular offering.
    *
-   * @param sku
    * @return OfferingProductTags
    */
-  public OfferingProductTags discoverProductTagsBySku(String sku, Optional<Offering> newState) {
+  public OfferingProductTags discoverProductTagsBySku(Optional<Offering> newState) {
     OfferingProductTags productTags = new OfferingProductTags();
-    var offering = offeringRepository.findOfferingBySku(sku);
-
-    if (Objects.nonNull(offering) && (StringUtils.hasText(offering.getProductTag()))) {
-      productTags.addDataItem(offering.getProductTag());
-    } else {
-      newState.ifPresent(
-          upstreamOffering -> processProductTagsBySku(upstreamOffering, productTags));
-    }
+    newState.ifPresent(upstreamOffering -> processProductTagsBySku(upstreamOffering, productTags));
     return productTags;
   }
 
