@@ -27,10 +27,9 @@ import com.redhat.swatch.aws.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.aws.exception.DefaultApiException;
 import com.redhat.swatch.aws.exception.SubscriptionRecentlyTerminatedException;
 import com.redhat.swatch.aws.exception.UsageTimestampOutOfBoundsException;
-import com.redhat.swatch.aws.openapi.model.BillableUsage;
+import com.redhat.swatch.aws.kafka.BillableUsageAggregate;
+import com.redhat.swatch.aws.kafka.BillableUsageAggregateKey;
 import com.redhat.swatch.aws.openapi.model.BillableUsage.BillingProviderEnum;
-import com.redhat.swatch.aws.openapi.model.BillableUsage.SlaEnum;
-import com.redhat.swatch.aws.openapi.model.BillableUsage.UsageEnum;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AwsUsageContext;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
@@ -63,7 +62,7 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResu
 
 @Slf4j
 @ApplicationScoped
-public class BillableUsageProcessor {
+public class BillableUsageAggregateProcessor {
   private final Counter acceptedCounter;
   private final Counter rejectedCounter;
   private final Counter ignoreCounter;
@@ -72,7 +71,7 @@ public class BillableUsageProcessor {
   private final Optional<Boolean> isDryRun;
   private final Duration awsUsageWindow;
 
-  public BillableUsageProcessor(
+  public BillableUsageAggregateProcessor(
       MeterRegistry meterRegistry,
       @RestClient InternalSubscriptionsApi internalSubscriptionsApi,
       AwsMarketplaceMeteringClientFactory awsMarketplaceMeteringClientFactory,
@@ -87,80 +86,81 @@ public class BillableUsageProcessor {
     this.awsUsageWindow = awsUsageWindow;
   }
 
-  @Incoming("tally-in")
+  @Incoming("billable-usage-hourly-aggregate-in")
   @Blocking
-  public void process(BillableUsage billableUsage) {
-    log.debug("Picked up billable usage message {} to process", billableUsage);
-    if (billableUsage == null) {
+  public void process(BillableUsageAggregate billableUsageAggregate) {
+    log.debug("Picked up billable usage message {} to process", billableUsageAggregate);
+    if (billableUsageAggregate == null || billableUsageAggregate.getAggregateKey() == null) {
       log.warn("Skipping null billable usage: deserialization failure?");
       return;
     }
-    if (billableUsage.getOrgId() != null) {
-      MDC.put("org_id", billableUsage.getOrgId());
+    if (billableUsageAggregate.getAggregateKey().getOrgId() != null) {
+      MDC.put("org_id", billableUsageAggregate.getAggregateKey().getOrgId());
     }
 
-    Optional<Metric> metric = validateUsageAndLookupMetric(billableUsage);
+    Optional<Metric> metric =
+        validateUsageAndLookupMetric(billableUsageAggregate.getAggregateKey());
     if (metric.isEmpty()) {
-      log.debug("Skipping billable usage because it is not applicable: {}", billableUsage);
+      log.debug("Skipping billable usage because it is not applicable: {}", billableUsageAggregate);
       return;
     }
 
     AwsUsageContext context;
     try {
-      context = lookupAwsUsageContext(billableUsage);
+      context = lookupAwsUsageContext(billableUsageAggregate);
     } catch (SubscriptionRecentlyTerminatedException e) {
       log.info(
-          "Subscription recently terminated for tallySnapshotId={} orgId={}",
-          billableUsage.getId(),
-          billableUsage.getOrgId());
+          "Subscription recently terminated for billableUsageAggregateId={} orgId={}",
+          billableUsageAggregate.getAggregateId(),
+          billableUsageAggregate.getAggregateKey().getOrgId());
       return;
     } catch (AwsUsageContextLookupException e) {
       log.error(
           "Error looking up usage context for tallySnapshotId={} orgId={}",
-          billableUsage.getId(),
-          billableUsage.getOrgId(),
+          billableUsageAggregate.getAggregateId(),
+          billableUsageAggregate.getAggregateKey().getOrgId(),
           e);
       return;
     }
     try {
-      transformAndSend(context, billableUsage, metric.get());
+      transformAndSend(context, billableUsageAggregate, metric.get());
     } catch (UsageTimestampOutOfBoundsException e) {
       log.warn(
-          "{} orgId={} tallySnapshotId={} productId={} snapshotDate={} rhSubscriptionId={} awsCustomerId={} awsProductCode={} subscriptionStartDate={} value={}",
+          "{} orgId={} aggregateId={} productId={} windowTimestamp={} rhSubscriptionId={} awsCustomerId={} awsProductCode={} subscriptionStartDate={} value={}",
           e.getMessage(),
-          billableUsage.getOrgId(),
-          billableUsage.getId(),
-          billableUsage.getProductId(),
-          billableUsage.getSnapshotDate(),
+          billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getAggregateId(),
+          billableUsageAggregate.getAggregateKey().getProductId(),
+          billableUsageAggregate.getWindowTimestamp(),
           context.getRhSubscriptionId(),
           context.getCustomerId(),
           context.getProductCode(),
           context.getSubscriptionStartDate(),
-          billableUsage.getValue());
+          billableUsageAggregate.getTotalValue());
       ignoreCounter.increment();
     } catch (Exception e) {
       log.error(
-          "Error sending usage for rhSubscriptionId={} tallySnapshotId={} awsCustomerId={} awsProductCode={} orgId={}",
+          "Error sending usage for rhSubscriptionId={} aggregateId={} awsCustomerId={} awsProductCode={} orgId={}",
           context.getRhSubscriptionId(),
-          billableUsage.getId(),
+          billableUsageAggregate.getAggregateId(),
           context.getCustomerId(),
           context.getProductCode(),
-          billableUsage.getOrgId(),
+          billableUsageAggregate.getAggregateKey().getOrgId(),
           e);
     }
   }
 
   @Retry(retryOn = AwsUsageContextLookupException.class)
-  public AwsUsageContext lookupAwsUsageContext(BillableUsage billableUsage)
+  public AwsUsageContext lookupAwsUsageContext(BillableUsageAggregate billableUsageAggregate)
       throws AwsUsageContextLookupException {
     try {
       return internalSubscriptionsApi.getAwsUsageContext(
-          billableUsage.getSnapshotDate(),
-          billableUsage.getProductId(),
-          billableUsage.getOrgId(),
-          Optional.ofNullable(billableUsage.getSla()).map(SlaEnum::value).orElse(null),
-          Optional.ofNullable(billableUsage.getUsage()).map(UsageEnum::value).orElse(null),
-          Optional.ofNullable(billableUsage.getBillingAccountId()).orElse("_ANY"));
+          billableUsageAggregate.getWindowTimestamp(),
+          billableUsageAggregate.getAggregateKey().getProductId(),
+          billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getAggregateKey().getSla(),
+          billableUsageAggregate.getAggregateKey().getUsage(),
+          billableUsageAggregate.getAggregateKey().getBillingAccountId());
     } catch (DefaultApiException e) {
       var optionalErrors = Optional.ofNullable(e.getErrors());
       if (optionalErrors.isPresent()) {
@@ -177,29 +177,30 @@ public class BillableUsageProcessor {
     }
   }
 
-  private void transformAndSend(AwsUsageContext context, BillableUsage billableUsage, Metric metric)
+  private void transformAndSend(
+      AwsUsageContext context, BillableUsageAggregate billableUsageAggregate, Metric metric)
       throws AwsUnprocessedRecordsException,
           AwsDimensionNotConfiguredException,
           UsageTimestampOutOfBoundsException {
     BatchMeterUsageRequest request =
         BatchMeterUsageRequest.builder()
             .productCode(context.getProductCode())
-            .usageRecords(transformToAwsUsage(context, billableUsage, metric))
+            .usageRecords(transformToAwsUsage(context, billableUsageAggregate, metric))
             .build();
 
     if (isDryRun.isPresent() && Boolean.TRUE.equals(isDryRun.get())) {
       log.info(
           "[DRY RUN] Sending usage request to AWS: {}, organization={}, product_id={}",
           request,
-          billableUsage.getOrgId(),
-          billableUsage.getProductId());
+          billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getAggregateKey().getProductId());
       return;
     } else {
       log.info(
           "Sending usage request to AWS: {}, organization={}, product_id={}",
           request,
-          billableUsage.getOrgId(),
-          billableUsage.getProductId());
+          billableUsageAggregate.getAggregateKey().getOrgId(),
+          billableUsageAggregate.getAggregateKey().getProductId());
     }
 
     try {
@@ -214,13 +215,19 @@ public class BillableUsageProcessor {
                 if (result.status() == UsageRecordResultStatus.CUSTOMER_NOT_SUBSCRIBED) {
                   log.warn(
                       "No subscription found for organization={}, product_id={}, result={}",
-                      billableUsage.getOrgId(),
-                      billableUsage.getProductId(),
+                      billableUsageAggregate.getAggregateKey().getOrgId(),
+                      billableUsageAggregate.getAggregateKey().getProductId(),
                       result);
                 } else if (result.status() != UsageRecordResultStatus.SUCCESS) {
-                  log.warn("{}, organization={}", result, billableUsage.getOrgId());
+                  log.warn(
+                      "{}, organization={}",
+                      result,
+                      billableUsageAggregate.getAggregateKey().getOrgId());
                 } else {
-                  log.info("{}, organization={},", result, billableUsage.getOrgId());
+                  log.info(
+                      "{}, organization={},",
+                      result,
+                      billableUsageAggregate.getAggregateKey().getOrgId());
                   acceptedCounter.increment(response.results().size());
                 }
               });
@@ -235,7 +242,7 @@ public class BillableUsageProcessor {
       log.warn(
           "{} for organization={}, awsCustomerId={}",
           e.getMessage(),
-          billableUsage.getOrgId(),
+          billableUsageAggregate.getAggregateKey().getOrgId(),
           context.getCustomerId());
     }
   }
@@ -247,9 +254,9 @@ public class BillableUsageProcessor {
   }
 
   private UsageRecord transformToAwsUsage(
-      AwsUsageContext context, BillableUsage billableUsage, Metric metric)
+      AwsUsageContext context, BillableUsageAggregate billableUsageAggregate, Metric metric)
       throws AwsDimensionNotConfiguredException, UsageTimestampOutOfBoundsException {
-    OffsetDateTime effectiveTimestamp = billableUsage.getSnapshotDate();
+    OffsetDateTime effectiveTimestamp = billableUsageAggregate.getWindowTimestamp();
     if (effectiveTimestamp.isBefore(context.getSubscriptionStartDate())) {
       // Because swatch doesn't store a precise timestamp for beginning of usage, we'll fall back to
       // the subscription start timestamp.
@@ -258,7 +265,7 @@ public class BillableUsageProcessor {
 
     // NOTE: AWS requires that the timestamp "is not before the start of the software usage."
     // https://docs.aws.amazon.com/marketplacemetering/latest/APIReference/API_UsageRecord.html
-    if (!isUsageDateValid(Clock.systemUTC(), billableUsage)) {
+    if (!isUsageDateValid(Clock.systemUTC(), billableUsageAggregate)) {
       throw new UsageTimestampOutOfBoundsException(
           "Unable to send usage since it is outside of the AWS processing window");
     }
@@ -266,28 +273,28 @@ public class BillableUsageProcessor {
     return UsageRecord.builder()
         .customerIdentifier(context.getCustomerId())
         .dimension(metric.getAwsDimension())
-        .quantity(billableUsage.getValue().intValueExact())
+        .quantity(billableUsageAggregate.getTotalValue().intValueExact())
         .timestamp(effectiveTimestamp.toInstant())
         .build();
   }
 
-  private Optional<Metric> validateUsageAndLookupMetric(BillableUsage billableUsage) {
-    if (billableUsage.getBillingProvider() != BillingProviderEnum.AWS) {
+  private Optional<Metric> validateUsageAndLookupMetric(BillableUsageAggregateKey aggregationKey) {
+    if (!Objects.equals(aggregationKey.getBillingProvider(), BillingProviderEnum.AWS.value())) {
       log.debug("Snapshot not applicable because billingProvider is not AWS");
       return Optional.empty();
     }
 
-    if (billableUsage.getUom() == null) {
+    if (aggregationKey.getMetricId() == null) {
       log.debug("Snapshot not applicable because billable uom is empty");
       return Optional.empty();
     }
 
     Optional<Metric> metric =
-        Variant.findByTag(billableUsage.getProductId()).stream()
+        Variant.findByTag(aggregationKey.getProductId()).stream()
             .map(
                 v ->
                     v.getSubscription()
-                        .getMetric(MetricId.fromString(billableUsage.getUom()).getValue())
+                        .getMetric(MetricId.fromString(aggregationKey.getMetricId()).getValue())
                         .orElse(null))
             .filter(Objects::nonNull)
             .findFirst();
@@ -310,13 +317,13 @@ public class BillableUsageProcessor {
    * <p>START_OF_CURRENT_HOUR - AWS_MARKETPLACE_USAGE_WINDOW
    *
    * @param clock the clock used to determine the time NOW.
-   * @param usage the usage to check.
+   * @param billableUsageAggregate the usage aggregate to check.
    * @return true if the usage timestamp is valid, false otherwise.
    */
   // NOTE: Pass the clock as a parameter to make things a little easier to test.
-  protected boolean isUsageDateValid(Clock clock, BillableUsage usage) {
+  protected boolean isUsageDateValid(Clock clock, BillableUsageAggregate billableUsageAggregate) {
     OffsetDateTime startOfCurrentHour = OffsetDateTime.now(clock).truncatedTo(ChronoUnit.HOURS);
     OffsetDateTime cutoff = startOfCurrentHour.minus(awsUsageWindow);
-    return !usage.getSnapshotDate().isBefore(cutoff);
+    return !billableUsageAggregate.getWindowTimestamp().isBefore(cutoff);
   }
 }
