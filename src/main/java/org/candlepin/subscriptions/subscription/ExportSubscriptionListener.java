@@ -95,13 +95,16 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
       containerFactory = "exportListenerContainerFactory")
   public void receive(String exportEvent) throws ApiException {
     ConsoleCloudEvent cloudEvent = parser.fromJsonString(exportEvent);
-    log.info(
+
+    log.debug(
         "New event has been received for : {} from application: {} ",
         cloudEvent.getId(),
         cloudEvent.getSource());
+
     var exportResourceWrapper =
         cloudEvent.getData(ResourceRequest.class).stream().findFirst().orElse(null);
     var exportResource = new ResourceRequestClass();
+
     try {
       if (Objects.isNull(exportResourceWrapper)) {
         throw new ExportServiceException(
@@ -112,13 +115,23 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
       if (Objects.equals(exportResource.getApplication(), SWATCH_APP)
           && Objects.equals(exportResource.getResource(), SWATCH_APP)) {
 
-        // TODO log debug when we're skipping
+        log.info(
+            "Processing event: {} from application: {} ",
+            cloudEvent.getId(),
+            cloudEvent.getSource());
 
         checkRbac(exportResource);
         uploadData(cloudEvent, exportResource);
 
-        // TODO log INFO completion message
+      } else {
+        log.debug("Skipped event {} because its application/source types don't match this handler");
       }
+
+      log.info(
+          "Finished processing event: {} from application: {} ",
+          cloudEvent.getId(),
+          cloudEvent.getSource());
+
     } catch (ExportServiceException e) {
       log.error(
           "Error thrown for exportResource: {} sending ErrorRequest: {}",
