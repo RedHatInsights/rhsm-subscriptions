@@ -411,3 +411,7 @@ sonarqube {
         property "sonar.coverage.jacoco.xmlReportPaths", "${rootProject.projectDir}/build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml"
     }
 }
+
+bootRun {
+    systemProperties = System.properties
+}
