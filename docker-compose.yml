@@ -13,6 +13,11 @@ services:
       - ./pg_hba.conf:/pg_hba.conf:z
     ports:
       - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
   kafka:
     image: quay.io/strimzi/kafka:latest-kafka-3.1.0
     command: sh /init_kafka.sh
@@ -65,3 +70,51 @@ services:
     depends_on:
       - kafka
       - db
+  export:
+    container_name: export-server
+    image: quay.io/cloudservices/export-service:276d09f
+    environment:
+      - PGSQL_PORT=5432
+      - PGSQL_HOSTNAME=db
+      - DEBUG=true
+      - OPEN_API_FILE_PATH=/var/tmp/openapi.json
+      - OPEN_API_PRIVATE_PATH=/var/tmp/private.json
+      - PSKS=testing-a-psk
+      - KAFKA_BROKERS=kafka:29092
+      - AWS_ACCESS_KEY=minio
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - PUBLIC_PORT=8000
+      - METRICS_PORT=9090
+      - MINIO_PORT=9099
+      - PRIVATE_PORT=10010
+    ports:
+      - 8002:8000
+      - 10000:10010
+    command: /bin/bash -c "export-service migrate_db upgrade && export-service api_server"
+    depends_on:
+      - db
+      - kafka
+
+  s3:
+    image: minio/minio
+    ports:
+      - 9099:9099
+      - 9990:9990
+    volumes:
+      - ./tmp/minio:/data:Z
+    environment:
+      - MINIO_ROOT_USER=${AWS_ACCESS_KEY-minio}
+      - MINIO_ROOT_PASSWORD=${AWS_SECRET_ACCESS_KEY-minioadmin}
+    command: server --address 0.0.0.0:9099 --console-address 0.0.0.0:9990 /data
+
+  s3-createbucket:
+    image: minio/mc
+    depends_on:
+      - s3
+    restart: on-failure
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add myminio http://s3:9099 ${AWS_ACCESS_KEY-minio} ${AWS_SECRET_ACCESS_KEY-minioadmin} || exit 1;
+      /usr/bin/mc mb --ignore-existing myminio/exports-bucket;
+      /usr/bin/mc policy set public myminio/exports-bucket;
+      "
