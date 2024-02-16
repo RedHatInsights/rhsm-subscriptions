@@ -20,9 +20,9 @@
  */
 package org.candlepin.subscriptions.task.queue.kafka;
 
-import static org.candlepin.subscriptions.ApplicationConfiguration.SUBSCRIPTION_EXPORT_QUALIFIER;
-import static org.candlepin.subscriptions.subscription.ExportSubscriptionListener.ADMIN_ROLE;
-import static org.candlepin.subscriptions.subscription.ExportSubscriptionListener.SWATCH_APP;
+import static org.candlepin.subscriptions.subscription.export.ExportSubscriptionConfiguration.SUBSCRIPTION_EXPORT_QUALIFIER;
+import static org.candlepin.subscriptions.subscription.export.ExportSubscriptionListener.ADMIN_ROLE;
+import static org.candlepin.subscriptions.subscription.export.ExportSubscriptionListener.SWATCH_APP;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -54,7 +54,7 @@ import org.candlepin.subscriptions.json.SubscriptionSummary;
 import org.candlepin.subscriptions.json.SubscriptionsExport;
 import org.candlepin.subscriptions.rbac.RbacApiException;
 import org.candlepin.subscriptions.rbac.RbacService;
-import org.candlepin.subscriptions.subscription.ExportSubscriptionListener;
+import org.candlepin.subscriptions.subscription.export.ExportSubscriptionListener;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
 import org.candlepin.subscriptions.test.ExtendWithExportServiceWireMock;

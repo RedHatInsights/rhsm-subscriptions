@@ -6,6 +6,9 @@ SUBSCRIPTION_EXPORT_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform
 
 
 rhsm-subscriptions:
+  subscription-export:
+    topic: ${SUBSCRIPTION_EXPORT_TOPIC}
+    kafka-group-id: swatch-subscription-export
   #These export-service settings get used for subscription exports
   export-service:
     url: ${clowder.privateEndpoints.export-service-service.url:http://localhost:10000}
@@ -27,7 +30,3 @@ rhsm-subscriptions:
     tasks:
       topic: ${CAPACITY_RECONCILE_TOPIC}
       kafka-group-id: capacity-reconciliation-worker
-  subscription-export:
-    tasks:
-      topic: ${SUBSCRIPTION_EXPORT_TOPIC}
-      kafka-group-id: swatch-subscription-export

@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.subscription;
+package org.candlepin.subscriptions.subscription.export;
 
 import com.redhat.swatch.clients.export.api.client.ExportApiClientFactory;
 import org.candlepin.subscriptions.http.HttpClientProperties;

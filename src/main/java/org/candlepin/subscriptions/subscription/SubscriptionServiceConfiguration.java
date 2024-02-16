@@ -44,8 +44,7 @@ import org.springframework.retry.support.RetryTemplateBuilder;
 @Import({
   ResteasyConfiguration.class,
   RhsmSubscriptionsDataSourceConfiguration.class,
-  CapacityReconciliationConfiguration.class,
-  ExportClientConfiguration.class
+  CapacityReconciliationConfiguration.class
 })
 @EnableJms
 @ComponentScan(

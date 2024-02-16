@@ -91,8 +91,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 })
 public class ApplicationConfiguration implements WebMvcConfigurer {
 
-  public static final String SUBSCRIPTION_EXPORT_QUALIFIER = "subscriptionExport";
-
   @Bean
   ApplicationProperties applicationProperties() {
     return new ApplicationProperties();
@@ -123,13 +121,6 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   @Qualifier("offeringSyncTasks")
   @ConfigurationProperties(prefix = "rhsm-subscriptions.product.tasks")
   TaskQueueProperties offeringSyncQueueProperties() {
-    return new TaskQueueProperties();
-  }
-
-  @Bean
-  @Qualifier(SUBSCRIPTION_EXPORT_QUALIFIER)
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription-export.tasks")
-  TaskQueueProperties subscriptionExportProperties() {
     return new TaskQueueProperties();
   }
 
