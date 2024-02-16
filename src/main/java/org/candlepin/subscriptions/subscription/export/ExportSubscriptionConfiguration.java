@@ -32,6 +32,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.util.backoff.FixedBackOff;
 
 @Configuration
 @Import({ExportClientConfiguration.class})
@@ -39,8 +41,7 @@ public class ExportSubscriptionConfiguration {
 
   public static final String SUBSCRIPTION_EXPORT_QUALIFIER = "subscriptionExport";
 
-  @Bean
-  @Qualifier(SUBSCRIPTION_EXPORT_QUALIFIER)
+  @Bean(name = SUBSCRIPTION_EXPORT_QUALIFIER)
   @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription-export")
   TaskQueueProperties subscriptionExportProperties() {
     return new TaskQueueProperties();
@@ -58,7 +59,8 @@ public class ExportSubscriptionConfiguration {
   ConcurrentKafkaListenerContainerFactory<String, String> exportListenerContainerFactory(
       @Qualifier("exportConsumerFactory") ConsumerFactory<String, String> consumerFactory,
       KafkaProperties kafkaProperties,
-      KafkaConsumerRegistry registry) {
+      KafkaConsumerRegistry registry,
+      DefaultErrorHandler subscriptionExportKafkaErrorHandler) {
 
     var factory = new ConcurrentKafkaListenerContainerFactory<String, String>();
     factory.setConsumerFactory(consumerFactory);
@@ -71,6 +73,19 @@ public class ExportSubscriptionConfiguration {
     }
     // hack to track the Kafka consumers, so SeekableKafkaConsumer can commit when needed
     factory.getContainerProperties().setConsumerRebalanceListener(registry);
+
+    factory.setCommonErrorHandler(subscriptionExportKafkaErrorHandler);
+
     return factory;
+  }
+
+  @Bean
+  DefaultErrorHandler subscriptionExportKafkaErrorHandler(
+      @Qualifier(SUBSCRIPTION_EXPORT_QUALIFIER) TaskQueueProperties subscriptionExportProperties) {
+
+    return new DefaultErrorHandler(
+        new FixedBackOff(
+            subscriptionExportProperties.getRetryBackOffMillis(),
+            subscriptionExportProperties.getRetryAttempts()));
   }
 }
