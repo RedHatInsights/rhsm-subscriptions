@@ -99,31 +99,36 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
         "New event has been received for : {} from application: {} ",
         cloudEvent.getId(),
         cloudEvent.getSource());
-    var exportData = cloudEvent.getData(ResourceRequest.class).stream().findFirst().orElse(null);
-    var exportRequest = new ResourceRequestClass();
+    var exportResourceWrapper =
+        cloudEvent.getData(ResourceRequest.class).stream().findFirst().orElse(null);
+    var exportResource = new ResourceRequestClass();
     try {
-      if (Objects.isNull(exportData)) {
+      if (Objects.isNull(exportResourceWrapper)) {
         throw new ExportServiceException(
             Status.INTERNAL_SERVER_ERROR.getStatusCode(),
             "Cloud event doesn't have any Export data: " + cloudEvent.getId().toString());
       }
-      exportRequest = exportData.getResourceRequest();
-      if (Objects.equals(exportRequest.getApplication(), SWATCH_APP)
-          && Objects.equals(exportRequest.getResource(), SWATCH_APP)) {
+      exportResource = exportResourceWrapper.getResourceRequest();
+      if (Objects.equals(exportResource.getApplication(), SWATCH_APP)
+          && Objects.equals(exportResource.getResource(), SWATCH_APP)) {
 
-        checkRbac(exportRequest);
-        uploadData(cloudEvent, exportRequest);
+        // TODO log debug when we're skipping
+
+        checkRbac(exportResource);
+        uploadData(cloudEvent, exportResource);
+
+        // TODO log INFO completion message
       }
     } catch (ExportServiceException e) {
       log.error(
-          "Error thrown for exportRequest: {} sending ErrorRequest: {}",
-          exportRequest.getExportRequestUUID(),
+          "Error thrown for exportResource: {} sending ErrorRequest: {}",
+          exportResource.getExportRequestUUID(),
           e.getMessage());
       var exportErrorMsg = createErrorRequest(e.getStatus(), e.getMessage());
       exportApi.downloadExportError(
-          exportRequest.getUUID(),
-          exportRequest.getApplication(),
-          exportRequest.getExportRequestUUID(),
+          exportResource.getExportRequestUUID(),
+          exportResource.getApplication(),
+          exportResource.getUUID(),
           exportErrorMsg);
     }
   }
@@ -132,47 +137,50 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
     return new DownloadExportErrorRequest().error(code).message(description);
   }
 
-  private void uploadData(ConsoleCloudEvent cloudEvent, ResourceRequestClass exportData) {
+  private void uploadData(ConsoleCloudEvent cloudEvent, ResourceRequestClass exportResource) {
     // Here we need to determine format (csv or json)
-    var dataRequest = fetchData(cloudEvent.getOrgId(), exportData);
-    if (Objects.equals(exportData.getFormat(), Format.CSV)) {
-      uploadCsv(exportData, dataRequest);
-    } else if (Objects.equals(exportData.getFormat(), Format.JSON)) {
-      uploadJson(exportData, dataRequest);
+    var dataRequest = fetchData(cloudEvent.getOrgId(), exportResource);
+    if (Objects.equals(exportResource.getFormat(), Format.CSV)) {
+      uploadCsv(exportResource, dataRequest);
+    } else if (Objects.equals(exportResource.getFormat(), Format.JSON)) {
+      uploadJson(exportResource, dataRequest);
     } else {
       throw new ExportServiceException(Status.FORBIDDEN.getStatusCode(), "Format isn't supported");
     }
   }
 
-  private void uploadCsv(ResourceRequestClass exportData, SubscriptionsExport data) {
+  private void uploadCsv(ResourceRequestClass exportResource, SubscriptionsExport data) {
     log.debug(
         "Uploading CSV for request {} with orgId: {}",
-        exportData.getExportRequestUUID(),
+        exportResource.getExportRequestUUID(),
         data.getSubscriptions().get(0).getOrgId());
     throw new ExportServiceException(
         Status.NOT_IMPLEMENTED.getStatusCode(), "Export upload csv isn't implemented ");
   }
 
-  private void uploadJson(ResourceRequestClass exportData, SubscriptionsExport data) {
-    log.debug("Uploading Json for request {}", exportData.getExportRequestUUID());
+  private void uploadJson(ResourceRequestClass exportResource, SubscriptionsExport data) {
+    log.debug("Uploading Json for request {}", exportResource.getExportRequestUUID());
+
     try {
       exportApi.downloadExportUpload(
-          exportData.getUUID(),
-          exportData.getApplication(),
-          exportData.getExportRequestUUID(),
+          exportResource.getExportRequestUUID(),
+          exportResource.getApplication(),
+          exportResource.getUUID(),
           data);
     } catch (ApiException e) {
       throw new ExportServiceException(Status.BAD_REQUEST.getStatusCode(), e.getMessage());
     }
   }
 
-  private void checkRbac(ResourceRequestClass exportData) {
+  private void checkRbac(ResourceRequestClass exportResource) {
     // role base access control, service check for correct permissions
     // two permissions for rbac check for "subscriptions:*:*" or subscriptions:reports:read
-    log.debug("Verifying identity: {}", exportData.getXRhIdentity());
+    log.debug("Verifying identity: {}", exportResource.getXRhIdentity());
     List<String> access;
     try {
-      access = rbacService.getPermissions(exportData.getApplication(), exportData.getXRhIdentity());
+      access =
+          rbacService.getPermissions(
+              exportResource.getApplication(), exportResource.getXRhIdentity());
     } catch (RbacApiException e) {
       throw new ExportServiceException(Status.NOT_FOUND.getStatusCode(), e.getMessage());
     }
@@ -184,11 +192,11 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
     throw new ExportServiceException(Status.FORBIDDEN.getStatusCode(), "Insufficient permission");
   }
 
-  private SubscriptionsExport fetchData(String orgId, ResourceRequestClass exportData) {
+  private SubscriptionsExport fetchData(String orgId, ResourceRequestClass exportResource) {
     // Check subscription table for data for the event
     log.debug("Fetching subscriptions for {}", orgId);
 
-    var reportCriteria = extractExportFilter(exportData, orgId);
+    var reportCriteria = extractExportFilter(exportResource, orgId);
 
     var searchSpec = SubscriptionRepository.buildSearchSpecification(reportCriteria);
 
@@ -203,10 +211,10 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
     }
   }
 
-  private DbReportCriteria extractExportFilter(ResourceRequestClass data, String orgId) {
+  private DbReportCriteria extractExportFilter(ResourceRequestClass exportResource, String orgId) {
     var report = DbReportCriteria.builder().orgId(orgId);
-    if (data.getFilters() != null) {
-      var filters = data.getFilters().entrySet();
+    if (exportResource.getFilters() != null) {
+      var filters = exportResource.getFilters().entrySet();
       for (var entry : filters) {
         switch (entry.getKey().toLowerCase()) {
           case "productid" -> report.productId(entry.getValue().toString());
