@@ -54,8 +54,9 @@ rhsm-subscriptions:
     back-off-multiplier: ${USER_BACK_OFF_MULTIPLIER:2}
     max-attempts: ${USER_MAX_ATTEMPTS:1}
   export-service:
-    url: ${clowder.endpoints.export-service.url:http://localhost:10010}
-    psk: ${SWATCH_EXPORT_PSK:placeholder}
+    #These export-service settings get used for instance exports
+    url: ${clowder.endpoints.export-service.url:http://localhost:10000}
+    psk: ${SWATCH_EXPORT_PSK:testing-a-psk}
 management:
   health:
     jms:

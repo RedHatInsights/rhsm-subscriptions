@@ -6,9 +6,10 @@ SUBSCRIPTION_EXPORT_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform
 
 
 rhsm-subscriptions:
+  #These export-service settings get used for subscription exports
   export-service:
-    url: ${clowder.privateEndpoints.export-service-service.url:http://localhost:8081}
-    psk: ${SWATCH_EXPORT_PSK:placeholder}
+    url: ${clowder.privateEndpoints.export-service-service.url:http://localhost:10000}
+    psk: ${SWATCH_EXPORT_PSK:testing-a-psk}
   subscription-sync-enabled: ${SUBSCRIPTION_SYNC_ENABLED:true}
   product:
     tasks:
