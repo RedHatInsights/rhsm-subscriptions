@@ -18,12 +18,40 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.azure.kafka;
+package com.redhat.swatch.azure.kafka.streams;
 
 import com.redhat.swatch.azure.openapi.model.BillableUsage;
-import io.quarkus.kafka.client.serialization.ObjectMapperSerializer;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-/** Provides quarkus a hint that we want to use Jackson to serialize BillableUsage objects */
-public class BillableUsageSerializer extends ObjectMapperSerializer<BillableUsage> {
-  /* intentionally empty */
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class BillableUsageAggregateKey {
+
+  private String orgId;
+
+  private String productId;
+
+  private String metricId;
+
+  private String sla;
+
+  private String usage;
+
+  private String billingProvider;
+
+  private String billingAccountId;
+
+  public BillableUsageAggregateKey(BillableUsage billableUsage) {
+    this(
+        billableUsage.getOrgId(),
+        billableUsage.getProductId(),
+        billableUsage.getUom(),
+        billableUsage.getSla().value(),
+        billableUsage.getUsage().value(),
+        billableUsage.getBillingProvider().value(),
+        billableUsage.getBillingAccountId());
+  }
 }

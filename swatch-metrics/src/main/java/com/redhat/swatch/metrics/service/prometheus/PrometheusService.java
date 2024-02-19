@@ -121,12 +121,7 @@ public class PrometheusService {
   private QuerySummaryResult parseQueryResult(
       File data, Consumer<QueryResultDataResultInner> itemConsumer) {
     if (log.isDebugEnabled()) {
-      try {
-        log.debug(
-            "Response from prometheus: {}", Files.readString(Path.of(data.getAbsolutePath())));
-      } catch (IOException ignored) {
-        // intentionally ignored
-      }
+      log.debug("Response from prometheus: {}", readFileToString(data));
     }
 
     var builder = QuerySummaryResult.builder();
@@ -147,7 +142,17 @@ public class PrometheusService {
           ErrorCode.REQUEST_PROCESSING_ERROR, "Error parsing the Prometheus response", ex);
     }
 
-    return builder.build();
+    var result = builder.build();
+    if (result.getStatus() == null) {
+      // The status is mandatory when reading prometheus response. If it was not populated, then the
+      // response
+      // was not standard, so we need to retry again.
+      log.error("We could not parse the Prometheus response '{}'", readFileToString(data));
+      throw new ExternalServiceException(
+          ErrorCode.REQUEST_PROCESSING_ERROR, "Error reading the Prometheus response", null);
+    }
+
+    return result;
   }
 
   /**
@@ -165,6 +170,15 @@ public class PrometheusService {
       } else if (JSON_PROPERTY_RESULT.equals(parser.getCurrentName())) {
         parseDataResultArray(parser, builder, itemConsumer);
       }
+    }
+  }
+
+  private String readFileToString(File file) {
+    try {
+      return Files.readString(Path.of(file.getAbsolutePath()));
+    } catch (IOException ignored) {
+      // intentionally ignored
+      return null;
     }
   }
 
@@ -203,6 +217,6 @@ public class PrometheusService {
   }
 
   private boolean isNot(JsonToken token, JsonToken status) {
-    return token != JsonToken.VALUE_NULL && token != status;
+    return token != null && token != JsonToken.VALUE_NULL && token != status;
   }
 }
