@@ -35,4 +35,6 @@ properties:
     type: array
     items:
       $ref: "hbi-network-interface.yaml"
+  virtual_host_uuid:
+    type: string
 

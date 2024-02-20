@@ -261,7 +261,7 @@ components:
           type: boolean
         vm_host:
           type: string
-        vm_host_uuid:
+        virtual_host_uuid:
           type: string
         guest_id:
           type: string
