@@ -149,6 +149,7 @@ public abstract class InventoryService {
     systemProfile.setNetworkInterfaces(facts.getNetworkInterfaces());
     systemProfile.setIsMarketplace(facts.getIsMarketplace());
     systemProfile.setReleasever(facts.getReleaseVer());
+    systemProfile.setVirtualHostUuid(facts.getVirtualHostUuid());
     return systemProfile;
   }
 
@@ -166,7 +167,6 @@ public abstract class InventoryService {
     addFact(rhsmFactMap, "ARCHITECTURE", conduitFacts.getArchitecture());
     addFact(rhsmFactMap, "IS_VIRTUAL", conduitFacts.getIsVirtual());
     addFact(rhsmFactMap, "VM_HOST", conduitFacts.getVmHost());
-    addFact(rhsmFactMap, "VM_HOST_UUID", conduitFacts.getVmHostUuid());
     addFact(rhsmFactMap, "GUEST_ID", conduitFacts.getGuestId());
     addFact(rhsmFactMap, "RH_PROD", conduitFacts.getRhProd());
     addFact(rhsmFactMap, "SYSPURPOSE_ROLE", conduitFacts.getSysPurposeRole());

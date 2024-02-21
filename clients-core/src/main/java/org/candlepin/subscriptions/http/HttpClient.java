@@ -34,6 +34,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.http.HttpHost;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
@@ -74,7 +75,16 @@ public class HttpClient {
    */
   public static Client buildHttpClient(
       HttpClientProperties serviceProperties, Object clientJson, boolean isDebugging) {
+
+    String proxyHost = System.getProperty("http.proxyHost");
+    String proxyPort = System.getProperty("http.proxyPort");
+
     HttpClientBuilder apacheBuilder = HttpClientBuilder.create();
+
+    if (proxyHost != null && proxyPort != null) {
+      int port = Integer.parseInt(proxyPort);
+      apacheBuilder.setProxy(new HttpHost(proxyHost, port));
+    }
 
     apacheBuilder.setSSLHostnameVerifier(serviceProperties.getHostnameVerifier());
 

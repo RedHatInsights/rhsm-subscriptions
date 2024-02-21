@@ -98,7 +98,6 @@ import lombok.Setter;
         select
         h.id as inventory_id, h.org_id, h.modified_on, h.account, h.display_name,
         h.facts->'rhsm'->>'IS_VIRTUAL' as is_virtual,
-        h.facts->'rhsm'->>'VM_HOST_UUID' as hypervisor_uuid,
         h.facts->'satellite'->>'virtual_host_uuid' as satellite_hypervisor_uuid,
         h.facts->'satellite'->>'system_purpose_role' as satellite_role,
         h.facts->'satellite'->>'system_purpose_sla' as satellite_sla,
@@ -111,6 +110,7 @@ import lombok.Setter;
         h.facts->'rhsm'->>'SYSPURPOSE_UNITS' as syspurpose_units,
         h.facts->'rhsm'->>'BILLING_MODEL' as  billing_model,
         h.facts->'qpc'->>'IS_RHEL' as is_rhel,
+        h.system_profile_facts->>'virtual_host_uuid' as hypervisor_uuid,
         h.system_profile_facts->>'infrastructure_type' as system_profile_infrastructure_type,
         h.system_profile_facts->>'cores_per_socket' as system_profile_cores_per_socket,
         h.system_profile_facts->>'number_of_sockets' as system_profile_sockets,
@@ -127,11 +127,11 @@ import lombok.Setter;
         h.stale_timestamp,
         coalesce(
             h.facts->'satellite'->>'virtual_host_uuid',
-            h.facts->'rhsm'->>'VM_HOST_UUID',
+            h.system_profile_facts->>'virtual_host_uuid',
             h.canonical_facts->>'subscription_manager_id') as hardware_subman_id,
         coalesce(
             h.facts->'satellite'->>'virtual_host_uuid',
-            h.facts->'rhsm'->>'VM_HOST_UUID'
+            h.system_profile_facts->>'virtual_host_uuid'
         ) as any_hypervisor_uuid
         from hosts h
         cross join lateral (
