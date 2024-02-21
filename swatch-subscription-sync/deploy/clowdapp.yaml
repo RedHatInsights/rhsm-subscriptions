@@ -222,6 +222,9 @@ objects:
                   value: ${JAVA_DEBUG}
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
+                  # Override liquibase disablement in the main container
+                - name: SPRING_LIQUIBASE_ENABLED
+                  value: 'true'
               inheritEnv: true
               resources:
                 requests:
