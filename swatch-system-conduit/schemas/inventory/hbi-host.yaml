@@ -3,8 +3,6 @@ title: HbiHost
 properties:
   display_name:
     type: string
-  account:
-    type: string
   org_id:
     type: string
   insights_id:
