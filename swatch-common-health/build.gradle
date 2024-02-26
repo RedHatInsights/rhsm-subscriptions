@@ -1,0 +1,11 @@
+plugins {
+    id 'swatch.java-library-conventions'
+}
+
+dependencies {
+    implementation enforcedPlatform(libraries["quarkus-bom"])
+    api 'io.quarkus:quarkus-smallrye-health'
+    testImplementation libraries["junit-jupiter"]
+}
+
+description = 'Shared health checks for swatch services'
