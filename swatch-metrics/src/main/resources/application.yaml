@@ -115,8 +115,7 @@ quarkus:
       url: ${rhsm-subscriptions.metering.prometheus.client.url}
       scope: jakarta.enterprise.context.ApplicationScoped
 
-# Clowder quarkus config takes care of setting these, no need to try to do clowder.kafka.brokers[0]
-# Common kafka settings
+# Clowder quarkus config takes care of setting the common kafka settings
 kafka:
   bootstrap:
     servers: localhost:9092

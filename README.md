@@ -318,8 +318,7 @@ RHSM_RBAC_USE_STUB=true ./gradlew bootRun
 * `RHSM_RBAC_USE_STUB`: stub out the rbac service
 * `RHSM_RBAC_APPLICATION_NAME`: name of the RBAC permission application name (`<APP_NAME>:*:*`),
   by default this property is set to 'subscriptions'.
-* `RHSM_RBAC_HOST`: RBAC service hostname
-* `RHSM_RBAC_PORT`: RBAC service port
+* `RHSM_RBAC_URL`: RBAC service url
 * `RHSM_RBAC_MAX_CONNECTIONS`: max concurrent connections to RBAC service
 * `SWATCH_*_PSK`: pre-shared keys for internal service-to-service authentication
   where the `*` represents the name of an authorized service
@@ -344,9 +343,8 @@ For example,
 }}
 ```
 
-Becomes `clowder.kafka.brokers[0].hostname`.  These properties are then passed into the Spring
-Environment and may be used elsewhere (the `ClowderJsonEnvironmentPostProcessor` runs *before*
-most other environment processing classes).
+These properties are then passed into the Spring Environment and may be used elsewhere (the 
+`ClowderJsonEnvironmentPostProcessor` runs *before* most other environment processing classes).
 
 The pattern we follow is to assign the Clowder style properties to an **intermediate** property
 that follows Spring Boot's environment variable
@@ -360,7 +358,7 @@ not resolve to anything.
 An example of an intermediate property would be
 
 ```
-KAFKA_BOOTSTRAP_HOST=${clowder.kafka.brokers[0].hostname:localhost}
+KAFKA_BOOTSTRAP_HOST=${clowder.kafka.brokers:localhost}
 ```
 
 This pattern has the useful property of allowing us to override any Clowder settings (in
