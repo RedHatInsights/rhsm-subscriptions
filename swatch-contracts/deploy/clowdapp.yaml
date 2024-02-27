@@ -50,6 +50,8 @@ parameters:
     value: swatch-tally
   - name: QUARKUS_PROFILE
     value: prod
+  - name: UMB_KEYSTORE_PATH
+    value: /pinhead/keystore.jks
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -190,6 +192,13 @@ objects:
                     key: keystore_password
               - name: KEYSTORE_PATH
                 value: /pinhead/keystore.jks
+              - name: UMB_KEYSTORE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: tls
+                    key: keystore_password
+              - name: UMB_KEYSTORE_PATH
+                value: ${UMB_KEYSTORE_PATH}
               - name: TRUSTSTORE_PATH
                 value: /pinhead/truststore.jks
               - name: TRUSTSTORE_PASSWORD
