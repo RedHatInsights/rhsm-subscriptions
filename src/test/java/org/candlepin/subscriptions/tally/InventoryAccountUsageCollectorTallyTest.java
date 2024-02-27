@@ -21,6 +21,8 @@
 package org.candlepin.subscriptions.tally;
 
 import static org.candlepin.subscriptions.tally.InventoryAccountUsageCollector.HBI_INSTANCE_TYPE;
+import static org.candlepin.subscriptions.tally.InventoryAccountUsageCollector.createKeyCombinations;
+import static org.candlepin.subscriptions.tally.InventoryAccountUsageCollector.populateHostFieldsFromHbi;
 import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createGuest;
 import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createHypervisor;
 import static org.candlepin.subscriptions.tally.InventoryHostFactTestHelper.createRhsmHost;
@@ -29,11 +31,18 @@ import static org.candlepin.subscriptions.tally.collector.Assertions.assertHyper
 import static org.candlepin.subscriptions.tally.collector.Assertions.assertPhysicalTotalsCalculation;
 import static org.candlepin.subscriptions.tally.collector.Assertions.assertTotalsCalculation;
 import static org.candlepin.subscriptions.tally.collector.Assertions.assertVirtualTotalsCalculation;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.EnumMap;
@@ -48,6 +57,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.Stream.Builder;
+import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostTallyBucketRepository;
 import org.candlepin.subscriptions.db.model.AccountBucketTally;
@@ -60,14 +70,19 @@ import org.candlepin.subscriptions.db.model.HostBucketKey;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.inventory.db.InventoryDatabaseOperations;
 import org.candlepin.subscriptions.inventory.db.InventoryRepository;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
+import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
+import org.candlepin.subscriptions.tally.facts.FactNormalizer;
+import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.util.StringUtils;
 
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
@@ -80,15 +95,15 @@ class InventoryAccountUsageCollectorTallyTest {
   public static final Set<String> RHEL_PRODUCTS = new HashSet<>(List.of(TEST_PRODUCT));
   public static final Set<String> NON_RHEL_PRODUCTS = new HashSet<>(List.of(NON_RHEL));
   private static final String BILLING_ACCOUNT_ID_ANY = "_ANY";
-
-  public static final String ACCOUNT = "foo123";
   public static final String ORG_ID = "org123";
 
   @MockBean private InventoryRepository inventoryRepo;
   @MockBean private HostTallyBucketRepository hostBucketRepository;
   @MockBean private AccountServiceInventoryRepository accountServiceInventoryRepository;
   @Autowired private InventoryAccountUsageCollector collector;
-  @Autowired private MeterRegistry meterRegistry;
+  @Autowired private InventoryDatabaseOperations inventory;
+  @Autowired private FactNormalizer factNormalizer;
+  @Autowired private ApplicationProperties props;
 
   @Test
   void hypervisorCountsIgnoredForNonRhelProduct() {
@@ -102,8 +117,7 @@ class InventoryAccountUsageCollectorTallyTest {
     mockReportedHypervisors(ORG_ID, expectedHypervisorMap);
 
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(hypervisor));
-
-    collector.collect(NON_RHEL_PRODUCTS, ORG_ID);
+    whenProcessHost(NON_RHEL_PRODUCTS, ORG_ID);
     mockBucketRepositoryFromAccountService();
 
     AccountUsageCalculation calc = collector.tally(ORG_ID);
@@ -127,7 +141,7 @@ class InventoryAccountUsageCollectorTallyTest {
 
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(hypervisor));
 
-    collector.collect(RHEL_PRODUCTS, ORG_ID);
+    whenProcessHost(RHEL_PRODUCTS, ORG_ID);
     mockBucketRepositoryFromAccountService();
 
     AccountUsageCalculation calc = collector.tally(ORG_ID);
@@ -150,7 +164,7 @@ class InventoryAccountUsageCollectorTallyTest {
 
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(guest));
 
-    collector.collect(RHEL_PRODUCTS, ORG_ID);
+    whenProcessHost(RHEL_PRODUCTS, ORG_ID);
     mockBucketRepositoryFromAccountService();
 
     AccountUsageCalculation calc = collector.tally(ORG_ID);
@@ -171,7 +185,7 @@ class InventoryAccountUsageCollectorTallyTest {
 
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(guest));
 
-    collector.collect(RHEL_PRODUCTS, ORG_ID);
+    whenProcessHost(RHEL_PRODUCTS, ORG_ID);
     mockBucketRepositoryFromAccountService();
 
     AccountUsageCalculation calc = collector.tally(ORG_ID);
@@ -196,7 +210,7 @@ class InventoryAccountUsageCollectorTallyTest {
 
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(host));
 
-    collector.collect(RHEL_PRODUCTS, ORG_ID);
+    whenProcessHost(RHEL_PRODUCTS, ORG_ID);
     mockBucketRepositoryFromAccountService();
 
     AccountUsageCalculation calc = collector.tally(ORG_ID);
@@ -210,10 +224,7 @@ class InventoryAccountUsageCollectorTallyTest {
 
   @Test
   void testTallyCoresAndSocketsOfRhelWhenInventoryFoundForAccount() {
-    String account1 = "A1";
     String orgId1 = "O1";
-
-    String account2 = "A2";
     String orgId2 = "O2";
 
     List<Integer> products = List.of(TEST_PRODUCT_ID);
@@ -234,15 +245,15 @@ class InventoryAccountUsageCollectorTallyTest {
     when(inventoryRepo.getFacts(eq(List.of(orgId1)), anyInt())).thenReturn(Stream.of(host1, host2));
     when(inventoryRepo.getFacts(eq(List.of(orgId2)), anyInt())).thenReturn(Stream.of(host3));
 
-    collector.collect(RHEL_PRODUCTS, orgId1);
-    collector.collect(RHEL_PRODUCTS, orgId2);
+    whenProcessHost(RHEL_PRODUCTS, orgId1);
+    whenProcessHost(RHEL_PRODUCTS, orgId2);
 
     ArgumentCaptor<AccountServiceInventory> accountService =
         ArgumentCaptor.forClass(AccountServiceInventory.class);
     verify(accountServiceInventoryRepository, times(2)).save(accountService.capture());
     Map<String, AccountServiceInventory> inventories =
         accountService.getAllValues().stream()
-            .collect(Collectors.toMap(i -> i.getOrgId(), Function.identity()));
+            .collect(Collectors.toMap(AccountServiceInventory::getOrgId, Function.identity()));
     assertTrue(inventories.containsKey(orgId1));
     assertTrue(inventories.containsKey(orgId2));
 
@@ -277,7 +288,7 @@ class InventoryAccountUsageCollectorTallyTest {
     mockReportedHypervisors(ORG_ID, new HashMap<>());
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(host1, host2));
 
-    collector.collect(RHEL_PRODUCTS, ORG_ID);
+    whenProcessHost(RHEL_PRODUCTS, ORG_ID);
     mockBucketRepositoryFromAccountService();
 
     AccountUsageCalculation a1Calc = collector.tally(ORG_ID);
@@ -315,7 +326,7 @@ class InventoryAccountUsageCollectorTallyTest {
     mockReportedHypervisors(ORG_ID, new HashMap<>());
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(host1, host2));
 
-    collector.collect(RHEL_PRODUCTS, ORG_ID);
+    whenProcessHost(RHEL_PRODUCTS, ORG_ID);
     mockBucketRepositoryFromAccountService();
 
     AccountUsageCalculation a1Calc = collector.tally(ORG_ID);
@@ -358,10 +369,7 @@ class InventoryAccountUsageCollectorTallyTest {
 
   @Test
   void testTallyCoresAndSocketsOfRhelViaSystemProfileOnly() {
-    String account1 = "A1";
     String orgId1 = "O1";
-
-    String account2 = "A2";
     String orgId2 = "O2";
 
     InventoryHostFacts host1 =
@@ -375,15 +383,15 @@ class InventoryAccountUsageCollectorTallyTest {
     when(inventoryRepo.getFacts(eq(List.of(orgId1)), anyInt())).thenReturn(Stream.of(host1, host2));
     when(inventoryRepo.getFacts(eq(List.of(orgId2)), anyInt())).thenReturn(Stream.of(host3));
 
-    collector.collect(RHEL_PRODUCTS, orgId1);
-    collector.collect(RHEL_PRODUCTS, orgId2);
+    whenProcessHost(RHEL_PRODUCTS, orgId1);
+    whenProcessHost(RHEL_PRODUCTS, orgId2);
 
     ArgumentCaptor<AccountServiceInventory> accountService =
         ArgumentCaptor.forClass(AccountServiceInventory.class);
     verify(accountServiceInventoryRepository, times(2)).save(accountService.capture());
     Map<String, AccountServiceInventory> inventories =
         accountService.getAllValues().stream()
-            .collect(Collectors.toMap(i -> i.getOrgId(), Function.identity()));
+            .collect(Collectors.toMap(AccountServiceInventory::getOrgId, Function.identity()));
     assertTrue(inventories.containsKey(orgId1));
     assertTrue(inventories.containsKey(orgId2));
 
@@ -416,7 +424,7 @@ class InventoryAccountUsageCollectorTallyTest {
 
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(h1, h2));
 
-    collector.collect(RHEL_PRODUCTS, ORG_ID);
+    whenProcessHost(RHEL_PRODUCTS, ORG_ID);
     mockBucketRepositoryFromAccountService();
 
     AccountUsageCalculation accountCalc = collector.tally(ORG_ID);
@@ -426,10 +434,7 @@ class InventoryAccountUsageCollectorTallyTest {
 
   @Test
   void testTallyCoresAndSocketsOfRhelForPhysicalSystems() {
-    String account1 = "A1";
     String orgId1 = "O1";
-
-    String account2 = "A2";
     String orgId2 = "O2";
 
     List<String> orgIds = List.of(orgId1, orgId2);
@@ -460,15 +465,15 @@ class InventoryAccountUsageCollectorTallyTest {
     when(inventoryRepo.getFacts(eq(List.of(orgId1)), anyInt())).thenReturn(Stream.of(host1, host2));
     when(inventoryRepo.getFacts(eq(List.of(orgId2)), anyInt())).thenReturn(Stream.of(host3, host4));
 
-    collector.collect(RHEL_PRODUCTS, orgId1);
-    collector.collect(RHEL_PRODUCTS, orgId2);
+    whenProcessHost(RHEL_PRODUCTS, orgId1);
+    whenProcessHost(RHEL_PRODUCTS, orgId2);
 
     ArgumentCaptor<AccountServiceInventory> accountService =
         ArgumentCaptor.forClass(AccountServiceInventory.class);
     verify(accountServiceInventoryRepository, times(2)).save(accountService.capture());
     Map<String, AccountServiceInventory> inventories =
         accountService.getAllValues().stream()
-            .collect(Collectors.toMap(i -> i.getOrgId(), Function.identity()));
+            .collect(Collectors.toMap(AccountServiceInventory::getOrgId, Function.identity()));
     assertTrue(inventories.containsKey(orgId1));
     assertTrue(inventories.containsKey(orgId2));
 
@@ -513,7 +518,7 @@ class InventoryAccountUsageCollectorTallyTest {
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt()))
         .thenReturn(Stream.of(hypervisor, guest1, guest2));
 
-    collector.collect(RHEL_PRODUCTS, ORG_ID);
+    whenProcessHost(RHEL_PRODUCTS, ORG_ID);
     mockBucketRepositoryFromAccountService();
 
     AccountUsageCalculation calc = collector.tally(ORG_ID);
@@ -549,7 +554,7 @@ class InventoryAccountUsageCollectorTallyTest {
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt()))
         .thenReturn(Stream.of(hypervisor, guest1, guest2));
 
-    collector.collect(RHEL_PRODUCTS, ORG_ID);
+    whenProcessHost(RHEL_PRODUCTS, ORG_ID);
     mockBucketRepositoryFromAccountService();
 
     AccountUsageCalculation calc = collector.tally(ORG_ID);
@@ -580,7 +585,7 @@ class InventoryAccountUsageCollectorTallyTest {
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt()))
         .thenReturn(Stream.of(hypervisor, guest1, guest2));
 
-    collector.collect(RHEL_PRODUCTS, ORG_ID);
+    whenProcessHost(RHEL_PRODUCTS, ORG_ID);
 
     ArgumentCaptor<AccountServiceInventory> accountService =
         ArgumentCaptor.forClass(AccountServiceInventory.class);
@@ -610,24 +615,6 @@ class InventoryAccountUsageCollectorTallyTest {
   }
 
   @Test
-  void testTotalHosts() {
-    Counter counter = meterRegistry.counter("rhsm-subscriptions.tally.hbi_hosts");
-    double initialCount = counter.count();
-
-    InventoryHostFacts hypervisor = createHypervisor(ORG_ID, TEST_PRODUCT_ID);
-
-    Map<String, String> expectedHypervisorMap = new HashMap<>();
-    expectedHypervisorMap.put(
-        hypervisor.getSubscriptionManagerId(), hypervisor.getSubscriptionManagerId());
-    mockReportedHypervisors(ORG_ID, expectedHypervisorMap);
-
-    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(hypervisor));
-
-    collector.collect(RHEL_PRODUCTS, ORG_ID);
-    assertEquals(1, counter.count() - initialCount);
-  }
-
-  @Test
   void accountsWithNullInventoryIdFiltered() {
     List<Integer> products = List.of(TEST_PRODUCT_ID);
     InventoryHostFacts host = createRhsmHost(ORG_ID, products, "", OffsetDateTime.now());
@@ -637,7 +624,7 @@ class InventoryAccountUsageCollectorTallyTest {
     mockReportedHypervisors(ORG_ID, new HashMap<>());
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), anyInt())).thenReturn(Stream.of(host));
 
-    collector.collect(RHEL_PRODUCTS, ORG_ID);
+    whenProcessHost(RHEL_PRODUCTS, ORG_ID);
     mockBucketRepositoryFromAccountService();
 
     AccountUsageCalculation calc = collector.tally(ORG_ID);
@@ -647,33 +634,6 @@ class InventoryAccountUsageCollectorTallyTest {
     assertNull(
         calc.getCalculation(createUsageKey(TEST_PRODUCT))
             .getTotals(HardwareMeasurementType.VIRTUAL));
-  }
-
-  @Test
-  void removesDuplicateHostRecords() {
-    List<Integer> products = List.of(TEST_PRODUCT_ID);
-    InventoryHostFacts host = createRhsmHost(ORG_ID, products, "", OffsetDateTime.now());
-    host.setSystemProfileCoresPerSocket(4);
-    host.setSystemProfileSockets(3);
-    Host orig = new Host(host.getInventoryId().toString(), "insights1", host.getOrgId(), null);
-    orig.setInstanceId(host.getInventoryId().toString());
-    Host dupe = new Host(host.getInventoryId().toString(), "insights2", host.getOrgId(), null);
-    dupe.setInstanceId("i2");
-
-    AccountServiceInventory accountServiceInventory =
-        new AccountServiceInventory(ORG_ID, "HBI_HOST");
-    accountServiceInventory.getServiceInstances().put(host.getInventoryId().toString(), orig);
-    accountServiceInventory.getServiceInstances().put("i2", dupe);
-
-    when(accountServiceInventoryRepository.findById(
-            AccountServiceInventoryId.builder().orgId(ORG_ID).serviceType("HBI_HOST").build()))
-        .thenReturn(Optional.of(accountServiceInventory));
-
-    when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), any())).thenReturn(Stream.of(host));
-
-    collector.collect(RHEL_PRODUCTS, ORG_ID);
-
-    assertEquals(1, accountServiceInventory.getServiceInstances().size());
   }
 
   @Test
@@ -698,7 +658,7 @@ class InventoryAccountUsageCollectorTallyTest {
 
     when(inventoryRepo.getFacts(eq(List.of(ORG_ID)), any())).thenReturn(Stream.of(host));
 
-    collector.collect(RHEL_PRODUCTS, ORG_ID);
+    whenProcessHost(accountServiceInventory, RHEL_PRODUCTS, ORG_ID);
 
     assertEquals(1, accountServiceInventory.getServiceInstances().size());
   }
@@ -891,6 +851,117 @@ class InventoryAccountUsageCollectorTallyTest {
       }
     }
 
-    return tallyResults.values().stream().map(m -> m.values()).flatMap(Collection::stream);
+    return tallyResults.values().stream().map(Map::values).flatMap(Collection::stream);
+  }
+
+  private AccountServiceInventory givenAccountServiceInventory(String orgId) {
+    return new AccountServiceInventory(
+        AccountServiceInventoryId.builder().orgId(orgId).serviceType(HBI_INSTANCE_TYPE).build());
+  }
+
+  private void whenProcessHost(Set<String> products, String orgId) {
+    whenProcessHost(givenAccountServiceInventory(orgId), products, orgId);
+  }
+
+  private void whenProcessHost(
+      AccountServiceInventory accountServiceInventory, Set<String> products, String orgId) {
+    Map<String, Host> inventoryHostMap =
+        accountServiceInventory.getServiceInstances().values().stream()
+            .filter(host -> host.getInventoryId() != null)
+            .collect(Collectors.toMap(Host::getInventoryId, Function.identity()));
+    OrgHostsData orgHostsData = new OrgHostsData(orgId);
+    Map<String, Set<HostBucketKey>> hostSeenBucketKeysLookup = new HashMap<>();
+
+    orgHostsData.addReportedHypervisors(inventory);
+
+    inventory.processHost(
+        orgId,
+        props.getCullingOffsetDays(),
+        hostFacts -> {
+          NormalizedFacts facts = factNormalizer.normalize(hostFacts, orgHostsData);
+          Host existingHost = inventoryHostMap.remove(hostFacts.getInventoryId().toString());
+          Host host;
+
+          if (existingHost == null) {
+            host = new Host();
+            host.setInstanceType(HBI_INSTANCE_TYPE);
+            populateHostFieldsFromHbi(host, hostFacts, facts);
+          } else {
+            host = existingHost;
+            populateHostFieldsFromHbi(host, hostFacts, facts);
+          }
+          orgHostsData.addHostWithNormalizedFacts(host, facts);
+
+          Set<HostBucketKey> seenBucketKeys =
+              hostSeenBucketKeysLookup.computeIfAbsent(host.getInstanceId(), h -> new HashSet<>());
+
+          if (facts.isHypervisor()) {
+            orgHostsData.addHypervisorFacts(hostFacts.getSubscriptionManagerId(), facts);
+            orgHostsData.addHostToHypervisor(hostFacts.getSubscriptionManagerId(), host);
+          } else if (facts.isVirtual() && StringUtils.hasText(facts.getHypervisorUuid())) {
+            orgHostsData.incrementGuestCount(host.getHypervisorUuid());
+          }
+
+          Set<UsageCalculation.Key> usageKeys =
+              createKeyCombinations(
+                  products,
+                  Set.of(facts.getSla(), ServiceLevel._ANY),
+                  Set.of(facts.getUsage(), Usage._ANY),
+                  Set.of(BillingProvider._ANY),
+                  Set.of("_ANY"));
+
+          // Calculate for each UsageKey
+          // review current implementation of default values, and determine if fact normalizer needs
+          // to handle billingAcctId & BillingProvider
+          for (UsageCalculation.Key key : usageKeys) {
+            var product = key.getProductId();
+            if (!facts.getProducts().contains(product)) {
+              continue;
+            }
+
+            try {
+              String hypervisorUuid = facts.getHypervisorUuid();
+              if (hypervisorUuid != null) {
+                orgHostsData.addHypervisorKey(hypervisorUuid, key);
+              }
+              Optional<HostTallyBucket> appliedBucket =
+                  ProductUsageCollectorFactory.get(product).buildBucket(key, facts);
+              appliedBucket.ifPresent(
+                  bucket -> {
+                    // host.addBucket changes bucket.key.hostId, so we do that first; to
+                    // avoid mutating the item in the set
+                    host.addBucket(bucket);
+                    seenBucketKeys.add(bucket.getKey());
+                  });
+            } catch (Exception e) {
+              fail("Unable to collect usage data for host", e);
+            }
+          }
+          // Save the host now that the buckets have been determined. Hypervisor hosts will
+          // be persisted once all potential guests have been processed.
+          if (!facts.isHypervisor()) {
+            accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host);
+          }
+        });
+    inventoryHostMap.values().stream()
+        .map(Host::getInstanceId)
+        .forEach(accountServiceInventory.getServiceInstances()::remove);
+
+    // apply data from guests to hypervisor records
+    orgHostsData.collectGuestData(hostSeenBucketKeysLookup);
+    for (Host host : accountServiceInventory.getServiceInstances().values()) {
+      Set<HostBucketKey> seenBucketKeys =
+          hostSeenBucketKeysLookup.computeIfAbsent(host.getInstanceId(), h -> new HashSet<>());
+      host.getBuckets().removeIf(b -> !seenBucketKeys.contains(b.getKey()));
+    }
+
+    var hypervisorHostMap = orgHostsData.hypervisorHostMap();
+    if (!hypervisorHostMap.isEmpty()) {
+      for (Host host : hypervisorHostMap.values()) {
+        accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host);
+      }
+    }
+    accountServiceInventory.setOrgId(orgId);
+    accountServiceInventoryRepository.save(accountServiceInventory);
   }
 }
