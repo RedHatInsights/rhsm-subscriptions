@@ -45,8 +45,24 @@ import org.springframework.web.context.support.StandardServletEnvironment;
 
 /**
  * Property source that attempts to resolve properties against the Clowder JSON using JSON Path.
- * This class resolves any property starting with "clowder." Everything after the "clowder." prefix
- * is evaluated as a JSON Path expression against the Clowder JSON and the result is returned.
+ * This class resolves any property starting with "clowder.". Everything after the "clowder." prefix
+ * is evaluated by using the following patterns:
+ *
+ * <ul>
+ *   <li>clowder.kafka.brokers
+ *   <li>clowder.kafka.brokers.(sasl.securityProtocol|sasl.mechanism|sasl.jaas.config|cacert|cacert.type)
+ *   <li>clowder.kafka.topics.<topics[?].requestedName(*)>.name
+ *   <li>clowder.endpoints.<endpoints[?].app>-<endpoints[?].name>.(url|trust-store-path|trust-store-password|trust-store-type).
+ *       For example: "clowder.endpoints.index-service.url"
+ *   <li>clowder.privateEndpoints.<privateEndpoints[?].app(*)>-<privateEndpoints[?].name(*)>.(url|trust-store-path|trust-store-password|trust-store-type).
+ *       For example: "clowder.privateEndpoints.index-service.url"
+ *   <li>When there is no matching rule from above, we navigate from (*) and extract the string
+ *       value directly from the clowder config file. For example: "clowder.database.name".
+ * </ul>
+ *
+ * (*) Coming from the clowder config file. For example: <a
+ * href="https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-core/src/test/resources/test-clowder-config.json">see
+ * example of a clowder config file</a>
  */
 @EqualsAndHashCode(callSuper = true)
 @Slf4j
@@ -130,14 +146,16 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
       return null;
     }
 
+    String clowderProperty = name.replaceFirst(CLOWDER, "");
+
     for (var strategy : handledPropertyStrategies.entrySet()) {
-      if (name.contains(strategy.getKey())) {
-        return strategy.getValue().apply(name);
+      if (clowderProperty.startsWith(strategy.getKey())) {
+        return strategy.getValue().apply(clowderProperty);
       }
     }
 
-    // fallback strategy, resolve `database.name` as it is.
-    var value = source.getNode(name.replace(CLOWDER, ""));
+    // fallback strategy, for example: resolve `database.name` as it is.
+    var value = source.getNode(clowderProperty);
     if (value != null) {
       return value.asText();
     }
@@ -199,7 +217,7 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
   }
 
   private Object getKafkaBrokerProperty(String name) {
-    String brokerConfig = name.substring(CLOWDER.length() + KAFKA_BROKERS.length());
+    String brokerConfig = name.substring(KAFKA_BROKERS.length());
     // special logic to provide a comma-separated list of kafka brokers
     // value is expected to be a list of key-value collection with the broker configuration.
     KafkaBrokerConfigMapper configFunction = KAFKA_BROKERS_PROPERTIES.get(brokerConfig);
@@ -534,7 +552,7 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
   private interface KafkaTopicConfigMapper extends Function<Map<String, Object>, Object> {}
 
   private String extractName(String property, String prefix) {
-    String part = property.substring(CLOWDER.length() + prefix.length() + 1);
+    String part = property.substring(prefix.length() + 1);
     String name = part.substring(0, part.lastIndexOf("."));
     return name.replaceAll(Pattern.quote("\""), "");
   }
