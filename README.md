@@ -86,6 +86,17 @@ Ensure the checkout has the HBI submodule initialized:
 git submodule update --init --recursive
 ```
 
+Make sure you have `user.email` and `user.name` set in the local `.git/config`.
+The Nebula release plugin has an annoying property where it introspects the Git
+config for the name and email address.  When doing container builds, there is no
+global Git config so if you haven't set the name and email locally, the
+container build will fail.  Use `git config --local` to set these values.
+
+```
+git config --local user.name "John Doe"
+git config --local user.email johndoe@example.com
+```
+
 ### Dependent services
 
 NOTE: in order to deploy insights-inventory (not always useful), you'll need to login to quay.io first.
@@ -124,7 +135,7 @@ as idle.
 
 ### RabbitMQ
 
-Some services like swatch-contracts need an AMQ service to handle the UMB messages. 
+Some services like swatch-contracts need an AMQ service to handle the UMB messages.
 For these services, we can start RabbitMQ as an AMQ service locally via:
 
 ```
@@ -133,15 +144,15 @@ podman-compose -f config/rabbitmq/docker-compose.yml up -d
 
 RabbitMQ will be listening on the port 5672.
 
-*NOTE*: Our services might be configured to listen on a different hostname and port. For example, 
-for the SWATCH contracts service, we need to provide the UMB_HOSTNAME and UMB_PORT to point out to RabbitMQ: 
+*NOTE*: Our services might be configured to listen on a different hostname and port. For example,
+for the SWATCH contracts service, we need to provide the UMB_HOSTNAME and UMB_PORT to point out to RabbitMQ:
 `java -DUMB_HOSTNAME=localhost -DUMB_PORT=5672 -jar swatch-contracts/build/quarkus-app/quarkus-run.jar`
 
 ### Opentelemetry (OTEL) Exporter
 
-Some services export the logging traces to an externalize service via an exporter. 
-Exporters act like a broker to configure what to do with these traces. 
-For local development, we can start an OTEL exporter that simply log the traces into the container logs. 
+Some services export the logging traces to an externalize service via an exporter.
+Exporters act like a broker to configure what to do with these traces.
+For local development, we can start an OTEL exporter that simply log the traces into the container logs.
 We can start it via:
 
 ```
@@ -151,7 +162,7 @@ podman-compose -f config/otel/docker-compose.yml up -d
 The OTEL exporter will be listening for gRPC connections on port 4317.
 
 *NOTE*: Our services might be configured to listen on a different hostname and port. For example,
-for the SWATCH contracts service, we need to provide the OTEL_ENDPOINT property to point out to the 
+for the SWATCH contracts service, we need to provide the OTEL_ENDPOINT property to point out to the
 local otel exporter: `java -DOTEL_ENDPOINT=http://localhost:4317 -jar swatch-contracts/build/quarkus-app/quarkus-run.jar`
 
 ### Splunk
@@ -162,11 +173,30 @@ Some services integrate the log traces into Splunk. For these services, we can s
 podman-compose -f config/splunk/docker-compose.yml up -d
 ```
 
-Splunk will be listening on port 8088. 
+Splunk will be accepting events over port 8088.  The web interface is on port
+8000 and you can log in as `admin`/`admin123`.  There are several different
+environment variables you can pass to the container and the
+[documentation](https://splunk.github.io/docker-splunk/) is helpful.
 
 *NOTE*: We need to configure our services to work with this Splunk instance. For example,
-for the SWATCH contracts service, we need: 
-`java -DENABLE_SPLUNK_HEC=false -DSPLUNK_HEC_URL=https://localhost:8088 -DSPLUNK_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 -DSWATCH_SELF_PSK=placeholder -DSPLUNK_DISABLE_CERTIFICATE_VALIDATION=true -jar swatch-contracts/build/quarkus-app/quarkus-run.jar`
+for the SWATCH Azure producer, we need:
+
+```
+SERVER_PORT=8001 \
+ENABLE_SPLUNK_HEC=true \
+SPLUNK_HEC_URL=https://localhost:8088 \
+SPLUNK_HEC_TOKEN=29fe2838-cab6-4d17-a392-37b7b8f41f75 \
+./gradlew :swatch-producer-azure:quarkusDev
+```
+
+Some of these environment variables are our own (e.g. `SPLUNK_HEC_URL`) and are
+piped into the `quarkus.log.handler.splunk` namespace which is what ultimately
+controls the Splunk HEC configuration.  By default SSL/TLS certificate
+validation is disable in the `dev` profile for the `swatch-producer-aws`,
+`swatch-producer-azure`, and `swatch-contracts` projects.  If you are seeing
+SSL/TLS error (generally something like `unable to find valid certification path
+to requested target`), then setting `QUARKUS_LOG_HANDLER_SPLUNK_DISABLE_CERTIFICATE_VALIDATION=true`
+is the sure-fire way to disable SSL/TLS certificate validation.
 
 ### Build and Run rhsm-subscriptions
 
@@ -288,8 +318,7 @@ RHSM_RBAC_USE_STUB=true ./gradlew bootRun
 * `RHSM_RBAC_USE_STUB`: stub out the rbac service
 * `RHSM_RBAC_APPLICATION_NAME`: name of the RBAC permission application name (`<APP_NAME>:*:*`),
   by default this property is set to 'subscriptions'.
-* `RHSM_RBAC_HOST`: RBAC service hostname
-* `RHSM_RBAC_PORT`: RBAC service port
+* `RHSM_RBAC_URL`: RBAC service url
 * `RHSM_RBAC_MAX_CONNECTIONS`: max concurrent connections to RBAC service
 * `SWATCH_*_PSK`: pre-shared keys for internal service-to-service authentication
   where the `*` represents the name of an authorized service
@@ -314,9 +343,8 @@ For example,
 }}
 ```
 
-Becomes `clowder.kafka.brokers[0].hostname`.  These properties are then passed into the Spring
-Environment and may be used elsewhere (the `ClowderJsonEnvironmentPostProcessor` runs *before*
-most other environment processing classes).
+These properties are then passed into the Spring Environment and may be used elsewhere (the 
+`ClowderJsonEnvironmentPostProcessor` runs *before* most other environment processing classes).
 
 The pattern we follow is to assign the Clowder style properties to an **intermediate** property
 that follows Spring Boot's environment variable
@@ -330,7 +358,7 @@ not resolve to anything.
 An example of an intermediate property would be
 
 ```
-KAFKA_BOOTSTRAP_HOST=${clowder.kafka.brokers[0].hostname:localhost}
+KAFKA_BOOTSTRAP_HOST=${clowder.kafka.brokers:localhost}
 ```
 
 This pattern has the useful property of allowing us to override any Clowder settings (in
@@ -630,7 +658,7 @@ OR
 Use the following command to update the configmap YAML:
 
 ```
-oc create configmap grafana-dashboard-subscription-watch --from-file=subscription-watch.json -o yaml --dry-run=client > ./grafana-dashboard-subscription-watch.configmap.yaml
+oc create configmap grafana-dashboard-subscription-watch --from-file=subscription-watch.json -o yaml --dry-run=true > ./grafana-dashboard-subscription-watch.configmap.yaml
 cat << EOF >> ./grafana-dashboard-subscription-watch.configmap.yaml
   annotations:
     grafana-folder: /grafana-dashboard-definitions/Insights

@@ -22,6 +22,7 @@ package com.redhat.swatch.metrics.service;
 
 import static com.redhat.swatch.metrics.util.MeteringEventFactory.getEventType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +34,7 @@ import com.redhat.swatch.clients.prometheus.api.model.StatusType;
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import com.redhat.swatch.metrics.configuration.MetricProperties;
+import com.redhat.swatch.metrics.exception.ExternalServiceException;
 import com.redhat.swatch.metrics.resources.InjectPrometheus;
 import com.redhat.swatch.metrics.resources.PrometheusQueryWiremock;
 import com.redhat.swatch.metrics.resources.PrometheusResource;
@@ -80,6 +82,7 @@ class PrometheusMeteringControllerTest {
   private final String expectedServiceType = "OpenShift Cluster";
   private final String expectedBillingProvider = "red hat";
   private final String expectedBillingAccountId = "mktp-account";
+  private final String expectedDisplayName = "display name";
   private final MetricId expectedMetricId = MetricIdUtils.getCores();
   private final String expectedProductTag = "OpenShift-metrics";
   private final UUID expectedSpanId = UUID.randomUUID();
@@ -142,6 +145,7 @@ class PrometheusMeteringControllerTest {
             expectedUsage,
             expectedBillingProvider,
             expectedBillingAccountId,
+            expectedDisplayName,
             List.of(List.of(new BigDecimal("12312.345"), new BigDecimal(24))));
 
     prometheusServer.stubQueryRange(errorResponse, errorResponse, good);
@@ -151,6 +155,14 @@ class PrometheusMeteringControllerTest {
 
     whenCollectMetrics("account", start, end);
     prometheusServer.verifyQueryRangeWasCalled(3);
+  }
+
+  @Test
+  void testCollectMetricsShouldRetryWhenPrometheusReturnsEmptyBody() {
+    OffsetDateTime start = OffsetDateTime.now();
+    OffsetDateTime end = start.plusDays(1);
+    prometheusServer.stubQueryRangeWithEmptyBody();
+    assertThrows(ExternalServiceException.class, () -> whenCollectMetrics(start, end));
   }
 
   @Test
@@ -165,6 +177,7 @@ class PrometheusMeteringControllerTest {
             expectedUsage,
             expectedBillingProvider,
             expectedBillingAccountId,
+            expectedDisplayName,
             List.of(List.of(new BigDecimal("12312.345"), new BigDecimal(24))));
     prometheusServer.stubQueryRange(data);
 
@@ -188,6 +201,7 @@ class PrometheusMeteringControllerTest {
             expectedUsage,
             expectedBillingProvider,
             expectedBillingAccountId,
+            expectedDisplayName,
             List.of(List.of(time1, val1), List.of(time2, val2)));
     prometheusServer.stubQueryRange(data);
 
@@ -212,7 +226,8 @@ class PrometheusMeteringControllerTest {
                 val1.doubleValue(),
                 expectedProductTag,
                 expectedSpanId,
-                List.of()),
+                List.of(),
+                expectedDisplayName),
             MeteringEventFactory.createMetricEvent(
                 expectedOrgId,
                 expectedClusterId,
@@ -229,7 +244,8 @@ class PrometheusMeteringControllerTest {
                 val2.doubleValue(),
                 expectedProductTag,
                 expectedSpanId,
-                List.of()),
+                List.of(),
+                expectedDisplayName),
             MeteringEventFactory.createCleanUpEvent(
                 expectedOrgId,
                 getEventType(expectedMetricId.toString(), expectedProductTag),
@@ -261,6 +277,7 @@ class PrometheusMeteringControllerTest {
             expectedUsage,
             expectedBillingProvider,
             expectedBillingAccountId,
+            expectedDisplayName,
             List.of(List.of(time1, val1), List.of(time2, val2)));
     prometheusServer.stubQueryRange(data);
 
@@ -284,7 +301,8 @@ class PrometheusMeteringControllerTest {
             val1.doubleValue(),
             expectedProductTag,
             expectedSpanId,
-            List.of());
+            List.of(),
+            expectedDisplayName);
 
     List<BaseEvent> expectedEvents =
         List.of(
@@ -305,7 +323,8 @@ class PrometheusMeteringControllerTest {
                 val2.doubleValue(),
                 expectedProductTag,
                 expectedSpanId,
-                List.of()),
+                List.of(),
+                expectedDisplayName),
             MeteringEventFactory.createCleanUpEvent(
                 expectedOrgId,
                 getEventType(expectedMetricId.toString(), expectedProductTag),
@@ -369,7 +388,8 @@ class PrometheusMeteringControllerTest {
             4.0,
             expectedProductTag,
             expectedSpanId,
-            List.of());
+            List.of(),
+            expectedClusterId);
 
     List<BaseEvent> expectedEvents =
         List.of(
@@ -433,7 +453,8 @@ class PrometheusMeteringControllerTest {
                 val1.doubleValue(),
                 expectedProductTag,
                 expectedSpanId,
-                List.of()),
+                List.of(),
+                expectedClusterId),
             MeteringEventFactory.createMetricEvent(
                 expectedOrgId,
                 expectedClusterId,
@@ -450,7 +471,8 @@ class PrometheusMeteringControllerTest {
                 val2.doubleValue(),
                 expectedProductTag,
                 expectedSpanId,
-                List.of()),
+                List.of(),
+                expectedClusterId),
             MeteringEventFactory.createCleanUpEvent(
                 expectedOrgId,
                 getEventType(expectedMetricId.toString(), expectedProductTag),
@@ -492,6 +514,7 @@ class PrometheusMeteringControllerTest {
       String usage,
       String billingProvider,
       String billingAccountId,
+      String displayName,
       List<List<BigDecimal>> timeValueTuples) {
     QueryResultDataResultInner dataResult =
         new QueryResultDataResultInner()
@@ -500,7 +523,8 @@ class PrometheusMeteringControllerTest {
             .putMetricItem("usage", usage)
             .putMetricItem("external_organization", orgId)
             .putMetricItem("billing_marketplace", billingProvider)
-            .putMetricItem("billing_marketplace_account", billingAccountId);
+            .putMetricItem("billing_marketplace_account", billingAccountId)
+            .putMetricItem("display_name", displayName);
 
     // NOTE: A tuple is [unix_time,value]
     timeValueTuples.forEach(dataResult::addValuesItem);

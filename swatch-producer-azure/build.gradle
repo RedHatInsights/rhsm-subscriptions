@@ -12,10 +12,10 @@ dependencies {
     implementation 'io.quarkus:quarkus-resteasy-reactive-jackson'
     implementation 'io.quarkus:quarkus-security'
     implementation 'io.quarkus:quarkus-smallrye-fault-tolerance'
-    implementation 'io.quarkus:quarkus-smallrye-health'
     implementation 'io.quarkus:quarkus-smallrye-openapi'
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
     implementation 'io.quarkus:quarkus-oidc-client'
+    implementation 'io.quarkus:quarkus-kafka-streams'
     implementation project(':clients:swatch-internal-subscription-client')
     implementation project(':swatch-common-config-workaround')
     implementation project(':swatch-common-resteasy')
@@ -35,6 +35,7 @@ dependencies {
     testImplementation 'io.quarkus:quarkus-test-security'
     testImplementation libraries["junit-jupiter"]
     testImplementation project(':swatch-common-testcontainers')
+    testImplementation "org.apache.kafka:kafka-streams-test-utils"
     implementation libraries["mapstruct"]
     annotationProcessor libraries["mapstruct-processor"]
     testAnnotationProcessor libraries["mapstruct-processor"]

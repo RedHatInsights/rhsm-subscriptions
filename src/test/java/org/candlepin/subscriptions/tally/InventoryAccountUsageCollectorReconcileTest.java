@@ -31,7 +31,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
 import java.util.Set;
@@ -46,7 +45,6 @@ import org.candlepin.subscriptions.db.model.HostHardwareType;
 import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.inventory.db.InventoryDatabaseOperations;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
@@ -59,25 +57,21 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class InventoryAccountUsageCollectorReconcileTest {
   @Mock FactNormalizer factNormalizer;
-  @Mock InventoryDatabaseOperations inventory;
   @Mock AccountServiceInventoryRepository accountServiceInventoryRepository;
   @Mock HostRepository hostRepository;
   @Mock EntityManager entityManager;
   @Mock HostTallyBucketRepository tallyBucketRepository;
   @Mock ApplicationProperties props;
-  @Mock MeterRegistry meterRegistry;
   @Mock InventorySwatchDataCollator collator;
 
   InventoryAccountUsageCollector setupCollector() {
     return new InventoryAccountUsageCollector(
         factNormalizer,
-        inventory,
         accountServiceInventoryRepository,
         hostRepository,
         entityManager,
         tallyBucketRepository,
         props,
-        meterRegistry,
         collator);
   }
 

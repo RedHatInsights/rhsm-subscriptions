@@ -18,15 +18,27 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.azure.kafka;
+package com.redhat.swatch.health;
 
-import com.redhat.swatch.azure.openapi.model.BillableUsage;
-import io.quarkus.kafka.client.serialization.ObjectMapperDeserializer;
+import jakarta.enterprise.context.ApplicationScoped;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.health.HealthCheck;
+import org.eclipse.microprofile.health.HealthCheckResponse;
+import org.eclipse.microprofile.health.Liveness;
+import org.eclipse.microprofile.health.Readiness;
 
-/** Provides quarkus a hint that we want to use Jackson to deserialize BillableUsage objects */
-public class BillableUsageDeserializer extends ObjectMapperDeserializer<BillableUsage> {
+@Liveness
+@Readiness
+@ApplicationScoped
+public class InfoHealthCheck implements HealthCheck {
 
-  public BillableUsageDeserializer() {
-    super(BillableUsage.class);
+  static final String HOST_KEY = "host";
+
+  @ConfigProperty(name = "HOST_NAME", defaultValue = "<< unset >>")
+  String hostName;
+
+  @Override
+  public HealthCheckResponse call() {
+    return HealthCheckResponse.named("info").up().withData(HOST_KEY, hostName).build();
   }
 }

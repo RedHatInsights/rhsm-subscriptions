@@ -19,7 +19,7 @@ SERVICE_INSTANCE_INGRESS_TOPIC: platform.rhsm-subscriptions.service-instance-ing
   SWATCH_SELF_PSK: placeholder
   ENABLE_SPLUNK_HEC: false
   SPLUNK_HEC_URL: https://splunk-hec.prod.utility-us-east-2.redhat.com:8088/
-  SPLUNKMETA_host: ${USER}@${HOSTNAME}
+  HOST_NAME: ${USER}@${HOSTNAME}
   SPLUNKMETA_namespace: local
   SPLUNK_HEC_INCLUDE_EX: true
   quarkus:
@@ -31,7 +31,7 @@ SERVICE_INSTANCE_INGRESS_TOPIC: platform.rhsm-subscriptions.service-instance-ing
 "%test":
   SWATCH_SELF_PSK: ${%dev.SWATCH_SELF_PSK}
   ENABLE_SPLUNK_HEC: ${%dev.ENABLE_SPLUNK_HEC}
-  SPLUNKMETA_host: unit_tests
+  HOST_NAME: unit_tests
   quarkus:
     log:
       console:
@@ -70,11 +70,6 @@ quarkus:
     category:
       "com.redhat.swatch":
         level: ${LOGGING_LEVEL_COM_REDHAT_SWATCH}
-      # Needed to troubleshoot issues with swatch metrics service became stuck:
-      "org.jboss.resteasy.reactive.client.logging.DefaultClientLogger":
-        level: DEBUG
-      "com.redhat.swatch.metrics.service.prometheus.PrometheusService":
-        level: DEBUG
     handler:
       splunk:
         enabled: ${ENABLE_SPLUNK_HEC:false}
@@ -82,7 +77,7 @@ quarkus:
         metadata-source: ${SPLUNK_SOURCE:swatch-metrics}
         max-retries: ${SPLUNK_HEC_RETRY_COUNT:0}
         metadata-source-type: ${SPLUNK_SOURCE_TYPE:quarkus_service}
-        metadata-host: ${SPLUNKMETA_host:${USER}@${HOSTNAME}}
+        metadata-host: ${HOST_NAME:${USER}@${HOSTNAME}}
         metadata-fields:
           namespace: ${SPLUNKMETA_namespace:local}
         token: ${SPLUNK_HEC_TOKEN:replaceme}
@@ -113,9 +108,6 @@ quarkus:
       serializer-generation:
         enabled: false
   rest-client:
-    logging:
-      scope: request-response
-      body-limit: 5000
     "com.redhat.swatch.clients.prometheus.api.resources.QueryApi":
       url: ${rhsm-subscriptions.metering.prometheus.client.url}
       scope: jakarta.enterprise.context.ApplicationScoped
@@ -123,8 +115,7 @@ quarkus:
       url: ${rhsm-subscriptions.metering.prometheus.client.url}
       scope: jakarta.enterprise.context.ApplicationScoped
 
-# Clowder quarkus config takes care of setting these, no need to try to do clowder.kafka.brokers[0]
-# Common kafka settings
+# Clowder quarkus config takes care of setting the common kafka settings
 kafka:
   bootstrap:
     servers: localhost:9092
@@ -160,9 +151,6 @@ mp:
             # This value needs to be synced with the retry configuration which will retry up to
             # 3 times with a max duration of 120 seconds, so the correct value would be 3 x 120 =
             ms: 360000
-        # By default, when a message is nack, the application stops consuming messages.
-        # With the "ignore" strategy, we ignore the error (it's logged internally) and continue processing messages.
-        failure-strategy: ignore
         fail-on-deserialization-failure: ${METRICS_IN_FAIL_ON_DESER_FAILURE}
         auto:
           offset:
@@ -232,7 +220,7 @@ rhsm-subscriptions:
                   product=~"#{metric.prometheus.queryParams[productLabelRegex]}",
                   external_organization="#{runtime[orgId]}",
                   billing_model="marketplace",
-                  support=~"Premium|Standard|Self-Support|None"
+                  support=~"Premium|Standard|Self-Support|None|"
                   }[1h]
                 )
               )

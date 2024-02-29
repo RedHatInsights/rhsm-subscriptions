@@ -23,196 +23,63 @@ package org.candlepin.subscriptions.tally;
 import com.google.common.collect.Sets;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import io.micrometer.core.annotation.Timed;
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.HostTallyBucketRepository;
 import org.candlepin.subscriptions.db.model.*;
-import org.candlepin.subscriptions.inventory.db.InventoryDatabaseOperations;
 import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.tally.collector.ProductUsageCollectorFactory;
 import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.tally.facts.NormalizedFacts;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 /** Collects the max values from all accounts in the inventory. */
+@Slf4j
 @Component
 public class InventoryAccountUsageCollector {
-
-  private static final Logger log = LoggerFactory.getLogger(InventoryAccountUsageCollector.class);
   public static final String HBI_INSTANCE_TYPE = "HBI_HOST";
 
   private final FactNormalizer factNormalizer;
-  private final InventoryDatabaseOperations inventory;
   private final AccountServiceInventoryRepository accountServiceInventoryRepository;
   private final HostTallyBucketRepository tallyBucketRepository;
   private final HostRepository hostRepository;
   private final EntityManager entityManager;
   private final int culledOffsetDays;
-  private final int tallyMaxHbiAccountSize;
-  private final Counter totalHosts;
   private final Long hbiReconciliationFlushInterval;
   private final InventorySwatchDataCollator collator;
 
   @Autowired
   public InventoryAccountUsageCollector(
       FactNormalizer factNormalizer,
-      InventoryDatabaseOperations inventory,
       AccountServiceInventoryRepository accountServiceInventoryRepository,
       HostRepository hostRepository,
       EntityManager entityManager,
       HostTallyBucketRepository tallyBucketRepository,
       ApplicationProperties props,
-      MeterRegistry meterRegistry,
       InventorySwatchDataCollator collator) {
     this.factNormalizer = factNormalizer;
-    this.inventory = inventory;
     this.accountServiceInventoryRepository = accountServiceInventoryRepository;
     this.collator = collator;
     this.hostRepository = hostRepository;
     this.entityManager = entityManager;
     this.tallyBucketRepository = tallyBucketRepository;
     this.culledOffsetDays = props.getCullingOffsetDays();
-    this.tallyMaxHbiAccountSize = props.getTallyMaxHbiAccountSize();
     this.hbiReconciliationFlushInterval = props.getHbiReconciliationFlushInterval();
-    this.totalHosts = meterRegistry.counter("rhsm-subscriptions.tally.hbi_hosts");
-  }
-
-  @SuppressWarnings("squid:S3776")
-  @Transactional
-  public OrgHostsData collect(Set<String> products, String orgId) {
-    int inventoryCount = inventory.activeSystemCountForOrgId(orgId, culledOffsetDays);
-    if (inventoryCount > tallyMaxHbiAccountSize) {
-      throw new SystemThresholdException(orgId, tallyMaxHbiAccountSize, inventoryCount);
-    }
-    AccountServiceInventory accountServiceInventory = fetchAccountServiceInventory(orgId);
-    Map<String, Host> inventoryHostMap = buildInventoryHostMap(accountServiceInventory);
-
-    OrgHostsData orgHostsData = new OrgHostsData(orgId);
-    Map<String, Set<HostBucketKey>> hostSeenBucketKeysLookup = new HashMap<>();
-
-    orgHostsData.addReportedHypervisors(inventory);
-
-    inventory.processHost(
-        orgId,
-        culledOffsetDays,
-        hostFacts -> {
-          NormalizedFacts facts = factNormalizer.normalize(hostFacts, orgHostsData);
-          Host existingHost = inventoryHostMap.remove(hostFacts.getInventoryId().toString());
-          Host host;
-
-          if (existingHost == null) {
-            host = hostFromHbiFacts(hostFacts, facts);
-          } else {
-            host = existingHost;
-            populateHostFieldsFromHbi(host, hostFacts, facts);
-          }
-          orgHostsData.addHostWithNormalizedFacts(host, facts);
-
-          Set<HostBucketKey> seenBucketKeys =
-              hostSeenBucketKeysLookup.computeIfAbsent(host.getInstanceId(), h -> new HashSet<>());
-
-          if (facts.isHypervisor()) {
-            orgHostsData.addHypervisorFacts(hostFacts.getSubscriptionManagerId(), facts);
-            orgHostsData.addHostToHypervisor(hostFacts.getSubscriptionManagerId(), host);
-          } else if (facts.isVirtual() && StringUtils.hasText(facts.getHypervisorUuid())) {
-            orgHostsData.incrementGuestCount(host.getHypervisorUuid());
-          }
-
-          Set<Key> usageKeys =
-              createKeyCombinations(
-                  products,
-                  Set.of(facts.getSla(), ServiceLevel._ANY),
-                  Set.of(facts.getUsage(), Usage._ANY),
-                  Set.of(BillingProvider._ANY),
-                  Set.of("_ANY"));
-
-          // Calculate for each UsageKey
-          // review current implementation of default values, and determine if factnormalizer needs
-          // to handle billingAcctId & BillingProvider
-          for (Key key : usageKeys) {
-            var product = key.getProductId();
-            if (!facts.getProducts().contains(product)) {
-              continue;
-            }
-
-            try {
-              String hypervisorUuid = facts.getHypervisorUuid();
-              if (hypervisorUuid != null) {
-                orgHostsData.addHypervisorKey(hypervisorUuid, key);
-              }
-              Optional<HostTallyBucket> appliedBucket =
-                  ProductUsageCollectorFactory.get(product).buildBucket(key, facts);
-              appliedBucket.ifPresent(
-                  bucket -> {
-                    // host.addBucket changes bucket.key.hostId, so we do that first; to
-                    // avoid mutating the item in the set
-                    host.addBucket(bucket);
-                    seenBucketKeys.add(bucket.getKey());
-                  });
-            } catch (Exception e) {
-              log.error(
-                  "Unable to collect usage data for host: {} product: {}",
-                  hostFacts.getSubscriptionManagerId(),
-                  product,
-                  e);
-            }
-          }
-          // Save the host now that the buckets have been determined. Hypervisor hosts will
-          // be persisted once all potential guests have been processed.
-          if (!facts.isHypervisor()) {
-            accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host);
-          }
-
-          totalHosts.increment();
-        });
-
-    log.info(
-        "Removing {} stale host records (HBI records no longer present).", inventoryHostMap.size());
-    inventoryHostMap.values().stream()
-        .map(Host::getInstanceId)
-        .forEach(accountServiceInventory.getServiceInstances()::remove);
-
-    // apply data from guests to hypervisor records
-    orgHostsData.collectGuestData(hostSeenBucketKeysLookup);
-
-    log.info("Removing stale buckets");
-    for (Host host : accountServiceInventory.getServiceInstances().values()) {
-      Set<HostBucketKey> seenBucketKeys =
-          hostSeenBucketKeysLookup.computeIfAbsent(host.getInstanceId(), h -> new HashSet<>());
-      host.getBuckets().removeIf(b -> !seenBucketKeys.contains(b.getKey()));
-    }
-
-    var hypervisorHostMap = orgHostsData.hypervisorHostMap();
-    if (hypervisorHostMap.size() > 0) {
-      log.info("Persisting {} hypervisor hosts.", hypervisorHostMap.size());
-      for (Host host : hypervisorHostMap.values()) {
-        accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host);
-      }
-    }
-    accountServiceInventory.setOrgId(orgId);
-    accountServiceInventoryRepository.save(accountServiceInventory);
-    return orgHostsData;
   }
 
   @Timed("rhsm-subscriptions.tally.inventory.db")
@@ -243,6 +110,40 @@ public class InventoryAccountUsageCollector {
   }
 
   /**
+   * Reconcile HBI data with swatch data.
+   *
+   * <p>This method also performs flushing of the created or updated records using a configured
+   * batch size. This enables configurable control over the memory characteristics of system data
+   * reconciliation.
+   *
+   * @param orgId orgId to reconcile
+   * @param applicableProducts products to update tally buckets for
+   */
+  @Transactional
+  @Timed("swatch_hbi_system_reconcile")
+  public void reconcileSystemDataWithHbi(String orgId, Set<String> applicableProducts) {
+    accountServiceInventoryRepository.saveIfDoesNotExist(orgId, HBI_INSTANCE_TYPE);
+    List<Host> detachHosts = new ArrayList<>();
+    int systemsUpdatedForOrg =
+        collator.collateData(
+            orgId,
+            culledOffsetDays,
+            (hbiSystem, swatchSystem, hypervisorData, iterationCount) -> {
+              reconcileHbiSystemWithSwatchSystem(
+                  hbiSystem, swatchSystem, hypervisorData, applicableProducts, detachHosts);
+              if (iterationCount % hbiReconciliationFlushInterval == 0) {
+                log.debug("Flushing system changes w/ count={}", iterationCount);
+                hostRepository.flush();
+                if (Objects.nonNull(swatchSystem) && Objects.nonNull(hbiSystem)) {
+                  detachHosts.forEach(entityManager::detach);
+                  detachHosts.clear();
+                }
+              }
+            });
+    log.info("Reconciled {} records for orgId={}", systemsUpdatedForOrg, orgId);
+  }
+
+  /**
    * Create all possible combinations of product, SLA, usage, billing provider, and account ID.
    *
    * @param products productIds
@@ -253,7 +154,7 @@ public class InventoryAccountUsageCollector {
    * @return a set of UsageCalculation.Key representing all possible combinations of the input
    *     parameters
    */
-  public static Set<Key> createKeyCombinations(
+  protected static Set<Key> createKeyCombinations(
       Set<String> products,
       Set<ServiceLevel> slas,
       Set<Usage> usages,
@@ -274,35 +175,6 @@ public class InventoryAccountUsageCollector {
                   product, sla, usage, billingProvider, billingAccountId);
             })
         .collect(Collectors.toSet());
-  }
-
-  private AccountServiceInventory fetchAccountServiceInventory(String orgId) {
-    log.info("Finding HBI hosts for org={}", orgId);
-    AccountServiceInventoryId inventoryId =
-        AccountServiceInventoryId.builder().orgId(orgId).serviceType(HBI_INSTANCE_TYPE).build();
-    return accountServiceInventoryRepository
-        .findById(inventoryId)
-        .orElse(new AccountServiceInventory(inventoryId));
-  }
-
-  private Map<String, Host> buildInventoryHostMap(AccountServiceInventory accountServiceInventory) {
-    Set<String> duplicateInstanceIds = new HashSet<>();
-    Map<String, Host> inventoryHostMap =
-        accountServiceInventory.getServiceInstances().values().stream()
-            .filter(host -> host.getInventoryId() != null)
-            .collect(
-                Collectors.toMap(
-                    Host::getInventoryId,
-                    Function.identity(),
-                    (h1, h2) -> handleDuplicateHost(duplicateInstanceIds, h1, h2)));
-    duplicateInstanceIds.forEach(accountServiceInventory.getServiceInstances()::remove);
-    return inventoryHostMap;
-  }
-
-  private Host handleDuplicateHost(Set<String> duplicateInstanceIds, Host host1, Host host2) {
-    log.warn("Removing duplicate host record w/ inventory ID: {}", host2.getInventoryId());
-    duplicateInstanceIds.add(host2.getInstanceId());
-    return host1;
   }
 
   public static void populateHostFieldsFromHbi(
@@ -350,48 +222,6 @@ public class InventoryAccountUsageCollector {
     host.setHardwareType(normalizedFacts.getHardwareType());
   }
 
-  public static Host hostFromHbiFacts(
-      InventoryHostFacts inventoryHostFacts, NormalizedFacts normalizedFacts) {
-    Host host = new Host();
-    host.setInstanceType(HBI_INSTANCE_TYPE);
-    populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
-    return host;
-  }
-
-  /**
-   * Reconcile HBI data with swatch data.
-   *
-   * <p>This method also performs flushing of the created or updated records using a configured
-   * batch size. This enables configurable control over the memory characteristics of system data
-   * reconciliation.
-   *
-   * @param orgId orgId to reconcile
-   * @param applicableProducts products to update tally buckets for
-   */
-  @Transactional
-  @Timed("swatch_hbi_system_reconcile")
-  public void reconcileSystemDataWithHbi(String orgId, Set<String> applicableProducts) {
-    accountServiceInventoryRepository.saveIfDoesNotExist(orgId, HBI_INSTANCE_TYPE);
-    List<Host> detachHosts = new ArrayList<>();
-    int systemsUpdatedForOrg =
-        collator.collateData(
-            orgId,
-            culledOffsetDays,
-            (hbiSystem, swatchSystem, hypervisorData, iterationCount) -> {
-              reconcileHbiSystemWithSwatchSystem(
-                  hbiSystem, swatchSystem, hypervisorData, applicableProducts, detachHosts);
-              if (iterationCount % hbiReconciliationFlushInterval == 0) {
-                log.debug("Flushing system changes w/ count={}", iterationCount);
-                hostRepository.flush();
-                if (Objects.nonNull(swatchSystem) && Objects.nonNull(hbiSystem)) {
-                  detachHosts.forEach(entityManager::detach);
-                  detachHosts.clear();
-                }
-              }
-            });
-    log.info("Reconciled {} records for orgId={}", systemsUpdatedForOrg, orgId);
-  }
-
   /**
    * Reconciles an HBI system record with a swatch system record.
    *
@@ -404,7 +234,7 @@ public class InventoryAccountUsageCollector {
    *     the hbi system being processed if it is a hypervisor
    * @param applicableProducts set of product tags to process
    */
-  public void reconcileHbiSystemWithSwatchSystem(
+  protected void reconcileHbiSystemWithSwatchSystem(
       InventoryHostFacts hbiSystem,
       Host swatchSystem,
       OrgHostsData orgHostsData,

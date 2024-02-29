@@ -50,7 +50,6 @@ class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwa
   private static final String DISPLAY_NAME = "display name";
   private static final String REPORTER = "test";
   private static final String SUBSCRIPTION_MANAGER_ID = "subs id";
-  private static final String VM_HOST_UUID = "vm host uuid test";
   private static final String VIRTUAL_HOST_UUID = "virtual host uuid test";
   private static final String SYSTEM_PURPOSE_ROLE = "system purpose role test";
   private static final String SYSTEM_PURPOSE_SLA = "system purpose sla test";
@@ -96,7 +95,7 @@ class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwa
     assertEquals(ORG_ID, fact.getOrgId());
     assertNotNull(fact.getModifiedOn());
     assertTrue(fact.isVirtual());
-    assertEquals(VM_HOST_UUID, fact.getHypervisorUuid());
+    assertEquals(VIRTUAL_HOST_UUID, fact.getHypervisorUuid());
     assertEquals(VIRTUAL_HOST_UUID, fact.getSatelliteHypervisorUuid());
     assertEquals(SYSTEM_PURPOSE_ROLE, fact.getSatelliteRole());
     assertEquals(SYSTEM_PURPOSE_SLA, fact.getSatelliteSla());
@@ -140,7 +139,7 @@ class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwa
     List<Object[]> reportedHypervisors =
         repository.getReportedHypervisors(List.of(ORG_ID)).toList();
     assertEquals(2, reportedHypervisors.size());
-    assertEquals(VM_HOST_UUID, reportedHypervisors.get(0)[0]);
+    assertEquals(VIRTUAL_HOST_UUID, reportedHypervisors.get(0)[0]);
     assertEquals(VIRTUAL_HOST_UUID, reportedHypervisors.get(1)[0]);
   }
 
@@ -168,8 +167,6 @@ class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwa
             of(
                 "IS_VIRTUAL",
                 "true",
-                "VM_HOST_UUID",
-                VM_HOST_UUID,
                 "GUEST_ID",
                 GUEST_ID,
                 "SYNC_TIMESTAMP",
@@ -217,7 +214,9 @@ class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwa
             "is_marketplace",
             "true",
             "installed_products",
-            INSTALLED_PRODUCTS),
+            INSTALLED_PRODUCTS,
+            "virtual_host_uuid",
+            VIRTUAL_HOST_UUID),
         REPORTER,
         now(),
         now(),
