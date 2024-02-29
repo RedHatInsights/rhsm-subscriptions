@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.db.model;
 import static org.candlepin.subscriptions.tally.InventoryAccountUsageCollector.populateHostFieldsFromHbi;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -219,14 +218,14 @@ class HostTest {
   }
 
   @Test
-  void testPopulateHostFieldsFromHbiShouldNotOverwriteInstanceId() {
+  void testPopulateHostFieldsFromHbiShouldOverwriteInstanceId() {
     Host host = new Host();
     host.setInstanceId(UUID.randomUUID().toString());
     InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
     inventoryHostFacts.setProviderId(UUID.randomUUID().toString());
 
     populateHostFieldsFromHbi(host, inventoryHostFacts, new NormalizedFacts());
-    assertNotEquals(inventoryHostFacts.getProviderId(), host.getInstanceId());
+    assertEquals(inventoryHostFacts.getProviderId(), host.getInstanceId());
   }
 
   @Test

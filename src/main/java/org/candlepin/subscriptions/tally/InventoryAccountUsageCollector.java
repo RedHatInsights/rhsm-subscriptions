@@ -179,21 +179,21 @@ public class InventoryAccountUsageCollector {
 
   public static void populateHostFieldsFromHbi(
       Host host, InventoryHostFacts inventoryHostFacts, NormalizedFacts normalizedFacts) {
-    // Don't overwrite the instanceId if already set, since that would cause potential
-    // duplicates in the serviceInstances map in AccountServiceInventory.
-    if (host.getInstanceId() == null) {
-      if (inventoryHostFacts.getProviderId() != null) {
-        // will use the provider ID from HBI if sets:
-        host.setInstanceId(inventoryHostFacts.getProviderId());
-      } else if (inventoryHostFacts.getInventoryId() != null) {
-        // We assume that the instance ID for any given HBI host record is the inventory ID; compare
-        // to an OpenShift Cluster from Prometheus data, where we use the cluster ID.
-        host.setInstanceId(inventoryHostFacts.getInventoryId().toString());
-      }
+
+    if (inventoryHostFacts.getProviderId() != null) {
+      // will use the provider ID from HBI
+      host.setInstanceId(inventoryHostFacts.getProviderId());
     }
 
     if (inventoryHostFacts.getInventoryId() != null) {
       host.setInventoryId(inventoryHostFacts.getInventoryId().toString());
+
+      // fallback logic to set the instance ID if and only if the instanceId is not set yet:
+      if (host.getInstanceId() == null) {
+        // We assume that the instance ID for any given HBI host record is the inventory ID; compare
+        // to an OpenShift Cluster from Prometheus data, where we use the cluster ID.
+        host.setInstanceId(inventoryHostFacts.getInventoryId().toString());
+      }
     }
 
     host.setInsightsId(inventoryHostFacts.getInsightsId());
