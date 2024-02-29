@@ -1,14 +1,13 @@
 # See https://goessner.net/articles/JsonPath/ for JSON Path syntax
 
-RHSM_RBAC_HOST: ${clowder.endpoints[?(@.app == 'rbac')].hostname:localhost}
-RHSM_RBAC_PORT: ${clowder.endpoints[?(@.app == 'rbac')].port:8819}
+RHSM_RBAC_URL: ${clowder.endpoints.rbac-service.url:http://localhost:8819}
 
 rhsm-subscriptions:
   pretty-print-json: ${PRETTY_PRINT_JSON:false}
   rbac-service:
     application-name: ${RHSM_RBAC_APPLICATION_NAME:subscriptions}
     use-stub: ${RHSM_RBAC_USE_STUB:false}
-    url: ${clowder.endpoints.rbac-service.url:http://localhost:8819}/api/rbac/v1
+    url: ${RHSM_RBAC_URL}/api/rbac/v1
     truststore: ${clowder.endpoints.rbac-service.trust-store-path}
     truststore-password: ${clowder.endpoints.rbac-service.trust-store-password}
     truststore-type: ${clowder.endpoints.rbac-service.trust-store-type}

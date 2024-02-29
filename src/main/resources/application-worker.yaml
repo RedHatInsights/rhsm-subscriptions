@@ -1,9 +1,9 @@
-TASKS_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.tasks')].name:platform.rhsm-subscriptions.tasks}
-TALLY_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.tally')].name:platform.rhsm-subscriptions.tally}
-BILLABLE_USAGE_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.billable-usage')].name:platform.rhsm-subscriptions.billable-usage}
-BILLABLE_USAGE_DEAD_LETTER_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.billable-usage.dlt')].name:platform.rhsm-subscriptions.billable-usage.dlt}
-SERVICE_INSTANCE_INGRESS_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.service-instance-ingress')].name:platform.rhsm-subscriptions.service-instance-ingress}
-SERVICE_INSTANCE_INGRESS_DEAD_LETTER_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.service-instance-ingress.dlt')].name:platform.rhsm-subscriptions.service-instance-ingress.dlt}
+TASKS_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.tasks".name:platform.rhsm-subscriptions.tasks}
+TALLY_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.tally".name:platform.rhsm-subscriptions.tally}
+BILLABLE_USAGE_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.billable-usage".name:platform.rhsm-subscriptions.billable-usage}
+BILLABLE_USAGE_DEAD_LETTER_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.billable-usage.dlt".name:platform.rhsm-subscriptions.billable-usage.dlt}
+SERVICE_INSTANCE_INGRESS_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.service-instance-ingress".name:platform.rhsm-subscriptions.service-instance-ingress}
+SERVICE_INSTANCE_INGRESS_DEAD_LETTER_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.service-instance-ingress.dlt".name:platform.rhsm-subscriptions.service-instance-ingress.dlt}
 
 rhsm-subscriptions:
   hourlyTallyDurationLimitDays: 90d
