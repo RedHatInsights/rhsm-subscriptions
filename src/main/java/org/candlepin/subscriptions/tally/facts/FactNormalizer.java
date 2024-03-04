@@ -173,6 +173,20 @@ public class FactNormalizer {
       if (sockets != null && (sockets % 2) == 1) {
         normalizedFacts.setSockets(sockets + 1);
       }
+    } else {
+      boolean guestWithUnknownHypervisor =
+          normalizedFacts.isVirtual() && normalizedFacts.isHypervisorUnknown();
+      // Cloud provider hosts only account for a single socket.
+      if (normalizedFacts.getCloudProviderType() != null) {
+        var sockets = normalizedFacts.isMarketplace() ? 0 : 1;
+        normalizedFacts.setSockets(sockets);
+      }
+      // Unmapped virtual rhel guests only account for a single socket
+      else if (guestWithUnknownHypervisor
+          && normalizedFacts.getProducts().stream()
+              .anyMatch(prod -> StringUtils.startsWithIgnoreCase(prod, "RHEL"))) {
+        normalizedFacts.setSockets(1);
+      }
     }
   }
 
