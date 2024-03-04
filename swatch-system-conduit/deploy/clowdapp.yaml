@@ -155,10 +155,41 @@ objects:
                   value: ${JAVA_DEBUG}
                 - name: SPRING_PROFILES_ACTIVE
                   value: liquibase-only
-                  # Override liquibase disablement in the main container
-                - name: SPRING_LIQUIBASE_ENABLED
-                  value: 'true'
-              inheritEnv: true
+                - name: JAVA_MAX_MEM_RATIO
+                  value: '85'
+                - name: GC_MAX_METASPACE_SIZE
+                  value: '256'
+                - name: DATABASE_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: swatch-tally-db
+                      key: db.host
+                - name: DATABASE_PORT
+                  valueFrom:
+                    secretKeyRef:
+                      name: swatch-tally-db
+                      key: db.port
+                - name: DATABASE_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: swatch-tally-db
+                      key: db.user
+                - name: DATABASE_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: swatch-tally-db
+                      key: db.password
+                - name: DATABASE_DATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: swatch-tally-db
+                      key: db.name
+                - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                  value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+                - name: OTEL_SERVICE_NAME
+                  value: ${OTEL_SERVICE_NAME}
+                - name: OTEL_JAVAAGENT_ENABLED
+                  value: ${OTEL_JAVAAGENT_ENABLED}
               resources:
                 requests:
                   cpu: ${CPU_REQUEST}
