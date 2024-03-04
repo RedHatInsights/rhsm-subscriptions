@@ -52,7 +52,7 @@ import org.candlepin.subscriptions.product.api.model.EngineeringProductMap;
 import org.candlepin.subscriptions.product.api.model.OperationalProduct;
 import org.candlepin.subscriptions.product.api.model.RESTProductTree;
 import org.candlepin.subscriptions.product.api.model.SkuEngProduct;
-import org.candlepin.subscriptions.util.ProductOfferingSubscriptionService;
+import org.candlepin.subscriptions.util.OfferingProductTagLookupService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -111,7 +111,7 @@ class OfferingSyncControllerTest {
   @MockBean CapacityReconciliationController capController;
   @MockBean KafkaTemplate<String, OfferingSyncTask> offeringSyncKafkaTemplate;
   @Autowired OfferingSyncController subject;
-  @MockBean ProductOfferingSubscriptionService productOfferingSubscriptionService;
+  @MockBean OfferingProductTagLookupService offeringProductTagLookupService;
 
   @BeforeEach
   void init() {

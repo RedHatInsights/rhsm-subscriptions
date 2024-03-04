@@ -35,11 +35,11 @@ import org.springframework.stereotype.Component;
 /** Common methods to identify product tags between subscription and offering products */
 @Component
 @Slf4j
-public class ProductOfferingSubscriptionService {
+public class OfferingProductTagLookupService {
   private final OfferingRepository offeringRepository;
 
   @Autowired
-  public ProductOfferingSubscriptionService(OfferingRepository offeringRepository) {
+  public OfferingProductTagLookupService(OfferingRepository offeringRepository) {
     this.offeringRepository = offeringRepository;
   }
 

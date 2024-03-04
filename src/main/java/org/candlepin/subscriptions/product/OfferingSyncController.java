@@ -39,7 +39,7 @@ import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.umb.CanonicalMessage;
 import org.candlepin.subscriptions.umb.UmbOperationalProduct;
-import org.candlepin.subscriptions.util.ProductOfferingSubscriptionService;
+import org.candlepin.subscriptions.util.OfferingProductTagLookupService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,7 +68,7 @@ public class OfferingSyncController {
   private final ObjectMapper objectMapper;
   private final String offeringSyncTopic;
   private final XmlMapper umbMessageMapper;
-  private final ProductOfferingSubscriptionService productOfferingSubscriptionService;
+  private final OfferingProductTagLookupService offeringProductTagLookupService;
 
   @Autowired
   public OfferingSyncController(
@@ -80,7 +80,7 @@ public class OfferingSyncController {
       KafkaTemplate<String, OfferingSyncTask> offeringSyncKafkaTemplate,
       ObjectMapper objectMapper,
       @Qualifier("offeringSyncTasks") TaskQueueProperties taskQueueProperties,
-      ProductOfferingSubscriptionService productOfferingSubscriptionService) {
+      OfferingProductTagLookupService offeringProductTagLookupService) {
     this.offeringRepository = offeringRepository;
     this.productDenylist = productDenylist;
     this.productService = productService;
@@ -91,7 +91,7 @@ public class OfferingSyncController {
     this.objectMapper = objectMapper;
     this.offeringSyncTopic = taskQueueProperties.getTopic();
     this.umbMessageMapper = CanonicalMessage.createMapper();
-    this.productOfferingSubscriptionService = productOfferingSubscriptionService;
+    this.offeringProductTagLookupService = offeringProductTagLookupService;
   }
 
   /**
@@ -298,7 +298,7 @@ public class OfferingSyncController {
   }
 
   private void discoverProductTagsBySku(Optional<Offering> newState) {
-    var productTags = productOfferingSubscriptionService.discoverProductTagsBySku(newState);
+    var productTags = offeringProductTagLookupService.discoverProductTagsBySku(newState);
     if (Objects.nonNull(productTags) && Objects.nonNull(productTags.getData())) {
       newState.ifPresent(off -> off.setProductTags(new HashSet<>(productTags.getData())));
     }

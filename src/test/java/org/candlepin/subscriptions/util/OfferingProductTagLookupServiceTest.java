@@ -40,10 +40,10 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @DirtiesContext
 @ActiveProfiles({"capacity-ingress", "test"})
-class ProductOfferingSubscriptionServiceTest {
+class OfferingProductTagLookupServiceTest {
   @MockBean OfferingRepository offeringRepository;
 
-  @Autowired ProductOfferingSubscriptionService productOfferingSubscriptionService;
+  @Autowired OfferingProductTagLookupService offeringProductTagLookupService;
 
   @Test
   void findProductTagsBySku_WhenSkuNotPresent() {
@@ -51,12 +51,12 @@ class ProductOfferingSubscriptionServiceTest {
     RuntimeException e =
         assertThrows(
             MissingOfferingException.class,
-            () -> productOfferingSubscriptionService.findPersistedProductTagsBySku("sku"));
+            () -> offeringProductTagLookupService.findPersistedProductTagsBySku("sku"));
     assertEquals("Sku sku not found in Offering", e.getMessage());
 
     when(offeringRepository.findOfferingBySku("sku")).thenReturn(new Offering());
     OfferingProductTags productTags2 =
-        productOfferingSubscriptionService.findPersistedProductTagsBySku("sku");
+        offeringProductTagLookupService.findPersistedProductTagsBySku("sku");
     assertNull(productTags2.getData());
   }
 
@@ -71,7 +71,7 @@ class ProductOfferingSubscriptionServiceTest {
     when(offeringRepository.findOfferingBySku("sku")).thenReturn(offering);
 
     OfferingProductTags productTags =
-        productOfferingSubscriptionService.findPersistedProductTagsBySku("sku");
+        offeringProductTagLookupService.findPersistedProductTagsBySku("sku");
     assertNull(productTags.getData());
   }
 
@@ -86,7 +86,7 @@ class ProductOfferingSubscriptionServiceTest {
     when(offeringRepository.findOfferingBySku("sku")).thenReturn(offering);
 
     OfferingProductTags productTags =
-        productOfferingSubscriptionService.findPersistedProductTagsBySku("sku");
+        offeringProductTagLookupService.findPersistedProductTagsBySku("sku");
     assertEquals(1, productTags.getData().size());
     assertEquals("rosa", productTags.getData().get(0));
   }
@@ -98,7 +98,7 @@ class ProductOfferingSubscriptionServiceTest {
     when(offeringRepository.findOfferingBySku("sku")).thenReturn(offering);
 
     OfferingProductTags productTags =
-        productOfferingSubscriptionService.findPersistedProductTagsBySku("sku");
+        offeringProductTagLookupService.findPersistedProductTagsBySku("sku");
     assertEquals(1, productTags.getData().size());
     assertEquals("OpenShift Container Platform", productTags.getData().get(0));
   }
