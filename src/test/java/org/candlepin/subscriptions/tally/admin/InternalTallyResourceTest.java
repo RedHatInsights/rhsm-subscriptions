@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.tally.admin;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import jakarta.ws.rs.BadRequestException;
@@ -35,7 +34,6 @@ import org.candlepin.subscriptions.retention.RemittanceRetentionController;
 import org.candlepin.subscriptions.retention.TallyRetentionController;
 import org.candlepin.subscriptions.security.SecurityProperties;
 import org.candlepin.subscriptions.tally.MarketplaceResendTallyController;
-import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.tally.events.EventRecordsRetentionProperties;
 import org.candlepin.subscriptions.tally.job.CaptureSnapshotsTaskManager;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
@@ -52,7 +50,6 @@ class InternalTallyResourceTest {
   private static final String ORG_ID = "org1";
 
   @Mock private MarketplaceResendTallyController resendTallyController;
-  @Mock private TallySnapshotController snapshotController;
   @Mock private CaptureSnapshotsTaskManager snapshotTaskManager;
   @Mock private TallyRetentionController tallyRetentionController;
   @Mock private RemittanceRetentionController remittanceRetentionController;
@@ -74,7 +71,6 @@ class InternalTallyResourceTest {
             clock,
             appProps,
             resendTallyController,
-            snapshotController,
             snapshotTaskManager,
             tallyRetentionController,
             remittanceRetentionController,
@@ -130,8 +126,7 @@ class InternalTallyResourceTest {
     OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = start.plusHours(1L);
     resource.performHourlyTallyForOrg(ORG_ID, start, end, true);
-    verify(snapshotController).produceHourlySnapshotsForOrg(ORG_ID, new DateRange(start, end));
-    verifyNoInteractions(snapshotTaskManager);
+    verify(snapshotTaskManager).tallyOrgByHourly("org1", new DateRange(start, end), true);
   }
 
   @Test
@@ -140,8 +135,7 @@ class InternalTallyResourceTest {
     OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = start.plusHours(1L);
     resource.performHourlyTallyForOrg("org1", start, end, false);
-    verify(snapshotTaskManager).tallyOrgByHourly("org1", new DateRange(start, end));
-    verifyNoInteractions(snapshotController);
+    verify(snapshotTaskManager).tallyOrgByHourly("org1", new DateRange(start, end), false);
   }
 
   @Test
@@ -149,8 +143,7 @@ class InternalTallyResourceTest {
     OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = start.plusHours(1L);
     resource.performHourlyTallyForOrg(ORG_ID, start, end, false);
-    verify(snapshotTaskManager).tallyOrgByHourly(ORG_ID, new DateRange(start, end));
-    verifyNoInteractions(snapshotController);
+    verify(snapshotTaskManager).tallyOrgByHourly(ORG_ID, new DateRange(start, end), false);
   }
 
   @Test
