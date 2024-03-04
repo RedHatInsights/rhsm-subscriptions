@@ -246,4 +246,16 @@ class SubscriptionDefinitionTest {
     assertEquals(
         "cluster_hour", SubscriptionDefinition.getAzureDimension("BASILISK", "Instance-hours"));
   }
+
+  @Test
+  void testFetchProductTagsWhenProductNameProvided() {
+    var productName = "OpenShift Online";
+    var expected = List.of("rosa");
+    var actual =
+        Variant.filterVariantsByProductName(productName)
+            .filter(v -> v.getSubscription().isPaygEligible())
+            .map(Variant::getTag)
+            .toList();
+    assertEquals(expected, actual);
+  }
 }
