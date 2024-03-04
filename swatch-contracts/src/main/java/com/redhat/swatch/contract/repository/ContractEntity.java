@@ -29,7 +29,6 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
@@ -107,7 +106,6 @@ public class ContractEntity extends PanacheEntityBase {
   @Column(name = "vendor_product_code", nullable = false)
   private String vendorProductCode;
 
-  @NotEmpty
   @NotNull
   @Builder.Default
   @OneToMany(
