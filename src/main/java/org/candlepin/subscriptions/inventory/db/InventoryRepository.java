@@ -75,11 +75,11 @@ public interface InventoryRepository extends Repository<InventoryHost, UUID> {
       nativeQuery = true,
       value =
           "select "
-              + "distinct h.facts->'rhsm'->>'VM_HOST_UUID' as hyp_id, "
+              + "distinct h.system_profile_facts->>'virtual_host_uuid' as hyp_id, "
               + "h_.canonical_facts->>'subscription_manager_id' as hyp_subman_id "
               + "from hosts h "
-              + "left outer join hosts h_ on h.facts->'rhsm'->>'VM_HOST_UUID' = h_.canonical_facts->>'subscription_manager_id' "
-              + "where h.facts->'rhsm'->'VM_HOST_UUID' is not null "
+              + "left outer join hosts h_ on h.system_profile_facts->>'virtual_host_uuid' = h_.canonical_facts->>'subscription_manager_id' "
+              + "where h.system_profile_facts->>'virtual_host_uuid' is not null "
               + "and h.org_id IN (:orgIds)"
               + "union all "
               + "select "

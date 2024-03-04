@@ -566,7 +566,7 @@ public class InventoryController {
 
     String vmHypervisorUuid = consumer.getHypervisorUuid();
     if (StringUtils.hasLength(vmHypervisorUuid)) {
-      facts.setVmHostUuid(vmHypervisorUuid);
+      facts.setVirtualHostUuid(vmHypervisorUuid);
     }
 
     String vmId = consumer.getGuestId();
