@@ -59,7 +59,11 @@ import lombok.ToString;
 // graph fetches all associations to avoid LazyInitializationException
 @NamedEntityGraph(
     name = "graph.offering",
-    attributeNodes = {@NamedAttributeNode("childSkus"), @NamedAttributeNode("productIds")})
+    attributeNodes = {
+      @NamedAttributeNode("childSkus"),
+      @NamedAttributeNode("productIds"),
+      @NamedAttributeNode("productTags")
+    })
 public class Offering implements Serializable {
 
   /**
@@ -120,6 +124,13 @@ public class Offering implements Serializable {
   @CollectionTable(name = "sku_oid", joinColumns = @JoinColumn(name = "sku"))
   @Column(name = "oid")
   private Set<Integer> productIds = new HashSet<>();
+
+  /** Product tags related to a sku */
+  @Builder.Default
+  @ElementCollection
+  @CollectionTable(name = "sku_product_tag", joinColumns = @JoinColumn(name = "sku"))
+  @Column(name = "product_tag")
+  private Set<String> productTags = new HashSet<>();
 
   /** Effective standard CPU cores capacity per quantity of subscription to this offering. */
   @Column(name = "cores")
@@ -194,7 +205,8 @@ public class Offering implements Serializable {
         && usage == offering.usage
         && Objects.equals(hasUnlimitedUsage, offering.hasUnlimitedUsage)
         && Objects.equals(derivedSku, offering.derivedSku)
-        && Objects.equals(metered, offering.metered);
+        && Objects.equals(metered, offering.metered)
+        && Objects.equals(productTags, offering.productTags);
   }
 
   @Override
@@ -213,6 +225,7 @@ public class Offering implements Serializable {
         usage,
         hasUnlimitedUsage,
         derivedSku,
-        metered);
+        metered,
+        productTags);
   }
 }

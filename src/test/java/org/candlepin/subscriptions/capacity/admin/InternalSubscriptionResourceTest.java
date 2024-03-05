@@ -50,6 +50,7 @@ import org.candlepin.subscriptions.security.WithMockPskPrincipal;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
 import org.candlepin.subscriptions.subscription.SubscriptionPruneController;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
+import org.candlepin.subscriptions.util.OfferingProductTagLookupService;
 import org.candlepin.subscriptions.utilization.admin.api.model.AwsUsageContext;
 import org.candlepin.subscriptions.utilization.admin.api.model.RhmUsageContext;
 import org.candlepin.subscriptions.utilization.admin.api.model.RpcResponse;
@@ -83,6 +84,7 @@ class InternalSubscriptionResourceTest {
 
   @MockBean CapacityReconciliationController capacityReconciliationController;
   @MockBean MetricMapper metricMapper;
+  @MockBean OfferingProductTagLookupService offeringProductTagLookupService;
   @Autowired SecurityProperties properties;
   @Autowired WebApplicationContext context;
   @Autowired InternalSubscriptionResource resource;
@@ -117,7 +119,8 @@ class InternalSubscriptionResourceTest {
             offeringSync,
             capacityReconciliationController,
             metricMapper,
-            applicationProperties);
+            applicationProperties,
+            offeringProductTagLookupService);
     when(syncController.findSubscriptions(any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
     assertThrows(
@@ -141,7 +144,8 @@ class InternalSubscriptionResourceTest {
             offeringSync,
             capacityReconciliationController,
             metricMapper,
-            applicationProperties);
+            applicationProperties,
+            offeringProductTagLookupService);
     when(syncController.findSubscriptions(any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
     assertThrows(
@@ -165,7 +169,8 @@ class InternalSubscriptionResourceTest {
             offeringSync,
             capacityReconciliationController,
             metricMapper,
-            applicationProperties);
+            applicationProperties,
+            offeringProductTagLookupService);
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("foo1;foo2;foo3");
     sub1.setEndDate(defaultEndDate);
@@ -279,7 +284,8 @@ class InternalSubscriptionResourceTest {
             offeringSync,
             capacityReconciliationController,
             metricMapper,
-            applicationProperties);
+            applicationProperties,
+            offeringProductTagLookupService);
 
     when(syncController.findSubscriptions(any(), any(), any(), any()))
         .thenReturn(Collections.emptyList());
@@ -309,7 +315,8 @@ class InternalSubscriptionResourceTest {
             offeringSync,
             capacityReconciliationController,
             metricMapper,
-            applicationProperties);
+            applicationProperties,
+            offeringProductTagLookupService);
 
     Subscription sub1 = new Subscription();
     sub1.setBillingProviderId("account123");

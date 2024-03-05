@@ -276,7 +276,7 @@ public class EventController {
     String role = Optional.ofNullable(event.getRole()).map(Object::toString).orElse(null);
     event.setProductTag(
         SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-            role, event.getProductIds()));
+            role, event.getProductIds(), null));
   }
 
   /**
