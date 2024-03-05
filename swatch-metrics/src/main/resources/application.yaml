@@ -55,8 +55,6 @@ SERVICE_INSTANCE_INGRESS_TOPIC: platform.rhsm-subscriptions.service-instance-ing
 
 quarkus:
   # Exposing the health checks and metrics on :9000.
-  # The port should be configurable using the clowder config source:
-  # https://github.com/RedHatInsights/clowder-quarkus-config-source/issues/217
   management:
     enabled: true
     port: 9000
@@ -88,10 +86,10 @@ quarkus:
   swagger-ui:
     path: /api/${quarkus.application.name}/internal/swagger-ui
     always-include: true
-    management:
-      enabled: false
   smallrye-openapi:
     path: /api/${quarkus.application.name}/internal/openapi
+    # By default, the openapi and swagger ui endpoints are exposed on the management port, so we need to disable it
+    # to expose it on the server port 8000:
     management:
       enabled: false
   otel:

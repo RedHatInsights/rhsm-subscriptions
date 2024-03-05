@@ -26,6 +26,7 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -38,6 +39,7 @@ import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.umb.CanonicalMessage;
 import org.candlepin.subscriptions.umb.UmbOperationalProduct;
+import org.candlepin.subscriptions.util.OfferingProductTagLookupService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,6 +68,7 @@ public class OfferingSyncController {
   private final ObjectMapper objectMapper;
   private final String offeringSyncTopic;
   private final XmlMapper umbMessageMapper;
+  private final OfferingProductTagLookupService offeringProductTagLookupService;
 
   @Autowired
   public OfferingSyncController(
@@ -76,7 +79,8 @@ public class OfferingSyncController {
       MeterRegistry meterRegistry,
       KafkaTemplate<String, OfferingSyncTask> offeringSyncKafkaTemplate,
       ObjectMapper objectMapper,
-      @Qualifier("offeringSyncTasks") TaskQueueProperties taskQueueProperties) {
+      @Qualifier("offeringSyncTasks") TaskQueueProperties taskQueueProperties,
+      OfferingProductTagLookupService offeringProductTagLookupService) {
     this.offeringRepository = offeringRepository;
     this.productDenylist = productDenylist;
     this.productService = productService;
@@ -87,6 +91,7 @@ public class OfferingSyncController {
     this.objectMapper = objectMapper;
     this.offeringSyncTopic = taskQueueProperties.getTopic();
     this.umbMessageMapper = CanonicalMessage.createMapper();
+    this.offeringProductTagLookupService = offeringProductTagLookupService;
   }
 
   /**
@@ -126,7 +131,9 @@ public class OfferingSyncController {
    */
   private Optional<Offering> getUpstreamOffering(String sku) {
     LOGGER.debug("Retrieving product tree for offeringSku=\"{}\"", sku);
-    return UpstreamProductData.offeringFromUpstream(sku, productService);
+    var offering = UpstreamProductData.offeringFromUpstream(sku, productService);
+    discoverProductTagsBySku(offering);
+    return offering;
   }
 
   /**
@@ -215,11 +222,18 @@ public class OfferingSyncController {
             objectMapper, offeringsJson, derivedSkuDataJsonArray, engProdJsonArray);
     productDataSource
         .getTopLevelSkus()
-        .map(sku -> UpstreamProductData.offeringFromUpstream(sku, productDataSource))
+        .map(sku -> enrichUpstreamOfferingData(sku, productDataSource))
         .filter(Optional::isPresent)
         .map(Optional::get)
         .forEach(offeringRepository::save);
     return productDataSource.getTopLevelSkus();
+  }
+
+  private Optional<Offering> enrichUpstreamOfferingData(
+      String sku, JsonProductDataSource productDataSource) {
+    var offering = UpstreamProductData.offeringFromUpstream(sku, productDataSource);
+    discoverProductTagsBySku(offering);
+    return offering;
   }
 
   public void deleteOffering(String sku) {
@@ -272,6 +286,7 @@ public class OfferingSyncController {
     Optional<Offering> newState =
         UpstreamProductData.offeringFromUmbData(
             umbOperationalProduct, existing.orElse(null), productService);
+    discoverProductTagsBySku(newState);
     if (newState.isPresent()) {
       return syncOffering(newState.get(), existing);
     } else {
@@ -279,6 +294,13 @@ public class OfferingSyncController {
           "Unable to sync offering from UMB message for sku={}, because product service has no records for it",
           umbOperationalProduct.getSku());
       return SyncResult.SKIPPED_NOT_FOUND;
+    }
+  }
+
+  private void discoverProductTagsBySku(Optional<Offering> newState) {
+    var productTags = offeringProductTagLookupService.discoverProductTagsBySku(newState);
+    if (Objects.nonNull(productTags) && Objects.nonNull(productTags.getData())) {
+      newState.ifPresent(off -> off.setProductTags(new HashSet<>(productTags.getData())));
     }
   }
 

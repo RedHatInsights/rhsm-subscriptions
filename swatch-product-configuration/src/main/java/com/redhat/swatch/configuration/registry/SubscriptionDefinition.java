@@ -21,6 +21,7 @@
 package com.redhat.swatch.configuration.registry;
 
 import com.google.common.collect.MoreCollectors;
+import io.quarkus.runtime.util.StringUtil;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
@@ -176,29 +177,101 @@ public class SubscriptionDefinition {
   }
 
   public static Set<String> getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-      String role, Collection<?> engIds) {
+      String role, Collection<?> engIds, String productName) {
     Set<String> productTags = new HashSet<>();
     // Filter tags that are paygEligible
-
-    if (role != null) {
+    if (!StringUtil.isNullOrEmpty(role)) {
       SubscriptionDefinition.lookupSubscriptionByRole(role)
           .filter(SubscriptionDefinition::isPaygEligible)
-          .flatMap(s -> s.findVariantForRole(role).map(Variant::getTag))
+          .flatMap(subDef -> subDef.findVariantForRole(role).map(Variant::getTag))
           .ifPresent(productTags::add);
     }
 
-    if (engIds != null) {
-      for (Object engIdValue : engIds) {
-        String engId = engIdValue.toString();
-        productTags.addAll(
-            SubscriptionDefinition.lookupSubscriptionByEngId(engId).stream()
-                .filter(SubscriptionDefinition::isPaygEligible)
-                .flatMap(s -> s.findVariantForEngId(engId).map(Variant::getTag).stream())
-                .toList());
-      }
+    if (Objects.nonNull(engIds) && !engIds.isEmpty()) {
+      Set<String> ignoredSubscriptionIds = getIgnoredSubscriptionIds(engIds);
+
+      engIds.stream()
+          .map(Object::toString)
+          .forEach(
+              engId ->
+                  productTags.addAll(
+                      SubscriptionDefinition.lookupSubscriptionByEngId(engId).stream()
+                          .filter(SubscriptionDefinition::isPaygEligible)
+                          .flatMap(
+                              subDef ->
+                                  subDef
+                                      .findVariantForEngId(engId)
+                                      .filter(
+                                          variant ->
+                                              !ignoredSubscriptionIds.contains(
+                                                  variant.getSubscription().getId()))
+                                      .map(Variant::getTag)
+                                      .stream())
+                          .collect(Collectors.toSet())));
     }
 
+    // if not found, let's use the product name
+    if ((productTags.isEmpty()) && !StringUtil.isNullOrEmpty(productName)) {
+      productTags.addAll(
+          Variant.filterVariantsByProductName(productName)
+              .filter(v -> v.getSubscription().isPaygEligible())
+              .map(Variant::getTag)
+              .collect(Collectors.toSet()));
+    }
     return productTags;
+  }
+
+  public static Set<String> getAllProductTagsWithNonPaygEligibleByRoleOrEngIds(
+      String role, Collection<?> engIds, String productName) {
+    Set<String> productTags = new HashSet<>();
+    // Filter tags that are nonPaygEligible
+
+    if (!StringUtil.isNullOrEmpty(role)) {
+      SubscriptionDefinition.lookupSubscriptionByRole(role)
+          .filter(subDef -> !subDef.isPaygEligible())
+          .flatMap(subDef -> subDef.findVariantForRole(role).map(Variant::getTag))
+          .ifPresent(productTags::add);
+    }
+
+    if (Objects.nonNull(engIds) && !engIds.isEmpty()) {
+      Set<String> ignoredSubscriptionIds = getIgnoredSubscriptionIds(engIds);
+
+      engIds.stream()
+          .map(Object::toString)
+          .forEach(
+              engId ->
+                  productTags.addAll(
+                      SubscriptionDefinition.lookupSubscriptionByEngId(engId).stream()
+                          .filter(subDef -> !subDef.isPaygEligible())
+                          .flatMap(
+                              subDef ->
+                                  subDef
+                                      .findVariantForEngId(engId)
+                                      .filter(
+                                          variant ->
+                                              !ignoredSubscriptionIds.contains(
+                                                  variant.getSubscription().getId()))
+                                      .map(Variant::getTag)
+                                      .stream())
+                          .collect(Collectors.toSet())));
+    }
+    // if not found, let's use the product name
+    if ((productTags.isEmpty()) && !StringUtil.isNullOrEmpty(productName)) {
+      productTags.addAll(
+          Variant.filterVariantsByProductName(productName)
+              .filter(v -> !v.getSubscription().isPaygEligible())
+              .map(Variant::getTag)
+              .collect(Collectors.toSet()));
+    }
+    return productTags;
+  }
+
+  private static Set<String> getIgnoredSubscriptionIds(Collection<?> engIds) {
+    return engIds.stream()
+        .flatMap(
+            id -> SubscriptionDefinition.lookupSubscriptionByEngId(String.valueOf(id)).stream())
+        .flatMap(sub -> sub.getIncludedSubscriptions().stream())
+        .collect(Collectors.toSet());
   }
 
   /**
