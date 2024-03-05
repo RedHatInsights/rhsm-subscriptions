@@ -100,15 +100,16 @@ public class ContractsTestingResource implements DefaultApi {
       return new StatusResponse().status("No active contract found for the orgIds");
     }
     for (ContractEntity org : contracts) {
-      syncContractsByOrg(org.getOrgId());
+      syncContractsByOrg(org.getOrgId(), true);
     }
     return new StatusResponse().status("All Contract are Synced");
   }
 
   @Override
   @RolesAllowed({"test", "support"})
-  public StatusResponse syncContractsByOrg(String orgId) throws ProcessingException {
-    return service.syncContractByOrgId(orgId, OffsetDateTime.now());
+  public StatusResponse syncContractsByOrg(String orgId, Boolean isPreCleanup)
+      throws ProcessingException {
+    return service.syncContractByOrgId(orgId, isPreCleanup);
   }
 
   @Override

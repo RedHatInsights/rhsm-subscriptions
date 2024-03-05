@@ -21,7 +21,10 @@
 package org.candlepin.subscriptions.db.model;
 
 import static org.candlepin.subscriptions.tally.InventoryAccountUsageCollector.populateHostFieldsFromHbi;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.OffsetDateTime;
@@ -41,6 +44,7 @@ class HostTest {
 
     populateHostFieldsFromHbi(host, inventoryHostFacts, normalizedFacts);
 
+    assertNull(host.getInstanceId());
     assertNull(host.getInventoryId());
     assertNull(host.getInsightsId());
     assertNull(host.getOrgId());
@@ -201,6 +205,37 @@ class HostTest {
     HostTallyBucket actualBucket = host.getBuckets().stream().findFirst().orElseThrow();
     assertEquals(2, actualBucket.getCores());
     assertEquals(2, actualBucket.getSockets());
+  }
+
+  @Test
+  void testPopulateHostFieldsFromHbiShouldSetInstanceIdFromProviderId() {
+    Host host = new Host();
+    InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
+    inventoryHostFacts.setProviderId(UUID.randomUUID().toString());
+
+    populateHostFieldsFromHbi(host, inventoryHostFacts, new NormalizedFacts());
+    assertEquals(inventoryHostFacts.getProviderId(), host.getInstanceId());
+  }
+
+  @Test
+  void testPopulateHostFieldsFromHbiShouldOverwriteInstanceId() {
+    Host host = new Host();
+    host.setInstanceId(UUID.randomUUID().toString());
+    InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
+    inventoryHostFacts.setProviderId(UUID.randomUUID().toString());
+
+    populateHostFieldsFromHbi(host, inventoryHostFacts, new NormalizedFacts());
+    assertEquals(inventoryHostFacts.getProviderId(), host.getInstanceId());
+  }
+
+  @Test
+  void testPopulateHostFieldsFromHbiShouldUseInventoryIdWhenProviderIdIsNotSet() {
+    Host host = new Host();
+    InventoryHostFacts inventoryHostFacts = new InventoryHostFacts();
+    inventoryHostFacts.setInventoryId(UUID.randomUUID());
+
+    populateHostFieldsFromHbi(host, inventoryHostFacts, new NormalizedFacts());
+    assertEquals(inventoryHostFacts.getInventoryId().toString(), host.getInstanceId());
   }
 
   private InventoryHostFacts getInventoryHostFactsFull() {

@@ -55,6 +55,7 @@ public class InventoryHostFacts {
   private String guestId;
   private String subscriptionManagerId;
   private String insightsId;
+  private String providerId;
   private Set<String> qpcProducts;
   private Set<String> systemProfileProductIds;
   private String syspurposeRole;
@@ -106,6 +107,7 @@ public class InventoryHostFacts {
       String guestId,
       String subscriptionManagerId,
       String insightsId,
+      String providerId,
       String cloudProvider,
       OffsetDateTime staleTimestamp,
       String hardwareSubmanId) {
@@ -138,6 +140,7 @@ public class InventoryHostFacts {
     this.guestId = guestId;
     this.subscriptionManagerId = subscriptionManagerId;
     this.insightsId = insightsId;
+    this.providerId = providerId;
     this.billingModel = billingModel;
     this.cloudProvider = cloudProvider;
     this.staleTimestamp = staleTimestamp;

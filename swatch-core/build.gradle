@@ -24,7 +24,6 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-databind" // for use of objectmapper in EventRecord
     implementation "org.springframework.kafka:spring-kafka"
     implementation "io.micrometer:micrometer-core"
-    implementation "com.jayway.jsonpath:json-path"
     implementation libraries["splunk-library-javalogging"]
     implementation libraries["janino"]
     implementation (libraries["resteasy-spring-boot-starter"]) {

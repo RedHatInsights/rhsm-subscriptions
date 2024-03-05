@@ -27,7 +27,7 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 1,
-      "id": 674734,
+      "id": 676281,
       "links": [],
       "liveNow": false,
       "panels": [
@@ -395,7 +395,7 @@ data:
                 "h": 8,
                 "w": 12,
                 "x": 0,
-                "y": 25
+                "y": 33
               },
               "id": 88,
               "options": {
@@ -502,7 +502,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 26
+                "y": 34
               },
               "id": 47,
               "links": [],
@@ -636,7 +636,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 26
+                "y": 34
               },
               "hideTimeOverride": false,
               "id": 52,
@@ -768,7 +768,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 26
+                "y": 34
               },
               "id": 54,
               "links": [],
@@ -946,7 +946,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 18,
-                "y": 26
+                "y": 34
               },
               "id": 56,
               "links": [],
@@ -1076,7 +1076,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 35
+                "y": 43
               },
               "id": 92,
               "options": {
@@ -1183,7 +1183,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 0,
-                "y": 27
+                "y": 35
               },
               "id": 72,
               "options": {
@@ -1279,7 +1279,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 6,
-                "y": 27
+                "y": 35
               },
               "id": 40,
               "links": [],
@@ -1406,7 +1406,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 12,
-                "y": 27
+                "y": 35
               },
               "id": 59,
               "links": [],
@@ -1496,7 +1496,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 18,
-                "y": 27
+                "y": 35
               },
               "id": 4,
               "links": [],
@@ -1586,7 +1586,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 0,
-                "y": 37
+                "y": 45
               },
               "id": 41,
               "links": [],
@@ -1711,7 +1711,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 6,
-                "y": 37
+                "y": 45
               },
               "id": 8,
               "links": [],
@@ -1800,7 +1800,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 12,
-                "y": 37
+                "y": 45
               },
               "id": 10,
               "links": [],
@@ -1891,7 +1891,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 18,
-                "y": 37
+                "y": 45
               },
               "id": 96,
               "links": [],
@@ -2007,7 +2007,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 0,
-                "y": 5
+                "y": 13
               },
               "id": 63,
               "links": [],
@@ -2135,7 +2135,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 6,
-                "y": 5
+                "y": 13
               },
               "id": 64,
               "links": [],
@@ -2262,7 +2262,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 12,
-                "y": 5
+                "y": 13
               },
               "id": 66,
               "links": [],
@@ -2359,7 +2359,7 @@ data:
                 "h": 8,
                 "w": 6,
                 "x": 18,
-                "y": 5
+                "y": 13
               },
               "id": 68,
               "links": [],
@@ -2451,7 +2451,7 @@ data:
                 "h": 7,
                 "w": 6,
                 "x": 0,
-                "y": 13
+                "y": 21
               },
               "id": 94,
               "options": {
@@ -2588,7 +2588,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 6
+                "y": 14
               },
               "id": 32,
               "links": [],
@@ -2679,7 +2679,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 6
+                "y": 14
               },
               "id": 33,
               "links": [],
@@ -2769,7 +2769,7 @@ data:
                 "h": 9,
                 "w": 12,
                 "x": 12,
-                "y": 6
+                "y": 14
               },
               "id": 34,
               "links": [],
@@ -2860,7 +2860,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 0,
-                "y": 15
+                "y": 23
               },
               "id": 35,
               "links": [],
@@ -2951,7 +2951,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 6,
-                "y": 15
+                "y": 23
               },
               "id": 36,
               "links": [],
@@ -3044,7 +3044,7 @@ data:
                 "h": 11,
                 "w": 6,
                 "x": 12,
-                "y": 15
+                "y": 23
               },
               "id": 95,
               "links": [],
@@ -3159,7 +3159,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 0,
-                "y": 7
+                "y": 15
               },
               "id": 20,
               "links": [],
@@ -3254,7 +3254,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 6,
-                "y": 7
+                "y": 15
               },
               "id": 89,
               "links": [],
@@ -3349,7 +3349,7 @@ data:
                 "h": 9,
                 "w": 6,
                 "x": 12,
-                "y": 7
+                "y": 15
               },
               "id": 90,
               "links": [],
@@ -3443,7 +3443,7 @@ data:
                 "h": 10,
                 "w": 6,
                 "x": 18,
-                "y": 7
+                "y": 15
               },
               "id": 97,
               "links": [],
@@ -3997,6 +3997,99 @@ data:
         },
         {
           "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "normal"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "none"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 6,
+            "x": 6,
+            "y": 26
+          },
+          "id": 107,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "editorMode": "code",
+              "expr": "sum(kafka_consumergroup_group_lag{topic=~\".*platform.rhsm-subscriptions.billable-usage.dlt\"}) by (group, partition)",
+              "legendFormat": "partition {{ partition }}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Billable Usage Dead Letter Task Lag",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
             "uid": "${datasource}"
           },
           "fieldConfig": {
@@ -4053,7 +4146,7 @@ data:
           "gridPos": {
             "h": 9,
             "w": 6,
-            "x": 6,
+            "x": 12,
             "y": 26
           },
           "id": 82,
@@ -4160,7 +4253,7 @@ data:
           "gridPos": {
             "h": 9,
             "w": 6,
-            "x": 12,
+            "x": 18,
             "y": 26
           },
           "id": 99,
@@ -4289,7 +4382,7 @@ data:
       "timezone": "utc",
       "title": "Subscription Watch",
       "uid": "lkPhH-1Zk",
-      "version": 1,
+      "version": 2,
       "weekStart": ""
     }
 kind: ConfigMap

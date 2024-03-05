@@ -37,6 +37,7 @@ import org.candlepin.subscriptions.resource.ResourceUtils;
 import org.candlepin.subscriptions.security.SecurityProperties;
 import org.candlepin.subscriptions.subscription.SubscriptionPruneController;
 import org.candlepin.subscriptions.subscription.SubscriptionSyncController;
+import org.candlepin.subscriptions.util.OfferingProductTagLookupService;
 import org.candlepin.subscriptions.utilization.admin.api.InternalApi;
 import org.candlepin.subscriptions.utilization.admin.api.model.AwsUsageContext;
 import org.candlepin.subscriptions.utilization.admin.api.model.AzureUsageContext;
@@ -71,6 +72,7 @@ public class InternalSubscriptionResource implements InternalApi {
   private final MetricMapper metricMapper;
 
   private final ApplicationProperties applicationProperties;
+  private final OfferingProductTagLookupService offeringProductTagLookupService;
 
   @Autowired
   public InternalSubscriptionResource(
@@ -81,7 +83,8 @@ public class InternalSubscriptionResource implements InternalApi {
       OfferingSyncController offeringSync,
       CapacityReconciliationController capacityReconciliationController,
       MetricMapper metricMapper,
-      ApplicationProperties applicationProperties) {
+      ApplicationProperties applicationProperties,
+      OfferingProductTagLookupService offeringProductTagLookupService) {
     this.meterRegistry = meterRegistry;
     this.subscriptionSyncController = subscriptionSyncController;
     this.properties = properties;
@@ -108,6 +111,7 @@ public class InternalSubscriptionResource implements InternalApi {
     this.capacityReconciliationController = capacityReconciliationController;
     this.metricMapper = metricMapper;
     this.applicationProperties = applicationProperties;
+    this.offeringProductTagLookupService = offeringProductTagLookupService;
   }
 
   /**
@@ -250,7 +254,7 @@ public class InternalSubscriptionResource implements InternalApi {
    */
   @Override
   public OfferingProductTags getSkuProductTags(String sku) {
-    return subscriptionSyncController.findProductTags(sku);
+    return offeringProductTagLookupService.findPersistedProductTagsBySku(sku);
   }
 
   /**

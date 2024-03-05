@@ -20,26 +20,15 @@
  */
 package org.candlepin.subscriptions.clowder;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.Option;
-import com.jayway.jsonpath.PathNotFoundException;
-import com.jayway.jsonpath.spi.json.JacksonJsonNodeJsonProvider;
-import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
@@ -56,8 +45,24 @@ import org.springframework.web.context.support.StandardServletEnvironment;
 
 /**
  * Property source that attempts to resolve properties against the Clowder JSON using JSON Path.
- * This class resolves any property starting with "clowder." Everything after the "clowder." prefix
- * is evaluated as a JSON Path expression against the Clowder JSON and the result is returned.
+ * This class resolves any property starting with "clowder.". Everything after the "clowder." prefix
+ * is evaluated by using the following patterns:
+ *
+ * <ul>
+ *   <li>clowder.kafka.brokers
+ *   <li>clowder.kafka.brokers.(sasl.securityProtocol|sasl.mechanism|sasl.jaas.config|cacert|cacert.type)
+ *   <li>clowder.kafka.topics.<topics[?].requestedName(*)>.name
+ *   <li>clowder.endpoints.<endpoints[?].app>-<endpoints[?].name>.(url|trust-store-path|trust-store-password|trust-store-type).
+ *       For example: "clowder.endpoints.index-service.url"
+ *   <li>clowder.privateEndpoints.<privateEndpoints[?].app(*)>-<privateEndpoints[?].name(*)>.(url|trust-store-path|trust-store-password|trust-store-type).
+ *       For example: "clowder.privateEndpoints.index-service.url"
+ *   <li>When there is no matching rule from above, we navigate from (*) and extract the string
+ *       value directly from the clowder config file. For example: "clowder.database.name".
+ * </ul>
+ *
+ * (*) Coming from the clowder config file. For example: <a
+ * href="https://raw.githubusercontent.com/RedHatInsights/rhsm-subscriptions/main/swatch-core/src/test/resources/test-clowder-config.json">see
+ * example of a clowder config file</a>
  */
 @EqualsAndHashCode(callSuper = true)
 @Slf4j
@@ -65,8 +70,9 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
     implements OriginLookup<String> {
 
   public static final String PROPERTY_SOURCE_NAME = "Clowder JSON";
-  public static final String PREFIX = "clowder.";
+  public static final String CLOWDER = "clowder.";
   private static final String KAFKA_BROKERS = "kafka.brokers";
+  private static final String KAFKA_TOPICS = "kafka.topics";
   private static final String ENDPOINTS = "endpoints";
   private static final String PRIVATE_ENDPOINTS = "privateEndpoints";
   private static final Integer PORT_NOT_SET = 0;
@@ -91,6 +97,10 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
           ".cacert", ClowderJsonPathPropertySource::kafkaBrokerToCaCert,
           ".cacert.type", ClowderJsonPathPropertySource::kafkaBrokerToCaCertType);
 
+  /** Custom rules to configure the Kafka topics using clowder file. */
+  private static final Map<String, KafkaTopicConfigMapper> KAFKA_TOPICS_PROPERTIES =
+      Map.of(".name", ClowderJsonPathPropertySource::kafkaTopicToName);
+
   /** Custom rules to configure rest-clients using clowder file. */
   private static final Map<String, EndpointConfigMapper> ENDPOINTS_PROPERTIES =
       Map.of(
@@ -98,6 +108,17 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
           ".trust-store-path", ClowderJsonPathPropertySource::endpointToTrustStorePath,
           ".trust-store-password", ClowderJsonPathPropertySource::endpointToTrustStorePassword,
           ".trust-store-type", ClowderJsonPathPropertySource::endpointToTrustStoreType);
+
+  private final Map<String, Function<String, Object>> handledPropertyStrategies =
+      Map.of(
+          KAFKA_BROKERS,
+          this::getKafkaBrokerProperty,
+          KAFKA_TOPICS,
+          this::getKafkaTopicProperty,
+          ENDPOINTS,
+          this::getEndpointProperty,
+          PRIVATE_ENDPOINTS,
+          this::getEndpointProperty);
 
   private static final String SERVLET_ENVIRONMENT_CLASS =
       "org.springframework.web.context.support.StandardServletEnvironment";
@@ -108,20 +129,6 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
               StandardServletEnvironment.JNDI_PROPERTY_SOURCE_NAME,
               StandardServletEnvironment.SERVLET_CONTEXT_PROPERTY_SOURCE_NAME,
               StandardServletEnvironment.SERVLET_CONFIG_PROPERTY_SOURCE_NAME));
-
-  /* This initialization does tie our hands a bit. We can't inject an ObjectMapper of our
-   * choosing for example.  The JSONPath documentation states that Configuration changes during
-   * runtime are discouraged (although that comment is directed specifically to the change of the
-   * default Configuration).  I'm going to leave the Configuration as a static final for now but
-   * in the future, it may be necessary to create a Configuration in the constructor with the
-   * mappingProvider using an ObjectMapper we inject into the constructor.
-   */
-  public static final Configuration JSON_NODE_CONFIGURATION =
-      Configuration.builder()
-          .mappingProvider(new JacksonMappingProvider())
-          .jsonProvider(new JacksonJsonNodeJsonProvider())
-          .options(Option.ALWAYS_RETURN_LIST)
-          .build();
 
   private ClowderTrustStoreConfiguration trustStoreConfiguration;
 
@@ -135,30 +142,25 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
 
   @Override
   public Object getProperty(String name) {
-    if (!name.startsWith(PREFIX)) {
+    if (!name.startsWith(CLOWDER)) {
       return null;
     }
 
-    // handling for special properties like kafka brokers
-    if (name.contains(KAFKA_BROKERS)) {
-      String brokerConfig = name.substring(PREFIX.length() + KAFKA_BROKERS.length());
-      // special logic to provide a comma-separated list of kafka brokers
-      // value is expected to be a list of key-value collection with the broker configuration.
-      KafkaBrokerConfigMapper configFunction = KAFKA_BROKERS_PROPERTIES.get(brokerConfig);
-      if (configFunction != null) {
-        return getKafkaBrokerConfig(name, configFunction);
-      }
-    }
-    // handling for rest-clients for public or ports and determine the type
-    if (name.contains(ENDPOINTS) || name.contains(PRIVATE_ENDPOINTS)) {
-      for (Map.Entry<String, EndpointConfigMapper> entry : ENDPOINTS_PROPERTIES.entrySet()) {
-        if (name.endsWith(entry.getKey())) {
-          return determineEndpointConfig(name, entry.getValue());
-        }
+    String clowderProperty = name.replaceFirst(CLOWDER, "");
+
+    for (var strategy : handledPropertyStrategies.entrySet()) {
+      if (clowderProperty.startsWith(strategy.getKey())) {
+        return strategy.getValue().apply(clowderProperty);
       }
     }
 
-    return getJsonPathValue(name.substring(PREFIX.length()));
+    // fallback strategy, for example: resolve `database.name` as it is.
+    var value = source.getNode(clowderProperty);
+    if (value != null) {
+      return value.asText();
+    }
+
+    return null;
   }
 
   private Object determineEndpointConfig(String name, EndpointConfigMapper value) {
@@ -193,83 +195,6 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
     return ClowderTrustStoreConfiguration.CLOWDER_ENDPOINT_STORE_TYPE;
   }
 
-  protected Object getJsonPathValue(String path) {
-    JsonNode root = source.getRoot();
-
-    ArrayNode result;
-    try {
-      result = JsonPath.using(JSON_NODE_CONFIGURATION).parse(root).read(path);
-    } catch (PathNotFoundException e) {
-      /* Spring resolves properties in a recursive fashion.  For example, "${my.prop:defaultVal}"
-       * is first resolved as "my.prop:defaultVal" and if that doesn't resolve, Spring splits on the
-       * colon and then attempts to resolve "my.prop" and only then if "my.prop" isn't found does
-       * it return the default.  If the JSON Path isn't found, we need to return null so that
-       * Spring will continue the resolution process.
-       */
-      return null;
-    }
-
-    /* JSON Path expressions with a filter (like phoneNumbers[?(@.type=='home')]) are called
-     * indefinite since they can return zero or more results.  Indefinite results are always
-     * returned in a list while definite results (e.g. name) are scalars.  We turn on the
-     * Option.ALWAYS_RETURN_LIST option so that we get a consistent return type.
-     *
-     * If the list only has 1 element, it's either a definite result or an indefinite
-     * result with a size of 1, and we're going to want the sole element from the list, so we
-     * just unwrap it here.
-     */
-    if (result.size() == 1) {
-      return cast(result.get(0));
-    }
-
-    if (result.isEmpty()) {
-      return null;
-    }
-
-    return cast(result);
-  }
-
-  @SuppressWarnings("java:S3776")
-  protected Object cast(JsonNode node) {
-    if (node.isNull()) {
-      return null;
-    } else if (node.isBoolean()) {
-      return node.asBoolean();
-    } else if (node.isTextual()) {
-      return node.asText();
-    } else if (node.isFloatingPointNumber()) {
-      if (node.isBigDecimal()) {
-        return node.decimalValue();
-      } else {
-        return node.asDouble();
-      }
-    } else if (node.isIntegralNumber()) {
-      if (node.isBigInteger()) {
-        return node.bigIntegerValue();
-      } else if (node.canConvertToInt()) {
-        return node.asInt();
-      } else {
-        return node.asLong();
-      }
-    } else if (node.isArray()) {
-      List<Object> l = new ArrayList<>();
-      for (JsonNode listNode : node) {
-        l.add(cast(listNode));
-      }
-      return l;
-    } else if (node.isObject()) {
-      Map<Object, Object> m = new LinkedHashMap<>();
-
-      for (Iterator<String> it = node.fieldNames(); it.hasNext(); ) {
-        String key = it.next();
-        Object value = cast(node.get(key));
-        m.put(key, value);
-      }
-      return m;
-    }
-    throw new IllegalStateException("Unknown JsonNode type: " + node);
-  }
-
   @Override
   public Origin getOrigin(String key) {
     return new PropertySourceOrigin(this, PROPERTY_SOURCE_NAME);
@@ -289,6 +214,40 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
     } else {
       sources.addFirst(this);
     }
+  }
+
+  private Object getKafkaBrokerProperty(String name) {
+    String brokerConfig = name.substring(KAFKA_BROKERS.length());
+    // special logic to provide a comma-separated list of kafka brokers
+    // value is expected to be a list of key-value collection with the broker configuration.
+    KafkaBrokerConfigMapper configFunction = KAFKA_BROKERS_PROPERTIES.get(brokerConfig);
+    if (configFunction != null) {
+      return getKafkaBrokerConfig(configFunction);
+    }
+
+    return null;
+  }
+
+  private Object getKafkaTopicProperty(String name) {
+    if (name.contains(KAFKA_TOPICS)) {
+      for (Map.Entry<String, KafkaTopicConfigMapper> entry : KAFKA_TOPICS_PROPERTIES.entrySet()) {
+        if (name.endsWith(entry.getKey())) {
+          return getKafkaTopicConfig(name, entry.getValue());
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private Object getEndpointProperty(String name) {
+    for (Map.Entry<String, EndpointConfigMapper> entry : ENDPOINTS_PROPERTIES.entrySet()) {
+      if (name.endsWith(entry.getKey())) {
+        return determineEndpointConfig(name, entry.getValue());
+      }
+    }
+
+    return null;
   }
 
   public static Object kafkaBrokerToBootstrapServer(List<Map<String, Object>> brokerConfig) {
@@ -363,8 +322,12 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
     return null;
   }
 
+  public static Object kafkaTopicToName(Map<String, Object> topicConfig) {
+    return topicConfig.get("name");
+  }
+
   private void initializeTrustStoreConfiguration() {
-    Object tlsCAPath = getJsonPathValue("tlsCAPath");
+    Object tlsCAPath = source.getNodeAsString("tlsCAPath");
     if (tlsCAPath instanceof String tlsCAPathAsString && !tlsCAPathAsString.isBlank()) {
       trustStoreConfiguration = new ClowderTrustStoreConfiguration(tlsCAPathAsString);
     } else {
@@ -501,74 +464,62 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
     return StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME;
   }
 
-  @SuppressWarnings("unchecked")
-  private Object getKafkaBrokerConfig(String name, KafkaBrokerConfigMapper configFunction) {
-    Object value = getJsonPathValue(KAFKA_BROKERS);
+  private Object getKafkaBrokerConfig(KafkaBrokerConfigMapper configFunction) {
+    var brokers = source.getNodeAsListOfMaps(KAFKA_BROKERS);
     // NOTE: because we configure kafka in shared configuration, kafka config is included in
     // services that don't use kafka. Clowder doesn't populate kafka config for those services, so
     // we won't have a value to contribute.
-    if (value == null) {
+    if (brokers.isEmpty()) {
       return null;
     }
-    if (value instanceof Collection<?> list) {
-      if (list.isEmpty()) {
-        return null;
-      }
-      List<Map<String, Object>> brokers = list.stream().map(o -> (Map<String, Object>) o).toList();
-      return configFunction.apply(brokers);
-    } else {
-      throw new IllegalStateException(
-          "Unknown type found in clowder configuration for Kafka Broker property: " + name);
-    }
+    return configFunction.apply(brokers);
   }
 
   private Object getEndpointConfig(String name, EndpointConfigMapper configFunction) {
-    Object value = getJsonPathValue(ENDPOINTS);
-    if (value instanceof Collection<?> list) {
-      if (list.isEmpty()) {
-        return null;
-      }
-
-      String endpoint = extractEndpointName(name);
-      Map<String, Object> found =
-          list.stream()
-              .map(o -> (Map<String, Object>) o)
-              .filter(c -> endpoint.equals(getEndpointName(c)))
-              .findFirst()
-              .orElseThrow(
-                  () ->
-                      new IllegalStateException(
-                          "Could not find the endpoint configuration for property: " + name));
-      return configFunction.apply(this, found);
-    } else {
-      throw new IllegalStateException(
-          "Unknown type found in clowder configuration for endpoint property: " + name);
+    var endpoints = source.getNodeAsListOfMaps(ENDPOINTS);
+    if (endpoints.isEmpty()) {
+      return null;
     }
+    String endpoint = extractName(name, ENDPOINTS);
+    Map<String, Object> found =
+        endpoints.stream()
+            .filter(c -> endpoint.equals(getEndpointName(c)))
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "Could not find the endpoint configuration for property: " + name));
+    return configFunction.apply(this, found);
   }
 
   private Object getPrivateEndpointConfig(String name, EndpointConfigMapper configFunction) {
-    Object value = getJsonPathValue(PRIVATE_ENDPOINTS);
-    if (value instanceof Collection<?> list) {
-      if (list.isEmpty()) {
-        return null;
-      }
-
-      String endpoint = extractPrivateEndpointName(name);
-      Map<String, Object> found =
-          list.stream()
-              .map(o -> (Map<String, Object>) o)
-              .filter(c -> endpoint.equals(getEndpointName(c)))
-              .findFirst()
-              .orElseThrow(
-                  () ->
-                      new IllegalStateException(
-                          "Could not find the private endpoint configuration for property: "
-                              + name));
-      return configFunction.apply(this, found);
-    } else {
-      throw new IllegalStateException(
-          "Unknown type found in clowder configuration for private endpoint property: " + name);
+    var endpoints = source.getNodeAsListOfMaps(PRIVATE_ENDPOINTS);
+    if (endpoints.isEmpty()) {
+      return null;
     }
+    String endpoint = extractName(name, PRIVATE_ENDPOINTS);
+    Map<String, Object> found =
+        endpoints.stream()
+            .filter(c -> endpoint.equals(getEndpointName(c)))
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "Could not find the private endpoint configuration for property: " + name));
+    return configFunction.apply(this, found);
+  }
+
+  private Object getKafkaTopicConfig(String name, KafkaTopicConfigMapper configFunction) {
+    var topics = source.getNodeAsListOfMaps(KAFKA_TOPICS);
+    if (topics.isEmpty()) {
+      return null;
+    }
+    String topic = extractName(name, KAFKA_TOPICS);
+    return topics.stream()
+        .filter(c -> topic.equals(c.get("requestedName")))
+        .findFirst()
+        .map(configFunction)
+        .orElse(null);
   }
 
   @SuppressWarnings("unchecked")
@@ -597,14 +548,13 @@ public class ClowderJsonPathPropertySource extends PropertySource<ClowderJson>
   @FunctionalInterface
   private interface KafkaBrokerConfigMapper extends Function<List<Map<String, Object>>, Object> {}
 
-  private String extractEndpointName(String name) {
-    String part = name.substring(PREFIX.length() + ENDPOINTS.length() + 1);
-    return part.substring(0, part.indexOf("."));
-  }
+  @FunctionalInterface
+  private interface KafkaTopicConfigMapper extends Function<Map<String, Object>, Object> {}
 
-  private String extractPrivateEndpointName(String name) {
-    String part = name.substring(PREFIX.length() + PRIVATE_ENDPOINTS.length() + 1);
-    return part.substring(0, part.indexOf("."));
+  private String extractName(String property, String prefix) {
+    String part = property.substring(prefix.length() + 1);
+    String name = part.substring(0, part.lastIndexOf("."));
+    return name.replaceAll(Pattern.quote("\""), "");
   }
 
   private static String getEndpointName(Map<String, Object> endpointConfig) {

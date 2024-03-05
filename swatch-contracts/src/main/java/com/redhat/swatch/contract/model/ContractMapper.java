@@ -159,7 +159,7 @@ public interface ContractMapper {
   @Mapping(target = "startDate", source = "entitlementDates.startDate")
   @Mapping(target = "endDate", source = "entitlementDates.endDate")
   @Mapping(target = "productId", ignore = true)
-  @Mapping(target = "vendorProductCode", ignore = true)
+  @Mapping(target = "vendorProductCode", source = "entitlement.purchase.vendorProductCode")
   void mapRhEntitlementsToContractEntity(
       @MappingTarget ContractEntity contractEntity, PartnerEntitlementV1 entitlement);
 

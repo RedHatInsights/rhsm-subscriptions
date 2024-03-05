@@ -20,6 +20,7 @@
  */
 package com.redhat.swatch.contract.repository;
 
+import io.quarkus.panache.common.Parameters;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.List;
 import java.util.UUID;
@@ -39,6 +40,12 @@ public class ContractRepository implements PanacheSpecificationSupport<ContractE
 
   public List<ContractEntity> getContractsByOrgId(String orgId) {
     return find("orgId", orgId).list();
+  }
+
+  public long deleteContractsByOrgIdForEmptyValues(String orgId) {
+    return delete(
+        "orgId = :orgId and (billingProviderId is null or billingProviderId='' or endDate is null)",
+        Parameters.with("orgId", orgId));
   }
 
   public ContractEntity findContract(UUID uuid) {

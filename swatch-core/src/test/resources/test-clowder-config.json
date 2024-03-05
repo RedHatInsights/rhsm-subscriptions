@@ -17,12 +17,6 @@
             "port": 8000
         },
         {
-            "app": "rbac",
-            "hostname": "rbac-service.rhsm.svc",
-            "name": "service",
-            "port": 8000
-        },
-        {
             "app": "index",
             "hostname": "index.rhsm.svc",
             "name": "service",

@@ -113,6 +113,13 @@ public class OfferingEntity implements Serializable {
   @Column(name = "oid")
   private Set<Integer> productIds = new HashSet<>();
 
+  /** Product tags related to a sku */
+  @Builder.Default
+  @ElementCollection
+  @CollectionTable(name = "sku_product_tag", joinColumns = @JoinColumn(name = "sku"))
+  @Column(name = "product_tag")
+  private Set<String> productTags = new HashSet<>();
+
   /** Effective standard CPU cores capacity per quantity of subscription to this offering. */
   @Column(name = "cores")
   private Integer cores;
@@ -149,6 +156,9 @@ public class OfferingEntity implements Serializable {
   @Column(name = "derived_sku")
   private String derivedSku;
 
+  @Column(name = "metered")
+  private Boolean metered;
+
   public Boolean getHasUnlimitedUsage() {
     return hasUnlimitedUsage;
   }
@@ -174,7 +184,9 @@ public class OfferingEntity implements Serializable {
         && serviceLevel == offering.serviceLevel
         && usage == offering.usage
         && Objects.equals(hasUnlimitedUsage, offering.hasUnlimitedUsage)
-        && Objects.equals(derivedSku, offering.derivedSku);
+        && Objects.equals(derivedSku, offering.derivedSku)
+        && Objects.equals(metered, offering.metered)
+        && Objects.equals(productTags, offering.productTags);
   }
 
   @Override
@@ -192,6 +204,8 @@ public class OfferingEntity implements Serializable {
         serviceLevel,
         usage,
         hasUnlimitedUsage,
-        derivedSku);
+        derivedSku,
+        metered,
+        productTags);
   }
 }

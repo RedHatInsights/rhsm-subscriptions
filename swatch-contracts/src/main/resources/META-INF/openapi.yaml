@@ -252,6 +252,12 @@ paths:
             type: string
           in: path
           required: true
+        - name: is_pre_cleanup
+          description: "When present, then delete existing contracts based on criteria"
+          schema:
+            type: boolean
+            default: false
+          in: query
       summary: "Sync contracts for given org_id."
       responses:
         '200':

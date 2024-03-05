@@ -129,7 +129,10 @@ class AccountServiceInventoryRepositoryTest {
     host.getBuckets().add(bucket);
 
     accountServiceInventory.getServiceInstances().put(instanceId, host);
-    repo.save(accountServiceInventory);
+    var inventory = repo.save(accountServiceInventory);
+    // Update with the persisted object so that the generated IDs will be present in the
+    // HostBucketKeys.  See HHH-17634
+    host = inventory.getServiceInstances().get(instanceId);
     repo.flush();
 
     AccountServiceInventory fetched =

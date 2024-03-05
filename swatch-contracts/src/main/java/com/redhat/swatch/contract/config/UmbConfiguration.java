@@ -33,10 +33,10 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @Slf4j
 public class UmbConfiguration {
 
-  @ConfigProperty(name = "KEYSTORE_PATH")
+  @ConfigProperty(name = "UMB_KEYSTORE_PATH")
   Optional<String> keystorePath;
 
-  @ConfigProperty(name = "KEYSTORE_PASSWORD")
+  @ConfigProperty(name = "UMB_KEYSTORE_PASSWORD")
   Optional<String> keystorePassword;
 
   @ConfigProperty(name = "TRUSTSTORE_PATH")

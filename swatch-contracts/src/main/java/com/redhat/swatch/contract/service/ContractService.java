@@ -262,6 +262,10 @@ public class ContractService {
       return ContractMessageProcessingResult.PARTNER_API_FAILURE;
     }
 
+    return upsertPartnerContract(entity);
+  }
+
+  private ContractMessageProcessingResult upsertPartnerContract(ContractEntity entity) {
     List<ContractEntity> existingContractRecords = findExistingContractRecords(entity);
     // There may be multiple "versions" of a contract, e.g. if a contract quantity changes.
     // We should make updates as necessary to each, it's possible to update both the metadata and
@@ -401,46 +405,41 @@ public class ContractService {
   }
 
   @Transactional
-  public StatusResponse syncContractByOrgId(String contractOrgSync, OffsetDateTime asOfTimestamp) {
+  public StatusResponse syncContractByOrgId(String contractOrgSync, boolean isPreCleanup) {
     StatusResponse statusResponse = new StatusResponse();
 
     try {
-      var currentContracts = listCurrentlyActiveContractsByOrgId(contractOrgSync, asOfTimestamp);
-
-      if (currentContracts.isEmpty()) {
-        log.debug("No active contract for {}", contractOrgSync);
-        return statusResponse
-            .status(FAILURE_MESSAGE)
-            .message(contractOrgSync + " not found in table");
+      if (isPreCleanup) {
+        long deletedRecords = deleteCurrentlyActiveContractsByOrgId(contractOrgSync);
+        log.info(
+            "Total contract deleted for org {} during pre cleanup {}",
+            contractOrgSync,
+            deletedRecords);
       }
-
-      for (ContractEntity contract : currentContracts) {
-        var result =
-            partnerApi.getPartnerEntitlements(
-                new QueryPartnerEntitlementV1()
-                    .rhAccountId(contract.getOrgId())
-                    .customerAwsAccountId(contract.getBillingAccountId())
-                    .vendorProductCode(contract.getVendorProductCode())
-                    .source(contract.getBillingProvider()));
-        if (Objects.nonNull(result.getContent()) && !result.getContent().isEmpty()) {
-          var entitlementEntity =
-              transformEntitlementToContractEntity(result.getContent(), contract);
-          if (Objects.nonNull(entitlementEntity)) {
-            log.info("Syncing new Contract for {}", contractOrgSync);
-            statusResponse.setStatus(SUCCESS_MESSAGE);
-            var now = OffsetDateTime.now();
-            if (entitlementEntity.getSubscriptionNumber() != null) {
-              persistSubscription(createSubscriptionForContract(entitlementEntity, true));
-            }
-            persistContract(entitlementEntity, now);
-          } else {
-            statusResponse.setStatus(FAILURE_MESSAGE);
-            statusResponse.setMessage("Entitlement Cannot be found for " + contractOrgSync);
-            return statusResponse;
+      PageRequest page = new PageRequest();
+      page.setSize(20);
+      page.setNumber(0);
+      var result =
+          partnerApi.getPartnerEntitlements(
+              new QueryPartnerEntitlementV1().rhAccountId(contractOrgSync).page(page));
+      log.debug(
+          "Contracts fetched for org {} from upstream {}", contractOrgSync, result.toString());
+      if (Objects.nonNull(result.getContent()) && !result.getContent().isEmpty()) {
+        for (PartnerEntitlementV1 partnerEntitlement : result.getContent()) {
+          ContractEntity entity = new ContractEntity();
+          if (Objects.nonNull(result.getContent())
+              && !result.getContent().isEmpty()
+              && Objects.nonNull(partnerEntitlement)) {
+            mapSingleUpstreamContractToContractEntity(entity, partnerEntitlement);
+            upsertPartnerContract(entity);
           }
         }
+        statusResponse.setMessage("Contracts Synced for " + contractOrgSync);
+        statusResponse.setStatus(SUCCESS_MESSAGE);
+      } else {
+        statusResponse.setMessage("No contracts found in upstream for the org " + contractOrgSync);
+        statusResponse.setStatus(FAILURE_MESSAGE);
       }
-      statusResponse.setMessage("Contracts Synced for " + contractOrgSync);
     } catch (NumberFormatException e) {
       log.error(e.getMessage());
       statusResponse.setStatus(FAILURE_MESSAGE);
@@ -540,53 +539,8 @@ public class ContractService {
     return contractRepository.findContracts(specification).toList();
   }
 
-  private List<ContractEntity> listCurrentlyActiveContractsByOrgId(
-      String orgId, OffsetDateTime asOfTimestamp) {
-    Specification<ContractEntity> specification =
-        ContractEntity.orgIdEquals(orgId).and(ContractEntity.activeOn(asOfTimestamp));
-    return contractRepository.getContracts(specification);
-  }
-
-  private ContractEntity transformEntitlementToContractEntity( // NOSONAR
-      List<PartnerEntitlementV1> entitlements, ContractEntity prevEntity) throws ApiException {
-    if (Objects.nonNull(entitlements) && Objects.nonNull(entitlements.get(0))) {
-      // This is so that current entities have the other fields not being updated here,
-      // so it can be persisted without missing information
-      var entitlement = entitlements.get(0);
-
-      if (Objects.nonNull(prevEntity.getEndDate())
-          && Objects.nonNull(entitlement.getEntitlementDates())
-          && prevEntity.getEndDate().isAfter(entitlement.getEntitlementDates().getEndDate())) {
-        log.debug("This Contract is No longer active for {}", prevEntity.getOrgId());
-        return prevEntity;
-      }
-
-      prevEntity.setOrgId(entitlement.getRhAccountId());
-      prevEntity.setBillingProvider(entitlement.getSourcePartner().value());
-      var partnerIdentity = entitlement.getPartnerIdentities();
-      if (Objects.nonNull(partnerIdentity)) {
-        prevEntity.setBillingAccountId(partnerIdentity.getCustomerAwsAccountId());
-
-        var rhEntitlements = entitlement.getRhEntitlements();
-        if (Objects.nonNull(rhEntitlements)
-            && !rhEntitlements.isEmpty()
-            && Objects.nonNull(rhEntitlements.get(0))) {
-          var subscription = rhEntitlements.get(0).getSubscriptionNumber();
-          var sku = rhEntitlements.get(0).getSku();
-          prevEntity.setSku(sku);
-          prevEntity.setSubscriptionNumber(subscription);
-          OfferingProductTags productTags = syncService.getOfferingProductTags(sku);
-          if (Objects.nonNull(productTags.getData())
-              && Objects.nonNull(productTags.getData().get(0))) {
-            prevEntity.setProductId(productTags.getData().get(0));
-          } else {
-            log.error("Error getting product tags");
-          }
-        }
-      }
-      return prevEntity;
-    }
-    return null;
+  private long deleteCurrentlyActiveContractsByOrgId(String orgId) {
+    return contractRepository.deleteContractsByOrgIdForEmptyValues(orgId);
   }
 
   // Retry, except when the org has not yet been associated, as that requires some lengthy backend
@@ -618,7 +572,7 @@ public class ContractService {
                     .customerAwsAccountId(customerAccountId)
                     .vendorProductCode(productCode)
                     .page(page));
-        mapUpstreamContractToContractEntity(entity, result);
+        mapUpstreamContractsToContractEntity(entity, result);
       }
     }
     if (Objects.equals(marketplace, ContractSourcePartnerEnum.AZURE.getValue())) {
@@ -636,7 +590,7 @@ public class ContractService {
         var result =
             partnerApi.getPartnerEntitlements(
                 new QueryPartnerEntitlementV1().azureResourceId(customerAccountId).page(page));
-        mapUpstreamContractToContractEntity(entity, result);
+        mapUpstreamContractsToContractEntity(entity, result);
       }
     }
     if (entity.getOrgId() == null) {
@@ -657,37 +611,39 @@ public class ContractService {
     return null;
   }
 
-  private void mapUpstreamContractToContractEntity(
+  private void mapUpstreamContractsToContractEntity(
       ContractEntity entity, PartnerEntitlements result) {
     if (Objects.nonNull(result.getContent())
         && !result.getContent().isEmpty()
         && Objects.nonNull(result.getContent().get(0))) {
-      var entitlement = result.getContent().get(0);
-
-      if (Objects.equals(entitlement.getSourcePartner(), SourcePartnerEnum.AWS_MARKETPLACE)) {
-        entity.setBillingProviderId(
-            String.format(
-                "%s;%s;%s",
-                entitlement.getPurchase().getVendorProductCode(),
-                entitlement.getPartnerIdentities().getAwsCustomerId(),
-                entitlement.getPartnerIdentities().getSellerAccountId()));
-      }
-      mapper.mapRhEntitlementsToContractEntity(entity, entitlement);
-
-      var dimensionV1s =
-          entitlement.getPurchase().getContracts().stream()
-              .filter(contract -> Objects.isNull(contract.getEndDate()))
-              .flatMap(contract -> contract.getDimensions().stream())
-              .collect(Collectors.toSet());
-      entity.addMetrics(mapper.dimensionV1ToContractMetricEntity(dimensionV1s));
-      if (Objects.isNull(entity.getSubscriptionNumber())) {
-        entity.setSubscriptionNumber(
-            mapper.getRhSubscriptionNumber(entitlement.getRhEntitlements()));
-      }
-      populateProductIdBySku(entity);
+      mapSingleUpstreamContractToContractEntity(entity, result.getContent().get(0));
     } else {
       log.error("No results found from partner entitlement for contract {}", entity.toString());
     }
+  }
+
+  private void mapSingleUpstreamContractToContractEntity(
+      ContractEntity entity, PartnerEntitlementV1 entitlement) {
+    if (Objects.equals(entitlement.getSourcePartner(), SourcePartnerEnum.AWS_MARKETPLACE)) {
+      entity.setBillingProviderId(
+          String.format(
+              "%s;%s;%s",
+              entitlement.getPurchase().getVendorProductCode(),
+              entitlement.getPartnerIdentities().getAwsCustomerId(),
+              entitlement.getPartnerIdentities().getSellerAccountId()));
+    }
+    mapper.mapRhEntitlementsToContractEntity(entity, entitlement);
+
+    var dimensionV1s =
+        entitlement.getPurchase().getContracts().stream()
+            .filter(contract -> Objects.isNull(contract.getEndDate()))
+            .flatMap(contract -> contract.getDimensions().stream())
+            .collect(Collectors.toSet());
+    entity.addMetrics(mapper.dimensionV1ToContractMetricEntity(dimensionV1s));
+    if (Objects.isNull(entity.getSubscriptionNumber())) {
+      entity.setSubscriptionNumber(mapper.getRhSubscriptionNumber(entitlement.getRhEntitlements()));
+    }
+    populateProductIdBySku(entity);
   }
 
   private void populateProductIdBySku(ContractEntity entity) {

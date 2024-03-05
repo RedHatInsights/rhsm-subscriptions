@@ -21,22 +21,15 @@
 package org.candlepin.subscriptions.clowder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.isA;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Charsets;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
-import org.apache.commons.io.IOUtils;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -53,155 +46,9 @@ import org.springframework.web.context.support.StandardServletEnvironment;
 @ContextConfiguration
 class ClowderJsonPathPropertySourceTest {
   public static final String TEST_CLOWDER_CONFIG_JSON = "classpath:/test-clowder-config.json";
-  public static final String COMPLEX_JSON =
-      "{\"phoneNumbers\": ["
-          + "    {"
-          + "      \"type\"  : \"work\","
-          + "      \"number\": \"515-555-1212\""
-          + "    },"
-          + "    {"
-          + "      \"type\"  : \"home\","
-          + "      \"number\": \"515-555-8888\""
-          + "    }"
-          + "  ]}";
 
   private final ConfigurableEnvironment environment = new StandardEnvironment();
   private final DeferredLogFactory logFactory = Supplier::get;
-
-  @Test
-  void testGetProperty() throws Exception {
-    var source = new ClowderJsonPathPropertySource(jsonFromResource(TEST_CLOWDER_CONFIG_JSON));
-    var result = source.getProperty("clowder.endpoints[?(@.app == 'rbac')]");
-    assertNotNull(result);
-  }
-
-  @Test
-  void testGetPrivateProperty() throws Exception {
-    var source = new ClowderJsonPathPropertySource(jsonFromResource(TEST_CLOWDER_CONFIG_JSON));
-    var result = source.getProperty("clowder.privateEndpoints[?(@.app == 'export-service')]");
-    assertNotNull(result);
-  }
-
-  @Test
-  void testJsonPathForInt() throws Exception {
-    var s = "{\"foo\": 3}";
-    var source = new ClowderJsonPathPropertySource(jsonFromString(s));
-    var result = source.getJsonPathValue("foo");
-
-    assertThat(result, isA(Integer.class));
-    assertEquals(3, (Integer) result);
-  }
-
-  @Test
-  void testJsonPathForDouble() throws Exception {
-    var s = "{\"foo\": 3.14158}";
-    var source = new ClowderJsonPathPropertySource(jsonFromString(s));
-    var result = source.getJsonPathValue("foo");
-
-    assertThat(result, isA(Double.class));
-    assertEquals(3.14158, (Double) result);
-  }
-
-  @Test
-  void testJsonPathForLong() throws Exception {
-    String val = Long.toString(Long.MAX_VALUE);
-    var s = "{\"foo\": " + val + "}";
-    var source = new ClowderJsonPathPropertySource(jsonFromString(s));
-    var result = source.getJsonPathValue("foo");
-
-    assertThat(result, isA(Long.class));
-    assertEquals(Long.MAX_VALUE, result);
-  }
-
-  @Test
-  void testJsonPathForBigInt() throws Exception {
-    String val = "10000" + Long.MAX_VALUE;
-    var s = "{\"foo\": " + val + "}";
-    var source = new ClowderJsonPathPropertySource(jsonFromString(s));
-    var result = source.getJsonPathValue("foo");
-
-    assertThat(result, isA(BigInteger.class));
-    assertEquals(new BigInteger(val), result);
-  }
-
-  @Test
-  void testJsonPathForBoolean() throws Exception {
-    var s = "{\"foo\": true}";
-    var source = new ClowderJsonPathPropertySource(jsonFromString(s));
-    var result = source.getJsonPathValue("foo");
-
-    assertThat(result, isA(Boolean.class));
-    assertEquals(true, result);
-  }
-
-  @Test
-  void testJsonPathForNull() throws Exception {
-    var s = "{\"foo\": null}";
-    var source = new ClowderJsonPathPropertySource(jsonFromString(s));
-    var result = source.getJsonPathValue("foo");
-
-    assertNull(result);
-  }
-
-  @Test
-  void testJsonPathForString() throws Exception {
-    var s = "{\"foo\": \"bar\"}";
-    var source = new ClowderJsonPathPropertySource(jsonFromString(s));
-    var result = source.getJsonPathValue("foo");
-
-    assertEquals("bar", result);
-  }
-
-  @Test
-  void testJsonPathForListOfMaps() throws Exception {
-    var source = new ClowderJsonPathPropertySource(jsonFromString(COMPLEX_JSON));
-    var result = source.getJsonPathValue("phoneNumbers");
-
-    Map<String, String> m1 = Map.of("type", "work", "number", "515-555-1212");
-    Map<String, String> m2 = Map.of("type", "home", "number", "515-555-8888");
-    List<Map<String, String>> expected = List.of(m1, m2);
-
-    assertEquals(expected, result);
-  }
-
-  @Test
-  void testJsonPathForFilterWithNoResults() throws Exception {
-    var source = new ClowderJsonPathPropertySource(jsonFromString(COMPLEX_JSON));
-    var result = source.getJsonPathValue("phoneNumbers[?(@.type == 'missing')].number");
-
-    assertNull(result);
-  }
-
-  @Test
-  void testJsonPathWithFilter() throws Exception {
-    var source = new ClowderJsonPathPropertySource(jsonFromString(COMPLEX_JSON));
-    var result = source.getJsonPathValue("phoneNumbers[?(@.type == 'home')].number");
-
-    assertEquals("515-555-8888", result);
-  }
-
-  @Test
-  void testJsonPathForMapOfLists() throws Exception {
-    var s =
-        "{"
-            + "\"desserts\": [\"cake\", \"cookies\", \"ice cream\"],"
-            + "\"vegetables\": [\"carrots\", \"celery\", \"broccoli\"]"
-            + "}";
-    var source = new ClowderJsonPathPropertySource(jsonFromString(s));
-    // "$" is the root node
-    var result = source.getJsonPathValue("$");
-
-    List<String> l1 = List.of("cake", "cookies", "ice cream");
-    List<String> l2 = List.of("carrots", "celery", "broccoli");
-
-    Map<String, List<String>> expected = Map.of("desserts", l1, "vegetables", l2);
-    assertEquals(expected, result);
-  }
-
-  private ClowderJson jsonFromString(String json) throws IOException {
-    var s = IOUtils.toInputStream(json, Charsets.UTF_8);
-    return new ClowderJson(s, new ObjectMapper());
-  }
 
   private ClowderJson jsonFromResource(String location) throws IOException {
     var s = new DefaultResourceLoader().getResource(location).getInputStream();
@@ -235,10 +82,6 @@ class ClowderJsonPathPropertySourceTest {
     assertThat(
         environment.getPropertySources(),
         Matchers.containsInRelativeOrder(custom, json, servlet, jndi));
-  }
-
-  private MapPropertySource getPropertySource(String name, String value) {
-    return new MapPropertySource(name, Collections.singletonMap("clowder.database.name", value));
   }
 
   @Test
@@ -279,7 +122,9 @@ class ClowderJsonPathPropertySourceTest {
         "clowder.endpoints.index-service.trust-store-path|file:/tmp/truststore.*.trust",
         "clowder.endpoints.index-service.trust-store-password|.+",
         "clowder.endpoints.index-service.trust-store-type|PKCS12",
-        "clowder.privateEndpoints.export-service-service.url|http://export-service-service.svc:10000"
+        "clowder.privateEndpoints.export-service-service.url|http://export-service-service.svc:10000",
+        "clowder.kafka.topics.\"platform.rhsm-subscriptions.tally\".name|platform.rhsm-subscriptions.tally-env-rhsm-rhsm",
+        "clowder.kafka.topics.platform.rhsm-subscriptions.tasks.name|platform.rhsm-subscriptions.tasks-env-rhsm-rhsm"
       },
       delimiter = '|')
   void testCustomLogicInProperties(String property, String expectedValue) throws Exception {
@@ -300,5 +145,9 @@ class ClowderJsonPathPropertySourceTest {
     clowder.addToEnvironment(environment, logFactory.getLog(ClowderJsonPathPropertySource.class));
 
     assertEquals("swatch-tally-db", environment.getProperty("clowder.database.name"));
+  }
+
+  private MapPropertySource getPropertySource(String name, String value) {
+    return new MapPropertySource(name, Collections.singletonMap("clowder.database.name", value));
   }
 }

@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.subscription;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.MoreCollectors;
-import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -48,7 +47,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationController;
 import org.candlepin.subscriptions.capacity.files.ProductDenylist;
@@ -62,7 +60,6 @@ import org.candlepin.subscriptions.db.model.Subscription.SubscriptionCompoundId;
 import org.candlepin.subscriptions.db.model.Subscription_;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.ErrorCode;
-import org.candlepin.subscriptions.exception.MissingOfferingException;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.product.OfferingSyncController;
 import org.candlepin.subscriptions.product.SyncResult;
@@ -71,7 +68,6 @@ import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.umb.SubscriptionProductStatus;
 import org.candlepin.subscriptions.umb.UmbSubscription;
-import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTags;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Sort;
@@ -664,41 +660,5 @@ public class SubscriptionSyncController {
     }
 
     return result;
-  }
-
-  /**
-   * This will allow any service to look up the swatch product(s) associated with a given SKU. (This
-   * lookup will use the offering information already stored in the database) and map the
-   * `product_name` to a swatch `product_tag` via info from `swatch-product-configuration` library.
-   * If the offering does not exist then return 404. If it does exist, then return an empty list if
-   * there are no tags found for that particular offering.
-   *
-   * @param sku
-   * @return OfferingProductTags
-   */
-  public OfferingProductTags findProductTags(String sku) {
-    OfferingProductTags productTags = new OfferingProductTags();
-    var offering = offeringRepository.findOfferingBySku(sku);
-    if (offering == null) {
-      throw new MissingOfferingException(
-          ErrorCode.OFFERING_MISSING_ERROR,
-          Response.Status.NOT_FOUND,
-          String.format("Sku %s not found in Offering", sku),
-          null);
-    }
-
-    // lookup product tags by either role or eng IDs
-    SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-            offering.getRole(), offering.getProductIds())
-        .forEach(productTags::addDataItem);
-    // if not found, let's use the product name
-    if (offering.isMetered()
-        && (productTags.getData() == null || productTags.getData().isEmpty())
-        && StringUtils.isNotEmpty(offering.getProductName())) {
-      Variant.findByProductName(offering.getProductName())
-          .ifPresent(v -> productTags.addDataItem(v.getTag()));
-    }
-
-    return productTags;
   }
 }

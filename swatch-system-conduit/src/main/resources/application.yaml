@@ -1,5 +1,5 @@
-CONDUIT_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-conduit.tasks')].name:platform.rhsm-conduit.tasks}
-INVENTORY_HOST_INGRESS_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.inventory.host-ingress')].name:platform.inventory.host-ingress}
+CONDUIT_TOPIC: ${clowder.kafka.topics."platform.rhsm-conduit.tasks".name:platform.rhsm-conduit.tasks}
+INVENTORY_HOST_INGRESS_TOPIC: ${clowder.kafka.topics."platform.inventory.host-ingress".name:platform.inventory.host-ingress}
 
 spring:
   config:

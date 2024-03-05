@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.*;
 
 /**
@@ -100,6 +101,13 @@ public class Variant {
         .flatMap(List::stream)
         .filter(v -> v.getProductNames().contains(productName))
         .findFirst();
+  }
+
+  public static Stream<Variant> filterVariantsByProductName(String productName) {
+    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
+        .map(SubscriptionDefinition::getVariants)
+        .flatMap(List::stream)
+        .filter(v -> v.getProductNames().contains(productName));
   }
 
   public static Set<String> getProductNamesForTag(String productId) {

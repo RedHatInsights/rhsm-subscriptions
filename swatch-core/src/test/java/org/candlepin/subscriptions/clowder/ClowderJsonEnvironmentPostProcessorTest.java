@@ -48,8 +48,6 @@ class ClowderJsonEnvironmentPostProcessorTest {
     addClowderJson();
 
     postProcessor.postProcessEnvironment(environment, null);
-    assertEquals(
-        "env-rhsm-kafka.rhsm.svc", environment.getProperty("clowder.kafka.brokers[0].hostname"));
     assertEquals("swatch-tally-db", environment.getProperty("clowder.database.name"));
   }
 

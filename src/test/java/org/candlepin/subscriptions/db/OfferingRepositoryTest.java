@@ -56,6 +56,7 @@ class OfferingRepositoryTest {
     offering.setProductFamily("test");
     offering.setProductName("test");
     offering.setDescription("test sku");
+    offering.setMetered(false);
     repository.save(offering);
     final Offering actual = repository.getOne("testsku");
     assertEquals(offering, actual);

@@ -1,8 +1,8 @@
-OFFERING_SYNC_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.offering-sync')].name:platform.rhsm-subscriptions.offering-sync}
-SUBSCRIPTION_SYNC_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.subscription-sync')].name:platform.rhsm-subscriptions.subscription-sync}
-SUBSCRIPTION_PRUNE_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.subscription-prune')].name:platform.rhsm-subscriptions.subscription-prune}
-CAPACITY_RECONCILE_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.capacity-reconcile')].name:platform.rhsm-subscriptions.capacity-reconcile}
-SUBSCRIPTION_EXPORT_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.export.requests')].name:platform.export.requests}
+OFFERING_SYNC_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.offering-sync".name:platform.rhsm-subscriptions.offering-sync}
+SUBSCRIPTION_SYNC_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.subscription-sync".name:platform.rhsm-subscriptions.subscription-sync}
+SUBSCRIPTION_PRUNE_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.subscription-prune".name:platform.rhsm-subscriptions.subscription-prune}
+CAPACITY_RECONCILE_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.capacity-reconcile".name:platform.rhsm-subscriptions.capacity-reconcile}
+SUBSCRIPTION_EXPORT_TOPIC: ${clowder.kafka.topics."platform.export.requests".name:platform.export.requests}
 
 
 rhsm-subscriptions:

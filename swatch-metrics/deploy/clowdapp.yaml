@@ -185,7 +185,7 @@ objects:
                   fieldRef:
                     apiVersion: v1
                     fieldPath: metadata.namespace
-              - name: SPLUNKMETA_host
+              - name: HOST_NAME
                 valueFrom:
                   fieldRef:
                     apiVersion: v1
@@ -382,7 +382,7 @@ objects:
                   fieldRef:
                     apiVersion: v1
                     fieldPath: metadata.namespace
-              - name: SPLUNKMETA_host
+              - name: HOST_NAME
                 valueFrom:
                   fieldRef:
                     apiVersion: v1

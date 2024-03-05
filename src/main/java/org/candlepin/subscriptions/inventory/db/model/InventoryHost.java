@@ -74,6 +74,7 @@ import lombok.Setter;
             @ColumnResult(name = "guest_id"),
             @ColumnResult(name = "subscription_manager_id"),
             @ColumnResult(name = "insights_id"),
+            @ColumnResult(name = "provider_id"),
             @ColumnResult(name = "cloud_provider"),
             @ColumnResult(name = "stale_timestamp", type = OffsetDateTime.class),
             @ColumnResult(name = "hardware_subman_id")
@@ -121,6 +122,7 @@ import lombok.Setter;
         h.system_profile_facts->>'is_marketplace' as is_marketplace,
         h.canonical_facts->>'subscription_manager_id' as subscription_manager_id,
         h.canonical_facts->>'insights_id' as insights_id,
+        h.canonical_facts->>'provider_id' as provider_id,
         rhsm_products.products,
         qpc_prods.qpc_products,
         system_profile.system_profile_product_ids,

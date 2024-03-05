@@ -1,5 +1,5 @@
-BILLABLE_USAGE_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.billable-usage')].name:platform.rhsm-subscriptions.billable-usage}
-TALLY_TOPIC: ${clowder.kafka.topics[?(@.requestedName == 'platform.rhsm-subscriptions.tally')].name:platform.rhsm-subscriptions.tally}
+BILLABLE_USAGE_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.billable-usage".name:platform.rhsm-subscriptions.billable-usage}
+TALLY_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.tally".name:platform.rhsm-subscriptions.tally}
 
 rhsm-subscriptions:
   rh-marketplace:

@@ -204,21 +204,19 @@ class ContractServiceTest extends BaseUnitTest {
   @Test
   void syncContractWithExistingAndNewContracts() {
     givenExistingContract();
-    StatusResponse statusResponse =
-        contractService.syncContractByOrgId(ORG_ID, OffsetDateTime.parse("2024-01-01T00:00Z"));
+    StatusResponse statusResponse = contractService.syncContractByOrgId(ORG_ID, false);
     assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
     // 2 instances of subscription are created, one for the original contract, and one for the
     // update
-    verify(subscriptionRepository, times(2)).persist(any(SubscriptionEntity.class));
-    verify(measurementMetricIdTransformer, times(2))
+    verify(subscriptionRepository, times(4)).persist(any(SubscriptionEntity.class));
+    verify(measurementMetricIdTransformer, times(4))
         .translateContractMetricIdsToSubscriptionMetricIds(any());
   }
 
   @Test
   void syncContractWithEmptyContractsList() {
-    StatusResponse statusResponse =
-        contractService.syncContractByOrgId(ORG_ID, OffsetDateTime.parse("2024-01-01T00:00Z"));
-    assertEquals(ORG_ID + " not found in table", statusResponse.getMessage());
+    StatusResponse statusResponse = contractService.syncContractByOrgId(ORG_ID, false);
+    assertEquals("Contracts Synced for " + ORG_ID, statusResponse.getMessage());
   }
 
   @Test

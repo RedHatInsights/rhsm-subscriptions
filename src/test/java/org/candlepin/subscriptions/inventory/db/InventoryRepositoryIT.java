@@ -69,6 +69,7 @@ class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwa
   private static final String CLOUD_PROVIDER = "CLOUD_PROVIDER test";
   private static final String ARCH = "ARCH test";
   private static final String INSIGHTS_ID = "INSIGHTS_ID test";
+  private static final String PROVIDER_ID = "provider ID test";
   private static final Set<String> RH_PROD = Set.of("a1", "a2", "a3");
   private static final Set<String> RH_PRODUCTS_INSTALLED = Set.of("b1", "b2", "b3");
   private static final Set<Map<String, String>> INSTALLED_PRODUCTS =
@@ -116,6 +117,7 @@ class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwa
     assertEquals(ARCH, fact.getSystemProfileArch());
     assertTrue(fact.isMarketplace());
     assertEquals(INSIGHTS_ID, fact.getInsightsId());
+    assertEquals(PROVIDER_ID, fact.getProviderId());
     assertEquals(VIRTUAL_HOST_UUID, fact.getHardwareSubmanId());
     assertEquals(RH_PROD, fact.getProducts());
     assertEquals(RH_PRODUCTS_INSTALLED, fact.getQpcProducts());
@@ -195,7 +197,13 @@ class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwa
                 SYSTEM_PURPOSE_USAGE),
             "qpc",
             of("IS_RHEL", "true", "rh_products_installed", RH_PRODUCTS_INSTALLED)),
-        of("subscription_manager_id", SUBSCRIPTION_MANAGER_ID, "insights_id", INSIGHTS_ID),
+        of(
+            "subscription_manager_id",
+            SUBSCRIPTION_MANAGER_ID,
+            "insights_id",
+            INSIGHTS_ID,
+            "provider_id",
+            PROVIDER_ID),
         of(
             "infrastructure_type",
             INFRASTRUCTURE_TYPE,

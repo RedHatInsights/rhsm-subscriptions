@@ -58,7 +58,7 @@
                 <token>${SPLUNK_HEC_TOKEN}</token>
                 <source>${LOG_FILE:-/tmp/rhsm-subscriptions.log}</source>
                 <sourcetype>${SPLUNK_SOURCE_TYPE}</sourcetype>
-                <host>${SPLUNKMETA_host:-${LOGNAME}@${HOSTNAME}}</host>
+                <host>${HOST_NAME:-${LOGNAME}@${HOSTNAME}}</host>
                 <messageFormat>${SPLUNK_MESSAGE_FORMAT}</messageFormat>
                 <middleware>HttpEventCollectorResendMiddleware</middleware>
                 <connectTimeout>${SPLUNK_HEC_CONNECT_TIMEOUT:-5000}</connectTimeout>

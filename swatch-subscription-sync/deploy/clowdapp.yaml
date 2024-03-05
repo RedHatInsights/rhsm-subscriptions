@@ -92,6 +92,8 @@ parameters:
     value: 'false'
   - name: UMB_PROCESSING_ENABLED
     value: 'true'
+  - name: UMB_KEYSTORE_PATH
+    value: /pinhead/keystore.jks
   - name: ENABLE_PAYG_SUBSCRIPTION_FORCE_SYNC
     value: 'true'
   - name: ENABLE_SPLUNK_HEC
@@ -240,7 +242,7 @@ objects:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: metadata.namespace
-            - name: SPLUNKMETA_host
+            - name: HOST_NAME
               valueFrom:
                 fieldRef:
                   apiVersion: v1
@@ -410,7 +412,7 @@ objects:
             - name: SPRING_ACTIVEMQ_BROKER_URL
               value: ${SPRING_ACTIVEMQ_BROKER_URL}
             - name: UMB_KEYSTORE
-              value: file:/pinhead/keystore.jks
+              value: file:${UMB_KEYSTORE_PATH}
             - name: UMB_KEYSTORE_PASSWORD
               valueFrom:
                 secretKeyRef:
