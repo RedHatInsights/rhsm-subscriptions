@@ -30,7 +30,6 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlement
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.ContractRequest;
 import com.redhat.swatch.contract.openapi.model.ContractResponse;
-import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.service.ContractService;
 import io.quarkus.test.InjectMock;
@@ -77,7 +76,6 @@ class ContractsHttpEndpointTest {
     response.setContract(newContract);
     when(contractService.createContract(any())).thenReturn(response);
     ContractRequest request = new ContractRequest();
-    request.setPartnerEntitlementContract(new PartnerEntitlementContract());
     request.setPartnerEntitlement(new PartnerEntitlementV1());
     request.setSubscriptionId("any");
     given()

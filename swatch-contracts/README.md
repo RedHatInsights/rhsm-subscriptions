@@ -32,45 +32,41 @@ The application is now runnable using `java -jar build/quarkus-app/quarkus-run.j
 ## Mapping Partner API with Swatch data
 
 We enrich our data (contracts and subscriptions) from different third parties like Partner API and the Subscription API. 
-In swatch-contracts, we trigger the enrichment when receiving events <1> from the Partner Gateway, then 
-we call again the Partner API to gather extra information <2> we need to move forward and 
-finally, we call the Subscription API to find the subscription ID that matches with the event <1> we received. 
+In swatch-contracts, we trigger the enrichment when receiving events from the Partner Gateway, then 
+we call again the Partner API to gather extra information <1> we need to move forward and 
+finally, we call the Subscription API to find the subscription ID <2> that matches with the event <1> we received. 
 Each of these sources are enumerated as follows:
-<1> the event from Partner Gateway is of type [PartnerEntitlementContract](https://github.com/RedHatInsights/rhsm-subscriptions/blob/5bce20986bb3c1b2750502db63efc694461cce57/swatch-contracts/src/main/resources/META-INF/openapi.yaml#L513)
-<2> the response from Partner API is of type [PartnerEntitlements](https://github.com/RedHatInsights/rhsm-subscriptions/blob/5bce20986bb3c1b2750502db63efc694461cce57/clients/rh-partner-gateway-client/rh-partner-gateway-api-spec.yaml#L41)
-<3> from the response from Subscription API, we simply extract the subscription ID. 
+<1> the response from Partner API is of type [PartnerEntitlements](https://github.com/RedHatInsights/rhsm-subscriptions/blob/5bce20986bb3c1b2750502db63efc694461cce57/clients/rh-partner-gateway-client/rh-partner-gateway-api-spec.yaml#L41)
+<2> from the response from Subscription API, we simply extract the subscription ID. 
 
 For testing purposes, we can use the POST endpoint `/api/swatch-contracts/internal/contracts` with payload:
 
 ```
 {
-  "partner_entitlement_contract": <1>
-  "partner_entitlement": <2>,
-  "subscription_id": <3>
+  "partner_entitlement": <1>,
+  "subscription_id": <2>
 }
 ```
 
 You can find more information about how to fill the request using the following table:
 
-| Table            | Column               | Source                                                                                                                                                                                 |
-|------------------|----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| 
-| contracts        | subscription_number  | <1>.redHatSubscriptionNumber <br> <2>.rhEntitlements[0].subscriptionNumber                                                                                                             |
-| contracts        | org_id               | <2>.rhAccountId                                                                                                                                                                        |
-| contracts        | sku                  | <2>.rhEntitlements[0].sku                                                                                                                                                              |
-| contracts        | start_date           | <2>.entitlementDates.startDate                                                                                                                                                         |
-| contracts        | end_date             | <2>.entitlementDates.endDate                                                                                                                                                           |
-| contracts        | vendor_product_code  | <1>.cloudIdentifiers.productCode                                                                                                                                                       |
-| ^                | ^                    | If above is null and <1>.cloudIdentifiers.partner is "azure_marketplace", then <1>.cloudIdentifiers.azureOfferId                                                                       |
-| contracts        | billing_account_id   | if not null: <2>.partnerIdentities.customerAwsAccountId                                                                                                                                |
-| ^                | ^                    | if not null: <2>.partnerIdentities.azureTenantId,<2>.partnerIdentities.azureSubscriptionId                                                                                             |
-| ^                | ^                    | if not null: <2>.partnerIdentities.azureTenantId                                                                                                                                       |
-| contracts        | billing_provider_id  | if <2>.sourcePartner is "azure_marketplace", <br>then combination of <2>.purchase.azureResourceId,<2>.purchase.contracts[*].planId and <2>.purchase.vendorProductCode                  |
-| ^                | ^                    | if <1>.cloudIdentifiers.partner is "azure_marketplace", <br>then combination of <1>.cloudIdentifiers.azureResourceId,<1>.cloudIdentifiers.planId and <1>.cloudIdentifiers.azureOfferId |
-| ^                | ^                    | if <2>.sourcePartner is "aws_marketplace", <br>then combination of <2>.purchase.vendorProductCode,<2>.partnerIdentities.awsCustomerId and <1>.partnerIdentities.sellerAccountId        |
-| contracts        | billing_provider     | <2>.sourcePartner                                                                                                                                                                      |
-| contract_metrics | metric_id            | <1>.currentDimensions[*].dimensionName AND <2>.purchase.contracts[*].dimensions[*].name (if <2>.purchase.contracts[*].endDate is null                                                  |
-| contract_metrics | metric_value         | <1>.currentDimensions[*].dimensionValue AND <2>.purchase.contracts[*].dimensions[*].value (if <2>.purchase.contracts[*].endDate is null                                                |
-| subscription     | subscription_id      | <3>                                                                                                                                                                                    |
+| Table            | Column               | Source                                                                                                                                                                          |
+|------------------|----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| 
+| contracts        | subscription_number  | <1>.rhEntitlements[*].subscriptionNumber                                                                                                                                        |
+| contracts        | org_id               | <1>.rhAccountId                                                                                                                                                                 |
+| contracts        | sku                  | <1>.rhEntitlements[*].sku                                                                                                                                                       |
+| contracts        | start_date           | <1>.entitlementDates.startDate                                                                                                                                                  |
+| contracts        | end_date             | <1>.entitlementDates.endDate                                                                                                                                                    |
+| contracts        | vendor_product_code  | <1>.purchase.vendorProductCode                                                                                                                                                  |
+| contracts        | billing_account_id   | if not null: <1>.partnerIdentities.customerAwsAccountId                                                                                                                         |
+| ^                | ^                    | if not null: <1>.partnerIdentities.azureTenantId,<1>.partnerIdentities.azureSubscriptionId                                                                                      |
+| ^                | ^                    | if not null: <1>.partnerIdentities.azureTenantId                                                                                                                                |
+| contracts        | billing_provider_id  | if <1>.sourcePartner is "azure_marketplace", <br>then combination of <1>.purchase.azureResourceId,<1>.purchase.contracts[*].planId and <1>.purchase.vendorProductCode           |
+| ^                | ^                    | if <1>.sourcePartner is "aws_marketplace", <br>then combination of <1>.purchase.vendorProductCode,<1>.partnerIdentities.awsCustomerId and <1>.partnerIdentities.sellerAccountId |
+| contracts        | billing_provider     | <1>.sourcePartner                                                                                                                                                               |
+| contract_metrics | metric_id            | <1>.purchase.contracts[*].dimensions[*].name (if <1>.purchase.contracts[*].endDate is null                                           |
+| contract_metrics | metric_value         | <1>.purchase.contracts[*].dimensions[*].value (if <1>.purchase.contracts[*].endDate is null                                         |
+| subscription     | subscription_id      | <2>                                                                                                                                                                             |
 
 You can find a full example as follows:
 
@@ -79,18 +75,6 @@ curl -v -X POST http://localhost:8000/api/swatch-contracts/internal/contracts \
 -H 'Content-Type: application/json' \
 --data-binary @- << EOF
 {
-  "partner_entitlement_contract": {
-    "redHatSubscriptionNumber": "12585274",
-    "cloudIdentifiers": {
-      "productCode": "ezcoaphi4bqc7lktoy2qfd6zi"
-    },
-    "currentDimensions": [
-      {
-        "dimensionName": "Cores",
-        "dimensionValue": "8"
-      }
-    ]
-  },
   "partner_entitlement": {
     "rhAccountId": "123456",
     "sourcePartner": "aws_marketplace",

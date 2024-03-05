@@ -420,7 +420,6 @@ class ContractServiceTest extends BaseUnitTest {
     contract.setCloudIdentifiers(cloudIdentifiers);
 
     ContractRequest contractRequest = new ContractRequest();
-    contractRequest.setPartnerEntitlementContract(contract);
     contractRequest.setPartnerEntitlement(entitlement);
     entitlement.setPartnerIdentities(partnerIdentity);
     entitlement.setPurchase(purchase);

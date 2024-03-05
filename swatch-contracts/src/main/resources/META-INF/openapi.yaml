@@ -403,13 +403,10 @@ components:
     ContractRequest:
       description: ""
       required:
-        - partner_entitlement_contract
         - partner_entitlement
         - subscription_id
       type: object
       properties:
-        partner_entitlement_contract:
-          $ref: '#/components/schemas/PartnerEntitlementContract'
         partner_entitlement:
           $ref: '../../../../../clients/rh-partner-gateway-client/rh-partner-gateway-api-spec.yaml#/components/schemas/PartnerEntitlementV1'
         subscription_id:

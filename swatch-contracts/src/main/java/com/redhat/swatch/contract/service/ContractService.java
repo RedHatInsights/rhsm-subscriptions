@@ -33,8 +33,12 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
 import com.redhat.swatch.clients.subscription.api.resources.SearchApi;
 import com.redhat.swatch.contract.exception.ContractNotAssociatedToOrgException;
 import com.redhat.swatch.contract.exception.ContractValidationFailedException;
-import com.redhat.swatch.contract.model.ContractMapper;
+import com.redhat.swatch.contract.exception.ContractsException;
+import com.redhat.swatch.contract.exception.ErrorCode;
+import com.redhat.swatch.contract.model.ContractDtoMapper;
+import com.redhat.swatch.contract.model.ContractEntityMapper;
 import com.redhat.swatch.contract.model.MeasurementMetricIdTransformer;
+import com.redhat.swatch.contract.model.SubscriptionEntityMapper;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.ContractRequest;
 import com.redhat.swatch.contract.openapi.model.ContractResponse;
@@ -57,7 +61,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -75,9 +78,11 @@ public class ContractService {
 
   private final ContractRepository contractRepository;
   private final SubscriptionRepository subscriptionRepository;
-  private final ContractMapper mapper;
   private final MeasurementMetricIdTransformer measurementMetricIdTransformer;
   private final SubscriptionSyncService syncService;
+  @Inject ContractEntityMapper contractEntityMapper;
+  @Inject ContractDtoMapper contractDtoMapper;
+  @Inject SubscriptionEntityMapper subscriptionEntityMapper;
   @Inject @RestClient PartnerApi partnerApi;
   @Inject @RestClient SearchApi subscriptionApi;
   @Inject Validator validator;
@@ -86,14 +91,12 @@ public class ContractService {
   ContractService(
       ContractRepository contractRepository,
       SubscriptionRepository subscriptionRepository,
-      ContractMapper mapper,
       MeasurementMetricIdTransformer measurementMetricIdTransformer,
       SubscriptionSyncService syncService,
       AwsPartnerEntitlementsProvider awsPartnerEntitlementsProvider,
       AzurePartnerEntitlementsProvider azurePartnerEntitlementsProvider) {
     this.contractRepository = contractRepository;
     this.subscriptionRepository = subscriptionRepository;
-    this.mapper = mapper;
     this.measurementMetricIdTransformer = measurementMetricIdTransformer;
     this.syncService = syncService;
     this.partnerEntitlementsProviders =
@@ -105,13 +108,10 @@ public class ContractService {
     ContractResponse response = new ContractResponse();
     try {
       var result =
-          upsertPartnerContract(
-              request.getPartnerEntitlementContract(),
-              request.getPartnerEntitlement(),
-              request.getSubscriptionId());
+          upsertPartnerContract(request.getPartnerEntitlement(), request.getSubscriptionId());
       response.setStatus(result.toStatus());
       if (result.isValid() && result.getEntity() != null) {
-        response.setContract(mapper.contractEntityToDto(result.getEntity()));
+        response.setContract(contractDtoMapper.contractEntityToDto(result.getEntity()));
       }
     } catch (ContractNotAssociatedToOrgException e) {
       response.setStatus(ContractMessageProcessingResult.RH_ORG_NOT_ASSOCIATED.toStatus());
@@ -165,7 +165,7 @@ public class ContractService {
     }
 
     return contractRepository.getContracts(specification).stream()
-        .map(mapper::contractEntityToDto)
+        .map(contractDtoMapper::contractEntityToDto)
         .toList();
   }
 
@@ -206,10 +206,16 @@ public class ContractService {
       throws ApiException, ContractValidationFailedException {
     try {
       var entitlement = partnerEntitlementsProvider.getPartnerEntitlement(contract);
+      if (entitlement == null) {
+        log.error("No results found from partner entitlement for contract {}", contract);
+        return INVALID_MESSAGE_UNPROCESSED.toStatus();
+      }
+
       var subscriptionId =
-          Optional.ofNullable(findSubscriptionNumber(entitlement))
-              .orElse(contract.getRedHatSubscriptionNumber());
-      return upsertPartnerContract(contract, entitlement, subscriptionId).toStatus();
+          lookupSubscriptionId(
+              Optional.ofNullable(findSubscriptionNumber(entitlement))
+                  .orElse(contract.getRedHatSubscriptionNumber()));
+      return upsertPartnerContract(entitlement, subscriptionId).toStatus();
     } catch (ContractNotAssociatedToOrgException e) {
       return ContractMessageProcessingResult.RH_ORG_NOT_ASSOCIATED.toStatus();
     }
@@ -217,18 +223,11 @@ public class ContractService {
 
   @Transactional
   public ContractMessageProcessingResult upsertPartnerContract(
-      PartnerEntitlementContract contract, PartnerEntitlementV1 entitlement, String subscriptionId)
+      PartnerEntitlementV1 entitlement, String subscriptionId)
       throws ContractNotAssociatedToOrgException, ContractValidationFailedException {
-    ContractEntity entity = mapper.partnerContractToContractEntity(contract);
-    return upsertPartnerContract(entity, entitlement, subscriptionId);
-  }
-
-  @Transactional
-  public ContractMessageProcessingResult upsertPartnerContract(
-      ContractEntity entity, PartnerEntitlementV1 entitlement, String subscriptionId)
-      throws ContractNotAssociatedToOrgException, ContractValidationFailedException {
+    ContractEntity entity;
     try {
-      mapUpstreamContractToContractEntity(entity, entitlement);
+      entity = mapUpstreamContractToContractEntity(entitlement);
 
       if (entity.getOrgId() == null) {
         throw new ContractNotAssociatedToOrgException();
@@ -260,6 +259,74 @@ public class ContractService {
       }
       persistContract(entity, OffsetDateTime.now());
       return NEW_CONTRACT_CREATED.withContract(entity);
+    }
+  }
+
+  @Transactional
+  public StatusResponse syncContractByOrgId(String contractOrgSync, boolean isPreCleanup) {
+    StatusResponse statusResponse = new StatusResponse();
+
+    try {
+      if (isPreCleanup) {
+        long deletedRecords = deleteCurrentlyActiveContractsByOrgId(contractOrgSync);
+        log.info(
+            "Total contract deleted for org {} during pre cleanup {}",
+            contractOrgSync,
+            deletedRecords);
+      }
+
+      PageRequest page = new PageRequest();
+      page.setSize(20);
+      page.setNumber(0);
+      var result =
+          partnerApi.getPartnerEntitlements(
+              new QueryPartnerEntitlementV1().rhAccountId(contractOrgSync).page(page));
+      log.debug(
+          "Contracts fetched for org {} from upstream {}", contractOrgSync, result.toString());
+      if (Objects.nonNull(result.getContent()) && !result.getContent().isEmpty()) {
+        for (PartnerEntitlementV1 entitlement : result.getContent()) {
+          if (entitlement != null) {
+            tryUpsertPartnerContract(entitlement);
+          }
+        }
+        statusResponse.setMessage("Contracts Synced for " + contractOrgSync);
+        statusResponse.setStatus(SUCCESS_MESSAGE);
+      } else {
+        statusResponse.setMessage("No contracts found in upstream for the org " + contractOrgSync);
+        statusResponse.setStatus(FAILURE_MESSAGE);
+      }
+    } catch (NumberFormatException e) {
+      log.error(e.getMessage());
+      statusResponse.setStatus(FAILURE_MESSAGE);
+      statusResponse.setMessage("An Error occurred while reconciling contract");
+      return statusResponse;
+    } catch (ProcessingException | ApiException e) {
+      log.error(e.getMessage());
+      statusResponse.setStatus(FAILURE_MESSAGE);
+      statusResponse.setMessage("An Error occurred while calling Partner Api");
+      return statusResponse;
+    }
+    return statusResponse;
+  }
+
+  @Transactional
+  public StatusResponse deleteContractsByOrgId(String orgId) {
+    StatusResponse statusResponse = new StatusResponse();
+
+    List<ContractEntity> contractsToDelete = contractRepository.getContractsByOrgId(orgId);
+    contractsToDelete.forEach(this::deleteContract);
+    log.info("Deleted {} contract for org id {}", contractsToDelete.size(), orgId);
+    statusResponse.setStatus(SUCCESS_MESSAGE);
+    return statusResponse;
+  }
+
+  private void tryUpsertPartnerContract(PartnerEntitlementV1 entitlement) {
+    var subscriptionId = lookupSubscriptionId(findSubscriptionNumber(entitlement));
+    try {
+      upsertPartnerContract(entitlement, subscriptionId);
+    } catch (ContractNotAssociatedToOrgException | ContractValidationFailedException e) {
+      log.error(
+          "Error synchronising the contract {}. Caused by: {}", entitlement, e.getMessage(), e);
     }
   }
 
@@ -321,7 +388,7 @@ public class ContractService {
     } else {
       // Record found in contract table but a non-quantity change occurred (e.g. an identifier was
       // updated).
-      mapper.updateContract(existingContract, entity);
+      contractEntityMapper.updateContract(existingContract, entity);
       persistContract(existingContract, OffsetDateTime.now());
       if (existingContract.getSubscriptionNumber() != null) {
         SubscriptionEntity subscription =
@@ -376,80 +443,11 @@ public class ContractService {
 
   private void updateSubscriptionForContract(
       SubscriptionEntity subscription, ContractEntity contract) {
-    mapper.updateSubscriptionEntityFromContractEntity(subscription, contract);
+    subscriptionEntityMapper.mapSubscriptionEntityFromContractEntity(subscription, contract);
     measurementMetricIdTransformer.translateContractMetricIdsToSubscriptionMetricIds(subscription);
     if (subscription.getSubscriptionMeasurements().size() != contract.getMetrics().size()) {
       measurementMetricIdTransformer.resolveConflictingMetrics(contract);
     }
-  }
-
-  @Transactional
-  public StatusResponse syncContractByOrgId(String contractOrgSync, boolean isPreCleanup) {
-    StatusResponse statusResponse = new StatusResponse();
-
-    try {
-      if (isPreCleanup) {
-        long deletedRecords = deleteCurrentlyActiveContractsByOrgId(contractOrgSync);
-        log.info(
-            "Total contract deleted for org {} during pre cleanup {}",
-            contractOrgSync,
-            deletedRecords);
-      }
-
-      PageRequest page = new PageRequest();
-      page.setSize(20);
-      page.setNumber(0);
-      var result =
-          partnerApi.getPartnerEntitlements(
-              new QueryPartnerEntitlementV1().rhAccountId(contractOrgSync).page(page));
-      log.debug(
-          "Contracts fetched for org {} from upstream {}", contractOrgSync, result.toString());
-      if (Objects.nonNull(result.getContent()) && !result.getContent().isEmpty()) {
-        for (PartnerEntitlementV1 entitlement : result.getContent()) {
-          if (Objects.nonNull(result.getContent())
-              && !result.getContent().isEmpty()
-              && Objects.nonNull(entitlement)) {
-            var subscriptionId = findSubscriptionNumber(entitlement);
-            try {
-              upsertPartnerContract(new ContractEntity(), entitlement, subscriptionId);
-            } catch (ContractNotAssociatedToOrgException | ContractValidationFailedException e) {
-              log.error(
-                  "Error synchronising the contract {}. Caused by: {}",
-                  entitlement,
-                  e.getMessage(),
-                  e);
-            }
-          }
-        }
-        statusResponse.setMessage("Contracts Synced for " + contractOrgSync);
-        statusResponse.setStatus(SUCCESS_MESSAGE);
-      } else {
-        statusResponse.setMessage("No contracts found in upstream for the org " + contractOrgSync);
-        statusResponse.setStatus(FAILURE_MESSAGE);
-      }
-    } catch (NumberFormatException e) {
-      log.error(e.getMessage());
-      statusResponse.setStatus(FAILURE_MESSAGE);
-      statusResponse.setMessage("An Error occurred while reconciling contract");
-      return statusResponse;
-    } catch (ProcessingException | ApiException e) {
-      log.error(e.getMessage());
-      statusResponse.setStatus(FAILURE_MESSAGE);
-      statusResponse.setMessage("An Error occurred while calling Partner Api");
-      return statusResponse;
-    }
-    return statusResponse;
-  }
-
-  @Transactional
-  public StatusResponse deleteContractsByOrgId(String orgId) {
-    StatusResponse statusResponse = new StatusResponse();
-
-    List<ContractEntity> contractsToDelete = contractRepository.getContractsByOrgId(orgId);
-    contractsToDelete.forEach(this::deleteContract);
-    log.info("Deleted {} contract for org id {}", contractsToDelete.size(), orgId);
-    statusResponse.setStatus(SUCCESS_MESSAGE);
-    return statusResponse;
   }
 
   private void deleteContract(ContractEntity contract) {
@@ -514,40 +512,47 @@ public class ContractService {
     return contractRepository.deleteContractsByOrgIdForEmptyValues(orgId);
   }
 
-  private void mapUpstreamContractToContractEntity(
-      ContractEntity entity, PartnerEntitlementV1 entitlement) {
-    Optional.ofNullable(findSubscriptionNumber(entitlement))
-        .ifPresent(entity::setSubscriptionNumber);
-    if (entitlement != null) {
-      if (Objects.equals(entitlement.getSourcePartner(), SourcePartnerEnum.AWS_MARKETPLACE)) {
-        entity.setBillingProviderId(
-            String.format(
-                "%s;%s;%s",
-                entitlement.getPurchase().getVendorProductCode(),
-                entitlement.getPartnerIdentities().getAwsCustomerId(),
-                entitlement.getPartnerIdentities().getSellerAccountId()));
-      }
-      mapper.mapRhEntitlementsToContractEntity(entity, entitlement);
+  private ContractEntity mapUpstreamContractToContractEntity(PartnerEntitlementV1 entitlement) {
+    ContractEntity entity = contractEntityMapper.mapEntitlementToContractEntity(entitlement);
+    if (Objects.equals(entitlement.getSourcePartner(), SourcePartnerEnum.AWS_MARKETPLACE)) {
+      entity.setBillingProviderId(
+          String.format(
+              "%s;%s;%s",
+              entitlement.getPurchase().getVendorProductCode(),
+              entitlement.getPartnerIdentities().getAwsCustomerId(),
+              entitlement.getPartnerIdentities().getSellerAccountId()));
+    }
 
-      var dimensionV1s =
-          entitlement.getPurchase().getContracts().stream()
-              .filter(contract -> Objects.isNull(contract.getEndDate()))
-              .flatMap(contract -> contract.getDimensions().stream())
-              .collect(Collectors.toSet());
-      entity.addMetrics(mapper.dimensionV1ToContractMetricEntity(dimensionV1s));
-      populateProductIdBySku(entity);
-      // if the product ID has been populated, we can discard the wrong metrics from the contract
-      if (entity.getProductId() != null) {
-        measurementMetricIdTransformer.resolveConflictingMetrics(entity);
-      }
-    } else {
-      log.error("No results found from partner entitlement for contract {}", entity);
+    populateProductIdBySku(entity);
+    // if the product ID has been populated, we can discard the wrong metrics from the contract
+    if (entity.getProductId() != null) {
+      measurementMetricIdTransformer.resolveConflictingMetrics(entity);
+    }
+
+    return entity;
+  }
+
+  private String lookupSubscriptionId(String subscriptionNumber) {
+    if (subscriptionNumber == null) {
+      return null;
+    }
+
+    try {
+      return subscriptionApi.getSubscriptionBySubscriptionNumber(subscriptionNumber).stream()
+          .findFirst()
+          .orElseThrow()
+          .getId()
+          .toString();
+    } catch (Exception e) {
+      log.error("Error fetching subscription ID for contract", e);
+      throw new ContractsException(
+          ErrorCode.CONTRACT_DOES_NOT_EXIST, "Unable to lookup subscription for contract");
     }
   }
 
   private String findSubscriptionNumber(PartnerEntitlementV1 entitlement) {
     if (entitlement != null) {
-      return mapper.getRhSubscriptionNumber(entitlement.getRhEntitlements());
+      return contractEntityMapper.extractSubscriptionNumber(entitlement.getRhEntitlements());
     }
     return null;
   }

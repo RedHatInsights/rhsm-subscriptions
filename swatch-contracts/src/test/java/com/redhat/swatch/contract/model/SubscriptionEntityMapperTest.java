@@ -21,11 +21,9 @@
 package com.redhat.swatch.contract.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.redhat.swatch.contract.openapi.model.Dimension;
-import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
-import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContractCloudIdentifiers;
 import com.redhat.swatch.contract.repository.ContractEntity;
 import com.redhat.swatch.contract.repository.ContractMetricEntity;
 import com.redhat.swatch.contract.repository.OfferingEntity;
@@ -35,26 +33,21 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
-/**
- * The fact that we are using @ExtendWith(MockitoExtension.class) prevents this test from launching
- * the entire application. Use @QuarkusTest to launch the entire application with the test if
- * required.
- */
 @QuarkusTest
-class ContractMapperTest {
+class SubscriptionEntityMapperTest {
 
-  @Inject ContractMapper mapper;
+  @Inject SubscriptionEntityMapper mapper;
   @InjectMock OfferingRepository offeringRepository;
 
   @Test
   void testMapContractEntityToSubscriptionEntity() {
+    var expectedSku = "MCT123";
     var offering = new OfferingEntity();
-    offering.setSku("MCT123");
-    when(offeringRepository.findById("MCT123")).thenReturn(offering);
+    offering.setSku(expectedSku);
+    when(offeringRepository.findById(expectedSku)).thenReturn(offering);
 
     var subscription = new SubscriptionEntity();
     var metric = new ContractMetricEntity();
@@ -62,7 +55,7 @@ class ContractMapperTest {
     metric.setValue(42.0);
 
     var contract = new ContractEntity();
-    contract.setSku("MCT123");
+    contract.setSku(expectedSku);
     contract.setMetrics(Set.of(metric));
     contract.setStartDate(OffsetDateTime.parse("2000-01-01T00:00Z"));
     contract.setEndDate(OffsetDateTime.parse("2020-01-01T00:00Z"));
@@ -72,11 +65,10 @@ class ContractMapperTest {
     contract.setOrgId("org123");
     contract.setProductId("rosa");
 
-    mapper.mapContractEntityToSubscriptionEntity(subscription, contract);
+    mapper.mapSubscriptionEntityFromContractEntity(subscription, contract);
     assertEquals(contract.getSubscriptionNumber(), subscription.getSubscriptionNumber());
     assertEquals(1, subscription.getSubscriptionMeasurements().size());
     assertEquals(contract.getSku(), subscription.getOffering().getSku());
-    assertEquals(contract.getStartDate(), subscription.getStartDate());
     assertEquals(contract.getEndDate(), subscription.getEndDate());
     assertEquals(contract.getBillingProvider(), subscription.getBillingProvider().getValue());
     assertEquals(contract.getBillingAccountId(), subscription.getBillingAccountId());
@@ -88,38 +80,6 @@ class ContractMapperTest {
     assertEquals(metric.getMetricId(), measurement.getMetricId());
     assertEquals(metric.getValue(), measurement.getValue());
     assertEquals("PHYSICAL", measurement.getMeasurementType());
-  }
-
-  @Test
-  void testUmbContractToEntityWithDimensions() {
-    String metricId = "vcpu_hours";
-
-    PartnerEntitlementContract partnerContractFromUmb = new PartnerEntitlementContract();
-
-    PartnerEntitlementContractCloudIdentifiers cloudIdentifiers =
-        new PartnerEntitlementContractCloudIdentifiers();
-    cloudIdentifiers
-        .azureResourceId("azure_resource_id_placeholder")
-        .azureOfferId("azure_offer_id_placeholder")
-        .planId("vcpu-hours")
-        .azureTenantId("azure_tenant_id_placeholder")
-        .partner("azure_marketplace");
-
-    var dimension = new Dimension();
-
-    dimension.dimensionName(metricId);
-    dimension.dimensionValue("0");
-    List<Dimension> dimensions = List.of(dimension);
-
-    partnerContractFromUmb
-        .action("contract-updated")
-        .currentDimensions(dimensions)
-        .cloudIdentifiers(cloudIdentifiers);
-
-    var entity = mapper.partnerContractToContractEntity(partnerContractFromUmb);
-
-    var expectedMetricEntity = ContractMetricEntity.builder().metricId(metricId).value(0.0).build();
-
-    assertEquals(Set.of(expectedMetricEntity), entity.getMetrics());
+    verify(offeringRepository).findById(expectedSku);
   }
 }
