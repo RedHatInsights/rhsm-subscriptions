@@ -7,6 +7,8 @@ parameters:
   - name: JAVA_DEBUG
     # Set to "true" to enable remote debugging
     value: ''
+  - name: QUARKUS_LAUNCH_DEVMODE
+    value: ''
   - name: IMAGE_PULL_SECRET
     value: quay-cloudservices-pull
   - name: MEMORY_REQUEST
@@ -116,6 +118,8 @@ objects:
             env:
               - name: JAVA_DEBUG
                 value: ${JAVA_DEBUG}
+              - name: QUARKUS_LAUNCH_DEVMODE
+                value: ${QUARKUS_LAUNCH_DEVMODE}
               - name: LOGGING_LEVEL_ROOT
                 value: ${LOGGING_LEVEL_ROOT}
               - name: LOGGING_LEVEL_COM_REDHAT_SWATCH

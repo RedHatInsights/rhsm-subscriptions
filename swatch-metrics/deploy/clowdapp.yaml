@@ -7,6 +7,8 @@ parameters:
   - name: JAVA_DEBUG
     # Set to "true" to enable remote debugging
     value: ''
+  - name: QUARKUS_LAUNCH_DEVMODE
+    value: ''
   - name: ENV_NAME
     value: env-swatch-metrics
   - name: REPLICAS
@@ -178,6 +180,8 @@ objects:
             env:
               - name: JAVA_DEBUG
                 value: ${JAVA_DEBUG}
+              - name: QUARKUS_LAUNCH_DEVMODE
+                value: ${QUARKUS_LAUNCH_DEVMODE}
               - name: ENABLE_SPLUNK_HEC
                 value: ${ENABLE_SPLUNK_HEC}
               - name: SPLUNKMETA_namespace
