@@ -59,7 +59,7 @@ public class CaptureSnapshotsTaskManager {
   private final ApplicationProperties appProperties;
   private final TaskQueueProperties taskQueueProperties;
   private final TaskQueue queue;
-  private final ExecutorTaskQueue syncQueue;
+  private final ExecutorTaskQueue inMemoryQueue;
   private final ApplicationClock applicationClock;
   private final OrgConfigRepository orgRepo;
 
@@ -68,14 +68,14 @@ public class CaptureSnapshotsTaskManager {
       ApplicationProperties appProperties,
       @Qualifier("tallyTaskQueueProperties") TaskQueueProperties tallyTaskQueueProperties,
       TaskQueue queue,
-      ExecutorTaskQueue syncQueue,
+      ExecutorTaskQueue inMemoryQueue,
       ApplicationClock applicationClock,
       OrgConfigRepository orgRepo) {
 
     this.appProperties = appProperties;
     this.taskQueueProperties = tallyTaskQueueProperties;
     this.queue = queue;
-    this.syncQueue = syncQueue;
+    this.inMemoryQueue = inMemoryQueue;
     this.applicationClock = applicationClock;
     this.orgRepo = orgRepo;
   }
@@ -124,7 +124,7 @@ public class CaptureSnapshotsTaskManager {
     }
   }
 
-  public void tallyOrgByHourly(String orgId, DateRange tallyRange, boolean sync) {
+  public void tallyOrgByHourly(String orgId, DateRange tallyRange, boolean useThreadPoolExecutor) {
     LogUtils.addOrgIdToMdc(orgId);
     if (!applicationClock.isHourlyRange(tallyRange.getStartDate(), tallyRange.getEndDate())) {
       log.error(
@@ -150,9 +150,9 @@ public class CaptureSnapshotsTaskManager {
             .setSingleValuedArg("startDateTime", tallyRange.getStartString())
             .setSingleValuedArg("endDateTime", tallyRange.getEndString())
             .build();
-    if (sync) {
-      log.info("Synchronous hourly tally requested for orgId {}: {}", orgId, tallyRange);
-      syncQueue.enqueue(task);
+    if (useThreadPoolExecutor) {
+      log.info("Hourly tally requested for orgId {}: {}", orgId, tallyRange);
+      inMemoryQueue.enqueue(task);
     } else {
       queue.enqueue(task);
     }

@@ -104,20 +104,7 @@ class InternalTallyResourceTest {
         "Start/End times must be at the top of the hour: [2019-05-24T12:00:00Z -> 2019-05-24T12:05:00Z]",
         iae2.getMessage());
 
-    // Avoid additional exception by enabling synchronous operations.
-    appProps.setEnableSynchronousOperations(true);
     resource.performHourlyTallyForOrg(ORG_ID, start, clock.startOfHour(end.plusHours(1)), true);
-  }
-
-  @Test
-  void preventSynchronousHourlyTallyForOrgWhenSynchronousOperationsDisabled() {
-    OffsetDateTime start = clock.startOfCurrentHour();
-    OffsetDateTime end = start.plusHours(1L);
-    BadRequestException e =
-        assertThrows(
-            BadRequestException.class,
-            () -> resource.performHourlyTallyForOrg(ORG_ID, start, end, true));
-    assertEquals("Synchronous tally operations are not enabled.", e.getMessage());
   }
 
   @Test
