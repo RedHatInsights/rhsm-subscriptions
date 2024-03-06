@@ -97,7 +97,7 @@ public interface ContractEntityMapper {
       PartnerEntitlementV1 entitlement, @MappingTarget ContractEntity entity) {
     entity.setMetrics(
         entitlement.getPurchase().getContracts().stream()
-            .filter(contract -> Objects.isNull(contract.getEndDate()))
+            .filter(contract -> Objects.nonNull(contract.getDimensions()))
             .flatMap(contract -> contract.getDimensions().stream())
             .map(this::mapDimensionToContractMetricEntity)
             .collect(Collectors.toSet()));

@@ -64,8 +64,8 @@ You can find more information about how to fill the request using the following 
 | contracts        | billing_provider_id  | if <1>.sourcePartner is "azure_marketplace", <br>then combination of <1>.purchase.azureResourceId,<1>.purchase.contracts[*].planId and <1>.purchase.vendorProductCode           |
 | ^                | ^                    | if <1>.sourcePartner is "aws_marketplace", <br>then combination of <1>.purchase.vendorProductCode,<1>.partnerIdentities.awsCustomerId and <1>.partnerIdentities.sellerAccountId |
 | contracts        | billing_provider     | <1>.sourcePartner                                                                                                                                                               |
-| contract_metrics | metric_id            | <1>.purchase.contracts[*].dimensions[*].name (if <1>.purchase.contracts[*].endDate is null                                           |
-| contract_metrics | metric_value         | <1>.purchase.contracts[*].dimensions[*].value (if <1>.purchase.contracts[*].endDate is null                                         |
+| contract_metrics | metric_id            | <1>.purchase.contracts[*].dimensions[*].name                                                                                                                                    |
+| contract_metrics | metric_value         | <1>.purchase.contracts[*].dimensions[*].value                                                                                                                                   |
 | subscription     | subscription_id      | <2>                                                                                                                                                                             |
 
 You can find a full example as follows:
