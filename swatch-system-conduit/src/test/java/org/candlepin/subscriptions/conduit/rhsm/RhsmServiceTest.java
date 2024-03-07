@@ -24,8 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
-import io.github.resilience4j.ratelimiter.RateLimiterConfig;
-import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
+import io.github.resilience4j.bulkhead.BulkheadConfig;
+import io.github.resilience4j.bulkhead.BulkheadRegistry;
 import jakarta.validation.ConstraintViolationException;
 import java.util.Collections;
 import org.candlepin.subscriptions.conduit.inventory.InventoryServiceProperties;
@@ -73,8 +73,8 @@ class RhsmServiceTest {
     when(rhsmApi.getConsumersForOrg(
             anyString(), any(Integer.class), nullable(String.class), anyString()))
         .thenThrow(ApiException.class);
-    var rateLimiterConfig = RateLimiterConfig.custom().limitForPeriod(Integer.MAX_VALUE).build();
-    var rateLimiterRegistry = RateLimiterRegistry.of(rateLimiterConfig);
+    var bulkheadConfig = BulkheadConfig.custom().maxConcurrentCalls(Integer.MAX_VALUE).build();
+    var bulkheadRegistry = BulkheadRegistry.of(bulkheadConfig);
 
     // Make the tests run faster!
     retryTemplate.setBackOffPolicy(new NoBackOffPolicy());
@@ -84,7 +84,7 @@ class RhsmServiceTest {
             new RhsmApiProperties(),
             rhsmApi,
             retryTemplate,
-            rateLimiterRegistry);
+            bulkheadRegistry);
 
     assertThrows(
         ApiException.class,
