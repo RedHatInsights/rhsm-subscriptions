@@ -12,5 +12,6 @@
   <include file="db/202401111039_make_subscription_number_nullable.xml"/>
   <include file="db/202401121651_add_billingproviderid_to_contracts.xml"/>
   <include file="db/202401171354_add_subscription_and_offering_h2_only.xml"/>
+  <include file="db/202402151611_add_offering_sku_product_tag_h2_only.xml"/>
   <include file="db/202402161401_fix_contract_product_for_rosa.xml"/>
 </databaseChangeLog>

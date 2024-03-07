@@ -139,5 +139,6 @@
     <include file="/liquibase/202401151414-add-retry_after-column-to-billable_usage_remittance-table.xml"/>
     <include file="/liquibase/202402051200-add-id-and-hardware-columns-to-billable_usage_remittance-table.xml"/>
     <include file="/liquibase/202311211112-remove-default-sockets-cores-on-buckets.xml"/>
+    <include file="/liquibase/202402151211-add-sku-product-tag-table.xml"/>
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

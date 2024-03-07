@@ -62,14 +62,12 @@ import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.Usage;
-import org.candlepin.subscriptions.exception.MissingOfferingException;
 import org.candlepin.subscriptions.product.OfferingSyncController;
 import org.candlepin.subscriptions.product.SyncResult;
 import org.candlepin.subscriptions.subscription.api.model.ExternalReference;
 import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
 import org.candlepin.subscriptions.tally.UsageCalculation;
 import org.candlepin.subscriptions.tally.UsageCalculation.Key;
-import org.candlepin.subscriptions.utilization.admin.api.model.OfferingProductTags;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -444,60 +442,6 @@ class SubscriptionSyncControllerTest {
             Optional.of("org1000"), key, rangeStart, rangeEnd);
     assertEquals(1, actual.size());
     assertEquals("xyz", actual.get(0).getBillingProviderId());
-  }
-
-  @Test
-  void findProductTagsBySku_WhenSkuPresent() {
-    Offering offering = new Offering();
-    offering.setRole("ocp");
-    when(offeringRepository.findOfferingBySku("sku")).thenReturn(offering);
-
-    OfferingProductTags productTags = subscriptionSyncController.findProductTags("sku");
-    assertEquals(1, productTags.getData().size());
-    assertEquals("OpenShift-metrics", productTags.getData().get(0));
-  }
-
-  @Test
-  void
-      findProductTagsBySku_WhenSkuPresentWithNoRoleOrEngIDsThenItShouldUseProductNameWhenMeteredFlagIsTrue() {
-    Offering offering = new Offering();
-    offering.setProductName("OpenShift Online");
-    offering.setRole(null);
-    offering.setProductIds(null);
-    offering.setMetered(true);
-    when(offeringRepository.findOfferingBySku("sku")).thenReturn(offering);
-
-    OfferingProductTags productTags = subscriptionSyncController.findProductTags("sku");
-    assertEquals(1, productTags.getData().size());
-    assertEquals("rosa", productTags.getData().get(0));
-  }
-
-  @Test
-  void
-      findProductTagsBySku_WhenSkuPresentWithNoRoleOrEngIDsThenItShouldNotUseProductNameWhenMeteredFlagIsFalse() {
-    Offering offering = new Offering();
-    offering.setProductName("OpenShift Online");
-    offering.setRole(null);
-    offering.setProductIds(null);
-    offering.setMetered(false);
-    when(offeringRepository.findOfferingBySku("sku")).thenReturn(offering);
-
-    OfferingProductTags productTags = subscriptionSyncController.findProductTags("sku");
-    assertNull(productTags.getData());
-  }
-
-  @Test
-  void findProductTagsBySku_WhenSkuNotPresent() {
-    when(offeringRepository.findOfferingBySku("sku")).thenReturn(null);
-    RuntimeException e =
-        assertThrows(
-            MissingOfferingException.class,
-            () -> subscriptionSyncController.findProductTags("sku"));
-    assertEquals("Sku sku not found in Offering", e.getMessage());
-
-    when(offeringRepository.findOfferingBySku("sku")).thenReturn(new Offering());
-    OfferingProductTags productTags2 = subscriptionSyncController.findProductTags("sku");
-    assertNull(productTags2.getData());
   }
 
   @Test

@@ -6,12 +6,11 @@ spring:
     import: classpath:swatch-core/application.yaml  # load the common configuration
   profiles:
     active: kafka-queue
-resilience4j.ratelimiter:
+resilience4j.bulkhead:
   instances:
     rhsmApi:
-      limitForPeriod: ${RHSM_API_LIMIT_FOR_PERIOD:15}
-      limitRefreshPeriod: ${RHSM_API_LIMIT_REFRESH_PERIOD:100ms}
-      timeoutDuration: ${RHSM_API_LIMIT_TIMEOUT_DURATION:30m}
+      maxConcurrentCalls: ${RHSM_API_MAX_CONCURRENT_CALLS:5}
+      maxWaitDuration: ${RHSM_API_MAX_WAIT_DURATION:30m}
 rhsm-conduit:
   rhsm:
     use-stub: ${RHSM_USE_STUB:false}
