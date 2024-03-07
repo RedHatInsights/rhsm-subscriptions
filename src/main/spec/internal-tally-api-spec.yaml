@@ -89,13 +89,13 @@ paths:
             type: string
             format: date-time
             description: "The end date for the tally (e.g. 22-05-03T10:00:00Z). Must be specified along with the start parameter."
-        - name: x-rh-swatch-synchronous-request
+        - name: x-rh-swatch-use-thread-pool-executor
           in: header
           required: false
           schema:
             type: boolean
             default: "false"
-            description: "When present, a synchronous request is made."
+            description: "When present, the request is processed asynchronously using the thread-pool executor instead of using the Kafka executor."
       responses:
         '200':
           description: "The hourly tally operation succeeded for the specified orgId."

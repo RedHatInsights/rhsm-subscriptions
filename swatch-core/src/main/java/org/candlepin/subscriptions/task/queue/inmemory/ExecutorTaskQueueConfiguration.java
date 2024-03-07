@@ -25,15 +25,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 
-/**
- * Configuration that is common to both producers and consumers for in-memory task queues.
- *
- * <p>Only activated as a fallback (in case Kafka is disabled).
- */
+/** Configuration that is common to both producers and consumers for in-memory task queues. */
 @Configuration
-@Profile("!kafka-queue")
 public class ExecutorTaskQueueConfiguration {
   private static final Logger log = LoggerFactory.getLogger(ExecutorTaskQueueConfiguration.class);
 
