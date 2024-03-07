@@ -21,7 +21,7 @@
 package com.redhat.swatch.contract.service;
 
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitlementV1;
-import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
+import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.Objects;
 
@@ -29,18 +29,17 @@ import java.util.Objects;
 public class AwsPartnerEntitlementsProvider extends BasePartnerEntitlementsProvider {
 
   @Override
-  public boolean isFor(PartnerEntitlementContract contract) {
+  public boolean isFor(PartnerEntitlementsRequest contract) {
     return Objects.nonNull(contract.getRedHatSubscriptionNumber())
-        && Objects.nonNull(contract.getCloudIdentifiers())
-        && Objects.nonNull(contract.getCloudIdentifiers().getAwsCustomerId())
-        && Objects.nonNull(contract.getCloudIdentifiers().getAwsCustomerAccountId())
-        && Objects.nonNull(contract.getCloudIdentifiers().getProductCode());
+        && Objects.nonNull(contract.getAwsCustomerId())
+        && Objects.nonNull(contract.getAwsCustomerAccountId())
+        && Objects.nonNull(contract.getProductCode());
   }
 
   @Override
-  protected QueryPartnerEntitlementV1 buildQuery(PartnerEntitlementContract contract) {
+  protected QueryPartnerEntitlementV1 buildQuery(PartnerEntitlementsRequest contract) {
     return new QueryPartnerEntitlementV1()
-        .customerAwsAccountId(contract.getCloudIdentifiers().getAwsCustomerAccountId())
-        .vendorProductCode(contract.getCloudIdentifiers().getProductCode());
+        .customerAwsAccountId(contract.getAwsCustomerAccountId())
+        .vendorProductCode(contract.getProductCode());
   }
 }

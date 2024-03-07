@@ -25,7 +25,7 @@ import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlement
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitlementV1;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.ApiException;
 import com.redhat.swatch.clients.rh.partner.gateway.api.resources.PartnerApi;
-import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
+import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 
@@ -34,11 +34,11 @@ public abstract class BasePartnerEntitlementsProvider {
 
   @RestClient PartnerApi partnerApi;
 
-  public abstract boolean isFor(PartnerEntitlementContract contract);
+  public abstract boolean isFor(PartnerEntitlementsRequest contract);
 
-  protected abstract QueryPartnerEntitlementV1 buildQuery(PartnerEntitlementContract contract);
+  protected abstract QueryPartnerEntitlementV1 buildQuery(PartnerEntitlementsRequest contract);
 
-  public PartnerEntitlementV1 getPartnerEntitlement(PartnerEntitlementContract contract)
+  public PartnerEntitlementV1 getPartnerEntitlement(PartnerEntitlementsRequest contract)
       throws ApiException {
     var query = buildQuery(contract).page(new PageRequest().size(20).number(0));
     log.trace("Call Partner Api using query {}", query);

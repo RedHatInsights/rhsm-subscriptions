@@ -38,6 +38,7 @@ import com.redhat.swatch.contract.exception.ErrorCode;
 import com.redhat.swatch.contract.model.ContractDtoMapper;
 import com.redhat.swatch.contract.model.ContractEntityMapper;
 import com.redhat.swatch.contract.model.MeasurementMetricIdTransformer;
+import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import com.redhat.swatch.contract.model.SubscriptionEntityMapper;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.ContractRequest;
@@ -106,6 +107,12 @@ public class ContractService {
   @Transactional
   public ContractResponse createContract(ContractRequest request) {
     ContractResponse response = new ContractResponse();
+    if (findPartnerEntitlementsProvider(PartnerEntitlementsRequest.from(request)) == null) {
+      log.info("Can't process the contract because is not contract-enabled: {}", request);
+      response.setStatus(INVALID_MESSAGE_UNPROCESSED.toStatus());
+      return response;
+    }
+
     try {
       var result =
           upsertPartnerContract(request.getPartnerEntitlement(), request.getSubscriptionId());
@@ -183,14 +190,15 @@ public class ContractService {
 
   @Transactional
   public StatusResponse createPartnerContract(PartnerEntitlementContract contract) {
-    var partnerEntitlementsProvider = findPartnerEntitlementsProvider(contract);
+    var request = PartnerEntitlementsRequest.from(contract);
+    var partnerEntitlementsProvider = findPartnerEntitlementsProvider(request);
     if (partnerEntitlementsProvider == null) {
       log.info("Can't process the contract from UMB: {}", contract);
       return INVALID_MESSAGE_UNPROCESSED.toStatus();
     }
 
     try {
-      return callPartnerApiAndUpsertPartnerContract(contract, partnerEntitlementsProvider);
+      return callPartnerApiAndUpsertPartnerContract(request, partnerEntitlementsProvider);
     } catch (ProcessingException | ApiException e) {
       log.error(e.getMessage());
       return PARTNER_API_FAILURE.toStatus();
@@ -201,20 +209,20 @@ public class ContractService {
 
   @Retry(delay = 500, maxRetries = 10, abortOn = ContractNotAssociatedToOrgException.class)
   public StatusResponse callPartnerApiAndUpsertPartnerContract(
-      PartnerEntitlementContract contract,
+      PartnerEntitlementsRequest request,
       BasePartnerEntitlementsProvider partnerEntitlementsProvider)
       throws ApiException, ContractValidationFailedException {
     try {
-      var entitlement = partnerEntitlementsProvider.getPartnerEntitlement(contract);
+      var entitlement = partnerEntitlementsProvider.getPartnerEntitlement(request);
       if (entitlement == null) {
-        log.error("No results found from partner entitlement for contract {}", contract);
+        log.error("No results found from partner entitlement for contract {}", request);
         return INVALID_MESSAGE_UNPROCESSED.toStatus();
       }
 
       var subscriptionId =
           lookupSubscriptionId(
               Optional.ofNullable(findSubscriptionNumber(entitlement))
-                  .orElse(contract.getRedHatSubscriptionNumber()));
+                  .orElse(request.getRedHatSubscriptionNumber()));
       return upsertPartnerContract(entitlement, subscriptionId).toStatus();
     } catch (ContractNotAssociatedToOrgException e) {
       return ContractMessageProcessingResult.RH_ORG_NOT_ASSOCIATED.toStatus();
@@ -331,9 +339,9 @@ public class ContractService {
   }
 
   private BasePartnerEntitlementsProvider findPartnerEntitlementsProvider(
-      PartnerEntitlementContract contract) {
+      PartnerEntitlementsRequest request) {
     for (BasePartnerEntitlementsProvider provider : partnerEntitlementsProviders) {
-      if (provider.isFor(contract)) {
+      if (provider.isFor(request)) {
         return provider;
       }
     }

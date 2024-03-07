@@ -21,7 +21,7 @@
 package com.redhat.swatch.contract.service;
 
 import com.redhat.swatch.clients.rh.partner.gateway.api.model.QueryPartnerEntitlementV1;
-import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
+import com.redhat.swatch.contract.model.PartnerEntitlementsRequest;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.util.Objects;
 
@@ -29,16 +29,14 @@ import java.util.Objects;
 public class AzurePartnerEntitlementsProvider extends BasePartnerEntitlementsProvider {
 
   @Override
-  public boolean isFor(PartnerEntitlementContract contract) {
-    return Objects.nonNull(contract.getCloudIdentifiers())
-        && Objects.nonNull(contract.getCloudIdentifiers().getAzureResourceId());
+  public boolean isFor(PartnerEntitlementsRequest contract) {
+    return Objects.nonNull(contract.getAzureResourceId());
   }
 
   @Override
-  protected QueryPartnerEntitlementV1 buildQuery(PartnerEntitlementContract contract) {
+  protected QueryPartnerEntitlementV1 buildQuery(PartnerEntitlementsRequest contract) {
     // azureResourceId is a unique identifier per SaaS purchase,
     // so it should be sufficient by itself
-    return new QueryPartnerEntitlementV1()
-        .azureResourceId(contract.getCloudIdentifiers().getAzureResourceId());
+    return new QueryPartnerEntitlementV1().azureResourceId(contract.getAzureResourceId());
   }
 }
