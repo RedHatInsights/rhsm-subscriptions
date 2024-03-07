@@ -98,11 +98,9 @@ parameters:
     value: '3'
   - name: HOST_LAST_SYNC_THRESHOLD
     value: '30h'
-  - name: RHSM_API_LIMIT_FOR_PERIOD
-    value: '150'
-  - name: RHSM_API_LIMIT_REFRESH_PERIOD
-    value: 100ms
-  - name: RHSM_API_LIMIT_TIMEOUT_DURATION
+  - name: RHSM_API_MAX_CONCURRENT_CALLS
+    value: '5'
+  - name: RHSM_API_MAX_WAIT_DURATION
     value: 30m
   - name: OTEL_SERVICE_NAME
     value: swatch-system-conduit
@@ -319,12 +317,10 @@ objects:
                 secretKeyRef:
                   name: swatch-psks
                   key: self
-            - name: RHSM_API_LIMIT_FOR_PERIOD
-              value: ${RHSM_API_LIMIT_FOR_PERIOD}
-            - name: RHSM_API_LIMIT_REFRESH_PERIOD
-              value: ${RHSM_API_LIMIT_REFRESH_PERIOD}
-            - name: RHSM_API_LIMIT_TIMEOUT_DURATION
-              value: ${RHSM_API_LIMIT_TIMEOUT_DURATION}
+            - name: RHSM_API_MAX_CONCURRENT_CALLS
+              value: ${RHSM_API_MAX_CONCURRENT_CALLS}
+            - name: RHSM_API_MAX_WAIT_DURATION
+              value: ${RHSM_API_MAX_WAIT_DURATION}
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: ${OTEL_EXPORTER_OTLP_ENDPOINT}
             - name: OTEL_SERVICE_NAME
