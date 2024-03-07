@@ -16,7 +16,7 @@ rich = "^13.7.0"
 click = "^8.1.7"
 invoke = "^2.2.0"
 prompt-toolkit = "^3.0.43"
-iterfzf = "^1.1.0.44.0"
+iterfzf = "^1.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.3.0"
