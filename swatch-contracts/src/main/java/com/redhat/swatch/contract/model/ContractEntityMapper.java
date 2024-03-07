@@ -71,12 +71,6 @@ public interface ContractEntityMapper {
   @BeanMapping(ignoreByDefault = true)
   ContractEntity mapEntitlementToContractEntity(PartnerEntitlementV1 entitlement);
 
-  @Mapping(target = "uuid", ignore = true)
-  @Mapping(target = "startDate", ignore = true)
-  @Mapping(target = "lastUpdated", ignore = true)
-  void mapEntityToContractEntity(
-      @MappingTarget ContractEntity existingContract, ContractEntity entity);
-
   @Mapping(target = "metricId", source = "name")
   @Mapping(target = "value", source = "value")
   @BeanMapping(ignoreByDefault = true)
