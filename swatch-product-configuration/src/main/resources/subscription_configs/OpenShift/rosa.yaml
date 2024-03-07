@@ -39,5 +39,5 @@ metrics:
       queryParams:
         instanceKey: _id
         product: moa-hostedcontrolplane
-        metric: cluster:usage:workload:capacity_physical_cpu_hours
+        metric: cluster:usage:workload:capacity_virtual_cpu_hours
         metadataMetric: ocm_subscription
