@@ -25,6 +25,7 @@ import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -154,16 +155,17 @@ public class FactNormalizer {
 
   @SuppressWarnings("indentation")
   private void pruneProducts(NormalizedFacts normalizedFacts) {
-    // If a Satellite or OpenShift product was found, do not include RHEL or its variants.
-    boolean hasRhelIncludedProduct =
+    var exclusions =
         normalizedFacts.getProducts().stream()
-            .anyMatch(s -> s.startsWith("Satellite") || s.startsWith("OpenShift"));
-    if (hasRhelIncludedProduct) {
-      normalizedFacts.setProducts(
-          normalizedFacts.getProducts().stream()
-              .filter(prod -> !prod.startsWith("RHEL"))
-              .collect(Collectors.toSet()));
-    }
+            .map(SubscriptionDefinition::lookupSubscriptionByTag)
+            .filter(Optional::isPresent)
+            .flatMap(s -> s.get().getIncludedSubscriptions().stream())
+            // map productId to product tag
+            .flatMap(
+                productId ->
+                    SubscriptionDefinition.getAllProductTagsByProductId(productId).stream())
+            .collect(Collectors.toSet());
+    normalizedFacts.getProducts().removeIf(exclusions::contains);
   }
 
   private void normalizeSocketCount(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
