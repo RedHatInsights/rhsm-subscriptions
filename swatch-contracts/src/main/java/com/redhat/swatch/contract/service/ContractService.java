@@ -404,7 +404,7 @@ public class ContractService {
         subscriptionRepository.persist(subscription);
       }
       log.info("Contract metadata updated");
-      return ContractMessageProcessingResult.METADATA_UPDATED.withContract(entity);
+      return ContractMessageProcessingResult.METADATA_UPDATED.withContract(existingContract);
     }
   }
 

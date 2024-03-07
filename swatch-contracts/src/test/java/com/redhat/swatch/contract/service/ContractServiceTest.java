@@ -179,6 +179,18 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   @Test
+  void createPartnerContract_UpdateContract() {
+    givenExistingContractWithExistingMetrics();
+    givenExistingSubscription("1234:agb1:1fa");
+
+    PartnerEntitlementContract request = givenPartnerEntitlementContractRequest();
+
+    StatusResponse statusResponse = contractService.createPartnerContract(request);
+    verify(subscriptionRepository, times(2)).persist(any(SubscriptionEntity.class));
+    assertEquals("Contract metadata updated", statusResponse.getMessage());
+  }
+
+  @Test
   void createPartnerContract_DuplicateContractThenDoNotPersist() {
     PartnerEntitlementContract request = givenPartnerEntitlementContractRequest();
     contractService.createPartnerContract(request);
@@ -378,7 +390,27 @@ class ContractServiceTest extends BaseUnitTest {
   }
 
   private ContractEntity givenExistingContract() {
-    ContractResponse created = contractService.createContract(givenContractRequest());
+    return givenExistingContract(givenContractRequest());
+  }
+
+  private ContractEntity givenExistingContractWithExistingMetrics() {
+    var request = givenContractRequest();
+    var contract = request.getPartnerEntitlement().getPurchase().getContracts().get(0);
+
+    // existing metrics are coming from WireMockResource.stubForRhPartnerApi() method
+    var metric1 = new DimensionV1();
+    metric1.setName("foobar");
+    metric1.setValue("1000000");
+
+    var metric2 = new DimensionV1();
+    metric2.setName("cpu-hours");
+    metric2.setValue("1000000");
+    contract.setDimensions(List.of(metric1, metric2));
+    return givenExistingContract(request);
+  }
+
+  private ContractEntity givenExistingContract(ContractRequest request) {
+    ContractResponse created = contractService.createContract(request);
     return contractRepository.findById(UUID.fromString(created.getContract().getUuid()));
   }
 
