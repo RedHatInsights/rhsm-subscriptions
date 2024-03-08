@@ -10,7 +10,7 @@ resilience4j.bulkhead:
   instances:
     rhsmApi:
       maxConcurrentCalls: ${RHSM_API_MAX_CONCURRENT_CALLS:5}
-      maxWaitDuration: ${RHSM_API_MAX_WAIT_DURATION:30m}
+      maxWaitDuration: ${RHSM_API_MAX_WAIT_DURATION:3m}
 rhsm-conduit:
   rhsm:
     use-stub: ${RHSM_USE_STUB:false}

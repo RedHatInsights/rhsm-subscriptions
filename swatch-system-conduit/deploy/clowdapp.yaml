@@ -101,7 +101,7 @@ parameters:
   - name: RHSM_API_MAX_CONCURRENT_CALLS
     value: '5'
   - name: RHSM_API_MAX_WAIT_DURATION
-    value: 30m
+    value: 3m
   - name: OTEL_SERVICE_NAME
     value: swatch-system-conduit
   - name: OTEL_JAVAAGENT_ENABLED
