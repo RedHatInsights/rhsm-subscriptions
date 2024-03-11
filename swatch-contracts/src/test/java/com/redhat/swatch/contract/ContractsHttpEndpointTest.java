@@ -26,7 +26,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1;
 import com.redhat.swatch.contract.openapi.model.Contract;
+import com.redhat.swatch.contract.openapi.model.ContractRequest;
+import com.redhat.swatch.contract.openapi.model.ContractResponse;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.service.ContractService;
 import io.quarkus.test.InjectMock;
@@ -69,17 +72,15 @@ class ContractsHttpEndpointTest {
   void whenCreateContract_thenCreatedContractShouldBeReturned() {
     Contract newContract = new Contract();
     newContract.setOrgId("org123");
-    when(contractService.createContract(any())).thenReturn(newContract);
-    String contract =
-        """
-        {"uuid":"string","subscription_number":"string","sku":"string",
-        "start_date":"2022-03-10T12:15:50-04:00","end_date":"2022-03-10T12:15:50-04:00",
-        "org_id":"string","billing_provider":"string","billing_account_id":"string",
-        "product_id":"string","vendor_product_code":"string","metrics": [ {"metric_id":"string","value": 0 } ] }
-        """;
+    ContractResponse response = new ContractResponse();
+    response.setContract(newContract);
+    when(contractService.createContract(any())).thenReturn(response);
+    ContractRequest request = new ContractRequest();
+    request.setPartnerEntitlement(new PartnerEntitlementV1());
+    request.setSubscriptionId("any");
     given()
         .contentType(ContentType.JSON)
-        .body(contract)
+        .body(request)
         .when()
         .post("/api/swatch-contracts/internal/contracts")
         .then()

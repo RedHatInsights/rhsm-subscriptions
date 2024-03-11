@@ -109,7 +109,23 @@ public class MeasurementMetricIdTransformer {
           internalSubscriptionsApi.getMetrics(contract.getProductId()).stream()
               .map(Metric::getAwsDimension)
               .collect(Collectors.toSet());
-      contract.getMetrics().removeIf(metric -> !metrics.contains(metric.getMetricId()));
+      contract
+          .getMetrics()
+          .removeIf(
+              metric -> {
+                if (!metrics.contains(metric.getMetricId())) {
+                  log.warn(
+                      "Removing unsupported metric '{}' from contract using the product '{}'. "
+                          + "List of supported metrics in the product are: {}",
+                      metric.getMetricId(),
+                      contract.getProductId(),
+                      metrics);
+
+                  return true;
+                }
+
+                return false;
+              });
 
     } catch (ProcessingException | ApiException e) {
       log.error("Error resolving dimensions for contract metrics", e);
