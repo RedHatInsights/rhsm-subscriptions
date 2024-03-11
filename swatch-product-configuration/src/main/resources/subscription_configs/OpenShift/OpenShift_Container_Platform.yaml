@@ -7,6 +7,9 @@ includedSubscriptions:
   - rhel-for-x86
   - rhel-for-ibm-z
   - rhel-for-ibm-power
+  - rhel-for-x86-eus
+  - rhel-for-x86-ha
+  - rhel-for-x86-rs
 
 variants:
   - tag: OpenShift Container Platform

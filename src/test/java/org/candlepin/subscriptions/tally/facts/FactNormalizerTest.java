@@ -524,6 +524,21 @@ class FactNormalizerTest {
     assertClassification(facts, true, true, false);
   }
 
+  @Test
+  void testShouldPruneProductsThatAreExcludedInConfiguration() {
+    // Where 290 is "OpenShift Container Platform", then we should remove:
+    // - 72 because is "RHEL for IBM z" and is in the includedSubscriptions configuration of
+    // OpenShift Container Platform.
+    // - 90 because is "rhel-for-x86-rs" and same as above
+    // 250 is "Satellite Server" that is not excluded, so it should not be pruned.
+    InventoryHostFacts host = createRhsmHost(List.of(290, 72, 90, 250), null, clock.now());
+    NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
+    assertThat(
+        "Products after normalization: " + normalized.getProducts(),
+        normalized.getProducts(),
+        Matchers.contains("OpenShift Container Platform", "Satellite Server"));
+  }
+
   static Stream<Arguments> syspurposeUnitsArgs() {
     return Stream.of(
         arguments("Sockets", 2, null), arguments("Cores/vCPU", null, 4), arguments("Foobar", 2, 4));

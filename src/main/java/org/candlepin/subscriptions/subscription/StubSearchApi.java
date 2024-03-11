@@ -34,34 +34,47 @@ public class StubSearchApi extends SearchApi {
   public static final String END_DATE = "2031-01-01T01:02:33Z";
 
   @Override
-  public Subscription getSubscriptionById(String id) throws ApiException {
+  public Subscription getSubscriptionById(String id) {
     if ("789".equals(id)) {
       return createAwsBillingProviderData();
+    } else if ("790".equals(id)) {
+      return createDataForOrgId(790);
     }
-    return createData();
+    return createDefaultData();
   }
 
   @Override
-  public List<Subscription> getSubscriptionBySubscriptionNumber(String subscriptionNumber)
-      throws ApiException {
+  public List<Subscription> getSubscriptionBySubscriptionNumber(String subscriptionNumber) {
     return List.of(createAwsBillingProviderData());
   }
 
   @Override
   public List<Subscription> searchSubscriptionsByOrgId(
-      String orgId, Integer index, Integer pageSize) throws ApiException {
-    return List.of(createData(), createAwsBillingProviderData(), createRhelData());
+      String orgId, Integer index, Integer pageSize) {
+    return List.of(
+        createDefaultData(),
+        createAwsBillingProviderData(),
+        createRhelData(),
+        createDataForOrgId(790));
   }
 
-  private Subscription createData() {
+  private Subscription createDefaultData() {
+    return createData(123, "MW01485");
+  }
+
+  private Subscription createDataForOrgId(int orgId) {
+    return createData(orgId, "SKU00" + orgId);
+  }
+
+  private Subscription createData(int orgId, String sku) {
     return new Subscription()
-        .id(235251)
-        .subscriptionNumber("2253591")
-        .webCustomerId(123)
+        .id(orgId)
+        .subscriptionNumber("" + orgId)
+        .webCustomerId(orgId)
         .quantity(1)
         .effectiveStartDate(OffsetDateTime.parse(START_DATE).toEpochSecond() * 1000L)
         .effectiveEndDate(OffsetDateTime.parse(END_DATE).toEpochSecond() * 1000L)
-        .subscriptionProducts(List.of(new SubscriptionProduct().sku("MW01485")));
+        .subscriptionProducts(List.of(new SubscriptionProduct().sku(sku)));
   }
 
   private Subscription createRhelData() {

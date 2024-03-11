@@ -176,6 +176,12 @@ public class SubscriptionDefinition {
         .collect(Collectors.toUnmodifiableSet());
   }
 
+  public static Set<String> getAllProductTagsByProductId(String id) {
+    return SubscriptionDefinition.findById(id)
+        .map(s -> s.getVariants().stream().map(Variant::getTag).collect(Collectors.toSet()))
+        .orElse(Set.of());
+  }
+
   public static Set<String> getAllProductTagsWithPaygEligibleByRoleOrEngIds(
       String role, Collection<?> engIds, String productName) {
     Set<String> productTags = new HashSet<>();
