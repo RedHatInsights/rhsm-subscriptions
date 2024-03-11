@@ -25,6 +25,7 @@ import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -81,8 +82,8 @@ public class FactNormalizer {
     normalizeMarketplace(normalizedFacts, hostFacts);
     normalizeConflictingOrMissingRhelVariants(normalizedFacts);
     pruneProducts(normalizedFacts);
+    normalizeNullSocketsAndCores(normalizedFacts, hostFacts);
     normalizeUnits(normalizedFacts, hostFacts);
-    defaultNullFacts(normalizedFacts, hostFacts);
     return normalizedFacts;
   }
 
@@ -99,10 +100,16 @@ public class FactNormalizer {
     }
     switch (hostFacts.getSyspurposeUnits()) {
       case "Sockets":
-        normalizedFacts.setCores(0);
+        normalizedFacts.setCores(null);
+        if (normalizedFacts.getSockets() == null) {
+          normalizedFacts.setSockets(hostFacts.getSystemProfileSockets());
+        }
         break;
       case "Cores/vCPU":
-        normalizedFacts.setSockets(0);
+        normalizedFacts.setSockets(null);
+        if (normalizedFacts.getCores() == null) {
+          normalizedFacts.setCores(hostFacts.getSystemProfileCoresPerSocket());
+        }
         break;
       default:
         log.warn(
@@ -193,11 +200,13 @@ public class FactNormalizer {
     if (HardwareMeasurementType.isSupportedCloudProvider(cloudProvider)) {
       normalizedFacts.setCloudProviderType(HardwareMeasurementType.fromString(cloudProvider));
     }
-    if (hostFacts.getSystemProfileSockets() != 0) {
+    if (hostFacts.getSystemProfileSockets() != null && hostFacts.getSystemProfileSockets() != 0) {
       normalizedFacts.setSockets(hostFacts.getSystemProfileSockets());
     }
     if (hostFacts.getSystemProfileSockets() != 0
-        && hostFacts.getSystemProfileCoresPerSocket() != 0) {
+        && hostFacts.getSystemProfileSockets() != null
+        && hostFacts.getSystemProfileCoresPerSocket() != 0
+        && hostFacts.getSystemProfileCoresPerSocket() != null) {
       normalizedFacts.setCores(
           hostFacts.getSystemProfileCoresPerSocket() * hostFacts.getSystemProfileSockets());
     }
@@ -223,11 +232,12 @@ public class FactNormalizer {
     normalizedFacts.setSockets(0);
   }
 
-  private void defaultNullFacts(NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
-    if (normalizedFacts.getCores() == null) {
+  private void normalizeNullSocketsAndCores(
+      NormalizedFacts normalizedFacts, InventoryHostFacts hostFacts) {
+    if (normalizedFacts.getCores() == null && hostFacts.getSystemProfileCoresPerSocket() != 0) {
       normalizedFacts.setCores(hostFacts.getSystemProfileCoresPerSocket());
     }
-    if (normalizedFacts.getSockets() == null) {
+    if (normalizedFacts.getSockets() == null && hostFacts.getSystemProfileSockets() != 0) {
       normalizedFacts.setSockets(hostFacts.getSystemProfileSockets());
     }
   }
@@ -305,9 +315,14 @@ public class FactNormalizer {
     //
     // NOTE: This logic is applied since currently the inventory service does not prune inventory
     //       records once a host no longer exists.
-    String syncTimestamp = hostFacts.getSyncTimestamp();
+    var syncTimestampOptional = Optional.ofNullable(hostFacts.getSyncTimestamp());
     boolean skipRhsmFacts =
-        StringUtils.hasText(syncTimestamp) && hostUnregistered(OffsetDateTime.parse(syncTimestamp));
+        syncTimestampOptional
+            .map(
+                syncTimestamp ->
+                    StringUtils.hasText(syncTimestamp)
+                        && hostUnregistered(OffsetDateTime.parse(syncTimestamp)))
+            .orElse(false);
     if (!skipRhsmFacts) {
       normalizedFacts.getProducts().addAll(getProductsFromProductIds(hostFacts.getProducts()));
 
