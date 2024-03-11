@@ -21,13 +21,16 @@
 package org.candlepin.subscriptions.conduit.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.util.AssertionErrors.assertFalse;
 import static org.springframework.test.util.AssertionErrors.assertTrue;
 
+import jakarta.ws.rs.BadRequestException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.candlepin.subscriptions.SystemConduitProperties;
 import org.candlepin.subscriptions.conduit.InventoryController;
 import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
@@ -51,15 +54,34 @@ class InternalOrganizationSyncResourceTest {
   @MockBean InventoryController controller;
   @MockBean OrgConfigRepository repo;
   @MockBean OrgSyncTaskManager tasks;
+  @MockBean SystemConduitProperties properties;
   @Captor ArgumentCaptor<List<OrgConfig>> orgConfigCaptor;
 
   @Autowired InternalOrganizationSyncResource resource;
 
   @Test
-  void syncOrgShouldReturnSuccess() {
+  void syncOrgShouldThrowExceptionWhenSyncIsNotEnabled() {
+    when(properties.isEnableSynchronousOperations()).thenReturn(false);
     var request = new OrgSyncRequest();
     request.setOrgId("123");
-    assertEquals("Success", resource.syncOrg(request).getStatus());
+    assertThrows(BadRequestException.class, () -> resource.syncOrg(request, true));
+  }
+
+  @Test
+  void syncOrgShouldUpdateOrgInSync() {
+    when(properties.isEnableSynchronousOperations()).thenReturn(true);
+    var request = new OrgSyncRequest();
+    request.setOrgId("123");
+    assertEquals("Success", resource.syncOrg(request, true).getStatus());
+    verify(controller).updateInventoryForOrg(request.getOrgId());
+  }
+
+  @Test
+  void syncOrgShouldUpdateOrgInAsync() {
+    var request = new OrgSyncRequest();
+    request.setOrgId("123");
+    assertEquals("Success", resource.syncOrg(request, false).getStatus());
+    verify(tasks).updateOrgInventory(request.getOrgId());
   }
 
   @Test
