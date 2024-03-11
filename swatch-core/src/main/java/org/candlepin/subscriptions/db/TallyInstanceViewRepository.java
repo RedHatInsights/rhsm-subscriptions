@@ -73,8 +73,8 @@ public interface TallyInstanceViewRepository
       ServiceLevel sla,
       Usage usage,
       String displayNameSubstring,
-      int minCores,
-      int minSockets,
+      Integer minCores,
+      Integer minSockets,
       String month,
       MetricId referenceUom,
       BillingProvider billingProvider,
@@ -99,11 +99,18 @@ public interface TallyInstanceViewRepository
   }
 
   static Specification<TallyInstanceView> socketsAndCoresGreaterThanOrEqualTo(
-      int minCores, int minSockets) {
-    return (root, query, builder) ->
-        builder.and(
+      Integer minCores, Integer minSockets) {
+    return (root, query, builder) -> {
+      if (Objects.nonNull(minCores) && Objects.nonNull(minSockets)) {
+        return builder.and(
             builder.greaterThanOrEqualTo(root.get(TallyInstanceView_.cores), minCores),
             builder.greaterThanOrEqualTo(root.get(TallyInstanceView_.sockets), minSockets));
+      } else if (Objects.nonNull(minCores)) {
+        return builder.greaterThanOrEqualTo(root.get(TallyInstanceView_.cores), minCores);
+      } else if (Objects.nonNull(minSockets)) {
+        return builder.greaterThanOrEqualTo(root.get(TallyInstanceView_.sockets), minSockets);
+      } else return null;
+    };
   }
 
   static Specification<TallyInstanceView> productIdEquals(String productId) {
@@ -189,8 +196,8 @@ public interface TallyInstanceViewRepository
       ServiceLevel sla,
       Usage usage,
       String displayNameSubstring,
-      int minCores,
-      int minSockets,
+      Integer minCores,
+      Integer minSockets,
       String month,
       MetricId referenceUom,
       BillingProvider billingProvider,

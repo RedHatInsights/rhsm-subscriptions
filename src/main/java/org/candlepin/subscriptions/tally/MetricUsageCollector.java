@@ -448,6 +448,15 @@ public class MetricUsageCollector {
     Set<BillingProvider> billingProviders = Set.of(effectiveProvider, BillingProvider._ANY);
     Set<String> billingAccountIds = getBillingAccountIds(effectiveBillingAcctId);
 
+    Integer cores =
+        Optional.ofNullable(host.getMeasurement(MetricIdUtils.getCores().toString()))
+            .map(Double::intValue)
+            .orElse(null);
+    Integer sockets =
+        Optional.ofNullable(host.getMeasurement(MetricIdUtils.getSockets().toString()))
+            .map(Double::intValue)
+            .orElse(null);
+
     Set<List<Object>> bucketTuples =
         Sets.cartesianProduct(productTags, slas, usages, billingProviders, billingAccountIds);
     bucketTuples.forEach(
@@ -458,6 +467,8 @@ public class MetricUsageCollector {
           BillingProvider billingProvider = (BillingProvider) tuple.get(3);
           String billingAccountId = (String) tuple.get(4);
           HostTallyBucket bucket = new HostTallyBucket();
+          bucket.setCores(cores);
+          bucket.setSockets(sockets);
           bucket.setKey(
               new HostBucketKey(
                   host,

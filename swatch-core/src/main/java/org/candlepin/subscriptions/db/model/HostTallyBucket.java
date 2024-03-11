@@ -48,8 +48,8 @@ public class HostTallyBucket implements Serializable {
 
   @EmbeddedId private HostBucketKey key;
 
-  private int cores;
-  private int sockets;
+  private Integer cores;
+  private Integer sockets;
 
   @Enumerated(EnumType.STRING)
   @Column(name = "measurement_type")
@@ -72,8 +72,8 @@ public class HostTallyBucket implements Serializable {
       BillingProvider billingProvider,
       String billingAccountId,
       Boolean asHypervisor,
-      int cores,
-      int sockets,
+      Integer cores,
+      Integer sockets,
       HardwareMeasurementType type) {
     this.host = host;
     setKey(

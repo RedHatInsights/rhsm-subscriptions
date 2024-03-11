@@ -21,6 +21,8 @@
 package com.redhat.swatch.contract.resource;
 
 import com.redhat.swatch.contract.openapi.model.Contract;
+import com.redhat.swatch.contract.openapi.model.ContractRequest;
+import com.redhat.swatch.contract.openapi.model.ContractResponse;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
 import com.redhat.swatch.contract.openapi.resource.ApiException;
@@ -45,17 +47,17 @@ public class ContractsTestingResource implements DefaultApi {
   /**
    * Create contract record in database from provided contract dto payload
    *
-   * @param contract
-   * @return Contract
+   * @param request
+   * @return status
    * @throws ApiException
    * @throws ProcessingException
    */
   @Override
   @Transactional
   @RolesAllowed({"test"})
-  public Contract createContract(Contract contract) throws ProcessingException {
+  public ContractResponse createContract(ContractRequest request) throws ProcessingException {
     log.info("Creating contract");
-    return service.createContract(contract);
+    return service.createContract(request);
   }
 
   @Override

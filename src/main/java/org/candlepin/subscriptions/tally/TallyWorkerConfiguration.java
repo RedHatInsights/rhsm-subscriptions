@@ -41,7 +41,9 @@ import org.candlepin.subscriptions.tally.facts.FactNormalizer;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.queue.TaskConsumer;
 import org.candlepin.subscriptions.task.queue.TaskConsumerConfiguration;
-import org.candlepin.subscriptions.task.queue.TaskConsumerFactory;
+import org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskProcessor;
+import org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskQueueConsumerFactory;
+import org.candlepin.subscriptions.task.queue.kafka.KafkaTaskConsumerFactory;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
@@ -144,10 +146,19 @@ public class TallyWorkerConfiguration {
   }
 
   @Bean
-  @Qualifier("tallyTaskConsumer")
+  @Profile("kafka-queue")
   public TaskConsumer tallyTaskProcessor(
       @Qualifier("tallyTaskQueueProperties") TaskQueueProperties taskQueueProperties,
-      TaskConsumerFactory<? extends TaskConsumer> taskConsumerFactory,
+      KafkaTaskConsumerFactory taskConsumerFactory,
+      TallyTaskFactory taskFactory) {
+
+    return taskConsumerFactory.createTaskConsumer(taskFactory, taskQueueProperties);
+  }
+
+  @Bean
+  public ExecutorTaskProcessor syncTaskProcessorForTallyTaskProcessor(
+      @Qualifier("tallyTaskQueueProperties") TaskQueueProperties taskQueueProperties,
+      ExecutorTaskQueueConsumerFactory taskConsumerFactory,
       TallyTaskFactory taskFactory) {
 
     return taskConsumerFactory.createTaskConsumer(taskFactory, taskQueueProperties);

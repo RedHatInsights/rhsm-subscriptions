@@ -35,7 +35,6 @@ import org.candlepin.subscriptions.retention.RemittanceRetentionController;
 import org.candlepin.subscriptions.retention.TallyRetentionController;
 import org.candlepin.subscriptions.security.SecurityProperties;
 import org.candlepin.subscriptions.tally.MarketplaceResendTallyController;
-import org.candlepin.subscriptions.tally.TallySnapshotController;
 import org.candlepin.subscriptions.tally.admin.api.InternalApi;
 import org.candlepin.subscriptions.tally.admin.api.model.DefaultResponse;
 import org.candlepin.subscriptions.tally.admin.api.model.EventsResponse;
@@ -66,7 +65,6 @@ public class InternalTallyResource implements InternalApi {
   private final ApplicationClock clock;
   private final ApplicationProperties applicationProperties;
   private final MarketplaceResendTallyController resendTallyController;
-  private final TallySnapshotController tallySnapshotController;
   private final CaptureSnapshotsTaskManager snapshotsTaskManager;
   private final TallyRetentionController tallyRetentionController;
   private final RemittanceRetentionController remittanceRetentionController;
@@ -80,7 +78,6 @@ public class InternalTallyResource implements InternalApi {
       ApplicationClock clock,
       ApplicationProperties applicationProperties,
       MarketplaceResendTallyController resendTallyController,
-      TallySnapshotController tallySnapshotController,
       CaptureSnapshotsTaskManager snapshotsTaskManager,
       TallyRetentionController tallyRetentionController,
       RemittanceRetentionController remittanceRetentionController,
@@ -91,7 +88,6 @@ public class InternalTallyResource implements InternalApi {
     this.clock = clock;
     this.applicationProperties = applicationProperties;
     this.resendTallyController = resendTallyController;
-    this.tallySnapshotController = tallySnapshotController;
     this.snapshotsTaskManager = snapshotsTaskManager;
     this.tallyRetentionController = tallyRetentionController;
     this.remittanceRetentionController = remittanceRetentionController;
@@ -103,7 +99,10 @@ public class InternalTallyResource implements InternalApi {
 
   @Override
   public void performHourlyTallyForOrg(
-      String orgId, OffsetDateTime start, OffsetDateTime end, Boolean xRhSwatchSynchronousRequest) {
+      String orgId,
+      OffsetDateTime start,
+      OffsetDateTime end,
+      Boolean xRhSwatchUseThreadPoolExecutor) {
     DateRange range = new DateRange(start, end);
     if (!clock.isHourlyRange(start, end)) {
       throw new IllegalArgumentException(
@@ -112,15 +111,8 @@ public class InternalTallyResource implements InternalApi {
               range.getStartString(), range.getEndString()));
     }
 
-    if (ResourceUtils.sanitizeBoolean(xRhSwatchSynchronousRequest, false)) {
-      if (!applicationProperties.isEnableSynchronousOperations()) {
-        throw new BadRequestException("Synchronous tally operations are not enabled.");
-      }
-      log.info("Synchronous hourly tally requested for orgId {}: {}", orgId, range);
-      tallySnapshotController.produceHourlySnapshotsForOrg(orgId, range);
-    } else {
-      snapshotsTaskManager.tallyOrgByHourly(orgId, range);
-    }
+    snapshotsTaskManager.tallyOrgByHourly(
+        orgId, range, ResourceUtils.sanitizeBoolean(xRhSwatchUseThreadPoolExecutor, false));
   }
 
   @Override

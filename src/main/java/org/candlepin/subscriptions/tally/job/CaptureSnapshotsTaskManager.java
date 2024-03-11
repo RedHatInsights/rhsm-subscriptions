@@ -35,6 +35,7 @@ import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.task.TaskType;
 import org.candlepin.subscriptions.task.queue.TaskProducerConfiguration;
 import org.candlepin.subscriptions.task.queue.TaskQueue;
+import org.candlepin.subscriptions.task.queue.inmemory.ExecutorTaskQueue;
 import org.candlepin.subscriptions.util.DateRange;
 import org.candlepin.subscriptions.util.LogUtils;
 import org.slf4j.Logger;
@@ -58,8 +59,8 @@ public class CaptureSnapshotsTaskManager {
   private final ApplicationProperties appProperties;
   private final TaskQueueProperties taskQueueProperties;
   private final TaskQueue queue;
+  private final ExecutorTaskQueue inMemoryQueue;
   private final ApplicationClock applicationClock;
-
   private final OrgConfigRepository orgRepo;
 
   @Autowired
@@ -67,12 +68,14 @@ public class CaptureSnapshotsTaskManager {
       ApplicationProperties appProperties,
       @Qualifier("tallyTaskQueueProperties") TaskQueueProperties tallyTaskQueueProperties,
       TaskQueue queue,
+      ExecutorTaskQueue inMemoryQueue,
       ApplicationClock applicationClock,
       OrgConfigRepository orgRepo) {
 
     this.appProperties = appProperties;
     this.taskQueueProperties = tallyTaskQueueProperties;
     this.queue = queue;
+    this.inMemoryQueue = inMemoryQueue;
     this.applicationClock = applicationClock;
     this.orgRepo = orgRepo;
   }
@@ -121,7 +124,7 @@ public class CaptureSnapshotsTaskManager {
     }
   }
 
-  public void tallyOrgByHourly(String orgId, DateRange tallyRange) {
+  public void tallyOrgByHourly(String orgId, DateRange tallyRange, boolean useThreadPoolExecutor) {
     LogUtils.addOrgIdToMdc(orgId);
     if (!applicationClock.isHourlyRange(tallyRange.getStartDate(), tallyRange.getEndDate())) {
       log.error(
@@ -140,13 +143,20 @@ public class CaptureSnapshotsTaskManager {
         tallyRange.getStartString(),
         tallyRange.getEndString());
 
-    queue.enqueue(
+    var task =
         TaskDescriptor.builder(
                 TaskType.UPDATE_HOURLY_SNAPSHOTS, taskQueueProperties.getTopic(), orgId)
             .setSingleValuedArg("orgId", orgId)
             .setSingleValuedArg("startDateTime", tallyRange.getStartString())
             .setSingleValuedArg("endDateTime", tallyRange.getEndString())
-            .build());
+            .build();
+    if (useThreadPoolExecutor) {
+      log.info("Hourly tally requested for orgId {}: {}", orgId, tallyRange);
+      inMemoryQueue.enqueue(task);
+    } else {
+      queue.enqueue(task);
+    }
+
     LogUtils.clearOrgIdFromMdc();
   }
 
@@ -178,7 +188,7 @@ public class CaptureSnapshotsTaskManager {
 
       orgStream.forEach(
           orgId -> {
-            tallyOrgByHourly(orgId, new DateRange(startDateTime, endDateTime));
+            tallyOrgByHourly(orgId, new DateRange(startDateTime, endDateTime), false);
             count.addAndGet(1);
           });
 

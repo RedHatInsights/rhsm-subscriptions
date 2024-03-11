@@ -54,8 +54,8 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
   @Override
   public Optional<HostTallyBucket> buildBucket(
       UsageCalculation.Key key, NormalizedFacts normalizedFacts) {
-    int appliedCores = Optional.ofNullable(normalizedFacts.getCores()).orElse(0);
-    int appliedSockets = Optional.ofNullable(normalizedFacts.getSockets()).orElse(0);
+    Integer appliedCores = normalizedFacts.getCores();
+    Integer appliedSockets = normalizedFacts.getSockets();
 
     boolean guestWithUnknownHypervisor =
         normalizedFacts.isVirtual() && normalizedFacts.isHypervisorUnknown();
@@ -100,8 +100,8 @@ public class RHELProductUsageCollector implements ProductUsageCollector {
   private HostTallyBucket createBucket(
       UsageCalculation.Key key,
       boolean asHypervisor,
-      int appliedCores,
-      int appliedSockets,
+      Integer appliedCores,
+      Integer appliedSockets,
       HardwareMeasurementType appliedType) {
     return new HostTallyBucket(
         null,

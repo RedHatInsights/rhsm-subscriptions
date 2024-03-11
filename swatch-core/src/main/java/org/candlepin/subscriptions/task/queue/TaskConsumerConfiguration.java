@@ -51,7 +51,6 @@ public class TaskConsumerConfiguration {
   }
 
   @Bean
-  @Profile("!kafka-queue")
   ExecutorTaskQueueConsumerFactory inMemoryTaskConsumerFactory(ExecutorTaskQueue queue) {
     return new ExecutorTaskQueueConsumerFactory(queue);
   }

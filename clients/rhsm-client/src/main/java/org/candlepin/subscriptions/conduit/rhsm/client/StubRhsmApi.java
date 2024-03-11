@@ -44,6 +44,14 @@ public class StubRhsmApi extends RhsmApi {
       String xRhsmApiAccountID, Integer limit, String offset, String lastCheckinAfter)
       throws ApiException {
 
+    if (xRhsmApiAccountID.equals("slowOrg123")) {
+      try {
+        Thread.sleep(5000);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
     OrgInventory inventory = new OrgInventory();
 
     Consumer consumer1 = new Consumer();

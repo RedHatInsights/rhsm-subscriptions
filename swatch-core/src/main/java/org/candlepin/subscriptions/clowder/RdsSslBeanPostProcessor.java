@@ -27,9 +27,11 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.GeneralSecurityException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanInitializationException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.core.Ordered;
@@ -77,7 +79,18 @@ public class RdsSslBeanPostProcessor implements BeanPostProcessor, Ordered {
 
       if (verifyFull) {
         String rdsCa = environment.getProperty("DATABASE_SSL_CERT");
-        jdbcUrl = jdbcUrl + "&sslrootcert=" + createTempRdsCertFile(rdsCa);
+        String tempRdsCertFile = createTempRdsCertFile(rdsCa);
+        jdbcUrl = jdbcUrl + "&sslrootcert=" + tempRdsCertFile;
+
+        try {
+          X509PemReader pemReader = new X509PemReader(new File(tempRdsCertFile));
+          var certs = pemReader.readCerts();
+          for (var cert : certs) {
+            log.info("Trusting for JDBC connection: {}", cert);
+          }
+        } catch (IOException | GeneralSecurityException e) {
+          throw new BeanInitializationException("Could not read certificate PEM", e);
+        }
       }
 
       ((DataSourceProperties) bean).setUrl(jdbcUrl);

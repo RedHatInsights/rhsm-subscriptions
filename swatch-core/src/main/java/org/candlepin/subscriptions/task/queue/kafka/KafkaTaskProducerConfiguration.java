@@ -30,6 +30,7 @@ import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -69,6 +70,7 @@ public class KafkaTaskProducerConfiguration {
   }
 
   @Bean
+  @Primary
   public TaskQueue kafkaTaskQueue(KafkaTemplate<String, JsonTaskMessage> producer) {
     return new KafkaTaskQueue(producer);
   }

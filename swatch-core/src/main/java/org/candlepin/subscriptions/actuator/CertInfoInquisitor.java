@@ -20,21 +20,16 @@
  */
 package org.candlepin.subscriptions.actuator;
 
-import jakarta.xml.bind.DatatypeConverter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
-import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.candlepin.subscriptions.clowder.X509PemReader;
 import org.springframework.core.io.Resource;
 
 /** Class to return basic information about an X509 certificate. */
@@ -64,22 +59,13 @@ public class CertInfoInquisitor {
       ksInfoMap.put(alias, aliasInfo);
 
       X509Certificate certificate = (X509Certificate) keystore.getCertificate(alias);
-      aliasInfo.put("Distinguished Name", certificate.getSubjectDN().toString());
+      aliasInfo.put("Distinguished Name", certificate.getSubjectX500Principal().getName());
       aliasInfo.put("Serial Number", certificate.getSerialNumber().toString());
-      aliasInfo.put("SHA-1 Fingerprint", getFingerprint(certificate));
-
-      Instant notAfter = certificate.getNotAfter().toInstant();
-      aliasInfo.put("Not After", DateTimeFormatter.ISO_INSTANT.format(notAfter));
-      aliasInfo.put("Issuer Distinguished Name", certificate.getIssuerDN().toString());
+      aliasInfo.put("SHA-1 Fingerprint", X509PemReader.getFingerprint(certificate));
+      aliasInfo.put("Not After", X509PemReader.certDate(certificate.getNotAfter()));
+      aliasInfo.put("Issuer Distinguished Name", certificate.getIssuerX500Principal().getName());
     }
 
     return ksInfoMap;
-  }
-
-  public static String getFingerprint(X509Certificate certificate)
-      throws NoSuchAlgorithmException, CertificateEncodingException {
-    MessageDigest md = MessageDigest.getInstance("SHA-1");
-    md.update(certificate.getEncoded());
-    return DatatypeConverter.printHexBinary(md.digest()).toLowerCase();
   }
 }

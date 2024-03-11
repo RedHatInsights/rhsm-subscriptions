@@ -68,6 +68,8 @@ quarkus:
     category:
       "com.redhat.swatch":
         level: ${LOGGING_LEVEL_COM_REDHAT_SWATCH}
+      "org.jboss.resteasy.reactive.common.core.AbstractResteasyReactiveContext":
+        level: DEBUG
     handler:
       splunk:
         enabled: ${ENABLE_SPLUNK_HEC:false}

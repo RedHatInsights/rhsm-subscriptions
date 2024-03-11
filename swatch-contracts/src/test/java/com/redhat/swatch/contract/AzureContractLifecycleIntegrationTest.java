@@ -109,6 +109,11 @@ class AzureContractLifecycleIntegrationTest {
                   ],
                   "vendorProductCode": "azureOfferId"
                 },
+                "rhEntitlements": [
+                  {
+                    "subscriptionNumber": "%s"
+                  }
+                ],
                 "sourcePartner": "azure_marketplace",
                 "status": "SUBSCRIBED"
               }
@@ -121,7 +126,7 @@ class AzureContractLifecycleIntegrationTest {
             }
           }
           """,
-          AZURE_TENANT_ID, AZURE_RESOURCE_ID);
+          AZURE_TENANT_ID, AZURE_RESOURCE_ID, RH_SUBSCRIPTION_NUMBER);
 
   static String AZURE_UMB_MESSAGE_ORG_ASSOCIATED =
       String.format(

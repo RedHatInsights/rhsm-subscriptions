@@ -84,6 +84,7 @@ openApiGenerate {
     importMappings = [
         "MetricId": "com.redhat.swatch.configuration.registry.MetricId",
         "ProductId": "com.redhat.swatch.configuration.registry.ProductId",
+        "PartnerEntitlementV1": "com.redhat.swatch.clients.rh.partner.gateway.api.model.PartnerEntitlementV1"
     ]
     typeMappings = [
         "string+MetricId": "MetricId",

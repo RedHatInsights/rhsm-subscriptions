@@ -212,8 +212,8 @@ class InventoryAccountUsageCollectorReconcileTest {
     collector.reconcileHbiSystemWithSwatchSystem(
         hbiSystem, swatchSystem, orgHostsData, Set.of("RHEL"), new ArrayList<>());
     assertThat(expectedBucket, in(swatchSystem.getBuckets()));
-    assertEquals(4.0, expectedBucket.getSockets());
-    assertEquals(8.0, expectedBucket.getCores());
+    assertEquals(4, expectedBucket.getSockets());
+    assertEquals(8, expectedBucket.getCores());
   }
 
   @Test
@@ -274,8 +274,8 @@ class InventoryAccountUsageCollectorReconcileTest {
             BillingProvider._ANY,
             "_ANY",
             false,
-            0,
-            0,
+            null,
+            null,
             HardwareMeasurementType.PHYSICAL);
     HostTallyBucket expectedAnyBucket =
         new HostTallyBucket(
@@ -286,8 +286,8 @@ class InventoryAccountUsageCollectorReconcileTest {
             BillingProvider._ANY,
             "_ANY",
             false,
-            0,
-            0,
+            null,
+            null,
             HardwareMeasurementType.PHYSICAL);
     assertThat(expectedEmptyBucket, in(swatchSystem.getBuckets()));
     assertThat(expectedAnyBucket, in(swatchSystem.getBuckets()));

@@ -1,3 +1,19 @@
+GitHub PR Labels
+----------------
+On creation a PR should be labelled as follows:
+
+* `Dev` - needs developer review.
+* `QE` - needs QE validation/review.
+* `QE Unneeded` - does not need QE validation.
+
+Additionally, the following labels are used to track PR status:
+
+* `Dev/approved` - approved by all assigned developers.
+* `QE/approved` - approved by all assigned QE members.
+* `needs-update` - needs changes identified by Dev/QE review.
+* `hold` - should not be merged for a reason that must be specified in a PR comment.
+* `needs-rebase` - needs to incorporate changes in the target branch.
+
 Preferred Package Structure
 ---------------------------
 
