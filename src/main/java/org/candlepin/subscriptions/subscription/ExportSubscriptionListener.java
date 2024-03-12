@@ -20,6 +20,10 @@
  */
 package org.candlepin.subscriptions.subscription;
 
+import com.fasterxml.jackson.core.JsonEncoding;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.cloud.event.apps.exportservice.v1.Format;
 import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequest;
 import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequestClass;
@@ -29,12 +33,19 @@ import com.redhat.swatch.clients.export.api.client.ApiException;
 import com.redhat.swatch.clients.export.api.model.DownloadExportErrorRequest;
 import com.redhat.swatch.clients.export.api.resources.ExportApi;
 import jakarta.ws.rs.core.Response.Status;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.exception.ExportServiceException;
 import org.candlepin.subscriptions.rbac.RbacApiException;
 import org.candlepin.subscriptions.rbac.RbacService;
+import org.candlepin.subscriptions.subscription.api.model.SubscriptionProduct;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
 import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
@@ -55,17 +66,20 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
   private static final String SWATCH_APP = "subscriptions";
   private final ExportApi exportApi;
   private final RbacService rbacService;
+  private final ObjectMapper objectMapper;
 
   protected ExportSubscriptionListener(
       @Qualifier("subscriptionExport") TaskQueueProperties taskQueueProperties,
       KafkaConsumerRegistry kafkaConsumerRegistry,
       ConsoleCloudEventParser parser,
       ExportApi exportApi,
-      RbacService rbacService) {
+      RbacService rbacService,
+      ObjectMapper objectMapper) {
     super(taskQueueProperties, kafkaConsumerRegistry);
     this.parser = parser;
     this.exportApi = exportApi;
     this.rbacService = rbacService;
+    this.objectMapper = objectMapper;
   }
 
   @KafkaListener(
@@ -111,28 +125,77 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
 
   private void uploadData(ConsoleCloudEvent cloudEvent, ResourceRequestClass exportData) {
     checkRbac(exportData.getApplication(), exportData.getXRhIdentity());
+    Stream<Subscription> data = fetchData(cloudEvent);
+
     // Here we need to determine format (csv or json)
     if (Objects.equals(exportData.getFormat(), Format.CSV)) {
-      fetchData(cloudEvent);
-      uploadCsv(exportData);
+      uploadCsv(data, exportData);
     } else if (Objects.equals(exportData.getFormat(), Format.JSON)) {
-      fetchData(cloudEvent);
-      uploadJson(exportData);
+      uploadJson(data, exportData);
     } else {
       throw new ExportServiceException(Status.FORBIDDEN.getStatusCode(), "Format isn't supported");
     }
   }
 
-  private void uploadCsv(ResourceRequestClass data) {
-    log.debug("Uploading CSV for request {}", data.getExportRequestUUID());
+  private void uploadCsv(Stream<Subscription> data, ResourceRequestClass request) {
+    log.debug("Uploading CSV for request {}", request.getExportRequestUUID());
     throw new ExportServiceException(
         Status.NOT_IMPLEMENTED.getStatusCode(), "Export upload csv isn't implemented ");
   }
 
-  private void uploadJson(ResourceRequestClass data) {
-    log.debug("Uploading Json for request {}", data.getExportRequestUUID());
-    throw new ExportServiceException(
-        Status.NOT_IMPLEMENTED.getStatusCode(), "Export Upload json isn't implemented");
+  public void uploadJson(Stream<Subscription> data, ResourceRequestClass request) {
+    log.debug("Uploading Json for request {}", request.getExportRequestUUID());
+    File file = createTemporalFile();
+    try (FileOutputStream stream = new FileOutputStream(file);
+        JsonGenerator jGenerator = createJsonGenerator(stream)) {
+      jGenerator.writeStartObject();
+      jGenerator.writeStringField("name", "Example export payload");
+      jGenerator.writeStringField("description", "This is an example export payload");
+      jGenerator.writeArrayFieldStart("data");
+      data.forEach(
+          item -> {
+            var model = new org.candlepin.subscriptions.subscription.api.model.Subscription();
+            model.setQuantity((int) item.getQuantity());
+            model.setId(Integer.valueOf(item.getSubscriptionId()));
+            model.setSubscriptionNumber(item.getSubscriptionNumber());
+            model.setEffectiveStartDate(toEpochMillis(item.getStartDate()));
+            model.setEffectiveEndDate(toEpochMillis(item.getEndDate()));
+            model.setWebCustomerId(Integer.parseInt(item.getOrgId()));
+            model.setSubscriptionProducts(
+                List.of(new SubscriptionProduct().sku(item.getOffering().getSku())));
+            try {
+              jGenerator.writeObject(model);
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            }
+          });
+      jGenerator.writeEndArray();
+      jGenerator.writeEndObject();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
+    try {
+      exportApi.downloadExportUpload(
+          request.getUUID(), request.getApplication(), request.getExportRequestUUID(), file);
+    } catch (ApiException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private File createTemporalFile() {
+    try {
+      return File.createTempFile("export", "json");
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private JsonGenerator createJsonGenerator(FileOutputStream stream) throws IOException {
+    JsonFactory jfactory = new JsonFactory();
+    JsonGenerator jGenerator = jfactory.createGenerator(stream, JsonEncoding.UTF8);
+    jGenerator.setCodec(objectMapper);
+    return jGenerator;
   }
 
   private void checkRbac(String appName, String identity) {
@@ -153,11 +216,18 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
     throw new ExportServiceException(Status.FORBIDDEN.getStatusCode(), "Insufficient permission");
   }
 
-  private void fetchData(ConsoleCloudEvent cloudEvent) {
+  private Stream<Subscription> fetchData(ConsoleCloudEvent cloudEvent) {
     // Check subscription table for data for the event
     log.debug("Fetching subscriptionOrg for {}", cloudEvent.getOrgId());
     throw new ExportServiceException(
         Status.NOT_IMPLEMENTED.getStatusCode(),
         "Fetching data from subscription table isn't implemented");
+  }
+
+  private static Long toEpochMillis(OffsetDateTime offsetDateTime) {
+    if (offsetDateTime == null) {
+      return null;
+    }
+    return offsetDateTime.toEpochSecond() * 1000L;
   }
 }

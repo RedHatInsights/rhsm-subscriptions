@@ -86,6 +86,10 @@ public interface SubscriptionRepository
       "SELECT s FROM Subscription s WHERE s.orgId = :orgId ORDER BY s.subscriptionId, s.startDate")
   Stream<Subscription> findByOrgId(String orgId);
 
+  @QueryHints(value = {@QueryHint(name = HINT_FETCH_SIZE, value = "1024")})
+  @Query("SELECT s FROM Subscription s")
+  Stream<Subscription> streamAll(Pageable pageable);
+
   void deleteBySubscriptionId(String subscriptionId);
 
   void deleteByOrgId(String orgId);

@@ -20,32 +20,61 @@
  */
 package org.candlepin.subscriptions.test;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
-import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
+import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
+@Slf4j
 public class ExtendWithExportServiceWireMock {
-
-  static WireMockServer wireMockServer = start();
+  private static WireMockServer exportServer = start();
   private static final String EXPORT_ERROR_REQUEST =
       "/app/export/v1/b24c269d-33d6-410e-8808-c71c9635e84f/subscriptions/2e3d7746-2cf2-441e-84fe-cf28863d22ae/error";
+  private static final String EXPORT_UPLOAD_REQUEST_FORMAT = "/app/export/v1/%s/%s/%s/upload";
+  private static boolean logExportRequestsBody = true;
 
   static WireMockServer start() {
-    wireMockServer =
-        new WireMockServer(wireMockConfig().dynamicPort().notifier(new ConsoleNotifier(true)));
-    wireMockServer.resetAll();
-    wireMockServer.start();
-    wireMockServer.stubFor(post(EXPORT_ERROR_REQUEST));
-    System.out.printf("Running mock export services on port %d%n", wireMockServer.port());
-    return wireMockServer;
+    exportServer = new WireMockServer(wireMockConfig().dynamicPort());
+    exportServer.resetAll();
+    exportServer.addMockServiceRequestListener(
+        (request, response) -> {
+          log.info("" + request.getHeaders());
+          if (logExportRequestsBody) {
+            log.info(request.getBodyAsString());
+          }
+        });
+    exportServer.start();
+    exportServer.stubFor(post(EXPORT_ERROR_REQUEST));
+    System.out.printf("Running mock export services on port %d%n", exportServer.port());
+    return exportServer;
   }
 
   @DynamicPropertySource
   static void registerExportApiProperties(DynamicPropertyRegistry registry) {
-    registry.add("rhsm-subscriptions.export-service.url", wireMockServer::baseUrl);
+    registry.add("rhsm-subscriptions.export-service.url", exportServer::baseUrl);
+  }
+
+  public void logExportRequestsBody(boolean enable) {
+    logExportRequestsBody = enable;
+  }
+
+  public void stubExportUploadFor(UUID id, String application, UUID resource) {
+    exportServer.stubFor(
+        post(String.format(EXPORT_UPLOAD_REQUEST_FORMAT, id, application, resource)));
+  }
+
+  public void verifyExportUpload(UUID id, String application, UUID resource) {
+    exportServer.verify(
+        postRequestedFor(
+                urlPathEqualTo(
+                    String.format(EXPORT_UPLOAD_REQUEST_FORMAT, id, application, resource)))
+            .withHeader("Content-Type", equalTo("application/json")));
   }
 }
