@@ -12,6 +12,7 @@ resilience4j.bulkhead:
       maxConcurrentCalls: ${RHSM_API_MAX_CONCURRENT_CALLS:5}
       maxWaitDuration: ${RHSM_API_MAX_WAIT_DURATION:3m}
 rhsm-conduit:
+  enable-synchronous-operations: ${ENABLE_SYNCHRONOUS_OPERATIONS:false}
   rhsm:
     use-stub: ${RHSM_USE_STUB:false}
     url: ${RHSM_URL:http://localhost:9090}
