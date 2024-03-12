@@ -230,16 +230,16 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
       var filters = exportResource.getFilters().entrySet();
       for (var entry : filters) {
         switch (entry.getKey().toLowerCase()) {
-          case "productid" -> report.productId(entry.getValue().toString());
+          case "product_id" -> report.productId(entry.getValue().toString());
           case "usage" -> report.usage(Usage.fromString(entry.getValue().toString()));
           case "category" ->
               report.hypervisorReportCategory(
                   HypervisorReportCategory.valueOf(entry.getValue().toString()));
           case "sla" -> report.serviceLevel(ServiceLevel.fromString(entry.getValue().toString()));
-          case "uom" -> report.metricId(entry.getValue().toString());
-          case "billingprovider" ->
+          case "metric_id" -> report.metricId(entry.getValue().toString());
+          case "billing_provider" ->
               report.billingProvider(BillingProvider.fromString(entry.getValue().toString()));
-          case "billingaccountid" -> report.billingAccountId(entry.getValue().toString());
+          case "billing_account_id" -> report.billingAccountId(entry.getValue().toString());
           default -> log.warn("Filter {} isn't supported currently", entry.getKey());
         }
       }
