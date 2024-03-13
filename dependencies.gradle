@@ -31,7 +31,7 @@ ext.plugins = [
         "org.jsonschema2pojo:jsonschema2pojo-gradle-plugin:1.2.1",
         "org.liquibase:liquibase-gradle-plugin:2.2.1",
         "org.kordamp.gradle:jandex-gradle-plugin:1.1.0",
-        "org.openapitools:openapi-generator-gradle-plugin:7.3.0",
+        "org.openapitools:openapi-generator-gradle-plugin:7.4.0",
         "org.springframework.boot:spring-boot-gradle-plugin:${springVersion}",
         "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:4.4.1.3373",
 ]
