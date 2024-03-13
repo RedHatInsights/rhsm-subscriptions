@@ -160,7 +160,11 @@ public final class MeteringEventFactory {
         .withBillingProvider(getBillingProvider(billingProvider, orgId, instanceId))
         .withBillingAccountId(Optional.ofNullable(billingAccountId))
         .withMeasurements(
-            List.of(new Measurement().withUom(measuredMetric.getValue()).withValue(measuredValue)))
+            List.of(
+                new Measurement()
+                    .withUom(measuredMetric.getValue())
+                    .withMetricId(measuredMetric.getValue())
+                    .withValue(measuredValue)))
         .withRole(getRole(role, orgId, instanceId))
         .withEventSource(eventSource)
         .withEventType(MeteringEventFactory.getEventType(measuredMetric.getValue(), productTag))

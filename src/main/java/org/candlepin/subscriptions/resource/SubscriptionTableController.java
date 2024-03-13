@@ -61,6 +61,7 @@ public class SubscriptionTableController {
   private static final String CORES = "Cores";
   private static final String SOCKETS = "Sockets";
   private static final Uom NO_UOM = null;
+  private static final String NO_METRIC_ID = null;
   private final SubscriptionRepository subscriptionRepository;
   private final ApplicationClock clock;
 
@@ -83,6 +84,7 @@ public class SubscriptionTableController {
       BillingProviderType billingProviderType,
       String billingAccountId,
       Uom uom,
+      String metricId,
       SkuCapacityReportSort sort,
       SortDirection dir) {
     /*
@@ -110,9 +112,10 @@ public class SubscriptionTableController {
             + "productId={}, "
             + "categories={}, "
             + "Service Level={}, "
-            + "Usage={} "
-            + "between={} and {}"
-            + "and uom={}",
+            + "Usage={}, "
+            + "between={} and {}, "
+            + "Uom={}, "
+            + "MetricId={}",
         orgId,
         productId,
         hypervisorReportCategory,
@@ -120,14 +123,9 @@ public class SubscriptionTableController {
         sanitizedUsage,
         reportStart,
         reportEnd,
-        uom);
-    var metricId =
-        (uom != null)
-            ? switch (uom) {
-              case CORES -> CORES;
-              case SOCKETS -> SOCKETS;
-            }
-            : null;
+        uom,
+        metricId);
+    String effectiveMetricId = getEffectiveMetricId(metricId, uom);
 
     var reportCriteria =
         DbReportCriteria.builder()
@@ -137,7 +135,7 @@ public class SubscriptionTableController {
             .usage(sanitizedUsage)
             .beginning(reportStart)
             .ending(reportEnd)
-            .metricId(metricId)
+            .metricId(effectiveMetricId)
             .hypervisorReportCategory(hypervisorReportCategory)
             .build();
     var subscriptionSpec = SubscriptionRepository.buildSearchSpecification(reportCriteria);
@@ -148,7 +146,8 @@ public class SubscriptionTableController {
     for (Subscription subscription : subscriptions) {
       SkuCapacity inventory =
           reportItemsBySku.computeIfAbsent(
-              subscription.getOffering().getSku(), s -> initializeSkuCapacity(subscription, uom));
+              subscription.getOffering().getSku(),
+              s -> initializeSkuCapacity(subscription, uom, effectiveMetricId));
       calculateNextEvent(subscription, inventory, reportEnd);
       addSubscriptionInformation(subscription, inventory);
       var measurements = subscription.getSubscriptionMeasurements().entrySet().stream();
@@ -183,7 +182,8 @@ public class SubscriptionTableController {
       if (subscription.getOffering() != null) {
         SkuCapacity inventory =
             reportItemsBySku.computeIfAbsent(
-                subscription.getOffering().getSku(), s -> initializeSkuCapacity(subscription, uom));
+                subscription.getOffering().getSku(),
+                s -> initializeSkuCapacity(subscription, uom, effectiveMetricId));
 
         inventory.setHasInfiniteQuantity(true);
         calculateNextEvent(subscription, inventory, reportCriteria.getEnding());
@@ -235,6 +235,18 @@ public class SubscriptionTableController {
                 .product(productId.toString()));
   }
 
+  private static String getEffectiveMetricId(String metricId, Uom uom) {
+    String effectiveMetricId = metricId;
+    if (effectiveMetricId == null && uom != null) {
+      effectiveMetricId =
+          switch (uom) {
+            case CORES -> CORES;
+            case SOCKETS -> SOCKETS;
+          };
+    }
+    return effectiveMetricId;
+  }
+
   private List<SkuCapacity> paginate(List<SkuCapacity> capacities, Pageable pageable) {
     if (pageable == null) {
       return capacities;
@@ -283,13 +295,14 @@ public class SubscriptionTableController {
           final SkuCapacity inventory =
               inventories.computeIfAbsent(
                   String.format("%s:%s", sku, sub.getBillingProvider()),
-                  key -> initializeSkuCapacity(sub, NO_UOM));
+                  key -> initializeSkuCapacity(sub, NO_UOM, NO_METRIC_ID));
           addOnDemandSubscriptionInformation(sub, inventory);
         });
     return inventories.values();
   }
 
-  public SkuCapacity initializeSkuCapacity(@Nonnull Subscription sub, @Nullable Uom uom) {
+  public SkuCapacity initializeSkuCapacity(
+      @Nonnull Subscription sub, @Nullable Uom uom, @Nullable String effectiveMetricId) {
     var offering = sub.getOffering();
     var inventory = new SkuCapacity();
     inventory.setSubscriptions(new ArrayList<>());
@@ -308,6 +321,7 @@ public class SubscriptionTableController {
     inventory.setCapacity(0);
     inventory.setHypervisorCapacity(0);
     inventory.setTotalCapacity(0);
+    inventory.setMetricId(effectiveMetricId);
     // When uom param is set, force all inventories to report capacities for that UoM
     // (Some products have both sockets and cores)
     if (uom != null) {
@@ -383,10 +397,10 @@ public class SubscriptionTableController {
     var hypervisorCores =
         (CORES.equalsIgnoreCase(metric) && "HYPERVISOR".equals(type)) ? value.intValue() : 0;
 
-    if (skuCapacity.getUom() == Uom.SOCKETS) {
+    if (skuCapacity.getUom() == Uom.SOCKETS || SOCKETS.equals(skuCapacity.getMetricId())) {
       skuCapacity.setCapacity(skuCapacity.getCapacity() + sockets);
       skuCapacity.setHypervisorCapacity(skuCapacity.getHypervisorCapacity() + hypervisorSockets);
-    } else if (skuCapacity.getUom() == Uom.CORES) {
+    } else if (skuCapacity.getUom() == Uom.CORES || CORES.equals(skuCapacity.getMetricId())) {
       skuCapacity.setCapacity(skuCapacity.getCapacity() + cores);
       skuCapacity.setHypervisorCapacity(skuCapacity.getHypervisorCapacity() + hypervisorCores);
     } else if (sockets != 0 || hypervisorSockets != 0) {
@@ -395,11 +409,17 @@ public class SubscriptionTableController {
       if (skuCapacity.getUom() == null) {
         skuCapacity.setUom(Uom.SOCKETS);
       }
+      if (skuCapacity.getMetricId() == null) {
+        skuCapacity.setMetricId(SOCKETS);
+      }
     } else if (cores != 0 || hypervisorCores != 0) {
       skuCapacity.setCapacity(skuCapacity.getCapacity() + cores);
       skuCapacity.setHypervisorCapacity(skuCapacity.getHypervisorCapacity() + hypervisorCores);
       if (skuCapacity.getUom() == null) {
         skuCapacity.setUom(Uom.CORES);
+      }
+      if (skuCapacity.getMetricId() == null) {
+        skuCapacity.setMetricId(CORES);
       }
     }
 

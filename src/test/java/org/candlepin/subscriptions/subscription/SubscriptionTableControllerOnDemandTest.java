@@ -156,7 +156,7 @@ class SubscriptionTableControllerOnDemandTest {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            ROSA, null, null, null, null, null, null, null, null, null, null);
+            ROSA, null, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the sub and appropriate
     // quantity and capacities.
@@ -189,7 +189,7 @@ class SubscriptionTableControllerOnDemandTest {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            ROSA, null, null, null, null, null, null, null, null, null, null);
+            ROSA, null, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the subs and appropriate
     // quantity and capacities.
@@ -225,7 +225,18 @@ class SubscriptionTableControllerOnDemandTest {
     // When requesting a SKU capacity report for the eng product, sorted by SKU
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            ROSA, null, null, null, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
+            ROSA,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            SkuCapacityReportSort.SKU,
+            null);
 
     // Then the report contains two inventory items containing a sub with appropriate
     // quantity and capacities, and RH00604F5 is listed first.
@@ -259,7 +270,7 @@ class SubscriptionTableControllerOnDemandTest {
     // When requesting a SKU capacity report for an eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            ROSA, null, null, null, null, null, null, null, null, null, null);
+            ROSA, null, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains no inventory items.
     assertEquals(0, actual.getData().size(), "An empty inventory list should be returned.");
@@ -278,7 +289,18 @@ class SubscriptionTableControllerOnDemandTest {
 
     SkuCapacityReport report =
         subscriptionTableController.capacityReportBySku(
-            ROSA, null, null, null, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
+            ROSA,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            SkuCapacityReportSort.SKU,
+            null);
     assertEquals(1, report.getData().size());
   }
 
@@ -300,6 +322,7 @@ class SubscriptionTableControllerOnDemandTest {
             null,
             null,
             ServiceLevelType.STANDARD,
+            null,
             null,
             null,
             null,
@@ -331,6 +354,7 @@ class SubscriptionTableControllerOnDemandTest {
             null,
             null,
             null,
+            null,
             SkuCapacityReportSort.SKU,
             null);
     assertEquals(1, reportForMatchingUsage.getData().size());
@@ -349,7 +373,7 @@ class SubscriptionTableControllerOnDemandTest {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            ROSA, null, null, null, null, null, null, null, null, null, null);
+            ROSA, null, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the sub and HasInfiniteQuantity
     // should be true.
@@ -372,7 +396,7 @@ class SubscriptionTableControllerOnDemandTest {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            ROSA, null, null, null, null, null, null, null, null, null, null);
+            ROSA, null, null, null, null, null, null, null, null, null, null, null);
     SkuCapacity actualItem = actual.getData().get(0);
 
     // Then the report should contain end date of the contributing subscription
@@ -394,7 +418,18 @@ class SubscriptionTableControllerOnDemandTest {
 
     SkuCapacityReport reportForMatchingUsage =
         subscriptionTableController.capacityReportBySku(
-            ROSA, null, null, null, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
+            ROSA,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            SkuCapacityReportSort.SKU,
+            null);
     assertEquals(2, reportForMatchingUsage.getData().size());
     var billingProvidersReturned =
         reportForMatchingUsage.getData().stream().map(SkuCapacity::getBillingProvider).toList();
@@ -416,7 +451,7 @@ class SubscriptionTableControllerOnDemandTest {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            RHEL_x86_ELS_PAYG, null, null, null, null, null, null, null, null, null, null);
+            RHEL_x86_ELS_PAYG, null, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the sub and HasInfiniteQuantity
     // should be true.
