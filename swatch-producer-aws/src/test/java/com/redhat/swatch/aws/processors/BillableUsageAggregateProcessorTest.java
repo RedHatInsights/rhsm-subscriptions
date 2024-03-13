@@ -31,14 +31,17 @@ import static org.mockito.Mockito.when;
 import com.redhat.swatch.aws.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.aws.exception.DefaultApiException;
 import com.redhat.swatch.aws.exception.SubscriptionRecentlyTerminatedException;
-import com.redhat.swatch.aws.openapi.model.BillableUsage;
+import com.redhat.swatch.aws.kafka.BillableUsageAggregate;
+import com.redhat.swatch.aws.kafka.BillableUsageAggregateKey;
 import com.redhat.swatch.aws.openapi.model.BillableUsage.BillingProviderEnum;
+import com.redhat.swatch.aws.openapi.model.BillableUsage.SlaEnum;
 import com.redhat.swatch.aws.openapi.model.Error;
 import com.redhat.swatch.aws.openapi.model.Errors;
 import com.redhat.swatch.aws.test.resources.InMemoryMessageBrokerKafkaResource;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.model.AwsUsageContext;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.ApiException;
 import com.redhat.swatch.clients.swatch.internal.subscription.api.resources.InternalSubscriptionsApi;
+import com.redhat.swatch.configuration.registry.Usage;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.test.InjectMock;
@@ -56,6 +59,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
@@ -76,7 +80,7 @@ import software.amazon.awssdk.services.marketplacemetering.model.UsageRecordResu
 @QuarkusTestResource(
     value = InMemoryMessageBrokerKafkaResource.class,
     restrictToAnnotatedClass = true)
-class BillableUsageProcessorTest {
+class BillableUsageAggregateProcessorTest {
 
   private static final String INSTANCE_HOURS = "INSTANCE_HOURS";
   private static final String CORES = "CORES";
@@ -84,23 +88,11 @@ class BillableUsageProcessorTest {
   private static final Clock clock =
       Clock.fixed(Instant.parse("2023-10-02T12:30:00Z"), ZoneId.of("UTC"));
 
-  private static final BillableUsage ROSA_INSTANCE_HOURS_RECORD =
-      new BillableUsage()
-          .productId("rosa")
-          .snapshotDate(OffsetDateTime.MAX)
-          .billingProvider(BillingProviderEnum.AWS)
-          .uom(INSTANCE_HOURS)
-          .snapshotDate(OffsetDateTime.now(Clock.systemUTC()))
-          .value(new BigDecimal("42.0"));
+  private static final BillableUsageAggregate ROSA_INSTANCE_HOURS_RECORD =
+      createAggregate("rosa", INSTANCE_HOURS, OffsetDateTime.now(Clock.systemUTC()), 42);
 
-  private static final BillableUsage ROSA_STORAGE_GIB_MONTHS_RECORD =
-      new BillableUsage()
-          .productId("rosa")
-          .snapshotDate(OffsetDateTime.MAX)
-          .billingProvider(BillingProviderEnum.AWS)
-          .uom(CORES)
-          .snapshotDate(OffsetDateTime.now(Clock.systemUTC()))
-          .value(new BigDecimal("42.0"));
+  private static final BillableUsageAggregate ROSA_STORAGE_CORES_RECORD =
+      createAggregate("rosa", CORES, OffsetDateTime.now(Clock.systemUTC()), 42);
 
   public static final AwsUsageContext MOCK_AWS_USAGE_CONTEXT =
       new AwsUsageContext()
@@ -129,7 +121,7 @@ class BillableUsageProcessorTest {
   Counter acceptedCounter;
   Counter rejectedCounter;
   Counter ignoredCounter;
-  @Inject BillableUsageProcessor processor;
+  @Inject BillableUsageAggregateProcessor processor;
 
   @ConfigProperty(name = "AWS_MARKETPLACE_USAGE_WINDOW")
   Duration maxAgeDuration;
@@ -144,11 +136,18 @@ class BillableUsageProcessorTest {
 
   @Test
   void shouldSkipNonAwsSnapshots() {
-    BillableUsage usage =
-        new BillableUsage()
-            .billingProvider(BillingProviderEnum.RED_HAT)
-            .snapshotDate(OffsetDateTime.now(Clock.systemUTC()));
-    processor.process(usage);
+    var aggregate = createAggregate("BASILISK", INSTANCE_HOURS, OffsetDateTime.now(), 10);
+    var key =
+        new BillableUsageAggregateKey(
+            "testOrg",
+            "BASILSK",
+            INSTANCE_HOURS,
+            SlaEnum.PREMIUM.value(),
+            Usage.PRODUCTION.getValue(),
+            BillingProviderEnum.RED_HAT.value(),
+            "testBillingAccountId");
+    aggregate.setAggregateKey(key);
+    processor.process(aggregate);
     verifyNoInteractions(internalSubscriptionsApi, clientFactory);
   }
 
@@ -171,29 +170,19 @@ class BillableUsageProcessorTest {
 
   @Test
   void shouldSkipMessageIfAwsContextCannotBeLookedUp() throws ApiException {
-    BillableUsage usage =
-        new BillableUsage()
-            .productId("rosa")
-            .billingProvider(BillingProviderEnum.AWS)
-            .uom(INSTANCE_HOURS)
-            .snapshotDate(OffsetDateTime.now(Clock.systemUTC()))
-            .value(new BigDecimal("42.0"));
+    BillableUsageAggregate aggregate =
+        createAggregate("rosa", INSTANCE_HOURS, OffsetDateTime.now(), 42.0);
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenThrow(AwsUsageContextLookupException.class);
-    processor.process(usage);
+    processor.process(aggregate);
     verifyNoInteractions(meteringClient);
   }
 
   @Test
   void shouldSkipMessageIfUnknownAwsDimensionCannotBeLookedUp() {
-    BillableUsage usage =
-        new BillableUsage()
-            .productId("foobar")
-            .billingProvider(BillingProviderEnum.AWS)
-            .uom(INSTANCE_HOURS)
-            .snapshotDate(OffsetDateTime.now(Clock.systemUTC()))
-            .value(new BigDecimal("42.0"));
-    processor.process(usage);
+    BillableUsageAggregate aggregate =
+        createAggregate("foobar", INSTANCE_HOURS, OffsetDateTime.now(), 42.0);
+    processor.process(aggregate);
     verifyNoInteractions(internalSubscriptionsApi, meteringClient);
   }
 
@@ -201,7 +190,7 @@ class BillableUsageProcessorTest {
   void shouldFindStorageAwsDimension() throws ApiException {
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(new AwsUsageContext());
-    processor.process(ROSA_STORAGE_GIB_MONTHS_RECORD);
+    processor.process(ROSA_STORAGE_CORES_RECORD);
     verify(internalSubscriptionsApi).getAwsUsageContext(any(), any(), any(), any(), any(), any());
   }
 
@@ -245,8 +234,8 @@ class BillableUsageProcessorTest {
 
   @Test
   void shouldNotMakeAwsUsageRequestWhenDryRunEnabled() throws ApiException {
-    BillableUsageProcessor processor =
-        new BillableUsageProcessor(
+    BillableUsageAggregateProcessor processor =
+        new BillableUsageAggregateProcessor(
             meterRegistry,
             internalSubscriptionsApi,
             clientFactory,
@@ -296,15 +285,10 @@ class BillableUsageProcessorTest {
     double currentIgnored = ignoredCounter.count();
     when(internalSubscriptionsApi.getAwsUsageContext(any(), any(), any(), any(), any(), any()))
         .thenReturn(MOCK_AWS_USAGE_CONTEXT);
-
-    BillableUsage usage =
-        new BillableUsage()
-            .productId("rosa")
-            .billingProvider(BillingProviderEnum.AWS)
-            .uom(INSTANCE_HOURS)
-            .value(new BigDecimal("42.0"))
-            .snapshotDate(OffsetDateTime.now(Clock.systemUTC()).minusHours(8));
-    processor.process(usage);
+    BillableUsageAggregate aggregate =
+        createAggregate(
+            "rosa", INSTANCE_HOURS, OffsetDateTime.now(Clock.systemUTC()).minusHours(8), 42.0);
+    processor.process(aggregate);
     verifyNoInteractions(meteringClient);
     assertEquals(currentIgnored + 1, ignoredCounter.count());
   }
@@ -325,8 +309,27 @@ class BillableUsageProcessorTest {
   @MethodSource("usageWindowTestArgs")
   void testUsageWindow(OffsetDateTime date, boolean isValid) {
     // 6h
+    BillableUsageAggregate aggregate = createAggregate("rosa", INSTANCE_HOURS, date, 42.0);
     assertEquals(21600, maxAgeDuration.getSeconds());
-    assertEquals(
-        isValid, processor.isUsageDateValid(clock, new BillableUsage().snapshotDate(date)));
+    assertEquals(isValid, processor.isUsageDateValid(clock, aggregate));
+  }
+
+  private static BillableUsageAggregate createAggregate(
+      String productId, String metricId, OffsetDateTime timestamp, double totalValue) {
+    var aggregate = new BillableUsageAggregate();
+    aggregate.setWindowTimestamp(timestamp);
+    aggregate.setTotalValue(new BigDecimal(totalValue));
+    aggregate.setSnapshotDates(Set.of(timestamp));
+    var key =
+        new BillableUsageAggregateKey(
+            "testOrg",
+            productId,
+            metricId,
+            SlaEnum.PREMIUM.value(),
+            Usage.PRODUCTION.getValue(),
+            BillingProviderEnum.AWS.value(),
+            "testBillingAccountId");
+    aggregate.setAggregateKey(key);
+    return aggregate;
   }
 }

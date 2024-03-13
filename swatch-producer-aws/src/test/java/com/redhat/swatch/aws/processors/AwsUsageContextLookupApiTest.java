@@ -25,10 +25,9 @@ import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 
-import com.redhat.swatch.aws.openapi.model.BillableUsage;
+import com.redhat.swatch.aws.kafka.BillableUsageAggregate;
+import com.redhat.swatch.aws.kafka.BillableUsageAggregateKey;
 import com.redhat.swatch.aws.openapi.model.BillableUsage.BillingProviderEnum;
-import com.redhat.swatch.aws.openapi.model.BillableUsage.SlaEnum;
-import com.redhat.swatch.aws.openapi.model.BillableUsage.UsageEnum;
 import com.redhat.swatch.aws.test.resources.WireMockResource;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
@@ -40,21 +39,25 @@ import org.junit.jupiter.api.Test;
 @QuarkusTest
 @QuarkusTestResource(value = WireMockResource.class)
 class AwsUsageContextLookupApiTest {
-  @Inject BillableUsageProcessor processor;
+  @Inject BillableUsageAggregateProcessor processor;
 
   @Test
   void testParameterOrderGetAwsUsageContext() {
     var now = OffsetDateTime.now();
+    var aggregate = new BillableUsageAggregate();
+    aggregate.setWindowTimestamp(now);
+    var key =
+        new BillableUsageAggregateKey(
+            "orgId",
+            "productId",
+            null,
+            "Premium",
+            "Production",
+            BillingProviderEnum.AWS.value(),
+            "billingAccountId");
+    aggregate.setAggregateKey(key);
     try {
-      processor.lookupAwsUsageContext(
-          new BillableUsage()
-              .sla(SlaEnum.PREMIUM)
-              .usage(UsageEnum.PRODUCTION)
-              .orgId("orgId")
-              .productId("productId")
-              .billingAccountId("billingAccountId")
-              .billingProvider(BillingProviderEnum.AWS)
-              .snapshotDate(now));
+      processor.lookupAwsUsageContext(aggregate);
     } catch (Exception e) {
       // intentionally ignoring the exception
     }
