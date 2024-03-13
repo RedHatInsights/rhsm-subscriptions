@@ -33,7 +33,14 @@ COPY . .
 RUN ./gradlew assemble -x test
 
 FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.18-1
+FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.17-1.1705573249
+USER root
+RUN microdnf \
+    --disablerepo=* \
+    --enablerepo=ubi-9-baseos-rpms \
+    install -y tar rsync
 
+USER default
 COPY --from=0 /stage/swatch-system-conduit/build/libs/ /deployments/
 COPY --from=0 /stage/swatch-system-conduit/build/javaagent/ /opt/
 ENV JAVA_OPTS_APPEND=-javaagent:/opt/splunk-otel-javaagent.jar

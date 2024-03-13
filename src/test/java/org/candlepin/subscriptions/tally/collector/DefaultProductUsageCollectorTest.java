@@ -20,7 +20,9 @@
  */
 package org.candlepin.subscriptions.tally.collector;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.candlepin.subscriptions.db.model.BillingProvider;
@@ -40,6 +42,33 @@ class DefaultProductUsageCollectorTest {
     var bucket = collector.buildBucket(createUsageKey(), facts);
     assertTrue(bucket.isPresent());
     assertFalse(bucket.get().getKey().getAsHypervisor());
+  }
+
+  @Test
+  void testBucketSocketsSetToNull() {
+    var facts = new NormalizedFacts();
+    facts.setCores(1);
+    var bucket = collector.buildBucket(createUsageKey(), facts);
+    assertTrue(bucket.isPresent());
+    assertNull(bucket.get().getSockets());
+  }
+
+  @Test
+  void testBucketCoresSetToNull() {
+    var facts = new NormalizedFacts();
+    facts.setSockets(1);
+    var bucket = collector.buildBucket(createUsageKey(), facts);
+    assertTrue(bucket.isPresent());
+    assertNull(bucket.get().getCores());
+  }
+
+  @Test
+  void testBucketHasSockets0ForMarketplaceInstance() {
+    var facts = new NormalizedFacts();
+    facts.setMarketplace(true);
+    var bucket = collector.buildBucket(createUsageKey(), facts);
+    assertTrue(bucket.isPresent());
+    assertEquals(0, bucket.get().getSockets());
   }
 
   private UsageCalculation.Key createUsageKey() {

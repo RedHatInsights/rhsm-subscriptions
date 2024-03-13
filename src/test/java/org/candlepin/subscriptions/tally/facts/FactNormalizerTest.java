@@ -98,8 +98,8 @@ class FactNormalizerTest {
     NormalizedFacts normalized =
         normalizer.normalize(createQpcHost("RHEL", "x86_64", clock.now()), hypervisorData());
     assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for x86"));
-    assertEquals(Integer.valueOf(0), normalized.getCores());
-    assertEquals(Integer.valueOf(0), normalized.getSockets());
+    assertNull(normalized.getCores());
+    assertNull(normalized.getSockets());
   }
 
   @Test
@@ -152,7 +152,7 @@ class FactNormalizerTest {
     assertNotNull(normalized.getProducts());
     assertThat(normalized.getProducts(), Matchers.empty());
     assertEquals(Integer.valueOf(4), normalized.getCores());
-    assertEquals(Integer.valueOf(0), normalized.getSockets());
+    assertNull(normalized.getSockets());
   }
 
   @Test
@@ -162,7 +162,7 @@ class FactNormalizerTest {
     NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
     assertNotNull(normalized.getProducts());
     assertThat(normalized.getProducts(), Matchers.empty());
-    assertEquals(Integer.valueOf(0), normalized.getCores());
+    assertNull(normalized.getCores());
     assertEquals(Integer.valueOf(8), normalized.getSockets());
   }
 
@@ -171,8 +171,8 @@ class FactNormalizerTest {
     NormalizedFacts normalized =
         normalizer.normalize(createRhsmHost(List.of(69), null, clock.now()), hypervisorData());
     assertThat(normalized.getProducts(), Matchers.hasItem("RHEL for x86"));
-    assertEquals(Integer.valueOf(0), normalized.getCores());
-    assertEquals(Integer.valueOf(0), normalized.getSockets());
+    assertNull(normalized.getCores());
+    assertNull(normalized.getSockets());
   }
 
   @Test
@@ -182,7 +182,7 @@ class FactNormalizerTest {
 
     NormalizedFacts normalized = normalizer.normalize(facts, hypervisorData());
     assertThat(normalized.getProducts(), Matchers.empty());
-    assertEquals(0, normalized.getCores());
+    assertNull(normalized.getCores());
   }
 
   @Test
@@ -220,6 +220,8 @@ class FactNormalizerTest {
   @Test
   void testNullSocketsNormalizeToZero() {
     InventoryHostFacts host = createRhsmHost(Collections.emptyList(), null, clock.now());
+
+    host.setSyspurposeUnits("Sockets");
     NormalizedFacts normalizedHost = normalizer.normalize(host, hypervisorData());
 
     assertEquals(0, normalizedHost.getSockets().intValue());
@@ -559,14 +561,29 @@ class FactNormalizerTest {
     assertClassification(facts, true, true, false);
   }
 
+  @Test
+  void testShouldPruneProductsThatAreExcludedInConfiguration() {
+    // Where 290 is "OpenShift Container Platform", then we should remove:
+    // - 72 because is "RHEL for IBM z" and is in the includedSubscriptions configuration of
+    // OpenShift Container Platform.
+    // - 90 because is "rhel-for-x86-rs" and same as above
+    // 250 is "Satellite Server" that is not excluded, so it should not be pruned.
+    InventoryHostFacts host = createRhsmHost(List.of(290, 72, 90, 250), null, clock.now());
+    NormalizedFacts normalized = normalizer.normalize(host, hypervisorData());
+    assertThat(
+        "Products after normalization: " + normalized.getProducts(),
+        normalized.getProducts(),
+        Matchers.contains("OpenShift Container Platform", "Satellite Server"));
+  }
+
   static Stream<Arguments> syspurposeUnitsArgs() {
     return Stream.of(
-        arguments("Sockets", 2, 0), arguments("Cores/vCPU", 0, 4), arguments("Foobar", 2, 4));
+        arguments("Sockets", 2, null), arguments("Cores/vCPU", null, 4), arguments("Foobar", 2, 4));
   }
 
   @ParameterizedTest
   @MethodSource("syspurposeUnitsArgs")
-  void testSyspurposeUnits(String unit, int sockets, int cores) {
+  void testSyspurposeUnits(String unit, Integer sockets, Integer cores) {
     InventoryHostFacts facts = createBaseHost("O1");
     facts.setSystemProfileCoresPerSocket(2);
     facts.setSystemProfileSockets(2);
@@ -574,8 +591,8 @@ class FactNormalizerTest {
     facts.setSyspurposeUnits(unit);
 
     NormalizedFacts normalized = normalizer.normalize(facts, hypervisorData());
-    assertEquals(sockets, normalized.getSockets().longValue());
-    assertEquals(cores, normalized.getCores().longValue());
+    assertEquals(sockets, normalized.getSockets());
+    assertEquals(cores, normalized.getCores());
   }
 
   @Test

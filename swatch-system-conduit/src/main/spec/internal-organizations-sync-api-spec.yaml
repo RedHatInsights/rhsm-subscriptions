@@ -28,6 +28,14 @@ paths:
     description: "Trigger a sync for a given Org ID"
     post:
       summary: "Sync organization for given org_id."
+      parameters:
+        - name: x-rh-swatch-synchronous-request
+          in: header
+          required: false
+          schema:
+            type: boolean
+            default: "false"
+            description: "When present, a synchronous request is made."
       requestBody:
         $ref: "#/components/requestBodies/OrgSyncRequestBody"
       operationId: syncOrg

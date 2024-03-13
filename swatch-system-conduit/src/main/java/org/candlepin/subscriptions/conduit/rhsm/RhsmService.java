@@ -20,10 +20,11 @@
  */
 package org.candlepin.subscriptions.conduit.rhsm;
 
-import io.github.resilience4j.ratelimiter.RateLimiter;
-import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
+import io.github.resilience4j.bulkhead.Bulkhead;
+import io.github.resilience4j.bulkhead.BulkheadFullException;
+import io.github.resilience4j.bulkhead.BulkheadRegistry;
 import jakarta.validation.constraints.Pattern;
-import jakarta.ws.rs.core.Response.Status;
+import jakarta.ws.rs.core.Response;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -55,7 +56,7 @@ public class RhsmService {
   private final int batchSize;
   private final RetryTemplate retryTemplate;
   private final Duration hostCheckinThreshold;
-  private final RateLimiter rateLimiter;
+  private final Bulkhead bulkhead;
 
   @Autowired
   public RhsmService(
@@ -63,13 +64,13 @@ public class RhsmService {
       RhsmApiProperties apiProperties,
       RhsmApi api,
       @Qualifier("rhsmRetryTemplate") RetryTemplate retryTemplate,
-      RateLimiterRegistry rateLimiterRegistry) {
+      BulkheadRegistry bulkheadRegistry) {
     this.hostCheckinThreshold = inventoryServiceProperties.getHostLastSyncThreshold();
     log.info("rhsm-conduit stale threshold: {}", hostCheckinThreshold);
     this.batchSize = apiProperties.getRequestBatchSize();
     this.api = api;
     this.retryTemplate = retryTemplate;
-    this.rateLimiter = rateLimiterRegistry.rateLimiter("rhsmApi");
+    this.bulkhead = bulkheadRegistry.bulkhead("rhsmApi");
   }
 
   /**
@@ -98,19 +99,26 @@ public class RhsmService {
       throws ApiException {
     return retryTemplate.execute(
         context -> {
-          if (!rateLimiter.acquirePermission()) {
+          try {
+            bulkhead.acquirePermission();
+          } catch (BulkheadFullException exception) {
             throw new SubscriptionsException(
                 ErrorCode.RHSM_SERVICE_REQUEST_ERROR,
-                Status.TOO_MANY_REQUESTS,
-                "Failed due to rate limit timeout",
+                Response.Status.TOO_MANY_REQUESTS,
+                "Failed due to limit timeout",
                 (String) null);
           }
-          log.debug("Fetching page of consumers for org {}.", orgId);
-          OrgInventory consumersForOrg =
-              api.getConsumersForOrg(orgId, batchSize, offset, lastCheckinTime);
-          int count = consumersForOrg.getBody().size();
-          log.debug("Consumer fetch complete. Found {} for batch of {}.", count, batchSize);
-          return consumersForOrg;
+
+          try {
+            log.debug("Fetching page of consumers for org {}.", orgId);
+            OrgInventory consumersForOrg =
+                api.getConsumersForOrg(orgId, batchSize, offset, lastCheckinTime);
+            int count = consumersForOrg.getBody().size();
+            log.debug("Consumer fetch complete. Found {} for batch of {}.", count, batchSize);
+            return consumersForOrg;
+          } finally {
+            bulkhead.onComplete();
+          }
         });
   }
 

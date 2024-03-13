@@ -151,7 +151,7 @@ class HostTallyBucketRepositoryTest {
     assertEquals(1, tallies.size());
 
     AccountBucketTally abt = tallies.get(0);
-    assertBucketTally(abt, 0.0, 0.0, 1.0);
+    assertBucketTally(abt, null, null, 1.0);
   }
 
   private void assertBucketTally(

@@ -18,15 +18,26 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.aws.kafka;
+package org.candlepin.subscriptions.clowder;
 
-import com.redhat.swatch.aws.openapi.model.BillableUsage;
-import io.quarkus.kafka.client.serialization.ObjectMapperDeserializer;
+import static org.junit.jupiter.api.Assertions.*;
 
-/** Provides quarkus a hint that we want to use Jackson to deserialize BillableUsage objects */
-public class BillableUsageDeserializer extends ObjectMapperDeserializer<BillableUsage> {
+import java.util.List;
+import org.candlepin.subscriptions.clowder.X509PemReader.CertInfo;
+import org.junit.jupiter.api.Test;
+import org.springframework.util.ResourceUtils;
 
-  public BillableUsageDeserializer() {
-    super(BillableUsage.class);
+class X509PemReaderTest {
+  @Test
+  void testReadCa() throws Exception {
+    var file = ResourceUtils.getFile("classpath:ca-bundle.pem");
+    var reader = new X509PemReader(file);
+    var results = reader.readCerts();
+
+    var names = results.stream().map(CertInfo::getDistinguishedName).toList();
+    var expected = List.of("CN=Test CA 1", "CN=Test CA 2", "CN=Test CA 3", "CN=Test CA 4");
+    results.stream().map(X509PemReader.CertInfo::toString).forEach(x -> System.out.println(x));
+
+    assertEquals(expected, names);
   }
 }
