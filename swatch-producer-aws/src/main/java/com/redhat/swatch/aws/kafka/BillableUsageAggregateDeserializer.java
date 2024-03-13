@@ -20,13 +20,15 @@
  */
 package com.redhat.swatch.aws.kafka;
 
-import com.redhat.swatch.aws.openapi.model.BillableUsage;
 import io.quarkus.kafka.client.serialization.ObjectMapperDeserializer;
 
-/** Provides quarkus a hint that we want to use Jackson to deserialize BillableUsage objects */
-public class BillableUsageDeserializer extends ObjectMapperDeserializer<BillableUsage> {
+/**
+ * Provides quarkus a hint that we want to use Jackson to deserialize BillableUsageAggregate objects
+ */
+public class BillableUsageAggregateDeserializer
+    extends ObjectMapperDeserializer<BillableUsageAggregate> {
 
-  public BillableUsageDeserializer() {
-    super(BillableUsage.class);
+  public BillableUsageAggregateDeserializer() {
+    super(BillableUsageAggregate.class);
   }
 }
