@@ -9,6 +9,7 @@ rhsm-subscriptions:
   export-service:
     url: ${clowder.privateEndpoints.export-service-service.url:http://localhost:10000}
     psk: ${SWATCH_EXPORT_PSK:placeholder}
+    file-threshold: 500MB
   subscription-sync-enabled: ${SUBSCRIPTION_SYNC_ENABLED:true}
   product:
     tasks:
@@ -30,3 +31,4 @@ rhsm-subscriptions:
     tasks:
       topic: ${SUBSCRIPTION_EXPORT_TOPIC}
       kafka-group-id: swatch-subscription-export
+DEV_RESTEASY_ENTITY_FILE_THRESHOLD: 500MB

@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.capacity;
 
 import org.candlepin.subscriptions.db.RhsmSubscriptionsDataSourceConfiguration;
 import org.candlepin.subscriptions.resteasy.ResteasyConfiguration;
+import org.candlepin.subscriptions.subscription.ExportClientConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurationExcludeFilter;
 import org.springframework.boot.context.TypeExcludeFilter;
 import org.springframework.context.annotation.ComponentScan;
@@ -39,7 +40,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @Configuration
 @Profile("capacity-ingress")
 @EnableAsync
-@Import({ResteasyConfiguration.class, RhsmSubscriptionsDataSourceConfiguration.class})
+@Import({ResteasyConfiguration.class, RhsmSubscriptionsDataSourceConfiguration.class, ExportClientConfiguration.class})
 @ComponentScan(
     basePackages = {"org.candlepin.subscriptions.capacity", "org.candlepin.subscriptions.product"},
     // Prevent TestConfiguration annotated classes from being picked up by ComponentScan

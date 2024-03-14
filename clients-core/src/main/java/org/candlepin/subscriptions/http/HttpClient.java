@@ -112,8 +112,8 @@ public class HttpClient {
     if (isDebugging) {
       clientConfig.register(org.jboss.logging.Logger.class);
     }
-    ClientBuilder clientBuilder = ClientBuilder.newBuilder().withConfig(clientConfig);
 
+    ClientBuilder clientBuilder = ClientBuilder.newBuilder().withConfig(clientConfig);
     return ((ResteasyClientBuilder) clientBuilder).httpEngine(engine).build();
   }
 

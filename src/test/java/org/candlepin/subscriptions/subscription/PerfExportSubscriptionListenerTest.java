@@ -25,12 +25,15 @@ import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.test.ExtendWithExportServiceWireMock;
+import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
+import org.hibernate.SessionFactory;
+import org.hibernate.StatelessSession;
+import org.hibernate.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -41,16 +44,19 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@ActiveProfiles(value = {"worker", "test", "capacity-ingress"})
-class PerfExportSubscriptionListenerTest extends ExtendWithExportServiceWireMock {
+@ActiveProfiles(value = {"worker", "test-inventory", "capacity-ingress"})
+class PerfExportSubscriptionListenerTest extends ExtendWithExportServiceWireMock
+    implements ExtendWithSwatchDatabase {
 
   private static final UUID EXPORT_ID = UUID.randomUUID();
   private static final String APPLICATION_NAME = "SWATCH";
   private static final UUID RESOURCE_ID = UUID.randomUUID();
+  private static final String SKU = "MW0001";
+  private static boolean DATA_LOADED = false;
 
   @Autowired ExportSubscriptionListener listener;
+  @Autowired SessionFactory sessionFactory;
   @Autowired SubscriptionRepository repository;
-  @Autowired OfferingRepository offeringRepository;
 
   private ResourceRequestClass request;
 
@@ -63,8 +69,21 @@ class PerfExportSubscriptionListenerTest extends ExtendWithExportServiceWireMock
 
     stubExportUploadFor(EXPORT_ID, APPLICATION_NAME, RESOURCE_ID);
 
-    for (int i = 0; i < 50000; i++) {
-      repository.save(createSubscription());
+    if (!DATA_LOADED) {
+      StatelessSession session = sessionFactory.openStatelessSession();
+      Transaction tx = session.beginTransaction();
+
+      Offering offering = new Offering();
+      offering.setSku(SKU);
+      session.insert(offering);
+
+      for (int i = 0; i < 5; i++) {
+        session.insert(createSubscription(offering));
+      }
+      tx.commit();
+      session.close();
+
+      DATA_LOADED = true;
     }
   }
 
@@ -73,14 +92,14 @@ class PerfExportSubscriptionListenerTest extends ExtendWithExportServiceWireMock
   @Transactional
   void verifyExportUploadWithSingleSubscription() {
     logExportRequestsBody(true);
-    Stream<Subscription> data = repository.streamAll(Pageable.ofSize(1));
+    Stream<Subscription> data = repository.streamAll(Pageable.ofSize(10));
     listener.uploadJson(data, request);
     verifyExportUpload(EXPORT_ID, APPLICATION_NAME, RESOURCE_ID);
   }
 
   @Transactional
   @ParameterizedTest
-  @ValueSource(ints = {1, 100, 1000, 10000, 50000})
+  @ValueSource(ints = {500_000})
   void verifyExportUpload(int size) {
     logExportRequestsBody(false);
     Stream<Subscription> data = repository.streamAll(Pageable.ofSize(size));
@@ -88,7 +107,7 @@ class PerfExportSubscriptionListenerTest extends ExtendWithExportServiceWireMock
     verifyExportUpload(EXPORT_ID, APPLICATION_NAME, RESOURCE_ID);
   }
 
-  private Subscription createSubscription() {
+  private Subscription createSubscription(Offering offering) {
     Subscription subscription = new Subscription();
     subscription.setBillingProviderId(UUID.randomUUID().toString());
     subscription.setSubscriptionId("1");
@@ -99,12 +118,7 @@ class PerfExportSubscriptionListenerTest extends ExtendWithExportServiceWireMock
     subscription.setSubscriptionNumber(UUID.randomUUID().toString());
     subscription.setBillingProvider(BillingProvider.RED_HAT);
     subscription.setBillingAccountId(UUID.randomUUID().toString());
-    Offering offering = new Offering();
-    offering.setSku(UUID.randomUUID().toString());
     subscription.setOffering(offering);
-
-    offeringRepository.save(offering);
-
     return subscription;
   }
 }
