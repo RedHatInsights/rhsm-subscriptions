@@ -40,7 +40,7 @@ public class InventoryServiceKafkaConfigurator {
 
   public DefaultKafkaProducerFactory<String, CreateUpdateHostMessage> defaultProducerFactory(
       KafkaProperties kafkaProperties, ObjectMapper mapper) {
-    Map<String, Object> producerConfig = kafkaProperties.buildProducerProperties();
+    Map<String, Object> producerConfig = kafkaProperties.buildProducerProperties(null);
     producerConfig.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
 
     DefaultKafkaProducerFactory<String, CreateUpdateHostMessage> factory =

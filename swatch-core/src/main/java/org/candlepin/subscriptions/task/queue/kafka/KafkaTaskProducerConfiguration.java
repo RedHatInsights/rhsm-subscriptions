@@ -63,7 +63,7 @@ public class KafkaTaskProducerConfiguration {
 
   @NotNull
   public static Map<String, Object> getProducerProperties(KafkaProperties kafkaProperties) {
-    Map<String, Object> properties = kafkaProperties.buildProducerProperties();
+    Map<String, Object> properties = kafkaProperties.buildProducerProperties(null);
     properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
     properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
     return properties;

@@ -49,7 +49,7 @@ public class SubscriptionWorkerConfiguration {
   ConsumerFactory<String, SyncSubscriptionsTask> syncSubscriptionsConsumerFactory(
       KafkaProperties kafkaProperties) {
     return new DefaultKafkaConsumerFactory<>(
-        kafkaProperties.buildConsumerProperties(),
+        kafkaProperties.buildConsumerProperties(null),
         new StringDeserializer(),
         new JsonDeserializer<>(SyncSubscriptionsTask.class));
   }
@@ -58,7 +58,7 @@ public class SubscriptionWorkerConfiguration {
   ConsumerFactory<String, PruneSubscriptionsTask> pruneSubscriptionsConsumerFactory(
       KafkaProperties kafkaProperties) {
     return new DefaultKafkaConsumerFactory<>(
-        kafkaProperties.buildConsumerProperties(),
+        kafkaProperties.buildConsumerProperties(null),
         new StringDeserializer(),
         new JsonDeserializer<>(PruneSubscriptionsTask.class));
   }

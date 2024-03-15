@@ -75,7 +75,7 @@ public class RhMarketplaceWorkerConfiguration {
   ConsumerFactory<String, TallySummary> tallySummaryConsumerFactory(
       KafkaProperties kafkaProperties) {
     return new DefaultKafkaConsumerFactory<>(
-        kafkaProperties.buildConsumerProperties(),
+        kafkaProperties.buildConsumerProperties(null),
         new StringDeserializer(),
         new JsonDeserializer<>(TallySummary.class));
   }
@@ -120,7 +120,7 @@ public class RhMarketplaceWorkerConfiguration {
   ConsumerFactory<String, BillableUsage> billableUsageConsumerFactory(
       KafkaProperties kafkaProperties) {
     return new DefaultKafkaConsumerFactory<>(
-        kafkaProperties.buildConsumerProperties(),
+        kafkaProperties.buildConsumerProperties(null),
         new StringDeserializer(),
         new JsonDeserializer<>(BillableUsage.class));
   }
