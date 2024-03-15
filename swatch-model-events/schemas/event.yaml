@@ -63,6 +63,11 @@ properties:
           description: Metric ID for the measurement. (e.g. Cores, Sockets)
           type: string
           required: true
+          deprecated: true
+          deprecationMessage: Use 'metric_id' instead.
+        metric_id:
+          description: Metric ID for the measurement. (e.g. Cores, Sockets)
+          type: string
     required: false
   cloud_provider:
     description: Identifier for the cloud provider of the subject.
@@ -127,14 +132,6 @@ properties:
       - Production
       - Development/Test
       - Disaster Recovery
-    required: false
-  uom:
-    description: Preferred unit of measure for the subject (for products with multiple possible UOM).
-    type: string
-    enum:
-      - ''  # UNSPECIFIED
-      - Cores
-      - Sockets
     required: false
   billing_provider:
     description: Billing provider used for billing.

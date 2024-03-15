@@ -438,6 +438,12 @@ paths:
           description: "Include only hosts for the specified usage level."
         - name: uom
           in: query
+          deprecated: true
+          schema:
+            type: string
+          description: "Include only hosts with a specific unit of measure. Deprecated: use 'metric_id' instead. "
+        - name: metric_id
+          in: query
           schema:
             type: string
           description: "Include only hosts with a specific unit of measure"
@@ -567,8 +573,14 @@ paths:
              be provided in UTC."
         - name: uom
           in: query
+          deprecated: true
           schema:
             $ref: '#/components/schemas/Uom'
+          description: "Filter subscriptions to those that contribute to a specific unit of measure. Deprecated: use 'metric_id' instead."
+        - name: metric_id
+          in: query
+          schema:
+            type: string
           description: "Filter subscriptions to those that contribute to a specific unit of measure"
         - name: sort
           in: query
@@ -606,7 +618,7 @@ paths:
                     capacity: 3
                     hypervisor_capacity: 3
                     total_capacity: 6
-                    uom: Sockets
+                    metricId: Sockets
                   - sku: RH00010
                     product_name: "Red Hat Enterprise Linux Server"
                     service_level: Self-Support
@@ -624,7 +636,7 @@ paths:
                     capacity: 3
                     hypervisor_capacity: 3
                     total_capacity": 6
-                    uom: Sockets
+                    metricId: Sockets
                   - sku: RH00009
                     product_name: "Red Hat Enterprise Linux Server, Premium"
                     service_level: Premium
@@ -642,7 +654,7 @@ paths:
                     capacity: 6
                     hypervisor_capacity: 6
                     total_capacity: 12
-                    uom: Cores
+                    metricId: Cores
                 meta:
                   count: 3
         '400':
@@ -724,8 +736,9 @@ components:
     BillingAccountId:
       type: string
     Uom:
-      description: "The unit-of-measure for the capacity."
+      description: "The unit-of-measure for the capacity. Deprecated: use 'metric_id' instead."
       type: string
+      deprecated: true
       enum:
         - cores
         - sockets
@@ -940,30 +953,6 @@ components:
           minimum: 0
         has_infinite_quantity:
           type: boolean
-    HostReport:
-      properties:
-        data:
-          type: array
-          items:
-            $ref: "#/components/schemas/Host"
-        links:
-          $ref: "#/components/schemas/PageLinks"
-        meta:
-          type: object
-          properties:
-            count:
-              type: integer
-            product:
-              type: string
-            service_level:
-              $ref: '#/components/schemas/ServiceLevelType'
-            usage:
-              $ref: '#/components/schemas/UsageType'
-            uom:
-              $ref: '#/components/schemas/Uom'
-          required:
-            - count
-            - product
     InstanceGuestReport:
       properties:
         data:
@@ -1267,6 +1256,8 @@ components:
           type: boolean
         uom:
           $ref: "#/components/schemas/Uom"
+        metric_id:
+          type: string
 
     SkuCapacityReportSort:
       type: string

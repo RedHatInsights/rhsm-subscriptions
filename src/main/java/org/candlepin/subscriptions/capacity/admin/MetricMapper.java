@@ -32,6 +32,7 @@ public interface MetricMapper {
       List<Metric> metricsForTag);
 
   @Mapping(target = "uom", source = "id")
+  @Mapping(target = "metricId", source = "id")
   org.candlepin.subscriptions.utilization.admin.api.model.Metric fromConfigurationMetric(
       Metric metric);
 }
