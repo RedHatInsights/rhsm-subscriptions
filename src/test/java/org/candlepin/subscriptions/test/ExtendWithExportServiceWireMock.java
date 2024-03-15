@@ -41,7 +41,16 @@ public class ExtendWithExportServiceWireMock {
   private static boolean logExportRequestsBody = true;
 
   static WireMockServer start() {
-    exportServer = new WireMockServer(wireMockConfig().dynamicPort());
+    exportServer =
+        new WireMockServer(
+            wireMockConfig()
+                .dynamicPort()
+                // This is mandatory to handle large files, otherwise Wiremock returns 500 Server
+                // Error
+                .jettyHeaderRequestSize(16384)
+                .jettyHeaderResponseSize(50000)
+                .stubRequestLoggingDisabled(true)
+                .maxLoggedResponseSize(1000));
     exportServer.resetAll();
     exportServer.addMockServiceRequestListener(
         (request, response) -> {

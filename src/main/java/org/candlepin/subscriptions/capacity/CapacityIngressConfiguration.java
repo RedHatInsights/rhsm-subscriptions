@@ -40,7 +40,11 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @Configuration
 @Profile("capacity-ingress")
 @EnableAsync
-@Import({ResteasyConfiguration.class, RhsmSubscriptionsDataSourceConfiguration.class, ExportClientConfiguration.class})
+@Import({
+  ResteasyConfiguration.class,
+  RhsmSubscriptionsDataSourceConfiguration.class,
+  ExportClientConfiguration.class
+})
 @ComponentScan(
     basePackages = {"org.candlepin.subscriptions.capacity", "org.candlepin.subscriptions.product"},
     // Prevent TestConfiguration annotated classes from being picked up by ComponentScan

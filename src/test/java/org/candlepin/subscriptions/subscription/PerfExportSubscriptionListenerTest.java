@@ -48,6 +48,14 @@ import org.springframework.test.context.ActiveProfiles;
 class PerfExportSubscriptionListenerTest extends ExtendWithExportServiceWireMock
     implements ExtendWithSwatchDatabase {
 
+  /**
+   * I've asked if there are other ways to configure this property in
+   * https://github.com/orgs/resteasy/discussions/4085.
+   */
+  static {
+    System.setProperty("dev.resteasy.entity.file.threshold", "600MB");
+  }
+
   private static final UUID EXPORT_ID = UUID.randomUUID();
   private static final String APPLICATION_NAME = "SWATCH";
   private static final UUID RESOURCE_ID = UUID.randomUUID();
@@ -77,7 +85,7 @@ class PerfExportSubscriptionListenerTest extends ExtendWithExportServiceWireMock
       offering.setSku(SKU);
       session.insert(offering);
 
-      for (int i = 0; i < 5; i++) {
+      for (int i = 0; i < 500_000; i++) {
         session.insert(createSubscription(offering));
       }
       tx.commit();
@@ -99,7 +107,7 @@ class PerfExportSubscriptionListenerTest extends ExtendWithExportServiceWireMock
 
   @Transactional
   @ParameterizedTest
-  @ValueSource(ints = {500_000})
+  @ValueSource(ints = {50_000, 100_000, 200_000, 300_000, 400_000, 500_000})
   void verifyExportUpload(int size) {
     logExportRequestsBody(false);
     Stream<Subscription> data = repository.streamAll(Pageable.ofSize(size));
