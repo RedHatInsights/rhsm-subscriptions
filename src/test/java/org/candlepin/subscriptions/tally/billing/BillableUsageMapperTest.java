@@ -46,10 +46,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class BillableUsageMapperTest {
+
+  private static final String STORAGE_GIBIBYTES = "Storage-gibibytes";
+
   private static SubscriptionDefinitionRegistry originalReference;
   private SubscriptionDefinitionRegistry subscriptionDefinitionRegistry;
-
-  private static String STORAGE_GIBIBYTES = "Storage-gibibytes";
 
   @BeforeAll
   static void setupClass() throws Exception {
@@ -197,8 +198,7 @@ class BillableUsageMapperTest {
             .withMetricId("Storage-gibibytes")
             .withValue(42.0)
             .withHardwareMeasurementType(HardwareMeasurementType.PHYSICAL.toString());
-    assertEquals(
-        expected,
+    BillableUsage actual =
         mapper
             .fromTallySummary(
                 createExampleTallySummaryWithOrgId(
@@ -209,7 +209,9 @@ class BillableUsageMapperTest {
                     BillingProvider.AWS,
                     "bill123"))
             .findAny()
-            .orElseThrow());
+            .orElseThrow();
+    expected.setUuid(actual.getUuid()); // this is auto-generated
+    assertEquals(expected, actual);
   }
 
   @Test

@@ -34,7 +34,6 @@ import org.candlepin.subscriptions.billing.admin.api.model.MonthlyRemittance;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
-import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
@@ -77,7 +76,7 @@ class InternalBillingControllerTest {
     BillableUsageRemittanceEntity remittance3 =
         remittance(
             "org123", "product1", BillingProvider.RED_HAT, 12.0, clock.startOfCurrentMonth());
-    remittance3.getKey().setMetricId("Transfer-gibibytes");
+    remittance3.setMetricId("Transfer-gibibytes");
     BillableUsageRemittanceEntity remittance4 =
         remittance("org345", "product2", BillingProvider.RED_HAT, 8.0, clock.startOfCurrentMonth());
     BillableUsageRemittanceEntity remittance5 =
@@ -237,7 +236,7 @@ class InternalBillingControllerTest {
     // verify retry after is reset
     assertTrue(
         remittanceRepo.findAll().stream()
-            .filter(b -> b.getKey().getOrgId().equals(orgId))
+            .filter(b -> b.getOrgId().equals(orgId))
             .allMatch(b -> b.getRetryAfter() == null));
   }
 
@@ -254,18 +253,17 @@ class InternalBillingControllerTest {
       BillingProvider billingProvider,
       Double value,
       OffsetDateTime remittanceDate) {
-    BillableUsageRemittanceEntityPK key =
-        BillableUsageRemittanceEntityPK.builder()
-            .usage(BillableUsage.Usage.PRODUCTION.value())
-            .orgId(orgId)
-            .billingProvider(billingProvider.value())
-            .billingAccountId(String.format("%s_%s_ba", orgId, productId))
-            .productId(productId)
-            .sla(BillableUsage.Sla.PREMIUM.value())
-            .metricId("Instance-hours")
-            .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(remittanceDate))
-            .remittancePendingDate(remittanceDate)
-            .build();
-    return BillableUsageRemittanceEntity.builder().key(key).remittedPendingValue(value).build();
+    return BillableUsageRemittanceEntity.builder()
+        .usage(BillableUsage.Usage.PRODUCTION.value())
+        .orgId(orgId)
+        .billingProvider(billingProvider.value())
+        .billingAccountId(String.format("%s_%s_ba", orgId, productId))
+        .productId(productId)
+        .sla(BillableUsage.Sla.PREMIUM.value())
+        .metricId("Instance-hours")
+        .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(remittanceDate))
+        .remittancePendingDate(remittanceDate)
+        .remittedPendingValue(value)
+        .build();
   }
 }

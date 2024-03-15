@@ -20,11 +20,14 @@
  */
 package org.candlepin.subscriptions.db;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import java.time.OffsetDateTime;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
+import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
+import org.candlepin.subscriptions.json.BillableUsage;
 
 /**
  * A filter used to find {@link org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity}
@@ -46,4 +49,17 @@ public class BillableUsageRemittanceFilter {
   private OffsetDateTime beginning;
   private OffsetDateTime ending;
   private String accumulationPeriod;
+
+  public static BillableUsageRemittanceFilter fromUsage(BillableUsage usage) {
+    return BillableUsageRemittanceFilter.builder()
+        .orgId(usage.getOrgId())
+        .billingAccountId(usage.getBillingAccountId())
+        .billingProvider(usage.getBillingProvider().value())
+        .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(usage.getSnapshotDate()))
+        .metricId(MetricId.fromString(usage.getUom()).getValue())
+        .productId(usage.getProductId())
+        .sla(usage.getSla().value())
+        .usage(usage.getUsage().value())
+        .build();
+  }
 }

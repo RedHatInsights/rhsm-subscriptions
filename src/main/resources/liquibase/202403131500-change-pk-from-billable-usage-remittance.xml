@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+  <changeSet id="202403131500-1" author="jcarvaja">
+    <dropPrimaryKey tableName="billable_usage_remittance" constraintName="billable_usage_remittance_pkey"/>
+    <addUniqueConstraint columnNames="org_id, product_id, metric_id, accumulation_period, sla, usage, billing_provider,billing_account_id, remittance_pending_date"
+                         constraintName="billable_usage_remittance_unique" tableName="billable_usage_remittance"/>
+    <rollback>
+      <dropUniqueConstraint tableName="billable_usage_remittance" constraintName="billable_usage_remittance_unique"/>
+      <addPrimaryKey constraintName="billable_usage_remittance_pkey"
+                     tableName="billable_usage_remittance"
+                     columnNames="org_id, product_id, metric_id, accumulation_period, sla, usage, billing_provider,billing_account_id, remittance_pending_date"/>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202403131500-2" author="jcarvaja">
+    <addColumn tableName="billable_usage_remittance">
+      <column name="uuid" type="UUID"/>
+    </addColumn>
+
+    <rollback>
+      <dropColumn tableName="billable_usage_remittance" columnName="uuid"/>
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202403131500-3" author="jcarvaja" dbms="postgresql">
+    <!-- Credits to https://elvisciotti.medium.com/postgres-gen-random-uuid-in-postgres-9-10-11-12-d31694e74b19 -->
+    <sql>UPDATE billable_usage_remittance SET UUID=uuid_in(overlay(overlay(md5(random()::text || ':' || clock_timestamp()::text) placing '4' from 13) placing to_hex(floor(random()*(11-8+1) + 8)::int)::text from 17)::cstring)</sql>
+    <rollback>
+
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202403131500-4" author="jcarvaja" dbms="hsqldb">
+    <sql>UPDATE billable_usage_remittance SET UUID=uuid()</sql>
+    <rollback>
+
+    </rollback>
+  </changeSet>
+
+  <changeSet id="202403131500-5" author="jcarvaja">
+    <addPrimaryKey tableName="billable_usage_remittance" columnNames="uuid" constraintName="billable_usage_remittance_pkey"/>
+    <rollback>
+      <dropPrimaryKey tableName="billable_usage_remittance" constraintName="billable_usage_remittance_pkey"/>
+    </rollback>
+  </changeSet>
+</databaseChangeLog>

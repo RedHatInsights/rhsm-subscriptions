@@ -88,17 +88,17 @@ public class InternalBillingController {
 
   private BillableUsage toBillableUsage(BillableUsageRemittanceEntity remittance) {
     return new BillableUsage()
-        .withOrgId(remittance.getKey().getOrgId())
+        .withOrgId(remittance.getOrgId())
         .withId(remittance.getTallyId())
-        .withSnapshotDate(remittance.getKey().getRemittancePendingDate())
-        .withProductId(remittance.getKey().getProductId())
-        .withSla(BillableUsage.Sla.fromValue(remittance.getKey().getSla()))
-        .withUsage(BillableUsage.Usage.fromValue(remittance.getKey().getUsage()))
+        .withSnapshotDate(remittance.getRemittancePendingDate())
+        .withProductId(remittance.getProductId())
+        .withSla(BillableUsage.Sla.fromValue(remittance.getSla()))
+        .withUsage(BillableUsage.Usage.fromValue(remittance.getUsage()))
         .withBillingProvider(
-            BillableUsage.BillingProvider.fromValue(remittance.getKey().getBillingProvider()))
-        .withBillingAccountId(remittance.getKey().getBillingAccountId())
-        .withUom(remittance.getKey().getMetricId())
-        .withMetricId(remittance.getKey().getMetricId())
+            BillableUsage.BillingProvider.fromValue(remittance.getBillingProvider()))
+        .withBillingAccountId(remittance.getBillingAccountId())
+        .withUom(remittance.getMetricId())
+        .withMetricId(remittance.getMetricId())
         .withValue(remittance.getRemittedPendingValue())
         .withHardwareMeasurementType(remittance.getHardwareMeasurementType());
   }

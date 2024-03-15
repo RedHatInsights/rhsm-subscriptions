@@ -63,7 +63,7 @@ class RemittanceRetentionControllerTest {
     OffsetDateTime cutoff = OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
     when(policy.getCutoffDate()).thenReturn(cutoff);
     controller.cleanStaleRemittancesForOrgId("123456");
-    verify(repository).deleteAllByKeyOrgIdAndKeyRemittancePendingDateBefore("123456", cutoff);
+    verify(repository).deleteAllByOrgIdAndRemittancePendingDateBefore("123456", cutoff);
     verifyNoMoreInteractions(repository);
   }
 
@@ -85,6 +85,6 @@ class RemittanceRetentionControllerTest {
     controller.purgeRemittancesAsync();
 
     verify(repository, times(4))
-        .deleteAllByKeyOrgIdAndKeyRemittancePendingDateBefore(anyString(), eq(cutoff));
+        .deleteAllByOrgIdAndRemittancePendingDateBefore(anyString(), eq(cutoff));
   }
 }

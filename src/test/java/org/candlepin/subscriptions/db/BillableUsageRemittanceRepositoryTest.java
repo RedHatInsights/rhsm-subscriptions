@@ -31,7 +31,6 @@ import java.util.Optional;
 import java.util.TimeZone;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
-import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.RemittanceSummaryProjection;
 import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
@@ -68,7 +67,8 @@ class BillableUsageRemittanceRepositoryTest {
         remittance(
             "org123", "product1", BillingProvider.AWS.value(), 12.0, clock.startOfCurrentMonth());
     repository.saveAndFlush(remittance);
-    Optional<BillableUsageRemittanceEntity> fetched = repository.findById(remittance.getKey());
+    Optional<BillableUsageRemittanceEntity> fetched =
+        repository.findOne(billableUsageRemittanceFilterFromEntity(remittance));
     assertTrue(fetched.isPresent());
     assertEquals(remittance, fetched.get());
   }
@@ -85,10 +85,11 @@ class BillableUsageRemittanceRepositoryTest {
     List<BillableUsageRemittanceEntity> toSave = List.of(remittance1, remittance2);
     repository.saveAllAndFlush(toSave);
 
-    repository.deleteByKeyOrgId("org123");
+    repository.deleteByOrgId("org123");
     repository.flush();
-    assertTrue(repository.findById(remittance1.getKey()).isEmpty());
-    Optional<BillableUsageRemittanceEntity> found = repository.findById(remittance2.getKey());
+    assertTrue(repository.findOne(billableUsageRemittanceFilterFromEntity(remittance1)).isEmpty());
+    Optional<BillableUsageRemittanceEntity> found =
+        repository.findOne(billableUsageRemittanceFilterFromEntity(remittance2));
     assertTrue(found.isPresent());
     assertEquals(remittance2, found.get());
   }
@@ -114,7 +115,8 @@ class BillableUsageRemittanceRepositoryTest {
     List<BillableUsageRemittanceEntity> found =
         repository.filterBy(BillableUsageRemittanceFilter.builder().productId("product1").build());
     assertFalse(found.isEmpty());
-    assertEquals(accountMonthlyList, found);
+    assertEquals(accountMonthlyList.size(), found.size());
+    accountMonthlyList.forEach(expected -> assertTrue(found.contains(expected)));
   }
 
   private BillableUsageRemittanceEntity remittance(
@@ -123,19 +125,18 @@ class BillableUsageRemittanceRepositoryTest {
       String billingProvider,
       Double value,
       OffsetDateTime remittanceDate) {
-    BillableUsageRemittanceEntityPK key =
-        BillableUsageRemittanceEntityPK.builder()
-            .usage(Usage.PRODUCTION.value())
-            .orgId(orgId)
-            .billingProvider(billingProvider)
-            .billingAccountId(orgId + "_ba")
-            .productId(productId)
-            .sla(Sla.PREMIUM.value())
-            .metricId(MetricIdUtils.getCores().toString())
-            .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(remittanceDate))
-            .remittancePendingDate(remittanceDate)
-            .build();
-    return BillableUsageRemittanceEntity.builder().key(key).remittedPendingValue(value).build();
+    return BillableUsageRemittanceEntity.builder()
+        .usage(Usage.PRODUCTION.value())
+        .orgId(orgId)
+        .billingProvider(billingProvider)
+        .billingAccountId(orgId + "_ba")
+        .productId(productId)
+        .sla(Sla.PREMIUM.value())
+        .metricId(MetricIdUtils.getCores().toString())
+        .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(remittanceDate))
+        .remittancePendingDate(remittanceDate)
+        .remittedPendingValue(value)
+        .build();
   }
 
   @Test
@@ -153,7 +154,7 @@ class BillableUsageRemittanceRepositoryTest {
         BillableUsageRemittanceFilter.builder().productId("product2").orgId("org456").build();
     List<BillableUsageRemittanceEntity> usage = repository.filterBy(filter);
     assertEquals(1, usage.size());
-    assertEquals("product2", usage.get(0).getKey().getProductId());
+    assertEquals("product2", usage.get(0).getProductId());
   }
 
   @Test
@@ -193,7 +194,7 @@ class BillableUsageRemittanceRepositoryTest {
 
     BillableUsageRemittanceFilter filter2 =
         BillableUsageRemittanceFilter.builder()
-            .orgId(remittance3.getKey().getOrgId())
+            .orgId(remittance3.getOrgId())
             .billingProvider(BillingProvider.RED_HAT.value())
             .build();
     List<BillableUsageRemittanceEntity> byBillingProviderAndOrgId = repository.filterBy(filter2);
@@ -217,7 +218,7 @@ class BillableUsageRemittanceRepositoryTest {
             BillingProvider.RED_HAT.value(),
             12.0,
             truncateDate(clock.endOfCurrentQuarter()));
-    remittance2.getKey().setOrgId("special_org");
+    remittance2.setOrgId("special_org");
 
     var accountMonthlyList = List.of(remittance1, remittance2);
     repository.saveAllAndFlush(accountMonthlyList);
@@ -225,7 +226,7 @@ class BillableUsageRemittanceRepositoryTest {
     BillableUsageRemittanceFilter filter1 =
         BillableUsageRemittanceFilter.builder()
             // Will be the same generated value for remittance1 and remittance2
-            .billingAccountId(remittance1.getKey().getBillingAccountId())
+            .billingAccountId(remittance1.getBillingAccountId())
             .build();
 
     List<BillableUsageRemittanceEntity> byBillingAccountIdResults = repository.filterBy(filter1);
@@ -234,8 +235,8 @@ class BillableUsageRemittanceRepositoryTest {
 
     BillableUsageRemittanceFilter filter2 =
         BillableUsageRemittanceFilter.builder()
-            .orgId(remittance2.getKey().getOrgId())
-            .billingAccountId(remittance2.getKey().getBillingAccountId())
+            .orgId(remittance2.getOrgId())
+            .billingAccountId(remittance2.getBillingAccountId())
             .build();
     List<BillableUsageRemittanceEntity> byBillingProviderAndOrgId = repository.filterBy(filter2);
     assertEquals(1, byBillingProviderAndOrgId.size());
@@ -287,7 +288,7 @@ class BillableUsageRemittanceRepositoryTest {
 
     BillableUsageRemittanceFilter filter =
         BillableUsageRemittanceFilter.builder()
-            .orgId(remittance3.getKey().getOrgId())
+            .orgId(remittance3.getOrgId())
             .beginning(beginning)
             .ending(ending)
             .build();
@@ -325,38 +326,34 @@ class BillableUsageRemittanceRepositoryTest {
     repository.saveAllAndFlush(accountMonthlyList);
 
     BillableUsageRemittanceFilter filter1 =
-        BillableUsageRemittanceFilter.builder()
-            .productId(remittance1.getKey().getProductId())
-            .build();
+        BillableUsageRemittanceFilter.builder().productId(remittance1.getProductId()).build();
 
     var expectedSummary1 =
         RemittanceSummaryProjection.builder()
-            .accumulationPeriod(
-                getAccumulationPeriod(remittance1.getKey().getRemittancePendingDate()))
-            .billingAccountId(remittance1.getKey().getBillingAccountId())
-            .billingProvider(remittance1.getKey().getBillingProvider())
+            .accumulationPeriod(getAccumulationPeriod(remittance1.getRemittancePendingDate()))
+            .billingAccountId(remittance1.getBillingAccountId())
+            .billingProvider(remittance1.getBillingProvider())
             .orgId("org123")
-            .productId(remittance1.getKey().getProductId())
-            .remittancePendingDate(remittance2.getKey().getRemittancePendingDate())
-            .metricId(remittance1.getKey().getMetricId())
+            .productId(remittance1.getProductId())
+            .remittancePendingDate(remittance2.getRemittancePendingDate())
+            .metricId(remittance1.getMetricId())
             .totalRemittedPendingValue(24.0)
-            .sla(remittance1.getKey().getSla())
-            .usage(remittance1.getKey().getUsage())
+            .sla(remittance1.getSla())
+            .usage(remittance1.getUsage())
             .build();
 
     var expectedSummary2 =
         RemittanceSummaryProjection.builder()
-            .accumulationPeriod(
-                getAccumulationPeriod(remittance3.getKey().getRemittancePendingDate()))
-            .billingAccountId(remittance3.getKey().getBillingAccountId())
-            .billingProvider(remittance3.getKey().getBillingProvider())
+            .accumulationPeriod(getAccumulationPeriod(remittance3.getRemittancePendingDate()))
+            .billingAccountId(remittance3.getBillingAccountId())
+            .billingProvider(remittance3.getBillingProvider())
             .orgId("org456")
-            .productId(remittance3.getKey().getProductId())
-            .remittancePendingDate(remittance3.getKey().getRemittancePendingDate())
-            .metricId(remittance3.getKey().getMetricId())
+            .productId(remittance3.getProductId())
+            .remittancePendingDate(remittance3.getRemittancePendingDate())
+            .metricId(remittance3.getMetricId())
             .totalRemittedPendingValue(15.0)
-            .sla(remittance3.getKey().getSla())
-            .usage(remittance3.getKey().getUsage())
+            .sla(remittance3.getSla())
+            .usage(remittance3.getUsage())
             .build();
 
     List<RemittanceSummaryProjection> results = repository.getRemittanceSummaries(filter1);
@@ -394,8 +391,7 @@ class BillableUsageRemittanceRepositoryTest {
 
     BillableUsageRemittanceFilter filter1 =
         BillableUsageRemittanceFilter.builder()
-            .accumulationPeriod(
-                getAccumulationPeriod(remittance1.getKey().getRemittancePendingDate()))
+            .accumulationPeriod(getAccumulationPeriod(remittance1.getRemittancePendingDate()))
             .build();
 
     List<RemittanceSummaryProjection> results = repository.getRemittanceSummaries(filter1);
@@ -410,5 +406,19 @@ class BillableUsageRemittanceRepositoryTest {
 
   public static String getAccumulationPeriod(OffsetDateTime reference) {
     return InstanceMonthlyTotalKey.formatMonthId(reference);
+  }
+
+  private static BillableUsageRemittanceFilter billableUsageRemittanceFilterFromEntity(
+      BillableUsageRemittanceEntity entity) {
+    return BillableUsageRemittanceFilter.builder()
+        .orgId(entity.getOrgId())
+        .billingAccountId(entity.getBillingAccountId())
+        .billingProvider(entity.getBillingProvider())
+        .accumulationPeriod(entity.getAccumulationPeriod())
+        .metricId(entity.getMetricId())
+        .productId(entity.getProductId())
+        .sla(entity.getSla())
+        .usage(entity.getUsage())
+        .build();
   }
 }

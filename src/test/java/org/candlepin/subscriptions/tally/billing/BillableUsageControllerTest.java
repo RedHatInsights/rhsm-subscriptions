@@ -50,10 +50,10 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
-import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
@@ -81,10 +81,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class BillableUsageControllerTest {
   private static SubscriptionDefinitionRegistry originalReference;
-  private static ApplicationClock CLOCK = new TestClockConfiguration().adjustableClock();
+  private static final ApplicationClock CLOCK = new TestClockConfiguration().adjustableClock();
   private static final String AWS_METRIC_ID = "aws_metric";
 
-  private static String CORES = "CORES";
+  private static final String CORES = "CORES";
 
   @Mock BillingProducer producer;
   @Mock BillableUsageRemittanceRepository remittanceRepo;
@@ -517,21 +517,6 @@ class BillableUsageControllerTest {
         .withValue(value);
   }
 
-  private BillableUsageRemittanceEntityPK keyFrom(
-      BillableUsage billableUsage, OffsetDateTime remittedDate) {
-    return BillableUsageRemittanceEntityPK.builder()
-        .usage(billableUsage.getUsage().value())
-        .orgId(billableUsage.getOrgId())
-        .billingProvider(billableUsage.getBillingProvider().value())
-        .billingAccountId(billableUsage.getBillingAccountId())
-        .productId(billableUsage.getProductId())
-        .sla(billableUsage.getSla().value())
-        .metricId(MetricId.fromString(billableUsage.getUom()).getValue())
-        .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(billableUsage.getSnapshotDate()))
-        .remittancePendingDate(remittedDate)
-        .build();
-  }
-
   private void mockCurrentSnapshotMeasurementTotal(BillableUsage usage, Double sum) {
     TallyMeasurementKey measurementKey =
         new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, usage.getUom());
@@ -552,9 +537,16 @@ class BillableUsageControllerTest {
 
   private BillableUsageRemittanceEntity remittance(
       BillableUsage usage, OffsetDateTime remittedDate, Double value) {
-    BillableUsageRemittanceEntityPK remKey = keyFrom(usage, remittedDate);
     return BillableUsageRemittanceEntity.builder()
-        .key(remKey)
+        .usage(usage.getUsage().value())
+        .orgId(usage.getOrgId())
+        .billingProvider(usage.getBillingProvider().value())
+        .billingAccountId(usage.getBillingAccountId())
+        .productId(usage.getProductId())
+        .sla(usage.getSla().value())
+        .metricId(MetricId.fromString(usage.getUom()).getValue())
+        .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(usage.getSnapshotDate()))
+        .remittancePendingDate(remittedDate)
         .remittedPendingValue(value)
         .tallyId(usage.getId())
         .hardwareMeasurementType(usage.getHardwareMeasurementType())
@@ -704,7 +696,7 @@ class BillableUsageControllerTest {
   void testUpdateBillableUsageRemittanceWithRetryAfter() {
     var retryAfter = OffsetDateTime.now();
     var expectedRemittance = new BillableUsageRemittanceEntity();
-    when(remittanceRepo.findById(any()))
+    when(remittanceRepo.findOne(any(BillableUsageRemittanceFilter.class)))
         .thenReturn(Optional.of(new BillableUsageRemittanceEntity()));
     var billableUsage = new BillableUsage();
     billableUsage.setUsage(Usage.PRODUCTION);

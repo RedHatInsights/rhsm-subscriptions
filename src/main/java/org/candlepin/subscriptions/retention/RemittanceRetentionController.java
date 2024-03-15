@@ -69,6 +69,6 @@ public class RemittanceRetentionController {
     if (cutoffDate == null) {
       return;
     }
-    remittanceRepository.deleteAllByKeyOrgIdAndKeyRemittancePendingDateBefore(orgId, cutoffDate);
+    remittanceRepository.deleteAllByOrgIdAndRemittancePendingDateBefore(orgId, cutoffDate);
   }
 }
