@@ -65,6 +65,11 @@ properties:
         metric_id:
           description: Preferred metric_id of measure for the subject (for products with multiple possible metric_ids).
           type: string
+          deprecated: true
+          deprecationMessage: Use 'metric_id' instead.
+        metric_id:
+          description: Preferred unit of measure for the subject (for products with multiple possible metrics).
+          type: string
         value:
           description: Measurement value.
           type: number

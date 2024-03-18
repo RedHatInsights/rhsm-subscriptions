@@ -71,6 +71,7 @@ class SubscriptionResourceTest {
                 min,
                 max,
                 null,
+                null,
                 SkuCapacityReportSort.SKU,
                 null));
   }
@@ -94,6 +95,7 @@ class SubscriptionResourceTest {
                 null,
                 min,
                 max,
+                null,
                 null,
                 SkuCapacityReportSort.SKU,
                 null));

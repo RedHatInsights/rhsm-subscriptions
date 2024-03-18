@@ -52,6 +52,7 @@ public class SubscriptionResource implements SubscriptionsApi {
       OffsetDateTime beginning,
       OffsetDateTime ending,
       Uom uom,
+      String metricId,
       SkuCapacityReportSort sort,
       SortDirection dir) {
 
@@ -65,6 +66,7 @@ public class SubscriptionResource implements SubscriptionsApi {
         billingProvider,
         billingAccountId,
         uom,
+        metricId,
         sort,
         dir);
   }
