@@ -55,7 +55,7 @@ public class OfferingWorkerConfiguration {
   ConsumerFactory<String, OfferingSyncTask> offeringSyncConsumerFactory(
       KafkaProperties kafkaProperties) {
     return new DefaultKafkaConsumerFactory<>(
-        kafkaProperties.buildConsumerProperties(),
+        kafkaProperties.buildConsumerProperties(null),
         new StringDeserializer(),
         new JsonDeserializer<>(OfferingSyncTask.class));
   }
