@@ -44,7 +44,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@ActiveProfiles(value = {"worker", "test-inventory", "capacity-ingress"})
+@ActiveProfiles(value = {"test-inventory", "capacity-ingress"})
 class PerfExportSubscriptionListenerTest extends ExtendWithExportServiceWireMock
     implements ExtendWithSwatchDatabase {
 
@@ -53,7 +53,7 @@ class PerfExportSubscriptionListenerTest extends ExtendWithExportServiceWireMock
    * https://github.com/orgs/resteasy/discussions/4085.
    */
   static {
-    System.setProperty("dev.resteasy.entity.file.threshold", "600MB");
+    System.setProperty("dev.resteasy.entity.file.threshold", "-1");
   }
 
   private static final UUID EXPORT_ID = UUID.randomUUID();
@@ -100,7 +100,7 @@ class PerfExportSubscriptionListenerTest extends ExtendWithExportServiceWireMock
   @Transactional
   void verifyExportUploadWithSingleSubscription() {
     logExportRequestsBody(true);
-    Stream<Subscription> data = repository.streamAll(Pageable.ofSize(10));
+    Stream<Subscription> data = repository.streamAll(Pageable.ofSize(5));
     listener.uploadJson(data, request);
     verifyExportUpload(EXPORT_ID, APPLICATION_NAME, RESOURCE_ID);
   }

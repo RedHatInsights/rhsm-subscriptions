@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.subscription;
 
 import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.cloud.event.apps.exportservice.v1.Format;
@@ -147,11 +146,15 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
     log.debug("Uploading Json for request {}", request.getExportRequestUUID());
     File file = createTemporalFile();
     try (FileOutputStream stream = new FileOutputStream(file);
-        JsonGenerator jGenerator = createJsonGenerator(stream)) {
+        JsonGenerator jGenerator = objectMapper.createGenerator(stream, JsonEncoding.UTF8)) {
       jGenerator.writeStartObject();
       jGenerator.writeStringField("name", "Example export payload");
       jGenerator.writeStringField("description", "This is an example export payload");
       jGenerator.writeArrayFieldStart("data");
+      var serializerProvider = objectMapper.getSerializerProviderInstance();
+      var serializer =
+          serializerProvider.findTypedValueSerializer(
+              org.candlepin.subscriptions.subscription.api.model.Subscription.class, false, null);
       data.forEach(
           item -> {
             var model = new org.candlepin.subscriptions.subscription.api.model.Subscription();
@@ -164,7 +167,7 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
             model.setSubscriptionProducts(
                 List.of(new SubscriptionProduct().sku(item.getOffering().getSku())));
             try {
-              jGenerator.writeObject(model);
+              serializer.serialize(model, jGenerator, serializerProvider);
             } catch (IOException e) {
               throw new RuntimeException(e);
             }
@@ -189,13 +192,6 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  private JsonGenerator createJsonGenerator(FileOutputStream stream) throws IOException {
-    JsonFactory jfactory = new JsonFactory();
-    JsonGenerator jGenerator = jfactory.createGenerator(stream, JsonEncoding.UTF8);
-    jGenerator.setCodec(objectMapper);
-    return jGenerator;
   }
 
   private void checkRbac(String appName, String identity) {

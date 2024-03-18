@@ -48,7 +48,7 @@ public class ExtendWithExportServiceWireMock {
                 // This is mandatory to handle large files, otherwise Wiremock returns 500 Server
                 // Error
                 .jettyHeaderRequestSize(16384)
-                .jettyHeaderResponseSize(50000)
+                .jettyHeaderResponseSize(80000)
                 .stubRequestLoggingDisabled(true)
                 .maxLoggedResponseSize(1000));
     exportServer.resetAll();
