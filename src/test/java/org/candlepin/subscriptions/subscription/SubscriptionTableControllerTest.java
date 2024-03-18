@@ -25,6 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.argThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.configuration.registry.MetricId;
@@ -39,7 +41,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.db.HypervisorReportCategory;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.DbReportCriteria;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
@@ -48,6 +53,8 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.resource.SubscriptionTableController;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
+import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.SkuCapacity;
 import org.candlepin.subscriptions.utilization.api.model.SkuCapacityReport;
@@ -356,6 +363,56 @@ class SubscriptionTableControllerTest {
             SkuCapacityReportSort.SKU,
             null);
     assertEquals(1, report.getData().size());
+  }
+
+  @Test
+  void testFiltersBasedOnRequest() {
+    // By default, our mock will return empty collections for findAll and findUnlimited which is
+    // what we want in this case.
+    subscriptionTableController.capacityReportBySku(
+        RHEL_FOR_X86,
+        null,
+        null,
+        ReportCategory.PHYSICAL,
+        ServiceLevelType.PREMIUM,
+        UsageType.PRODUCTION,
+        BillingProviderType.AWS,
+        null,
+        Uom.CORES,
+        "Cores",
+        SkuCapacityReportSort.SKU,
+        null);
+
+    var criteria =
+        DbReportCriteria.builder()
+            .orgId("owner123456")
+            .productId(RHEL_FOR_X86.toString())
+            .serviceLevel(ServiceLevel.PREMIUM)
+            .usage(Usage.PRODUCTION)
+            .metricId("Cores")
+            .hypervisorReportCategory(HypervisorReportCategory.NON_HYPERVISOR)
+            .billingProvider(BillingProvider.AWS)
+            .build();
+
+    // NB: Ideally we would thoroughly verify the findAll method as well, but that method takes a
+    // Spring Data Specification object which is substantially more difficult to introspect.
+    verify(subscriptionRepository).findAll(any(Specification.class));
+
+    // This verification is rather tedious since SubscriptionTableController populates its
+    // DbReportCriteria object with Clock.now() which we can't just match on with a call to
+    // DbReportCriteria.equals()
+    verify(subscriptionRepository)
+        .findUnlimited(
+            argThat(
+                x ->
+                    x.getOrgId().equals(criteria.getOrgId())
+                        && x.getProductId().equals(criteria.getProductId())
+                        && x.getServiceLevel().equals(criteria.getServiceLevel())
+                        && x.getUsage().equals(criteria.getUsage())
+                        && x.getMetricId().equals(criteria.getMetricId())
+                        && x.getHypervisorReportCategory()
+                            .equals(criteria.getHypervisorReportCategory())
+                        && x.getBillingProvider().equals(criteria.getBillingProvider())));
   }
 
   @Test

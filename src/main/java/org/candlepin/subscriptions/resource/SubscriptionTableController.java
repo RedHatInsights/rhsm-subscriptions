@@ -115,7 +115,8 @@ public class SubscriptionTableController {
             + "Usage={}, "
             + "between={} and {}, "
             + "Uom={}, "
-            + "MetricId={}",
+            + "MetricId={}"
+            + "Billing Provider={}",
         orgId,
         productId,
         hypervisorReportCategory,
@@ -124,7 +125,8 @@ public class SubscriptionTableController {
         reportStart,
         reportEnd,
         uom,
-        metricId);
+        metricId,
+        sanitizedBillingProvider);
     String effectiveMetricId = getEffectiveMetricId(metricId, uom);
 
     var reportCriteria =
@@ -137,6 +139,7 @@ public class SubscriptionTableController {
             .ending(reportEnd)
             .metricId(effectiveMetricId)
             .hypervisorReportCategory(hypervisorReportCategory)
+            .billingProvider(sanitizedBillingProvider)
             .build();
     var subscriptionSpec = SubscriptionRepository.buildSearchSpecification(reportCriteria);
     var subscriptions = subscriptionRepository.findAll(subscriptionSpec);
