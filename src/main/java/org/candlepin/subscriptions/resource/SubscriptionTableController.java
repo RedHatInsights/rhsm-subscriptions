@@ -115,7 +115,7 @@ public class SubscriptionTableController {
             + "Usage={}, "
             + "between={} and {}, "
             + "Uom={}, "
-            + "MetricId={}"
+            + "MetricId={}, "
             + "Billing Provider={}",
         orgId,
         productId,
