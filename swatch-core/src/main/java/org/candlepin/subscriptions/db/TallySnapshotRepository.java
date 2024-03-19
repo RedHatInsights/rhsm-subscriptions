@@ -88,9 +88,9 @@ public interface TallySnapshotRepository extends JpaRepository<TallySnapshot, UU
   @Modifying
   @Query(
       value =
-          "delete from TallySnapshot where orgId=:orgId and granularity=:granularity and snapshotDate < :cutoffDate")
-  void deleteAllByOrgIdAndGranularityAndSnapshotDateBefore(
-      String orgId, Granularity granularity, OffsetDateTime cutoffDate);
+          "delete from TallySnapshot where orgId in (select distinct c.orgId from OrgConfig c) and granularity=:granularity and snapshotDate < :cutoffDate")
+  void deleteAllByGranularityAndSnapshotDateBefore(
+      Granularity granularity, OffsetDateTime cutoffDate);
 
   @Query(
       value =
