@@ -25,10 +25,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.argThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.ws.rs.core.Response;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -38,7 +41,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.db.HypervisorReportCategory;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
+import org.candlepin.subscriptions.db.model.BillingProvider;
+import org.candlepin.subscriptions.db.model.DbReportCriteria;
 import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
@@ -47,6 +53,8 @@ import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.exception.SubscriptionsException;
 import org.candlepin.subscriptions.resource.SubscriptionTableController;
 import org.candlepin.subscriptions.security.WithMockRedHatPrincipal;
+import org.candlepin.subscriptions.utilization.api.model.BillingProviderType;
+import org.candlepin.subscriptions.utilization.api.model.ReportCategory;
 import org.candlepin.subscriptions.utilization.api.model.ServiceLevelType;
 import org.candlepin.subscriptions.utilization.api.model.SkuCapacity;
 import org.candlepin.subscriptions.utilization.api.model.SkuCapacityReport;
@@ -182,7 +190,7 @@ class SubscriptionTableControllerTest {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, null, null, null, null, null);
+            productId, null, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the sub and appropriate
     // quantity and capacities.
@@ -217,7 +225,7 @@ class SubscriptionTableControllerTest {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, null, null, null, null, null);
+            productId, null, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the subs and appropriate
     // quantity and capacities.
@@ -264,6 +272,7 @@ class SubscriptionTableControllerTest {
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
             productId,
+            null,
             null,
             null,
             null,
@@ -320,7 +329,7 @@ class SubscriptionTableControllerTest {
     // When requesting a SKU capacity report for an eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            RHEL_FOR_X86, null, null, null, null, null, null, null, null, null, null);
+            RHEL_FOR_X86, null, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains no inventory items.
     assertEquals(0, actual.getData().size(), "An empty inventory list should be returned.");
@@ -350,9 +359,60 @@ class SubscriptionTableControllerTest {
             null,
             null,
             null,
+            null,
             SkuCapacityReportSort.SKU,
             null);
     assertEquals(1, report.getData().size());
+  }
+
+  @Test
+  void testFiltersBasedOnRequest() {
+    // By default, our mock will return empty collections for findAll and findUnlimited which is
+    // what we want in this case.
+    subscriptionTableController.capacityReportBySku(
+        RHEL_FOR_X86,
+        null,
+        null,
+        ReportCategory.PHYSICAL,
+        ServiceLevelType.PREMIUM,
+        UsageType.PRODUCTION,
+        BillingProviderType.AWS,
+        null,
+        Uom.CORES,
+        "Cores",
+        SkuCapacityReportSort.SKU,
+        null);
+
+    var criteria =
+        DbReportCriteria.builder()
+            .orgId("owner123456")
+            .productId(RHEL_FOR_X86.toString())
+            .serviceLevel(ServiceLevel.PREMIUM)
+            .usage(Usage.PRODUCTION)
+            .metricId("Cores")
+            .hypervisorReportCategory(HypervisorReportCategory.NON_HYPERVISOR)
+            .billingProvider(BillingProvider.AWS)
+            .build();
+
+    // NB: Ideally we would thoroughly verify the findAll method as well, but that method takes a
+    // Spring Data Specification object which is substantially more difficult to introspect.
+    verify(subscriptionRepository).findAll(any(Specification.class));
+
+    // This verification is rather tedious since SubscriptionTableController populates its
+    // DbReportCriteria object with Clock.now() which we can't just match on with a call to
+    // DbReportCriteria.equals()
+    verify(subscriptionRepository)
+        .findUnlimited(
+            argThat(
+                x ->
+                    x.getOrgId().equals(criteria.getOrgId())
+                        && x.getProductId().equals(criteria.getProductId())
+                        && x.getServiceLevel().equals(criteria.getServiceLevel())
+                        && x.getUsage().equals(criteria.getUsage())
+                        && x.getMetricId().equals(criteria.getMetricId())
+                        && x.getHypervisorReportCategory()
+                            .equals(criteria.getHypervisorReportCategory())
+                        && x.getBillingProvider().equals(criteria.getBillingProvider())));
   }
 
   @Test
@@ -379,6 +439,7 @@ class SubscriptionTableControllerTest {
             null,
             null,
             null,
+            null,
             SkuCapacityReportSort.SKU,
             null);
     assertEquals(0, reportForUnmatchedSLA.getData().size());
@@ -391,6 +452,7 @@ class SubscriptionTableControllerTest {
             null,
             null,
             ServiceLevelType.STANDARD,
+            null,
             null,
             null,
             null,
@@ -424,6 +486,7 @@ class SubscriptionTableControllerTest {
             null,
             null,
             null,
+            null,
             SkuCapacityReportSort.SKU,
             null);
     assertEquals(0, reportForUnmatchedUsage.getData().size());
@@ -437,6 +500,7 @@ class SubscriptionTableControllerTest {
             null,
             null,
             UsageType.PRODUCTION,
+            null,
             null,
             null,
             null,
@@ -500,7 +564,18 @@ class SubscriptionTableControllerTest {
 
     SkuCapacityReport reportWithOffsetAndLimit =
         subscriptionTableController.capacityReportBySku(
-            productId, 0, 2, null, null, null, null, null, null, SkuCapacityReportSort.SKU, null);
+            productId,
+            0,
+            2,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            SkuCapacityReportSort.SKU,
+            null);
     assertEquals(2, reportWithOffsetAndLimit.getData().size());
     assertEquals(5, reportWithOffsetAndLimit.getMeta().getCount());
   }
@@ -536,6 +611,7 @@ class SubscriptionTableControllerTest {
             null,
             null,
             Uom.CORES,
+            null,
             SkuCapacityReportSort.SKU,
             null);
     assertEquals(2, reportForMatchingCoresUom.getData().size());
@@ -551,6 +627,60 @@ class SubscriptionTableControllerTest {
             null,
             null,
             Uom.SOCKETS,
+            null,
+            SkuCapacityReportSort.SKU,
+            null);
+    assertEquals(2, reportForMatchingSocketsUom.getData().size());
+  }
+
+  @Test
+  void testShouldUseMetricIdQueryParam() {
+    var productId = RHEL_FOR_X86;
+    var expectedNewerSub = stubSubscription("1234", "1235", 4, 5, 7);
+    var expectedOlderSub = stubSubscription("1236", "1237", 5, 6, 6);
+    var expectedMuchOlderSub = stubSubscription("1238", "1237", 5, 24, 6);
+
+    var coresSpec1 = RH0180193_CORES.withSub(expectedNewerSub);
+    var coresSpec2 = RH0180194_SOCKETS_AND_CORES.withSub(expectedMuchOlderSub);
+    givenOfferings(coresSpec1, coresSpec2);
+
+    var socketsSpec1 = RH0180192_SOCKETS.withSub(expectedOlderSub);
+    var socketsSpec2 = RH0180194_SOCKETS_AND_CORES.withSub(expectedMuchOlderSub);
+    givenOfferings(socketsSpec1, socketsSpec2);
+
+    givenCapacities(Org.STANDARD, productId, coresSpec1, coresSpec2);
+    givenCapacities(Org.STANDARD, productId, socketsSpec1, socketsSpec2);
+    givenSubscriptionsInRepository(coresSpec1.subscription, coresSpec2.subscription);
+    givenSubscriptionsInRepository(socketsSpec1.subscription, socketsSpec2.subscription);
+
+    SkuCapacityReport reportForMatchingCoresUom =
+        subscriptionTableController.capacityReportBySku(
+            productId,
+            null,
+            null,
+            null,
+            ServiceLevelType.STANDARD,
+            null,
+            null,
+            null,
+            null,
+            MetricIdUtils.getCores().toString(),
+            SkuCapacityReportSort.SKU,
+            null);
+    assertEquals(2, reportForMatchingCoresUom.getData().size());
+
+    SkuCapacityReport reportForMatchingSocketsUom =
+        subscriptionTableController.capacityReportBySku(
+            productId,
+            null,
+            null,
+            null,
+            ServiceLevelType.STANDARD,
+            null,
+            null,
+            null,
+            null,
+            MetricIdUtils.getSockets().toString(),
             SkuCapacityReportSort.SKU,
             null);
     assertEquals(2, reportForMatchingSocketsUom.getData().size());
@@ -569,6 +699,7 @@ class SubscriptionTableControllerTest {
                     null,
                     null,
                     UsageType.PRODUCTION,
+                    null,
                     null,
                     null,
                     null,
@@ -592,7 +723,8 @@ class SubscriptionTableControllerTest {
             null,
             null,
             null,
-            Uom.CORES,
+            null,
+            MetricIdUtils.getCores().toString(),
             SkuCapacityReportSort.SKU,
             null);
 
@@ -614,7 +746,8 @@ class SubscriptionTableControllerTest {
             null,
             null,
             null,
-            Uom.CORES,
+            null,
+            MetricIdUtils.getCores().toString(),
             SkuCapacityReportSort.SKU,
             null);
 
@@ -639,7 +772,7 @@ class SubscriptionTableControllerTest {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, null, null, null, null, null);
+            productId, null, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the sub and HasInfiniteQuantity
     // should be true.
@@ -670,6 +803,7 @@ class SubscriptionTableControllerTest {
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
             productId,
+            null,
             null,
             null,
             null,
@@ -726,6 +860,7 @@ class SubscriptionTableControllerTest {
             null,
             null,
             null,
+            null,
             SkuCapacityReportSort.TOTAL_CAPACITY,
             SortDirection.DESC);
 
@@ -760,7 +895,7 @@ class SubscriptionTableControllerTest {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, null, null, null, null, null);
+            productId, null, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the sub and appropriate
     // quantity and capacities.
@@ -786,7 +921,7 @@ class SubscriptionTableControllerTest {
     // When requesting a SKU capacity report for the eng product,
     SkuCapacityReport actual =
         subscriptionTableController.capacityReportBySku(
-            productId, null, null, null, null, null, null, null, null, null, null);
+            productId, null, null, null, null, null, null, null, null, null, null, null);
 
     // Then the report contains a single inventory item containing the sub and appropriate
     // quantity and capacities.

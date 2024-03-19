@@ -18,12 +18,12 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.azure.kafka.streams;
+package com.redhat.swatch.aws.kafka;
 
-import com.redhat.swatch.azure.openapi.model.BillableUsage;
-import com.redhat.swatch.azure.openapi.model.BillableUsage.BillingProviderEnum;
-import com.redhat.swatch.azure.openapi.model.BillableUsage.SlaEnum;
-import com.redhat.swatch.azure.openapi.model.BillableUsage.UsageEnum;
+import com.redhat.swatch.aws.openapi.model.BillableUsage;
+import com.redhat.swatch.aws.openapi.model.BillableUsage.BillingProviderEnum;
+import com.redhat.swatch.aws.openapi.model.BillableUsage.SlaEnum;
+import com.redhat.swatch.aws.openapi.model.BillableUsage.UsageEnum;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -20,11 +20,13 @@
  */
 package org.candlepin.subscriptions.conduit.admin;
 
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.SystemConduitProperties;
 import org.candlepin.subscriptions.conduit.InventoryController;
 import org.candlepin.subscriptions.conduit.job.OrgSyncTaskManager;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
@@ -48,6 +50,7 @@ public class InternalOrganizationSyncResource implements InternalOrganizationsAp
   private final OrgSyncTaskManager tasks;
   private final OrgConfigRepository repo;
   private final ApplicationClock clock;
+  private final SystemConduitProperties applicationProperties;
 
   private static final String SUCCESS_STATUS = "Success";
 
@@ -55,11 +58,13 @@ public class InternalOrganizationSyncResource implements InternalOrganizationsAp
       InventoryController controller,
       OrgSyncTaskManager tasks,
       OrgConfigRepository repo,
-      ApplicationClock clock) {
+      ApplicationClock clock,
+      SystemConduitProperties applicationProperties) {
     this.controller = controller;
     this.tasks = tasks;
     this.repo = repo;
     this.clock = clock;
+    this.applicationProperties = applicationProperties;
   }
 
   @Override
@@ -111,18 +116,27 @@ public class InternalOrganizationSyncResource implements InternalOrganizationsAp
   }
 
   @Override
-  public DefaultResponse syncOrg(OrgSyncRequest orgSyncRequest) {
-    log.info(
-        "Starting sync for org ID {} by {}",
-        orgSyncRequest.getOrgId(),
-        ResourceUtils.getPrincipal());
-    try {
-      controller.updateInventoryForOrg(orgSyncRequest.getOrgId());
-    } catch (ExternalServiceException ex) {
-      if (ErrorCode.RHSM_SERVICE_UNKNOWN_ORG_ERROR.equals(ex.getCode())) {
-        throw new NotFoundException(ex.getMessage());
+  public DefaultResponse syncOrg(
+      OrgSyncRequest orgSyncRequest, Boolean xRhSwatchSynchronousRequest) {
+    if (ResourceUtils.sanitizeBoolean(xRhSwatchSynchronousRequest, false)) {
+      if (!applicationProperties.isEnableSynchronousOperations()) {
+        throw new BadRequestException("Synchronous conduit operations are not enabled.");
       }
-      throw new InternalServerErrorException(ex.getMessage());
+
+      log.info(
+          "Starting sync for org ID {} by {}",
+          orgSyncRequest.getOrgId(),
+          ResourceUtils.getPrincipal());
+      try {
+        controller.updateInventoryForOrg(orgSyncRequest.getOrgId());
+      } catch (ExternalServiceException ex) {
+        if (ErrorCode.RHSM_SERVICE_UNKNOWN_ORG_ERROR.equals(ex.getCode())) {
+          throw new NotFoundException(ex.getMessage());
+        }
+        throw new InternalServerErrorException(ex.getMessage());
+      }
+    } else {
+      tasks.updateOrgInventory(orgSyncRequest.getOrgId());
     }
 
     var response = new DefaultResponse();

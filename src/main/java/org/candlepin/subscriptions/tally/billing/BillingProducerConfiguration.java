@@ -86,7 +86,7 @@ public class BillingProducerConfiguration {
   ConsumerFactory<String, TallySummary> billingProducerTallySummaryConsumerFactory(
       KafkaProperties kafkaProperties) {
     return new DefaultKafkaConsumerFactory<>(
-        kafkaProperties.buildConsumerProperties(),
+        kafkaProperties.buildConsumerProperties(null),
         new StringDeserializer(),
         new JsonDeserializer<>(TallySummary.class));
   }

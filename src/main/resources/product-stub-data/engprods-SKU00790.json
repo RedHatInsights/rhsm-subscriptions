@@ -1,0 +1,17 @@
+{
+  "entries": [
+    {
+      "sku": "SKU00790",
+      "engProducts": {
+        "engProducts": [
+          {
+            "oid": 290
+          },
+          {
+            "oid": 70
+          }
+        ]
+      }
+    }
+  ]
+}

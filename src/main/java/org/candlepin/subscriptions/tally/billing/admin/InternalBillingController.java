@@ -98,6 +98,7 @@ public class InternalBillingController {
             BillableUsage.BillingProvider.fromValue(remittance.getKey().getBillingProvider()))
         .withBillingAccountId(remittance.getKey().getBillingAccountId())
         .withUom(remittance.getKey().getMetricId())
+        .withMetricId(remittance.getKey().getMetricId())
         .withValue(remittance.getRemittedPendingValue())
         .withHardwareMeasurementType(remittance.getHardwareMeasurementType());
   }

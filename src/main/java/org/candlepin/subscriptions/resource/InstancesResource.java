@@ -37,6 +37,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.TallyInstanceViewRepository;
@@ -140,6 +141,7 @@ public class InstancesResource implements InstancesApi {
       ServiceLevelType sla,
       UsageType usage,
       String uom,
+      String metricId,
       BillingProviderType billingProviderType,
       String billingAccountId,
       String displayNameContains,
@@ -153,22 +155,24 @@ public class InstancesResource implements InstancesApi {
 
     log.debug("Get instances api called for org_id: {} and product: {}", orgId, productId);
 
-    Optional<MetricId> metricIdOptional = Optional.empty();
-    if (Objects.nonNull(uom)) {
-      try {
-        metricIdOptional = Optional.of(MetricId.fromString(uom));
-      } catch (IllegalArgumentException ex) {
-        throw new BadRequestException(ex);
-      }
-    }
+    Optional<MetricId> metricIdOptional =
+        Stream.of(metricId, uom)
+            .filter(Objects::nonNull)
+            .map(
+                m -> {
+                  try {
+                    return MetricId.fromString(m);
+                  } catch (IllegalArgumentException ex) {
+                    throw new BadRequestException(ex);
+                  }
+                })
+            .findFirst();
 
     Integer minCores = null;
     Integer minSockets = null;
-    if (metricIdOptional.map(metricId -> metricId.equals(MetricIdUtils.getCores())).orElse(false)) {
+    if (metricIdOptional.map(m -> m.equals(MetricIdUtils.getCores())).orElse(false)) {
       minCores = 0;
-    } else if (metricIdOptional
-        .map(metricId -> metricId.equals(MetricIdUtils.getSockets()))
-        .orElse(false)) {
+    } else if (metricIdOptional.map(m -> m.equals(MetricIdUtils.getSockets())).orElse(false)) {
       minSockets = 0;
     }
 

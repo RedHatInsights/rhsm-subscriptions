@@ -574,6 +574,8 @@ components:
       properties:
         uom:
           type: string
+        metric_id:
+          type: string
         aws_dimension:
           type: string
         billing_factor:

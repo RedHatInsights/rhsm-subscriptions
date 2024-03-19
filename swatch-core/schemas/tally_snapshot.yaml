@@ -61,6 +61,11 @@ properties:
         uom:
           description: Preferred unit of measure for the subject (for products with multiple possible UOM).
           type: string
+          deprecated: true
+          deprecationMessage: Use 'metric_id' instead.
+        metric_id:
+          description: Preferred unit of measure for the subject (for products with multiple possible metrics).
+          type: string
         value:
           description: Measurement value.
           type: number

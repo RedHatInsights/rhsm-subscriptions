@@ -157,6 +157,7 @@ class InstancesResourceTest {
             ServiceLevelType.PREMIUM,
             UsageType.PRODUCTION,
             null,
+            null,
             expectedBillingProvider.asOpenApiEnum(),
             null,
             null,
@@ -256,6 +257,7 @@ class InstancesResourceTest {
             ServiceLevelType.PREMIUM,
             UsageType.PRODUCTION,
             null,
+            null,
             expectedBillingProvider.asOpenApiEnum(),
             null,
             null,
@@ -339,6 +341,7 @@ class InstancesResourceTest {
             ServiceLevelType.PREMIUM,
             UsageType.PRODUCTION,
             null,
+            null,
             expectedBillingProvider.asOpenApiEnum(),
             null,
             null,
@@ -403,6 +406,7 @@ class InstancesResourceTest {
         null,
         ServiceLevelType.PREMIUM,
         UsageType.PRODUCTION,
+        null,
         null,
         BillingProviderType.RED_HAT,
         null,
@@ -505,6 +509,74 @@ class InstancesResourceTest {
         ServiceLevelType.PREMIUM,
         UsageType.PRODUCTION,
         "Cores",
+        null,
+        BillingProviderType.RED_HAT,
+        null,
+        null,
+        null,
+        OffsetDateTime.now(),
+        OffsetDateTime.now(),
+        SORT_BY_DISPLAY_NAME,
+        null);
+
+    verify(repository)
+        .findAllBy(
+            eq("owner123456"),
+            any(),
+            any(),
+            any(),
+            any(),
+            eq(0),
+            eq(null),
+            eq(null),
+            any(),
+            any(),
+            any(),
+            any(),
+            any());
+  }
+
+  @WithMockRedHatPrincipal("123456")
+  @Test
+  void testMinCoresZeroWhenMetricIdIsCores() {
+    BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
+
+    var tallyInstanceView = new TallyInstanceView();
+    tallyInstanceView.setKey(new TallyInstanceViewKey());
+    tallyInstanceView.setDisplayName("rhv.example.com");
+    tallyInstanceView.setNumOfGuests(3);
+    tallyInstanceView.setLastSeen(OffsetDateTime.now());
+    tallyInstanceView.getKey().setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
+    tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
+    tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
+    tallyInstanceView.getKey().setProductId("RHEL");
+    tallyInstanceView.getKey().setMetricId(MetricIdUtils.getCores().getValue());
+
+    Mockito.when(
+            repository.findAllBy(
+                eq("owner123456"),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any()))
+        .thenReturn(new PageImpl<>(List.of(tallyInstanceView)));
+
+    resource.getInstancesByProduct(
+        RHEL_FOR_X86,
+        null,
+        null,
+        ServiceLevelType.PREMIUM,
+        UsageType.PRODUCTION,
+        null,
+        "Cores",
         BillingProviderType.RED_HAT,
         null,
         null,
@@ -571,6 +643,7 @@ class InstancesResourceTest {
         ServiceLevelType.PREMIUM,
         UsageType.PRODUCTION,
         "Sockets",
+        null,
         BillingProviderType.RED_HAT,
         null,
         null,
@@ -599,6 +672,97 @@ class InstancesResourceTest {
 
   @WithMockRedHatPrincipal("123456")
   @Test
+  void testMinSocketsZeroWhenMetricIdIsSockets() {
+    BillingProvider expectedBillingProvider = BillingProvider.RED_HAT;
+
+    var tallyInstanceView = new TallyInstanceView();
+    tallyInstanceView.setKey(new TallyInstanceViewKey());
+    tallyInstanceView.setDisplayName("rhv.example.com");
+    tallyInstanceView.setNumOfGuests(3);
+    tallyInstanceView.setLastSeen(OffsetDateTime.now());
+    tallyInstanceView.getKey().setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
+    tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
+    tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
+    tallyInstanceView.getKey().setProductId("RHEL");
+    tallyInstanceView.getKey().setMetricId(MetricIdUtils.getSockets().getValue());
+
+    Mockito.when(
+            repository.findAllBy(
+                eq("owner123456"),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any()))
+        .thenReturn(new PageImpl<>(List.of(tallyInstanceView)));
+
+    resource.getInstancesByProduct(
+        RHEL_FOR_X86,
+        null,
+        null,
+        ServiceLevelType.PREMIUM,
+        UsageType.PRODUCTION,
+        null,
+        "Sockets",
+        BillingProviderType.RED_HAT,
+        null,
+        null,
+        null,
+        OffsetDateTime.now(),
+        OffsetDateTime.now(),
+        SORT_BY_DISPLAY_NAME,
+        null);
+
+    verify(repository)
+        .findAllBy(
+            eq("owner123456"),
+            any(),
+            any(),
+            any(),
+            any(),
+            eq(null),
+            eq(0),
+            eq(null),
+            any(),
+            any(),
+            any(),
+            any(),
+            any());
+  }
+
+  @WithMockRedHatPrincipal("123456")
+  @Test
+  void testGetInstancesByProductThrowsExceptionForUnknownUom() {
+    assertThrows(
+        BadRequestException.class,
+        () ->
+            resource.getInstancesByProduct(
+                ROSA,
+                null,
+                null,
+                ServiceLevelType.PREMIUM,
+                UsageType.PRODUCTION,
+                "NotAMetricId",
+                null,
+                BillingProviderType.RED_HAT,
+                null,
+                null,
+                null,
+                null,
+                null,
+                SORT_BY_DISPLAY_NAME,
+                null));
+  }
+
+  @WithMockRedHatPrincipal("123456")
+  @Test
   void testGetInstancesByProductThrowsExceptionForUnknownMetricId() {
     assertThrows(
         BadRequestException.class,
@@ -609,6 +773,7 @@ class InstancesResourceTest {
                 null,
                 ServiceLevelType.PREMIUM,
                 UsageType.PRODUCTION,
+                null,
                 "NotAMetricId",
                 BillingProviderType.RED_HAT,
                 null,
@@ -631,7 +796,8 @@ class InstancesResourceTest {
                 null,
                 ServiceLevelType.PREMIUM,
                 UsageType.PRODUCTION,
-                "Sockets",
+                null,
+                null,
                 BillingProviderType.RED_HAT,
                 null,
                 null,

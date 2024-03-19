@@ -18,21 +18,20 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.capacity.admin;
+package org.candlepin.subscriptions;
 
-import com.redhat.swatch.configuration.registry.Metric;
-import java.util.List;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
 
-@Mapper(componentModel = "spring")
-public interface MetricMapper {
+/** POJO to hold property values via Spring's "Type-Safe Configuration Properties" pattern. */
+@Getter
+@Setter
+@Configuration
+@ConfigurationProperties(prefix = "rhsm-conduit")
+public class SystemConduitProperties {
 
-  List<org.candlepin.subscriptions.utilization.admin.api.model.Metric> mapMetrics(
-      List<Metric> metricsForTag);
-
-  @Mapping(target = "uom", source = "id")
-  @Mapping(target = "metricId", source = "id")
-  org.candlepin.subscriptions.utilization.admin.api.model.Metric fromConfigurationMetric(
-      Metric metric);
+  /** If enabled, will allow synchronous operations when requested. */
+  private boolean enableSynchronousOperations = false;
 }

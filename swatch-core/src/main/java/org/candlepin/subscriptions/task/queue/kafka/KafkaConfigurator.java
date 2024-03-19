@@ -53,7 +53,7 @@ public class KafkaConfigurator {
 
   public ConsumerFactory<String, JsonTaskMessage> defaultConsumerFactory(
       KafkaProperties kafkaProperties) {
-    Map<String, Object> consumerConfig = kafkaProperties.buildConsumerProperties();
+    Map<String, Object> consumerConfig = kafkaProperties.buildConsumerProperties(null);
 
     // Task messages should be manually committed once they have been processed.
     consumerConfig.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);

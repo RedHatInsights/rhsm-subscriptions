@@ -5,6 +5,9 @@ id: satellite-capsule
 
 includedSubscriptions:
   - rhel-for-x86
+  - rhel-for-x86-eus
+  - rhel-for-x86-ha
+  - rhel-for-x86-rs
 
 variants:
   - tag: Satellite Capsule

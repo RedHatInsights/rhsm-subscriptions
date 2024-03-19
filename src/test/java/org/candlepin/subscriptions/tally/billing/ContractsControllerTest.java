@@ -384,6 +384,7 @@ class ContractsControllerTest {
         .withSla(Sla.PREMIUM)
         .withBillingProvider(BillingProvider.AWS)
         .withUom("Cores")
+        .withMetricId("Cores")
         .withVendorProductCode("vendor_product_code")
         .withSnapshotDate(clock.now());
   }

@@ -255,6 +255,7 @@ class TallySnapshotControllerIT implements ExtendWithSwatchDatabase, ExtendWithE
   private Measurement measurement(Double value) {
     Measurement measurement = new Measurement();
     measurement.setUom(METRIC);
+    measurement.setMetricId(METRIC);
     measurement.setValue(value);
     return measurement;
   }

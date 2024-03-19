@@ -43,7 +43,7 @@ public class CapacityReconciliationWorkerConfiguration {
   ConsumerFactory<String, ReconcileCapacityByOfferingTask> capacityReconciliationConsumerFactory(
       KafkaProperties kafkaProperties) {
     return new DefaultKafkaConsumerFactory<>(
-        kafkaProperties.buildConsumerProperties(),
+        kafkaProperties.buildConsumerProperties(null),
         new StringDeserializer(),
         new JsonDeserializer<>(ReconcileCapacityByOfferingTask.class));
   }

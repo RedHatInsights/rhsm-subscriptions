@@ -512,6 +512,7 @@ class BillableUsageControllerTest {
         .withProductId("rosa")
         .withSla(Sla.STANDARD)
         .withUom("STORAGE_GIBIBYTES")
+        .withMetricId("STORAGE_GIBIBYTES")
         .withSnapshotDate(date)
         .withValue(value);
   }
