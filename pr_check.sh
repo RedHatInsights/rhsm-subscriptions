@@ -58,7 +58,7 @@ OPTIONAL_DEPS_METHOD=none
 export COMPONENTS_W_RESOURCES="app:rhsm"
 
 # NOTE: this ensures that all of the other services end up deployed with the latest template
-export EXTRA_COMPONENTS="rhsm swatch-api swatch-contracts swatch-producer-aws swatch-producer-red-hat-marketplace swatch-metrics swatch-subscription-sync swatch-system-conduit swatch-tally swatch-producer-azure"
+export EXTRA_COMPONENTS="rhsm $(find -name clowdapp.yaml -exec dirname {} \; | cut -d'/' -f2 | xargs)"
 for EXTRA_COMPONENT_NAME in $EXTRA_COMPONENTS; do
   export EXTRA_DEPLOY_ARGS="${EXTRA_DEPLOY_ARGS} --set-template-ref ${EXTRA_COMPONENT_NAME}=${GIT_COMMIT}"
 done
