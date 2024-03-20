@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
@@ -50,6 +51,7 @@ import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.Role;
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.tally.UsageCalculation.Key;
 import org.candlepin.subscriptions.test.TestClockConfiguration;
 import org.candlepin.subscriptions.util.DateRange;
 import org.jetbrains.annotations.NotNull;
@@ -748,6 +750,63 @@ class MetricUsageCollectorTest {
     Host instance = accountServiceInventory.getServiceInstances().get(event.getInstanceId());
     assertNotNull(instance);
     assertEquals("test-org", instance.getOrgId());
+  }
+
+  @Test
+  void testRemovesStaleBuckets() {
+    AccountServiceInventory accountServiceInventory = createTestAccountServiceInventory();
+    for (var value : Set.of(1, 2)) {
+      var billingAccountId = "billingAccount" + value;
+      Measurement measurement =
+          new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue((double) value);
+      Event event =
+          createEvent()
+              .withEventId(UUID.randomUUID())
+              .withInstanceId("instanceId")
+              .withRole(Event.Role.OSD)
+              .withProductTag(Set.of(OSD_PRODUCT_TAG))
+              .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z").plusHours(value))
+              .withServiceType(SERVICE_TYPE)
+              .withMeasurements(Collections.singletonList(measurement))
+              .withSla(Event.Sla.PREMIUM)
+              .withBillingProvider(Event.BillingProvider.RED_HAT)
+              .withBillingAccountId(Optional.of(billingAccountId));
+      when(eventController.fetchEventsInTimeRangeByServiceType(any(), any(), any(), any(), any()))
+          .thenReturn(Stream.of(event));
+      var accountUsageCalculation =
+          metricUsageCollector.collectHour(accountServiceInventory, OffsetDateTime.MIN, null);
+      assertNotNull(accountUsageCalculation);
+      UsageCalculation.Key billingAccountKey =
+          new UsageCalculation.Key(
+              OSD_PRODUCT_TAG,
+              ServiceLevel._ANY,
+              Usage.PRODUCTION,
+              BillingProvider.RED_HAT,
+              billingAccountId);
+      assertTrue(accountUsageCalculation.containsCalculation(billingAccountKey));
+      var billingAccountIds =
+          accountUsageCalculation.getKeys().stream()
+              .map(Key::getBillingAccountId)
+              .collect(Collectors.toSet());
+      var expectedBillingAccountIds = Set.of(billingAccountId, "_ANY");
+      // This shows that only a single billing account ID had usage added to it
+      assertEquals(expectedBillingAccountIds, billingAccountIds);
+      // This shows that the instance has only a single billing account id in its buckets
+      var hostBucketBillingAccountIds =
+          accountServiceInventory.getServiceInstances().values().stream()
+              .map(Host::getBuckets)
+              .flatMap(Set::stream)
+              .map(HostTallyBucket::getKey)
+              .map(HostBucketKey::getBillingAccountId)
+              .collect(Collectors.toSet());
+      assertEquals(expectedBillingAccountIds, hostBucketBillingAccountIds);
+      assertEquals(
+          Double.valueOf(value),
+          accountUsageCalculation
+              .getCalculation(billingAccountKey)
+              .getTotals(HardwareMeasurementType.PHYSICAL)
+              .getMeasurement(MetricIdUtils.getCores()));
+    }
   }
 
   private void assertUsageCalculationForEvent(Event event) {
