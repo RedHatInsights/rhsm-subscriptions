@@ -18,7 +18,9 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.subscription;
+package org.candlepin.subscriptions.subscription.export;
+
+import static org.candlepin.subscriptions.subscription.export.ExportSubscriptionConfiguration.SUBSCRIPTION_EXPORT_QUALIFIER;
 
 import com.redhat.cloud.event.apps.exportservice.v1.Format;
 import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequest;
@@ -57,7 +59,7 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
   private final RbacService rbacService;
 
   protected ExportSubscriptionListener(
-      @Qualifier("subscriptionExport") TaskQueueProperties taskQueueProperties,
+      @Qualifier(SUBSCRIPTION_EXPORT_QUALIFIER) TaskQueueProperties taskQueueProperties,
       KafkaConsumerRegistry kafkaConsumerRegistry,
       ConsoleCloudEventParser parser,
       ExportApi exportApi,

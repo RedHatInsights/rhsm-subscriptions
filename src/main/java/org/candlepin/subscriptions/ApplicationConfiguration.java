@@ -124,13 +124,6 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   }
 
   @Bean
-  @Qualifier("subscriptionExport")
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription-export.tasks")
-  TaskQueueProperties subscriptionExportProperties() {
-    return new TaskQueueProperties();
-  }
-
-  @Bean
   AuthProperties authProperties() {
     return new AuthProperties();
   }

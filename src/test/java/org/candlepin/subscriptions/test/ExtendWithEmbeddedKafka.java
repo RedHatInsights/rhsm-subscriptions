@@ -27,12 +27,12 @@ import org.springframework.test.context.DynamicPropertySource;
 @EmbeddedKafka(
     partitions = 1,
     topics = {
-      "${rhsm-subscriptions.tasks.topic}",
-      "${rhsm-subscriptions.subscription.tasks.topic}",
-      "${rhsm-subscriptions.billing-producer.incoming.topic}",
-      "${rhsm-subscriptions.billing-producer.outgoing.topic}",
-      "${rhsm-subscriptions.service-instance-ingress.incoming.topic}",
-      "${rhsm-subscriptions.subscription-export.tasks.topic}"
+      "${rhsm-subscriptions.tasks.topic:platform.rhsm-subscriptions.tasks}",
+      "${rhsm-subscriptions.subscription.tasks.topic:platform.rhsm-subscriptions.subscription-sync}",
+      "${rhsm-subscriptions.billing-producer.incoming.topic:platform.rhsm-subscriptions.tally}",
+      "${rhsm-subscriptions.billing-producer.outgoing.topic:platform.rhsm-subscriptions.billable-usage}",
+      "${rhsm-subscriptions.service-instance-ingress.incoming.topic:platform.rhsm-subscriptions.service-instance-ingress}",
+      "${rhsm-subscriptions.subscription-export.tasks.topic:platform.export.requests}"
     })
 public interface ExtendWithEmbeddedKafka {
   @DynamicPropertySource
