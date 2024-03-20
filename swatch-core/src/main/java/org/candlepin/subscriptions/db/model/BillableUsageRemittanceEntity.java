@@ -22,8 +22,10 @@ package org.candlepin.subscriptions.db.model;
 
 import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
-import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
@@ -41,7 +43,37 @@ import lombok.NoArgsConstructor;
 @Table(name = "billable_usage_remittance")
 public class BillableUsageRemittanceEntity implements Serializable {
 
-  @EmbeddedId private BillableUsageRemittanceEntityPK key;
+  @Id
+  @GeneratedValue(strategy = GenerationType.AUTO)
+  @Column(name = "uuid", nullable = false)
+  private UUID uuid;
+
+  @Column(name = "org_id", nullable = false, length = 32)
+  private String orgId;
+
+  @Column(name = "product_id", nullable = false, length = 32)
+  private String productId;
+
+  @Column(name = "metric_id", nullable = false, length = 32)
+  private String metricId;
+
+  @Column(name = "accumulation_period", nullable = false, length = 255)
+  private String accumulationPeriod;
+
+  @Column(name = "sla", nullable = false, length = 32)
+  private String sla;
+
+  @Column(name = "usage", nullable = false, length = 32)
+  private String usage;
+
+  @Column(name = "billing_provider", nullable = false, length = 32)
+  private String billingProvider;
+
+  @Column(name = "billing_account_id", nullable = false, length = 255)
+  private String billingAccountId;
+
+  @Column(name = "remittance_pending_date", nullable = false)
+  private OffsetDateTime remittancePendingDate;
 
   @Basic
   @Column(name = "remitted_pending_value", nullable = false, precision = 0)

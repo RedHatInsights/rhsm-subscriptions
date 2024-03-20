@@ -38,8 +38,8 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class BillingProducer {
 
-  private KafkaTemplate<String, BillableUsage> billableUsageKafkaTemplate;
-  private String billableUsageTopic;
+  private final KafkaTemplate<String, BillableUsage> billableUsageKafkaTemplate;
+  private final String billableUsageTopic;
 
   @Autowired
   public BillingProducer(

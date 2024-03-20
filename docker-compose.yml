@@ -2,7 +2,11 @@
 version: '3.1'
 services:
   db:
-    image: quay.io/centos7/postgresql-13-centos7
+    # Use the same version as in https://gitlab.cee.redhat.com/service/app-interface/-/blob/ff61d457898da76ebd4abf21fe3ce7b5c74c87a5/data/services/insights/rhsm/namespaces/rhsm-prod.yml#L179
+    # When updating the image, remember to also update the following locations:
+    # - SwatchPostgreSQLContainer.POSTGRESQL_IMAGE
+    # - .github/workflows/validate-floorplan-queries.yaml (step "Setup Postgresql Database")
+    image: quay.io/centos7/postgresql-12-centos7
     environment:
       - POSTGRES_HOST_AUTH_METHOD=trust
       - POSTGRESQL_MAX_CONNECTIONS=5000

@@ -25,9 +25,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
-import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK;
-import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK_;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity_;
 import org.candlepin.subscriptions.db.model.RemittanceSummaryProjection;
 import org.springframework.data.jpa.domain.Specification;
@@ -39,18 +38,14 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public interface BillableUsageRemittanceRepository
-    extends JpaRepository<BillableUsageRemittanceEntity, BillableUsageRemittanceEntityPK>,
+    extends JpaRepository<BillableUsageRemittanceEntity, UUID>,
         JpaSpecificationExecutor<BillableUsageRemittanceEntity>,
         EntityManagerLookup {
 
   @Query
-  void deleteByKeyOrgId(String orgId);
+  void deleteByOrgId(String orgId);
 
   List<BillableUsageRemittanceEntity> findByRetryAfterLessThan(OffsetDateTime asOf);
-
-  default boolean existsBy(BillableUsageRemittanceFilter filter) {
-    return this.exists(buildSearchSpecification(filter));
-  }
 
   default List<BillableUsageRemittanceEntity> filterBy(BillableUsageRemittanceFilter filter) {
     return this.findAll(buildSearchSpecification(filter));
@@ -66,114 +61,91 @@ public interface BillableUsageRemittanceRepository
     var criteriaBuilder = entityManager.getCriteriaBuilder();
     var query = criteriaBuilder.createQuery(RemittanceSummaryProjection.class);
     var root = query.from(BillableUsageRemittanceEntity.class);
-    var key = root.get(BillableUsageRemittanceEntity_.key);
     var specification = buildSearchSpecification(filter);
     if (specification != null) {
       var predicate = specification.toPredicate(root, query, criteriaBuilder);
       query.where(predicate);
       query.groupBy(
-          key.get(BillableUsageRemittanceEntityPK_.ACCUMULATION_PERIOD),
-          key.get(BillableUsageRemittanceEntityPK_.SLA),
-          key.get(BillableUsageRemittanceEntityPK_.USAGE),
-          key.get(BillableUsageRemittanceEntityPK_.BILLING_PROVIDER),
-          key.get(BillableUsageRemittanceEntityPK_.BILLING_ACCOUNT_ID),
-          key.get(BillableUsageRemittanceEntityPK_.METRIC_ID),
-          key.get(BillableUsageRemittanceEntityPK_.ORG_ID),
-          key.get(BillableUsageRemittanceEntityPK_.PRODUCT_ID));
+          root.get(BillableUsageRemittanceEntity_.ACCUMULATION_PERIOD),
+          root.get(BillableUsageRemittanceEntity_.SLA),
+          root.get(BillableUsageRemittanceEntity_.USAGE),
+          root.get(BillableUsageRemittanceEntity_.BILLING_PROVIDER),
+          root.get(BillableUsageRemittanceEntity_.BILLING_ACCOUNT_ID),
+          root.get(BillableUsageRemittanceEntity_.METRIC_ID),
+          root.get(BillableUsageRemittanceEntity_.ORG_ID),
+          root.get(BillableUsageRemittanceEntity_.PRODUCT_ID));
     }
     query.select(
         criteriaBuilder.construct(
             RemittanceSummaryProjection.class,
             criteriaBuilder.sum(root.get(BillableUsageRemittanceEntity_.REMITTED_PENDING_VALUE)),
-            key.get(BillableUsageRemittanceEntityPK_.ORG_ID),
-            key.get(BillableUsageRemittanceEntityPK_.PRODUCT_ID),
-            key.get(BillableUsageRemittanceEntityPK_.ACCUMULATION_PERIOD),
-            key.get(BillableUsageRemittanceEntityPK_.SLA),
-            key.get(BillableUsageRemittanceEntityPK_.USAGE),
-            criteriaBuilder.max(key.get(BillableUsageRemittanceEntityPK_.REMITTANCE_PENDING_DATE)),
-            key.get(BillableUsageRemittanceEntityPK_.BILLING_PROVIDER),
-            key.get(BillableUsageRemittanceEntityPK_.BILLING_ACCOUNT_ID),
-            key.get(BillableUsageRemittanceEntityPK_.METRIC_ID)));
+            root.get(BillableUsageRemittanceEntity_.ORG_ID),
+            root.get(BillableUsageRemittanceEntity_.PRODUCT_ID),
+            root.get(BillableUsageRemittanceEntity_.ACCUMULATION_PERIOD),
+            root.get(BillableUsageRemittanceEntity_.SLA),
+            root.get(BillableUsageRemittanceEntity_.USAGE),
+            criteriaBuilder.max(root.get(BillableUsageRemittanceEntity_.REMITTANCE_PENDING_DATE)),
+            root.get(BillableUsageRemittanceEntity_.BILLING_PROVIDER),
+            root.get(BillableUsageRemittanceEntity_.BILLING_ACCOUNT_ID),
+            root.get(BillableUsageRemittanceEntity_.METRIC_ID)));
     return entityManager.createQuery(query).getResultList();
   }
 
   static Specification<BillableUsageRemittanceEntity> matchingBillingProvider(
       String billingProvider) {
-    return (root, query, builder) -> {
-      var path = root.get(BillableUsageRemittanceEntity_.key);
-      return builder.equal(
-          path.get(BillableUsageRemittanceEntityPK_.billingProvider), billingProvider);
-    };
+    return (root, query, builder) ->
+        builder.equal(root.get(BillableUsageRemittanceEntity_.billingProvider), billingProvider);
   }
 
   static Specification<BillableUsageRemittanceEntity> matchingBillingAccountId(
       String billingAccountId) {
-    return (root, query, builder) -> {
-      var path = root.get(BillableUsageRemittanceEntity_.key);
-      return builder.equal(
-          path.get(BillableUsageRemittanceEntityPK_.billingAccountId), billingAccountId);
-    };
+    return (root, query, builder) ->
+        builder.equal(root.get(BillableUsageRemittanceEntity_.billingAccountId), billingAccountId);
   }
 
   static Specification<BillableUsageRemittanceEntity> matchingMetricId(String metricId) {
-    return (root, query, builder) -> {
-      var path = root.get(BillableUsageRemittanceEntity_.key);
-      return builder.equal(path.get(BillableUsageRemittanceEntityPK_.metricId), metricId);
-    };
+    return (root, query, builder) ->
+        builder.equal(root.get(BillableUsageRemittanceEntity_.metricId), metricId);
   }
 
   static Specification<BillableUsageRemittanceEntity> matchingProductId(String productId) {
-    return (root, query, builder) -> {
-      var path = root.get(BillableUsageRemittanceEntity_.key);
-      return builder.equal(path.get(BillableUsageRemittanceEntityPK_.productId), productId);
-    };
+    return (root, query, builder) ->
+        builder.equal(root.get(BillableUsageRemittanceEntity_.productId), productId);
   }
 
   static Specification<BillableUsageRemittanceEntity> matchingOrgId(String orgId) {
-    return (root, query, builder) -> {
-      var path = root.get(BillableUsageRemittanceEntity_.key);
-      return builder.equal(path.get(BillableUsageRemittanceEntityPK_.orgId), orgId);
-    };
+    return (root, query, builder) ->
+        builder.equal(root.get(BillableUsageRemittanceEntity_.orgId), orgId);
   }
 
   static Specification<BillableUsageRemittanceEntity> matchingUsage(String usage) {
-    return (root, query, builder) -> {
-      var path = root.get(BillableUsageRemittanceEntity_.key);
-      return builder.equal(path.get(BillableUsageRemittanceEntityPK_.usage), usage);
-    };
+    return (root, query, builder) ->
+        builder.equal(root.get(BillableUsageRemittanceEntity_.usage), usage);
   }
 
   static Specification<BillableUsageRemittanceEntity> matchingSla(String sla) {
-    return (root, query, builder) -> {
-      var path = root.get(BillableUsageRemittanceEntity_.key);
-      return builder.equal(path.get(BillableUsageRemittanceEntityPK_.sla), sla);
-    };
+    return (root, query, builder) ->
+        builder.equal(root.get(BillableUsageRemittanceEntity_.sla), sla);
   }
 
   static Specification<BillableUsageRemittanceEntity> beforeRemittanceDate(OffsetDateTime ending) {
-    return (root, query, builder) -> {
-      var path = root.get(BillableUsageRemittanceEntity_.key);
-      return builder.lessThanOrEqualTo(
-          path.get(BillableUsageRemittanceEntityPK_.remittancePendingDate), ending);
-    };
+    return (root, query, builder) ->
+        builder.lessThanOrEqualTo(
+            root.get(BillableUsageRemittanceEntity_.remittancePendingDate), ending);
   }
 
   static Specification<BillableUsageRemittanceEntity> afterRemittanceDate(
       OffsetDateTime beginning) {
-    return (root, query, builder) -> {
-      var path = root.get(BillableUsageRemittanceEntity_.key);
-      return builder.greaterThanOrEqualTo(
-          path.get(BillableUsageRemittanceEntityPK_.remittancePendingDate), beginning);
-    };
+    return (root, query, builder) ->
+        builder.greaterThanOrEqualTo(
+            root.get(BillableUsageRemittanceEntity_.remittancePendingDate), beginning);
   }
 
   static Specification<BillableUsageRemittanceEntity> matchingAccumulationPeriod(
       String accumulationPeriod) {
-    return (root, query, builder) -> {
-      var path = root.get(BillableUsageRemittanceEntity_.key);
-      return builder.equal(
-          path.get(BillableUsageRemittanceEntityPK_.ACCUMULATION_PERIOD), accumulationPeriod);
-    };
+    return (root, query, builder) ->
+        builder.equal(
+            root.get(BillableUsageRemittanceEntity_.ACCUMULATION_PERIOD), accumulationPeriod);
   }
 
   default Specification<BillableUsageRemittanceEntity> buildSearchSpecification(
@@ -215,13 +187,12 @@ public interface BillableUsageRemittanceRepository
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  void deleteAllByKeyOrgIdAndKeyRemittancePendingDateBefore(
-      String orgId, OffsetDateTime cutoffDate);
+  void deleteAllByOrgIdAndRemittancePendingDateBefore(String orgId, OffsetDateTime cutoffDate);
 
   @Modifying
   @Query(
       value =
-          "update BillableUsageRemittanceEntity bu set bu.remittedPendingValue=0.0 where bu.key.productId = :productId and bu.key.orgId in :orgIds and bu.key.remittancePendingDate between :start and :end")
+          "update BillableUsageRemittanceEntity bu set bu.remittedPendingValue=0.0 where bu.productId = :productId and bu.orgId in :orgIds and bu.remittancePendingDate between :start and :end")
   int resetBillableUsageRemittance(
       String productId, OffsetDateTime start, OffsetDateTime end, Set<String> orgIds);
 }

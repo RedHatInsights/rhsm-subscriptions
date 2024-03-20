@@ -1,8 +1,10 @@
 $schema: http://json-schema.org/draft-07/schema#
 title: BillableUsage
-required:
-  - account_number
 properties:
+  uuid:
+    description: The billable usage remittance ID.
+    type: string
+    format: uuid
   org_id:
     description: Preferred identifier for the relevant account (if present).
     type: string

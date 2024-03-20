@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.billing;
 
+import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
@@ -30,10 +31,10 @@ import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
-import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntityPK;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
 import org.candlepin.subscriptions.db.model.RemittanceSummaryProjection;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
@@ -72,19 +73,7 @@ public class BillableUsageController {
   }
 
   public double getTotalRemitted(BillableUsage billableUsage) {
-    BillableUsageRemittanceEntityPK key =
-        BillableUsageRemittanceEntityPK.keyFrom(billableUsage, clock.now());
-    var filter =
-        BillableUsageRemittanceFilter.builder()
-            .orgId(key.getOrgId())
-            .billingAccountId(key.getBillingAccountId())
-            .billingProvider(key.getBillingProvider())
-            .accumulationPeriod(key.getAccumulationPeriod())
-            .metricId(key.getMetricId())
-            .productId(key.getProductId())
-            .sla(key.getSla())
-            .usage(key.getUsage())
-            .build();
+    var filter = BillableUsageRemittanceFilter.fromUsage(billableUsage);
     return billableUsageRemittanceRepository.getRemittanceSummaries(filter).stream()
         .findFirst()
         .map(RemittanceSummaryProjection::getTotalRemittedPendingValue)
@@ -227,13 +216,21 @@ public class BillableUsageController {
   private void createRemittance(BillableUsage usage, BillableUsageCalculation usageCalc) {
     var newRemittance =
         BillableUsageRemittanceEntity.builder()
-            .key(BillableUsageRemittanceEntityPK.keyFrom(usage, clock.now()))
+            .orgId(usage.getOrgId())
+            .billingAccountId(usage.getBillingAccountId())
+            .billingProvider(usage.getBillingProvider().value())
+            .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(usage.getSnapshotDate()))
+            .metricId(MetricId.fromString(usage.getUom()).getValue())
+            .productId(usage.getProductId())
+            .sla(usage.getSla().value())
+            .usage(usage.getUsage().value())
+            .remittancePendingDate(clock.now())
             .tallyId(usage.getId())
             .hardwareMeasurementType(usage.getHardwareMeasurementType())
             .build();
     // Remitted value should be set to usages metric_value rather than billing_value
     newRemittance.setRemittedPendingValue(usageCalc.getRemittedValue());
-    newRemittance.getKey().setRemittancePendingDate(usageCalc.getRemittanceDate());
+    newRemittance.setRemittancePendingDate(usageCalc.getRemittanceDate());
     log.debug("Creating new remittance for update: {}", newRemittance);
     billableUsageRemittanceRepository.save(newRemittance);
   }
@@ -262,9 +259,8 @@ public class BillableUsageController {
   public void updateBillableUsageRemittanceWithRetryAfter(
       BillableUsage billableUsage, OffsetDateTime retryAfter) {
     var billableUsageRemittance =
-        billableUsageRemittanceRepository.findById(
-            BillableUsageRemittanceEntityPK.keyFrom(
-                billableUsage, billableUsage.getSnapshotDate()));
+        billableUsageRemittanceRepository.findOne(
+            BillableUsageRemittanceFilter.fromUsage(billableUsage));
     if (billableUsageRemittance.isPresent()) {
       billableUsageRemittance.get().setRetryAfter(retryAfter);
       billableUsageRemittanceRepository.save(billableUsageRemittance.get());
