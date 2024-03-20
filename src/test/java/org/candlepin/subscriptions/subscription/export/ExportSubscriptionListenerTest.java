@@ -18,16 +18,14 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.task.queue.kafka;
+package org.candlepin.subscriptions.subscription.export;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import com.redhat.swatch.clients.export.api.client.ApiException;
 import org.candlepin.subscriptions.rbac.RbacService;
-import org.candlepin.subscriptions.subscription.ExportSubscriptionListener;
 import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
 import org.candlepin.subscriptions.test.ExtendWithExportServiceWireMock;
-import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -35,9 +33,10 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
-@ActiveProfiles(value = {"worker", "kafka-queue", "api", "test-inventory", "capacity-ingress"})
-class ExportSubscriptionListenerTest extends ExtendWithExportServiceWireMock
-    implements ExtendWithSwatchDatabase, ExtendWithEmbeddedKafka {
+@ActiveProfiles(value = {"kafka-queue", "test", "capacity-ingress"})
+class ExportSubscriptionListenerTest
+    implements ExtendWithExportServiceWireMock, ExtendWithEmbeddedKafka {
+
   @Autowired ExportSubscriptionListener listener;
 
   @MockBean RbacService rbacService;

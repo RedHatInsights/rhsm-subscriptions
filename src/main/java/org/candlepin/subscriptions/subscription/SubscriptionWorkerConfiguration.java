@@ -22,7 +22,6 @@ package org.candlepin.subscriptions.subscription;
 
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -63,14 +62,6 @@ public class SubscriptionWorkerConfiguration {
         new JsonDeserializer<>(PruneSubscriptionsTask.class));
   }
 
-  @Bean("exportConsumerFactory")
-  ConsumerFactory<String, String> exportConsumerFactory(KafkaProperties kafkaProperties) {
-    return new DefaultKafkaConsumerFactory<>(
-        kafkaProperties.buildConsumerProperties(null),
-        new StringDeserializer(),
-        new StringDeserializer());
-  }
-
   @Bean
   ConcurrentKafkaListenerContainerFactory<String, SyncSubscriptionsTask>
       subscriptionSyncListenerContainerFactory(
@@ -101,26 +92,6 @@ public class SubscriptionWorkerConfiguration {
           KafkaConsumerRegistry registry) {
 
     var factory = new ConcurrentKafkaListenerContainerFactory<String, PruneSubscriptionsTask>();
-    factory.setConsumerFactory(consumerFactory);
-    // Concurrency should be set to the number of partitions for the target topic.
-    factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
-    if (kafkaProperties.getListener().getIdleEventInterval() != null) {
-      factory
-          .getContainerProperties()
-          .setIdleEventInterval(kafkaProperties.getListener().getIdleEventInterval().toMillis());
-    }
-    // hack to track the Kafka consumers, so SeekableKafkaConsumer can commit when needed
-    factory.getContainerProperties().setConsumerRebalanceListener(registry);
-    return factory;
-  }
-
-  @Bean
-  ConcurrentKafkaListenerContainerFactory<String, String> exportListenerContainerFactory(
-      @Qualifier("exportConsumerFactory") ConsumerFactory<String, String> consumerFactory,
-      KafkaProperties kafkaProperties,
-      KafkaConsumerRegistry registry) {
-
-    var factory = new ConcurrentKafkaListenerContainerFactory<String, String>();
     factory.setConsumerFactory(consumerFactory);
     // Concurrency should be set to the number of partitions for the target topic.
     factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
