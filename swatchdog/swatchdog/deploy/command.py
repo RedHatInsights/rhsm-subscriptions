@@ -130,9 +130,17 @@ def build_project(project: str, project_root: str, clean: bool) -> str:
             # The mutable-jar is what allows for the reloading capability in quarkus.
             # The quarkus apps images have to be built as mutable jars for the reloading
             # to work in the first place.  That can be done using the Podman build
-            # arg --build-arg=QUARKUS_BUILD_ARGS=-Dquarkus.package.type=mutable-jar
+            # arg --build-arg=GRADLE_BUILD_ARGS=-Dquarkus.package.type=mutable-jar
+            build_args = "-Dquarkus.package.type=mutable-jar"
+
+            # The "snapshot" also requires explanation.  Snapshot is a task that sets
+            # the version number to major.minor.patch-SNAPSHOT.  Without this directive,
+            # the JAR will have the git hash in its name.  As a result, if you do a git
+            # commit during your development, your JAR suddenly has a different name
+            # and instead of replacing the old JAR, the rsync will just copy the new JAR
+            # alongside the old one and no hot reload will occur.
             c.run(
-                f"./gradlew {clean_arg} {project}:assemble -Dquarkus.package.type=mutable-jar"
+                f"./gradlew {clean_arg} snapshot {project}:assemble {build_args}"
             )
         except UnexpectedExit as e:
             err("Build failed")
@@ -182,20 +190,6 @@ def spring_rsync_source(build_dir: str) -> str:
 
 
 def quarkus_rsync_source(build_dir: str) -> str:
-    # FIXME: There is a issue with Quarkus hot-deployment.  Because the build artifact
-    #  for our code has the git hash in it, if you do a git commit and then rsync, the
-    #  rsync places the new JAR right beside the old JAR and the code never redeploys.
-    #  Potentially, there is a way around this using rsync's delete functionality,
-    #  (since the java command that is invoked actually runs quarkus-run.jar,
-    #  but I'm not sure how quarkus-run references our JAR.  If quarkus-run just looks
-    #  at whatever is in app/ or whether it has a hard reference.
-    #      Another option would be to just do development builds with a static prefix
-    #  than one that is based on the date, branch, git ref, etc.  E.g. instead of
-    #  swatch-contracts-1.1.0-snapshot.202403201953.uncommitted+awood.swatchdog
-    #  .7b6d784.jar, we name the artifact swatch-contracts-1.1.0-dev-snapshot.jar
-    #  This approach would likely require some trickery (build-args probably) in the
-    #  Dockerfile since we would need to control the artifact name used in the inital
-    #  build there.
     rsync_dir = os.path.join(build_dir, "quarkus-app")
     # See comment in spring_rsync_source for while the trailing slash is imperative
     return f"{rsync_dir}{os.path.sep}"

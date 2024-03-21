@@ -30,7 +30,10 @@ COPY buildSrc buildSrc
 #RUN ./gradlew quarkusGoOffline
 
 COPY . .
-RUN ./gradlew assemble -x test
+ARG GRADLE_BUILD_ARGS=''
+ARG GRADLE_TASKS='assemble'
+RUN ./gradlew ${GRADLE_TASKS} -x test ${GRADLE_BUILD_ARGS}
+
 RUN jar -xf ./build/libs/*.jar
 
 FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.18-1
