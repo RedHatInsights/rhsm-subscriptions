@@ -341,6 +341,43 @@ class FactNormalizerTest {
   }
 
   @Test
+  void testSocketSetToOneForVirtualRhelSystem() {
+    InventoryHostFacts guestFacts = createGuest("hyp-id", "O1", 69);
+    guestFacts.setHypervisorUuid(null);
+    guestFacts.setSystemProfileCoresPerSocket(4);
+    guestFacts.setSystemProfileSockets(3);
+    OrgHostsData guestData = hypervisorData();
+
+    NormalizedFacts normalized = normalizer.normalize(guestFacts, guestData);
+
+    assertEquals(Integer.valueOf(1), normalized.getSockets());
+  }
+
+  @Test
+  void testNoSocketNormalizationForVirtualNonRhelSystem() {
+    InventoryHostFacts guestFacts = createGuest("hyp-id", "O1", 290);
+    guestFacts.setHypervisorUuid(null);
+    guestFacts.setSystemProfileCoresPerSocket(4);
+    guestFacts.setSystemProfileSockets(3);
+    OrgHostsData guestData = hypervisorData();
+
+    NormalizedFacts normalized = normalizer.normalize(guestFacts, guestData);
+
+    assertEquals(Integer.valueOf(3), normalized.getSockets());
+  }
+
+  @Test
+  void testMarketplaceSystemHas0Sockets() {
+    InventoryHostFacts baseFacts = createBaseHost("O1");
+    baseFacts.setCloudProvider("aws");
+    baseFacts.setMarketplace(true);
+    baseFacts.setSystemProfileSockets(3);
+
+    NormalizedFacts normalized = normalizer.normalize(baseFacts, hypervisorData());
+    assertEquals(0, normalized.getSockets());
+  }
+
+  @Test
   void testPhysicalNormalization() {
     InventoryHostFacts hostFacts = createBaseHost("O1");
     assertFalse(hostFacts.isVirtual());
