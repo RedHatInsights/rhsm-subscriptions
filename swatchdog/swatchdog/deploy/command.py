@@ -127,7 +127,13 @@ def build_project(project: str, project_root: str, clean: bool) -> str:
         info("Running build")
         # Compile the class files
         try:
-            c.run(f"./gradlew {clean_arg} {project}:classes")
+            # The mutable-jar is what allows for the reloading capability in quarkus.
+            # The quarkus apps images have to be built as mutable jars for the reloading
+            # to work in the first place.  That can be done using the Podman build
+            # arg --build-arg=QUARKUS_BUILD_ARGS=-Dquarkus.package.type=mutable-jar
+            c.run(
+                f"./gradlew {clean_arg} {project}:assemble -Dquarkus.package.type=mutable-jar"
+            )
         except UnexpectedExit as e:
             err("Build failed")
             sys.exit(e.result.exited)
@@ -148,13 +154,10 @@ def build_project(project: str, project_root: str, clean: bool) -> str:
 
         # Get the path to the directory to rsync to the pod
         if len(results) == 1:
-            rsync_dir = os.path.join(results[0], "classes", "java", "main")
-            # This is important.  Without the trailing slash, rsync will sync the
-            # directory by name rather than the contents of the directory. I.e. you will
-            # end up with "/deployments/main/META-INF" rather than
-            # "/deployments/META-INF".  See the rsync man page's USAGE section and
-            # look for the phrase "trailing slash".
-            rsync_dir = f"{rsync_dir}{os.path.sep}"
+            if is_quarkus_project(results[0]):
+                rsync_dir = quarkus_rsync_source(results[0])
+            else:
+                rsync_dir = spring_rsync_source(results[0])
         else:
             raise SwatchDogError(f"Ambiguous build location: {results}")
 
@@ -162,6 +165,40 @@ def build_project(project: str, project_root: str, clean: bool) -> str:
             return rsync_dir
         else:
             raise SwatchDogError(f"No directory {rsync_dir} to sync class files from")
+
+
+def is_quarkus_project(build_dir: str) -> bool:
+    return os.path.exists(os.path.join(build_dir, "quarkus-app"))
+
+
+def spring_rsync_source(build_dir: str) -> str:
+    rsync_dir = os.path.join(build_dir, "classes", "java", "main")
+    # This is important.  Without the trailing slash, rsync will sync the
+    # directory by name rather than the contents of the directory. I.e. you will
+    # end up with "/deployments/main/META-INF" rather than
+    # "/deployments/META-INF".  See the rsync man page's USAGE section and
+    # look for the phrase "trailing slash".
+    return f"{rsync_dir}{os.path.sep}"
+
+
+def quarkus_rsync_source(build_dir: str) -> str:
+    # FIXME: There is a issue with Quarkus hot-deployment.  Because the build artifact
+    #  for our code has the git hash in it, if you do a git commit and then rsync, the
+    #  rsync places the new JAR right beside the old JAR and the code never redeploys.
+    #  Potentially, there is a way around this using rsync's delete functionality,
+    #  (since the java command that is invoked actually runs quarkus-run.jar,
+    #  but I'm not sure how quarkus-run references our JAR.  If quarkus-run just looks
+    #  at whatever is in app/ or whether it has a hard reference.
+    #      Another option would be to just do development builds with a static prefix
+    #  than one that is based on the date, branch, git ref, etc.  E.g. instead of
+    #  swatch-contracts-1.1.0-snapshot.202403201953.uncommitted+awood.swatchdog
+    #  .7b6d784.jar, we name the artifact swatch-contracts-1.1.0-dev-snapshot.jar
+    #  This approach would likely require some trickery (build-args probably) in the
+    #  Dockerfile since we would need to control the artifact name used in the inital
+    #  build there.
+    rsync_dir = os.path.join(build_dir, "quarkus-app")
+    # See comment in spring_rsync_source for while the trailing slash is imperative
+    return f"{rsync_dir}{os.path.sep}"
 
 
 def choose_project(project_root: str, selection: str) -> str:
