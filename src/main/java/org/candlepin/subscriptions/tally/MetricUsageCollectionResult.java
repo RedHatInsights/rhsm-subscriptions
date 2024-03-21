@@ -18,26 +18,18 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.tally.tasks;
+package org.candlepin.subscriptions.tally;
 
-import org.candlepin.subscriptions.tally.TallySnapshotController;
-import org.candlepin.subscriptions.task.Task;
-import org.springframework.validation.annotation.Validated;
+import java.time.OffsetDateTime;
+import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import org.candlepin.subscriptions.util.DateRange;
 
-/** Captures hourly metrics between a given timeframe for a given account */
-@Validated
-public class CaptureMetricsSnapshotTask implements Task {
-
-  private final String orgId;
-  private final TallySnapshotController snapshotController;
-
-  public CaptureMetricsSnapshotTask(TallySnapshotController snapshotController, String orgId) {
-    this.snapshotController = snapshotController;
-    this.orgId = orgId;
-  }
-
-  @Override
-  public void execute() {
-    snapshotController.produceHourlySnapshotsForOrg(orgId);
-  }
+@AllArgsConstructor
+@Getter
+public class MetricUsageCollectionResult {
+  private DateRange range;
+  private Map<OffsetDateTime, AccountUsageCalculation> calculations;
+  private boolean wasRecalculated;
 }

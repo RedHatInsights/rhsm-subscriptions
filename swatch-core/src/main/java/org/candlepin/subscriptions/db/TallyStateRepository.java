@@ -18,26 +18,20 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.tally.tasks;
+package org.candlepin.subscriptions.db;
 
-import org.candlepin.subscriptions.tally.TallySnapshotController;
-import org.candlepin.subscriptions.task.Task;
-import org.springframework.validation.annotation.Validated;
+import org.candlepin.subscriptions.db.model.TallyState;
+import org.candlepin.subscriptions.db.model.TallyStateKey;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.transaction.annotation.Transactional;
 
-/** Captures hourly metrics between a given timeframe for a given account */
-@Validated
-public class CaptureMetricsSnapshotTask implements Task {
+public interface TallyStateRepository extends JpaRepository<TallyState, TallyStateKey> {
 
-  private final String orgId;
-  private final TallySnapshotController snapshotController;
-
-  public CaptureMetricsSnapshotTask(TallySnapshotController snapshotController, String orgId) {
-    this.snapshotController = snapshotController;
-    this.orgId = orgId;
+  @Transactional
+  default TallyState update(TallyState state) {
+    return save(state);
   }
 
-  @Override
-  public void execute() {
-    snapshotController.produceHourlySnapshotsForOrg(orgId);
-  }
+  @Transactional
+  void deleteByOrgId(String orgId);
 }

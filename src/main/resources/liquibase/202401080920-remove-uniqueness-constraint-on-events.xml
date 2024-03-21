@@ -1,0 +1,24 @@
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="202401080920-1" author="mstead">
+    <comment>
+      We no longer need to have the uniqueness constraint on the
+      events table since we support processing multiple Events for
+      the same timestamp. This allows us to use a UUID as the only
+      unique identifier instead of a useless composite key.
+    </comment>
+      <dropPrimaryKey tableName="events" constraintName="events_pkey" />
+      <addPrimaryKey tableName="events" columnNames="event_id" />
+    <rollback>
+      <dropPrimaryKey tableName="events" />
+      <addPrimaryKey constraintName="events_pkey"
+        tableName="events"
+        columnNames="org_id,event_type,event_source,instance_id,record_date,timestamp"/>
+    </rollback>
+  </changeSet>
+
+</databaseChangeLog>

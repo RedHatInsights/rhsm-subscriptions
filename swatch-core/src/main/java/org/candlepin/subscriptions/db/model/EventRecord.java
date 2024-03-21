@@ -25,11 +25,11 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.IdClass;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.validation.Valid;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.Objects;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -38,7 +38,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.candlepin.subscriptions.json.Event;
-import org.hibernate.annotations.CreationTimestamp;
 
 /**
  * DB entity for an event record.
@@ -52,7 +51,6 @@ import org.hibernate.annotations.CreationTimestamp;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@IdClass(EventKey.class)
 public class EventRecord {
 
   /**
@@ -72,31 +70,29 @@ public class EventRecord {
     this.eventSource = event.getEventSource();
     this.instanceId = event.getInstanceId();
     this.timestamp = event.getTimestamp();
+    this.recordDate = event.getRecordDate();
   }
 
-  @Column(name = "event_id", updatable = false)
+  @Id
+  @Column(name = "event_id")
   private UUID eventId;
 
-  @Id
   @Column(name = "org_id")
   private String orgId;
 
-  @Id
   @Column(name = "event_type")
   private String eventType;
 
-  @Id
   @Column(name = "event_source")
   private String eventSource;
 
-  @Id
   @Column(name = "instance_id")
   private String instanceId;
 
   @Column(name = "metering_batch_id")
   private UUID meteringBatchId;
 
-  @Id private OffsetDateTime timestamp;
+  private OffsetDateTime timestamp;
 
   /*
   Since we have a bitemporal pattern, the "timestamp" and "actual_date" means the same.
@@ -104,8 +100,6 @@ public class EventRecord {
 
   For reference: https://martinfowler.com/articles/bitemporal-history.html#TheTwoDimensions
   */
-
-  @CreationTimestamp
   @Column(name = "record_date", updatable = false)
   private OffsetDateTime recordDate;
 
@@ -116,9 +110,12 @@ public class EventRecord {
 
   @PrePersist
   public void populateEventId() {
+    this.recordDate = OffsetDateTime.now(ZoneId.of("UTC"));
+
     if (event == null) {
       return;
     }
+    this.event.setRecordDate(recordDate);
 
     if (event.getEventId() == null) {
       event.setEventId(UUID.randomUUID());

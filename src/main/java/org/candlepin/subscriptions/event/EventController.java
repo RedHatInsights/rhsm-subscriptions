@@ -22,9 +22,8 @@ package org.candlepin.subscriptions.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
-import jakarta.transaction.Transactional;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,6 +35,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -48,10 +48,12 @@ import org.candlepin.subscriptions.json.BaseEvent;
 import org.candlepin.subscriptions.json.CleanUpEvent;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.BillingProvider;
+import org.candlepin.subscriptions.json.Measurement;
 import org.candlepin.subscriptions.security.OptInController;
 import org.candlepin.subscriptions.util.TransactionHandler;
 import org.springframework.kafka.listener.BatchListenerFailedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 /** Encapsulates interaction with event store. */
@@ -92,21 +94,38 @@ public class EventController {
         .map(EventRecord::getEvent);
   }
 
-  public Stream<Event> fetchEventsInTimeRangeByServiceType(
+  @Transactional(readOnly = true)
+  public void processEventsInBatches(
       String orgId,
       String serviceType,
       OffsetDateTime begin,
-      OffsetDateTime end,
-      OffsetDateTime asOfDateTime) {
-    // asOfDateTime is used to ignore events that are recorded outside a given hourly tally's
-    // window. Those events will be processed during the next hourly tally, and filtering them out
-    // here ensures they won't be processed twice hence we don't have to retally again.
-    return repo.findByOrgIdAndServiceTypeAndTimestampGreaterThanEqualAndTimestampLessThanOrderByTimestamp(
-            orgId, serviceType, begin, end)
-        .filter(
-            eventRecord ->
-                Objects.isNull(asOfDateTime) || eventRecord.getRecordDate().isBefore(asOfDateTime))
-        .map(EventRecord::getEvent);
+      int batchSize,
+      Consumer<List<Event>> eventConsumer) {
+    List<Event> toProcess = new ArrayList<>(batchSize);
+    try (Stream<EventRecord> eventStream =
+        repo.fetchOrderedEventStream(orgId, serviceType, begin)) {
+      eventStream.forEach(
+          eventRecord -> {
+            toProcess.add(eventRecord.getEvent());
+            repo.getEntityManager().detach(eventRecord);
+            if (toProcess.size() == batchSize) {
+              log.debug(
+                  "Processing batch of {} Events for orgId={} serviceType={}",
+                  batchSize,
+                  orgId,
+                  serviceType);
+              eventConsumer.accept(toProcess);
+              toProcess.clear();
+            }
+          });
+
+      // Process any that were outside the batch boundary.
+      if (!toProcess.isEmpty()) {
+        log.debug("Processing the remaining batch {}", toProcess.size());
+        eventConsumer.accept(toProcess);
+        toProcess.clear();
+      }
+    }
   }
 
   /**
@@ -133,14 +152,6 @@ public class EventController {
   @Transactional
   public void deleteEvent(UUID eventId) {
     repo.deleteByEventId(eventId);
-  }
-
-  @Transactional
-  public Optional<OffsetDateTime> findFirstEventTimestampInRange(
-      String orgId, String serviceType, OffsetDateTime startDate, OffsetDateTime endDate) {
-    return Optional.ofNullable(
-            repo.findFirstEventTimestampInRange(orgId, serviceType, startDate, endDate))
-        .map(dateTime -> dateTime.atOffset(ZoneOffset.UTC));
   }
 
   /**
@@ -238,6 +249,7 @@ public class EventController {
           if (BillingProvider.AZURE.equals(eventToSave.getBillingProvider())) {
             setAzureBillingAccountId(eventToSave);
           }
+          validateServiceInstanceEvent(eventToSave);
           enrichServiceInstanceFromIncomingFeed(eventToSave);
           result.addEvent(eventToSave, eventIndex.getValue());
         } else if (baseEvent instanceof CleanUpEvent cleanUpEvent) {
@@ -266,6 +278,17 @@ public class EventController {
           String.format(
               "%s;%s", event.getAzureTenantId().get(), event.getAzureSubscriptionId().get());
       event.setBillingAccountId(Optional.of(billingAccountId));
+    }
+  }
+
+  private void validateServiceInstanceEvent(Event event) throws IllegalArgumentException {
+    List<Measurement> invalidMeasurements =
+        event.getMeasurements().stream()
+            .filter(m -> Objects.nonNull(m.getValue()) && m.getValue() < 0)
+            .toList();
+
+    if (!invalidMeasurements.isEmpty()) {
+      throw new IllegalArgumentException("Event measurement(s) must be > 0");
     }
   }
 

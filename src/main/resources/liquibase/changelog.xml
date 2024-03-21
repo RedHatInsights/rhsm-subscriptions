@@ -125,8 +125,7 @@
     <include file="liquibase/202308231456-drop-uom-column-tally-measurements.xml"/>
     <include file="liquibase/202309111412-drop-subscription-capacity-table.xml"/>
     <include file="liquibase/202309011316-rename-id-event-record.xml"/>
-    <!-- Uncomment once the above changeset has landed in prod -->
-    <!-- <include file="liquibase/202309011416-drop-id-event-record.xml"/> -->
+    <include file="liquibase/202309011416-drop-id-event-record.xml"/>
     <include file="liquibase/202309081416-add-span-id-event-record.xml"/>
     <include file="liquibase/202309181256-add-recorddate-column-events.xml"/>
     <include file="liquibase/202310041633-fix-placeholder-values-for-rosa.xml"/>
@@ -141,5 +140,12 @@
     <include file="/liquibase/202311211112-remove-default-sockets-cores-on-buckets.xml"/>
     <include file="/liquibase/202402151211-add-sku-product-tag-table.xml"/>
     <include file="/liquibase/202403131500-change-pk-from-billable-usage-remittance.xml"/>
+    <include file="liquibase/202309271135-add-event-lookup-index.xml" />
+    <include file="/liquibase/202309271140-create-tally-state-table.xml" />
+    <include file="/liquibase/202309281140-add-record-date-to-events-pk.xml" />
+    <include file="/liquibase/202311221520-add-last_applied_event_record_date-column-to-hosts.xml" />
+    <include file="/liquibase/202312010920-add-org-id-instance-id-index-to-hosts.xml" />
+    <include file="/liquibase/202401080920-remove-uniqueness-constraint-on-events.xml" />
+    <include file="/liquibase/202401161133-update-instance-view-to-include-last-applied-event-record-date.xml" />
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->

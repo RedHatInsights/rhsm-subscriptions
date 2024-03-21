@@ -28,17 +28,23 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityManager;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
+import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.security.OptInController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -48,8 +54,9 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
 class EventControllerTest {
+  @Mock EntityManager mockEntityManager;
   @Autowired EventController eventController;
-
+  @Autowired ObjectMapper mapper;
   @MockBean private EventRecordRepository eventRecordRepository;
   @MockBean private OptInController optInController;
   @Captor private ArgumentCaptor<Collection<EventRecord>> eventsSaved;
@@ -60,6 +67,7 @@ class EventControllerTest {
   String eventRecord4;
   String eventRecord5;
   String azureEventRecord1;
+  String eventRecordNegativeMeasurement;
   String cleanUpEvent;
 
   @BeforeEach
@@ -169,6 +177,7 @@ class EventControllerTest {
                    "service_type": "OpenShift Cluster"
                  }
                 """;
+
     azureEventRecord1 =
         """
                 {
@@ -191,8 +200,29 @@ class EventControllerTest {
                    "billing_provider": "azure",
                    "azure_tenant_id": "TestAzureTenantId",
                    "azure_subscription_id": "TestAzureSubscriptionId"
+                }
+        """;
+    eventRecordNegativeMeasurement =
+        """
+                {
+                   "sla": "Premium",
+                   "role": "osd",
+                   "org_id": "8",
+                   "timestamp": "2023-05-02T10:00:00Z",
+                   "event_type": "snapshot_redhat.com:openshift_dedicated:cluster_hour",
+                   "expiration": "2023-05-02T01:00:00Z",
+                   "instance_id": "e3a62bd1-fd00-405c-9401-f2288808588d",
+                   "display_name": "automation_osd_cluster_e3a62bd1-fd00-405c-9401-f2288808588d",
+                   "event_source": "prometheus",
+                   "measurements": [
+                     {
+                       "uom": "Instance-hours",
+                       "value": -1
+                     }
+                   ],
+                   "service_type": "OpenShift Cluster"
                  }
-                """;
+        """;
     cleanUpEvent =
         """
                 {
@@ -204,7 +234,8 @@ class EventControllerTest {
                    "event_source": "prometheus",
                    "action": "cleanup"
                  }
-                """;
+        """;
+    when(eventRecordRepository.getEntityManager()).thenReturn(mockEntityManager);
   }
 
   @Test
@@ -281,6 +312,24 @@ class EventControllerTest {
   }
 
   @Test
+  void testPersistServiceInstances_SkipEventsWithNegativeMeasurements() throws Exception {
+    List<String> eventRecords = new ArrayList<>();
+    eventRecords.add(eventRecord1);
+    eventRecords.add(eventRecordNegativeMeasurement);
+    EventRecord expectedEvent = new EventRecord(mapper.readValue(eventRecord1, Event.class));
+
+    eventController.persistServiceInstances(eventRecords);
+
+    verify(optInController, times(2)).optInByOrgId(any(), any());
+    when(eventRecordRepository.saveAll(any())).thenReturn(new ArrayList<>());
+    verify(eventRecordRepository).saveAll(eventsSaved.capture());
+    List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
+    assertEquals(1, events.size());
+    assertEquals(expectedEvent, events.get(0));
+    verifyDeletionOfStaleEventsIsNotDone();
+  }
+
+  @Test
   void testPersistServiceInstances_SuccessfullyRetryFailedEventSave() {
     List<String> eventRecords = new ArrayList<>();
     eventRecords.add(eventRecord1);
@@ -338,6 +387,37 @@ class EventControllerTest {
         events.get(0).getEvent().getBillingAccountId().get());
   }
 
+  @Test
+  void testProcessEventsInBatches_processesAllEvents() {
+    List<EventRecord> all = new LinkedList<>();
+    for (int i = 0; i < 10; i++) {
+      all.add(new EventRecord());
+    }
+
+    OffsetDateTime now = OffsetDateTime.now();
+    when(eventRecordRepository.fetchOrderedEventStream("org123", "serviceType", now))
+        .thenReturn(all.stream());
+
+    final int batchSize = 3;
+    BatchedEventCounter counter = new BatchedEventCounter();
+    eventController.processEventsInBatches(
+        "org123",
+        "serviceType",
+        now,
+        batchSize,
+        events -> {
+          counter.increment(events.size());
+        });
+
+    List<Integer> finalBatchCount = counter.getCounts();
+    assertEquals(4, finalBatchCount.size());
+    // Verify the number of events in each batch.
+    assertEquals(batchSize, finalBatchCount.get(0));
+    assertEquals(batchSize, finalBatchCount.get(1));
+    assertEquals(batchSize, finalBatchCount.get(2));
+    assertEquals(1, finalBatchCount.get(3));
+  }
+
   private void verifyDeletionOfStaleEventsIsDone() {
     verify(eventRecordRepository)
         .deleteStaleEvents(
@@ -352,5 +432,17 @@ class EventControllerTest {
   private void verifyDeletionOfStaleEventsIsNotDone() {
     verify(eventRecordRepository, times(0))
         .deleteStaleEvents(any(), any(), any(), any(), any(), any());
+  }
+
+  private class BatchedEventCounter {
+    private final List<Integer> counts = new LinkedList<>();
+
+    void increment(int eventCount) {
+      counts.add(eventCount);
+    }
+
+    List<Integer> getCounts() {
+      return counts;
+    }
   }
 }
