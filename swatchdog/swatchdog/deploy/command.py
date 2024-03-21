@@ -97,7 +97,7 @@ def ee(ctx, swatch: SwatchContext, ee_token: str):
 
 @ee.command()
 @click.option("--clean/--no-clean", default=True)
-@click.option("-p", "--pod-prefix", type=str)
+@click.option("--pod-prefix", type=str)
 @click.option("--project", type=str)
 @click.option("--container", type=str)
 @click.pass_context
@@ -185,8 +185,7 @@ def choose_project(project_root: str, selection: str) -> str:
     results_dict: dict = dict(zip(results, results))
     results_dict[": <root project>"] = ""
     choice: str = iterfzf.iterfzf(
-        sorted(results_dict.keys()),
-        query=selection
+        sorted(results_dict.keys()), query=selection, __extra__=["--select-1"]
     )
     return results_dict[choice]
 
@@ -247,6 +246,9 @@ def choose_pods(pod_prefix: str) -> openshift.Selector:
     # can actually select on it instead of pulling back everything and then filtering?
     header: str = "TAB/SHIFT-TAB for multiple selections"
     selections = iterfzf.iterfzf(
-        pod_choices.keys(), query=pod_prefix, multi=True, __extra__=["--header", header]
+        pod_choices.keys(),
+        query=pod_prefix,
+        multi=True,
+        __extra__=["--header", header, "--select-1"],
     )
     return openshift.selector([pod_choices[x] for x in selections])
