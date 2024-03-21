@@ -23,8 +23,6 @@ SERVICE_INSTANCE_INGRESS_TOPIC: platform.rhsm-subscriptions.service-instance-ing
   SPLUNKMETA_namespace: local
   SPLUNK_HEC_INCLUDE_EX: true
   quarkus:
-    package:
-      type: mutable-jar
     log:
       console:
         json: false
