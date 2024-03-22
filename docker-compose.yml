@@ -17,7 +17,12 @@ services:
       - ./pg_hba.conf:/pg_hba.conf:z
     ports:
       - "127.0.0.1:5432:5432"
+    networks:
+      swatch-network:
+        aliases:
+          - db
   kafka:
+    container_name: swatch-kafka
     image: quay.io/strimzi/kafka:latest-kafka-3.1.0
     command: sh /init_kafka.sh
     environment:
@@ -45,6 +50,10 @@ services:
       - ./config/kafka/init_kafka.sh:/init_kafka.sh:z
       - ./config/kafka/kafka_server_jaas.conf:/etc/kafka/kafka_server_jaas.conf:z
       - ./config/kafka/:/etc/kafka/secrets/certs:z
+    networks:
+      swatch-network:
+        aliases:
+          - kafka
   kafka-rest:
     image: docker.io/confluentinc/cp-kafka-rest
     environment:
@@ -69,3 +78,7 @@ services:
     depends_on:
       - kafka
       - db
+networks:
+  swatch-network:
+    name: swatch-network
+    driver: bridge

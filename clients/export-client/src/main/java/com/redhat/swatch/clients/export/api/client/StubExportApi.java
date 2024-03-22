@@ -22,6 +22,7 @@ package com.redhat.swatch.clients.export.api.client;
 
 import com.redhat.swatch.clients.export.api.model.DownloadExportErrorRequest;
 import com.redhat.swatch.clients.export.api.resources.ExportApi;
+import java.io.File;
 import java.util.UUID;
 
 public class StubExportApi extends ExportApi {
@@ -35,7 +36,7 @@ public class StubExportApi extends ExportApi {
   }
 
   @Override
-  public void downloadExportUpload(UUID id, String application, UUID resource, Object body) {
+  public void downloadExportUpload(UUID id, String application, UUID resource, File body) {
     // do nothing on purpose.
   }
 }

@@ -34,6 +34,8 @@ config/*
 !config/otel
 !config/rabbitmq
 !config/splunk
+!config/export-service
+config/export-service/tmp
 
 #VS Code
 .project

@@ -41,7 +41,8 @@ paths:
         content:
           application/json:
             schema:
-              type: object
+              type: string
+              format: binary
           application/csv:
             schema:
               type: string
