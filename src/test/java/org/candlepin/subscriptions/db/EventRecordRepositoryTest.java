@@ -27,6 +27,7 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.candlepin.subscriptions.db.model.EventKey;
@@ -227,18 +228,15 @@ class EventRecordRepositoryTest implements ExtendWithSwatchDatabase {
 
     repository.saveAllAndFlush(List.of(eventRecord1, eventRecord2, eventRecord3, eventRecord4));
 
-    List<EventRecord> match1 =
-        repository.findConflictingEvents(List.of(EventKey.fromEvent(event1)));
+    List<EventRecord> match1 = repository.findConflictingEvents(Set.of(EventKey.fromEvent(event1)));
     assertEquals(2, match1.size());
     assertTrue(match1.containsAll(List.of(eventRecord1, eventRecord2)));
 
-    List<EventRecord> match2 =
-        repository.findConflictingEvents(List.of(EventKey.fromEvent(event3)));
+    List<EventRecord> match2 = repository.findConflictingEvents(Set.of(EventKey.fromEvent(event3)));
     assertEquals(1, match2.size());
     assertTrue(match2.contains(eventRecord3));
 
-    List<EventRecord> match3 =
-        repository.findConflictingEvents(List.of(EventKey.fromEvent(event4)));
+    List<EventRecord> match3 = repository.findConflictingEvents(Set.of(EventKey.fromEvent(event4)));
     assertEquals(1, match3.size());
     assertTrue(match3.contains(eventRecord4));
   }

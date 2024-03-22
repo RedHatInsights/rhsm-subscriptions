@@ -22,7 +22,7 @@ package org.candlepin.subscriptions.db;
 
 import static org.hibernate.jpa.HibernateHints.HINT_FETCH_SIZE;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.Iterables;
 import jakarta.persistence.QueryHint;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -176,11 +176,11 @@ public interface EventRecordRepository
    * @param keys the {@link EventKey} to match on.
    * @return a list of conflicting events
    */
-  default List<EventRecord> findConflictingEvents(List<EventKey> keys) {
+  default List<EventRecord> findConflictingEvents(Set<EventKey> keys) {
     List<EventRecord> found = new ArrayList<>();
     // Partition the incoming keys to ensure we do not exceed the IN clause limit
     // for Postgres.
-    for (List<EventKey> nextBatch : Lists.partition(keys, Short.MAX_VALUE)) {
+    for (List<EventKey> nextBatch : Iterables.partition(keys, Short.MAX_VALUE)) {
       Set<String> matchingTuples =
           nextBatch.stream()
               .map(

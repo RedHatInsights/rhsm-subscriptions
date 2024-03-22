@@ -74,24 +74,23 @@ public class EventConflictResolver {
     this.resolvedEventMapper = resolvedEventMapper;
   }
 
-  public List<EventRecord> resolveIncomingEvents(List<Event> eventsToResolve) {
+  public List<EventRecord> resolveIncomingEvents(Map<EventKey, Event> eventsToResolve) {
     log.info("Resolving existing events for incoming batch.");
     Map<EventKey, List<EventRecord>> allConflicting = getConflictingEvents(eventsToResolve);
     // Nothing to resolve
     if (allConflicting.isEmpty()) {
       log.info("No conflicting incoming events in batch. Nothing to resolve.");
-      return eventsToResolve.stream().map(EventRecord::new).toList();
+      return eventsToResolve.values().stream().map(EventRecord::new).toList();
     }
 
     List<EventRecord> resolvedEvents = new LinkedList<>();
     eventsToResolve.forEach(
-        toResolve -> {
-          EventKey key = EventKey.fromEvent(toResolve);
+        (key, event) -> {
           if (!allConflicting.containsKey(key)) {
             // No conflict, include the incoming event.
-            resolvedEvents.add(new EventRecord(toResolve));
+            resolvedEvents.add(new EventRecord(event));
           } else {
-            resolvedEvents.addAll(resolveEventConflicts(toResolve, allConflicting.get(key)));
+            resolvedEvents.addAll(resolveEventConflicts(event, allConflicting.get(key)));
           }
         });
     return resolvedEvents;
@@ -147,9 +146,9 @@ public class EventConflictResolver {
     return resolved;
   }
 
-  private Map<EventKey, List<EventRecord>> getConflictingEvents(List<Event> incomingEvents) {
-    List<EventKey> eventKeys = incomingEvents.stream().map(EventKey::fromEvent).toList();
-    return eventRecordRepository.findConflictingEvents(eventKeys).stream()
+  private Map<EventKey, List<EventRecord>> getConflictingEvents(
+      Map<EventKey, Event> incomingEvents) {
+    return eventRecordRepository.findConflictingEvents(incomingEvents.keySet()).stream()
         .collect(Collectors.groupingBy(e -> EventKey.fromEvent(e.getEvent())));
   }
 

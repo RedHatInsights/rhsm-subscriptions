@@ -35,6 +35,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -179,14 +180,15 @@ public class EventController {
    */
   public void persistServiceInstances(List<String> eventJsonList)
       throws BatchListenerFailedException {
-
     ServiceInstancesResult result = parseServiceInstancesResult(eventJsonList);
+    Map<EventKey, Event> incomingEvents =
+        result.eventsMap.entrySet().stream()
+            .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().getKey()));
 
     try {
       if (!result.eventsMap.isEmpty()) {
         // Check to see if any of the incoming Events are in conflict and if so, resolve them.
-        List<EventRecord> resolved =
-            resolveEventConflicts(result.eventsMap.values().stream().map(Pair::getKey).toList());
+        List<EventRecord> resolved = resolveEventConflicts(incomingEvents);
         int updated = transactionHandler.runInNewTransaction(() -> repo.saveAll(resolved)).size();
         log.debug("Adding/Updating {} metric events", updated);
       }
@@ -221,7 +223,7 @@ public class EventController {
     }
   }
 
-  public List<EventRecord> resolveEventConflicts(List<Event> toResolve) {
+  public List<EventRecord> resolveEventConflicts(Map<EventKey, Event> toResolve) {
     return eventConflictResolver.resolveIncomingEvents(toResolve);
   }
 
