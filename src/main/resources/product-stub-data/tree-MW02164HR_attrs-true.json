@@ -1,0 +1,24 @@
+{
+  "products": [
+    {
+      "sku": "MW02164HR",
+      "description": "Red Hat Advanced Cluster Security Cloud Service, Premium (1 vCPU, Hourly, On-Demand, Billing)",
+      "status": "ACTIVE",
+      "attributes": [
+        {
+          "code": "SOCKET_LIMIT",
+          "value": "Unlimited"
+        },
+        {
+          "code": "SERVICE_TYPE",
+          "value": "Premium"
+        },
+        {
+          "code": "PRODUCT_NAME",
+          "value": "Advanced Cluster Security - Kubernetes"
+        }
+      ],
+      "roles": []
+    }
+  ]
+}
