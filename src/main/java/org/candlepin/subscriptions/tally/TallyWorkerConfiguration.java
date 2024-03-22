@@ -34,6 +34,8 @@ import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.inventory.db.InventoryDataSourceConfiguration;
 import org.candlepin.subscriptions.json.BillableUsage;
+import org.candlepin.subscriptions.json.EnabledOrgsRequest;
+import org.candlepin.subscriptions.json.EnabledOrgsResponse;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.product.ProductConfiguration;
 import org.candlepin.subscriptions.tally.billing.BillingProducerConfiguration;
@@ -107,6 +109,11 @@ import org.springframework.util.backoff.FixedBackOff;
           classes = AutoConfigurationExcludeFilter.class)
     })
 public class TallyWorkerConfiguration {
+
+  public static final String ENABLED_ORGS_TOPIC_PROPERTIES_BEAN = "enabledOrgsTopicProperties";
+  public static final String ENABLED_ORGS_CONSUMER_FACTORY_BEAN = "enabledOrgsConsumerFactory";
+  public static final String ENABLED_ORGS_KAFKA_LISTENER_CONTAINER_FACTORY_BEAN =
+      "kafkaEnabledOrgsListenerContainerFactory";
 
   @Bean
   public FactNormalizer factNormalizer(
@@ -297,6 +304,61 @@ public class TallyWorkerConfiguration {
   @ConfigurationProperties(prefix = "rhsm-subscriptions.billable-usage-dead-letter.incoming")
   public TaskQueueProperties billableUsageDeadLetterTopicProperties() {
     return new TaskQueueProperties();
+  }
+
+  @Bean
+  @Qualifier(ENABLED_ORGS_TOPIC_PROPERTIES_BEAN)
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.enabled-orgs.incoming")
+  public TaskQueueProperties enabledOrgsTopicProperties() {
+    return new TaskQueueProperties();
+  }
+
+  @Bean
+  @Qualifier(ENABLED_ORGS_CONSUMER_FACTORY_BEAN)
+  ConsumerFactory<String, EnabledOrgsRequest> enabledOrgsConsumerFactory(
+      ObjectMapper objectMapper,
+      KafkaProperties kafkaProperties,
+      @Qualifier(ENABLED_ORGS_TOPIC_PROPERTIES_BEAN)
+          TaskQueueProperties enabledOrgsTopicProperties) {
+    var props = kafkaProperties.buildConsumerProperties(null);
+    props.put(
+        ConsumerConfig.MAX_POLL_RECORDS_CONFIG, enabledOrgsTopicProperties.getMaxPollRecords());
+    var jsonDeserializer = new JsonDeserializer<>(EnabledOrgsRequest.class, objectMapper, false);
+    var factory =
+        new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), jsonDeserializer);
+    factory.setValueDeserializer(jsonDeserializer);
+    return factory;
+  }
+
+  @Bean
+  public KafkaTemplate<String, EnabledOrgsResponse> enabledOrgsKafkaTemplate(
+      KafkaProperties kafkaProperties) {
+    return new KafkaTemplate<>(
+        new DefaultKafkaProducerFactory<>(getProducerProperties(kafkaProperties)));
+  }
+
+  @Bean
+  @Qualifier(ENABLED_ORGS_KAFKA_LISTENER_CONTAINER_FACTORY_BEAN)
+  ConcurrentKafkaListenerContainerFactory<String, EnabledOrgsRequest>
+      kafkaEnabledOrgsListenerContainerFactory(
+          @Qualifier(ENABLED_ORGS_CONSUMER_FACTORY_BEAN)
+              ConsumerFactory<String, EnabledOrgsRequest> consumerFactory,
+          KafkaProperties kafkaProperties,
+          KafkaConsumerRegistry registry) {
+
+    var factory = new ConcurrentKafkaListenerContainerFactory<String, EnabledOrgsRequest>();
+    factory.setConsumerFactory(consumerFactory);
+    factory.setBatchListener(true);
+    // Concurrency should be set to the number of partitions for the target topic.
+    factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
+    if (kafkaProperties.getListener().getIdleEventInterval() != null) {
+      factory
+          .getContainerProperties()
+          .setIdleEventInterval(kafkaProperties.getListener().getIdleEventInterval().toMillis());
+    }
+    // hack to track the Kafka consumers, so SeekableKafkaConsumer can commit when needed
+    factory.getContainerProperties().setConsumerRebalanceListener(registry);
+    return factory;
   }
 
   @Bean
