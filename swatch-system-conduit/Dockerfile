@@ -30,7 +30,13 @@ COPY buildSrc buildSrc
 #RUN ./gradlew quarkusGoOffline
 
 COPY . .
-RUN ./gradlew assemble -x test
+ARG GRADLE_BUILD_ARGS=''
+ARG GRADLE_TASKS='assemble'
+RUN ./gradlew ${GRADLE_TASKS} -x test ${GRADLE_BUILD_ARGS}
+
+# See https://stackoverflow.com/a/786515
+RUN (cd /stage/swatch-system-conduit && exec jar -xf ./build/libs/*.jar)
+RUN ls -al /stage/swatch-system-conduit
 
 FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.18-1
 FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.17-1.1705573249
@@ -40,7 +46,13 @@ RUN microdnf \
     --enablerepo=ubi-9-baseos-rpms \
     install -y tar rsync
 
+COPY --from=0 /stage/swatch-system-conduit/BOOT-INF/lib /deployments/lib
+COPY --from=0 /stage/swatch-system-conduit/META-INF /deployments/META-INF
+COPY --from=0 /stage/swatch-system-conduit/BOOT-INF/classes /deployments/
+
+COPY --from=0 /stage/swatch-system-conduit/build/javaagent/* /opt/
+RUN chmod -R g=u /deployments
+
 USER default
-COPY --from=0 /stage/swatch-system-conduit/build/libs/ /deployments/
-COPY --from=0 /stage/swatch-system-conduit/build/javaagent/ /opt/
-ENV JAVA_OPTS_APPEND=-javaagent:/opt/splunk-otel-javaagent.jar
+ENV JAVA_MAIN_CLASS=org.candlepin.subscriptions.SystemConduitApplication
+ENV JAVA_LIB_DIR=/deployments/lib/*
