@@ -34,14 +34,14 @@ class GradleWatcher(StreamWatcher):
             empty list (even when items are appended successfully during the submit
             method).
         """
-        # TODO: precompile the keys into regex objects
         super(GradleWatcher, self).__init__()
-        self.pattern = pattern
+        # re.S makes the dot operator match newline also
+        self.pattern = re.compile(pattern, re.S)
         self.results = results
         self.index = 0
 
     def pattern_matches(
-        self, stream: str, pattern: str, index_attr: str
+        self, stream: str, pattern: re.Pattern, index_attr: str
     ) -> t.Iterable[str]:
         """
         Generic "search for pattern in stream, using index" behavior.
@@ -52,13 +52,12 @@ class GradleWatcher(StreamWatcher):
         :returns: An iterable of string matches.
 
         """
-        # NOTE: generifies scanning so it can be used to scan for >1 pattern at
+        # NOTE: generifies scanning, so it can be used to scan for >1 pattern at
         # once, e.g. in FailingResponder.
         # Only look at stream contents we haven't seen yet, to avoid dupes.
         index = getattr(self, index_attr)
         new = stream[index:]
-        # Search, across lines if necessary
-        matches = re.findall(pattern, new, re.S)
+        matches = pattern.findall(new)
         # Update seek index if we've matched
         if matches:
             setattr(self, index_attr, index + len(new))
@@ -110,8 +109,8 @@ def deploy(ctx, clean: bool, pod_prefix: str, project: str, container: str):
         sys.exit(1)
 
     project_root = ctx.obj["project_root"]
-    project: str = choose_project(project_root, selection=project)
-    rsync_dir: str = build_project(project, project_root, clean)
+    project_selection: str = choose_project(project_root, selection=project)
+    rsync_dir: str = build_project(project_selection, project_root, clean)
     deployment_selector: openshift.Selector = choose_pods(pod_prefix)
     sync_code(rsync_dir, deployment_selector, container)
 
@@ -139,9 +138,7 @@ def build_project(project: str, project_root: str, clean: bool) -> str:
             # commit during your development, your JAR suddenly has a different name
             # and instead of replacing the old JAR, the rsync will just copy the new JAR
             # alongside the old one and no hot reload will occur.
-            c.run(
-                f"./gradlew {clean_arg} snapshot {project}:assemble {build_args}"
-            )
+            c.run(f"./gradlew {clean_arg} snapshot {project}:assemble {build_args}")
         except UnexpectedExit as e:
             err("Build failed")
             sys.exit(e.result.exited)
@@ -191,7 +188,7 @@ def spring_rsync_source(build_dir: str) -> str:
 
 def quarkus_rsync_source(build_dir: str) -> str:
     rsync_dir = os.path.join(build_dir, "quarkus-app")
-    # See comment in spring_rsync_source for while the trailing slash is imperative
+    # See comment in spring_rsync_source for why the trailing slash is imperative
     return f"{rsync_dir}{os.path.sep}"
 
 
@@ -222,13 +219,13 @@ def choose_project(project_root: str, selection: str) -> str:
 
 
 def sync_code(rsync_dir, deployment_selector, container):
-    # oc cp/rsync deployable to /deployments*
-    # Need to also handle container name selection from the pod
-
     for pod in deployment_selector.objects():
         if container:
             dest_container = container
         else:
+            # This is not my favorite way to figure out what container to deploy to
+            # Is there some more concrete way we can tag our containers to denote which
+            # one is the "main" container and which are the sidecars?
             containers: t.List = [
                 p.name
                 for p in pod.model.spec.containers
@@ -247,7 +244,7 @@ def sync_code(rsync_dir, deployment_selector, container):
         #   operations.  Would definitely want --delete=false on for that
         # NB: if you add non-long form options be sure to use two strings.
         # E.g. ["-x", "something"] and not ["-x something"]
-        info(f"Syncing code to {container} in {pod.name()}")
+        info(f"Syncing code to {dest_container} in {pod.name()}")
         rsync_args = [
             "--no-perms=true",
             # TODO need to handle deleting a class file properly. Right now
