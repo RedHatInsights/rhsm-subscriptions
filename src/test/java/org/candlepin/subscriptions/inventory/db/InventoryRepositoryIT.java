@@ -36,11 +36,15 @@ import org.candlepin.subscriptions.inventory.db.model.InventoryHostFacts;
 import org.candlepin.subscriptions.test.ExtendWithInventoryService;
 import org.candlepin.subscriptions.test.ExtendWithSwatchDatabase;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
+@Disabled(
+    value =
+        "The quay inventory DB repository is private and the Jenkins instance is not logged into Quay.io")
 @SpringBootTest
 @ActiveProfiles(value = {"worker"})
 class InventoryRepositoryIT implements ExtendWithInventoryService, ExtendWithSwatchDatabase {
