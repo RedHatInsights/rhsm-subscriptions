@@ -34,6 +34,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.ProcessingException;
 import java.time.OffsetDateTime;
 import lombok.extern.slf4j.Slf4j;
+import org.jboss.resteasy.reactive.common.NotImplementedYet;
 
 @Slf4j
 @ApplicationScoped
@@ -52,6 +53,6 @@ public class CapacityResource implements CapacityApi {
       ServiceLevelType sla,
       UsageType usage)
       throws ApiException, ProcessingException {
-    throw new UnsupportedOperationException("Not yet implemented");
+    throw new NotImplementedYet();
   }
 }
