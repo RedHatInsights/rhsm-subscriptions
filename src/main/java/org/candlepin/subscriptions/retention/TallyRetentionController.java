@@ -22,59 +22,44 @@ package org.candlepin.subscriptions.retention;
 
 import io.micrometer.core.annotation.Timed;
 import java.time.OffsetDateTime;
-import java.util.stream.Stream;
-import org.candlepin.subscriptions.db.OrgConfigRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 /** Cleans up stale tally snapshots for an account. */
+@Slf4j
 @Component
 public class TallyRetentionController {
-  private static final Logger log = LoggerFactory.getLogger(TallyRetentionController.class);
 
   private final TallySnapshotRepository tallySnapshotRepository;
-  private final OrgConfigRepository orgConfigRepository;
   private final TallyRetentionPolicy policy;
 
   @Autowired
   public TallyRetentionController(
-      TallySnapshotRepository tallySnapshotRepository,
-      OrgConfigRepository orgConfigRepository,
-      TallyRetentionPolicy policy) {
+      TallySnapshotRepository tallySnapshotRepository, TallyRetentionPolicy policy) {
     this.tallySnapshotRepository = tallySnapshotRepository;
-    this.orgConfigRepository = orgConfigRepository;
     this.policy = policy;
   }
 
   @Timed("rhsm-subscriptions.snapshots.purge")
   @Async("purgeTallySnapshotsJobExecutor")
-  @Transactional
   public void purgeSnapshotsAsync() {
     try {
       log.info("Starting tally snapshot purge.");
-      try (Stream<String> orgList = orgConfigRepository.findSyncEnabledOrgs()) {
-        orgList.forEach(this::cleanStaleSnapshotsForOrgId);
+      for (Granularity granularity : Granularity.values()) {
+        OffsetDateTime cutoffDate = policy.getCutoffDate(granularity);
+        if (cutoffDate == null) {
+          continue;
+        }
+        tallySnapshotRepository.deleteAllByGranularityAndSnapshotDateBefore(
+            granularity, cutoffDate);
       }
       log.info("Tally snapshot purge completed successfully.");
     } catch (Exception e) {
       log.error("Unable to purge tally snapshots: {}", e.getMessage());
-    }
-  }
-
-  public void cleanStaleSnapshotsForOrgId(String orgId) {
-    for (Granularity granularity : Granularity.values()) {
-      OffsetDateTime cutoffDate = policy.getCutoffDate(granularity);
-      if (cutoffDate == null) {
-        continue;
-      }
-      tallySnapshotRepository.deleteAllByOrgIdAndGranularityAndSnapshotDateBefore(
-          orgId, granularity, cutoffDate);
     }
   }
 }

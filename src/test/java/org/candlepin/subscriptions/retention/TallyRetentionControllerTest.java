@@ -20,21 +20,35 @@
  */
 package org.candlepin.subscriptions.retention;
 
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
-import java.time.Instant;
+import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.util.Arrays;
-import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
+import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
+import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
+import org.candlepin.subscriptions.db.model.TallySnapshot;
+import org.candlepin.subscriptions.db.model.config.OptInType;
+import org.candlepin.subscriptions.db.model.config.OrgConfig;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -48,40 +62,82 @@ class TallyRetentionControllerTest {
   }
 
   @MockBean private TallyRetentionPolicy policy;
-  @MockBean private TallySnapshotRepository repository;
-  @MockBean private OrgConfigRepository orgConfigRepository;
-
+  @SpyBean private TallySnapshotRepository repository;
+  @Autowired private OrgConfigRepository orgConfigRepository;
   @Autowired private TallyRetentionController controller;
 
+  @BeforeEach
+  void setup() {
+    reset(repository);
+  }
+
   @Test
-  void retentionControllerShouldRemoveSnapshotsForGranularitiesConfigured() throws Exception {
-    OffsetDateTime cutoff = OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
-    when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(cutoff);
-    controller.cleanStaleSnapshotsForOrgId("123456");
-    verify(repository)
-        .deleteAllByOrgIdAndGranularityAndSnapshotDateBefore("123456", Granularity.DAILY, cutoff);
+  void retentionControllerShouldRemoveSnapshotsForGranularitiesConfigured() {
+    OffsetDateTime cutoff = givenCutoffDateForGranularity(Granularity.DAILY);
+    controller.purgeSnapshotsAsync();
+    verify(repository).deleteAllByGranularityAndSnapshotDateBefore(Granularity.DAILY, cutoff);
     verifyNoMoreInteractions(repository);
   }
 
   @Test
-  void retentionControllerShouldIgnoreGranularityWithoutCutoff() throws Exception {
-    when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(null);
-    controller.cleanStaleSnapshotsForOrgId("123456");
+  void retentionControllerShouldIgnoreGranularityWithoutCutoff() {
+    when(policy.getCutoffDate(any())).thenReturn(null);
+    controller.purgeSnapshotsAsync();
     verifyNoInteractions(repository);
   }
 
   @Test
-  void testPurgeSnapshots() throws Exception {
-    OffsetDateTime cutoff = OffsetDateTime.ofInstant(Instant.EPOCH, ZoneId.systemDefault());
-    when(policy.getCutoffDate(Granularity.DAILY)).thenReturn(cutoff);
+  void testPurgeSnapshots() {
+    givenCutoffDateForAllGranularity();
 
-    List<String> testList = Arrays.asList("1", "2", "3", "4");
-    when(orgConfigRepository.findSyncEnabledOrgs()).thenReturn(testList.stream());
-
+    givenOrganization("1", "2", "3");
+    givenSnapshotForOrganization("1");
+    givenSnapshotForOrganization("3");
     controller.purgeSnapshotsAsync();
+    assertEquals(0, repository.count());
+    verify(repository, times(Granularity.values().length))
+        .deleteAllByGranularityAndSnapshotDateBefore(any(), any());
+  }
 
-    verify(repository, times(4))
-        .deleteAllByOrgIdAndGranularityAndSnapshotDateBefore(
-            anyString(), eq(Granularity.DAILY), eq(cutoff));
+  private void givenCutoffDateForAllGranularity() {
+    for (var granularity : Granularity.values()) {
+      givenCutoffDateForGranularity(granularity);
+    }
+  }
+
+  private OffsetDateTime givenCutoffDateForGranularity(Granularity granularity) {
+    OffsetDateTime cutoff = OffsetDateTime.now();
+    when(policy.getCutoffDate(granularity)).thenReturn(cutoff);
+    return cutoff;
+  }
+
+  private void givenSnapshotForOrganization(String orgId) {
+    TallySnapshot snapshot = new TallySnapshot();
+    snapshot.setOrgId(orgId);
+    snapshot.setSnapshotDate(OffsetDateTime.now().minusYears(1));
+    snapshot.setBillingAccountId(UUID.randomUUID().toString());
+    snapshot.setTallyMeasurements(
+        Map.of(
+            new TallyMeasurementKey(
+                HardwareMeasurementType.AWS, MetricIdUtils.getCores().toString()),
+            1.0));
+    for (var granularity : Granularity.values()) {
+      snapshot.setId(UUID.randomUUID());
+      snapshot.setGranularity(granularity);
+      repository.save(snapshot);
+    }
+  }
+
+  private void givenOrganization(String... orgIds) {
+    Stream.of(orgIds)
+        .forEach(
+            orgId -> {
+              OrgConfig org = new OrgConfig();
+              org.setOrgId(orgId);
+              org.setOptInType(OptInType.API);
+              org.setCreated(OffsetDateTime.now());
+              org.setUpdated(OffsetDateTime.now());
+              orgConfigRepository.save(org);
+            });
   }
 }
