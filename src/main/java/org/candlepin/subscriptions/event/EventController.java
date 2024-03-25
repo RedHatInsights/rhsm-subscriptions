@@ -194,22 +194,23 @@ public class EventController {
       }
     } catch (Exception saveAllException) {
       log.warn("Failed to save events. Retrying individually {} events.", result.eventsMap.size());
-      result
-          .eventsMap
-          .values()
-          .forEach(
-              eventIndexPair -> {
-                try {
-                  transactionHandler.runInNewTransaction(() -> save(eventIndexPair.getKey()));
-                } catch (Exception individualSaveException) {
-                  log.warn(
-                      "Failed to save individual event record: {} with error {}.",
-                      eventIndexPair.getKey(),
-                      ExceptionUtils.getStackTrace(individualSaveException));
-                  throw new BatchListenerFailedException(
-                      individualSaveException.getMessage(), eventIndexPair.getValue());
-                }
-              });
+      result.eventsMap.forEach(
+          (eventKey, eventIndexPair) -> {
+            try {
+              transactionHandler.runInNewTransaction(
+                  () ->
+                      repo.saveAll(
+                          eventConflictResolver.resolveIncomingEvents(
+                              Map.of(eventKey, eventIndexPair.getKey()))));
+            } catch (Exception individualSaveException) {
+              log.warn(
+                  "Failed to save individual event record: {} with error {}.",
+                  eventIndexPair.getKey(),
+                  ExceptionUtils.getStackTrace(individualSaveException));
+              throw new BatchListenerFailedException(
+                  individualSaveException.getMessage(), eventIndexPair.getValue());
+            }
+          });
     }
 
     if (result

@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -306,34 +307,57 @@ class EventControllerTest {
   }
 
   @Test
-  void testPersistServiceInstances_SuccessfullyRetryFailedEventSave() {
+  void testPersistServiceInstances_SuccessfullyRetryFailedEventSave() throws Exception {
     List<String> eventRecords = new ArrayList<>();
     eventRecords.add(eventRecord1);
     eventRecords.add(eventRecord2);
     eventRecords.add(eventRecord5);
 
-    when(eventRecordRepository.saveAll(any())).thenThrow(new RuntimeException());
-    when(eventRecordRepository.save(any())).thenReturn(new EventRecord());
+    EventRecord record1 = new EventRecord(mapper.readValue(eventRecord1, Event.class));
+    EventRecord record2 = new EventRecord(mapper.readValue(eventRecord2, Event.class));
+    EventRecord record5 = new EventRecord(mapper.readValue(eventRecord5, Event.class));
+
+    List<EventRecord> failedEventList = List.of(record1, record2, record5);
+    List<EventRecord> event1List = List.of(record1);
+    List<EventRecord> event2List = List.of(record2);
+    List<EventRecord> event5List = List.of(record5);
+
+    when(eventRecordRepository.saveAll(failedEventList)).thenThrow(new RuntimeException());
+    when(eventRecordRepository.saveAll(event1List)).thenReturn(event1List);
+    when(eventRecordRepository.saveAll(event2List)).thenReturn(event2List);
+    when(eventRecordRepository.saveAll(event5List)).thenReturn(event5List);
 
     // Error is caught and retry saving events individually.
     eventController.persistServiceInstances(eventRecords);
 
     // Since saveAll threw an Error we should try saving all records individually
-    verify(eventRecordRepository, times(3)).save(any());
+    verify(eventRecordRepository, times(4)).saveAll(any());
+    verify(eventRecordRepository).saveAll(failedEventList);
+    verify(eventRecordRepository).saveAll(event1List);
+    verify(eventRecordRepository).saveAll(event2List);
+    verify(eventRecordRepository).saveAll(event5List);
   }
 
   @Test
-  void testPersistServiceInstances_RetryFailedEventsSavesUntilError() {
+  void testPersistServiceInstances_RetryFailedEventsSavesUntilError() throws Exception {
     List<String> eventRecords = new ArrayList<>();
     eventRecords.add(eventRecord1);
     eventRecords.add(eventRecord2);
     eventRecords.add(eventRecord5);
 
-    when(eventRecordRepository.saveAll(any())).thenThrow(new RuntimeException());
-    when(eventRecordRepository.save(any()))
-        .thenReturn(new EventRecord())
-        // Throw an exception on the second record we try to save
-        .thenThrow(new RuntimeException());
+    EventRecord record1 = new EventRecord(mapper.readValue(eventRecord1, Event.class));
+    EventRecord record2 = new EventRecord(mapper.readValue(eventRecord2, Event.class));
+    EventRecord record5 = new EventRecord(mapper.readValue(eventRecord5, Event.class));
+
+    List<EventRecord> failedEventList = List.of(record1, record2, record5);
+    List<EventRecord> event1List = List.of(record1);
+    List<EventRecord> event2List = List.of(record2);
+    List<EventRecord> event5List = List.of(record5);
+
+    when(eventRecordRepository.saveAll(failedEventList)).thenThrow(new RuntimeException());
+    when(eventRecordRepository.saveAll(event1List)).thenReturn(event1List);
+    // Throw an exception on the second record we try to save
+    when(eventRecordRepository.saveAll(event2List)).thenThrow(new RuntimeException());
 
     // First is caught and retry saving events individually. Second exception is raised as
     // BatchListenerFailedException
@@ -344,8 +368,13 @@ class EventControllerTest {
 
     // Index should be 1 since we want to retry failed second event in this case
     assertEquals(1, exception.getIndex());
+
     // Last event is never attempted to save since second event fails
-    verify(eventRecordRepository, times(2)).save(any());
+    verify(eventRecordRepository, times(3)).saveAll(any());
+    verify(eventRecordRepository).saveAll(failedEventList);
+    verify(eventRecordRepository).saveAll(event1List);
+    verify(eventRecordRepository).saveAll(event2List);
+    verify(eventRecordRepository, never()).saveAll(event5List);
   }
 
   @Test
