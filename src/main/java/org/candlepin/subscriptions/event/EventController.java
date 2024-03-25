@@ -131,17 +131,6 @@ public class EventController {
   }
 
   /**
-   * Validates and saves a list of event JSON objects in the DB.
-   *
-   * @param events the event JSON objects to save.
-   */
-  public List<Event> saveAll(Collection<Event> events) {
-    return saveAllEventRecords(events.stream().map(EventRecord::new).toList()).stream()
-        .map(EventRecord::getEvent)
-        .toList();
-  }
-
-  /**
    * Save the collection of EventRecord to the DB.
    *
    * @param events the event records to save.
