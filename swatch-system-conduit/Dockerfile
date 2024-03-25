@@ -39,7 +39,6 @@ RUN (cd /stage/swatch-system-conduit && exec jar -xf ./build/libs/*.jar)
 RUN ls -al /stage/swatch-system-conduit
 
 FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.18-1
-FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.17-1.1705573249
 USER root
 RUN microdnf \
     --disablerepo=* \
