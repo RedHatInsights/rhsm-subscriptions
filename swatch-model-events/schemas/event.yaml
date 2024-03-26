@@ -1,8 +1,28 @@
 $schema: http://json-schema.org/draft-07/schema#
 title: Event
-extends:
-  $ref: base_event.yaml
 properties:
+  event_source:
+    description: Identifier for the system that captured the event.
+    type: string
+    required: true
+  event_type:
+    description: Source-specific identifier for the type of event we use lower Kebab case (e.g. snapshot, delete, descriptive-variable-name). This allows
+      the source to encode a special semantic for the event.
+    type: string
+    required: true
+  org_id:
+    description: Organization identifier associated with this event.
+    type: string
+    required: true
+  instance_id:
+    description: Primary identifier for the instance of the service, according to the event producer.
+    type: string
+    required: true
+  metering_batch_id:
+    description: Metering batch ID that identifies which process generated the event.
+    type: string
+    format: uuid
+    required: false
   event_id:
     description: UUID for the event, will be generated upon ingestion if not specified.
     type: string

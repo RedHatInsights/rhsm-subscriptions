@@ -44,7 +44,6 @@ import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.config.OptInType;
-import org.candlepin.subscriptions.json.BaseEvent;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.BillingProvider;
 import org.candlepin.subscriptions.json.Measurement;
@@ -222,28 +221,25 @@ public class EventController {
     LinkedHashMap<String, Integer> eventIndexMap = mapEventsToBatchIndex(eventJsonList);
     for (Entry<String, Integer> eventIndex : eventIndexMap.entrySet()) {
       try {
-        BaseEvent baseEvent = objectMapper.readValue(eventIndex.getKey(), BaseEvent.class);
-        if (!EXCLUDE_LOG_FOR_EVENT_SOURCES.contains(baseEvent.getEventSource())) {
+        Event eventToProcess = objectMapper.readValue(eventIndex.getKey(), Event.class);
+        if (!EXCLUDE_LOG_FOR_EVENT_SOURCES.contains(eventToProcess.getEventSource())) {
           log.info("Event processing in batch: " + eventIndex.getKey());
         }
-        if (StringUtils.hasText(baseEvent.getOrgId())) {
+
+        if (StringUtils.hasText(eventToProcess.getOrgId())) {
           log.debug(
-              "Ensuring orgId={} has been set up for syncing/reporting.", baseEvent.getOrgId());
-          ensureOptIn(baseEvent.getOrgId());
+              "Ensuring orgId={} has been set up for syncing/reporting.",
+              eventToProcess.getOrgId());
+          ensureOptIn(eventToProcess.getOrgId());
         }
 
-        if (baseEvent instanceof Event eventToSave) {
-          if (BillingProvider.AZURE.equals(eventToSave.getBillingProvider())) {
-            setAzureBillingAccountId(eventToSave);
-          }
-          validateServiceInstanceEvent(eventToSave);
-          enrichServiceInstanceFromIncomingFeed(eventToSave);
-          result.addEvent(eventToSave, eventIndex.getValue());
-        } else {
-          log.warn(
-              "Unexpected BaseEvent sent for service instance and will be ignored: {}", baseEvent);
+        if (BillingProvider.AZURE.equals(eventToProcess.getBillingProvider())) {
+          setAzureBillingAccountId(eventToProcess);
         }
 
+        validateServiceInstanceEvent(eventToProcess);
+        enrichServiceInstanceFromIncomingFeed(eventToProcess);
+        result.addEvent(eventToProcess, eventIndex.getValue());
       } catch (Exception e) {
         log.warn(
             "Issue found {} for the service instance json {} skipping to next: {}",

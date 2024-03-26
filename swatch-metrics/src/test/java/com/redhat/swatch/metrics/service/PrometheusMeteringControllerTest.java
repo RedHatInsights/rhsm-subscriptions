@@ -55,7 +55,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.json.BaseEvent;
 import org.candlepin.subscriptions.json.Event;
 import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.BeforeEach;
@@ -97,7 +96,7 @@ class PrometheusMeteringControllerTest {
   @InjectPrometheus PrometheusQueryWiremock prometheusServer;
   @Inject @Any InMemoryConnector connector;
 
-  private InMemorySink<BaseEvent> results;
+  private InMemorySink<Event> results;
   private QueryHelper queries;
 
   @BeforeEach
@@ -207,7 +206,7 @@ class PrometheusMeteringControllerTest {
     OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = start.plusDays(1);
 
-    List<BaseEvent> expectedEvents =
+    List<Event> expectedEvents =
         List.of(
             MeteringEventFactory.createMetricEvent(
                 expectedOrgId,
@@ -296,7 +295,7 @@ class PrometheusMeteringControllerTest {
             List.of(),
             expectedDisplayName);
 
-    List<BaseEvent> expectedEvents =
+    List<Event> expectedEvents =
         List.of(
             updatedEvent,
             MeteringEventFactory.createMetricEvent(
@@ -376,7 +375,7 @@ class PrometheusMeteringControllerTest {
             List.of(),
             expectedClusterId);
 
-    List<BaseEvent> expectedEvents = List.of(updatedEvent);
+    List<Event> expectedEvents = List.of(updatedEvent);
     whenCollectMetrics(start, end);
     assertEquals(expectedEvents.size(), results.received().size());
 
@@ -411,7 +410,7 @@ class PrometheusMeteringControllerTest {
     OffsetDateTime start = clock.startOfCurrentHour();
     OffsetDateTime end = start.plusDays(1);
 
-    List<BaseEvent> expectedEvents =
+    List<Event> expectedEvents =
         List.of(
             MeteringEventFactory.createMetricEvent(
                 expectedOrgId,
