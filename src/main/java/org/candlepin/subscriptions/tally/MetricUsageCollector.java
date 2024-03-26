@@ -295,6 +295,7 @@ public class MetricUsageCollector {
 
   private void addBucketsFromEvent(Host host, Event event) {
     Set<List<Object>> bucketTuples = buildBucketTuples(event);
+    Set<HostBucketKey> activeHostBucketKeys = new HashSet<>();
     bucketTuples.forEach(
         tuple -> {
           String productId = (String) tuple.get(0);
@@ -313,7 +314,7 @@ public class MetricUsageCollector {
                   .orElse(null);
 
           HostTallyBucket bucket = new HostTallyBucket();
-          bucket.setKey(
+          var key =
               new HostBucketKey(
                   host,
                   productId,
@@ -321,11 +322,14 @@ public class MetricUsageCollector {
                   usageBucket,
                   billingProvider,
                   billingAccountId,
-                  false));
+                  false);
+          bucket.setKey(key);
+          activeHostBucketKeys.add(key);
           bucket.setCores(cores);
           bucket.setSockets(sockets);
           host.addBucket(bucket);
         });
+    host.getBuckets().removeIf(bucket -> !activeHostBucketKeys.contains(bucket.getKey()));
   }
 
   private void updateUsage(AccountUsageCalculation calc, Event event) {

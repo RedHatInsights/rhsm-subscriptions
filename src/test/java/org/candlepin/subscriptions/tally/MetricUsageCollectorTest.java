@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
@@ -925,6 +926,40 @@ class MetricUsageCollectorTest {
             .getCalculation(usageCalculationKey)
             .getTotals(HardwareMeasurementType.PHYSICAL)
             .getMeasurement(MetricIdUtils.getCores()));
+  }
+
+  @Test
+  void testRemovesStaleBuckets() {
+    var host = new Host();
+    host.setInstanceId("instanceId");
+    when(hostRepository.findAllByOrgIdAndInstanceIdIn(any(), any()))
+        .thenAnswer(i -> Stream.of(host));
+    for (var value : Set.of(1, 2)) {
+      var billingAccountId = "billingAccount" + value;
+      Measurement measurement =
+          new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue((double) value);
+      Event event =
+          createEvent()
+              .withEventId(UUID.randomUUID())
+              .withInstanceId("instanceId")
+              .withRole(Event.Role.OSD)
+              .withProductTag(Set.of(OSD_PRODUCT_TAG))
+              .withTimestamp(OffsetDateTime.parse("2021-02-26T00:00:00Z").plusHours(value))
+              .withServiceType(SERVICE_TYPE)
+              .withMeasurements(Collections.singletonList(measurement))
+              .withSla(Event.Sla.PREMIUM)
+              .withBillingProvider(Event.BillingProvider.RED_HAT)
+              .withBillingAccountId(Optional.of(billingAccountId));
+      metricUsageCollector.updateHosts("org123", "serviceType", List.of(event));
+      var expectedBillingAccountIds = Set.of(billingAccountId, "_ANY");
+      // This shows that the instance has only a single billing account id in its buckets
+      var hostBucketBillingAccountIds =
+          host.getBuckets().stream()
+              .map(HostTallyBucket::getKey)
+              .map(HostBucketKey::getBillingAccountId)
+              .collect(Collectors.toSet());
+      assertEquals(expectedBillingAccountIds, hostBucketBillingAccountIds);
+    }
   }
 
   private static Event createEvent() {
