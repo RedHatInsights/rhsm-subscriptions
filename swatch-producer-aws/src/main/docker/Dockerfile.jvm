@@ -107,7 +107,9 @@ COPY buildSrc buildSrc
 #RUN ./gradlew quarkusGoOffline
 
 COPY . .
-RUN ./gradlew assemble -x test
+ARG GRADLE_BUILD_ARGS=''
+ARG GRADLE_TASKS='assemble'
+RUN ./gradlew ${GRADLE_TASKS} -x test ${GRADLE_BUILD_ARGS}
 
 FROM registry.access.redhat.com/ubi9/openjdk-17-runtime:1.18-1
 USER root
@@ -116,18 +118,23 @@ RUN microdnf \
     --enablerepo=ubi-9-baseos-rpms \
     install -y tar rsync
 
+# Used by Quarkus dev mode
+RUN chown default:root /deployments
+
 USER default
 ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en'
 
 # We make four distinct layers so if there are application changes the library layers can be re-used
-COPY --from=0 --chown=185 /stage/swatch-producer-aws/build/quarkus-app/lib/ /deployments/lib/
-COPY --from=0 --chown=185 /stage/swatch-producer-aws/build/quarkus-app/*.jar /deployments/
-COPY --from=0 --chown=185 /stage/swatch-producer-aws/build/quarkus-app/app/ /deployments/app/
-COPY --from=0 --chown=185 /stage/swatch-producer-aws/build/quarkus-app/quarkus/ /deployments/quarkus/
+COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-producer-aws/build/quarkus-app/lib/ /deployments/lib/
+COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-producer-aws/build/quarkus-app/*.jar /deployments/
+COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-producer-aws/build/quarkus-app/app/ /deployments/app/
+COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-producer-aws/build/quarkus-app/quarkus/ /deployments/quarkus/
+
+# Used by Quarkus dev mode
+RUN chmod 775 /deployments /deployments/*
 
 EXPOSE 8080
 
 ENV AB_JOLOKIA_OFF=""
 ENV JAVA_OPTS_APPEND="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
 ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
-

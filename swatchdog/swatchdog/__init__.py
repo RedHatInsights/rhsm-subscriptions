@@ -42,13 +42,13 @@ def err(msg):
 
 
 class SwatchDogInvokeConfig(Config):
-    prefix = "swatchdog"
-    env_prefix = "SWATCHDOG"
+    prefix: str = "swatchdog"
+    env_prefix: str = "SWATCHDOG"
 
     @staticmethod
-    def global_defaults():
-        their_defaults = Config.global_defaults()
-        my_defaults = {
+    def global_defaults() -> t.Dict[str, t.Any]:
+        their_defaults: t.Dict[str, t.Any] = Config.global_defaults()
+        my_defaults: t.Dict[str, t.Any] = {
             "run": {
                 "echo": True,
             },

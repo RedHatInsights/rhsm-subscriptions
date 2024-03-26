@@ -7,6 +7,8 @@ parameters:
   - name: JAVA_DEBUG
     # Set to "true" to enable remote debugging
     value: ''
+  - name: JAVA_OPTS_APPEND
+    value: ''
   - name: TOLERATE_MISSING_ACCOUNT_NUMBER
     value: 'false'
   - name: LOGGING_LEVEL_ROOT
@@ -200,6 +202,8 @@ objects:
           env:
             - name: JAVA_DEBUG
               value: ${JAVA_DEBUG}
+            - name: JAVA_OPTS_APPEND
+              value: -javaagent:/opt/splunk-otel-javaagent.jar ${JAVA_OPTS_APPEND}
             - name: SPRING_LIQUIBASE_ENABLED
               value: 'false'
             - name: ENABLE_SPLUNK_HEC

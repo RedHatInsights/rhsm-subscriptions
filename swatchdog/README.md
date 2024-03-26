@@ -37,3 +37,22 @@ Options:
 * `--container`: The container within the pod to deploy to.  Useful because some
   of our pods use sidecars.
 
+## Resolving Conflicts
+If you get a merge conflict in `poetry.lock` (generally due to Dependabot
+updating a dependency), then do the following:
+
+```shell
+git restore --staged --worktree poetry.lock
+poetry lock --no-update
+```
+
+When rebasing a feature branch on main, this preserves pins from the main
+branch, and recomputes pins for your feature branch. You would then follow up
+with these commands to continue the rebase:
+
+```shell
+git add poetry.lock
+git rebase --continue
+```
+
+Reprinted from [here](https://github.com/python-poetry/poetry/issues/496#issuecomment-738680177)

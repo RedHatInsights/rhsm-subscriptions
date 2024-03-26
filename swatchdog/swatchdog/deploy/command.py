@@ -34,14 +34,14 @@ class GradleWatcher(StreamWatcher):
             empty list (even when items are appended successfully during the submit
             method).
         """
-        # TODO: precompile the keys into regex objects
         super(GradleWatcher, self).__init__()
-        self.pattern = pattern
+        # re.S makes the dot operator match newline also
+        self.pattern = re.compile(pattern, re.S)
         self.results = results
         self.index = 0
 
     def pattern_matches(
-        self, stream: str, pattern: str, index_attr: str
+        self, stream: str, pattern: re.Pattern, index_attr: str
     ) -> t.Iterable[str]:
         """
         Generic "search for pattern in stream, using index" behavior.
@@ -52,13 +52,12 @@ class GradleWatcher(StreamWatcher):
         :returns: An iterable of string matches.
 
         """
-        # NOTE: generifies scanning so it can be used to scan for >1 pattern at
+        # NOTE: generifies scanning, so it can be used to scan for >1 pattern at
         # once, e.g. in FailingResponder.
         # Only look at stream contents we haven't seen yet, to avoid dupes.
         index = getattr(self, index_attr)
         new = stream[index:]
-        # Search, across lines if necessary
-        matches = re.findall(pattern, new, re.S)
+        matches = pattern.findall(new)
         # Update seek index if we've matched
         if matches:
             setattr(self, index_attr, index + len(new))
@@ -97,7 +96,7 @@ def ee(ctx, swatch: SwatchContext, ee_token: str):
 
 @ee.command()
 @click.option("--clean/--no-clean", default=True)
-@click.option("-p", "--pod-prefix", type=str)
+@click.option("--pod-prefix", type=str)
 @click.option("--project", type=str)
 @click.option("--container", type=str)
 @click.pass_context
@@ -110,8 +109,8 @@ def deploy(ctx, clean: bool, pod_prefix: str, project: str, container: str):
         sys.exit(1)
 
     project_root = ctx.obj["project_root"]
-    project: str = choose_project(project_root, selection=project)
-    rsync_dir: str = build_project(project, project_root, clean)
+    project_selection: str = choose_project(project_root, selection=project)
+    rsync_dir: str = build_project(project_selection, project_root, clean)
     deployment_selector: openshift.Selector = choose_pods(pod_prefix)
     sync_code(rsync_dir, deployment_selector, container)
 
@@ -127,7 +126,19 @@ def build_project(project: str, project_root: str, clean: bool) -> str:
         info("Running build")
         # Compile the class files
         try:
-            c.run(f"./gradlew {clean_arg} {project}:classes")
+            # The mutable-jar is what allows for the reloading capability in quarkus.
+            # The quarkus apps images have to be built as mutable jars for the reloading
+            # to work in the first place.  That can be done using the Podman build
+            # arg --build-arg=GRADLE_BUILD_ARGS=-Dquarkus.package.type=mutable-jar
+            build_args = "-Dquarkus.package.type=mutable-jar"
+
+            # The "snapshot" also requires explanation.  Snapshot is a task that sets
+            # the version number to major.minor.patch-SNAPSHOT.  Without this directive,
+            # the JAR will have the git hash in its name.  As a result, if you do a git
+            # commit during your development, your JAR suddenly has a different name
+            # and instead of replacing the old JAR, the rsync will just copy the new JAR
+            # alongside the old one and no hot reload will occur.
+            c.run(f"./gradlew {clean_arg} snapshot {project}:assemble {build_args}")
         except UnexpectedExit as e:
             err("Build failed")
             sys.exit(e.result.exited)
@@ -148,13 +159,10 @@ def build_project(project: str, project_root: str, clean: bool) -> str:
 
         # Get the path to the directory to rsync to the pod
         if len(results) == 1:
-            rsync_dir = os.path.join(results[0], "classes", "java", "main")
-            # This is important.  Without the trailing slash, rsync will sync the
-            # directory by name rather than the contents of the directory. I.e. you will
-            # end up with "/deployments/main/META-INF" rather than
-            # "/deployments/META-INF".  See the rsync man page's USAGE section and
-            # look for the phrase "trailing slash".
-            rsync_dir = f"{rsync_dir}{os.path.sep}"
+            if is_quarkus_project(results[0]):
+                rsync_dir = quarkus_rsync_source(results[0])
+            else:
+                rsync_dir = spring_rsync_source(results[0])
         else:
             raise SwatchDogError(f"Ambiguous build location: {results}")
 
@@ -162,6 +170,26 @@ def build_project(project: str, project_root: str, clean: bool) -> str:
             return rsync_dir
         else:
             raise SwatchDogError(f"No directory {rsync_dir} to sync class files from")
+
+
+def is_quarkus_project(build_dir: str) -> bool:
+    return os.path.exists(os.path.join(build_dir, "quarkus-app"))
+
+
+def spring_rsync_source(build_dir: str) -> str:
+    rsync_dir = os.path.join(build_dir, "classes", "java", "main")
+    # This is important.  Without the trailing slash, rsync will sync the
+    # directory by name rather than the contents of the directory. I.e. you will
+    # end up with "/deployments/main/META-INF" rather than
+    # "/deployments/META-INF".  See the rsync man page's USAGE section and
+    # look for the phrase "trailing slash".
+    return f"{rsync_dir}{os.path.sep}"
+
+
+def quarkus_rsync_source(build_dir: str) -> str:
+    rsync_dir = os.path.join(build_dir, "quarkus-app")
+    # See comment in spring_rsync_source for why the trailing slash is imperative
+    return f"{rsync_dir}{os.path.sep}"
 
 
 def choose_project(project_root: str, selection: str) -> str:
@@ -185,20 +213,19 @@ def choose_project(project_root: str, selection: str) -> str:
     results_dict: dict = dict(zip(results, results))
     results_dict[": <root project>"] = ""
     choice: str = iterfzf.iterfzf(
-        sorted(results_dict.keys()),
-        query=selection
+        sorted(results_dict.keys()), query=selection, __extra__=["--select-1"]
     )
     return results_dict[choice]
 
 
 def sync_code(rsync_dir, deployment_selector, container):
-    # oc cp/rsync deployable to /deployments*
-    # Need to also handle container name selection from the pod
-
     for pod in deployment_selector.objects():
         if container:
             dest_container = container
         else:
+            # This is not my favorite way to figure out what container to deploy to
+            # Is there some more concrete way we can tag our containers to denote which
+            # one is the "main" container and which are the sidecars?
             containers: t.List = [
                 p.name
                 for p in pod.model.spec.containers
@@ -217,7 +244,7 @@ def sync_code(rsync_dir, deployment_selector, container):
         #   operations.  Would definitely want --delete=false on for that
         # NB: if you add non-long form options be sure to use two strings.
         # E.g. ["-x", "something"] and not ["-x something"]
-        info(f"Syncing code to {container} in {pod.name()}")
+        info(f"Syncing code to {dest_container} in {pod.name()}")
         rsync_args = [
             "--no-perms=true",
             # TODO need to handle deleting a class file properly. Right now
@@ -247,6 +274,9 @@ def choose_pods(pod_prefix: str) -> openshift.Selector:
     # can actually select on it instead of pulling back everything and then filtering?
     header: str = "TAB/SHIFT-TAB for multiple selections"
     selections = iterfzf.iterfzf(
-        pod_choices.keys(), query=pod_prefix, multi=True, __extra__=["--header", header]
+        pod_choices.keys(),
+        query=pod_prefix,
+        multi=True,
+        __extra__=["--header", header, "--select-1"],
     )
     return openshift.selector([pod_choices[x] for x in selections])

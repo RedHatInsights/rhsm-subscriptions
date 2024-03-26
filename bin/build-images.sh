@@ -59,23 +59,40 @@ trap build_failed ERR
 for p in "${projects[@]}"; do
   case "$p" in
     "rhsm")
-      podman build . -t quay.io/$quay_user/rhsm-subscriptions:$tag --label  "git-commit=${commit}" --ulimit nofile=2048:2048
+      podman build . -f Dockerfile \
+        --build-arg-file bin/dev-argfile.conf \
+        -t quay.io/$quay_user/rhsm-subscriptions:$tag \
+        --label "git-commit=${commit}" --ulimit nofile=2048:2048
       ;;
     "conduit")
       podman build . -f swatch-system-conduit/Dockerfile \
-        -t quay.io/$quay_user/swatch-system-conduit:$tag --label "git-commit=${commit}" --ulimit nofile=2048:2048
+        --build-arg-file bin/dev-argfile.conf \
+        -t quay.io/$quay_user/swatch-system-conduit:$tag \
+        --label "git-commit=${commit}" --ulimit nofile=2048:2048
       ;;
     "swatch-producer-aws")
-      podman build . -f swatch-producer-aws/src/main/docker/Dockerfile.jvm -t quay.io/$quay_user/swatch-producer-aws:$tag --label "git-commit=${commit}" --ulimit nofile=2048:2048
+      podman build . -f swatch-producer-aws/src/main/docker/Dockerfile.jvm \
+        --build-arg-file bin/dev-argfile.conf \
+        -t quay.io/$quay_user/swatch-producer-aws:$tag \
+        --label "git-commit=${commit}" --ulimit nofile=2048:2048
       ;;
     "swatch-contracts")
-      podman build . -f swatch-contracts/src/main/docker/Dockerfile.jvm -t quay.io/$quay_user/swatch-contracts:$tag --label "git-commit=${commit}" --ulimit nofile=2048:2048
+      podman build . -f swatch-contracts/src/main/docker/Dockerfile.jvm \
+        --build-arg-file bin/dev-argfile.conf \
+        -t quay.io/$quay_user/swatch-contracts:$tag \
+        --label "git-commit=${commit}" --ulimit nofile=2048:2048
       ;;
     "swatch-producer-azure")
-      podman build . -f swatch-producer-azure/src/main/docker/Dockerfile.jvm -t quay.io/$quay_user/swatch-producer-azure:$tag --label "git-commit=${commit}" --ulimit nofile=2048:2048
+      podman build . -f swatch-producer-azure/src/main/docker/Dockerfile.jvm \
+        --build-arg-file bin/dev-argfile.conf \
+        -t quay.io/$quay_user/swatch-producer-azure:$tag \
+        --label "git-commit=${commit}" --ulimit nofile=2048:2048
       ;;
     "swatch-metrics")
-      podman build . -f swatch-metrics/src/main/docker/Dockerfile.jvm -t quay.io/$quay_user/swatch-metrics:$tag --label "git-commit=${commit}" --ulimit nofile=2048:2048
+      podman build . -f swatch-metrics/src/main/docker/Dockerfile.jvm \
+        --build-arg-file bin/dev-argfile.conf \
+        -t quay.io/$quay_user/swatch-metrics:$tag \
+        --label "git-commit=${commit}" --ulimit nofile=2048:2048
       ;;
     *) echo "Please use values from the set \"rhsm\", \"conduit\", \"swatch-producer-aws\", \"swatch-contracts\", \"swatch-producer-azure\", \"swatch-metrics\"";;
   esac
