@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.subscription;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.MoreCollectors;
+import com.redhat.swatch.configuration.registry.Variant;
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -627,9 +628,15 @@ public class SubscriptionSyncController {
     Assert.isTrue(Usage._ANY != usageKey.getUsage(), "Usage cannot be _ANY");
     Assert.isTrue(ServiceLevel._ANY != usageKey.getSla(), "Service Level cannot be _ANY");
 
+    String productTag = usageKey.getProductId();
+    if (!Variant.isValidProductTag(productTag)) {
+      log.warn("No product tag configured: {}", productTag);
+      return Collections.emptyList();
+    }
+
     DbReportCriteria.DbReportCriteriaBuilder reportCriteriaBuilder =
         DbReportCriteria.builder()
-            .productTag(usageKey.getProductId())
+            .productTag(productTag)
             .serviceLevel(usageKey.getSla())
             // NOTE(khowell) due to an oversight PAYG SKUs don't currently have a usage set -
             // at some point we should use usageKey.getUsage() instead of "_ANY"

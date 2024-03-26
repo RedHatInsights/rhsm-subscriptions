@@ -71,7 +71,7 @@ class SubscriptionRepositoryTest {
     // reset NOW so that it is current and not fixed.
     NOW = OffsetDateTime.now();
     Subscription subscription = createSubscription("1", "123", "sellerAcctId");
-    Offering offering = createOffering("testSku", 1066, null, null, null);
+    Offering offering = createOffering("testSku", "rosa", 1066, null, null, null);
     subscription.setOffering(offering);
     offeringRepo.save(offering);
     subscriptionRepo.saveAndFlush(subscription);
@@ -97,18 +97,21 @@ class SubscriptionRepositoryTest {
   @Test
   void canMatchOfferings() {
     Subscription subscription = createSubscription("1", "123", "sellerAcctId");
-    Offering o1 = createOffering("testSku1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+    Offering o1 =
+        createOffering("testSku1", "rosa", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
     subscription.setOffering(o1);
     offeringRepo.save(o1);
     subscriptionRepo.save(subscription);
 
-    Offering o2 = createOffering("testSku2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
+    Offering o2 =
+        createOffering("testSku2", "rosa", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
     offeringRepo.saveAndFlush(o2);
 
-    Set<String> productNames = Set.of("Test SKU 1");
+    String productTag = "rosa";
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
+                .productTag(productTag)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
@@ -126,22 +129,25 @@ class SubscriptionRepositoryTest {
   @Transactional
   @Test
   void doesNotMatchMismatchedSkusOfferings() {
-    Offering offering = createOffering("testSku", 1066, null, null, null);
+    Offering offering = createOffering("testSku", "rosa", 1066, null, null, null);
     offeringRepo.save(offering);
 
     Subscription subscription = createSubscription("1", "123", "sellerAcctId");
     subscription.setOffering(offering);
     subscriptionRepo.saveAndFlush(subscription);
 
-    Offering o1 = createOffering("otherSku1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+    Offering o1 =
+        createOffering("otherSku1", "rosa", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
     offeringRepo.saveAndFlush(o1);
-    Offering o2 = createOffering("otherSku2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
+    Offering o2 =
+        createOffering("otherSku2", "rosa", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
     offeringRepo.saveAndFlush(o2);
 
+    String productTag = "rosa";
     var result =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .productTag("testProductTag")
+                .productTag(productTag)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
@@ -156,22 +162,25 @@ class SubscriptionRepositoryTest {
   @Transactional
   @Test
   void doesNotMatchMismatchedBillingAccountId() {
-    Offering offering = createOffering("testSku", 1066, null, null, null);
+    Offering offering = createOffering("testSku", "rosa", 1066, null, null, null);
     offeringRepo.save(offering);
 
     Subscription subscription = createSubscription("1", "123", "sellerAcctId");
     subscription.setOffering(offering);
     subscriptionRepo.saveAndFlush(subscription);
 
-    Offering o1 = createOffering("testSku1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+    Offering o1 =
+        createOffering("testSku1", "rosa", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
     offeringRepo.save(o1);
-    Offering o2 = createOffering("testSku2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
+    Offering o2 =
+        createOffering("testSku2", "rosa", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
     offeringRepo.saveAndFlush(o2);
 
+    String productTag = "rosa";
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .productTag("testProductTag")
+                .productTag(productTag)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
@@ -192,16 +201,18 @@ class SubscriptionRepositoryTest {
     Subscription subscription2 =
         createSubscription("1", "234", "sellerAcctId", NOW, NOW.plusDays(30));
     Offering offering =
-        createOffering("testSku1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+        createOffering("testSku1", "rosa", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
     List<Subscription> subscriptions = List.of(subscription1, subscription2);
     subscriptions.forEach(x -> x.setOffering(offering));
     offeringRepo.save(offering);
     subscriptionRepo.saveAllAndFlush(subscriptions);
 
+    String productTag = "rosa";
+
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .productTag("testProductTag")
+                .productTag(productTag)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
@@ -223,7 +234,8 @@ class SubscriptionRepositoryTest {
   @Test
   void findsAllSubscriptionsForSla() {
     Offering mct3718 =
-        createOffering("MCT3718", 1066, ServiceLevel.SELF_SUPPORT, Usage.PRODUCTION, "ROLE");
+        createOffering(
+            "MCT3718", "rosa", 1066, ServiceLevel.SELF_SUPPORT, Usage.PRODUCTION, "ROLE");
     offeringRepo.save(mct3718);
 
     for (int i = 0; i < 5; i++) {
@@ -241,8 +253,8 @@ class SubscriptionRepositoryTest {
   @Transactional
   @Test
   void findsAllSubscriptionsForAGivenSku() {
-    Offering mct3718 = createOffering("MCT3718", 1066, null, null, null);
-    Offering rh00798 = createOffering("RH00798", 1512, null, null, null);
+    Offering mct3718 = createOffering("MCT3718", "rosa", 1066, null, null, null);
+    Offering rh00798 = createOffering("RH00798", "rosa", 1512, null, null, null);
     offeringRepo.saveAllAndFlush(List.of(mct3718, rh00798));
 
     for (int i = 0; i < 5; i++) {
@@ -272,13 +284,13 @@ class SubscriptionRepositoryTest {
   void findsUnlimitedSubscriptions() {
     var s1 = createSubscription("org123", "sub123", "seller123");
     var s2 = createSubscription("org123", "sub321", "seller123");
-    var offering1 = createOffering("testSkuUnlimited", 1066, null, null, null);
+    var offering1 = createOffering("testSkuUnlimited", "rosa", 1066, null, null, null);
     offering1.setHasUnlimitedUsage(true);
     List.of(s1, s2).forEach(x -> x.setOffering(offering1));
 
     var s3 = createSubscription("org123", "sub456", "seller123");
     var s4 = createSubscription("org123", "sub678", "seller123");
-    var offering2 = createOffering("testSkuLimited", 1066, null, null, null);
+    var offering2 = createOffering("testSkuLimited", "rosa", 1066, null, null, null);
     offering2.setHasUnlimitedUsage(false);
     List.of(s3, s4).forEach(x -> x.setOffering(offering2));
 
@@ -301,7 +313,7 @@ class SubscriptionRepositoryTest {
     var s2 = createSubscription("org123", "sub321", "seller123");
     s2.setEndDate(null);
 
-    var offering1 = createOffering("testSkuUnlimited", 1066, null, null, null);
+    var offering1 = createOffering("testSkuUnlimited", "rosa", 1066, null, null, null);
     List.of(s1, s2).forEach(x -> x.setOffering(offering1));
 
     offeringRepo.save(offering1);
@@ -319,7 +331,7 @@ class SubscriptionRepositoryTest {
     var s2 = createSubscription("org123", "sub321", "seller123");
     s2.setEndDate(null);
 
-    var offering1 = createOffering("testSkuUnlimited", 1066, null, null, null);
+    var offering1 = createOffering("testSkuUnlimited", "rosa", 1066, null, null, null);
     List.of(s1, s2).forEach(x -> x.setOffering(offering1));
 
     offeringRepo.save(offering1);
@@ -342,7 +354,8 @@ class SubscriptionRepositoryTest {
   @Transactional
   @Test
   void testMatchesOnFirstPartOfMultipartBillingAccountId() {
-    Offering o1 = createOffering("testSku1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+    Offering o1 =
+        createOffering("testSku1", "rosa", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
     offeringRepo.save(o1);
 
     Subscription subscription1 =
@@ -353,10 +366,11 @@ class SubscriptionRepositoryTest {
     subscriptionRepo.saveAndFlush(subscription1);
     subscriptionRepo.saveAndFlush(subscription2);
 
+    String productTag = "rosa";
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .productTag("testProductTag")
+                .productTag(productTag)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
@@ -372,7 +386,8 @@ class SubscriptionRepositoryTest {
   @Transactional
   @Test
   void testMatchesOnBothPartsOfMultipartBillingAccountId() {
-    Offering o1 = createOffering("testSku1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+    Offering o1 =
+        createOffering("testSku1", "rosa", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
     offeringRepo.save(o1);
 
     Subscription subscription1 =
@@ -383,10 +398,11 @@ class SubscriptionRepositoryTest {
     subscriptionRepo.saveAndFlush(subscription1);
     subscriptionRepo.saveAndFlush(subscription2);
 
+    String productTag = "rosa";
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .productTag("testProductTag")
+                .productTag(productTag)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
@@ -408,8 +424,8 @@ class SubscriptionRepositoryTest {
     Offering mct3718 =
         createOffering(
             "MCT3718",
-            1066,
             expectedProductTag,
+            1066,
             ServiceLevel.SELF_SUPPORT,
             Usage.PRODUCTION,
             "ROLE");
@@ -428,12 +444,7 @@ class SubscriptionRepositoryTest {
   }
 
   private Offering createOffering(
-      String sku, int productId, ServiceLevel sla, Usage usage, String role) {
-    return createOffering(sku, productId, "testProductTag", sla, usage, role);
-  }
-
-  private Offering createOffering(
-      String sku, int productId, String productTag, ServiceLevel sla, Usage usage, String role) {
+      String sku, String productTag, int productId, ServiceLevel sla, Usage usage, String role) {
     return Offering.builder()
         .sku(sku)
         .productIds(Set.of(productId))
@@ -441,6 +452,7 @@ class SubscriptionRepositoryTest {
         .serviceLevel(sla)
         .usage(usage)
         .role(role)
+        .productTags(Set.of(productTag))
         .build();
   }
 
