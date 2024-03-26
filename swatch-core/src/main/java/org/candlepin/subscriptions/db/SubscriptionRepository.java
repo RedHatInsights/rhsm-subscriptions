@@ -24,6 +24,7 @@ import static org.hibernate.jpa.AvailableHints.HINT_FETCH_SIZE;
 
 import jakarta.persistence.QueryHint;
 import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import java.time.OffsetDateTime;
@@ -34,6 +35,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.DbReportCriteria;
+import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.Offering_;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
@@ -116,9 +118,12 @@ public interface SubscriptionRepository
       // NOTE: we expect payg subscription records to always populate billingProviderId
       searchCriteria = searchCriteria.and(hasBillingProviderId());
     }
-    // TODO: ENT-5042 should move away from using product name values here //NOSONAR
+    // TODO: SWATCH-1840 should move away from using product name values here //NOSONAR
     if (!ObjectUtils.isEmpty(dbReportCriteria.getProductNames())) {
       searchCriteria = searchCriteria.and(productNameIn(dbReportCriteria.getProductNames()));
+    }
+    if (!ObjectUtils.isEmpty(dbReportCriteria.getProductTag())) {
+      searchCriteria = searchCriteria.and(productTagEquals(dbReportCriteria.getProductTag()));
     }
     if (Objects.nonNull(dbReportCriteria.getProductId())) {
       searchCriteria = searchCriteria.and(productIdEquals(dbReportCriteria.getProductId()));
@@ -184,6 +189,13 @@ public interface SubscriptionRepository
     return (root, query, builder) -> {
       var offeringRoot = root.get(Subscription_.offering);
       return offeringRoot.get(Offering_.productName).in(productNames);
+    };
+  }
+
+  private static Specification<Subscription> productTagEquals(String productTag) {
+    return (root, query, builder) -> {
+      Join<Subscription, Offering> offeringJoin = root.join(Subscription_.offering);
+      return builder.equal(offeringJoin.join(Offering_.productTags), productTag);
     };
   }
 

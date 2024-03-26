@@ -88,7 +88,6 @@ class SubscriptionSyncControllerTest {
   private static final OffsetDateTime NOW = OffsetDateTime.now();
   private static final String SKU = "testsku";
   private static final String BILLING_ACCOUNT_ID_ANY = "_ANY";
-  private static final String PAYG_PRODUCT_NAME = "OpenShift Dedicated";
 
   @Autowired SubscriptionSyncController subscriptionSyncController;
 
@@ -117,12 +116,7 @@ class SubscriptionSyncControllerTest {
 
   @BeforeEach
   void setUp() {
-    var offering =
-        Offering.builder()
-            .sku(SKU)
-            .productName("RHEL")
-            .productIds(new HashSet<>(List.of(68)))
-            .build();
+    var offering = Offering.builder().sku(SKU).productIds(new HashSet<>(List.of(68))).build();
     Mockito.when(offeringRepository.getReferenceById(SKU)).thenReturn(offering);
   }
 
@@ -203,7 +197,7 @@ class SubscriptionSyncControllerTest {
     when(denylist.productIdMatches(any())).thenReturn(false);
     Mockito.when(offeringRepository.existsById(any())).thenReturn(true);
     Mockito.when(offeringRepository.getReferenceById(SKU))
-        .thenReturn(Offering.builder().sku(SKU).productName("RHEL").build());
+        .thenReturn(Offering.builder().sku(SKU).build());
 
     // When syncing an org's subs, a sub should be synced if it is within effective*Dates
     var dto = createDto("456", 10);
@@ -428,7 +422,6 @@ class SubscriptionSyncControllerTest {
             BillingProvider.RED_HAT,
             "xyz");
     Subscription s = createSubscription("org123", "sku", "foo");
-    s.getOffering().setProductName("OpenShift Container Platform");
     s.setStartDate(OffsetDateTime.now().minusDays(7));
     s.setEndDate(OffsetDateTime.now().plusDays(7));
     s.setBillingProvider(BillingProvider.RED_HAT);
@@ -445,10 +438,29 @@ class SubscriptionSyncControllerTest {
   }
 
   @Test
+  void invalidProductTagIfNoMatchWithConfig() {
+    UsageCalculation.Key key =
+        new Key(
+            "openshift-container-platform",
+            ServiceLevel.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider.RED_HAT,
+            "xyz");
+    Subscription s = createSubscription("org123", "sku", "foo");
+    s.setStartDate(OffsetDateTime.now().minusDays(7));
+    s.setEndDate(OffsetDateTime.now().plusDays(7));
+    s.setBillingProvider(BillingProvider.RED_HAT);
+    s.setBillingProviderId("xyz");
+    List<Subscription> actual =
+        subscriptionSyncController.findSubscriptions(
+            Optional.of("org1000"), key, rangeStart, rangeEnd);
+    assertEquals(0, actual.size());
+  }
+
+  @Test
   void terminateActivePAYGSubscriptionTest() {
     Subscription s = createSubscription();
     Offering o = new Offering();
-    o.setProductName(PAYG_PRODUCT_NAME);
     o.setMetered(true);
     when(offeringRepository.findById(SKU)).thenReturn(Optional.of(o));
     when(subscriptionRepository.findActiveSubscription("456")).thenReturn(List.of(s));
@@ -462,7 +474,7 @@ class SubscriptionSyncControllerTest {
   @Test
   void lateTerminateActivePAYGSubscriptionTest() {
     Subscription s = createSubscription();
-    Offering offering = Offering.builder().productName(PAYG_PRODUCT_NAME).metered(true).build();
+    Offering offering = Offering.builder().metered(true).build();
     s.setOffering(offering);
     when(offeringRepository.findById(SKU)).thenReturn(Optional.of(offering));
     when(subscriptionRepository.findActiveSubscription("456")).thenReturn(List.of(s));
@@ -478,7 +490,6 @@ class SubscriptionSyncControllerTest {
   @Test
   void terminateInTheFutureActivePAYGSubscriptionTest() {
     Subscription s = createSubscription();
-    s.getOffering().setProductName(PAYG_PRODUCT_NAME);
     s.getOffering().setMetered(true);
     when(subscriptionRepository.findActiveSubscription("456")).thenReturn(List.of(s));
 
@@ -493,7 +504,6 @@ class SubscriptionSyncControllerTest {
   @Test
   void terminateActiveNonPAYGSubscriptionTest() {
     Subscription s = createSubscription();
-    s.getOffering().setProductName("Random Product");
     when(subscriptionRepository.findActiveSubscription("456")).thenReturn(List.of(s));
 
     var termination = OffsetDateTime.now();

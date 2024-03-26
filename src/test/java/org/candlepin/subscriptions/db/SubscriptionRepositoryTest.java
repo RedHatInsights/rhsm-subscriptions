@@ -98,20 +98,20 @@ class SubscriptionRepositoryTest {
   void canMatchOfferings() {
     Subscription subscription = createSubscription("1", "123", "sellerAcctId");
     Offering o1 =
-        createOffering("testSku1", "Test SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+        createOffering("testSku1", "rosa", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
     subscription.setOffering(o1);
     offeringRepo.save(o1);
     subscriptionRepo.save(subscription);
 
     Offering o2 =
-        createOffering("testSku2", "Test SKU 2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
+        createOffering("testSku2", "rosa", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
     offeringRepo.saveAndFlush(o2);
 
-    Set<String> productNames = Set.of("Test SKU 1");
+    String productTag = "rosa";
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .productNames(productNames)
+                .productTag(productTag)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
@@ -137,19 +137,17 @@ class SubscriptionRepositoryTest {
     subscriptionRepo.saveAndFlush(subscription);
 
     Offering o1 =
-        createOffering(
-            "otherSku1", "Other SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+        createOffering("otherSku1", "rosa", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
     offeringRepo.saveAndFlush(o1);
     Offering o2 =
-        createOffering(
-            "otherSku2", "Other SKU 2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
+        createOffering("otherSku2", "rosa", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
     offeringRepo.saveAndFlush(o2);
 
-    Set<String> productNames = Set.of("Other SKU 1", "Other SKU 2");
+    String productTag = "rosa";
     var result =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .productNames(productNames)
+                .productTag(productTag)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
@@ -172,17 +170,17 @@ class SubscriptionRepositoryTest {
     subscriptionRepo.saveAndFlush(subscription);
 
     Offering o1 =
-        createOffering("testSku1", "Test SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+        createOffering("testSku1", "rosa", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
     offeringRepo.save(o1);
     Offering o2 =
-        createOffering("testSku2", "Test SKU 2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
+        createOffering("testSku2", "rosa", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
     offeringRepo.saveAndFlush(o2);
 
-    Set<String> productNames = Set.of("Test SKU 1");
+    String productTag = "rosa";
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .productNames(productNames)
+                .productTag(productTag)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
@@ -203,18 +201,18 @@ class SubscriptionRepositoryTest {
     Subscription subscription2 =
         createSubscription("1", "234", "sellerAcctId", NOW, NOW.plusDays(30));
     Offering offering =
-        createOffering("testSku1", "Test SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+        createOffering("testSku1", "rosa", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
     List<Subscription> subscriptions = List.of(subscription1, subscription2);
     subscriptions.forEach(x -> x.setOffering(offering));
     offeringRepo.save(offering);
     subscriptionRepo.saveAllAndFlush(subscriptions);
 
-    Set<String> productNames = Set.of("Test SKU 1");
+    String productTag = "rosa";
 
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .productNames(productNames)
+                .productTag(productTag)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
@@ -357,7 +355,7 @@ class SubscriptionRepositoryTest {
   @Test
   void testMatchesOnFirstPartOfMultipartBillingAccountId() {
     Offering o1 =
-        createOffering("testSku1", "Test SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+        createOffering("testSku1", "rosa", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
     offeringRepo.save(o1);
 
     Subscription subscription1 =
@@ -368,11 +366,11 @@ class SubscriptionRepositoryTest {
     subscriptionRepo.saveAndFlush(subscription1);
     subscriptionRepo.saveAndFlush(subscription2);
 
-    Set<String> productNames = Set.of("Test SKU 1");
+    String productTag = "rosa";
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .productNames(productNames)
+                .productTag(productTag)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
@@ -389,7 +387,7 @@ class SubscriptionRepositoryTest {
   @Test
   void testMatchesOnBothPartsOfMultipartBillingAccountId() {
     Offering o1 =
-        createOffering("testSku1", "Test SKU 1", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
+        createOffering("testSku1", "rosa", 1, ServiceLevel.STANDARD, Usage.PRODUCTION, "ocp");
     offeringRepo.save(o1);
 
     Subscription subscription1 =
@@ -400,11 +398,11 @@ class SubscriptionRepositoryTest {
     subscriptionRepo.saveAndFlush(subscription1);
     subscriptionRepo.saveAndFlush(subscription2);
 
-    Set<String> productNames = Set.of("Test SKU 1");
+    String productTag = "rosa";
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .productNames(productNames)
+                .productTag(productTag)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
@@ -420,14 +418,14 @@ class SubscriptionRepositoryTest {
   }
 
   private Offering createOffering(
-      String sku, String productName, int productId, ServiceLevel sla, Usage usage, String role) {
+      String sku, String productTag, int productId, ServiceLevel sla, Usage usage, String role) {
     return Offering.builder()
         .sku(sku)
-        .productName(productName)
         .productIds(Set.of(productId))
         .serviceLevel(sla)
         .usage(usage)
         .role(role)
+        .productTags(Set.of(productTag))
         .build();
   }
 
