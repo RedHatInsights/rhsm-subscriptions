@@ -314,7 +314,7 @@ public class MetricUsageCollector {
                   MetricId.fromString(measurement.getUom()),
                   measurement.getValue());
             });
-    addBucketsFromEvent(instance, event, serviceType);
+    updateBucketsFromEvent(instance, event, serviceType);
   }
 
   /**
@@ -408,7 +408,7 @@ public class MetricUsageCollector {
     };
   }
 
-  private void addBucketsFromEvent(Host host, Event event, String serviceType) {
+  private void updateBucketsFromEvent(Host host, Event event, String serviceType) {
     // We have multiple SubscriptionDefinitions that can have the same serviceType (OpenShift
     // Cluster).  The SLA and usage for these definitions should be the same (if defined), so we
     // need to collect them all, deduplicate, and then verify via MoreCollectors.toOptional that we
@@ -459,6 +459,7 @@ public class MetricUsageCollector {
 
     Set<List<Object>> bucketTuples =
         Sets.cartesianProduct(productTags, slas, usages, billingProviders, billingAccountIds);
+    Set<HostBucketKey> activeHostBucketKeys = new HashSet<>();
     bucketTuples.forEach(
         tuple -> {
           String productId = (String) tuple.get(0);
@@ -469,7 +470,7 @@ public class MetricUsageCollector {
           HostTallyBucket bucket = new HostTallyBucket();
           bucket.setCores(cores);
           bucket.setSockets(sockets);
-          bucket.setKey(
+          var key =
               new HostBucketKey(
                   host,
                   productId,
@@ -477,9 +478,12 @@ public class MetricUsageCollector {
                   usageBucket,
                   billingProvider,
                   billingAccountId,
-                  false));
+                  false);
+          bucket.setKey(key);
+          activeHostBucketKeys.add(key);
           host.addBucket(bucket);
         });
+    host.getBuckets().removeIf(bucket -> !activeHostBucketKeys.contains(bucket.getKey()));
   }
 
   /**
