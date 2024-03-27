@@ -7,6 +7,8 @@ parameters:
   - name: JAVA_DEBUG
     # Set to "true" to enable remote debugging
     value: ''
+  - name: JAVA_OPTS_APPEND
+    value: ''
   - name: ENV_NAME
     value: env-swatch-tally
   - name: SERVER_MAX_HTTP_HEADER_SIZE
@@ -295,6 +297,8 @@ objects:
           env:
             - name: JAVA_DEBUG
               value: ${JAVA_DEBUG}
+            - name: JAVA_OPTS_APPEND
+              value: -javaagent:/opt/splunk-otel-javaagent.jar ${JAVA_OPTS_APPEND}
             - name: ENABLE_SPLUNK_HEC
               value: ${ENABLE_SPLUNK_HEC}
             - name: SPLUNKMETA_namespace
