@@ -82,6 +82,9 @@ public class TallyInstanceView implements Serializable {
   @Column(name = "subscription_manager_id")
   private String subscriptionManagerId;
 
+  @Column(name = "inventory_id")
+  private String inventoryId;
+
   @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(
       name = "instance_monthly_totals",

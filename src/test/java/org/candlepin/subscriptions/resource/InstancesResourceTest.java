@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
 import org.candlepin.subscriptions.db.TallyInstanceViewRepository;
@@ -98,6 +99,7 @@ class InstancesResourceTest {
     tallyInstanceView.setNumOfGuests(3);
     tallyInstanceView.setLastSeen(OffsetDateTime.now());
     tallyInstanceView.setLastAppliedEventRecordDate(OffsetDateTime.now());
+    tallyInstanceView.setInventoryId(UUID.randomUUID().toString());
     tallyInstanceView.getKey().setInstanceId("d6214a0b-b344-4778-831c-d53dcacb2da3");
     tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
@@ -131,6 +133,7 @@ class InstancesResourceTest {
     var data = new InstanceData();
     data.setId("testHostId");
     data.setInstanceId(tallyInstanceView.getKey().getInstanceId());
+    data.setInventoryId(tallyInstanceView.getInventoryId());
     data.setDisplayName(tallyInstanceView.getDisplayName());
     data.setBillingProvider(expectedBillingProvider.asOpenApiEnum());
     data.setLastSeen(tallyInstanceView.getLastSeen());

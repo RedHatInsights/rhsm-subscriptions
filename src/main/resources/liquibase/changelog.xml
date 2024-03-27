@@ -147,5 +147,6 @@
     <include file="/liquibase/202312010920-add-org-id-instance-id-index-to-hosts.xml" />
     <include file="/liquibase/202401080920-remove-uniqueness-constraint-on-events.xml" />
     <include file="/liquibase/202401161133-update-instance-view-to-include-last-applied-event-record-date.xml" />
+    <include file="/liquibase/202403260830-update-instance-view-to-include-inventory-id.xml" />
 </databaseChangeLog>
 <!-- vim: set expandtab sts=4 sw=4 ai: -->
