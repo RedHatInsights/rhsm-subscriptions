@@ -20,11 +20,20 @@
  */
 package com.redhat.swatch.contract.resource;
 
+import com.redhat.swatch.contract.openapi.model.AwsUsageContext;
+import com.redhat.swatch.contract.openapi.model.AzureUsageContext;
 import com.redhat.swatch.contract.openapi.model.Contract;
 import com.redhat.swatch.contract.openapi.model.ContractRequest;
 import com.redhat.swatch.contract.openapi.model.ContractResponse;
+import com.redhat.swatch.contract.openapi.model.MetricResponse;
+import com.redhat.swatch.contract.openapi.model.OfferingProductTags;
+import com.redhat.swatch.contract.openapi.model.OfferingResponse;
 import com.redhat.swatch.contract.openapi.model.PartnerEntitlementContract;
+import com.redhat.swatch.contract.openapi.model.RhmUsageContext;
+import com.redhat.swatch.contract.openapi.model.RpcResponse;
 import com.redhat.swatch.contract.openapi.model.StatusResponse;
+import com.redhat.swatch.contract.openapi.model.SubscriptionResponse;
+import com.redhat.swatch.contract.openapi.model.TerminationRequest;
 import com.redhat.swatch.contract.openapi.resource.ApiException;
 import com.redhat.swatch.contract.openapi.resource.DefaultApi;
 import com.redhat.swatch.contract.repository.ContractEntity;
@@ -37,6 +46,7 @@ import jakarta.ws.rs.ProcessingException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.jboss.resteasy.reactive.common.NotImplementedYet;
 
 @Slf4j
 @ApplicationScoped
@@ -125,5 +135,101 @@ public class ContractsTestingResource implements DefaultApi {
   public StatusResponse createPartnerEntitlementContract(PartnerEntitlementContract contract)
       throws ProcessingException {
     return service.createPartnerContract(contract);
+  }
+
+  @Override
+  @RolesAllowed({"test", "support", "service"})
+  public OfferingResponse forceReconcileOffering(String sku) throws ProcessingException {
+    throw new NotImplementedYet();
+  }
+
+  @Override
+  @RolesAllowed({"test", "support", "service"})
+  public RpcResponse forceSyncSubscriptionsForOrg(String orgId) throws ProcessingException {
+    throw new NotImplementedYet();
+  }
+
+  @Override
+  @RolesAllowed({"test", "support", "service"})
+  public AwsUsageContext getAwsUsageContext(
+      OffsetDateTime date,
+      String productId,
+      String orgId,
+      String sla,
+      String usage,
+      String awsAccountId)
+      throws ProcessingException {
+    throw new NotImplementedYet();
+  }
+
+  @Override
+  @RolesAllowed({"test", "support", "service"})
+  public AzureUsageContext getAzureMarketplaceContext(
+      OffsetDateTime date,
+      String productId,
+      String orgId,
+      String sla,
+      String usage,
+      String azureAccountId)
+      throws ProcessingException {
+    throw new NotImplementedYet();
+  }
+
+  @Override
+  @RolesAllowed({"test", "support", "service"})
+  public List<MetricResponse> getMetrics(String tag) throws ProcessingException {
+    throw new NotImplementedYet();
+  }
+
+  @Override
+  @RolesAllowed({"test", "support", "service"})
+  public RhmUsageContext getRhmUsageContext(
+      String orgId, OffsetDateTime date, String productId, String sla, String usage)
+      throws ProcessingException {
+    throw new NotImplementedYet();
+  }
+
+  @Override
+  @RolesAllowed({"test", "support", "service"})
+  public OfferingProductTags getSkuProductTags(String sku) throws ProcessingException {
+    throw new NotImplementedYet();
+  }
+
+  @Override
+  @RolesAllowed({"test", "support", "service"})
+  public RpcResponse pruneUnlistedSubscriptions() throws ProcessingException {
+    throw new NotImplementedYet();
+  }
+
+  @Override
+  @RolesAllowed({"test", "support", "service"})
+  public SubscriptionResponse saveSubscriptions(Boolean reconcileCapacity, String body)
+      throws ProcessingException {
+    throw new NotImplementedYet();
+  }
+
+  @Override
+  @RolesAllowed({"test", "support", "service"})
+  public OfferingResponse syncAllOfferings() throws ProcessingException {
+    throw new NotImplementedYet();
+  }
+
+  @Override
+  @RolesAllowed({"test", "support", "service"})
+  public RpcResponse syncAllSubscriptions(Boolean forceSync) throws ProcessingException {
+    throw new NotImplementedYet();
+  }
+
+  @Override
+  @RolesAllowed({"test", "support", "service"})
+  public OfferingResponse syncOffering(String sku) throws ProcessingException {
+    throw new NotImplementedYet();
+  }
+
+  @Override
+  @RolesAllowed({"test", "support", "service"})
+  public TerminationRequest terminateSubscription(String subscriptionId, OffsetDateTime timestamp)
+      throws ProcessingException {
+    throw new NotImplementedYet();
   }
 }
