@@ -4,6 +4,7 @@ BILLABLE_USAGE_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.billab
 BILLABLE_USAGE_DEAD_LETTER_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.billable-usage.dlt".name:platform.rhsm-subscriptions.billable-usage.dlt}
 SERVICE_INSTANCE_INGRESS_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.service-instance-ingress".name:platform.rhsm-subscriptions.service-instance-ingress}
 SERVICE_INSTANCE_INGRESS_DEAD_LETTER_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.service-instance-ingress.dlt".name:platform.rhsm-subscriptions.service-instance-ingress.dlt}
+ENABLED_ORGS_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.enabled-orgs-for-tasks".name:platform.rhsm-subscriptions.enabled-orgs-for-tasks}
 
 rhsm-subscriptions:
   hourlyTallyDurationLimitDays: 90d
@@ -94,6 +95,13 @@ rhsm-subscriptions:
     kafka-group-id: ${KAFKA_GROUP_ID:rhsm-subscriptions-task-processor}
     seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
     seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
+  enabled-orgs:
+    target-topics-allowed: platform.rhsm-subscriptions.subscription-prune-task, platform.rhsm-subscriptions.subscription-sync-task
+    incoming:
+      topic: ${ENABLED_ORGS_TOPIC}
+      kafka-group-id: ${KAFKA_GROUP_ID:rhsm-subscriptions-enabled-orgs-processor}
+      seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
+      seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
   tally-max-hbi-account-size: ${TALLY_MAX_HBI_ACCOUNT_SIZE:2147483647}  # Integer.MAX_VALUE by default
   hbi-reconciliation-flush-interval: ${HBI_RECONCILIATION_FLUSH_INTERVAL:1024}
   use-cpu-system-facts-to-all-products: ${USE_CPU_SYSTEM_FACTS_TO_ALL_PRODUCTS:true}
