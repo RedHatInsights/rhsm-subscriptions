@@ -51,6 +51,18 @@ public interface ExtendWithExportServiceWireMock {
     registry.add("rhsm-subscriptions.export-service.url", EXPORT_SERVICE_WIRE_MOCK_SERVER::baseUrl);
   }
 
+  default void verifyNoRequestsWereSentToExportServiceWithError(
+      GenericConsoleCloudEvent<ResourceRequest> request) {
+    EXPORT_SERVICE_WIRE_MOCK_SERVER.verify(
+        0,
+        postRequestedFor(
+            urlEqualTo(
+                String.format(
+                    "/app/export/v1/%s/subscriptions/%s/error",
+                    request.getData().getResourceRequest().getUUID(),
+                    request.getData().getResourceRequest().getExportRequestUUID()))));
+  }
+
   default void verifyRequestWasSentToExportServiceWithError(
       GenericConsoleCloudEvent<ResourceRequest> request) {
     Awaitility.await()
@@ -61,8 +73,20 @@ public interface ExtendWithExportServiceWireMock {
                         urlEqualTo(
                             String.format(
                                 "/app/export/v1/%s/subscriptions/%s/error",
-                                request.getData().getResourceRequest().getUUID(),
-                                request.getData().getResourceRequest().getExportRequestUUID())))));
+                                request.getData().getResourceRequest().getExportRequestUUID(),
+                                request.getData().getResourceRequest().getUUID())))));
+  }
+
+  default void verifyNoRequestsWereSentToExportServiceWithUploadData(
+      GenericConsoleCloudEvent<ResourceRequest> request) {
+    EXPORT_SERVICE_WIRE_MOCK_SERVER.verify(
+        0,
+        postRequestedFor(
+            urlEqualTo(
+                String.format(
+                    "/app/export/v1/%s/subscriptions/%s/upload",
+                    request.getData().getResourceRequest().getExportRequestUUID(),
+                    request.getData().getResourceRequest().getUUID()))));
   }
 
   default void verifyRequestWasSentToExportServiceWithUploadData(
@@ -75,8 +99,8 @@ public interface ExtendWithExportServiceWireMock {
                             urlEqualTo(
                                 String.format(
                                     "/app/export/v1/%s/subscriptions/%s/upload",
-                                    request.getData().getResourceRequest().getUUID(),
-                                    request.getData().getResourceRequest().getExportRequestUUID())))
+                                    request.getData().getResourceRequest().getExportRequestUUID(),
+                                    request.getData().getResourceRequest().getUUID())))
                         .withRequestBody(equalToJson(expected, true, true))));
   }
 

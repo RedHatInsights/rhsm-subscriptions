@@ -198,6 +198,56 @@ SSL/TLS error (generally something like `unable to find valid certification path
 to requested target`), then setting `QUARKUS_LOG_HANDLER_SPLUNK_DISABLE_CERTIFICATE_VALIDATION=true`
 is the sure-fire way to disable SSL/TLS certificate validation.
 
+### Export Service
+
+The [Export service](https://github.com/RedHatInsights/export-service-go) is a RedHat service that allows users to request and download data archives for auditing or use with their own tooling.
+Some swatch services like Subscription Sync listen for the Export service requests and upload the generated report into the Export service. For these services, we can start the Export service via:
+
+*NOTE*: The export service strongly depends on the Kafka and Postgres services being previously started. So, make sure you run `podman-compose up -d` before running the Export service.
+
+```
+podman-compose -f config/export-service/docker-compose.yml up -d
+```
+
+The above export-service will expose the internal API via the port 10000 and the public API via the port 8002. The subscription-sync service is already configured to use the port 10000. 
+To create an export request, you can use the following example as a reference:
+
+```
+curl -sS -X POST http://localhost:8002/api/export/v1/exports -H "x-rh-identity: <IDENTITY>" -H "Content-Type: application/json" -d '{
+    "name": "Test Export Request",
+    "format": "json",
+    "expires_at": "2025-01-01T00:00:00Z",
+    "sources": [
+        {
+            "application": "subscriptions",
+            "resource": "subscriptions",
+            "filters": {
+                "product_id": "rosa"
+            }
+        }
+    ]
+}'
+```
+
+Where IDENTITY is a base64 payload with the org_id:
+
+```
+echo -n '{"identity":{"account_number":"<any>","org_id":"<org_id>","internal":{"org_id":"<org_id>"},"type":"User","user":{"username":"<any>"}}}' | base64 -w 0
+> eyJpZGVudGl0eSI6eyJhY2NvdW50X251bWJlciI6IjEwMDAxIiwib3JnX2lkIjoiMTMyNTk3NzUiLCJpbnRlcm5hbCI6eyJvcmdfaWQiOiIxMzI1OTc3NSJ9LCJ0eXBlIjoiVXNlciIsInVzZXIiOnsidXNlcm5hbWUiOiJ1c2VyX2RldiJ9fX0=
+```
+
+The above request will trigger an event from the export-service to swatch via topics and swatch will eventually upload the report using the internal export service API. 
+
+The uploaded reports are stored in minio (s3). You can verify that this report has been uploaded by checking the folder 'config/export-service/tmp/minio/exports-bucket' where should be a file at `<BUCKET ID>.json/xl.meta`. The `xl.meta` file is binary, but if you open the txt plain editor, you should see:
+```
+{"data":[{"sku":"MW02393","product_name":"OpenShift Dedicated","service_level":"Premium","usage":"Production","org_id":"13259775","subscription_number":"13579750","quantity":1,"measurements":[{"metric_id":"Cores","capacity":5.0,"measurement_type":"PHYSICAL"},{"metric_id":"Instance-hours","capacity":1.0,"measurement_type":"PHYSICAL"}]}]}
+```
+
+Furthermore, you can also check the export-service database (by default, it's: "localhost:5342", user: postgres, password: postgres, database name: postgres), where we can see the records in the table "sources" with all the statuses. For example:
+```
+f9288f52-59dc-4ad6-9307-8c67de75c09c	fb177ea7-a8ea-43e4-8c2e-cb4bd7170601	subscriptions	failed	subscriptions	{"product_id": "Wrong!"}	400	ProductId: Wrong! not found in configuration
+```
+
 ### Build and Run rhsm-subscriptions
 
 ```
