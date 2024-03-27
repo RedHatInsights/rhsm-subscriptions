@@ -797,11 +797,25 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testDetectsAwsHost() {
+  void testDetectsAwsHostInVersion() {
     Consumer consumer = new Consumer();
     Consumer negative = new Consumer();
     consumer.getFacts().put("dmi.bios.version", "4.2.amazon");
     negative.getFacts().put("dmi.bios.version", "4.2");
+
+    ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
+    assertEquals("aws", conduitFacts.getCloudProvider());
+
+    ConduitFacts conduitFactsNegative = controller.getFactsFromConsumer(negative);
+    assertNull(conduitFactsNegative.getCloudProvider());
+  }
+
+  @Test
+  void testDetectsAwsHostInVendor() {
+    Consumer consumer = new Consumer();
+    Consumer negative = new Consumer();
+    consumer.getFacts().put("dmi.bios.vendor", "Amazon EC2");
+    negative.getFacts().put("dmi.bios.vendor", "Something else");
 
     ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
     assertEquals("aws", conduitFacts.getCloudProvider());
