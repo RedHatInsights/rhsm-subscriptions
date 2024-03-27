@@ -26,8 +26,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.*;
 
@@ -95,14 +93,6 @@ public class Variant {
                 subscriptionDefinition.getSupportedGranularity().contains(granularity));
   }
 
-  public static Optional<Variant> findByProductName(String productName) {
-    return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
-        .map(SubscriptionDefinition::getVariants)
-        .flatMap(List::stream)
-        .filter(v -> v.getProductNames().contains(productName))
-        .findFirst();
-  }
-
   public static Stream<Variant> filterVariantsByProductName(String productName) {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions().stream()
         .map(SubscriptionDefinition::getVariants)
@@ -110,11 +100,8 @@ public class Variant {
         .filter(v -> v.getProductNames().contains(productName));
   }
 
-  public static Set<String> getProductNamesForTag(String productId) {
-    return findByTag(productId).stream()
-        .map(Variant::getProductNames)
-        .flatMap(List::stream)
-        .collect(Collectors.toSet());
+  public static boolean isValidProductTag(String productId) {
+    return findByTag(productId).isPresent();
   }
 
   public static List<Metric> getMetricsForTag(String tag) {

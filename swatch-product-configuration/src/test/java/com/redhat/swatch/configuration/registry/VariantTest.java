@@ -66,6 +66,14 @@ class VariantTest {
   }
 
   @Test
+  void testValidProductTag() {
+    assertTrue(Variant.isValidProductTag("RHEL for x86"));
+    assertFalse(Variant.isValidProductTag("rhel-for-x86"));
+    assertTrue(Variant.isValidProductTag("OpenShift Container Platform"));
+    assertFalse(Variant.isValidProductTag("openshift-container-platform"));
+  }
+
+  @Test
   void testGranularityCompatibilityNotSupported() {
     assertFalse(
         Variant.isGranularityCompatible("RHEL for x86", SubscriptionDefinitionGranularity.HOURLY));
