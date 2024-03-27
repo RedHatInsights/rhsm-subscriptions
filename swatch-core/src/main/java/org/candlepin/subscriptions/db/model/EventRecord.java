@@ -109,7 +109,7 @@ public class EventRecord {
   private Event event;
 
   @PrePersist
-  public void populateEventId() {
+  public void prePersist() {
     this.recordDate = OffsetDateTime.now(ZoneId.of("UTC"));
 
     if (event == null) {

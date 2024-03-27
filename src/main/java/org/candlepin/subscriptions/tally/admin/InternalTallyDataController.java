@@ -26,10 +26,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 import java.time.OffsetDateTime;
-import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.event.EventController;
 import org.candlepin.subscriptions.json.Event;
@@ -92,8 +92,8 @@ public class InternalTallyDataController {
   }
 
   public String saveEvents(String jsonListOfEvents) {
-    List<Event> saved;
-    Collection<Event> events;
+    List<EventRecord> saved;
+    List<Event> events;
 
     try {
       events = objectMapper.readValue(jsonListOfEvents, new TypeReference<List<Event>>() {});
@@ -104,7 +104,7 @@ public class InternalTallyDataController {
     }
 
     try {
-      saved = eventController.saveAll(events);
+      saved = eventController.saveAllEventRecords(eventController.resolveEventConflicts(events));
     } catch (Exception e) {
       log.error("Error saving events, {}", e.getMessage());
       return "Error saving events";
