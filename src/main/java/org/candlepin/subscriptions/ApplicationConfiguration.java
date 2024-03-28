@@ -34,6 +34,9 @@ import com.redhat.cloud.event.parser.ConsoleCloudEventParser;
 import io.micrometer.core.aop.TimedAspect;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.validation.Validator;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.candlepin.subscriptions.actuator.CertInfoContributor;
 import org.candlepin.subscriptions.capacity.CapacityIngressConfiguration;
 import org.candlepin.subscriptions.capacity.CapacityReconciliationWorkerConfiguration;
@@ -59,6 +62,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.actuate.autoconfigure.info.ConditionalOnEnabledInfoContributor;
 import org.springframework.boot.actuate.autoconfigure.info.InfoContributorFallback;
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -66,6 +70,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
+import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -207,5 +212,14 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   @Bean
   public ConsoleCloudEventParser cloudEventParser(@Autowired ObjectMapper objectMapper) {
     return new ConsoleCloudEventParser(objectMapper);
+  }
+
+  @Bean
+  public KafkaAdmin kafkaAdmin(KafkaProperties kafkaProperties) {
+    Map<String, Object> configs = new HashMap<>();
+    configs.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProperties.getBootstrapServers());
+    KafkaAdmin kafkaAdmin = new KafkaAdmin(configs);
+    kafkaAdmin.setModifyTopicConfigs(true);
+    return kafkaAdmin;
   }
 }
