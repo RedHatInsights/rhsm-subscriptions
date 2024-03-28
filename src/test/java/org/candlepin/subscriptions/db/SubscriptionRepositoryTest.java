@@ -111,7 +111,6 @@ class SubscriptionRepositoryTest {
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .productNames(productNames)
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
@@ -145,11 +144,10 @@ class SubscriptionRepositoryTest {
             "otherSku2", "Other SKU 2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
     offeringRepo.saveAndFlush(o2);
 
-    Set<String> productNames = Set.of("Other SKU 1", "Other SKU 2");
     var result =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .productNames(productNames)
+                .productTag("testProductTag")
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
@@ -178,11 +176,10 @@ class SubscriptionRepositoryTest {
         createOffering("testSku2", "Test SKU 2", 1, ServiceLevel.PREMIUM, Usage.PRODUCTION, "ocp");
     offeringRepo.saveAndFlush(o2);
 
-    Set<String> productNames = Set.of("Test SKU 1");
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .productNames(productNames)
+                .productTag("testProductTag")
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
@@ -209,12 +206,10 @@ class SubscriptionRepositoryTest {
     offeringRepo.save(offering);
     subscriptionRepo.saveAllAndFlush(subscriptions);
 
-    Set<String> productNames = Set.of("Test SKU 1");
-
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .productNames(productNames)
+                .productTag("testProductTag")
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
@@ -368,11 +363,10 @@ class SubscriptionRepositoryTest {
     subscriptionRepo.saveAndFlush(subscription1);
     subscriptionRepo.saveAndFlush(subscription2);
 
-    Set<String> productNames = Set.of("Test SKU 1");
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .productNames(productNames)
+                .productTag("testProductTag")
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
@@ -400,11 +394,10 @@ class SubscriptionRepositoryTest {
     subscriptionRepo.saveAndFlush(subscription1);
     subscriptionRepo.saveAndFlush(subscription2);
 
-    Set<String> productNames = Set.of("Test SKU 1");
     var resultList =
         subscriptionRepo.findByCriteria(
             DbReportCriteria.builder()
-                .productNames(productNames)
+                .productTag("testProductTag")
                 .serviceLevel(ServiceLevel.STANDARD)
                 .usage(Usage.PRODUCTION)
                 .billingProvider(BillingProvider._ANY)
@@ -419,12 +412,51 @@ class SubscriptionRepositoryTest {
         "providerTenantId;providerSubscriptionId", resultList.get(0).getBillingAccountId());
   }
 
+  @Transactional
+  @Test
+  void findsAllSubscriptionsForProductTag() {
+    var expectedProductTag = "testProductTag";
+    Offering mct3718 =
+        createOffering(
+            "MCT3718",
+            "MCT3718 SKU",
+            1066,
+            expectedProductTag,
+            ServiceLevel.SELF_SUPPORT,
+            Usage.PRODUCTION,
+            "ROLE");
+    offeringRepo.save(mct3718);
+
+    for (int i = 0; i < 5; i++) {
+      Subscription subscription =
+          createSubscription("1", String.valueOf(new Random().nextInt()), "sellerAcctId");
+      subscription.setOffering(mct3718);
+      subscriptionRepo.saveAndFlush(subscription);
+    }
+    var criteria = DbReportCriteria.builder().productTag(expectedProductTag).build();
+
+    var result = subscriptionRepo.findByCriteria(criteria, Sort.unsorted());
+    assertEquals(5, result.size());
+  }
+
   private Offering createOffering(
       String sku, String productName, int productId, ServiceLevel sla, Usage usage, String role) {
+    return createOffering(sku, productName, productId, "testProductTag", sla, usage, role);
+  }
+
+  private Offering createOffering(
+      String sku,
+      String productName,
+      int productId,
+      String productTag,
+      ServiceLevel sla,
+      Usage usage,
+      String role) {
     return Offering.builder()
         .sku(sku)
         .productName(productName)
         .productIds(Set.of(productId))
+        .productTags(Set.of(productTag))
         .serviceLevel(sla)
         .usage(usage)
         .role(role)

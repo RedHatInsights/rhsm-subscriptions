@@ -24,14 +24,12 @@ import static org.candlepin.subscriptions.resource.ResourceUtils.*;
 
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
-import com.redhat.swatch.configuration.registry.Variant;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.Min;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -132,7 +130,7 @@ public class SubscriptionTableController {
     var reportCriteria =
         DbReportCriteria.builder()
             .orgId(orgId)
-            .productId(productId.toString())
+            .productTag(productId.toString())
             .serviceLevel(sanitizedServiceLevel)
             .usage(sanitizedUsage)
             .beginning(reportStart)
@@ -269,19 +267,13 @@ public class SubscriptionTableController {
       OffsetDateTime reportStart,
       OffsetDateTime reportEnd) {
 
-    var productNames =
-        new HashSet<>(
-            Variant.findByTag(productId.toString())
-                .map(Variant::getProductNames)
-                .orElse(new ArrayList<>()));
-
     Map<String, SkuCapacity> inventories = new HashMap<>();
 
     var subscriptions =
         subscriptionRepository.findByCriteria(
             DbReportCriteria.builder()
                 .orgId(getOrgId())
-                .productNames(productNames)
+                .productTag(productId.getValue())
                 .serviceLevel(serviceLevel)
                 .usage(usage)
                 .billingProvider(billingProvider)

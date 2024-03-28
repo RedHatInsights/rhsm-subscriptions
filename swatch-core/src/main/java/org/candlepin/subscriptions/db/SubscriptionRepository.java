@@ -30,7 +30,6 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.DbReportCriteria;
@@ -116,9 +115,8 @@ public interface SubscriptionRepository
       // NOTE: we expect payg subscription records to always populate billingProviderId
       searchCriteria = searchCriteria.and(hasBillingProviderId());
     }
-    // TODO: ENT-5042 should move away from using product name values here //NOSONAR
-    if (!ObjectUtils.isEmpty(dbReportCriteria.getProductNames())) {
-      searchCriteria = searchCriteria.and(productNameIn(dbReportCriteria.getProductNames()));
+    if (!ObjectUtils.isEmpty(dbReportCriteria.getProductTag())) {
+      searchCriteria = searchCriteria.and(productTagEquals(dbReportCriteria.getProductTag()));
     }
     if (Objects.nonNull(dbReportCriteria.getProductId())) {
       searchCriteria = searchCriteria.and(productIdEquals(dbReportCriteria.getProductId()));
@@ -180,10 +178,11 @@ public interface SubscriptionRepository
             builder.notEqual(root.get(Subscription_.billingProviderId), ""));
   }
 
-  private static Specification<Subscription> productNameIn(Set<String> productNames) {
+  private static Specification<Subscription> productTagEquals(String productTag) {
     return (root, query, builder) -> {
-      var offeringRoot = root.get(Subscription_.offering);
-      return offeringRoot.get(Offering_.productName).in(productNames);
+      var offeringJoin = root.join(Subscription_.offering);
+      var productTagJoin = offeringJoin.join(Offering_.productTags);
+      return builder.equal(productTagJoin, productTag);
     };
   }
 
