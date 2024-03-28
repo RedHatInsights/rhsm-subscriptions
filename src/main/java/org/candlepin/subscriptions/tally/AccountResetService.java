@@ -23,9 +23,7 @@ package org.candlepin.subscriptions.tally;
 import static java.util.stream.Collectors.toMap;
 
 import jakarta.transaction.Transactional;
-import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -97,7 +95,7 @@ public class AccountResetService {
             .config("cleanup.policy", "delete")
             .build();
     kafkaAdmin.createOrModifyTopics(billableUsageSuppressStoreEmpty);
-    deleteAllMessages(Set.of(BILLABLE_USAGE_AGGREGATE_SUPPRESS_STORE_TOPIC));
+    deleteAllMessages(BILLABLE_USAGE_AGGREGATE_SUPPRESS_STORE_TOPIC);
     NewTopic billableUsageSuppressStoreReset =
         TopicBuilder.name(BILLABLE_USAGE_AGGREGATE_SUPPRESS_STORE_TOPIC)
             .config("cleanup.policy", "compact")
@@ -105,16 +103,21 @@ public class AccountResetService {
     kafkaAdmin.createOrModifyTopics(billableUsageSuppressStoreReset);
   }
 
-  void deleteAllMessages(Collection<String> topics) {
+  void deleteAllMessages(String topic) {
     try (AdminClient adminClient = AdminClient.create(kafkaAdmin.getConfigurationProperties())) {
+      var partitions =
+          kafkaAdmin
+              .describeTopics(BILLABLE_USAGE_AGGREGATE_SUPPRESS_STORE_TOPIC)
+              .get(BILLABLE_USAGE_AGGREGATE_SUPPRESS_STORE_TOPIC)
+              .partitions();
       Map<TopicPartition, RecordsToDelete> recordsToDelete =
-          topics.stream()
+          partitions.stream()
               .collect(
                   toMap(
-                      name -> new TopicPartition(name, 0),
-                      name -> RecordsToDelete.beforeOffset(-1)));
+                      partition -> new TopicPartition(topic, partition.partition()),
+                      partition -> RecordsToDelete.beforeOffset(-1)));
       adminClient.deleteRecords(recordsToDelete).all().get();
-      log.info("Deleted records in topics: {}", topics);
+      log.info("Deleted records in topics: {}", topic);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
     } catch (Exception e) {
