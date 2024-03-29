@@ -1139,12 +1139,15 @@ components:
           $ref: '#/components/schemas/CloudProvider'
         subscription_manager_id:
           type: string
+        inventory_id:
+          type: string
       example:
         id: d6214a0b-b344-4778-831c-d53dcacb2da3
-        instance_id: 879180f3-76a4-46d5-8fff-7fb32067340b
+        instance_id: i-vvqwfvrcnrzoujhwa
         display_name: rhv.example.com
         billing_provider: red hat
         billing_account_id: e460fbca-a351-4c6a-a36a-18fdbfbc5a20
+        inventory_id: 879180f3-76a4-46d5-8fff-7fb32067340b
         measurements:
           - 42
           - null

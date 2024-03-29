@@ -163,6 +163,10 @@ parameters:
     value: '3'
   - name: KAFKA_SUBSCRIPTIONS_TASKS_PARTITIONS
     value: '3'
+  - name: KAFKA_ENABLED_ORGS_REPLICAS
+    value: '3'
+  - name: KAFKA_ENABLED_ORGS_PARTITIONS
+    value: '3'
   - name: ENABLE_SYNCHRONOUS_OPERATIONS
     value: 'false'
   - name: TALLY_MAX_HBI_ACCOUNT_SIZE
@@ -261,6 +265,9 @@ objects:
       - replicas: ${{KAFKA_SERVICE_INSTANCE_DEAD_LETTER_REPLICAS}}
         partitions: ${{KAFKA_SERVICE_INSTANCE_DEAD_LETTER_PARTITIONS}}
         topicName: platform.rhsm-subscriptions.service-instance-ingress.dlt
+      - replicas: ${{KAFKA_ENABLED_ORGS_REPLICAS}}
+        partitions: ${{KAFKA_ENABLED_ORGS_PARTITIONS}}
+        topicName: platform.rhsm-subscriptions.enabled-orgs-for-tasks
 
     database:
       # Must specify both a name and a major postgres version
