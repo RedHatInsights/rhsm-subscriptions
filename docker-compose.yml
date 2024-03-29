@@ -6,7 +6,7 @@ services:
     # When updating the image, remember to also update the following locations:
     # - SwatchPostgreSQLContainer.POSTGRESQL_IMAGE
     # - .github/workflows/validate-floorplan-queries.yaml (step "Setup Postgresql Database")
-    image: quay.io/centos7/postgresql-12-centos7
+    image: quay.io/centos7/postgresql-12-centos7:centos7
     environment:
       - POSTGRES_HOST_AUTH_METHOD=trust
       - POSTGRESQL_MAX_CONNECTIONS=5000

@@ -32,7 +32,7 @@ import org.testcontainers.utility.DockerImageName;
 
 @EqualsAndHashCode(callSuper = true)
 public class SwatchPostgreSQLContainer extends PostgreSQLContainer<SwatchPostgreSQLContainer> {
-  private static final String POSTGRESQL_IMAGE = "quay.io/centos7/postgresql-12-centos7";
+  private static final String POSTGRESQL_IMAGE = "quay.io/centos7/postgresql-12-centos7:centos7";
 
   public SwatchPostgreSQLContainer(String database) {
     super(DockerImageName.parse(POSTGRESQL_IMAGE).asCompatibleSubstituteFor("postgres"));
