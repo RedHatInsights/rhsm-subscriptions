@@ -52,9 +52,11 @@ import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.retry.support.RetryTemplateBuilder;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @Configuration
 @EnableRetry
+@EnableScheduling
 public class BillingProducerConfiguration {
 
   @Bean
