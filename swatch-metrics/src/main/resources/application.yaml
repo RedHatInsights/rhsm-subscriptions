@@ -33,6 +33,9 @@ SERVICE_INSTANCE_INGRESS_TOPIC: platform.rhsm-subscriptions.service-instance-ing
   ENABLE_SPLUNK_HEC: ${%dev.ENABLE_SPLUNK_HEC}
   HOST_NAME: unit_tests
   quarkus:
+    management:
+      # disable during testing to prevent port conflict during parallel runs
+      enabled: false
     log:
       console:
         json: false
