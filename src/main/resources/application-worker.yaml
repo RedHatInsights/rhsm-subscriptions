@@ -71,6 +71,7 @@ rhsm-subscriptions:
       kafka-group-id: swatch-producer-billing
       seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
       seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
+    heartbeat-enabled: ${BILLABLE_USAGE_HEARTBEAT_ENABLED:false}
     outgoing:
       topic: ${BILLABLE_USAGE_TOPIC}
     contracts:
