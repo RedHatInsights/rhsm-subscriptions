@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.db.model;
 
 import java.time.OffsetDateTime;
-import java.util.Set;
 import lombok.Builder;
 import lombok.Data;
 import org.candlepin.subscriptions.db.HypervisorReportCategory;
@@ -32,8 +31,6 @@ import org.candlepin.subscriptions.db.HypervisorReportCategory;
 public class DbReportCriteria {
   private String orgId;
   private String productTag;
-  // TODO: ENT-5042 should move away from using product name values here //NOSONAR
-  private Set<String> productNames;
   private String productId;
   private ServiceLevel serviceLevel;
   private Usage usage;
