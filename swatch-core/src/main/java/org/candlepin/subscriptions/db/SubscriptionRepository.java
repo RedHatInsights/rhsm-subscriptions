@@ -180,9 +180,8 @@ public interface SubscriptionRepository
 
   private static Specification<Subscription> productTagEquals(String productTag) {
     return (root, query, builder) -> {
-      var offeringJoin = root.join(Subscription_.offering);
-      var productTagJoin = offeringJoin.join(Offering_.productTags);
-      return builder.equal(productTagJoin, productTag);
+      var offeringRoot = root.get(Subscription_.offering);
+      return builder.isMember(productTag, offeringRoot.get(Offering_.productTags));
     };
   }
 

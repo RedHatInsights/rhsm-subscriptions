@@ -205,7 +205,7 @@ public class CapacityResource implements CapacityApi {
     var dbReportCriteria =
         DbReportCriteria.builder()
             .orgId(orgId)
-            .productTag(productId.toString())
+            .productId(productId.toString())
             .serviceLevel(sla)
             .usage(usage)
             .beginning(reportBegin)

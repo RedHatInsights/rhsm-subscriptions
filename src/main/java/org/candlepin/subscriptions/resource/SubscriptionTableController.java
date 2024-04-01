@@ -130,7 +130,7 @@ public class SubscriptionTableController {
     var reportCriteria =
         DbReportCriteria.builder()
             .orgId(orgId)
-            .productTag(productId.toString())
+            .productId(productId.toString())
             .serviceLevel(sanitizedServiceLevel)
             .usage(sanitizedUsage)
             .beginning(reportStart)
