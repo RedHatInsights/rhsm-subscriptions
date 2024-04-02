@@ -1,0 +1,54 @@
+---
+version: '3.1'
+services:
+  export:
+    container_name: export-server
+    image: quay.io/cloudservices/export-service:f6c95f2
+    environment:
+      - PGSQL_PORT=5432
+      - PGSQL_HOSTNAME=db
+      - LOG_LEVEL=trace
+      - DEBUG=true
+      - OPEN_API_FILE_PATH=/var/tmp/openapi.json
+      - OPEN_API_PRIVATE_PATH=/var/tmp/private.json
+      - PSKS=placeholder
+      - KAFKA_BROKERS=kafka:29092
+      - AWS_ACCESS_KEY=minio
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - PUBLIC_PORT=8000
+      - METRICS_PORT=9090
+      - MINIO_HOST=s3
+      - MINIO_PORT=9099
+      - PRIVATE_PORT=10010
+    ports:
+      - 8002:8000
+      - 10000:10010
+    command: /bin/bash -c "export-service migrate_db upgrade && export-service api_server"
+    networks:
+      - swatch-network
+  s3:
+    image: minio/minio
+    ports:
+      - 9099:9099
+      - 9990:9990
+    volumes:
+      - ./tmp/minio:/data:Z
+    environment:
+      - MINIO_ROOT_USER=${AWS_ACCESS_KEY-minio}
+      - MINIO_ROOT_PASSWORD=${AWS_SECRET_ACCESS_KEY-minioadmin}
+    command: server --address 0.0.0.0:9099 --console-address 0.0.0.0:9990 /data
+
+  s3-createbucket:
+    image: minio/mc
+    depends_on:
+      - s3
+    restart: on-failure
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add myminio http://s3:9099 ${AWS_ACCESS_KEY-minio} ${AWS_SECRET_ACCESS_KEY-minioadmin} || exit 1;
+      /usr/bin/mc mb --ignore-existing myminio/exports-bucket;
+      /usr/bin/mc policy set public myminio/exports-bucket;
+      "
+networks:
+  swatch-network:
+    external: true
