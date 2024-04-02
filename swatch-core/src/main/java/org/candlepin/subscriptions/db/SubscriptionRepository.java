@@ -48,6 +48,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
+import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.data.repository.query.Param;
 import org.springframework.util.ObjectUtils;
 
@@ -84,6 +85,11 @@ public interface SubscriptionRepository
   @Query(
       "SELECT s FROM Subscription s WHERE s.orgId = :orgId ORDER BY s.subscriptionId, s.startDate")
   Stream<Subscription> findByOrgId(String orgId);
+
+  default Stream<Subscription> streamBy(DbReportCriteria dbReportCriteria) {
+    return findBy(
+        buildSearchSpecification(dbReportCriteria), FluentQuery.FetchableFluentQuery::stream);
+  }
 
   void deleteBySubscriptionId(String subscriptionId);
 
