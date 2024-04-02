@@ -22,18 +22,17 @@ package org.candlepin.subscriptions.event;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventKey;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.json.Event;
+import org.candlepin.subscriptions.json.Event.AmendmentType;
 import org.candlepin.subscriptions.json.Measurement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -83,23 +82,29 @@ public class EventConflictResolver {
       return eventsToResolve.values().stream().map(EventRecord::new).toList();
     }
 
+    // Resolve any conflicting events.
     List<EventRecord> resolvedEvents = new LinkedList<>();
     eventsToResolve.forEach(
         (key, event) -> {
-          if (!allConflicting.containsKey(key)) {
-            // No conflict, include the incoming event.
-            resolvedEvents.add(new EventRecord(event));
-          } else {
-            resolvedEvents.addAll(resolveEventConflicts(event, allConflicting.get(key)));
+          if (allConflicting.containsKey(key)) {
+            List<EventRecord> resolvedConflicts =
+                resolveEventConflicts(event, allConflicting.get(key));
+            // When there is a conflict with no resolution, the incoming event is a duplicate
+            // and there is no need to add it as resolved.
+            if (resolvedConflicts.isEmpty()) {
+              return;
+            }
+            resolvedEvents.addAll(resolvedConflicts);
           }
+          // Include the incoming event since this event will be the new value.
+          resolvedEvents.add(new EventRecord(event));
         });
     return resolvedEvents;
   }
 
   private List<EventRecord> resolveEventConflicts(
       Event incomingEvent, List<EventRecord> conflictingEvents) {
-    var deductedMeasurements = determineMeasurementDeductions(conflictingEvents);
-    return resolveEventMeasurements(incomingEvent, deductedMeasurements);
+    return resolveEventMeasurements(incomingEvent, conflictingEvents);
   }
 
   private Map<String, Double> determineMeasurementDeductions(List<EventRecord> conflictingEvents) {
@@ -111,105 +116,67 @@ public class EventConflictResolver {
                 e.getMeasurements()
                     .forEach(
                         m -> {
-                          deductions.putIfAbsent(m.getUom(), 0.0);
-                          deductions.put(m.getUom(), deductions.get(m.getUom()) - m.getValue());
+                          String metricId = getMetricId(m);
+                          deductions.putIfAbsent(metricId, 0.0);
+                          deductions.put(metricId, deductions.get(metricId) - m.getValue());
                         }));
     return deductions;
   }
 
   private List<EventRecord> resolveEventMeasurements(
-      Event toResolve, Map<String, Double> measurementDeductions) {
+      Event toResolve, List<EventRecord> conflictingEvents) {
+    Map<String, Measurement> deductionEvents =
+        getDeductionMeasurements(toResolve, determineMeasurementDeductions(conflictingEvents));
+
+    // Create events for each measurement deduction.
     List<EventRecord> resolved = new ArrayList<>();
-
-    // If there is nothing to deduct from the event to resolve,
-    // simply return the event as is.
-    if (measurementDeductions.isEmpty()) {
-      log.debug("Nothing to resolve for event {}", toResolve);
-      resolved.add(new EventRecord(toResolve));
-      return resolved;
-    }
-
-    // Measurements need to be resolved individually since conflicting events
-    // could potentially contain different uom measurement sets.
-    Set<String> measurementUomsToSkip = new HashSet<>();
-    for (Measurement measurement : toResolve.getMeasurements()) {
-      Optional<EventRecord> deductionEvent =
-          buildDeductionEvent(
-              toResolve,
-              measurement,
-              Optional.ofNullable(measurementDeductions.get(measurement.getUom())));
-      deductionEvent.ifPresentOrElse(
-          resolved::add, () -> measurementUomsToSkip.add(measurement.getUom()));
-    }
-
-    rebuildEventWithUpdatedMeasurements(toResolve, measurementUomsToSkip).ifPresent(resolved::add);
+    deductionEvents.forEach(
+        (metricId, measurement) -> {
+          Event deductionEvent = createRecordFrom(toResolve);
+          deductionEvent.setAmendmentType(AmendmentType.DEDUCTION);
+          deductionEvent.setMeasurements(List.of(measurement));
+          resolved.add(new EventRecord(deductionEvent));
+        });
     return resolved;
+  }
+
+  private Map<String, Measurement> getDeductionMeasurements(
+      final Event toResolve, Map<String, Double> measurementDeductions) {
+    // Measurements need to be resolved individually since conflicting events
+    // could potentially contain different measurement sets.
+    Map<String, Measurement> deductions = new HashMap<>();
+    for (Measurement measurement : toResolve.getMeasurements()) {
+      String metricId = getMetricId(measurement);
+      if (measurementDeductions.containsKey(metricId)) {
+        Double deduction = measurementDeductions.get(metricId);
+        // If we had a conflicting Event, but the measurement value was the same,
+        // there's nothing to resolve as they are considered equal. This will
+        // NOT result in a new EventRecord for the measurement.
+        //
+        // The deduction value is expected to be <= 0, so we compare
+        // by adding the incoming value to it to see if the result is 0.
+        if (deduction + measurement.getValue() == 0.0) {
+          log.debug("Incoming event measurement is a duplicate. Nothing to resolve.");
+          continue;
+        }
+        deductions.put(
+            metricId,
+            new Measurement().withMetricId(metricId).withUom(metricId).withValue(deduction));
+      }
+    }
+    return deductions;
+  }
+
+  private String getMetricId(Measurement measurement) {
+    return !StringUtils.isEmpty(measurement.getMetricId())
+        ? measurement.getMetricId()
+        : measurement.getUom();
   }
 
   private Map<EventKey, List<EventRecord>> getConflictingEvents(
       Map<EventKey, Event> incomingEvents) {
     return eventRecordRepository.findConflictingEvents(incomingEvents.keySet()).stream()
         .collect(Collectors.groupingBy(e -> EventKey.fromEvent(e.getEvent())));
-  }
-
-  private Optional<EventRecord> buildDeductionEvent(
-      Event toResolve, Measurement measurement, Optional<Double> deduction) {
-    if (deduction.isPresent()) {
-      Double deductedValue = deduction.get();
-      // If we had a conflicting Event, but the measurement value was the same
-      // there's nothing to resolve as they are considered equal. This will
-      // NOT result in a new EventRecord for the measurement.
-      //
-      // The deducted value is expected to be <= 0, so we compare
-      // by adding the incoming value to it to see if the result is 0.
-      if (deductedValue + measurement.getValue() == 0.0) {
-        log.debug("Incoming event measurement is a duplicate. Nothing to resolve.");
-        return Optional.empty();
-      }
-
-      // Create an EventRecord with the -ve value
-      Event deductionEvent = createRecordFrom(toResolve);
-      deductionEvent.setMeasurements(
-          List.of(new Measurement().withUom(measurement.getUom()).withValue(deductedValue)));
-      return Optional.of(new EventRecord(deductionEvent));
-    }
-    return Optional.empty();
-  }
-
-  private Optional<EventRecord> rebuildEventWithUpdatedMeasurements(
-      Event toResolve, Set<String> measurementUomsToSkip) {
-    // Rebuild the Event if there are event measurements to skip, otherwise, create an
-    // EventRecord from the Event we attempted to resolve.
-    EventRecord rebuiltEventRecord = null;
-    if (!measurementUomsToSkip.isEmpty()) {
-      // Remove any measurements that would result in no change, and create an
-      // EventRecord based on the updated incoming event if any measurements need
-      // to be applied.
-      List<Measurement> applicableMeasurements =
-          toResolve.getMeasurements().stream()
-              .filter(m -> !measurementUomsToSkip.contains(m.getUom()))
-              .toList();
-
-      if (log.isDebugEnabled() && !applicableMeasurements.isEmpty()) {
-        log.debug(
-            "Skipping measurements in event since they would result in no change: {}",
-            String.join(",", measurementUomsToSkip));
-      }
-
-      // If there are still applicable measurements, rebuild the event we are resolving to
-      // include only the applicable measurements. Because the event measurement
-      // collection is immutable, we need to copy the Event in order to make the updates.
-      if (!applicableMeasurements.isEmpty()) {
-        Event rebuiltEvent = createRecordFrom(toResolve);
-        rebuiltEvent.setMeasurements(applicableMeasurements);
-        rebuiltEventRecord = new EventRecord(rebuiltEvent);
-      } else {
-        log.debug("Did not find any applicable measurements while resolving the event.");
-      }
-    } else {
-      rebuiltEventRecord = new EventRecord(toResolve);
-    }
-    return Optional.ofNullable(rebuiltEventRecord);
   }
 
   private Event createRecordFrom(Event from) {

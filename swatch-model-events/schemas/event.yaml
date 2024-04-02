@@ -196,3 +196,9 @@ properties:
       type: string
     required: false
     uniqueItems: true
+  amendment_type:
+    description: Describes the type of amendment that caused this event to be created
+    type: string
+    enum:
+      - deduction
+    required: false
