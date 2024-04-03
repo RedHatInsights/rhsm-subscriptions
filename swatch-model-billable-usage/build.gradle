@@ -1,0 +1,35 @@
+plugins {
+    id 'swatch.quarkus-conventions'
+    id 'jsonschema2pojo'
+}
+
+description = 'Billable usage model definition'
+
+dependencies {
+    annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
+
+    implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
+    implementation libraries["jackson-annotations"] // for json generated models
+    implementation libraries["jakarta-validation-api"] // for validation API in generated models
+    implementation "com.fasterxml.jackson.core:jackson-databind"
+
+    testImplementation libraries["junit-jupiter"]
+}
+
+jsonSchema2Pojo {
+    source = files("${projectDir}/../swatch-core/schemas/billable_usage.yaml")
+    targetPackage = "org.candlepin.subscriptions.billable.usage"
+    includeAdditionalProperties = false
+    includeJsr303Annotations = true
+    initializeCollections = false
+    dateTimeType = 'java.time.OffsetDateTime'
+    sourceType = 'yamlschema'
+    generateBuilders = true
+    includeGetters = true
+    includeSetters = true
+    useJakartaValidation = true
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}

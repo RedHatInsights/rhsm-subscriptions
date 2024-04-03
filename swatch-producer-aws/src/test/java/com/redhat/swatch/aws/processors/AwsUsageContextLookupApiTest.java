@@ -25,8 +25,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 
-import com.redhat.swatch.aws.kafka.BillableUsageAggregate;
-import com.redhat.swatch.aws.kafka.BillableUsageAggregateKey;
 import com.redhat.swatch.aws.openapi.model.BillableUsage.BillingProviderEnum;
 import com.redhat.swatch.aws.test.resources.WireMockResource;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -34,6 +32,8 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest

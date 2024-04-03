@@ -21,13 +21,13 @@
 package com.redhat.swatch.azure.resource;
 
 import com.redhat.swatch.azure.exception.AzureManualSubmissionDisabledException;
-import com.redhat.swatch.azure.openapi.model.BillableUsage;
 import com.redhat.swatch.azure.openapi.resource.ApiException;
 import com.redhat.swatch.azure.openapi.resource.DefaultApi;
 import com.redhat.swatch.azure.service.BillableUsageProducer;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.ProcessingException;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Slf4j

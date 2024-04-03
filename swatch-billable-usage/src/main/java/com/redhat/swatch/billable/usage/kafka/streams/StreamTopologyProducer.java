@@ -18,10 +18,10 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.azure.kafka.streams;
+package com.redhat.swatch.billable.usage.kafka.streams;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redhat.swatch.azure.openapi.model.BillableUsage;
+import com.redhat.swatch.billable.usage.model.BillableUsage;
 import io.quarkus.kafka.client.serialization.ObjectMapperSerde;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
@@ -42,8 +42,8 @@ import org.apache.kafka.streams.state.WindowStore;
 @Slf4j
 public class StreamTopologyProducer {
 
-  private BillableUsageAggregationStreamProperties properties;
-  private ObjectMapper objectMapper;
+  private final BillableUsageAggregationStreamProperties properties;
+  private final ObjectMapper objectMapper;
 
   public StreamTopologyProducer(
       BillableUsageAggregationStreamProperties properties, ObjectMapper objectMapper) {

@@ -18,12 +18,8 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.aws.kafka;
+package org.candlepin.subscriptions.billable.usage;
 
-import com.redhat.swatch.aws.openapi.model.BillableUsage;
-import com.redhat.swatch.aws.openapi.model.BillableUsage.BillingProviderEnum;
-import com.redhat.swatch.aws.openapi.model.BillableUsage.SlaEnum;
-import com.redhat.swatch.aws.openapi.model.BillableUsage.UsageEnum;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -53,10 +49,10 @@ public class BillableUsageAggregateKey {
         billableUsage.getOrgId(),
         billableUsage.getProductId(),
         billableUsage.getUom(),
-        Optional.ofNullable(billableUsage.getSla()).orElse(SlaEnum.EMPTY).value(),
-        Optional.ofNullable(billableUsage.getUsage()).orElse(UsageEnum.EMPTY).value(),
+        Optional.ofNullable(billableUsage.getSla()).orElse(BillableUsage.Sla.__EMPTY__).value(),
+        Optional.ofNullable(billableUsage.getUsage()).orElse(BillableUsage.Usage.__EMPTY__).value(),
         Optional.ofNullable(billableUsage.getBillingProvider())
-            .map(BillingProviderEnum::value)
+            .map(BillableUsage.BillingProvider::value)
             .orElse(null),
         billableUsage.getBillingAccountId());
   }

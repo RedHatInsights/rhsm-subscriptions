@@ -28,8 +28,6 @@ import com.redhat.swatch.azure.exception.DefaultApiException;
 import com.redhat.swatch.azure.exception.SubscriptionCanNotBeDeterminedException;
 import com.redhat.swatch.azure.exception.SubscriptionRecentlyTerminatedException;
 import com.redhat.swatch.azure.exception.UsageTimestampOutOfBoundsException;
-import com.redhat.swatch.azure.kafka.streams.BillableUsageAggregate;
-import com.redhat.swatch.azure.kafka.streams.BillableUsageAggregateKey;
 import com.redhat.swatch.azure.openapi.model.BillableUsage;
 import com.redhat.swatch.azure.openapi.model.BillableUsage.BillingProviderEnum;
 import com.redhat.swatch.azure.openapi.model.BillableUsage.SlaEnum;
@@ -55,6 +53,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.faulttolerance.Retry;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -64,8 +64,6 @@ import org.slf4j.MDC;
 @Slf4j
 @ApplicationScoped
 public class BillableUsageAggregateConsumer {
-
-  @Inject private AzureMarketplaceService azureMarketplaceService;
   private final BillableUsageDeadLetterTopicProducer billableUsageDeadLetterTopicProducer;
 
   private final Counter acceptedCounter;
@@ -73,6 +71,7 @@ public class BillableUsageAggregateConsumer {
   private final InternalSubscriptionsApi internalSubscriptionsApi;
   private final Optional<Boolean> isDryRun;
   private final Duration azureUsageWindow;
+  private final AzureMarketplaceService azureMarketplaceService;
 
   @Inject
   public BillableUsageAggregateConsumer(

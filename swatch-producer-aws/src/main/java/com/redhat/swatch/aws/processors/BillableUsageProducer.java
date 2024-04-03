@@ -20,9 +20,9 @@
  */
 package com.redhat.swatch.aws.processors;
 
-import com.redhat.swatch.aws.openapi.model.BillableUsage;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.eclipse.microprofile.reactive.messaging.Channel;
 import org.eclipse.microprofile.reactive.messaging.Emitter;
 

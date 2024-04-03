@@ -15,7 +15,6 @@ dependencies {
     implementation 'io.quarkus:quarkus-smallrye-openapi'
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
     implementation 'io.quarkus:quarkus-oidc-client'
-    implementation 'io.quarkus:quarkus-kafka-streams'
     implementation project(':clients:swatch-internal-subscription-client')
     implementation project(':swatch-common-config-workaround')
     implementation project(':swatch-common-resteasy')
@@ -26,6 +25,7 @@ dependencies {
     implementation project(':swatch-common-kafka')
     implementation project(':swatch-common-resteasy-client')
     implementation project(":clients:azure-marketplace-client")
+    implementation project(':swatch-model-billable-usage')
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
     testImplementation 'io.rest-assured:rest-assured'
     testImplementation 'org.mockito:mockito-junit-jupiter'
@@ -35,7 +35,6 @@ dependencies {
     testImplementation 'io.quarkus:quarkus-test-security'
     testImplementation libraries["junit-jupiter"]
     testImplementation project(':swatch-common-testcontainers')
-    testImplementation "org.apache.kafka:kafka-streams-test-utils"
     implementation libraries["mapstruct"]
     annotationProcessor libraries["mapstruct-processor"]
     testAnnotationProcessor libraries["mapstruct-processor"]
@@ -66,12 +65,7 @@ openApiGenerate {
     additionalProperties = [disableMultipart: "true", // see https://github.com/OpenAPITools/openapi-generator/pull/4713#issuecomment-633906581
     ]
     importMappings = [
-        "MetricId": "com.redhat.swatch.configuration.registry.MetricId",
-        "ProductId": "com.redhat.swatch.configuration.registry.ProductId",
-    ]
-    typeMappings = [
-        "string+MetricId": "MetricId",
-        "string+ProductId": "ProductId",
+            "BillableUsage": "org.candlepin.subscriptions.billable.usage.BillableUsage"
     ]
 }
 
