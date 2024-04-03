@@ -250,7 +250,8 @@ public class InventoryController {
       return "azure";
     } else if (biosVendor.toLowerCase().contains("google")) {
       return "gcp";
-    } else if (biosVersion.toLowerCase().contains("amazon")) {
+    } else if (biosVersion.toLowerCase().contains("amazon")
+        || biosVendor.toLowerCase().contains("amazon")) {
       return "aws";
     } else if (systemManufacturer.toLowerCase().contains("alibaba")) {
       return "alibaba";
