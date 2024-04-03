@@ -31,10 +31,6 @@ import static org.mockito.Mockito.when;
 import com.redhat.swatch.aws.exception.AwsUsageContextLookupException;
 import com.redhat.swatch.aws.exception.DefaultApiException;
 import com.redhat.swatch.aws.exception.SubscriptionRecentlyTerminatedException;
-import com.redhat.swatch.aws.kafka.BillableUsageAggregate;
-import com.redhat.swatch.aws.kafka.BillableUsageAggregateKey;
-import com.redhat.swatch.aws.openapi.model.BillableUsage.BillingProviderEnum;
-import com.redhat.swatch.aws.openapi.model.BillableUsage.SlaEnum;
 import com.redhat.swatch.aws.openapi.model.Error;
 import com.redhat.swatch.aws.openapi.model.Errors;
 import com.redhat.swatch.aws.test.resources.InMemoryMessageBrokerKafkaResource;
@@ -61,6 +57,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.junit.jupiter.api.BeforeEach;
@@ -142,9 +141,9 @@ class BillableUsageAggregateProcessorTest {
             "testOrg",
             "BASILSK",
             INSTANCE_HOURS,
-            SlaEnum.PREMIUM.value(),
+            BillableUsage.Sla.PREMIUM.value(),
             Usage.PRODUCTION.getValue(),
-            BillingProviderEnum.RED_HAT.value(),
+            BillableUsage.BillingProvider.RED_HAT.value(),
             "testBillingAccountId");
     aggregate.setAggregateKey(key);
     processor.process(aggregate);
@@ -325,9 +324,9 @@ class BillableUsageAggregateProcessorTest {
             "testOrg",
             productId,
             metricId,
-            SlaEnum.PREMIUM.value(),
+            BillableUsage.Sla.PREMIUM.value(),
             Usage.PRODUCTION.getValue(),
-            BillingProviderEnum.AWS.value(),
+            BillableUsage.BillingProvider.AWS.value(),
             "testBillingAccountId");
     aggregate.setAggregateKey(key);
     return aggregate;

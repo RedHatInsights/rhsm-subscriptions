@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.azure.kafka.streams;
+package com.redhat.swatch.billable.usage.kafka.streams;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.Duration;

@@ -18,17 +18,9 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.aws.kafka;
+package org.candlepin.subscriptions.billable.usage;
 
-import io.quarkus.kafka.client.serialization.ObjectMapperDeserializer;
+import io.quarkus.kafka.client.serialization.ObjectMapperSerializer;
 
-/**
- * Provides quarkus a hint that we want to use Jackson to deserialize BillableUsageAggregate objects
- */
-public class BillableUsageAggregateDeserializer
-    extends ObjectMapperDeserializer<BillableUsageAggregate> {
-
-  public BillableUsageAggregateDeserializer() {
-    super(BillableUsageAggregate.class);
-  }
-}
+/** Provides quarkus a hint that we want to use Jackson to serialize BillableUsage objects */
+public class BillableUsageSerializer extends ObjectMapperSerializer<BillableUsage> {}
