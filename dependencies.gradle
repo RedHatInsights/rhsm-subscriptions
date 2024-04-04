@@ -43,7 +43,7 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:2.1.1"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.25.23"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.25.24"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.5.1"
 libraries["guava"] = "com.google.guava:guava:33.1.0-jre"
 libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.14.0"
