@@ -43,7 +43,7 @@ libraries["spring-boot-dependencies"] = "org.springframework.boot:spring-boot-de
 
 // Individual libraries
 libraries["annotation-api"] = "jakarta.annotation:jakarta.annotation-api:2.1.1"
-libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.25.17"
+libraries["awssdk-bom"] = "software.amazon.awssdk:bom:2.25.24"
 libraries["clowder-quarkus-config-source"] = "com.redhat.cloud.common:clowder-quarkus-config-source:2.5.1"
 libraries["guava"] = "com.google.guava:guava:33.1.0-jre"
 libraries["commons-lang3"] = "org.apache.commons:commons-lang3:3.14.0"
@@ -58,7 +58,7 @@ libraries["lombok"] = "org.projectlombok:lombok:1.18.32"
 libraries["lombok-mapstruct-binding"] = "org.projectlombok:lombok-mapstruct-binding:0.2.0"
 libraries["mapstruct"] = "org.mapstruct:mapstruct:1.5.5.Final"
 libraries["mapstruct-processor"] = "org.mapstruct:mapstruct-processor:1.5.5.Final"
-libraries["event-schemas"] = "com.redhat.cloud.event:event-schemas:1.4.10"
+libraries["event-schemas"] = "com.redhat.cloud.event:event-schemas:1.4.11"
 // overridden to address CVE-2023-44487
 libraries["netty-codec-http2"] = "io.netty:netty-codec-http2:4.1.108.Final"
 libraries["quarkus-logging-logback"] = "io.quarkiverse.logging.logback:quarkus-logging-logback:1.1.2"
@@ -73,7 +73,7 @@ libraries["resteasy-spring-boot-starter"] = "org.jboss.resteasy:resteasy-servlet
 libraries["resteasy-validator-provider"] = "org.jboss.resteasy:resteasy-validator-provider:${resteasyVersion}"
 libraries["splunk-library-javalogging"] = "com.splunk.logging:splunk-library-javalogging:1.11.8"
 libraries["swagger-annotations"] = "io.swagger:swagger-annotations:1.6.14"
-libraries["swagger-ui"] = "org.webjars:swagger-ui:5.12.0"
+libraries["swagger-ui"] = "org.webjars:swagger-ui:5.13.0"
 libraries["webjars-locator"] = "org.webjars:webjars-locator:0.52"
 libraries["wiremock"] = "com.github.tomakehurst:wiremock-standalone:3.0.1"
 libraries["awaitility"] = "org.awaitility:awaitility:4.2.1"

@@ -26,6 +26,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 import com.redhat.swatch.clients.export.api.model.DownloadExportErrorRequest;
 import com.redhat.swatch.clients.export.api.resources.ExportApi;
 import com.redhat.swatch.clients.export.resources.ExportServiceWiremock;
+import java.io.File;
+import java.io.IOException;
 import java.util.UUID;
 import org.candlepin.subscriptions.http.HttpClientProperties;
 import org.junit.jupiter.api.AfterEach;
@@ -95,9 +97,10 @@ class ExportApiClientFactoryTest {
 
   private void thenInvokeDownloadExportUploadShouldWork(ExportApi client) {
     try {
-      client.downloadExportUpload(EXPORT_ID, APPLICATION_NAME, RESOURCE_ID, "content");
+      client.downloadExportUpload(
+          EXPORT_ID, APPLICATION_NAME, RESOURCE_ID, File.createTempFile("test", ".json"));
       server.verifyDownloadExportUpload(EXPORT_ID, APPLICATION_NAME, RESOURCE_ID);
-    } catch (ApiException e) {
+    } catch (ApiException | IOException e) {
       fail(e);
     }
   }

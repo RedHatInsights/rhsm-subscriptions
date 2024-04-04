@@ -44,7 +44,7 @@ properties:
       - Development/Test
       - Disaster Recovery
   uom:
-    description: Preferred unit of measure for the subject (for products with multiple possible UOM).
+    description: Preferred unit of measure for the subject (for products with multiple possible UOM). Deprecated in favor of metric_id.
     type: string
     deprecated: true
     deprecationMessage: "Use 'metric_id' instead."

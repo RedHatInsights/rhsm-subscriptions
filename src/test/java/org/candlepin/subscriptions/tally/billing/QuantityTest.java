@@ -74,13 +74,13 @@ class QuantityTest {
     }
   }
 
-  private void createSubscriptionDefinition(String tag, String uom) {
+  private void createSubscriptionDefinition(String tag, String metricId) {
     var variant = Variant.builder().tag(tag).build();
     var awsMetric =
         com.redhat.swatch.configuration.registry.Metric.builder()
             .awsDimension("AWS_METRIC_ID")
             .billingFactor(0.25)
-            .id(uom)
+            .id(metricId)
             .build();
     var subscriptionDefinition =
         SubscriptionDefinition.builder()
@@ -109,9 +109,9 @@ class QuantityTest {
   @Test
   void testQuantityFromBillableUsage() {
     var billableUsage = new BillableUsage();
-    billableUsage.setUom(SOCKETS);
+    billableUsage.setMetricId(SOCKETS);
     billableUsage.setProductId("foo");
-    createSubscriptionDefinition(billableUsage.getProductId(), billableUsage.getUom().toString());
+    createSubscriptionDefinition(billableUsage.getProductId(), billableUsage.getMetricId());
     var billingUnit = new BillingUnit(billableUsage);
     assertEquals(0.25, billingUnit.getBillingFactor());
     var billableQuantity = Quantity.of(4.0).to(billingUnit);
@@ -123,9 +123,9 @@ class QuantityTest {
   void testAddingBillableUnitToMetricUnit() {
     var quantity = Quantity.of(1.5);
     var billableUsage = new BillableUsage();
-    billableUsage.setUom(SOCKETS);
+    billableUsage.setMetricId(SOCKETS);
     billableUsage.setProductId("productId");
-    createSubscriptionDefinition(billableUsage.getProductId(), billableUsage.getUom().toString());
+    createSubscriptionDefinition(billableUsage.getProductId(), billableUsage.getMetricId());
     var billingUnit = new BillingUnit(billableUsage);
     var billable = Quantity.of(4.0).to(billingUnit);
     assertEquals(1.0, billable.getValue());
@@ -138,9 +138,9 @@ class QuantityTest {
   void testSubtractingBillableUnitFromMetricUnit() {
     var quantity = Quantity.of(1.5);
     var billableUsage = new BillableUsage();
-    billableUsage.setUom(SOCKETS);
+    billableUsage.setMetricId(SOCKETS);
     billableUsage.setProductId("productId");
-    createSubscriptionDefinition(billableUsage.getProductId(), billableUsage.getUom().toString());
+    createSubscriptionDefinition(billableUsage.getProductId(), billableUsage.getMetricId());
     var billingUnit = new BillingUnit(billableUsage);
     var billable = Quantity.of(1.0).to(billingUnit);
     assertEquals(0.25, billable.getValue());

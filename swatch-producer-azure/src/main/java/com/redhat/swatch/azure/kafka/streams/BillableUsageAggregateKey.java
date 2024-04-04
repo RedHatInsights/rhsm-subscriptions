@@ -52,7 +52,7 @@ public class BillableUsageAggregateKey {
     this(
         billableUsage.getOrgId(),
         billableUsage.getProductId(),
-        billableUsage.getUom(),
+        billableUsage.getMetricId(),
         Optional.ofNullable(billableUsage.getSla()).orElse(SlaEnum.EMPTY).value(),
         Optional.ofNullable(billableUsage.getUsage()).orElse(UsageEnum.EMPTY).value(),
         Optional.ofNullable(billableUsage.getBillingProvider())

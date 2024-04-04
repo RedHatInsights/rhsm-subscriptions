@@ -194,7 +194,6 @@ class BillableUsageMapperTest {
             .withSla(BillableUsage.Sla.STANDARD)
             .withBillingProvider(BillableUsage.BillingProvider.AWS)
             .withBillingAccountId("bill123")
-            .withUom("Storage-gibibytes")
             .withMetricId("Storage-gibibytes")
             .withValue(42.0)
             .withHardwareMeasurementType(HardwareMeasurementType.PHYSICAL.toString());
@@ -259,13 +258,11 @@ class BillableUsageMapperTest {
                     .withTallyMeasurements(
                         List.of(
                             new TallyMeasurement()
-                                .withUom(STORAGE_GIBIBYTES)
                                 .withMetricId(STORAGE_GIBIBYTES)
                                 .withHardwareMeasurementType(
                                     HardwareMeasurementType.PHYSICAL.toString())
                                 .withValue(42.0),
                             new TallyMeasurement()
-                                .withUom(STORAGE_GIBIBYTES)
                                 .withMetricId(STORAGE_GIBIBYTES)
                                 .withHardwareMeasurementType(
                                     HardwareMeasurementType.TOTAL.toString())

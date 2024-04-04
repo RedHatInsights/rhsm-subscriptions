@@ -628,16 +628,15 @@ public class SubscriptionSyncController {
     Assert.isTrue(Usage._ANY != usageKey.getUsage(), "Usage cannot be _ANY");
     Assert.isTrue(ServiceLevel._ANY != usageKey.getSla(), "Service Level cannot be _ANY");
 
-    String productId = usageKey.getProductId();
-    Set<String> productNames = Variant.getProductNamesForTag(productId);
-    if (productNames.isEmpty()) {
-      log.warn("No product names configured for tag: {}", productId);
+    String productTag = usageKey.getProductId();
+    if (!Variant.isValidProductTag(productTag)) {
+      log.warn("No product tag configured: {}", productTag);
       return Collections.emptyList();
     }
 
     DbReportCriteria.DbReportCriteriaBuilder reportCriteriaBuilder =
         DbReportCriteria.builder()
-            .productNames(productNames)
+            .productTag(productTag)
             .serviceLevel(usageKey.getSla())
             // NOTE(khowell) due to an oversight PAYG SKUs don't currently have a usage set -
             // at some point we should use usageKey.getUsage() instead of "_ANY"

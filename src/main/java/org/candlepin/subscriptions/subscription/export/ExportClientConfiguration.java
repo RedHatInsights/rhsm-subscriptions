@@ -47,6 +47,8 @@ import org.springframework.context.annotation.FilterType;
     })
 public class ExportClientConfiguration {
 
+  public static final String EXPORT_API_QUALIFIER = "exportApiProperties";
+
   /**
    * Load values from the application properties file prefixed with
    * "rhsm-subscriptions.export-service". For example,
@@ -60,7 +62,7 @@ public class ExportClientConfiguration {
    * @return an X509ApiClientFactoryConfiguration populated with values from the various property
    *     sources.
    */
-  @Bean(name = "exportApiProperties")
+  @Bean(name = EXPORT_API_QUALIFIER)
   @ConfigurationProperties(prefix = "rhsm-subscriptions.export-service")
   public HttpClientProperties exportApiProperties() {
     return new HttpClientProperties();
@@ -75,7 +77,7 @@ public class ExportClientConfiguration {
    */
   @Bean
   public ExportApiClientFactory exportClientApiFactory(
-      @Qualifier("exportApiProperties") HttpClientProperties properties) {
+      @Qualifier(EXPORT_API_QUALIFIER) HttpClientProperties properties) {
     return new ExportApiClientFactory(properties);
   }
 }
