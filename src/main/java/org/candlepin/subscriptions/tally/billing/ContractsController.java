@@ -71,13 +71,15 @@ public class ContractsController {
 
     String contractMetricId =
         getContractMetricId(
-            usage.getBillingProvider(), usage.getProductId(), MetricId.fromString(usage.getUom()));
+            usage.getBillingProvider(),
+            usage.getProductId(),
+            MetricId.fromString(usage.getMetricId()));
 
     if (ObjectUtils.isEmpty(contractMetricId)) {
       throw new IllegalStateException(
           String.format(
-              "Contract metric ID is not configured for billingProvider=%s product=%s uom=%s",
-              usage.getBillingProvider(), usage.getProductId(), usage.getUom()));
+              "Contract metric ID is not configured for billingProvider=%s product=%s metric=%s",
+              usage.getBillingProvider(), usage.getProductId(), usage.getMetricId()));
     }
 
     log.debug("Looking up contract information for usage {}", usage);

@@ -119,7 +119,7 @@ class ContractsControllerTest {
   void testThrowsIllegalStateExceptionWhenProductIsNotContractEnabled() throws Exception {
     BillableUsage usage = defaultUsage();
     createSubscriptionDefinition(
-        usage.getProductId(), usage.getUom().toString(), CONTRACT_METRIC_ID, null, false);
+        usage.getProductId(), usage.getMetricId(), CONTRACT_METRIC_ID, null, false);
     IllegalStateException e =
         assertThrows(IllegalStateException.class, () -> controller.getContractCoverage(usage));
     assertEquals(
@@ -136,7 +136,7 @@ class ContractsControllerTest {
 
     // Make sure product is contract enabled.
     createSubscriptionDefinition(
-        usage.getProductId(), usage.getUom().toString(), CONTRACT_METRIC_ID, null, true);
+        usage.getProductId(), usage.getMetricId(), CONTRACT_METRIC_ID, null, true);
 
     when(contractsApi.getContract(
             usage.getOrgId(),
@@ -169,7 +169,7 @@ class ContractsControllerTest {
 
     // Make sure product is contract enabled.
     createSubscriptionDefinition(
-        usage.getProductId(), usage.getUom().toString(), null, CONTRACT_METRIC_ID, true);
+        usage.getProductId(), usage.getMetricId(), null, CONTRACT_METRIC_ID, true);
 
     when(contractsApi.getContract(
             usage.getOrgId(),
@@ -199,7 +199,7 @@ class ContractsControllerTest {
     // Make sure product is contract enabled.
     var variant = Variant.builder().tag(usage.getProductId()).build();
     var metric = new com.redhat.swatch.configuration.registry.Metric();
-    metric.setId(usage.getUom());
+    metric.setId(usage.getMetricId());
     var subscriptionDefinition =
         SubscriptionDefinition.builder()
             .contractEnabled(true)
@@ -220,7 +220,7 @@ class ContractsControllerTest {
   @Test
   void testIllegalStateExceptionThrownWhenMetricIdIsConfiguredAsEmptyForBillingProvider() {
     BillableUsage usage = defaultUsage();
-    createSubscriptionDefinition(usage.getProductId(), usage.getUom().toString(), null, "", true);
+    createSubscriptionDefinition(usage.getProductId(), usage.getMetricId(), null, "", true);
 
     assertThrows(
         IllegalStateException.class,
@@ -243,7 +243,7 @@ class ContractsControllerTest {
 
     // Make sure product is contract enabled.
     createSubscriptionDefinition(
-        usage.getProductId(), usage.getUom().toString(), CONTRACT_METRIC_ID, null, true);
+        usage.getProductId(), usage.getMetricId(), CONTRACT_METRIC_ID, null, true);
 
     when(contractsApi.getContract(
             usage.getOrgId(),
@@ -284,7 +284,7 @@ class ContractsControllerTest {
 
     // Make sure product is contract enabled.
     createSubscriptionDefinition(
-        usage.getProductId(), usage.getUom().toString(), CONTRACT_METRIC_ID, null, true);
+        usage.getProductId(), usage.getMetricId(), CONTRACT_METRIC_ID, null, true);
 
     // Contract coverage should be the sum of all matching Cores metrics in the contracts.
     Double contractCoverage = controller.getContractCoverage(usage);
@@ -317,7 +317,7 @@ class ContractsControllerTest {
 
     // Make sure product is contract enabled.
     createSubscriptionDefinition(
-        usage.getProductId(), usage.getUom().toString(), CONTRACT_METRIC_ID, null, true);
+        usage.getProductId(), usage.getMetricId(), CONTRACT_METRIC_ID, null, true);
 
     when(contractsApi.getContract(
             usage.getOrgId(),
@@ -337,7 +337,7 @@ class ContractsControllerTest {
   void throwsExternalServiceExceptionWhenApiCallFails() throws Exception {
     BillableUsage usage = defaultUsage();
     createSubscriptionDefinition(
-        usage.getProductId(), usage.getUom().toString(), CONTRACT_METRIC_ID, null, true);
+        usage.getProductId(), usage.getMetricId(), CONTRACT_METRIC_ID, null, true);
     doThrow(ApiException.class)
         .when(contractsApi)
         .getContract(any(), any(), any(), any(), any(), any());
@@ -356,7 +356,7 @@ class ContractsControllerTest {
   void throwsContractMissingExceptionWhenNoContractsFound() throws Exception {
     BillableUsage usage = defaultUsage();
     createSubscriptionDefinition(
-        usage.getProductId(), usage.getUom().toString(), CONTRACT_METRIC_ID, null, true);
+        usage.getProductId(), usage.getMetricId(), CONTRACT_METRIC_ID, null, true);
     when(contractsApi.getContract(any(), any(), any(), any(), any(), any()))
         .thenReturn(new ArrayList<>());
     ContractMissingException e =
@@ -383,7 +383,6 @@ class ContractsControllerTest {
         .withBillingAccountId("ba123")
         .withSla(Sla.PREMIUM)
         .withBillingProvider(BillingProvider.AWS)
-        .withUom("Cores")
         .withMetricId("Cores")
         .withVendorProductCode("vendor_product_code")
         .withSnapshotDate(clock.now());
@@ -400,13 +399,17 @@ class ContractsControllerTest {
   }
 
   private void createSubscriptionDefinition(
-      String tag, String uom, String awsDimension, String rhmDimension, boolean contractEnabled) {
+      String tag,
+      String metricId,
+      String awsDimension,
+      String rhmDimension,
+      boolean contractEnabled) {
     var variant = Variant.builder().tag(tag).build();
     var awsMetric =
         com.redhat.swatch.configuration.registry.Metric.builder()
             .awsDimension(awsDimension)
             .rhmMetricId(rhmDimension)
-            .id(uom)
+            .id(metricId)
             .build();
     var subscriptionDefinition =
         SubscriptionDefinition.builder()

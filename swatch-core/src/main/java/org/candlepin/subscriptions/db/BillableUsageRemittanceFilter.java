@@ -56,7 +56,7 @@ public class BillableUsageRemittanceFilter {
         .billingAccountId(usage.getBillingAccountId())
         .billingProvider(usage.getBillingProvider().value())
         .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(usage.getSnapshotDate()))
-        .metricId(MetricId.fromString(usage.getUom()).getValue())
+        .metricId(MetricId.fromString(usage.getMetricId()).getValue())
         .productId(usage.getProductId())
         .sla(usage.getSla().value())
         .usage(usage.getUsage().value())
