@@ -20,7 +20,7 @@
  */
 package com.redhat.swatch.configuration.registry;
 
-import lombok.*;
+import lombok.Data;
 
 @Data
 public class Defaults {
