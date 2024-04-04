@@ -7,6 +7,8 @@ parameters:
   - name: JAVA_DEBUG
     # Set to "true" to enable remote debugging
     value: ''
+  - name: JAVA_OPTS_APPEND
+    value: ''
   - name: ENV_NAME
     value: env-swatch-subscription-sync
   - name: DEV_MODE
@@ -236,6 +238,8 @@ objects:
           env:
             - name: JAVA_DEBUG
               value: ${JAVA_DEBUG}
+            - name: JAVA_OPTS_APPEND
+              value: -javaagent:/opt/splunk-otel-javaagent.jar ${JAVA_OPTS_APPEND}
             - name: SPRING_LIQUIBASE_ENABLED
               value: 'false'
             - name: ENABLE_SPLUNK_HEC
