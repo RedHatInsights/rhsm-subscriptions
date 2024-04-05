@@ -97,7 +97,8 @@ public class MetricUsageCollector {
         hostRepository
             .findAllByOrgIdAndInstanceIdIn(
                 orgId, events.stream().map(Event::getInstanceId).collect(Collectors.toSet()))
-            .collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
+            .collect(
+                Collectors.toMap(Host::getInstanceId, Function.identity(), this::handleDuplicates));
 
     for (Event event : events) {
       Host host = hostsByInstanceId.getOrDefault(event.getInstanceId(), new Host());
@@ -121,6 +122,16 @@ public class MetricUsageCollector {
 
       hostRepository.save(host);
     }
+  }
+
+  private Host handleDuplicates(Host hostA, Host hostB) {
+    // prefer records already having monthly totals
+    // this will ensure that even if there are multiple records for a given instance ID,
+    // payg tallies will always operate against the same record
+    if (!hostB.getMonthlyTotals().isEmpty()) {
+      return hostB;
+    }
+    return hostA;
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
