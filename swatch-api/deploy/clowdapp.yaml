@@ -20,7 +20,7 @@ parameters:
   - name: IMAGE_TAG
     value: latest
   - name: SERVER_MAX_HTTP_HEADER_SIZE
-    value: '48000'
+    value: '96000'
   - name: LOGGING_LEVEL_ROOT
     value: WARN
   - name: LOGGING_LEVEL
