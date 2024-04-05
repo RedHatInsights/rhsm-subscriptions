@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.subscription.export;
+package org.candlepin.subscriptions.export;
 
 import com.redhat.cloud.event.apps.exportservice.v1.Format;
 import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequest;
@@ -50,9 +50,8 @@ public class ExportServiceRequest {
     return cloudEvent.getSource();
   }
 
-  public boolean isRequestFor(String name) {
-    return Objects.equals(getApplication(), name)
-        && Objects.equals(getRequest().getResource(), name);
+  public boolean isRequestForApplication(String name) {
+    return Objects.equals(getApplication(), name);
   }
 
   public ResourceRequestClass getRequest() {

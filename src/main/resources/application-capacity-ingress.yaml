@@ -29,7 +29,7 @@ rhsm-subscriptions:
     tasks:
       topic: ${CAPACITY_RECONCILE_TOPIC}
       kafka-group-id: capacity-reconciliation-worker
-  subscription-export:
+  export:
     tasks:
       topic: ${SUBSCRIPTION_EXPORT_TOPIC}
       kafka-group-id: swatch-subscription-export
