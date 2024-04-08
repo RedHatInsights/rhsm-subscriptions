@@ -43,11 +43,12 @@ import lombok.NoArgsConstructor;
 @Table(name = "billable_usage_remittance")
 public class BillableUsageRemittanceEntity implements Serializable {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.AUTO)
+//  @Id
+//  @GeneratedValue(strategy = GenerationType.AUTO)
   @Column(name = "uuid", nullable = false)
   private UUID uuid;
 
+  @Id
   @Column(name = "org_id", nullable = false, length = 32)
   private String orgId;
 

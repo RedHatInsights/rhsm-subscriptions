@@ -6,6 +6,7 @@ SERVICE_INSTANCE_INGRESS_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscripti
 SERVICE_INSTANCE_INGRESS_DEAD_LETTER_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.service-instance-ingress.dlt".name:platform.rhsm-subscriptions.service-instance-ingress.dlt}
 ENABLED_ORGS_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.enabled-orgs-for-tasks".name:platform.rhsm-subscriptions.enabled-orgs-for-tasks}
 
+
 rhsm-subscriptions:
   hourlyTallyDurationLimitDays: 90d
   # Defines the number of Events to process in a batch during the hourly tally. Since a Host
@@ -69,7 +70,7 @@ rhsm-subscriptions:
     incoming:
       topic: ${TALLY_TOPIC}
       kafka-group-id: swatch-producer-billing
-      seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:false}
+      seek-override-end: ${KAFKA_SEEK_OVERRIDE_END:true}
       seek-override-timestamp: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP:}
     heartbeat-enabled: ${BILLABLE_USAGE_HEARTBEAT_ENABLED:false}
     outgoing:
@@ -107,3 +108,9 @@ rhsm-subscriptions:
   hbi-reconciliation-flush-interval: ${HBI_RECONCILIATION_FLUSH_INTERVAL:1024}
   use-cpu-system-facts-to-all-products: ${USE_CPU_SYSTEM_FACTS_TO_ALL_PRODUCTS:true}
   host-last-sync-threshold: ${HOST_LAST_SYNC_THRESHOLD:24h}
+
+log4j:
+  logger:
+    org:
+      springframework:
+        transaction: DEBUG,R

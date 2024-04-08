@@ -5,6 +5,11 @@
 
 spring:
   # load the common core definitions
+  jpa:
+    show-sql: true
+    properties:
+      hibernates:
+        format_sql: true
   config:
     import: classpath:swatch-core/application.yaml
   profiles:

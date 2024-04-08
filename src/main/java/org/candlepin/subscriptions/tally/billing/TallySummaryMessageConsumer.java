@@ -22,6 +22,7 @@ package org.candlepin.subscriptions.tally.billing;
 
 import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
+import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
 import org.candlepin.subscriptions.util.KafkaConsumerRegistry;
@@ -71,15 +72,17 @@ public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
       @Payload TallySummary tallySummary,
       @Header(name = KafkaHeaders.RECEIVED_KEY, required = false) String kafkaMessageKey) {
     log.debug("Tally Summary received w/ key={}. Producing billable usage.", kafkaMessageKey);
+    var usage = new BillableUsage();
 
-    billableUsageMapper
-        .fromTallySummary(tallySummary)
-        .forEach(
-            usage ->
-                retry.execute(
-                    context -> {
-                      billableUsageController.submitBillableUsage(usage);
-                      return null;
-                    }));
+        retry.execute( context -> { billableUsageController.submitBillableUsage(usage); return null; });
+//    billableUsageMapper
+//        .fromTallySummary(tallySummary)
+//        .forEach(
+//            usage ->
+//                retry.execute(
+//                    context -> {
+//                      billableUsageController.submitBillableUsage(usage);
+//                      return null;
+//                    }));
   }
 }

@@ -61,6 +61,18 @@ paths:
       description: >
         Seek the kafka consumer manually to the specified timestamp (for
         debugging/support purposes).
+  /api/swatch-producer-azure/internal/rpc/kafka/topics/billable-usage-aggregation/flush:
+    description: Flush the billable usage aggregation topic to force publish aggregations that are stuck from low traffic.
+    put:
+      summary: Publishes messages to the billable-usage-aggregation-repartition topic for every partition in order to flush out stuck aggregations.
+      operationId: flushBillableUsageAggregationTopic
+      tags:
+        - internalBillableUsageAggregation
+      responses:
+        '200':
+          description: Topic successfully flushed.
+        default:
+          $ref: "#/components/responses/ErrorResponse"
 components:
   schemas:
     Error:
