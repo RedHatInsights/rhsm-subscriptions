@@ -1,15 +1,20 @@
 plugins {
     id 'swatch.quarkus-conventions'
     id 'jsonschema2pojo'
+    id 'org.openapi.generator'
 }
 
 dependencies {
     compileOnly libraries["lombok"]
     implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
+    implementation 'io.quarkus:quarkus-resteasy-reactive-jackson'
     implementation 'io.quarkus:quarkus-opentelemetry'
     implementation 'io.quarkus:quarkus-security'
     implementation 'io.quarkus:quarkus-oidc-client'
     implementation 'io.quarkus:quarkus-kafka-streams'
+    implementation 'io.quarkus:quarkus-smallrye-openapi'
+    implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
+    implementation 'jakarta.validation:jakarta.validation-api'
     implementation project(':clients:swatch-internal-subscription-client')
     implementation project(':swatch-common-config-workaround')
     implementation libraries["clowder-quarkus-config-source"]
@@ -34,6 +39,32 @@ jsonSchema2Pojo {
     includeGetters = true
     includeSetters = true
     useJakartaValidation = true
+}
+compileJava.dependsOn tasks.openApiGenerate
+
+openApiGenerate {
+    generatorName = "java"
+    inputSpec = "${projectDir}/src/main/resources/META-INF/openapi.yaml"
+    outputDir = "${buildDir}/generated"
+    apiPackage = "com.redhat.swatch.billable.usage.openapi.resource"
+    modelPackage = "com.redhat.swatch.billable.usage.openapi.model"
+    invokerPackage = "com.redhat.swatch.billable.usage.openapi"
+    groupId = "com.redhat.swatch.billable.usage"
+    configOptions = [sourceFolder     : "src/gen/java",
+                     interfaceOnly    : "true",
+                     library          : "microprofile",
+                     java8            : "true",
+                     dateLibrary      : "java8",
+                     serializationLibrary: "jackson",
+                     useBeanValidation: "true",
+                     microprofileRestClientVersion: "3.0",
+                     useJakartaEE: "true",
+    ]
+    additionalProperties = [disableMultipart: "true", // see https://github.com/OpenAPITools/openapi-generator/pull/4713#issuecomment-633906581
+    ]
+    importMappings = [
+            "BillableUsage": "org.candlepin.subscriptions.billable.usage.BillableUsage"
+    ]
 }
 
 sourceSets.main.java.srcDirs += ["${buildDir}/generated/src/gen/java"]

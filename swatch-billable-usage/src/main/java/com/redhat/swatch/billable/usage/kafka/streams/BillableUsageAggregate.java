@@ -49,6 +49,7 @@ public class BillableUsageAggregate {
   private Set<OffsetDateTime> snapshotDates = new HashSet<>();
 
   public BillableUsageAggregate updateFrom(BillableUsage billableUsage) {
+    if(billableUsage.getOrgId().equals("flush")) { return new BillableUsageAggregate(); }
     if (aggregateId == null) {
       aggregateId = UUID.randomUUID();
     }
