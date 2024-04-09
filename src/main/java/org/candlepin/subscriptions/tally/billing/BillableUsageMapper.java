@@ -111,7 +111,6 @@ public class BillableUsageMapper {
                                     BillableUsage.BillingProvider.fromValue(
                                         snapshot.getBillingProvider().value()))
                                 .withBillingAccountId(snapshot.getBillingAccountId())
-                                .withUom(measurement.getUom())
                                 .withMetricId(measurement.getMetricId())
                                 .withValue(measurement.getValue())
                                 .withHardwareMeasurementType(

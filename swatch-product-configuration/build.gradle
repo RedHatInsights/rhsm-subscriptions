@@ -3,15 +3,12 @@ plugins {
 }
 
 dependencies {
-    // Intentionally marked as platform rather than enforcedPlatform as this project is a library
-    implementation platform(libraries["quarkus-bom"])
-    implementation 'org.yaml:snakeyaml'
-    implementation 'org.slf4j:slf4j-api'
-    implementation 'jakarta.validation:jakarta.validation-api'
-    implementation 'com.google.guava:guava'
-    implementation 'io.quarkus:quarkus-core'
+    implementation libraries["snakeyaml"]
+    implementation libraries["slf4j-api"]
+    implementation libraries["jakarta-validation-api"]
+    implementation libraries["guava"]
 
-    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation libraries["junit-jupiter"]
     testImplementation libraries["hamcrest-all"]
 }
 

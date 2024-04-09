@@ -126,10 +126,10 @@ public class BillableUsageController {
 
   private BillableUsage produceMonthlyBillable(BillableUsage usage) {
     log.info(
-        "Processing monthly billable usage for orgId={} productId={} uom={} provider={}, billingAccountId={} snapshotDate={}",
+        "Processing monthly billable usage for orgId={} productId={} metric={} provider={}, billingAccountId={} snapshotDate={}",
         usage.getOrgId(),
         usage.getProductId(),
-        usage.getUom(),
+        usage.getMetricId(),
         usage.getBillingProvider(),
         usage.getBillingAccountId(),
         usage.getSnapshotDate());
@@ -204,10 +204,10 @@ public class BillableUsageController {
     usage.setSnapshotDate(usageCalc.getRemittanceDate());
 
     log.info(
-        "Finished producing monthly billable for orgId={} productId={} uom={} provider={}, snapshotDate={}",
+        "Finished producing monthly billable for orgId={} productId={} metric={} provider={}, snapshotDate={}",
         usage.getOrgId(),
         usage.getProductId(),
-        usage.getUom(),
+        usage.getMetricId(),
         usage.getBillingProvider(),
         usage.getSnapshotDate());
     return usage;
@@ -220,7 +220,7 @@ public class BillableUsageController {
             .billingAccountId(usage.getBillingAccountId())
             .billingProvider(usage.getBillingProvider().value())
             .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(usage.getSnapshotDate()))
-            .metricId(MetricId.fromString(usage.getUom()).getValue())
+            .metricId(MetricId.fromString(usage.getMetricId()).getValue())
             .productId(usage.getProductId())
             .sla(usage.getSla().value())
             .usage(usage.getUsage().value())
@@ -242,7 +242,7 @@ public class BillableUsageController {
             .map(HardwareMeasurementType::fromString)
             .orElse(HardwareMeasurementType.PHYSICAL);
     TallyMeasurementKey measurementKey =
-        new TallyMeasurementKey(hardwareMeasurementType, usage.getUom());
+        new TallyMeasurementKey(hardwareMeasurementType, usage.getMetricId());
     return snapshotRepository.sumMeasurementValueForPeriod(
         usage.getOrgId(),
         usage.getProductId(),

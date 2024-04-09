@@ -25,11 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.redhat.swatch.billable.usage.kafka.streams.BillableUsageAggregate;
-import com.redhat.swatch.billable.usage.kafka.streams.BillableUsageAggregateKey;
 import com.redhat.swatch.billable.usage.kafka.streams.BillableUsageAggregationStreamProperties;
 import com.redhat.swatch.billable.usage.kafka.streams.StreamTopologyProducer;
-import com.redhat.swatch.billable.usage.model.BillableUsage;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import io.quarkus.kafka.client.serialization.ObjectMapperSerde;
 import java.time.Duration;
@@ -40,6 +37,9 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.streams.TestInputTopic;
 import org.apache.kafka.streams.TestOutputTopic;
 import org.apache.kafka.streams.TopologyTestDriver;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

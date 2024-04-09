@@ -261,7 +261,7 @@ public class BillableUsageAggregateConsumer {
     }
 
     if (aggregationKey.getMetricId() == null) {
-      log.debug("Snapshot not applicable because billable uom is empty");
+      log.debug("Snapshot not applicable because billable metric id is empty");
       return Optional.empty();
     }
 
@@ -276,7 +276,8 @@ public class BillableUsageAggregateConsumer {
             .findFirst();
 
     if (metric.isEmpty()) {
-      log.debug("Snapshot not applicable because productId and/or uom is not configured for Azure");
+      log.debug(
+          "Snapshot not applicable because productId and/or metric id is not configured for Azure");
     }
 
     return metric;
@@ -290,7 +291,7 @@ public class BillableUsageAggregateConsumer {
     billableUsage.setBillingProvider(BillingProviderEnum.fromValue(key.getBillingProvider()));
     billableUsage.setOrgId(key.getOrgId());
     billableUsage.setProductId(key.getProductId());
-    billableUsage.setUom(key.getMetricId());
+    billableUsage.setMetricId(key.getMetricId());
     billableUsage.setSla(SlaEnum.fromValue(key.getSla()));
     billableUsage.setSnapshotDate(snapshotDate);
     return billableUsage;

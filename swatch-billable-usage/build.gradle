@@ -1,6 +1,5 @@
 plugins {
     id 'swatch.quarkus-conventions'
-    id 'jsonschema2pojo'
     id 'org.openapi.generator'
 }
 
@@ -21,6 +20,7 @@ dependencies {
     implementation libraries["quarkus-logging-splunk"]
     implementation libraries["splunk-library-javalogging"]
     implementation project(':swatch-product-configuration')
+    implementation project(":swatch-model-billable-usage")
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
     testImplementation libraries["junit-jupiter"]
     testImplementation "org.apache.kafka:kafka-streams-test-utils"

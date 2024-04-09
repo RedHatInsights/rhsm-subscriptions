@@ -21,7 +21,6 @@
 package com.redhat.swatch.configuration.registry;
 
 import com.google.common.collect.MoreCollectors;
-import io.quarkus.runtime.util.StringUtil;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
@@ -186,7 +185,7 @@ public class SubscriptionDefinition {
       String role, Collection<?> engIds, String productName) {
     Set<String> productTags = new HashSet<>();
     // Filter tags that are paygEligible
-    if (!StringUtil.isNullOrEmpty(role)) {
+    if (!isNullOrEmpty(role)) {
       SubscriptionDefinition.lookupSubscriptionByRole(role)
           .filter(SubscriptionDefinition::isPaygEligible)
           .flatMap(subDef -> subDef.findVariantForRole(role).map(Variant::getTag))
@@ -217,7 +216,7 @@ public class SubscriptionDefinition {
     }
 
     // if not found, let's use the product name
-    if ((productTags.isEmpty()) && !StringUtil.isNullOrEmpty(productName)) {
+    if ((productTags.isEmpty()) && !isNullOrEmpty(productName)) {
       productTags.addAll(
           Variant.filterVariantsByProductName(productName)
               .filter(v -> v.getSubscription().isPaygEligible())
@@ -232,7 +231,7 @@ public class SubscriptionDefinition {
     Set<String> productTags = new HashSet<>();
     // Filter tags that are nonPaygEligible
 
-    if (!StringUtil.isNullOrEmpty(role)) {
+    if (!isNullOrEmpty(role)) {
       SubscriptionDefinition.lookupSubscriptionByRole(role)
           .filter(subDef -> !subDef.isPaygEligible())
           .flatMap(subDef -> subDef.findVariantForRole(role).map(Variant::getTag))
@@ -262,7 +261,7 @@ public class SubscriptionDefinition {
                           .collect(Collectors.toSet())));
     }
     // if not found, let's use the product name
-    if ((productTags.isEmpty()) && !StringUtil.isNullOrEmpty(productName)) {
+    if ((productTags.isEmpty()) && !isNullOrEmpty(productName)) {
       productTags.addAll(
           Variant.filterVariantsByProductName(productName)
               .filter(v -> !v.getSubscription().isPaygEligible())
@@ -365,5 +364,9 @@ public class SubscriptionDefinition {
 
   public static List<SubscriptionDefinition> getSubscriptionDefinitions() {
     return SubscriptionDefinitionRegistry.getInstance().getSubscriptions();
+  }
+
+  private static boolean isNullOrEmpty(String str) {
+    return str == null || str.isEmpty();
   }
 }

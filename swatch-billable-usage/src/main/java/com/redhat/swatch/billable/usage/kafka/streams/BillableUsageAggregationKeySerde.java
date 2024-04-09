@@ -27,6 +27,7 @@ import java.util.Map;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 
 public class BillableUsageAggregationKeySerde implements Serde<BillableUsageAggregateKey> {
 

@@ -28,7 +28,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.candlepin.subscriptions.json.BillableUsage;
 
-/** UOM with the currently configured billingFactor applied. */
+/** Metric with the currently configured billingFactor applied. */
 @Getter
 @ToString
 @EqualsAndHashCode
@@ -42,7 +42,7 @@ public class BillingUnit implements Unit {
             .flatMap(
                 subscriptionDefinition ->
                     subscriptionDefinition.getMetric(
-                        MetricId.fromString(usage.getUom()).getValue()));
+                        MetricId.fromString(usage.getMetricId()).getValue()));
     billingFactor =
         metricOptional
             .map(Metric::getBillingFactor)

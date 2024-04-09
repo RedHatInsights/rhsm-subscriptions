@@ -21,7 +21,6 @@
 package com.redhat.swatch.billable.usage.kafka.streams;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.redhat.swatch.billable.usage.model.BillableUsage;
 import io.quarkus.kafka.client.serialization.ObjectMapperSerde;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
@@ -37,6 +36,9 @@ import org.apache.kafka.streams.kstream.Suppressed;
 import org.apache.kafka.streams.kstream.Suppressed.BufferConfig;
 import org.apache.kafka.streams.kstream.TimeWindows;
 import org.apache.kafka.streams.state.WindowStore;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 
 @ApplicationScoped
 @Slf4j
