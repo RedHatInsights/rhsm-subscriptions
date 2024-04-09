@@ -166,7 +166,7 @@ public class InternalTallyResource implements InternalApi {
     var eventRetentionDuration = eventRecordsRetentionProperties.getEventRetentionDuration();
 
     OffsetDateTime cutoffDate =
-        OffsetDateTime.now().truncatedTo(ChronoUnit.DAYS).minus(eventRetentionDuration);
+        clock.now().truncatedTo(ChronoUnit.DAYS).minus(eventRetentionDuration);
 
     log.info("Purging event records older than {}", cutoffDate);
     eventRecordRepository.deleteInBulkEventRecordsByTimestampBefore(cutoffDate);

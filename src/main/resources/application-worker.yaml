@@ -29,7 +29,7 @@ rhsm-subscriptions:
         auto-commit: false  # required to enable cursor-based streaming in native queries
   account-list-resource-location: ${ACCOUNT_LIST_RESOURCE_LOCATION:}
   event-retention-policy:
-    eventRetentionDuration: ${EVENT_RECORD_RETENTION:90d}
+    eventRetentionDuration: ${EVENT_RECORD_RETENTION:P6M}
   tally-retention-policy:
     # 70 days worth
     hourly: ${TALLY_RETENTION_HOURLY:1680}
