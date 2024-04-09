@@ -18,14 +18,8 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-<<<<<<<< HEAD:swatch-billable-usage/src/main/java/com/redhat/swatch/billable/usage/kafka/streams/BillableUsageAggregateKey.java
-package com.redhat.swatch.billable.usage.kafka.streams;
-
-import com.redhat.swatch.billable.usage.model.BillableUsage;
-========
 package org.candlepin.subscriptions.billable.usage;
 
->>>>>>>> c5d8f9e24602927f86f61405e13059425fd5e6cd:swatch-model-billable-usage/src/main/java/org/candlepin/subscriptions/billable/usage/BillableUsageAggregateKey.java
 import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -54,11 +48,7 @@ public class BillableUsageAggregateKey {
     this(
         billableUsage.getOrgId(),
         billableUsage.getProductId(),
-<<<<<<<< HEAD:swatch-billable-usage/src/main/java/com/redhat/swatch/billable/usage/kafka/streams/BillableUsageAggregateKey.java
-        billableUsage.getUom(),
-========
         billableUsage.getMetricId(),
->>>>>>>> c5d8f9e24602927f86f61405e13059425fd5e6cd:swatch-model-billable-usage/src/main/java/org/candlepin/subscriptions/billable/usage/BillableUsageAggregateKey.java
         Optional.ofNullable(billableUsage.getSla()).orElse(BillableUsage.Sla.__EMPTY__).value(),
         Optional.ofNullable(billableUsage.getUsage()).orElse(BillableUsage.Usage.__EMPTY__).value(),
         Optional.ofNullable(billableUsage.getBillingProvider())

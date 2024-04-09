@@ -1,6 +1,7 @@
 plugins {
     id 'swatch.quarkus-conventions'
     id 'org.openapi.generator'
+    id 'jsonschema2pojo'
 }
 
 dependencies {
