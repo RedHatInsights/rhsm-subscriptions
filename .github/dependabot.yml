@@ -35,3 +35,8 @@ updates:
     schedule:
       interval: "daily"
     target-branch: "main"
+  - package-ecosystem: "docker"
+    directory: "swatch-billable-usage/src/main/docker"
+    schedule:
+      interval: "daily"
+    target-branch: "main"

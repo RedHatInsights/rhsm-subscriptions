@@ -24,25 +24,19 @@ parameters:
   - name: REPLICAS
     value: '1'
   - name: IMAGE
-    value: quay.io/cloudservices/swatch-producer-azure
+    value: quay.io/cloudservices/swatch-billable-usage
   - name: IMAGE_TAG
     value: latest
   - name: LOGGING_LEVEL_ROOT
     value: 'INFO'
   - name: LOGGING_LEVEL_COM_REDHAT_SWATCH
     value: 'INFO'
-  - name: KAFKA_SEEK_OVERRIDE_END
-    value: 'false'
-  - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
-    value: ''
   - name: KAFKA_BILLABLE_USAGE_REPLICAS
     value: '3'
   - name: KAFKA_BILLABLE_USAGE_PARTITIONS
     value: '3'
   - name: QUARKUS_PROFILE
     value: prod
-  - name: ENABLE_AZURE_DRY_RUN
-    value: 'true'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -53,8 +47,6 @@ objects:
       prometheus: quarkus
   spec:
     envName: ${ENV_NAME}
-    dependencies:
-      - swatch-subscription-sync
 
     kafkaTopics:
       - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}
@@ -137,19 +129,8 @@ objects:
                 secretKeyRef:
                   name: swatch-psks
                   key: self
-            - name: KAFKA_SEEK_OVERRIDE_END
-              value: ${KAFKA_SEEK_OVERRIDE_END}
-            - name: KAFKA_SEEK_OVERRIDE_TIMESTAMP
-              value: ${KAFKA_SEEK_OVERRIDE_TIMESTAMP}
             - name: QUARKUS_PROFILE
               value: ${QUARKUS_PROFILE}
-            - name: ENABLE_AZURE_DRY_RUN
-              value: ${ENABLE_AZURE_DRY_RUN}
-            - name: AZURE_MARKETPLACE_CREDENTIALS
-              valueFrom:
-                secretKeyRef:
-                  name: azure-marketplace-credentials
-                  key: credentials
           volumeMounts:
             - name: logs
               mountPath: /logs

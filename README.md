@@ -568,6 +568,14 @@ cat <<BONFIRE >>  ~/.config/bonfire/config.yaml
       parameters:
         REPLICAS: 1
         swatch-producer-azure/IMAGE: quay.io/cloudservices/swatch-producer-azure
+        
+    - name: swatch-billable-usage
+      host: local
+      repo: $(pwd)/rhsm-subscriptions/swatch-billable-usage
+      path: /deploy/clowdapp.yaml
+      parameters:
+        REPLICAS: 1
+        swatch-billable-usage/IMAGE: quay.io/cloudservices/swatch-billable-usage
 BONFIRE
 ```
 

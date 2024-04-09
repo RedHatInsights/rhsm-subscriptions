@@ -18,24 +18,17 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.azure.kafka;
+package com.redhat.swatch.billable.usage.kafka;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.redhat.swatch.azure.kafka.streams.BillableUsageAggregate;
-import com.redhat.swatch.azure.kafka.streams.BillableUsageAggregateKey;
-import com.redhat.swatch.azure.kafka.streams.BillableUsageAggregationStreamProperties;
-import com.redhat.swatch.azure.kafka.streams.StreamTopologyProducer;
-import com.redhat.swatch.azure.openapi.model.BillableUsage;
-import com.redhat.swatch.azure.openapi.model.BillableUsage.BillingProviderEnum;
-import com.redhat.swatch.azure.openapi.model.BillableUsage.SlaEnum;
-import com.redhat.swatch.azure.openapi.model.BillableUsage.UsageEnum;
+import com.redhat.swatch.billable.usage.kafka.streams.BillableUsageAggregationStreamProperties;
+import com.redhat.swatch.billable.usage.kafka.streams.StreamTopologyProducer;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import io.quarkus.kafka.client.serialization.ObjectMapperSerde;
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -44,6 +37,9 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.streams.TestInputTopic;
 import org.apache.kafka.streams.TestOutputTopic;
 import org.apache.kafka.streams.TopologyTestDriver;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
+import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -101,7 +97,7 @@ class BillableUsageAggregateStreamTopologyTest {
     var keyValue = outputTopic.readKeyValue();
     var actualAggregate = keyValue.value;
     assertEquals(expectedAggregateKey, keyValue.key);
-    assertEquals(new BigDecimal(36), actualAggregate.getTotalValue());
+    assertEquals(36.0, actualAggregate.getTotalValue().doubleValue());
     assertEquals(Set.of(usage.getSnapshotDate()), actualAggregate.getSnapshotDates());
     assertNotNull(actualAggregate.getWindowTimestamp());
   }
@@ -132,7 +128,7 @@ class BillableUsageAggregateStreamTopologyTest {
     var keyValue = outputTopic.readKeyValue();
     var actualAggregate = keyValue.value;
     assertEquals(expectedAggregateKey, keyValue.key);
-    assertEquals(new BigDecimal(9), actualAggregate.getTotalValue());
+    assertEquals(9.0, actualAggregate.getTotalValue().doubleValue());
     assertEquals(
         Set.of(snapshotDate1, snapshotDate2, snapshotDate3), actualAggregate.getSnapshotDates());
     assertNotNull(actualAggregate.getWindowTimestamp());
@@ -150,7 +146,6 @@ class BillableUsageAggregateStreamTopologyTest {
             billableUsageAggregateSerde.deserializer());
     var snapshotDate1 = OffsetDateTime.of(2024, 1, 1, 1, 1, 1, 1, ZoneOffset.UTC);
     var snapshotDate2 = OffsetDateTime.of(2024, 1, 1, 2, 1, 1, 1, ZoneOffset.UTC);
-    var snapshotDate3 = OffsetDateTime.of(2024, 1, 1, 3, 1, 1, 1, ZoneOffset.UTC);
     var firstSubUsage1 = createBillableUsage("testAccountId1", 1, snapshotDate1);
     var fistSubUsage2 = createBillableUsage("testAccountId1", 2, snapshotDate2);
     var secondSubUsage1 = createBillableUsage("testAccountId2", 3, snapshotDate1);
@@ -167,11 +162,11 @@ class BillableUsageAggregateStreamTopologyTest {
     var firstRecord = outputTopic.readKeyValue();
     var secondRecord = outputTopic.readKeyValue();
     var actualFirstAggregate = firstRecord.value;
-    var actualSecondAggerate = secondRecord.value;
+    var actualSecondAggregate = secondRecord.value;
     assertEquals(expectedFirstAggregateKey, firstRecord.key);
     assertEquals(expectedSecondAggregateKey, secondRecord.key);
-    assertEquals(new BigDecimal(3), actualFirstAggregate.getTotalValue());
-    assertEquals(new BigDecimal(8), actualSecondAggerate.getTotalValue());
+    assertEquals(3.0, actualFirstAggregate.getTotalValue().doubleValue());
+    assertEquals(8.0, actualSecondAggregate.getTotalValue().doubleValue());
   }
 
   private BillableUsage createBillableUsage(
@@ -180,11 +175,11 @@ class BillableUsageAggregateStreamTopologyTest {
     usage.setOrgId("org123");
     usage.setProductId("OpenShift-metrics");
     usage.setSnapshotDate(snapshotDate);
-    usage.setUsage(UsageEnum.PRODUCTION);
+    usage.setUsage(BillableUsage.Usage.PRODUCTION);
     usage.setUom(MetricIdUtils.getCores().toUpperCaseFormatted());
-    usage.setValue(new BigDecimal(value));
-    usage.setSla(SlaEnum.PREMIUM);
-    usage.setBillingProvider(BillingProviderEnum.AZURE);
+    usage.setValue((double) value);
+    usage.setSla(BillableUsage.Sla.PREMIUM);
+    usage.setBillingProvider(BillableUsage.BillingProvider.AZURE);
     usage.setBillingAccountId(billingAccountId);
     return usage;
   }

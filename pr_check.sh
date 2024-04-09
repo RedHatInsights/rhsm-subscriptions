@@ -60,11 +60,6 @@ export COMPONENTS_W_RESOURCES="app:rhsm"
 # NOTE: this ensures that all of the other services end up deployed with the latest template
 export EXTRA_COMPONENTS="rhsm $(find -name clowdapp.yaml -exec dirname {} \; | cut -d'/' -f2 | xargs)"
 for EXTRA_COMPONENT_NAME in $EXTRA_COMPONENTS; do
-  # Skip the swatch-billable-usage service for now: will be undone in SWATCH-2285
-  if [ "$EXTRA_COMPONENT_NAME" = "swatch-billable-usage" ] ; then
-    continue
-  fi
-
   export EXTRA_DEPLOY_ARGS="${EXTRA_DEPLOY_ARGS} --set-template-ref ${EXTRA_COMPONENT_NAME}=${GIT_COMMIT}"
 done
 

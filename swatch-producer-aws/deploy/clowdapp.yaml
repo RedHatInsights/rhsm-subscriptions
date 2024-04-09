@@ -83,8 +83,7 @@ objects:
     envName: ${ENV_NAME}
     dependencies:
       - swatch-subscription-sync
-      # Temporary until new billable usage aggregator service designed in SWATCH-2173
-      - swatch-producer-azure
+      - swatch-billable-usage
 
     kafkaTopics:
       - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}

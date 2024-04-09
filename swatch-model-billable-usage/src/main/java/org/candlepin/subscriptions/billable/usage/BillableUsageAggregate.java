@@ -18,9 +18,8 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package com.redhat.swatch.azure.kafka.streams;
+package org.candlepin.subscriptions.billable.usage;
 
-import com.redhat.swatch.azure.openapi.model.BillableUsage;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -58,7 +57,7 @@ public class BillableUsageAggregate {
     if (windowTimestamp == null) {
       windowTimestamp = OffsetDateTime.now().truncatedTo(ChronoUnit.HOURS);
     }
-    totalValue = totalValue.add(billableUsage.getValue());
+    totalValue = totalValue.add(BigDecimal.valueOf(billableUsage.getValue()));
     snapshotDates.add(billableUsage.getSnapshotDate());
     log.info(
         "Adding billableUsage: {} to aggregate with aggregateId: {}, totalValue:{} and windowTimestamp: {}",

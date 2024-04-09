@@ -10,7 +10,7 @@ function usage() {
   echo "Usage: $0 [-k] [-t tag] [BUILD_ARTIFACT...]"
   echo "-k       keep built images"
   echo "-t [tag] image tag"
-  echo "Valid build artifacts are 'rhsm', 'conduit', 'swatch-producer-aws', 'swatch-contracts', 'swatch-producer-azure', 'swatch-metrics'"
+  echo "Valid build artifacts are 'rhsm', 'conduit', 'swatch-producer-aws', 'swatch-contracts', 'swatch-producer-azure', 'swatch-metrics', 'swatch-billable-usage'"
   echo "Providing no artifact ids will result in a build for all artifacts"
   exit 0
 }
@@ -44,6 +44,7 @@ if [ ${#projects[@]} -eq 0 ]; then
   projects[3]="swatch-contracts"
   projects[4]="swatch-producer-azure"
   projects[5]="swatch-metrics"
+  projects[6]="swatch-billable-usage"
 fi
 
 quay_user=$(podman login --get-login quay.io)
@@ -94,7 +95,13 @@ for p in "${projects[@]}"; do
         -t quay.io/$quay_user/swatch-metrics:$tag \
         --label "git-commit=${commit}" --ulimit nofile=2048:2048
       ;;
-    *) echo "Please use values from the set \"rhsm\", \"conduit\", \"swatch-producer-aws\", \"swatch-contracts\", \"swatch-producer-azure\", \"swatch-metrics\"";;
+    "swatch-billable-usage")
+      podman build . -f swatch-billable-usage/src/main/docker/Dockerfile.jvm \
+        --build-arg-file bin/dev-argfile.conf \
+        -t quay.io/$quay_user/swatch-billable-usage:$tag \
+        --label "git-commit=${commit}" --ulimit nofile=2048:2048
+      ;;
+    *) echo "Please use values from the set \"rhsm\", \"conduit\", \"swatch-producer-aws\", \"swatch-contracts\", \"swatch-producer-azure\", \"swatch-metrics\", \"swatch-billable-usage\"";;
   esac
 done
 
@@ -125,6 +132,9 @@ for p in "${projects[@]}"; do
       ;;
     "swatch-metrics")
       push_and_clean "quay.io/$quay_user/swatch-metrics:$tag"
+      ;;
+    "swatch-billable-usage")
+      push_and_clean "quay.io/$quay_user/swatch-billable-usage:$tag"
       ;;
   esac
 done

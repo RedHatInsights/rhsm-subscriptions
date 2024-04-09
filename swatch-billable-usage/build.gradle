@@ -1,0 +1,22 @@
+plugins {
+    id 'swatch.quarkus-conventions'
+}
+
+dependencies {
+    compileOnly libraries["lombok"]
+    implementation 'io.quarkus:quarkus-micrometer-registry-prometheus'
+    implementation 'io.quarkus:quarkus-opentelemetry'
+    implementation 'io.quarkus:quarkus-security'
+    implementation 'io.quarkus:quarkus-oidc-client'
+    implementation 'io.quarkus:quarkus-kafka-streams'
+    implementation project(':clients:swatch-internal-subscription-client')
+    implementation project(':swatch-common-config-workaround')
+    implementation libraries["clowder-quarkus-config-source"]
+    implementation libraries["quarkus-logging-splunk"]
+    implementation libraries["splunk-library-javalogging"]
+    implementation project(':swatch-product-configuration')
+    implementation project(":swatch-model-billable-usage")
+    annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
+    testImplementation libraries["junit-jupiter"]
+    testImplementation "org.apache.kafka:kafka-streams-test-utils"
+}
