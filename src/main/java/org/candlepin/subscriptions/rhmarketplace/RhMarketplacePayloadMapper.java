@@ -163,10 +163,11 @@ public class RhMarketplacePayloadMapper {
    * @return List&lt;UsageMeasurement%gt;
    */
   protected UsageMeasurement produceUsageMeasurement(BillableUsage billableUsage) {
-
     String rhmMarketplaceMetricId =
         SubscriptionDefinition.getRhmMetricId(
-            billableUsage.getProductId(), MetricId.fromString(billableUsage.getUom()).getValue());
+            billableUsage.getProductId(),
+            // This seems redundant but the fromString does some useful format/case munging
+            MetricId.fromString(billableUsage.getMetricId()).getValue());
 
     Double value = billableUsage.getValue();
 
@@ -180,6 +181,7 @@ public class RhMarketplacePayloadMapper {
     return billableUsage.getProductId() != null
         && billableUsage.getSla() != null
         && billableUsage.getUsage() != null
+        && billableUsage.getMetricId() != null
         && billableUsage.getUom() != null
         && billableUsage.getBillingProvider() != null
         && billableUsage.getBillingAccountId() != null
