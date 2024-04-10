@@ -1,7 +1,6 @@
 plugins {
     id 'swatch.quarkus-conventions'
     id 'org.openapi.generator'
-    id 'jsonschema2pojo'
 }
 
 dependencies {
@@ -28,20 +27,6 @@ dependencies {
     testImplementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'
 }
 
-jsonSchema2Pojo {
-    source = files("${projectDir}/../swatch-core/schemas/billable_usage.yaml")
-    targetPackage = "com.redhat.swatch.billable.usage.model"
-    targetDirectory = file("${buildDir}/generated/src/gen/java")
-    includeAdditionalProperties = false
-    includeJsr303Annotations = true
-    initializeCollections = false
-    dateTimeType = 'java.time.OffsetDateTime'
-    sourceType = 'yamlschema'
-    generateBuilders = true
-    includeGetters = true
-    includeSetters = true
-    useJakartaValidation = true
-}
 compileJava.dependsOn tasks.openApiGenerate
 
 openApiGenerate {

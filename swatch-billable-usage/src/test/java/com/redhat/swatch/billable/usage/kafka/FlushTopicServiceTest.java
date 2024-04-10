@@ -23,7 +23,6 @@ package com.redhat.swatch.billable.usage.kafka;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import com.redhat.swatch.billable.usage.kafka.streams.FlushTopicService;
-import com.redhat.swatch.billable.usage.model.BillableUsage;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectSpy;
@@ -31,6 +30,7 @@ import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySink;
 import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
+import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
