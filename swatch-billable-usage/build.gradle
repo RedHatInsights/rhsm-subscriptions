@@ -25,6 +25,7 @@ dependencies {
     annotationProcessor enforcedPlatform(libraries["quarkus-bom"])
     testImplementation libraries["junit-jupiter"]
     testImplementation "org.apache.kafka:kafka-streams-test-utils"
+    testImplementation 'io.smallrye.reactive:smallrye-reactive-messaging-in-memory'
 }
 
 jsonSchema2Pojo {

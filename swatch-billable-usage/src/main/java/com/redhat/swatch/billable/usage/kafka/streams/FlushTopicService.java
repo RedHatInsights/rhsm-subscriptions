@@ -48,7 +48,7 @@ public class FlushTopicService {
   private final BillableUsageAggregateKey flushKey;
 
   public FlushTopicService(
-      @Channel("billable-usage-aggregation-repartition") Emitter<BillableUsage> emitter) {
+      @Channel("billable-usage-aggregation-repartition-out") Emitter<BillableUsage> emitter) {
     this.emitter = emitter;
     this.flushKey = new BillableUsageAggregateKey();
     flushKey.setOrgId(FLUSH_ORG);
