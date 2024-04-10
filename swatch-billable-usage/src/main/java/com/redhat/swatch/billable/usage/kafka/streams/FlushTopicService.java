@@ -43,7 +43,7 @@ public class FlushTopicService {
   @ConfigProperty(name = "KAFKA_BILLABLE_USAGE_PARTITIONS")
   int billableUsagePartitionSize;
 
-  private final String FLUSH_ORG = "flush";
+  private static final String FLUSH_ORG = "flush";
   private final BillableUsage flushUsage;
   private final BillableUsageAggregateKey flushKey;
 

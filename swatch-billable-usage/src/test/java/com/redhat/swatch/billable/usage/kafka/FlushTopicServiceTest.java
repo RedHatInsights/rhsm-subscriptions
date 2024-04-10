@@ -37,7 +37,7 @@ import org.junit.jupiter.api.Test;
 @QuarkusTestResource(
     value = InMemoryMessageBrokerKafkaResource.class,
     restrictToAnnotatedClass = true)
-public class FlushTopicServiceTest {
+class FlushTopicServiceTest {
 
   @Inject @Any InMemoryConnector connector;
 
