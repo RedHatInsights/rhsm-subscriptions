@@ -41,10 +41,13 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
+import org.candlepin.subscriptions.db.AccountServiceInventoryRepository;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.TallyStateRepository;
+import org.candlepin.subscriptions.db.model.AccountServiceInventory;
+import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -87,6 +90,7 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
   @Autowired HostRepository hostRepository;
   @Autowired MetricUsageCollector usageCollector;
   @Autowired TallySnapshotController controller;
+  @Autowired AccountServiceInventoryRepository accountRepo;
 
   @BeforeEach
   void setupTest() {
@@ -157,20 +161,60 @@ class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
     ArgumentCaptor<TallySnapshot> snapshotCaptor = ArgumentCaptor.forClass(TallySnapshot.class);
     when(snapshotRepo.save(snapshotCaptor.capture())).thenAnswer(input -> input.getArgument(0));
 
+    AccountServiceInventoryId inventoryId =
+        AccountServiceInventoryId.builder().orgId(ORG_ID).serviceType(SERVICE_TYPE).build();
+    AccountServiceInventoryId inventoryId2 =
+        AccountServiceInventoryId.builder().orgId(ORG_ID).serviceType("RHEL System").build();
+    AccountServiceInventoryId inventoryId3 =
+        AccountServiceInventoryId.builder().orgId(ORG_ID).serviceType("HBI_HOST").build();
+    accountRepo.saveAll(
+        List.of(
+            new AccountServiceInventory(inventoryId),
+            new AccountServiceInventory(inventoryId2),
+            new AccountServiceInventory(inventoryId3)));
+    OffsetDateTime instanceDate = firstSnapshotHour.minusDays(1);
+    // Cost hourly tally created host from events
+    Host activeInstance1 = new Host();
+    activeInstance1.setInstanceId(instance1Id);
+    activeInstance1.setInstanceType(SERVICE_TYPE);
+    activeInstance1.setLastSeen(instanceDate);
+    activeInstance1.setInstanceType("RHEL System");
+    activeInstance1.setOrgId(ORG_ID);
+    activeInstance1.setDisplayName(instance1Id);
+
+    String monthId = InstanceMonthlyTotalKey.formatMonthId(instanceDate);
+    activeInstance1.addToMonthlyTotal(monthId, MetricIdUtils.getCores(), 300.0);
+
+    // HBI host created from nightly tally
+    Host activeInstance2 = new Host();
+    activeInstance2.setInstanceId(instance1Id);
+    activeInstance2.setInstanceType(SERVICE_TYPE);
+    activeInstance2.setLastSeen(instanceDate);
+    activeInstance2.setInstanceType("HBI_HOST");
+    activeInstance2.setOrgId(ORG_ID);
+    activeInstance2.setDisplayName(instance1Id);
+
+    List<Host> activeInstances = List.of(activeInstance1, activeInstance2);
+    hostRepository.saveAll(activeInstances);
+
     controller.produceHourlySnapshotsForOrg(ORG_ID);
 
     assertTrue(retryListener.didRetryOccur(), "Expected a forced retry to occur but it didn't!!!");
 
     Map<String, Host> hosts =
         hostRepository.findAll().stream()
-            .collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
+            .collect(
+                Collectors.toMap(
+                    Host::getInstanceId,
+                    Function.identity(),
+                    (hostA, hostB) -> usageCollector.handleDuplicates(hostA, hostB)));
     assertEquals(2, hosts.size());
 
     // Host 1: monthly totals should be amended.
     // Host 2: monthly totals should remain the same.
     Host instance1 = hosts.get(instance1Id);
     assertEquals(
-        50.0,
+        350.0,
         instance1.getMonthlyTotal(
             InstanceMonthlyTotalKey.formatMonthId(instance1Event1.getTimestamp()),
             MetricIdUtils.getCores()));

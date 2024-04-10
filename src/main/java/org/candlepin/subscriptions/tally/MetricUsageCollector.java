@@ -93,12 +93,13 @@ public class MetricUsageCollector {
       accountServiceInventoryRepository.save(new AccountServiceInventory(inventoryId));
     }
 
+    var hosts =
+        hostRepository.findAllByOrgIdAndInstanceIdIn(
+            orgId, events.stream().map(Event::getInstanceId).collect(Collectors.toSet()));
+
     var hostsByInstanceId =
-        hostRepository
-            .findAllByOrgIdAndInstanceIdIn(
-                orgId, events.stream().map(Event::getInstanceId).collect(Collectors.toSet()))
-            .collect(
-                Collectors.toMap(Host::getInstanceId, Function.identity(), this::handleDuplicates));
+        hosts.collect(
+            Collectors.toMap(Host::getInstanceId, Function.identity(), this::handleDuplicates));
 
     for (Event event : events) {
       Host host = hostsByInstanceId.getOrDefault(event.getInstanceId(), new Host());
@@ -124,10 +125,11 @@ public class MetricUsageCollector {
     }
   }
 
-  private Host handleDuplicates(Host hostA, Host hostB) {
+  public Host handleDuplicates(Host hostA, Host hostB) {
     // prefer records already having monthly totals
     // this will ensure that even if there are multiple records for a given instance ID,
     // payg tallies will always operate against the same record
+    // HBI hosts are high watermark so we don't store monthly totals
     if (!hostB.getMonthlyTotals().isEmpty()) {
       return hostB;
     }
