@@ -232,7 +232,9 @@ public class BillableUsageController {
     newRemittance.setRemittedPendingValue(usageCalc.getRemittedValue());
     newRemittance.setRemittancePendingDate(usageCalc.getRemittanceDate());
     log.debug("Creating new remittance for update: {}", newRemittance);
-    billableUsageRemittanceRepository.save(newRemittance);
+    // using saveAndFlush to validate the entity against the database and raise constraints
+    // exception before moving forward.
+    billableUsageRemittanceRepository.saveAndFlush(newRemittance);
   }
 
   private Double getCurrentlyMeasuredTotal(

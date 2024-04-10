@@ -148,7 +148,7 @@ class BillableUsageControllerTest {
     BillableUsageRemittanceEntity expectedRemittance = remittance(usage, CLOCK.now(), 1.0);
     BillableUsage expectedUsage = billable(usage.getSnapshotDate(), 1.0);
     expectedUsage.setId(usage.getId()); // Id will be regenerated above.
-    verify(remittanceRepo).save(expectedRemittance);
+    verify(remittanceRepo).saveAndFlush(expectedRemittance);
     verify(producer).produce(expectedUsage);
   }
 
@@ -166,7 +166,7 @@ class BillableUsageControllerTest {
     BillableUsageRemittanceEntity expectedRemittance = remittance(usage, CLOCK.now(), 2.0);
     BillableUsage expectedUsage = billable(usage.getSnapshotDate(), 2.0);
     expectedUsage.setId(usage.getId()); // Id will be regenerated above.
-    verify(remittanceRepo).save(expectedRemittance);
+    verify(remittanceRepo).saveAndFlush(expectedRemittance);
     verify(producer).produce(expectedUsage);
   }
 
@@ -193,7 +193,7 @@ class BillableUsageControllerTest {
     expectedUsage.setProductId("osd");
     expectedUsage.setMetricId(MetricIdUtils.getCores().getValue());
     expectedUsage.setBillingFactor(0.25);
-    verify(remittanceRepo).save(expectedRemittance);
+    verify(remittanceRepo).saveAndFlush(expectedRemittance);
     verify(producer).produce(expectedUsage);
   }
 
@@ -232,7 +232,7 @@ class BillableUsageControllerTest {
     expectedUsage.setProductId("osd");
     expectedUsage.setMetricId(usage.getMetricId());
     expectedUsage.setBillingFactor(0.25);
-    verify(remittanceRepo).save(expectedRemittance);
+    verify(remittanceRepo).saveAndFlush(expectedRemittance);
     verify(producer).produce(expectedUsage);
   }
 
@@ -258,7 +258,7 @@ class BillableUsageControllerTest {
     expectedUsage.setProductId("osd");
     expectedUsage.setMetricId(usage.getMetricId());
     expectedUsage.setBillingFactor(0.25);
-    verify(remittanceRepo).save(expectedRemittance);
+    verify(remittanceRepo).saveAndFlush(expectedRemittance);
     verify(producer).produce(expectedUsage);
   }
 
@@ -604,10 +604,10 @@ class BillableUsageControllerTest {
     ArgumentCaptor<BillableUsageRemittanceEntity> remitted =
         ArgumentCaptor.forClass(BillableUsageRemittanceEntity.class);
     if (expectedRemitted == 0.0) {
-      verify(remittanceRepo, times(0)).save(remitted.capture());
+      verify(remittanceRepo, times(0)).saveAndFlush(remitted.capture());
       assertTrue(remitted.getAllValues().isEmpty());
     } else {
-      verify(remittanceRepo, times(1)).save(remitted.capture());
+      verify(remittanceRepo, times(1)).saveAndFlush(remitted.capture());
       assertThat(remitted.getAllValues(), containsInAnyOrder(expectedRemittance));
     }
 
@@ -718,6 +718,6 @@ class BillableUsageControllerTest {
     billableUsage.setMetricId(CORES);
     createSubscriptionDefinition("osd", CORES, 0.25, false);
     controller.updateBillableUsageRemittanceWithRetryAfter(billableUsage, retryAfter);
-    verify(remittanceRepo, never()).save(any());
+    verify(remittanceRepo, never()).saveAndFlush(any());
   }
 }
