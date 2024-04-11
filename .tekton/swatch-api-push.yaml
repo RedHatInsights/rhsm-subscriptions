@@ -20,11 +20,11 @@ spec:
   - name: dockerfile
     value: Dockerfile
   - name: git-url
-    value: '{{source_url}}'
+    value: '{{repo_url}}'
   - name: output-image
     value: quay.io/redhat-user-workloads/rh-subs-watch-tenant/rhsm-subscriptions/swatch-api:{{revision}}
   - name: path-context
-    value: src
+    value: .
   - name: revision
     value: '{{revision}}'
   pipelineSpec:
@@ -93,6 +93,10 @@ spec:
       description: Skip checks against built image
       name: skip-checks
       type: string
+    - default: "true"
+      description: Skip optional checks, set false if you want to run optional checks
+      name: skip-optional
+      type: string
     - default: "false"
       description: Execute the build with network isolation
       name: hermetic
@@ -138,6 +142,12 @@ spec:
         value: $(params.rebuild)
       - name: skip-checks
         value: $(params.skip-checks)
+      - name: skip-optional
+        value: $(params.skip-optional)
+      - name: pipelinerun-name
+        value: $(context.pipelineRun.name)
+      - name: pipelinerun-uid
+        value: $(context.pipelineRun.uid)
       taskRef:
         params:
         - name: name
@@ -261,6 +271,31 @@ spec:
       workspaces:
       - name: workspace
         workspace: workspace
+    - name: inspect-image
+      params:
+      - name: IMAGE_URL
+        value: $(tasks.build-container.results.IMAGE_URL)
+      - name: IMAGE_DIGEST
+        value: $(tasks.build-container.results.IMAGE_DIGEST)
+      runAfter:
+      - build-container
+      taskRef:
+        params:
+        - name: name
+          value: inspect-image
+        - name: bundle
+          value: quay.io/redhat-appstudio-tekton-catalog/task-inspect-image:0.1@sha256:ba55ff56b8718406278d72fd5e3de88da110dd4391aa7581923b8d219a29f841
+        - name: kind
+          value: task
+        resolver: bundles
+      when:
+      - input: $(params.skip-checks)
+        operator: in
+        values:
+        - "false"
+      workspaces:
+      - name: source
+        workspace: workspace
     - name: deprecated-base-image-check
       params:
       - name: BASE_IMAGES_DIGESTS
@@ -272,7 +307,7 @@ spec:
         - name: name
           value: deprecated-image-check
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-deprecated-image-check:0.3@sha256:ba55ff56b8718406278d72fd5e3de88da110dd4391aa7581923b8d219a29f841
+          value: quay.io/redhat-appstudio-tekton-catalog/task-deprecated-image-check:0.3@sha256:5097b69c7b8ed19bbc09b3b119214305ed382a185aece344806875e6c43203b8
         - name: kind
           value: task
         resolver: bundles
@@ -294,27 +329,7 @@ spec:
         - name: name
           value: clair-scan
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan:0.1@sha256:5097b69c7b8ed19bbc09b3b119214305ed382a185aece344806875e6c43203b8
-        - name: kind
-          value: task
-        resolver: bundles
-      when:
-      - input: $(params.skip-checks)
-        operator: in
-        values:
-        - "false"
-    - name: ecosystem-cert-preflight-checks
-      params:
-      - name: image-url
-        value: $(tasks.build-container.results.IMAGE_URL)
-      runAfter:
-      - build-container
-      taskRef:
-        params:
-        - name: name
-          value: ecosystem-cert-preflight-checks
-        - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-ecosystem-cert-preflight-checks:0.1@sha256:4bcabe436ddbef6af8f8108ee234d83e116e63e91f64a77191e1492db11bf56b
+          value: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan:0.1@sha256:4bcabe436ddbef6af8f8108ee234d83e116e63e91f64a77191e1492db11bf56b
         - name: kind
           value: task
         resolver: bundles
