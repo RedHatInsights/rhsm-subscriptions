@@ -47,11 +47,10 @@ import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.CommonDelegatingErrorHandler;
 import org.springframework.kafka.listener.CommonErrorHandler;
 import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.retry.annotation.EnableRetry;
-import org.springframework.retry.support.RetryTemplate;
-import org.springframework.retry.support.RetryTemplateBuilder;
 
 @Configuration
 @EnableRetry
@@ -70,17 +69,6 @@ public class BillingProducerConfiguration {
     return new TaskQueueProperties();
   }
 
-  @Bean(name = "billingProducerKafkaRetryTemplate")
-  public RetryTemplate billingProducerKafkaRetryTemplate(BillingProducerProperties properties) {
-    return new RetryTemplateBuilder()
-        .maxAttempts(properties.getMaxAttempts())
-        .exponentialBackoff(
-            properties.getBackOffInitialInterval().toMillis(),
-            properties.getBackOffMultiplier(),
-            properties.getBackOffMaxInterval().toMillis())
-        .build();
-  }
-
   @Bean
   @Qualifier("billingProducerTallySummaryConsumerFactory")
   ConsumerFactory<String, TallySummary> billingProducerTallySummaryConsumerFactory(
@@ -92,11 +80,25 @@ public class BillingProducerConfiguration {
   }
 
   @Bean
+  CommonErrorHandler billingProducerErrorHandler(BillingProducerProperties properties) {
+    var backOff = new ExponentialBackOffWithMaxRetries(properties.getMaxAttempts());
+    backOff.setInitialInterval(properties.getBackOffInitialInterval().toMillis());
+    backOff.setMultiplier(properties.getBackOffMultiplier());
+    backOff.setMaxInterval(properties.getBackOffMaxInterval().toMillis());
+
+    CommonDelegatingErrorHandler errorHandler =
+        new CommonDelegatingErrorHandler(new DefaultErrorHandler(backOff));
+    errorHandler.setErrorHandlers(
+        Map.of(TransientDataAccessException.class, new KafkaTransientDataAccessErrorHandler()));
+    return errorHandler;
+  }
+
+  @Bean
   ConcurrentKafkaListenerContainerFactory<String, TallySummary>
       billingProducerKafkaTallySummaryListenerContainerFactory(
           @Qualifier("billingProducerTallySummaryConsumerFactory")
               ConsumerFactory<String, TallySummary> consumerFactory,
-          CommonErrorHandler errorHandler,
+          CommonErrorHandler billingProducerErrorHandler,
           KafkaProperties kafkaProperties,
           KafkaConsumerRegistry registry) {
 
@@ -104,7 +106,7 @@ public class BillingProducerConfiguration {
     factory.setConsumerFactory(consumerFactory);
     // Concurrency should be set to the number of partitions for the target topic.
     factory.setConcurrency(kafkaProperties.getListener().getConcurrency());
-    factory.setCommonErrorHandler(errorHandler);
+    factory.setCommonErrorHandler(billingProducerErrorHandler);
     if (kafkaProperties.getListener().getIdleEventInterval() != null) {
       factory
           .getContainerProperties()
@@ -113,15 +115,6 @@ public class BillingProducerConfiguration {
     // hack to track the Kafka consumers, so SeekableKafkaConsumer can commit when needed
     factory.getContainerProperties().setConsumerRebalanceListener(registry);
     return factory;
-  }
-
-  @Bean
-  CommonErrorHandler errorHandler() {
-    CommonDelegatingErrorHandler errorHandler =
-        new CommonDelegatingErrorHandler(new DefaultErrorHandler());
-    errorHandler.setErrorHandlers(
-        Map.of(TransientDataAccessException.class, new KafkaTransientDataAccessErrorHandler()));
-    return errorHandler;
   }
 
   @Bean

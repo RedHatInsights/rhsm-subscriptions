@@ -31,6 +31,7 @@ import org.springframework.test.context.DynamicPropertySource;
       "${rhsm-subscriptions.subscription.tasks.topic:platform.rhsm-subscriptions.subscription-sync}",
       "${rhsm-subscriptions.billing-producer.incoming.topic:platform.rhsm-subscriptions.tally}",
       "${rhsm-subscriptions.billing-producer.outgoing.topic:platform.rhsm-subscriptions.billable-usage}",
+      "${rhsm-subscriptions.billable-usage-dead-letter.incoming.topic:platform.rhsm-subscriptions.billable-usage.dlt}",
       "${rhsm-subscriptions.service-instance-ingress.incoming.topic:platform.rhsm-subscriptions.service-instance-ingress}",
       "${rhsm-subscriptions.subscription-export.tasks.topic:platform.export.requests}",
       "${rhsm-subscriptions.enabled-orgs.incoming.topic:platform.rhsm-subscriptions.enabled-orgs-for-tasks}",

@@ -32,7 +32,6 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,9 +42,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
 
-  private BillableUsageMapper billableUsageMapper;
-  private BillableUsageController billableUsageController;
-  private RetryTemplate retry;
+  private final BillableUsageMapper billableUsageMapper;
+  private final BillableUsageController billableUsageController;
 
   @Autowired
   public TallySummaryMessageConsumer(
@@ -53,12 +51,10 @@ public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
           TaskQueueProperties tallySummaryTopicProperties,
       KafkaConsumerRegistry kafkaConsumerRegistry,
       BillableUsageMapper billableUsageMapper,
-      BillableUsageController billableUsageController,
-      @Qualifier("billingProducerKafkaRetryTemplate") RetryTemplate retry) {
+      BillableUsageController billableUsageController) {
     super(tallySummaryTopicProperties, kafkaConsumerRegistry);
     this.billableUsageMapper = billableUsageMapper;
     this.billableUsageController = billableUsageController;
-    this.retry = retry;
   }
 
   @Timed("rhsm-subscriptions.billing-producer.tally-summary")
@@ -74,12 +70,6 @@ public class TallySummaryMessageConsumer extends SeekableKafkaConsumer {
 
     billableUsageMapper
         .fromTallySummary(tallySummary)
-        .forEach(
-            usage ->
-                retry.execute(
-                    context -> {
-                      billableUsageController.submitBillableUsage(usage);
-                      return null;
-                    }));
+        .forEach(billableUsageController::submitBillableUsage);
   }
 }
