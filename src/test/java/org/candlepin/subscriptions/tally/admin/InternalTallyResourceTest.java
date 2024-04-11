@@ -25,6 +25,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import jakarta.ws.rs.BadRequestException;
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.EventRecordRepository;
@@ -53,8 +55,8 @@ class InternalTallyResourceTest {
   @Mock private InternalTallyDataController internalTallyDataController;
   @Mock private SecurityProperties properties;
   @Mock private EventRecordRepository eventRecordRepository;
-  @Mock private EventRecordsRetentionProperties eventRecordsRetentionProperties;
 
+  private EventRecordsRetentionProperties eventRecordsRetentionProperties;
   private InternalTallyResource resource;
   private ApplicationProperties appProps;
   private ApplicationClock clock;
@@ -63,6 +65,7 @@ class InternalTallyResourceTest {
   void setupTest() {
     clock = new TestClockConfiguration().adjustableClock();
     appProps = new ApplicationProperties();
+    eventRecordsRetentionProperties = new EventRecordsRetentionProperties();
     resource =
         new InternalTallyResource(
             clock,
@@ -133,5 +136,14 @@ class InternalTallyResourceTest {
     when(properties.isDevMode()).thenReturn(true);
     resource.deleteDataAssociatedWithOrg(ORG_ID);
     verify(internalTallyDataController).deleteDataAssociatedWithOrg(ORG_ID);
+  }
+
+  @Test
+  void testPurgeEventRecords() {
+    OffsetDateTime expectedRetentionTarget =
+        clock.now().truncatedTo(ChronoUnit.DAYS).minusMonths(6);
+    resource.purgeEventRecords();
+    verify(eventRecordRepository)
+        .deleteInBulkEventRecordsByTimestampBefore(expectedRetentionTarget);
   }
 }

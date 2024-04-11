@@ -20,7 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.events;
 
-import java.time.Duration;
+import java.time.Period;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -31,5 +31,5 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "rhsm-subscriptions.event-retention-policy")
 public class EventRecordsRetentionProperties {
-  private Duration eventRetentionDuration = Duration.ofDays(90L);
+  private Period eventRetentionDuration = Period.ofMonths(6);
 }

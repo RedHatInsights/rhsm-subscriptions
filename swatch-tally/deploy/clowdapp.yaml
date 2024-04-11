@@ -105,7 +105,7 @@ parameters:
   - name: PURGE_EVENTS_SCHEDULE
     value: '30 4 * * *'
   - name: EVENT_RECORD_RETENTION
-    value: '90d'
+    value: 'P6M'
   # TODO after enable individual functionality (see ENT-4487)
   - name: DEV_MODE
     value: 'false'
