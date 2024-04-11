@@ -262,8 +262,7 @@ for i in range(args.num_accounts):
         account = args.account
         org = args.org
     if args.opt_in:
-        _generate_insert('account_config',
-                         account_number=account,
+        _generate_insert('org_config',
                          org_id=org,
                          opt_in_type='API',
                          created='2021-01-01',
