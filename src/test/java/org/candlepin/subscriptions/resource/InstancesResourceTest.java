@@ -27,7 +27,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.redhat.swatch.configuration.registry.MetricId;
 import com.redhat.swatch.configuration.registry.ProductId;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.ws.rs.BadRequestException;
@@ -36,7 +35,6 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.candlepin.subscriptions.db.HostRepository;
 import org.candlepin.subscriptions.db.OrgConfigRepository;
@@ -91,6 +89,8 @@ class InstancesResourceTest {
   @Test
   void testShouldPopulateInstanceResponse() {
     BillingProvider expectedBillingProvider = BillingProvider.AWS;
+    double expectedCoresValue = 45.0;
+    double expectedInstanceHoursValue = 0.0;
 
     var tallyInstanceView = new TallyInstanceView();
     tallyInstanceView.setKey(new TallyInstanceViewKey());
@@ -104,6 +104,7 @@ class InstancesResourceTest {
     tallyInstanceView.setHostBillingProvider(expectedBillingProvider);
     tallyInstanceView.getKey().setMeasurementType(HardwareMeasurementType.VIRTUAL);
     tallyInstanceView.getKey().setMetricId(MetricIdUtils.getSockets().toString());
+    tallyInstanceView.setCores((int) expectedCoresValue);
 
     Mockito.when(
             repository.findAllBy(
@@ -123,13 +124,7 @@ class InstancesResourceTest {
         .thenReturn(new PageImpl<>(List.of(tallyInstanceView)));
 
     var expectUom = List.of("Cores", "Instance-hours");
-    List<Double> expectedMeasurement = new ArrayList<>();
-    String month = InstanceMonthlyTotalKey.formatMonthId(tallyInstanceView.getLastSeen());
-    for (String uom : expectUom) {
-      expectedMeasurement.add(
-          Optional.ofNullable(tallyInstanceView.getMonthlyTotal(month, MetricId.fromString(uom)))
-              .orElse(0.0));
-    }
+    List<Double> expectedMeasurement = List.of(expectedCoresValue, expectedInstanceHoursValue);
     var data = new InstanceData();
     data.setId("testHostId");
     data.setInstanceId(tallyInstanceView.getKey().getInstanceId());
