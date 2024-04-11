@@ -6,6 +6,13 @@ project(":clients:product-client") {
     apply plugin: "swatch.spring-boot-rest-client-conventions"
 }
 
+project(":clients:quarkus:product-client") {
+    apply plugin: "swatch.quarkus-rest-client-conventions"
+    openApiGenerate {
+        inputSpec = "${rootDir}/clients/product-client/product-api-spec.yaml"
+    }
+}
+
 project(":clients:prometheus-client") {
     apply plugin: "swatch.spring-boot-rest-client-conventions"
 }

@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.redhat.swatch.clients.product.StubProductApi;
 import io.quarkus.smallrye.openapi.runtime.OpenApiDocumentService;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.openapi.runtime.io.Format;
@@ -152,6 +153,7 @@ class ResourceRolesAllowedTest {
     var allBeans = CDI.current().getBeanManager().getBeans(Object.class);
     return allBeans.stream()
         .filter(this::hasJaxRsAnnotation)
+        .filter(bean -> !bean.getBeanClass().isAssignableFrom(StubProductApi.class))
         .flatMap(bean -> Arrays.stream(bean.getBeanClass().getDeclaredMethods()))
         .filter(this::hasJaxRsAnnotation)
         .toList();
