@@ -46,6 +46,9 @@ public class BillableUsageAggregate {
   private UUID aggregateId;
   private BillableUsageAggregateKey aggregateKey;
   private Set<OffsetDateTime> snapshotDates = new HashSet<>();
+  private BillableUsage.Status status;
+  private BillableUsage.ErrorCode errorCode;
+  private OffsetDateTime billedOn;
 
   public BillableUsageAggregate updateFrom(BillableUsage billableUsage) {
     if (aggregateId == null) {

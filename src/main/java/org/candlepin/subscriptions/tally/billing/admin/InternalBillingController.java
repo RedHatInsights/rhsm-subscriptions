@@ -100,7 +100,8 @@ public class InternalBillingController {
         .withUom(remittance.getMetricId())
         .withMetricId(remittance.getMetricId())
         .withValue(remittance.getRemittedPendingValue())
-        .withHardwareMeasurementType(remittance.getHardwareMeasurementType());
+        .withHardwareMeasurementType(remittance.getHardwareMeasurementType())
+        .withStatus(BillableUsage.Status.fromValue(remittance.getStatus().getValue()));
   }
 
   private List<MonthlyRemittance> transformUsageToMonthlyRemittance(

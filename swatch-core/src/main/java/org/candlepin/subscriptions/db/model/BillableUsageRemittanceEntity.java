@@ -87,4 +87,13 @@ public class BillableUsageRemittanceEntity implements Serializable {
 
   @Column(name = "hardware_measurement_type")
   private String hardwareMeasurementType;
+
+  @Column(name = "status")
+  private RemittanceStatus status;
+
+  @Column(name = "error_code")
+  private RemittanceErrorCode errorCode;
+
+  @Column(name = "billed_on")
+  private OffsetDateTime billedOn;
 }

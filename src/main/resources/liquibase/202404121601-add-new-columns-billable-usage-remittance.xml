@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+  <changeSet id="202404121601-1" author="karshah">
+    <comment>Add new columns for billable usage retries</comment>
+    <addColumn tableName="billable_usage_remittance">
+      <column name="billed_on" type="TIMESTAMP WITH TIME ZONE" />
+    </addColumn>
+
+    <addColumn tableName="billable_usage_remittance">
+      <column name="error_code" type="VARCHAR(255)" />
+    </addColumn>
+
+    <addColumn tableName="billable_usage_remittance">
+      <column name="status" type="VARCHAR(255)" />
+    </addColumn>
+  </changeSet>
+
+</databaseChangeLog>
