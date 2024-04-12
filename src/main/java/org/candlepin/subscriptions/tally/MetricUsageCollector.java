@@ -96,7 +96,8 @@ public class MetricUsageCollector {
     var hosts =
         hostRepository.findAllByOrgIdAndInstanceIdIn(
             orgId, events.stream().map(Event::getInstanceId).collect(Collectors.toSet()));
-
+    // NOTE Checking handleDuplicates here should be cleaned up once we handle de duplication logic
+    // https://issues.redhat.com/browse/SWATCH-2145
     var hostsByInstanceId =
         hosts.collect(
             Collectors.toMap(Host::getInstanceId, Function.identity(), this::handleDuplicates));
