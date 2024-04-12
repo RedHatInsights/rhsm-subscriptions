@@ -21,23 +21,17 @@
 package com.redhat.swatch.azure.service;
 
 import com.redhat.swatch.azure.exception.AzureMarketplaceRequestFailedException;
-import com.redhat.swatch.azure.file.AzureMarketplaceCredentials;
 import com.redhat.swatch.azure.file.AzureMarketplaceProperties;
-import com.redhat.swatch.azure.http.AzureMarketplaceHeaderProvider;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEvent;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventOkResponse;
 import com.redhat.swatch.clients.azure.marketplace.api.resources.ApiException;
 import com.redhat.swatch.clients.azure.marketplace.api.resources.AzureMarketplaceApi;
-import io.quarkus.oidc.client.OidcClients;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import java.net.URI;
-import java.net.URISyntaxException;
+import jakarta.ws.rs.ProcessingException;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
 @Slf4j
 @ApplicationScoped
@@ -45,20 +39,14 @@ public class AzureMarketplaceService {
 
   AzureMarketplaceProperties azureMarketplaceProperties;
 
-  AzureMarketplaceCredentials azureMarketplaceCredentials;
-
   private List<AzureMarketplaceApi> marketplaceClients;
-  private OidcClients oidcClients;
 
   @Inject
   public AzureMarketplaceService(
       AzureMarketplaceProperties azureMarketplaceProperties,
-      AzureMarketplaceCredentials azureMarketplaceCredentials,
-      OidcClients oidcClients) {
+      AzureMarketplaceClientFactory azureMarketplaceClientFactory) {
     this.azureMarketplaceProperties = azureMarketplaceProperties;
-    this.azureMarketplaceCredentials = azureMarketplaceCredentials;
-    this.oidcClients = oidcClients;
-    this.marketplaceClients = createClientsForAllTenants();
+    this.marketplaceClients = azureMarketplaceClientFactory.createClientForEachTenant();
   }
 
   public UsageEventOkResponse sendUsageEventToAzureMarketplace(UsageEvent usageEvent) {
@@ -71,10 +59,11 @@ public class AzureMarketplaceService {
         response =
             api.submitUsageEvents(
                 azureMarketplaceProperties.getMarketplaceApiVersion(), usageEvent, null, null);
-      } catch (ApiException ex) {
+        break;
+      } catch (ApiException | ProcessingException ex) {
         log.debug(
-            "Exception occurred during azure marketplace api request, likely expected since credentials are tried at random. Status returned: {}",
-            ex.getResponse().getStatus());
+            "Exception occurred during azure marketplace api request, likely expected since credentials are tried at random: {}",
+            ex);
       }
     }
 
@@ -82,25 +71,5 @@ public class AzureMarketplaceService {
       throw new AzureMarketplaceRequestFailedException();
     }
     return response;
-  }
-
-  private List<AzureMarketplaceApi> createClientsForAllTenants() {
-    return azureMarketplaceCredentials.getClients().stream()
-        .map(
-            client -> {
-              try {
-                return RestClientBuilder.newBuilder()
-                    .baseUri(new URI(azureMarketplaceProperties.getMarketplaceBaseUrl()))
-                    .register(
-                        new AzureMarketplaceHeaderProvider(
-                            azureMarketplaceProperties, client, oidcClients))
-                    .build(AzureMarketplaceApi.class);
-              } catch (URISyntaxException ex) {
-                log.error("Unable to create URI for Azure authentication for client.", ex);
-                return null;
-              }
-            })
-        .filter(Objects::nonNull)
-        .collect(Collectors.toList());
   }
 }
