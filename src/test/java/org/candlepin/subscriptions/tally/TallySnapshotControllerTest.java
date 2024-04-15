@@ -56,6 +56,7 @@ import org.candlepin.subscriptions.db.model.TallyStateKey;
 import org.candlepin.subscriptions.json.Event;
 import org.candlepin.subscriptions.json.Event.Role;
 import org.candlepin.subscriptions.json.Measurement;
+import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -71,7 +72,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles({"worker", "test"})
-class TallySnapshotControllerTest {
+class TallySnapshotControllerTest implements ExtendWithEmbeddedKafka {
 
   private static final String ORG_ID = "test-org";
   private static final String SERVICE_TYPE = "OpenShift Cluster";
