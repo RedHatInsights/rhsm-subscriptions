@@ -24,6 +24,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.billing.admin.api.model.MonthlyRemittance;
@@ -87,6 +88,12 @@ public class InternalBillingController {
   }
 
   private BillableUsage toBillableUsage(BillableUsageRemittanceEntity remittance) {
+    // Remove this null assignment once we start adding statuses in prod
+    // https://issues.redhat.com/browse/SWATCH-2289
+    var remittanceStatus =
+        Objects.nonNull(remittance.getStatus())
+            ? BillableUsage.Status.fromValue(remittance.getStatus().getValue())
+            : null;
     return new BillableUsage()
         .withOrgId(remittance.getOrgId())
         .withId(remittance.getTallyId())
@@ -101,7 +108,7 @@ public class InternalBillingController {
         .withMetricId(remittance.getMetricId())
         .withValue(remittance.getRemittedPendingValue())
         .withHardwareMeasurementType(remittance.getHardwareMeasurementType())
-        .withStatus(BillableUsage.Status.fromValue(remittance.getStatus().getValue()));
+        .withStatus(remittanceStatus);
   }
 
   private List<MonthlyRemittance> transformUsageToMonthlyRemittance(
@@ -112,6 +119,10 @@ public class InternalBillingController {
     }
 
     for (RemittanceSummaryProjection entity : remittanceSummaryProjections) {
+      // Remove this null assignment once we start adding statuses in prod
+      // https://issues.redhat.com/browse/SWATCH-2289
+      var remittanceStatus =
+          Objects.nonNull(entity.getStatus()) ? entity.getStatus().getValue() : "null";
       MonthlyRemittance accountRemittance =
           new MonthlyRemittance()
               .orgId(entity.getOrgId())
@@ -121,7 +132,8 @@ public class InternalBillingController {
               .billingAccountId(entity.getBillingAccountId())
               .remittedValue(entity.getTotalRemittedPendingValue())
               .remittanceDate(entity.getRemittancePendingDate())
-              .accumulationPeriod(entity.getAccumulationPeriod());
+              .accumulationPeriod(entity.getAccumulationPeriod())
+              .remittanceStatus(remittanceStatus);
       remittances.add(accountRemittance);
     }
     log.debug("Found {} remittances for this account", remittances.size());

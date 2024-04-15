@@ -73,7 +73,8 @@ public interface BillableUsageRemittanceRepository
           root.get(BillableUsageRemittanceEntity_.BILLING_ACCOUNT_ID),
           root.get(BillableUsageRemittanceEntity_.METRIC_ID),
           root.get(BillableUsageRemittanceEntity_.ORG_ID),
-          root.get(BillableUsageRemittanceEntity_.PRODUCT_ID));
+          root.get(BillableUsageRemittanceEntity_.PRODUCT_ID),
+          root.get(BillableUsageRemittanceEntity_.STATUS));
     }
     query.select(
         criteriaBuilder.construct(
@@ -87,7 +88,8 @@ public interface BillableUsageRemittanceRepository
             criteriaBuilder.max(root.get(BillableUsageRemittanceEntity_.REMITTANCE_PENDING_DATE)),
             root.get(BillableUsageRemittanceEntity_.BILLING_PROVIDER),
             root.get(BillableUsageRemittanceEntity_.BILLING_ACCOUNT_ID),
-            root.get(BillableUsageRemittanceEntity_.METRIC_ID)));
+            root.get(BillableUsageRemittanceEntity_.METRIC_ID),
+            root.get(BillableUsageRemittanceEntity_.STATUS)));
     return entityManager.createQuery(query).getResultList();
   }
 

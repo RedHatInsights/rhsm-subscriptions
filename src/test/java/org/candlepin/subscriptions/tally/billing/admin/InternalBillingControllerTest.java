@@ -35,6 +35,7 @@ import org.candlepin.subscriptions.db.BillableUsageRemittanceFilter;
 import org.candlepin.subscriptions.db.BillableUsageRemittanceRepository;
 import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
+import org.candlepin.subscriptions.db.model.RemittanceStatus;
 import org.candlepin.subscriptions.json.BillableUsage;
 import org.candlepin.subscriptions.json.BillableUsage.BillingProvider;
 import org.candlepin.subscriptions.tally.billing.BillingProducer;
@@ -70,21 +71,62 @@ class InternalBillingControllerTest {
     controller = new InternalBillingController(remittanceRepo, billingProducer);
 
     BillableUsageRemittanceEntity remittance1 =
-        remittance("111", "product1", BillingProvider.AWS, 24.0, clock.startOfCurrentMonth());
+        remittance(
+            "111",
+            "product1",
+            BillingProvider.AWS,
+            24.0,
+            clock.startOfCurrentMonth(),
+            RemittanceStatus.SUCCEEDED);
     BillableUsageRemittanceEntity remittance2 =
-        remittance("org123", "product1", BillingProvider.AWS, 12.0, clock.endOfCurrentQuarter());
+        remittance(
+            "org123",
+            "product1",
+            BillingProvider.AWS,
+            12.0,
+            clock.endOfCurrentQuarter(),
+            RemittanceStatus.PENDING);
     BillableUsageRemittanceEntity remittance3 =
         remittance(
-            "org123", "product1", BillingProvider.RED_HAT, 12.0, clock.startOfCurrentMonth());
+            "org123",
+            "product1",
+            BillingProvider.RED_HAT,
+            12.0,
+            clock.startOfCurrentMonth(),
+            RemittanceStatus.PENDING);
     remittance3.setMetricId("Transfer-gibibytes");
     BillableUsageRemittanceEntity remittance4 =
-        remittance("org345", "product2", BillingProvider.RED_HAT, 8.0, clock.startOfCurrentMonth());
+        remittance(
+            "org345",
+            "product2",
+            BillingProvider.RED_HAT,
+            8.0,
+            clock.startOfCurrentMonth(),
+            RemittanceStatus.PENDING);
     BillableUsageRemittanceEntity remittance5 =
-        remittance("org345", "product3", BillingProvider.AZURE, 4.0, clock.startOfCurrentMonth());
+        remittance(
+            "org345",
+            "product3",
+            BillingProvider.AZURE,
+            4.0,
+            clock.startOfCurrentMonth(),
+            RemittanceStatus.FAILED);
     BillableUsageRemittanceEntity remittance6 =
-        remittance("1234", "rosa", BillingProvider.AWS, 24.0, clock.startOfCurrentMonth());
+        remittance(
+            "1234",
+            "rosa",
+            BillingProvider.AWS,
+            24.0,
+            clock.startOfCurrentMonth(),
+            RemittanceStatus.PENDING);
     BillableUsageRemittanceEntity remittance7 =
-        remittance("5678", "rosa", BillingProvider.AWS, 24.0, clock.startOfCurrentMonth());
+        remittance(
+            "5678",
+            "rosa",
+            BillingProvider.AWS,
+            24.0,
+            clock.startOfCurrentMonth(),
+            RemittanceStatus.PENDING);
     remittanceRepo.saveAllAndFlush(
         List.of(
             remittance1,
@@ -116,6 +158,7 @@ class InternalBillingControllerTest {
     assertFalse(response.isEmpty());
     assertEquals(24.0, response.get(0).getRemittedValue());
     assertEquals("Instance-hours", response.get(0).getMetricId());
+    assertEquals(BillableUsage.Status.SUCCEEDED.value(), response.get(0).getRemittanceStatus());
   }
 
   @Test
@@ -126,6 +169,7 @@ class InternalBillingControllerTest {
     assertFalse(response.isEmpty());
     assertEquals(2, response.size());
     assertEquals(24.0, response.get(0).getRemittedValue() + response.get(1).getRemittedValue());
+    assertEquals(BillableUsage.Status.PENDING.value(), response.get(0).getRemittanceStatus());
   }
 
   @Test
@@ -204,6 +248,7 @@ class InternalBillingControllerTest {
     assertEquals("org345", result.getOrgId());
     assertEquals(BillingProvider.AZURE.value(), result.getBillingProvider());
     assertEquals(4, result.getRemittedValue());
+    assertEquals(BillableUsage.Status.FAILED.value(), result.getRemittanceStatus());
   }
 
   @Test
@@ -242,7 +287,13 @@ class InternalBillingControllerTest {
 
   private void givenRemittanceWithOldRetryAfter(String orgId) {
     var remittance =
-        remittance(orgId, "product", BillingProvider.AZURE, 4.0, clock.startOfCurrentMonth());
+        remittance(
+            orgId,
+            "product",
+            BillingProvider.AZURE,
+            4.0,
+            clock.startOfCurrentMonth(),
+            RemittanceStatus.PENDING);
     remittance.setRetryAfter(clock.now().minusMonths(30));
     remittanceRepo.saveAndFlush(remittance);
   }
@@ -252,7 +303,8 @@ class InternalBillingControllerTest {
       String productId,
       BillingProvider billingProvider,
       Double value,
-      OffsetDateTime remittanceDate) {
+      OffsetDateTime remittanceDate,
+      RemittanceStatus remittanceStatus) {
     return BillableUsageRemittanceEntity.builder()
         .usage(BillableUsage.Usage.PRODUCTION.value())
         .orgId(orgId)
@@ -264,6 +316,7 @@ class InternalBillingControllerTest {
         .accumulationPeriod(InstanceMonthlyTotalKey.formatMonthId(remittanceDate))
         .remittancePendingDate(remittanceDate)
         .remittedPendingValue(value)
+        .status(remittanceStatus)
         .build();
   }
 }
