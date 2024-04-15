@@ -25,15 +25,14 @@ import com.redhat.swatch.azure.file.AzureMarketplaceProperties;
 import com.redhat.swatch.azure.http.AzureMarketplaceHeaderProvider;
 import com.redhat.swatch.clients.azure.marketplace.api.resources.AzureMarketplaceApi;
 import io.quarkus.oidc.client.OidcClients;
+import io.quarkus.rest.client.reactive.QuarkusRestClientBuilder;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.microprofile.rest.client.RestClientBuilder;
 
 @Slf4j
 @ApplicationScoped
@@ -58,7 +57,7 @@ public class AzureMarketplaceClientFactory {
         .map(
             client -> {
               try {
-                return RestClientBuilder.newBuilder()
+                return QuarkusRestClientBuilder.newBuilder()
                     .baseUri(new URI(azureMarketplaceProperties.getMarketplaceBaseUrl()))
                     .register(
                         new AzureMarketplaceHeaderProvider(
@@ -70,6 +69,6 @@ public class AzureMarketplaceClientFactory {
               }
             })
         .filter(Objects::nonNull)
-        .collect(Collectors.toList());
+        .toList();
   }
 }

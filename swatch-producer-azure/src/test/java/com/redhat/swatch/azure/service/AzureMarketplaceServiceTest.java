@@ -33,18 +33,17 @@ import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEvent;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventOkResponse;
 import com.redhat.swatch.clients.azure.marketplace.api.model.UsageEventStatusEnum;
 import com.redhat.swatch.clients.azure.marketplace.api.resources.AzureMarketplaceApi;
-import io.quarkus.test.InjectMock;
-import io.quarkus.test.junit.QuarkusTest;
 import jakarta.ws.rs.ProcessingException;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-@QuarkusTest
 class AzureMarketplaceServiceTest {
 
-  @InjectMock AzureMarketplaceClientFactory azureMarketplaceClientFactory;
+  AzureMarketplaceProperties azureMarketplaceProperties = new AzureMarketplaceProperties();
+
+  AzureMarketplaceClientFactory azureMarketplaceClientFactory;
   AzureMarketplaceApi acceptedClient;
   AzureMarketplaceApi failedClient;
 
@@ -52,8 +51,7 @@ class AzureMarketplaceServiceTest {
   void setup() throws Exception {
     acceptedClient = mock(AzureMarketplaceApi.class);
     failedClient = mock(AzureMarketplaceApi.class);
-    Mockito.when(azureMarketplaceClientFactory.createClientForEachTenant())
-        .thenReturn(List.of(acceptedClient, failedClient));
+    azureMarketplaceClientFactory = Mockito.mock(AzureMarketplaceClientFactory.class);
     Mockito.when(acceptedClient.submitUsageEvents(any(), any(), any(), any()))
         .thenReturn(new UsageEventOkResponse().status(UsageEventStatusEnum.ACCEPTED));
     Mockito.when(failedClient.submitUsageEvents(any(), any(), any(), any()))
@@ -62,7 +60,8 @@ class AzureMarketplaceServiceTest {
 
   @Test
   void testSendUsageEventToMarketplaceAcceptedFirstCredentials() throws Exception {
-    AzureMarketplaceProperties azureMarketplaceProperties = new AzureMarketplaceProperties();
+    Mockito.when(azureMarketplaceClientFactory.createClientForEachTenant())
+        .thenReturn(List.of(acceptedClient, failedClient));
     var service =
         new AzureMarketplaceService(azureMarketplaceProperties, azureMarketplaceClientFactory);
     var response = service.sendUsageEventToAzureMarketplace(new UsageEvent());
@@ -75,24 +74,23 @@ class AzureMarketplaceServiceTest {
   void testSendUsageEventToMarketplaceAcceptedSecondCredentials() throws Exception {
     Mockito.when(azureMarketplaceClientFactory.createClientForEachTenant())
         .thenReturn(List.of(failedClient, acceptedClient));
-    AzureMarketplaceProperties azureMarketplaceProperties = new AzureMarketplaceProperties();
     var service =
         new AzureMarketplaceService(azureMarketplaceProperties, azureMarketplaceClientFactory);
     var response = service.sendUsageEventToAzureMarketplace(new UsageEvent());
     assertNotNull(response);
-    verify(acceptedClient).submitUsageEvents(any(), any(), any(), any());
     verify(failedClient).submitUsageEvents(any(), any(), any(), any());
+    verify(acceptedClient).submitUsageEvents(any(), any(), any(), any());
   }
 
   @Test
   void testSendUsageEventToMarketplaceFails() {
     Mockito.when(azureMarketplaceClientFactory.createClientForEachTenant())
         .thenReturn(List.of(failedClient, failedClient));
-    AzureMarketplaceProperties azureMarketplaceProperties = new AzureMarketplaceProperties();
     var service =
         new AzureMarketplaceService(azureMarketplaceProperties, azureMarketplaceClientFactory);
+    var usageEvent = new UsageEvent();
     assertThrows(
         AzureMarketplaceRequestFailedException.class,
-        () -> service.sendUsageEventToAzureMarketplace(new UsageEvent()));
+        () -> service.sendUsageEventToAzureMarketplace(usageEvent));
   }
 }
