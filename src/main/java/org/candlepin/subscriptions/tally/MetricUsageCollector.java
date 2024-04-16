@@ -93,11 +93,14 @@ public class MetricUsageCollector {
       accountServiceInventoryRepository.save(new AccountServiceInventory(inventoryId));
     }
 
+    var hosts =
+        hostRepository.findAllByOrgIdAndInstanceIdIn(
+            orgId, events.stream().map(Event::getInstanceId).collect(Collectors.toSet()));
+    // NOTE Checking handleDuplicates here should be cleaned up once we handle de duplication logic
+    // https://issues.redhat.com/browse/SWATCH-2145
     var hostsByInstanceId =
-        hostRepository
-            .findAllByOrgIdAndInstanceIdIn(
-                orgId, events.stream().map(Event::getInstanceId).collect(Collectors.toSet()))
-            .collect(Collectors.toMap(Host::getInstanceId, Function.identity()));
+        hosts.collect(
+            Collectors.toMap(Host::getInstanceId, Function.identity(), this::handleDuplicates));
 
     for (Event event : events) {
       Host host = hostsByInstanceId.getOrDefault(event.getInstanceId(), new Host());
@@ -121,6 +124,17 @@ public class MetricUsageCollector {
 
       hostRepository.save(host);
     }
+  }
+
+  public Host handleDuplicates(Host hostA, Host hostB) {
+    // prefer records already having monthly totals
+    // this will ensure that even if there are multiple records for a given instance ID,
+    // payg tallies will always operate against the same record
+    // HBI hosts are high watermark so we don't store monthly totals
+    if (!hostB.getMonthlyTotals().isEmpty()) {
+      return hostB;
+    }
+    return hostA;
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)

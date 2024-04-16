@@ -23,6 +23,7 @@ package org.candlepin.subscriptions.tally;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
@@ -764,6 +765,63 @@ class MetricUsageCollectorTest {
     assertEquals(
         Double.valueOf(42.0),
         activeInstance.getMonthlyTotal(pastEventMonthId, MetricIdUtils.getCores()));
+  }
+
+  @Test
+  void testHandleMonthlyTotalWhenDuplicateInstanceIDFromHBIAndCost() {
+    Measurement measurement =
+        new Measurement().withUom(MetricIdUtils.getCores().toString()).withValue(42.0);
+    String instanceId = UUID.randomUUID().toString();
+    OffsetDateTime eventDate = clock.startOfCurrentHour();
+
+    Event event1 =
+        createEvent(instanceId)
+            .withEventId(UUID.randomUUID())
+            .withTimestamp(eventDate)
+            .withServiceType(SERVICE_TYPE)
+            .withMeasurements(Collections.singletonList(measurement))
+            .withUsage(Event.Usage.PRODUCTION);
+
+    Event olderEvent =
+        createEvent(instanceId)
+            .withEventId(UUID.randomUUID())
+            .withTimestamp(eventDate.minusMonths(2))
+            .withServiceType(SERVICE_TYPE)
+            .withMeasurements(Collections.singletonList(measurement))
+            .withUsage(Event.Usage.PRODUCTION);
+
+    OffsetDateTime instanceDate = eventDate.minusDays(1);
+    // Cost hourly tally created host from events
+    Host activeInstance1 = new Host();
+    activeInstance1.setInstanceId(instanceId);
+    activeInstance1.setInstanceType(SERVICE_TYPE);
+    activeInstance1.setLastSeen(instanceDate);
+    activeInstance1.setInstanceType("RHEL System");
+
+    String monthId = InstanceMonthlyTotalKey.formatMonthId(instanceDate);
+    activeInstance1.addToMonthlyTotal(monthId, MetricIdUtils.getCores(), 200.0);
+
+    // HBI host created from nightly tally
+    Host activeInstance2 = new Host();
+    activeInstance2.setInstanceId(instanceId);
+    activeInstance2.setInstanceType(SERVICE_TYPE);
+    activeInstance2.setLastSeen(instanceDate);
+    activeInstance2.setInstanceType("HBI_HOST");
+
+    List<Host> activeInstances = List.of(activeInstance1, activeInstance2);
+    when(hostRepository.findAllByOrgIdAndInstanceIdIn(
+            ORG_ID, Set.of(activeInstance1.getInstanceId())))
+        .thenReturn(activeInstances.stream());
+
+    metricUsageCollector.updateHosts(ORG_ID, SERVICE_TYPE, List.of(event1, olderEvent));
+    assertEquals(
+        Double.valueOf(242.0), activeInstance1.getMonthlyTotal(monthId, MetricIdUtils.getCores()));
+    assertNull(activeInstance2.getMonthlyTotal(monthId, MetricIdUtils.getCores()));
+    // Past event should have the instance monthly totals added to the host.
+    String pastEventMonthId = InstanceMonthlyTotalKey.formatMonthId(olderEvent.getTimestamp());
+    assertEquals(
+        Double.valueOf(42.0),
+        activeInstance1.getMonthlyTotal(pastEventMonthId, MetricIdUtils.getCores()));
   }
 
   @Test
