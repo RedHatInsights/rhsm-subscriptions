@@ -25,6 +25,7 @@ import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -237,9 +238,12 @@ public class EventController {
           setAzureBillingAccountId(eventToProcess);
         }
 
-        validateServiceInstanceEvent(eventToProcess);
-        enrichServiceInstanceFromIncomingFeed(eventToProcess);
-        result.addEvent(eventToProcess, eventIndex.getValue());
+        if (validateServiceInstanceEvent(eventToProcess)) {
+          enrichServiceInstanceFromIncomingFeed(eventToProcess);
+          result.addEvent(eventToProcess, eventIndex.getValue());
+        } else {
+          log.warn("Skipping invalid service instance event: {}", eventToProcess);
+        }
       } catch (Exception e) {
         log.warn(
             "Issue found {} for the service instance json {} skipping to next: {}",
@@ -264,15 +268,22 @@ public class EventController {
     }
   }
 
-  private void validateServiceInstanceEvent(Event event) throws IllegalArgumentException {
+  private boolean validateServiceInstanceEvent(Event event) throws IllegalArgumentException {
+    if (Objects.isNull(event.getInstanceId())) {
+      log.warn("INVALID_EVENT: Event.instanceId must not be null.");
+      return false;
+    }
+
     List<Measurement> invalidMeasurements =
-        event.getMeasurements().stream()
+        Optional.ofNullable(event.getMeasurements()).orElse(Collections.emptyList()).stream()
             .filter(m -> Objects.nonNull(m.getValue()) && m.getValue() < 0)
             .toList();
 
     if (!invalidMeasurements.isEmpty()) {
-      throw new IllegalArgumentException("Event measurement(s) must be > 0");
+      log.warn("INVALID_EVENT: Measurement value(s) must be >= 0");
+      return false;
     }
+    return true;
   }
 
   private void enrichServiceInstanceFromIncomingFeed(Event event) {

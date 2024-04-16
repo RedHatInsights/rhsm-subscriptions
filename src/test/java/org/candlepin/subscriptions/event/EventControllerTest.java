@@ -23,7 +23,6 @@ package org.candlepin.subscriptions.event;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -36,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.EventRecord;
 import org.candlepin.subscriptions.json.Event;
@@ -240,7 +238,6 @@ class EventControllerTest {
     verify(eventRecordRepository).saveAll(eventsSaved.capture());
     List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
     assertEquals(2, events.size());
-    verifyDeletionOfStaleEventsIsNotDone();
   }
 
   @Test
@@ -260,7 +257,6 @@ class EventControllerTest {
     verify(eventRecordRepository).saveAll(eventsSaved.capture());
     List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
     assertEquals(2, events.size());
-    verifyDeletionOfStaleEventsIsNotDone();
   }
 
   @Test
@@ -303,7 +299,6 @@ class EventControllerTest {
     List<EventRecord> events = eventsSaved.getAllValues().get(0).stream().toList();
     assertEquals(1, events.size());
     assertEquals(expectedEvent, events.get(0));
-    verifyDeletionOfStaleEventsIsNotDone();
   }
 
   @Test
@@ -421,22 +416,6 @@ class EventControllerTest {
     assertEquals(batchSize, finalBatchCount.get(1));
     assertEquals(batchSize, finalBatchCount.get(2));
     assertEquals(1, finalBatchCount.get(3));
-  }
-
-  private void verifyDeletionOfStaleEventsIsDone() {
-    verify(eventRecordRepository)
-        .deleteStaleEvents(
-            eq("7"),
-            eq("prometheus"),
-            eq("snapshot_redhat.com:openshift_dedicated:cluster_hour"),
-            eq(UUID.fromString("e3a62bd1-fd00-405c-9401-f2288808588d")),
-            any(),
-            any());
-  }
-
-  private void verifyDeletionOfStaleEventsIsNotDone() {
-    verify(eventRecordRepository, times(0))
-        .deleteStaleEvents(any(), any(), any(), any(), any(), any());
   }
 
   private class BatchedEventCounter {

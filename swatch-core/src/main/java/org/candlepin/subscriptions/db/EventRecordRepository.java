@@ -119,33 +119,6 @@ public interface EventRecordRepository
   @Query("DELETE FROM EventRecord e WHERE e.timestamp<:cutoffDate")
   void deleteInBulkEventRecordsByTimestampBefore(OffsetDateTime cutoffDate);
 
-  /**
-   * Delete old event records given a cutoff date and an organization id.
-   *
-   * @param orgId The organization id
-   * @param eventSource The event source
-   * @param eventType The event type
-   * @param meteringBatchId The metering batch ID to exclude.
-   * @param begin Start time window to query events to delete.
-   * @param end End time window to query events to delete.
-   */
-  @Modifying
-  @Query(
-      "DELETE FROM EventRecord e "
-          + "WHERE e.orgId=:orgId "
-          + "AND e.eventSource=:eventSource "
-          + "AND e.eventType=:eventType "
-          + "AND (e.meteringBatchId IS NULL OR e.meteringBatchId != :meteringBatchId)"
-          + "AND e.timestamp>=:begin "
-          + "AND e.timestamp<:end ")
-  int deleteStaleEvents(
-      String orgId,
-      String eventSource,
-      String eventType,
-      UUID meteringBatchId,
-      OffsetDateTime begin,
-      OffsetDateTime end);
-
   void deleteByOrgId(String orgId);
 
   void deleteByEventId(UUID eventId);
