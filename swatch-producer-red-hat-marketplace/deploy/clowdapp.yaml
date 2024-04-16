@@ -10,7 +10,7 @@ parameters:
   - name: JAVA_OPTS_APPEND
     value: ''
   - name: SERVER_MAX_HTTP_HEADER_SIZE
-    value: '48000'
+    value: '96000'
   - name: LOGGING_LEVEL_ROOT
     value: WARN
   - name: LOGGING_LEVEL

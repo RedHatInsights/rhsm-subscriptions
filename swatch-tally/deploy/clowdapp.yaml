@@ -12,7 +12,7 @@ parameters:
   - name: ENV_NAME
     value: env-swatch-tally
   - name: SERVER_MAX_HTTP_HEADER_SIZE
-    value: '48000'
+    value: '96000'
   - name: LOGGING_LEVEL_ROOT
     value: WARN
   - name: LOGGING_LEVEL

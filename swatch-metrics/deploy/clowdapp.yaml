@@ -68,7 +68,7 @@ parameters:
   - name: SPLUNK_HEC_TERMINATION_TIMEOUT
     value: '2000'
   - name: SERVER_MAX_HTTP_HEADER_SIZE
-    value: '48000'
+    value: '96000'
   - name: LOGGING_LEVEL_ROOT
     value: WARN
   - name: LOGGING_LEVEL
