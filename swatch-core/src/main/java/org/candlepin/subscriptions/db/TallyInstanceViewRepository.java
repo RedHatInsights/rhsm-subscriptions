@@ -61,7 +61,7 @@ public interface TallyInstanceViewRepository
    *     or empty string to ignore)
    * @param minCores Filter to Hosts with at least this number of cores.
    * @param minSockets Filter to Hosts with at least this number of sockets.
-   * @param month Filter to Hosts with with monthly instance totals in provided month
+   * @param month Filter to Hosts with monthly instance totals in provided month
    * @param referenceUom Uom used when filtering to a specific month.
    * @param pageable the current paging info for this query.
    * @return a page of Host entities matching the criteria.
