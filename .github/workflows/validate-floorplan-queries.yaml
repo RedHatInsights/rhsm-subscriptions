@@ -25,7 +25,7 @@ jobs:
           jbang trust add https://github.com/yaml-path/jbang/
           curl -Ls https://sh.jbang.dev | bash -s - app install --fresh --force yamlpath@yaml-path/jbang
       - name: Setup Postgresql Database
-        run: docker run -d -v ./init_dbs.sh:/usr/share/container-scripts/postgresql/start/set_passwords.sh:z -p 5432:5432 -e POSTGRESQL_ADMIN_PASSWORD=admin quay.io/centos7/postgresql-12-centos7
+        run: docker run -d -v ./init_dbs.sh:/usr/share/container-scripts/postgresql/start/set_passwords.sh:z -p 5432:5432 -e POSTGRESQL_ADMIN_PASSWORD=admin quay.io/centos7/postgresql-12-centos7:centos7
       - name: Setup Postgresql Client
         run: sudo apt-get install -y postgresql-client
       - name: Execute migrations
