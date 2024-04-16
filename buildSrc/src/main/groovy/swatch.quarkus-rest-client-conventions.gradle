@@ -47,6 +47,8 @@ dependencies {
     api 'io.quarkus:quarkus-rest-client-reactive-jackson'
     api libraries["jackson-databind-nullable"]
     testImplementation 'io.rest-assured:rest-assured'
+    testImplementation 'io.quarkus:quarkus-junit5'
+    testImplementation 'io.quarkus:quarkus-junit5-mockito'
 }
 
 sourceSets.main.java.srcDirs += "${buildDir}/generated/src/main/java"

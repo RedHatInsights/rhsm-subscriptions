@@ -54,6 +54,8 @@ parameters:
     value: prod
   - name: UMB_KEYSTORE_PATH
     value: /pinhead/keystore.jks
+  - name: PRODUCT_URL
+    value: https://product.stage.api.redhat.com/svcrest/product/v3
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -215,6 +217,8 @@ objects:
                   fieldRef:
                     apiVersion: v1
                     fieldPath: metadata.namespace
+              - name: PRODUCT_URL
+                value: ${PRODUCT_URL}
             volumeMounts:
               - name: logs
                 mountPath: /logs
