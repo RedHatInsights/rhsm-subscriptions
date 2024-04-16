@@ -50,6 +50,10 @@ COPY --from=0 /stage/META-INF /deployments/META-INF
 COPY --from=0 /stage/BOOT-INF/classes /deployments/
 
 COPY --from=0 /stage/build/javaagent/* /opt/
+
+# Required by Red Hat OpenShift Software Certification Policy Guide
+COPY --from=0 /stage/LICENSE /licenses/
+
 RUN chmod -R g=u /deployments
 
 USER default
