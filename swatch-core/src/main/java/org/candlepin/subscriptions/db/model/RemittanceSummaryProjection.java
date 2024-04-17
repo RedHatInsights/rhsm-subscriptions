@@ -41,4 +41,5 @@ public class RemittanceSummaryProjection {
   private String billingProvider;
   private String billingAccountId;
   private String metricId;
+  private RemittanceStatus status;
 }

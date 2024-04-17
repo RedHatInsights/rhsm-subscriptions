@@ -57,6 +57,7 @@ import org.candlepin.subscriptions.db.model.BillableUsageRemittanceEntity;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
+import org.candlepin.subscriptions.db.model.RemittanceStatus;
 import org.candlepin.subscriptions.db.model.RemittanceSummaryProjection;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
@@ -513,6 +514,7 @@ class BillableUsageControllerTest {
         .withSla(Sla.STANDARD)
         .withMetricId("STORAGE_GIBIBYTES")
         .withSnapshotDate(date)
+        .withStatus(BillableUsage.Status.PENDING)
         .withValue(value);
   }
 
@@ -549,6 +551,7 @@ class BillableUsageControllerTest {
         .remittedPendingValue(value)
         .tallyId(usage.getId())
         .hardwareMeasurementType(usage.getHardwareMeasurementType())
+        .status(RemittanceStatus.PENDING)
         .build();
   }
 

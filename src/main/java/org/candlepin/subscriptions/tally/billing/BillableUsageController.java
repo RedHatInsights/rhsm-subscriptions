@@ -35,6 +35,7 @@ import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
+import org.candlepin.subscriptions.db.model.RemittanceStatus;
 import org.candlepin.subscriptions.db.model.RemittanceSummaryProjection;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
@@ -227,6 +228,7 @@ public class BillableUsageController {
             .remittancePendingDate(clock.now())
             .tallyId(usage.getId())
             .hardwareMeasurementType(usage.getHardwareMeasurementType())
+            .status(RemittanceStatus.PENDING)
             .build();
     // Remitted value should be set to usages metric_value rather than billing_value
     newRemittance.setRemittedPendingValue(usageCalc.getRemittedValue());
@@ -235,6 +237,7 @@ public class BillableUsageController {
     // using saveAndFlush to validate the entity against the database and raise constraints
     // exception before moving forward.
     billableUsageRemittanceRepository.saveAndFlush(newRemittance);
+    usage.setStatus(BillableUsage.Status.PENDING);
   }
 
   private Double getCurrentlyMeasuredTotal(

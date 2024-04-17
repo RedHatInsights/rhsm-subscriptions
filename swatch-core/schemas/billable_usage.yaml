@@ -43,6 +43,23 @@ properties:
       - Production
       - Development/Test
       - Disaster Recovery
+  status:
+    description: Intended to be used for reporting remittance status
+    type: string
+    enum:
+      - pending
+      - succeeded
+      - failed
+  error_code:
+    description: Intended to be used for reporting remittance error code in case of failure
+    type: string
+    enum:
+      - inactive
+      - redundant
+      - unknown
+  billed_on:
+    type: string
+    format: date-time
   uom:
     description: Preferred unit of measure for the subject (for products with multiple possible UOM). Deprecated in favor of metric_id.
     type: string

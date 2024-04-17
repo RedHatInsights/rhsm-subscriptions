@@ -185,6 +185,8 @@ components:
         remittanceDate:
           type: string
           format: date-time
+        remittanceStatus:
+          type: string
     OrgIds:
       type: string
       properties:
