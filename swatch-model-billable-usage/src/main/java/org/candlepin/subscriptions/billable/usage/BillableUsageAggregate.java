@@ -24,7 +24,9 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -50,6 +52,7 @@ public class BillableUsageAggregate {
   private BillableUsage.Status status;
   private BillableUsage.ErrorCode errorCode;
   private OffsetDateTime billedOn;
+  private List<String> remittanceUuids = new ArrayList<>();
 
   public BillableUsageAggregate updateFrom(BillableUsage billableUsage) {
     // Flush org used only to force publish suppressed messages.
@@ -66,13 +69,18 @@ public class BillableUsageAggregate {
     if (windowTimestamp == null) {
       windowTimestamp = OffsetDateTime.now().truncatedTo(ChronoUnit.HOURS);
     }
+    if (billableUsage.getUuid() != null) {
+      remittanceUuids.add(billableUsage.getUuid().toString());
+    }
     totalValue = totalValue.add(BigDecimal.valueOf(billableUsage.getValue()));
     snapshotDates.add(billableUsage.getSnapshotDate());
     log.info(
-        "Adding billableUsage: {} to aggregate with aggregateId: {}, totalValue:{} and windowTimestamp: {}",
+        "Adding billableUsage: {} to aggregate with aggregateId: {}, totalValue:{}, remittanceUuids:{} "
+            + "and windowTimestamp: {}",
         billableUsage,
         aggregateId,
         totalValue,
+        remittanceUuids,
         windowTimestamp);
     return this;
   }
