@@ -30,7 +30,6 @@ import java.time.temporal.ChronoUnit;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.EventRecordRepository;
-import org.candlepin.subscriptions.retention.RemittanceRetentionController;
 import org.candlepin.subscriptions.retention.TallyRetentionController;
 import org.candlepin.subscriptions.security.SecurityProperties;
 import org.candlepin.subscriptions.tally.MarketplaceResendTallyController;
@@ -51,7 +50,6 @@ class InternalTallyResourceTest {
   @Mock private MarketplaceResendTallyController resendTallyController;
   @Mock private CaptureSnapshotsTaskManager snapshotTaskManager;
   @Mock private TallyRetentionController tallyRetentionController;
-  @Mock private RemittanceRetentionController remittanceRetentionController;
   @Mock private InternalTallyDataController internalTallyDataController;
   @Mock private SecurityProperties properties;
   @Mock private EventRecordRepository eventRecordRepository;
@@ -73,7 +71,6 @@ class InternalTallyResourceTest {
             resendTallyController,
             snapshotTaskManager,
             tallyRetentionController,
-            remittanceRetentionController,
             internalTallyDataController,
             properties,
             eventRecordRepository,
@@ -123,12 +120,6 @@ class InternalTallyResourceTest {
     appProps.setEnableSynchronousOperations(true);
     resource.tallyOrg(ORG_ID, true);
     verify(internalTallyDataController).tallyOrgSync(ORG_ID);
-  }
-
-  @Test
-  void testPurgeRemittances() {
-    resource.purgeRemittances();
-    verify(remittanceRetentionController).purgeRemittancesAsync();
   }
 
   @Test

@@ -154,6 +154,22 @@ paths:
                 $ref: "#/components/schemas/DefaultResponse"
           description: Accepted request to retry billable usage remittance
       tags: ['internalBilling']
+  /internal/rpc/remittance/purge:
+    post:
+      operationId: purgeRemittances
+      summary: 'Purge existing remittances matching the configured retention policy.'
+      responses:
+        '201':
+          description: 'The process for purging remittances was started.'
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        '401':
+          $ref: "../../../spec/error-responses.yaml#/$defs/Unauthorized"
+        '500':
+          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
+      tags: ['internalBilling']
   /internal-billing-openapi.json:
     $ref: "../../../spec/openapi-paths.yaml#/openapi-json"
   /internal-billing-openapi.yaml:

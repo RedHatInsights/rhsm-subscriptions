@@ -46,23 +46,6 @@ paths:
           $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
       tags:
         - internalTally
-  /internal/rpc/tally/remittance/purge:
-    description: 'Operations to purge existing tally snapshots matching the configured retention policy.'
-    post:
-      operationId: purgeRemittances
-      summary: 'Purge existing remittances matching the configured retention policy.'
-      responses:
-        '201':
-          description: 'The process for purging remittances was started.'
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DefaultResponse"
-        '401':
-          $ref: "../../../spec/error-responses.yaml#/$defs/Unauthorized"
-        '500':
-          $ref: "../../../spec/error-responses.yaml#/$defs/InternalServerError"
-      tags: [internalTally]
   /internal/tally/hourly:
     description: 'Operations pertaining to the hourly tally.'
     post:

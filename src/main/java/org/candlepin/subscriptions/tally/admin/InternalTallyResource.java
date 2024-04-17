@@ -31,7 +31,6 @@ import org.candlepin.subscriptions.ApplicationProperties;
 import org.candlepin.subscriptions.db.EventRecordRepository;
 import org.candlepin.subscriptions.db.model.config.OptInType;
 import org.candlepin.subscriptions.resource.ResourceUtils;
-import org.candlepin.subscriptions.retention.RemittanceRetentionController;
 import org.candlepin.subscriptions.retention.TallyRetentionController;
 import org.candlepin.subscriptions.security.SecurityProperties;
 import org.candlepin.subscriptions.tally.MarketplaceResendTallyController;
@@ -65,7 +64,6 @@ public class InternalTallyResource implements InternalApi {
   private final MarketplaceResendTallyController resendTallyController;
   private final CaptureSnapshotsTaskManager snapshotsTaskManager;
   private final TallyRetentionController tallyRetentionController;
-  private final RemittanceRetentionController remittanceRetentionController;
   private final InternalTallyDataController internalTallyDataController;
   private final SecurityProperties properties;
   private final EventRecordRepository eventRecordRepository;
@@ -78,7 +76,6 @@ public class InternalTallyResource implements InternalApi {
       MarketplaceResendTallyController resendTallyController,
       CaptureSnapshotsTaskManager snapshotsTaskManager,
       TallyRetentionController tallyRetentionController,
-      RemittanceRetentionController remittanceRetentionController,
       InternalTallyDataController internalTallyDataController,
       SecurityProperties properties,
       EventRecordRepository eventRecordRepository,
@@ -88,7 +85,6 @@ public class InternalTallyResource implements InternalApi {
     this.resendTallyController = resendTallyController;
     this.snapshotsTaskManager = snapshotsTaskManager;
     this.tallyRetentionController = tallyRetentionController;
-    this.remittanceRetentionController = remittanceRetentionController;
     this.internalTallyDataController = internalTallyDataController;
     this.properties = properties;
     this.eventRecordRepository = eventRecordRepository;
@@ -112,18 +108,6 @@ public class InternalTallyResource implements InternalApi {
     try {
       log.info("Initiating tally snapshot purge.");
       tallyRetentionController.purgeSnapshotsAsync();
-    } catch (TaskRejectedException e) {
-      log.warn("A tally snapshots purge job is already running.");
-      return getDefaultResponse(REJECTED_STATUS);
-    }
-    return getDefaultResponse(SUCCESS_STATUS);
-  }
-
-  @Override
-  public DefaultResponse purgeRemittances() {
-    try {
-      log.info("Initiating remittance purge.");
-      remittanceRetentionController.purgeRemittancesAsync();
     } catch (TaskRejectedException e) {
       log.warn("A tally snapshots purge job is already running.");
       return getDefaultResponse(REJECTED_STATUS);
