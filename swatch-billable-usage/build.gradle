@@ -10,7 +10,9 @@ dependencies {
     implementation 'io.quarkus:quarkus-oidc-client'
     implementation 'io.quarkus:quarkus-kafka-streams'
     implementation project(':clients:swatch-internal-subscription-client')
+    implementation project(":clients:quarkus:contracts-client")
     implementation project(':swatch-common-config-workaround')
+    implementation project(':swatch-common-resteasy-client')
     implementation libraries["clowder-quarkus-config-source"]
     implementation libraries["quarkus-logging-splunk"]
     implementation libraries["splunk-library-javalogging"]
