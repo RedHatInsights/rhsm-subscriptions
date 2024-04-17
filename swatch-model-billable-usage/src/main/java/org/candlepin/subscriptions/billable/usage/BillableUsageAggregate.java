@@ -25,6 +25,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import lombok.EqualsAndHashCode;
@@ -48,6 +49,11 @@ public class BillableUsageAggregate {
   private Set<OffsetDateTime> snapshotDates = new HashSet<>();
 
   public BillableUsageAggregate updateFrom(BillableUsage billableUsage) {
+    // Flush org used only to force publish suppressed messages.
+    if (Objects.equals(billableUsage.getOrgId(), "flush")) {
+      return new BillableUsageAggregate();
+    }
+
     if (aggregateId == null) {
       aggregateId = UUID.randomUUID();
     }

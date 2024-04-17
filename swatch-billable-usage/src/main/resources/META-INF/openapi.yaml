@@ -1,0 +1,75 @@
+---
+openapi: 3.0.2
+info:
+  title: Swatch Billable Usage Internal API
+  version: 1.0.0
+  description: Internal APIs for Swatch Billable Usage
+  contact:
+    name: SWATCH Dev
+    url: https://github.com/RedHatInsights/rhsm-subscriptions
+paths:
+  /api/swatch-billable-usage/internal/rpc/topics/flush:
+    description: Flush the billable usage aggregation topic to force publish aggregations that are stuck from low traffic.
+    put:
+      summary: Publishes messages to the billable-usage-aggregation-repartition topic for every partition in order to flush out stuck aggregations.
+      operationId: flushBillableUsageAggregationTopic
+      tags:
+        - internalBillableUsage
+      responses:
+        '200':
+          description: Topic successfully flushed.
+          content:
+            application/vnd.api+json:
+              schema:
+                $ref: "#/components/schemas/DefaultResponse"
+        default:
+          $ref: "#/components/responses/ErrorResponse"
+components:
+  schemas:
+    Error:
+      required:
+        - status
+        - code
+        - title
+      properties:
+        status:
+          type: string
+        code:
+          type: string
+        title:
+          type: string
+        detail:
+          type: string
+    DefaultResponse:
+      properties:
+        status:
+          type: string
+  responses:
+    ErrorResponse:
+      description: "Error handling request"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  securitySchemes:
+    customer:
+      type: apiKey
+      description: customer facing API
+      name: x-rh-identity
+      in: header
+    support:
+      type: apiKey
+      description: API is available for support operations
+      name: x-rh-identity
+      in: header
+    service:
+      type: apiKey
+      description: API is available for services
+      name: x-rh-swatch-psk
+      in: header
+    test:
+      type: apiKey
+      description: API is available for testing purposes (pre-production environments
+        only)
+      name: x-rh-swatch-psk
+      in: header

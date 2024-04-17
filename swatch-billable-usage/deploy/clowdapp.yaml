@@ -37,6 +37,20 @@ parameters:
     value: '3'
   - name: QUARKUS_PROFILE
     value: prod
+  - name: CURL_CRON_IMAGE
+    value: quay.io/app-sre/ubi8-ubi-minimal
+  - name: CURL_CRON_IMAGE_TAG
+    value: latest
+  - name: CURL_CRON_MEMORY_REQUEST
+    value: 500Mi
+  - name: CURL_CRON_MEMORY_LIMIT
+    value: 800Mi
+  - name: CURL_CRON_CPU_REQUEST
+    value: 350m
+  - name: CURL_CRON_CPU_LIMIT
+    value: 500m
+  - name: AGGREGATE_FLUSH_SCHEDULE
+    value: '@hourly'
 
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
@@ -137,6 +151,32 @@ objects:
           volumes:
             - name: logs
               emptyDir:
+    jobs:
+      - name: sync
+        schedule: ${AGGREGATE_FLUSH_SCHEDULE}
+        activeDeadlineSeconds: 1800
+        successfulJobsHistoryLimit: 2
+        restartPolicy: Never
+        podSpec:
+          image: ${CURL_CRON_IMAGE}:${CURL_CRON_IMAGE_TAG}
+          command:
+            - /usr/bin/bash
+            - -c
+            - >
+              /usr/bin/curl --fail -H "Origin: https://swatch-bilable-usage-service.redhat.com" -H "x-rh-swatch-psk: ${SWATCH_SELF_PSK}" -X PUT "http://swatch-billable-usage-service:8000/api/swatch-billable-usage/internal/rpc/topics/flush"
+          env:
+            - name: SWATCH_SELF_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: swatch-psks
+                  key: self
+          resources:
+            requests:
+              cpu: ${CURL_CRON_CPU_REQUEST}
+              memory: ${CURL_CRON_MEMORY_REQUEST}
+            limits:
+              cpu: ${CURL_CRON_CPU_LIMIT}
+              memory: ${CURL_CRON_MEMORY_LIMIT}
 
 - apiVersion: v1
   kind: Secret
