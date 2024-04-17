@@ -89,7 +89,7 @@ public class StreamTopologyProducer {
             Suppressed.untilWindowCloses(BufferConfig.unbounded())
                 .withName(properties.getBillableUsageSuppressStoreName()))
         .toStream()
-        .peek((key, aggregate) -> log.debug("Sending aggregate to hourly topic: {}", aggregate))
+        .peek((key, aggregate) -> log.info("Sending aggregate to hourly topic: {}", aggregate))
         .to(properties.getBillableUsageHourlyAggregateTopicName());
 
     return builder.build();
