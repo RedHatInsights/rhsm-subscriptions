@@ -309,20 +309,19 @@ class InventoryControllerTest {
     consumer.getInstalledProducts().add(product);
 
     ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
-    assertEquals(Arrays.asList("72"), conduitFacts.getRhProd());
+    assertEquals(List.of("72"), conduitFacts.getRhProd());
   }
 
   @Test
   void testUnknownMacIsIgnored() {
     String uuid = UUID.randomUUID().toString();
-    String systemUuid = UUID.randomUUID().toString();
     Consumer consumer = new Consumer();
     consumer.setUuid(uuid);
     consumer.getFacts().put("net.interface.virbr0.mac_address", "Unknown");
 
     ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
     assertEquals(uuid, conduitFacts.getSubscriptionManagerId());
-    assertThat(conduitFacts.getMacAddresses(), Matchers.nullValue());
+    assertThat(conduitFacts.getMacAddresses(), Matchers.emptyIterable());
   }
 
   @Test
@@ -334,7 +333,7 @@ class InventoryControllerTest {
 
     ConduitFacts conduitFacts = controller.getFactsFromConsumer(consumer);
     assertEquals(uuid, conduitFacts.getSubscriptionManagerId());
-    assertThat(conduitFacts.getMacAddresses(), Matchers.nullValue());
+    assertThat(conduitFacts.getMacAddresses(), Matchers.emptyIterable());
   }
 
   @Test
@@ -375,7 +374,7 @@ class InventoryControllerTest {
   }
 
   @Test
-  void testFilterLoopbackIpV4Address() {
+  void testFilterLoopBackIpV4Address() {
     String factPrefix = "net.interface.lo.";
 
     String loIpFact = "192.168.0.1,redacted, removed";

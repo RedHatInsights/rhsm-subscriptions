@@ -21,8 +21,8 @@
 package org.candlepin.subscriptions.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.util.Set;
@@ -57,7 +57,7 @@ class OfferingProductTagLookupServiceTest {
     when(offeringRepository.findOfferingBySku("sku")).thenReturn(new Offering());
     OfferingProductTags productTags2 =
         offeringProductTagLookupService.findPersistedProductTagsBySku("sku");
-    assertNull(productTags2.getData());
+    assertTrue(productTags2.getData().isEmpty());
   }
 
   @Test
@@ -72,7 +72,7 @@ class OfferingProductTagLookupServiceTest {
 
     OfferingProductTags productTags =
         offeringProductTagLookupService.findPersistedProductTagsBySku("sku");
-    assertNull(productTags.getData());
+    assertTrue(productTags.getData().isEmpty());
   }
 
   @Test
