@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
@@ -34,12 +35,14 @@ import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.TallyInstanceViewKey_;
 import org.candlepin.subscriptions.db.model.TallyInstanceView_;
+import org.candlepin.subscriptions.db.model.TallyInstancesDbReportCriteria;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.repository.query.FluentQuery;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
@@ -61,8 +64,8 @@ public interface TallyInstanceViewRepository
    *     or empty string to ignore)
    * @param minCores Filter to Hosts with at least this number of cores.
    * @param minSockets Filter to Hosts with at least this number of sockets.
-   * @param month Filter to Hosts with monthly instance totals in provided month
-   * @param referenceUom Uom used when filtering to a specific month.
+   * @param month Filter to Hosts with with monthly instance totals in provided month
+   * @param referenceMetricId Metric ID used when filtering to a specific month.
    * @param pageable the current paging info for this query.
    * @return a page of Host entities matching the criteria.
    */
@@ -76,26 +79,32 @@ public interface TallyInstanceViewRepository
       Integer minCores,
       Integer minSockets,
       String month,
-      MetricId referenceUom,
+      MetricId referenceMetricId,
       BillingProvider billingProvider,
       String billingAccountId,
       List<HardwareMeasurementType> hardwareMeasurementTypes,
       Pageable pageable) {
     return findAll(
         buildSearchSpecification(
-            orgId,
-            productId,
-            sla,
-            usage,
-            displayNameSubstring,
-            minCores,
-            minSockets,
-            month,
-            referenceUom,
-            billingProvider,
-            billingAccountId,
-            hardwareMeasurementTypes),
+            TallyInstancesDbReportCriteria.builder()
+                .orgId(orgId)
+                .productId(productId)
+                .sla(sla)
+                .usage(usage)
+                .displayNameSubstring(displayNameSubstring)
+                .minCores(minCores)
+                .minSockets(minSockets)
+                .month(month)
+                .metricId(referenceMetricId)
+                .billingProvider(billingProvider)
+                .billingAccountId(billingAccountId)
+                .hardwareMeasurementTypes(hardwareMeasurementTypes)
+                .build()),
         pageable);
+  }
+
+  default Stream<TallyInstanceView> streamBy(TallyInstancesDbReportCriteria criteria) {
+    return findBy(buildSearchSpecification(criteria), FluentQuery.FetchableFluentQuery::stream);
   }
 
   static Specification<TallyInstanceView> socketsAndCoresGreaterThanOrEqualTo(
@@ -160,11 +169,11 @@ public interface TallyInstanceViewRepository
     };
   }
 
-  static Specification<TallyInstanceView> uomEquals(MetricId effectiveUom) {
+  static Specification<TallyInstanceView> metricIdEquals(MetricId effectiveMetricId) {
     return (root, query, builder) -> {
       var key = root.get(TallyInstanceView_.key);
       return builder.equal(
-          key.get(TallyInstanceViewKey_.metricId), effectiveUom.toUpperCaseFormatted());
+          key.get(TallyInstanceViewKey_.metricId), effectiveMetricId.toUpperCaseFormatted());
     };
   }
 
@@ -191,58 +200,53 @@ public interface TallyInstanceViewRepository
 
   @SuppressWarnings("java:S107")
   default Specification<TallyInstanceView> buildSearchSpecification(
-      String orgId,
-      String productId,
-      ServiceLevel sla,
-      Usage usage,
-      String displayNameSubstring,
-      Integer minCores,
-      Integer minSockets,
-      String month,
-      MetricId referenceUom,
-      BillingProvider billingProvider,
-      String billingAccountId,
-      List<HardwareMeasurementType> hardwareMeasurementTypes) {
-    MetricId effectiveUom =
-        Optional.ofNullable(referenceUom).orElse(getDefaultMetricIdForProduct(productId));
+      TallyInstancesDbReportCriteria criteria) {
+    MetricId effectiveMetricId =
+        Optional.ofNullable(criteria.getMetricId())
+            .orElse(getDefaultMetricIdForProduct(criteria.getProductId()));
 
     /* The where call allows us to build a Specification object to operate on even if the
      * first specification method we call returns null which is does because we're using the
      * Specification call to set the query to return distinct results */
     var searchCriteria = Specification.where(distinct());
-    searchCriteria = searchCriteria.and(socketsAndCoresGreaterThanOrEqualTo(minCores, minSockets));
+    searchCriteria =
+        searchCriteria.and(
+            socketsAndCoresGreaterThanOrEqualTo(criteria.getMinCores(), criteria.getMinSockets()));
 
-    if (Objects.nonNull(orgId)) {
-      searchCriteria = searchCriteria.and(orgEquals(orgId));
+    if (Objects.nonNull(criteria.getOrgId())) {
+      searchCriteria = searchCriteria.and(orgEquals(criteria.getOrgId()));
     }
-    if (Objects.nonNull(productId)) {
-      searchCriteria = searchCriteria.and(productIdEquals(productId));
+    if (Objects.nonNull(criteria.getProductId())) {
+      searchCriteria = searchCriteria.and(productIdEquals(criteria.getProductId()));
     }
-    if (Objects.nonNull(sla)) {
-      searchCriteria = searchCriteria.and(slaEquals(sla));
+    if (Objects.nonNull(criteria.getSla())) {
+      searchCriteria = searchCriteria.and(slaEquals(criteria.getSla()));
     }
-    if (Objects.nonNull(usage)) {
-      searchCriteria = searchCriteria.and(usageEquals(usage));
+    if (Objects.nonNull(criteria.getUsage())) {
+      searchCriteria = searchCriteria.and(usageEquals(criteria.getUsage()));
     }
-    if (Objects.nonNull(billingProvider)) {
-      searchCriteria = searchCriteria.and(billingProviderEquals(billingProvider));
+    if (Objects.nonNull(criteria.getBillingProvider())) {
+      searchCriteria = searchCriteria.and(billingProviderEquals(criteria.getBillingProvider()));
     }
-    if (Objects.nonNull(billingAccountId)) {
-      searchCriteria = searchCriteria.and(billingAccountIdEquals(billingAccountId));
+    if (Objects.nonNull(criteria.getBillingAccountId())) {
+      searchCriteria = searchCriteria.and(billingAccountIdEquals(criteria.getBillingAccountId()));
     }
-    if (StringUtils.hasText(displayNameSubstring)) {
-      searchCriteria = searchCriteria.and(displayNameContains(displayNameSubstring));
+    if (StringUtils.hasText(criteria.getDisplayNameSubstring())) {
+      searchCriteria = searchCriteria.and(displayNameContains(criteria.getDisplayNameSubstring()));
     }
-    if (Objects.nonNull(effectiveUom)) {
-      searchCriteria = searchCriteria.and(uomEquals(effectiveUom));
-      if (StringUtils.hasText(month)) {
+    if (Objects.nonNull(effectiveMetricId)) {
+      searchCriteria = searchCriteria.and(metricIdEquals(effectiveMetricId));
+      if (StringUtils.hasText(criteria.getMonth())) {
         searchCriteria =
             searchCriteria.and(
-                monthlyKeyEquals(new InstanceMonthlyTotalKey(month, effectiveUom.toString())));
+                monthlyKeyEquals(
+                    new InstanceMonthlyTotalKey(
+                        criteria.getMonth(), effectiveMetricId.toString())));
       }
     }
-    if (!ObjectUtils.isEmpty(hardwareMeasurementTypes)) {
-      searchCriteria = searchCriteria.and(hardwareMeasurementTypeIn(hardwareMeasurementTypes));
+    if (!ObjectUtils.isEmpty(criteria.getHardwareMeasurementTypes())) {
+      searchCriteria =
+          searchCriteria.and(hardwareMeasurementTypeIn(criteria.getHardwareMeasurementTypes()));
     }
 
     return searchCriteria;

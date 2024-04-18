@@ -274,7 +274,7 @@ public class InstancesResource implements InstancesApi {
     return sortValue;
   }
 
-  private static Boolean isPayg(Optional<Variant> variant) {
+  public static boolean isPayg(Optional<Variant> variant) {
     return variant
         .map(Variant::getSubscription)
         .map(SubscriptionDefinition::isPaygEligible)
@@ -346,7 +346,7 @@ public class InstancesResource implements InstancesApi {
     return measurementList;
   }
 
-  private static List<HardwareMeasurementType> getHardwareMeasurementTypesFromCategory(
+  public static List<HardwareMeasurementType> getHardwareMeasurementTypesFromCategory(
       ReportCategory reportCategory) {
     if (Objects.isNull(reportCategory)) {
       return new ArrayList<>();
@@ -355,7 +355,7 @@ public class InstancesResource implements InstancesApi {
     }
   }
 
-  private static ReportCategory getCategoryByMeasurementType(
+  public static ReportCategory getCategoryByMeasurementType(
       HardwareMeasurementType measurementType) {
     if (HardwareMeasurementType.isSupportedCloudProvider(measurementType.name())) {
       return ReportCategory.CLOUD;
@@ -368,7 +368,7 @@ public class InstancesResource implements InstancesApi {
     };
   }
 
-  private static CloudProvider getCloudProviderByMeasurementType(
+  public static CloudProvider getCloudProviderByMeasurementType(
       HardwareMeasurementType measurementType) {
     return switch (measurementType) {
       case AWS -> CloudProvider.AWS;

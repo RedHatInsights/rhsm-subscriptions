@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.subscription.export;
+package org.candlepin.subscriptions.export;
 
 import com.redhat.swatch.clients.export.api.client.ExportApiClientFactory;
 import org.candlepin.subscriptions.http.HttpClientProperties;
@@ -37,7 +37,7 @@ import org.springframework.context.annotation.FilterType;
  */
 @Configuration
 @ComponentScan(
-    basePackages = {"org.candlepin.subscriptions.subscription"},
+    basePackages = {"org.candlepin.subscriptions.export"},
     // Prevent TestConfiguration annotated classes from being picked up by ComponentScan
     excludeFilters = {
       @ComponentScan.Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),

@@ -18,7 +18,7 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.subscription.export;
+package org.candlepin.subscriptions.export;
 
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.candlepin.subscriptions.task.TaskQueueProperties;
@@ -43,7 +43,7 @@ public class ExportSubscriptionConfiguration {
   public static final String EXPORT_CONSUMER_FACTORY_QUALIFIER = "exportConsumerFactory";
 
   @Bean(name = SUBSCRIPTION_EXPORT_QUALIFIER)
-  @ConfigurationProperties(prefix = "rhsm-subscriptions.subscription-export.tasks")
+  @ConfigurationProperties(prefix = "rhsm-subscriptions.export.tasks")
   TaskQueueProperties subscriptionExportProperties() {
     return new TaskQueueProperties();
   }

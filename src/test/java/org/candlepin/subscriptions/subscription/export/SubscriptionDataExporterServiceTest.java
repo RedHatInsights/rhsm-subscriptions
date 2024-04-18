@@ -20,103 +20,44 @@
  */
 package org.candlepin.subscriptions.subscription.export;
 
-import static org.candlepin.subscriptions.subscription.export.ExportSubscriptionConfiguration.SUBSCRIPTION_EXPORT_QUALIFIER;
-import static org.candlepin.subscriptions.subscription.export.ExportSubscriptionListener.ADMIN_ROLE;
-import static org.candlepin.subscriptions.subscription.export.ExportSubscriptionListener.SWATCH_APP;
-import static org.mockito.Mockito.when;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.cloud.event.apps.exportservice.v1.Format;
-import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequest;
-import com.redhat.cloud.event.apps.exportservice.v1.ResourceRequestClass;
-import com.redhat.cloud.event.parser.ConsoleCloudEventParser;
-import com.redhat.cloud.event.parser.GenericConsoleCloudEvent;
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.transaction.Transactional;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.candlepin.clock.ApplicationClock;
-import org.candlepin.subscriptions.db.OfferingRepository;
 import org.candlepin.subscriptions.db.SubscriptionRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
-import org.candlepin.subscriptions.db.model.Offering;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Subscription;
 import org.candlepin.subscriptions.db.model.SubscriptionMeasurementKey;
 import org.candlepin.subscriptions.db.model.Usage;
+import org.candlepin.subscriptions.export.BaseDataExporterServiceTest;
 import org.candlepin.subscriptions.json.SubscriptionsExport;
 import org.candlepin.subscriptions.json.SubscriptionsExportItem;
 import org.candlepin.subscriptions.json.SubscriptionsExportMeasurement;
-import org.candlepin.subscriptions.rbac.RbacApiException;
-import org.candlepin.subscriptions.rbac.RbacService;
-import org.candlepin.subscriptions.task.TaskQueueProperties;
-import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
-import org.candlepin.subscriptions.test.ExtendWithExportServiceWireMock;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.kafka.core.DefaultKafkaProducerFactory;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest
 @ActiveProfiles(value = {"kafka-queue", "test", "capacity-ingress"})
-class ExportSubscriptionListenerTest
-    implements ExtendWithExportServiceWireMock, ExtendWithEmbeddedKafka {
+class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
 
-  private static final String ORG_ID = "13259775";
-
-  @Autowired
-  @Qualifier(SUBSCRIPTION_EXPORT_QUALIFIER)
-  TaskQueueProperties taskQueueProperties;
-
-  @Autowired ConsoleCloudEventParser parser;
-  @Autowired ObjectMapper objectMapper;
-  @Autowired ExportSubscriptionListener listener;
-  @Autowired KafkaProperties kafkaProperties;
-  @Autowired OfferingRepository offeringRepository;
   @Autowired SubscriptionRepository subscriptionRepository;
   @Autowired ApplicationClock clock;
 
-  @MockBean RbacService rbacService;
+  protected List<Subscription> itemsToBeExported = new ArrayList<>();
 
-  KafkaTemplate<String, String> kafkaTemplate;
-  Offering offering;
-  List<Subscription> subscriptionsToBeExported = new ArrayList<>();
-  GenericConsoleCloudEvent<ResourceRequest> request;
-
-  @Transactional
-  @BeforeEach
-  public void setup() {
-    Map<String, Object> properties = kafkaProperties.buildProducerProperties(null);
-    properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-    properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-
-    var factory = new DefaultKafkaProducerFactory<String, String>(properties);
-    kafkaTemplate = new KafkaTemplate<>(factory);
-
-    offering = new Offering();
-    offering.setSku("MKU001");
-    offering.setUsage(Usage.PRODUCTION);
-    offering.setServiceLevel(ServiceLevel.PREMIUM);
-    offeringRepository.save(offering);
+  @Override
+  protected String resourceType() {
+    return "subscriptions";
   }
 
   @Test
@@ -217,78 +158,14 @@ class ExportSubscriptionListenerTest
             new SubscriptionMeasurementKey(MetricIdUtils.getCores().toString(), "HYPERVISOR"),
             5.0));
     subscriptionRepository.save(subscription);
-    subscriptionsToBeExported.add(subscription);
+    itemsToBeExported.add(subscription);
   }
 
-  private void givenExportRequestWithoutPermissions() {
-    givenExportRequest(Format.JSON);
-    givenRbacPermissions(List.of());
-  }
-
-  private void givenExportRequestWithPermissions(Format format) {
-    givenExportRequest(format);
-    givenRbacPermissions(List.of(SWATCH_APP + ADMIN_ROLE));
-  }
-
-  private void givenExportRequest(Format format) {
-    request = new GenericConsoleCloudEvent<>();
-    request.setId(UUID.randomUUID());
-    request.setSource("urn:redhat:source:console:app:export-service");
-    request.setSpecVersion("1.0");
-    request.setType("com.redhat.console.export-service.request");
-    request.setDataSchema(
-        "https://console.redhat.com/api/schemas/apps/export-service/v1/resource-request.json");
-    request.setTime(LocalDateTime.now());
-    request.setOrgId(ORG_ID);
-
-    var resourceRequest = new ResourceRequest();
-    resourceRequest.setResourceRequest(new ResourceRequestClass());
-    resourceRequest.getResourceRequest().setExportRequestUUID(UUID.randomUUID());
-    resourceRequest.getResourceRequest().setUUID(UUID.randomUUID());
-    resourceRequest.getResourceRequest().setApplication("subscriptions");
-    resourceRequest.getResourceRequest().setFormat(format);
-    resourceRequest.getResourceRequest().setResource("subscriptions");
-    resourceRequest.getResourceRequest().setXRhIdentity("MTMyNTk3NzU=");
-    resourceRequest.getResourceRequest().setFilters(new HashMap<>());
-
-    request.setData(resourceRequest);
-  }
-
-  private void givenFilterInExportRequest(String filter, String value) {
-    request.getData().getResourceRequest().getFilters().put(filter, value);
-  }
-
-  private void givenRbacPermissions(List<String> SWATCH_APP) {
-    try {
-      when(rbacService.getPermissions(
-              request.getData().getResourceRequest().getApplication(),
-              request.getData().getResourceRequest().getXRhIdentity()))
-          .thenReturn(SWATCH_APP);
-    } catch (RbacApiException e) {
-      Assertions.fail("Failed to call the get permissions method", e);
-    }
-  }
-
-  private void whenReceiveExportRequest() {
-    kafkaTemplate.send(taskQueueProperties.getTopic(), parser.toJson(request));
-  }
-
-  private void verifyNoRequestsWereSentToExportServiceWithError() {
-    verifyNoRequestsWereSentToExportServiceWithError(request);
-  }
-
-  private void verifyNoRequestsWereSentToExportServiceWithUploadData() {
-    verifyNoRequestsWereSentToExportServiceWithUploadData(request);
-  }
-
-  private void verifyRequestWasSentToExportServiceWithNoDataFound() {
-    verifyRequestWasSentToExportServiceWithUploadData(new SubscriptionsExport());
-  }
-
-  private void verifyRequestWasSentToExportService() {
+  @Override
+  protected void verifyRequestWasSentToExportService() {
     var expected = new SubscriptionsExport();
     expected.setData(new ArrayList<>());
-    for (Subscription subscription : subscriptionsToBeExported) {
+    for (Subscription subscription : itemsToBeExported) {
       var item = new SubscriptionsExportItem();
       item.setOrgId(subscription.getOrgId());
       item.setMeasurements(new ArrayList<>());
@@ -317,14 +194,5 @@ class ExportSubscriptionListenerTest
     }
 
     verifyRequestWasSentToExportServiceWithUploadData(expected);
-  }
-
-  private void verifyRequestWasSentToExportServiceWithUploadData(SubscriptionsExport expected) {
-    try {
-      verifyRequestWasSentToExportServiceWithUploadData(
-          request, objectMapper.writeValueAsString(expected));
-    } catch (JsonProcessingException e) {
-      Assertions.fail("Failed to serialize the export data", e);
-    }
   }
 }

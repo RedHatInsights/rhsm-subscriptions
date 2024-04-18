@@ -167,6 +167,10 @@ parameters:
     value: '3'
   - name: KAFKA_ENABLED_ORGS_PARTITIONS
     value: '3'
+  - name: KAFKA_SUBSCRIPTIONS_EXPORT_REPLICAS
+    value: '3'
+  - name: KAFKA_SUBSCRIPTIONS_EXPORT_PARTITIONS
+    value: '3'
   - name: ENABLE_SYNCHRONOUS_OPERATIONS
     value: 'false'
   - name: TALLY_MAX_HBI_ACCOUNT_SIZE
@@ -229,7 +233,6 @@ parameters:
     required: true
     value: 'false'
 
-
 objects:
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdApp
@@ -268,6 +271,9 @@ objects:
       - replicas: ${{KAFKA_ENABLED_ORGS_REPLICAS}}
         partitions: ${{KAFKA_ENABLED_ORGS_PARTITIONS}}
         topicName: platform.rhsm-subscriptions.enabled-orgs-for-tasks
+      - replicas: ${{KAFKA_SUBSCRIPTIONS_EXPORT_REPLICAS}}
+        partitions: ${{KAFKA_SUBSCRIPTIONS_EXPORT_PARTITIONS}}
+        topicName: platform.export.requests
 
     database:
       # Must specify both a name and a major postgres version
@@ -398,6 +404,11 @@ objects:
                 secretKeyRef:
                   name: swatch-psks
                   key: self
+            - name: SWATCH_EXPORT_PSK
+              valueFrom:
+                secretKeyRef:
+                  name: export-psk
+                  key: export_psk
             - name: PROM_URL
               value: ${PROM_URL}
             - name: OPENSHIFT_BILLING_MODEL_FILTER
@@ -718,6 +729,13 @@ objects:
     name: swatch-psks
   data:
     self: cGxhY2Vob2xkZXI=
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: export-psk
+  data:
+    export_psk: dGVzdGluZy1hLXBzaw==
 
 - apiVersion: metrics.console.redhat.com/v1alpha1
   kind: FloorPlan
