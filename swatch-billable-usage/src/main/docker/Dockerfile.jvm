@@ -131,6 +131,9 @@ COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-billable-usage/buil
 COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-billable-usage/build/quarkus-app/app/ /deployments/app/
 COPY --from=0 --chown=default:root --chmod=775 /stage/swatch-billable-usage/build/quarkus-app/quarkus/ /deployments/quarkus/
 
+# Required by Red Hat OpenShift Software Certification Policy Guide
+COPY --from=0 /stage/LICENSE /licenses/
+
 # Used by Quarkus dev mode
 RUN chmod 775 /deployments /deployments/*
 
