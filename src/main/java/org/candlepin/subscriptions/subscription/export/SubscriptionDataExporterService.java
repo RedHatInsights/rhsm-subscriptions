@@ -96,7 +96,7 @@ public class SubscriptionDataExporterService
   }
 
   @Override
-  public SubscriptionsExportItem mapDataItem(Subscription dataItem) {
+  public SubscriptionsExportItem mapDataItem(Subscription dataItem, ExportServiceRequest request) {
     var item = new SubscriptionsExportItem();
     item.setOrgId(dataItem.getOrgId());
     item.setMeasurements(new ArrayList<>());

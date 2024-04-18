@@ -61,6 +61,20 @@ class SubscriptionDataExporterServiceTest extends BaseDataExporterServiceTest {
   }
 
   @Test
+  void testRequestWithoutPermissions() {
+    givenExportRequestWithoutPermissions();
+    whenReceiveExportRequest();
+    verifyRequestWasSentToExportServiceWithError(request);
+  }
+
+  @Test
+  void testRequestWithPermissions() {
+    givenExportRequestWithPermissions(Format.JSON);
+    whenReceiveExportRequest();
+    verifyRequestWasSentToExportService();
+  }
+
+  @Test
   void testRequestShouldBeUploadedWithSubscriptionsAsJson() {
     givenSubscriptionWithMeasurement();
     givenExportRequestWithPermissions(Format.JSON);

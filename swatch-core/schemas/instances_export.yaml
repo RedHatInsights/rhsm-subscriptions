@@ -1,0 +1,12 @@
+# From: https://github.com/RedHatInsights/export-service-go/blob/main/example_export_upload.json
+$schema: http://json-schema.org/draft-07/schema#
+title: InstancesExport
+properties:
+  name:
+    type: string
+  description:
+    type: string
+  data:
+    type: array
+    items:
+      $ref: instances_export_item.yaml

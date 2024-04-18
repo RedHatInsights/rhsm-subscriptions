@@ -5,6 +5,7 @@ BILLABLE_USAGE_DEAD_LETTER_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscrip
 SERVICE_INSTANCE_INGRESS_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.service-instance-ingress".name:platform.rhsm-subscriptions.service-instance-ingress}
 SERVICE_INSTANCE_INGRESS_DEAD_LETTER_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.service-instance-ingress.dlt".name:platform.rhsm-subscriptions.service-instance-ingress.dlt}
 ENABLED_ORGS_TOPIC: ${clowder.kafka.topics."platform.rhsm-subscriptions.enabled-orgs-for-tasks".name:platform.rhsm-subscriptions.enabled-orgs-for-tasks}
+SUBSCRIPTION_EXPORT_TOPIC: ${clowder.kafka.topics."platform.export.requests".name:platform.export.requests}
 
 rhsm-subscriptions:
   hourlyTallyDurationLimitDays: 90d
@@ -106,3 +107,13 @@ rhsm-subscriptions:
   hbi-reconciliation-flush-interval: ${HBI_RECONCILIATION_FLUSH_INTERVAL:1024}
   use-cpu-system-facts-to-all-products: ${USE_CPU_SYSTEM_FACTS_TO_ALL_PRODUCTS:true}
   host-last-sync-threshold: ${HOST_LAST_SYNC_THRESHOLD:24h}
+  export-service:
+    url: ${clowder.privateEndpoints.export-service-service.url:http://localhost:10000}
+    truststore: ${clowder.privateEndpoints.export-service-service.trust-store-path}
+    truststore-password: ${clowder.privateEndpoints.export-service-service.trust-store-password}
+    truststore-type: ${clowder.privateEndpoints.export-service-service.trust-store-type}
+    psk: ${SWATCH_EXPORT_PSK:placeholder}
+  export:
+    tasks:
+      topic: ${SUBSCRIPTION_EXPORT_TOPIC}
+      kafka-group-id: swatch-tally-export

@@ -18,23 +18,28 @@
  * granted to use or replicate Red Hat trademarks that are incorporated
  * in this software or its documentation.
  */
-package org.candlepin.subscriptions.export;
+package org.candlepin.subscriptions.db.model;
 
-import java.io.Serializable;
-import java.util.stream.Stream;
+import com.redhat.swatch.configuration.registry.MetricId;
+import java.util.List;
+import lombok.Builder;
+import lombok.Data;
 
-public interface DataExporterService<T extends Serializable, U> {
-  boolean handles(ExportServiceRequest request);
-
-  Stream<T> fetchData(ExportServiceRequest request);
-
-  U mapDataItem(T item, ExportServiceRequest request);
-
-  default U mapDataItem(Object item, ExportServiceRequest request) {
-    return mapDataItem(getDataClass().cast(item), request);
-  }
-
-  Class<T> getDataClass();
-
-  Class<U> getExportItemClass();
+/** Common criteria that can be used to filter instances, subscriptions, and tally snapshots */
+@Data
+@Builder
+public class TallyInstancesDbReportCriteria {
+  private String orgId;
+  private String productId;
+  private ServiceLevel sla;
+  private Usage usage;
+  private String displayNameSubstring;
+  private Integer minCores;
+  private Integer minSockets;
+  private String month;
+  private MetricId metricId;
+  private BillingProvider billingProvider;
+  private String billingAccountId;
+  private List<HardwareMeasurementType> hardwareMeasurementTypes;
+  private boolean isPayg;
 }

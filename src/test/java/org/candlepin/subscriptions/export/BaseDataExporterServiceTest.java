@@ -55,7 +55,6 @@ import org.candlepin.subscriptions.test.ExtendWithEmbeddedKafka;
 import org.candlepin.subscriptions.test.ExtendWithExportServiceWireMock;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -115,20 +114,6 @@ public abstract class BaseDataExporterServiceTest
   protected abstract String resourceType();
 
   protected abstract void verifyRequestWasSentToExportService();
-
-  @Test
-  void testRequestWithoutPermissions() {
-    givenExportRequestWithoutPermissions();
-    whenReceiveExportRequest();
-    verifyRequestWasSentToExportServiceWithError(request);
-  }
-
-  @Test
-  void testRequestWithPermissions() {
-    givenExportRequestWithPermissions(Format.JSON);
-    whenReceiveExportRequest();
-    verifyRequestWasSentToExportService();
-  }
 
   protected void givenExportRequestWithoutPermissions() {
     givenExportRequest(Format.JSON);

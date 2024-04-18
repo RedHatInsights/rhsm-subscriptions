@@ -31,7 +31,6 @@ import com.redhat.swatch.clients.export.api.client.ApiException;
 import com.redhat.swatch.clients.export.api.model.DownloadExportErrorRequest;
 import com.redhat.swatch.clients.export.api.resources.ExportApi;
 import io.micrometer.core.annotation.Timed;
-import jakarta.transaction.Transactional;
 import jakarta.ws.rs.core.Response.Status;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -49,6 +48,7 @@ import org.candlepin.subscriptions.util.SeekableKafkaConsumer;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Listener for Export messages from Kafka */
 @Service
@@ -82,7 +82,7 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
   }
 
   @Timed("rhsm-subscriptions.exports.upload")
-  @Transactional
+  @Transactional(readOnly = true)
   @KafkaListener(
       id = "#{__listener.groupId}",
       topics = "#{__listener.topic}",
@@ -159,7 +159,7 @@ public class ExportSubscriptionListener extends SeekableKafkaConsumer {
       var serializer =
           serializerProvider.findTypedValueSerializer(
               exporterService.getExportItemClass(), false, null);
-      data.map(exporterService::mapDataItem)
+      data.map(i -> exporterService.mapDataItem(i, request))
           .forEach(
               item -> {
                 try {

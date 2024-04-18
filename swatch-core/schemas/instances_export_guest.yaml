@@ -1,0 +1,35 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: InstanceExportGuest
+required:
+  - display_name
+  - hardware_type
+  - last_seen
+properties:
+  inventory_id:
+    description: The HBI identifier for this host.
+    type: string
+  insights_id:
+    description: The insights identifier for this host, used as ID on cloud.redhat.com.
+    type: string
+  display_name:
+    description: The display name for this host on cloud.redhat.com.
+    type: string
+  subscription_manager_id:
+    description: The subscription-manager ID for this host, from `subscription-manager identity`.
+    type: string
+  hardware_type:
+    description: What the type of the host is (e.g. hypervisor, physical, etc.).
+    type: string
+  last_seen:
+    description: Latest timestamp that Subscription Watch has for this host.
+    type: string
+    format: date-time
+  is_unmapped_guest:
+    description: Is this host an unmapped guest (not reported by virt-who)?
+    type: boolean
+  is_hypervisor:
+    description: Is this host a hypervisor?
+    type: boolean
+  cloud_provider:
+    description: If applicable, the cloud provider for this host.
+    type: string

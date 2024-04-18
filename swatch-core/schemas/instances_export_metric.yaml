@@ -1,0 +1,8 @@
+$schema: http://json-schema.org/draft-07/schema#
+title: InstanceExportMetric
+properties:
+  metric_id:
+    type: string
+  value:
+    type: number
+    format: double
