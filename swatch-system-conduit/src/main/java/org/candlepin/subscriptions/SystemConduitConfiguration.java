@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions;
 
+import org.candlepin.subscriptions.clowder.KafkaSslBeanPostProcessor;
 import org.candlepin.subscriptions.clowder.RdsSslBeanPostProcessor;
 import org.candlepin.subscriptions.validator.IpAddressValidator;
 import org.candlepin.subscriptions.validator.MacAddressValidator;
@@ -29,6 +30,19 @@ import org.springframework.core.env.Environment;
 
 @Configuration
 public class SystemConduitConfiguration {
+  /**
+   * A bean post-processor responsible for setting up Kafka truststores correctly. It's declared
+   * here so that this bean will always be created. In other words, the creation of this bean isn't
+   * dependent on the web of Import annotations that we have declared across our Configuration
+   * classes. ApplicationConfiguration is the one Configuration class we can always count on to
+   * load.
+   *
+   * @return a KafkaJaasBeanPostProcessor object
+   */
+  @Bean
+  public KafkaSslBeanPostProcessor kafkaJaasBeanPostProcessor() {
+    return new KafkaSslBeanPostProcessor();
+  }
 
   /**
    * An instance of the MacAddressValidator that we use to detect NICs with bad MAC addresses.
