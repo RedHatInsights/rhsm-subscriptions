@@ -56,6 +56,20 @@ parameters:
     value: /pinhead/keystore.jks
   - name: PRODUCT_URL
     value: https://product.stage.api.redhat.com/svcrest/product/v3
+  - name: SUBSCRIPTION_SYNC_ENABLED
+    value: 'true'
+  - name: KAFKA_ENABLED_ORGS_REPLICAS
+    value: '3'
+  - name: KAFKA_ENABLED_ORGS_PARTITIONS
+    value: '3'
+  - name: KAFKA_SUBSCRIPTION_PRUNE_TASK_REPLICAS
+    value: '3'
+  - name: KAFKA_SUBSCRIPTION_PRUNE_TASK_PARTITIONS
+    value: '3'
+  - name: KAFKA_SUBSCRIPTION_SYNC_TASK_REPLICAS
+    value: '3'
+  - name: KAFKA_SUBSCRIPTION_SYNC_TASK_PARTITIONS
+    value: '3'
 
 objects:
   - apiVersion: cloud.redhat.com/v1alpha1
@@ -76,6 +90,17 @@ objects:
         - swatch-tally
         - swatch-subscription-sync
         - rbac
+
+      kafkaTopics:
+        - replicas: ${{KAFKA_ENABLED_ORGS_REPLICAS}}
+          partitions: ${{KAFKA_ENABLED_ORGS_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.enabled-orgs-for-tasks
+        - replicas: ${{KAFKA_SUBSCRIPTION_PRUNE_TASK_REPLICAS}}
+          partitions: ${{KAFKA_SUBSCRIPTION_PRUNE_TASK_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.subscription-prune-task
+        - replicas: ${{KAFKA_SUBSCRIPTION_SYNC_TASK_REPLICAS}}
+          partitions: ${{KAFKA_SUBSCRIPTION_SYNC_TASK_PARTITIONS}}
+          topicName: platform.rhsm-subscriptions.subscription-sync-task
 
       # Creates a database if local mode, or uses RDS in production
       # database:
@@ -219,6 +244,8 @@ objects:
                     fieldPath: metadata.namespace
               - name: PRODUCT_URL
                 value: ${PRODUCT_URL}
+              - name: SUBSCRIPTION_SYNC_ENABLED
+                value: ${SUBSCRIPTION_SYNC_ENABLED}
             volumeMounts:
               - name: logs
                 mountPath: /logs
