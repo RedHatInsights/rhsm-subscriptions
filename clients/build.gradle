@@ -76,3 +76,10 @@ project(":clients:contracts-client") {
         inputSpec = "${rootDir}/swatch-contracts/src/main/resources/META-INF/openapi.yaml"
     }
 }
+
+project(":clients:quarkus:contracts-client") {
+    apply plugin: "swatch.quarkus-rest-client-conventions"
+    openApiGenerate {
+        inputSpec = "${rootDir}/swatch-contracts/src/main/resources/META-INF/openapi.yaml"
+    }
+}

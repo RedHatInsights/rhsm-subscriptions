@@ -61,6 +61,8 @@ objects:
       prometheus: quarkus
   spec:
     envName: ${ENV_NAME}
+    dependencies:
+      - swatch-contracts
 
     kafkaTopics:
       - replicas: ${{KAFKA_BILLABLE_USAGE_REPLICAS}}

@@ -15,7 +15,9 @@ dependencies {
     implementation 'io.quarkus:quarkus-smallrye-reactive-messaging-kafka'
     implementation 'jakarta.validation:jakarta.validation-api'
     implementation project(':clients:swatch-internal-subscription-client')
+    implementation project(":clients:quarkus:contracts-client")
     implementation project(':swatch-common-config-workaround')
+    implementation project(':swatch-common-resteasy-client')
     implementation libraries["clowder-quarkus-config-source"]
     implementation libraries["quarkus-logging-splunk"]
     implementation libraries["splunk-library-javalogging"]
