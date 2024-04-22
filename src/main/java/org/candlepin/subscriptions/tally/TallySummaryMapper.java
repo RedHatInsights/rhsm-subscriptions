@@ -21,8 +21,10 @@
 package org.candlepin.subscriptions.tally;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
+import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.db.TallySnapshotRepository;
+import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.TallyMeasurementKey;
 import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.json.TallyMeasurement;
@@ -31,6 +33,14 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class TallySummaryMapper {
+
+  private final TallySnapshotRepository snapshotRepository;
+  private final ApplicationClock clock;
+
+  public TallySummaryMapper(TallySnapshotRepository snapshotRepository, ApplicationClock clock) {
+    this.snapshotRepository = snapshotRepository;
+    this.clock = clock;
+  }
 
   public TallySummary mapSnapshots(String orgId, List<TallySnapshot> snapshots) {
     return createTallySummary(orgId, snapshots);
@@ -70,19 +80,34 @@ public class TallySummaryMapper {
         .withUsage(usage)
         .withBillingProvider(billingProvider)
         .withBillingAccountId(tallySnapshot.getBillingAccountId())
-        .withTallyMeasurements(mapMeasurements(tallySnapshot.getTallyMeasurements()));
+        .withTallyMeasurements(mapMeasurements(tallySnapshot));
   }
 
-  private List<TallyMeasurement> mapMeasurements(
-      Map<TallyMeasurementKey, Double> tallyMeasurements) {
-    return tallyMeasurements.entrySet().stream()
+  private List<TallyMeasurement> mapMeasurements(TallySnapshot snapshot) {
+    return snapshot.getTallyMeasurements().entrySet().stream()
         .map(
             entry ->
                 new TallyMeasurement()
                     .withHardwareMeasurementType(entry.getKey().getMeasurementType().toString())
                     .withUom(entry.getKey().getMetricId())
                     .withMetricId(entry.getKey().getMetricId())
-                    .withValue(entry.getValue()))
-        .collect(Collectors.toList());
+                    .withValue(entry.getValue())
+                    .withCurrentTotal(getCurrentlyMeasuredTotal(snapshot, entry.getKey())))
+        .toList();
+  }
+
+  private Double getCurrentlyMeasuredTotal(
+      TallySnapshot snapshot, TallyMeasurementKey measurementKey) {
+    return snapshotRepository.sumMeasurementValueForPeriod(
+        snapshot.getOrgId(),
+        snapshot.getProductId(),
+        Granularity.HOURLY,
+        snapshot.getServiceLevel(),
+        snapshot.getUsage(),
+        snapshot.getBillingProvider(),
+        snapshot.getBillingAccountId(),
+        clock.startOfMonth(snapshot.getSnapshotDate()),
+        snapshot.getSnapshotDate(),
+        measurementKey);
   }
 }

@@ -36,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -50,6 +52,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -59,6 +62,9 @@ import org.springframework.retry.support.RetryTemplate;
 class SnapshotSummaryProducerTest {
 
   @Mock private KafkaTemplate<String, TallySummary> kafka;
+  @Mock TallySnapshotRepository snapshotRepository;
+  @Mock ApplicationClock clock;
+  @InjectMocks TallySummaryMapper tallySummaryMapper;
 
   @Captor private ArgumentCaptor<TallySummary> summaryCaptor;
 
@@ -71,8 +77,7 @@ class SnapshotSummaryProducerTest {
     props = new TallySummaryProperties();
     props.setTopic("summary-topic");
     RetryTemplate retryTemplate = new RetryTemplate();
-    this.producer =
-        new SnapshotSummaryProducer(kafka, retryTemplate, props, new TallySummaryMapper());
+    this.producer = new SnapshotSummaryProducer(kafka, retryTemplate, props, tallySummaryMapper);
   }
 
   @Test

@@ -80,3 +80,6 @@ properties:
   hardware_measurement_type:
     type: string
     format: string
+  currentTotal:
+    description: Sum of all measurements between the start of the month to the snapshot date.
+    type: number
