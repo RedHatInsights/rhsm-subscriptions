@@ -86,6 +86,8 @@ class PrometheusMeteringControllerTest {
   private final MetricId expectedMetricId = MetricIdUtils.getCores();
   private final String expectedProductTag = "OpenShift-metrics";
   private final UUID expectedSpanId = UUID.randomUUID();
+  private final boolean expected3rdPartyMigrationFlag = false;
+
   @Inject PrometheusMeteringController controller;
 
   @Inject MetricProperties metricProperties;
@@ -227,7 +229,8 @@ class PrometheusMeteringControllerTest {
                 expectedProductTag,
                 expectedSpanId,
                 List.of(),
-                expectedDisplayName),
+                expectedDisplayName,
+                expected3rdPartyMigrationFlag),
             MeteringEventFactory.createMetricEvent(
                 expectedOrgId,
                 expectedClusterId,
@@ -245,7 +248,8 @@ class PrometheusMeteringControllerTest {
                 expectedProductTag,
                 expectedSpanId,
                 List.of(),
-                expectedDisplayName),
+                expectedDisplayName,
+                expected3rdPartyMigrationFlag),
             MeteringEventFactory.createCleanUpEvent(
                 expectedOrgId,
                 getEventType(expectedMetricId.toString(), expectedProductTag),
@@ -302,7 +306,8 @@ class PrometheusMeteringControllerTest {
             expectedProductTag,
             expectedSpanId,
             List.of(),
-            expectedDisplayName);
+            expectedDisplayName,
+            expected3rdPartyMigrationFlag);
 
     List<BaseEvent> expectedEvents =
         List.of(
@@ -324,7 +329,8 @@ class PrometheusMeteringControllerTest {
                 expectedProductTag,
                 expectedSpanId,
                 List.of(),
-                expectedDisplayName),
+                expectedDisplayName,
+                expected3rdPartyMigrationFlag),
             MeteringEventFactory.createCleanUpEvent(
                 expectedOrgId,
                 getEventType(expectedMetricId.toString(), expectedProductTag),
@@ -389,7 +395,8 @@ class PrometheusMeteringControllerTest {
             expectedProductTag,
             expectedSpanId,
             List.of(),
-            expectedClusterId);
+            expectedClusterId,
+            expected3rdPartyMigrationFlag);
 
     List<BaseEvent> expectedEvents =
         List.of(
@@ -454,7 +461,8 @@ class PrometheusMeteringControllerTest {
                 expectedProductTag,
                 expectedSpanId,
                 List.of(),
-                expectedClusterId),
+                expectedClusterId,
+                expected3rdPartyMigrationFlag),
             MeteringEventFactory.createMetricEvent(
                 expectedOrgId,
                 expectedClusterId,
@@ -472,7 +480,8 @@ class PrometheusMeteringControllerTest {
                 expectedProductTag,
                 expectedSpanId,
                 List.of(),
-                expectedClusterId),
+                expectedClusterId,
+                expected3rdPartyMigrationFlag),
             MeteringEventFactory.createCleanUpEvent(
                 expectedOrgId,
                 getEventType(expectedMetricId.toString(), expectedProductTag),

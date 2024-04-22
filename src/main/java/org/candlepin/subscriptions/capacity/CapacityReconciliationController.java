@@ -157,7 +157,9 @@ public class CapacityReconciliationController {
   private void reconcileSubscriptionProductIds(Subscription subscription) {
     Offering offering = subscription.getOffering();
 
-    Set<String> expectedProducts = productExtractor.getProducts(offering.getProductIdsAsStrings());
+    Set<String> expectedProducts =
+        productExtractor.getProducts(
+            offering.getProductIdsAsStrings(), offering.isMigrationOffering());
     var toBeRemoved =
         subscription.getSubscriptionProductIds().stream()
             .filter(p -> !expectedProducts.contains(p))

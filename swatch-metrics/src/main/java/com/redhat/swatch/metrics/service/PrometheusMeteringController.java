@@ -258,6 +258,8 @@ public class PrometheusMeteringController {
       billingAccountId = labels.get("billing_marketplace_account");
     }
 
+    boolean is3rdPartyMigrated = Boolean.parseBoolean(labels.get("conversion_success"));
+
     // For the openshift metrics, we expect our results to be a 'matrix'
     // vector [(instant_time,value), ...] so we only look at the result's
     // getValues() data.
@@ -288,7 +290,8 @@ public class PrometheusMeteringController {
               productTag,
               meteringBatchId,
               productIds,
-              displayName);
+              displayName,
+              is3rdPartyMigrated);
       // Send if and only if it has not been sent yet.
       // Related to https://github.com/RedHatInsights/rhsm-subscriptions/pull/374.
       if (eventsSent.add(EventKey.fromEvent(event))) {
@@ -331,7 +334,8 @@ public class PrometheusMeteringController {
       String productTag,
       UUID meteringBatchId,
       List<String> productIds,
-      String displayName) {
+      String displayName,
+      boolean is3rdPartyMigrated) {
     Event event = new Event();
     MeteringEventFactory.updateMetricEvent(
         event,
@@ -351,7 +355,8 @@ public class PrometheusMeteringController {
         productTag,
         meteringBatchId,
         productIds,
-        displayName);
+        displayName,
+        is3rdPartyMigrated);
     return event;
   }
 

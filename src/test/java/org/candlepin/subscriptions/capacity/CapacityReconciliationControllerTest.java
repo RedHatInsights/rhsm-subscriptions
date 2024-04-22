@@ -108,7 +108,8 @@ class CapacityReconciliationControllerTest {
     newSubscription.setOffering(offering);
 
     when(denylist.productIdMatches(any())).thenReturn(false);
-    when(capacityProductExtractor.getProducts(offering.getProductIdsAsStrings()))
+    when(capacityProductExtractor.getProducts(
+            offering.getProductIdsAsStrings(), offering.isMigrationOffering()))
         .thenReturn(new HashSet<>(productIds));
 
     capacityReconciliationController.reconcileCapacityForSubscription(newSubscription);
@@ -149,7 +150,8 @@ class CapacityReconciliationControllerTest {
     updatedSubscription.setOffering(updatedOffering);
 
     when(denylist.productIdMatches(any())).thenReturn(false);
-    when(capacityProductExtractor.getProducts(updatedOffering.getProductIdsAsStrings()))
+    when(capacityProductExtractor.getProducts(
+            updatedOffering.getProductIdsAsStrings(), updatedOffering.isMigrationOffering()))
         .thenReturn(productIds);
 
     capacityReconciliationController.reconcileCapacityForSubscription(updatedSubscription);
@@ -184,7 +186,8 @@ class CapacityReconciliationControllerTest {
     updatedSubscription.setOffering(updatedOffering);
 
     when(denylist.productIdMatches(any())).thenReturn(true);
-    when(capacityProductExtractor.getProducts(updatedOffering.getProductIdsAsStrings()))
+    when(capacityProductExtractor.getProducts(
+            updatedOffering.getProductIdsAsStrings(), updatedOffering.isMigrationOffering()))
         .thenReturn(productIds);
 
     capacityReconciliationController.reconcileCapacityForSubscription(updatedSubscription);
@@ -214,7 +217,8 @@ class CapacityReconciliationControllerTest {
     subscription.setOffering(offering);
 
     when(denylist.productIdMatches(any())).thenReturn(false);
-    when(capacityProductExtractor.getProducts(offering.getProductIdsAsStrings()))
+    when(capacityProductExtractor.getProducts(
+            offering.getProductIdsAsStrings(), offering.isMigrationOffering()))
         .thenReturn(productIds);
 
     capacityReconciliationController.reconcileCapacityForSubscription(subscription);
@@ -270,7 +274,8 @@ class CapacityReconciliationControllerTest {
     subscription.setOffering(offering);
 
     when(denylist.productIdMatches(any())).thenReturn(false);
-    when(capacityProductExtractor.getProducts(offering.getProductIdsAsStrings()))
+    when(capacityProductExtractor.getProducts(
+            offering.getProductIdsAsStrings(), offering.isMigrationOffering()))
         .thenReturn(productIds);
 
     capacityReconciliationController.reconcileCapacityForSubscription(subscription);

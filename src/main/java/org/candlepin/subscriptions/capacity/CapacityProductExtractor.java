@@ -35,7 +35,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class CapacityProductExtractor {
 
-  public Set<String> getProducts(Collection<String> engProductIds) {
+  public Set<String> getProducts(Collection<String> engProductIds, boolean isMigrationOffering) {
 
     Set<String> ignoredSubscriptionIds =
         engProductIds.stream()
@@ -47,10 +47,7 @@ public class CapacityProductExtractor {
 
     for (String engProductId : engProductIds) {
 
-      // TODO
-      Boolean is3rdPartyMigration = false;
-
-      Variant.findByEngProductId(engProductId, is3rdPartyMigration)
+      Variant.findByEngProductId(engProductId, isMigrationOffering)
           .filter(variant -> !ignoredSubscriptionIds.contains(variant.getSubscription().getId()))
           .ifPresent(matches::add);
     }

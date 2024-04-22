@@ -53,7 +53,7 @@ class CapacityProductExtractorTest {
   @MethodSource("generateProductIdMappings")
   void testSwatchSubscriptionProductIdsMappings(List<String> engProductId, Set<String> tagNames) {
 
-    var actual = extractor.getProducts(engProductId);
+    var actual = extractor.getProducts(engProductId, false);
 
     assertEquals(tagNames, actual);
   }
