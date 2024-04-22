@@ -136,9 +136,18 @@ public class BillableUsageController {
         usage.getSnapshotDate());
     log.debug("Usage: {}", usage);
 
+    // For old messages, the total value for period is not set yet, so we need to keep using the
+    // getCurrentlyMeasuredTotal method
+    // After SWATCH-2368, we will fully use the provided total value for period from the usage and
+    // the getCurrentlyMeasuredTotal method is to be removed.
     Double currentlyMeasuredTotal =
-        getCurrentlyMeasuredTotal(
-            usage, clock.startOfMonth(usage.getSnapshotDate()), usage.getSnapshotDate());
+        Optional.ofNullable(usage.getCurrentTotal())
+            .orElseGet(
+                () ->
+                    getCurrentlyMeasuredTotal(
+                        usage,
+                        clock.startOfMonth(usage.getSnapshotDate()),
+                        usage.getSnapshotDate()));
 
     Optional<Double> contractValue = Optional.of(0.0);
     if (SubscriptionDefinition.isContractEnabled(usage.getProductId())) {

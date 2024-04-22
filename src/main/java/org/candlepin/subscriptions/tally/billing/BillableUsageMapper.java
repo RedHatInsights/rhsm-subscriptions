@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.json.BillableUsage;
+import org.candlepin.subscriptions.json.TallyMeasurement;
 import org.candlepin.subscriptions.json.TallySnapshot;
 import org.candlepin.subscriptions.json.TallySnapshot.BillingProvider;
 import org.candlepin.subscriptions.json.TallySnapshot.Granularity;
@@ -83,8 +84,8 @@ public class BillableUsageMapper {
     return isSnapshotPAYGEligible;
   }
 
-  public Stream<BillableUsage> fromTallySummary(TallySummary tallySummary) {
-    return tallySummary.getTallySnapshots().stream()
+  public Stream<BillableUsage> fromTallySummary(TallySummary summary) {
+    return summary.getTallySnapshots().stream()
         .filter(this::isSnapshotPAYGEligible)
         .filter(this::hasMeasurements)
         .flatMap(
@@ -92,29 +93,32 @@ public class BillableUsageMapper {
                 snapshot.getTallyMeasurements().stream()
                     // Filter out any HardwareMeasurementType.TOTAL measurements to prevent
                     // duplicates
-                    .filter(
-                        measurement ->
-                            !Objects.equals(
-                                HardwareMeasurementType.TOTAL.toString(),
-                                measurement.getHardwareMeasurementType()))
-                    .map(
-                        measurement ->
-                            new BillableUsage()
-                                .withOrgId(tallySummary.getOrgId())
-                                .withId(snapshot.getId())
-                                .withSnapshotDate(snapshot.getSnapshotDate())
-                                .withProductId(snapshot.getProductId())
-                                .withSla(BillableUsage.Sla.fromValue(snapshot.getSla().value()))
-                                .withUsage(
-                                    BillableUsage.Usage.fromValue(snapshot.getUsage().value()))
-                                .withBillingProvider(
-                                    BillableUsage.BillingProvider.fromValue(
-                                        snapshot.getBillingProvider().value()))
-                                .withBillingAccountId(snapshot.getBillingAccountId())
-                                .withMetricId(measurement.getMetricId())
-                                .withValue(measurement.getValue())
-                                .withHardwareMeasurementType(
-                                    measurement.getHardwareMeasurementType())));
+                    .filter(this::isNotHardwareMeasurementTypeTotal)
+                    .map(m -> toBillableUsage(m, summary, snapshot)));
+  }
+
+  private BillableUsage toBillableUsage(
+      TallyMeasurement measurement, TallySummary summary, TallySnapshot snapshot) {
+    return new BillableUsage()
+        .withOrgId(summary.getOrgId())
+        .withId(snapshot.getId())
+        .withSnapshotDate(snapshot.getSnapshotDate())
+        .withProductId(snapshot.getProductId())
+        .withSla(BillableUsage.Sla.fromValue(snapshot.getSla().value()))
+        .withUsage(BillableUsage.Usage.fromValue(snapshot.getUsage().value()))
+        .withBillingProvider(
+            BillableUsage.BillingProvider.fromValue(snapshot.getBillingProvider().value()))
+        .withBillingAccountId(snapshot.getBillingAccountId())
+        .withMetricId(measurement.getMetricId())
+        .withValue(measurement.getValue())
+        .withHardwareMeasurementType(measurement.getHardwareMeasurementType())
+        .withCurrentTotal(measurement.getCurrentTotal());
+  }
+
+  private boolean isNotHardwareMeasurementTypeTotal(TallyMeasurement measurement) {
+    return !HardwareMeasurementType.TOTAL
+        .toString()
+        .equals(measurement.getHardwareMeasurementType());
   }
 
   private boolean hasMeasurements(TallySnapshot tallySnapshot) {

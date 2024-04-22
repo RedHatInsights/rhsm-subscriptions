@@ -22,6 +22,11 @@ package org.candlepin.subscriptions.tally;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.redhat.swatch.configuration.util.MetricIdUtils;
 import java.time.OffsetDateTime;
@@ -29,6 +34,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.candlepin.clock.ApplicationClock;
+import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.Granularity;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
@@ -38,8 +45,18 @@ import org.candlepin.subscriptions.db.model.TallySnapshot;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.json.TallySummary;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 class TallySummaryMapperTest {
+
+  @Mock TallySnapshotRepository snapshotRepository;
+  @Mock ApplicationClock clock;
+  @InjectMocks TallySummaryMapper mapper;
+  private Map<TallyMeasurementKey, Double> expectedTotalValues = new HashMap<>();
 
   @Test
   void testMapSnapshots() {
@@ -66,8 +83,6 @@ class TallySummaryMapperTest {
             24);
 
     var snapshots = List.of(rosa, rhel);
-
-    TallySummaryMapper mapper = new TallySummaryMapper();
     TallySummary summary = mapper.mapSnapshots(org, snapshots);
     assertEquals(org, summary.getOrgId());
     List<org.candlepin.subscriptions.json.TallySnapshot> summarySnaps = summary.getTallySnapshots();
@@ -105,7 +120,21 @@ class TallySummaryMapperTest {
           assertTrue(expectedMeasurements.containsKey(key));
           Double expectedValue = expectedMeasurements.get(key);
           assertEquals(expectedValue, m.getValue());
+          assertEquals(expectedTotalValues.get(key), m.getCurrentTotal());
+          verify(snapshotRepository)
+              .sumMeasurementValueForPeriod(
+                  eq(expected.getOrgId()),
+                  eq(expected.getProductId()),
+                  eq(Granularity.HOURLY),
+                  eq(expected.getServiceLevel()),
+                  eq(expected.getUsage()),
+                  eq(expected.getBillingProvider()),
+                  eq(expected.getBillingAccountId()),
+                  any(),
+                  eq(expected.getSnapshotDate()),
+                  eq(key));
         });
+    verify(clock, times(mappedMeasurements.size())).startOfMonth(expected.getSnapshotDate());
   }
 
   TallySnapshot buildSnapshot(
@@ -118,8 +147,8 @@ class TallySummaryMapperTest {
       String metricId,
       double val) {
     Map<TallyMeasurementKey, Double> measurements = new HashMap<>();
-    measurements.put(new TallyMeasurementKey(HardwareMeasurementType.PHYSICAL, metricId), val);
-    measurements.put(new TallyMeasurementKey(HardwareMeasurementType.TOTAL, metricId), val);
+    buildMeasurement(measurements, HardwareMeasurementType.PHYSICAL, metricId, val);
+    buildMeasurement(measurements, HardwareMeasurementType.TOTAL, metricId, val);
 
     return TallySnapshot.builder()
         .orgId(orgId)
@@ -131,6 +160,19 @@ class TallySummaryMapperTest {
         .usage(usage)
         .billingProvider(billingProvider)
         .build();
+  }
+
+  void buildMeasurement(
+      Map<TallyMeasurementKey, Double> measurements,
+      HardwareMeasurementType hardwareType,
+      String metricId,
+      double value) {
+    var measurementKey = new TallyMeasurementKey(hardwareType, metricId);
+    measurements.put(measurementKey, value);
+    expectedTotalValues.put(measurementKey, value * 2);
+    when(snapshotRepository.sumMeasurementValueForPeriod(
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(measurementKey)))
+        .thenReturn(value * 2);
   }
 
   Optional<org.candlepin.subscriptions.json.TallySnapshot> findSnapshot(

@@ -52,6 +52,8 @@ class BillableUsageMapperTest {
   private static SubscriptionDefinitionRegistry originalReference;
   private SubscriptionDefinitionRegistry subscriptionDefinitionRegistry;
 
+  private final BillableUsageMapper mapper = new BillableUsageMapper();
+
   @BeforeAll
   static void setupClass() throws Exception {
     Field instance = SubscriptionDefinitionRegistry.class.getDeclaredField("instance");
@@ -99,7 +101,6 @@ class BillableUsageMapperTest {
 
   @Test
   void shouldSkipNonPaygProducts() {
-    BillableUsageMapper mapper = new BillableUsageMapper();
     assertTrue(
         mapper
             .fromTallySummary(
@@ -116,7 +117,6 @@ class BillableUsageMapperTest {
 
   @Test
   void shouldSkipAnySla() {
-    BillableUsageMapper mapper = new BillableUsageMapper();
     assertTrue(
         mapper
             .fromTallySummary(
@@ -133,7 +133,6 @@ class BillableUsageMapperTest {
 
   @Test
   void shouldSkipAnyUsage() {
-    BillableUsageMapper mapper = new BillableUsageMapper();
     assertTrue(
         mapper
             .fromTallySummary(
@@ -150,7 +149,6 @@ class BillableUsageMapperTest {
 
   @Test
   void shouldSkipAnyBillingProvider() {
-    BillableUsageMapper mapper = new BillableUsageMapper();
     assertTrue(
         mapper
             .fromTallySummary(
@@ -167,7 +165,6 @@ class BillableUsageMapperTest {
 
   @Test
   void shouldSkipAnyBillingAccountId() {
-    BillableUsageMapper mapper = new BillableUsageMapper();
     assertTrue(
         mapper
             .fromTallySummary(
@@ -184,38 +181,45 @@ class BillableUsageMapperTest {
 
   @Test
   void shouldProduceBillableUsage_WhenOrgIdPresent() {
-    BillableUsageMapper mapper = new BillableUsageMapper();
+    String expectedOrgId = "org123";
+    String expectedProductId = "rosa";
+    String expectedBillingAccountId = "bill123";
+    double expectedCurrentTotal = 88.0;
+    OffsetDateTime expectedSnapshotDate = OffsetDateTime.MIN;
+    String expectedMetricId = "Storage-gibibytes";
     BillableUsage expected =
         new BillableUsage()
-            .withOrgId("org123")
-            .withProductId("rosa")
-            .withSnapshotDate(OffsetDateTime.MIN)
+            .withOrgId(expectedOrgId)
+            .withProductId(expectedProductId)
+            .withSnapshotDate(expectedSnapshotDate)
             .withUsage(BillableUsage.Usage.PRODUCTION)
             .withSla(BillableUsage.Sla.STANDARD)
             .withBillingProvider(BillableUsage.BillingProvider.AWS)
-            .withBillingAccountId("bill123")
-            .withMetricId("Storage-gibibytes")
+            .withBillingAccountId(expectedBillingAccountId)
+            .withMetricId(expectedMetricId)
             .withValue(42.0)
-            .withHardwareMeasurementType(HardwareMeasurementType.PHYSICAL.toString());
-    BillableUsage actual =
-        mapper
-            .fromTallySummary(
-                createExampleTallySummaryWithOrgId(
-                    "rosa",
-                    Granularity.HOURLY,
-                    Sla.STANDARD,
-                    Usage.PRODUCTION,
-                    BillingProvider.AWS,
-                    "bill123"))
-            .findAny()
-            .orElseThrow();
+            .withHardwareMeasurementType(HardwareMeasurementType.PHYSICAL.toString())
+            .withCurrentTotal(expectedCurrentTotal);
+
+    var summary =
+        createExampleTallySummaryWithOrgId(
+            expectedProductId,
+            Granularity.HOURLY,
+            Sla.STANDARD,
+            Usage.PRODUCTION,
+            BillingProvider.AWS,
+            expectedBillingAccountId);
+    summary.getTallySnapshots().stream()
+        .flatMap(s -> s.getTallyMeasurements().stream())
+        .forEach(m -> m.withCurrentTotal(expectedCurrentTotal));
+
+    BillableUsage actual = mapper.fromTallySummary(summary).findAny().orElseThrow();
     expected.setUuid(actual.getUuid()); // this is auto-generated
     assertEquals(expected, actual);
   }
 
   @Test
   void shouldSkipNonDailySnapshots() {
-    BillableUsageMapper mapper = new BillableUsageMapper();
     assertTrue(
         mapper
             .fromTallySummary(
@@ -232,7 +236,6 @@ class BillableUsageMapperTest {
 
   @Test
   void shouldSkipSummaryWithNoMeasurements() {
-    BillableUsageMapper mapper = new BillableUsageMapper();
     TallySummary tallySummary =
         createExampleTallySummaryWithOrgId(
             "rosa", Granularity.HOURLY, Sla.STANDARD, Usage.PRODUCTION, BillingProvider.AWS, "123");
