@@ -82,12 +82,6 @@ public class SubscriptionDefinition {
         .collect(MoreCollectors.toOptional());
   }
 
-  public Optional<Variant> findVariantForRole(String role) {
-    return getVariants().stream()
-        .filter(v -> v.getRoles().contains(role))
-        .collect(MoreCollectors.toOptional());
-  }
-
   /**
    * @param serviceType
    * @return Optional<Subscription>
@@ -182,13 +176,13 @@ public class SubscriptionDefinition {
   }
 
   public static Set<String> getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-      String role, Collection<?> engIds, String productName) {
+      String role, Collection<?> engIds, String productName, boolean is3rdPartyMigration) {
     Set<String> productTags = new HashSet<>();
     // Filter tags that are paygEligible
     if (!isNullOrEmpty(role)) {
       SubscriptionDefinition.lookupSubscriptionByRole(role)
           .filter(SubscriptionDefinition::isPaygEligible)
-          .flatMap(subDef -> subDef.findVariantForRole(role).map(Variant::getTag))
+          .flatMap(subDef -> Variant.findByRole(role, is3rdPartyMigration).map(Variant::getTag))
           .ifPresent(productTags::add);
     }
 
@@ -218,7 +212,7 @@ public class SubscriptionDefinition {
     // if not found, let's use the product name
     if ((productTags.isEmpty()) && !isNullOrEmpty(productName)) {
       productTags.addAll(
-          Variant.filterVariantsByProductName(productName)
+          Variant.filterVariantsByProductName(productName, is3rdPartyMigration)
               .filter(v -> v.getSubscription().isPaygEligible())
               .map(Variant::getTag)
               .collect(Collectors.toSet()));
@@ -227,14 +221,14 @@ public class SubscriptionDefinition {
   }
 
   public static Set<String> getAllProductTagsWithNonPaygEligibleByRoleOrEngIds(
-      String role, Collection<?> engIds, String productName) {
+      String role, Collection<?> engIds, String productName, Boolean is3rdPartyMigration) {
     Set<String> productTags = new HashSet<>();
     // Filter tags that are nonPaygEligible
 
     if (!isNullOrEmpty(role)) {
       SubscriptionDefinition.lookupSubscriptionByRole(role)
           .filter(subDef -> !subDef.isPaygEligible())
-          .flatMap(subDef -> subDef.findVariantForRole(role).map(Variant::getTag))
+          .flatMap(subDef -> Variant.findByRole(role, is3rdPartyMigration).map(Variant::getTag))
           .ifPresent(productTags::add);
     }
 
@@ -263,7 +257,7 @@ public class SubscriptionDefinition {
     // if not found, let's use the product name
     if ((productTags.isEmpty()) && !isNullOrEmpty(productName)) {
       productTags.addAll(
-          Variant.filterVariantsByProductName(productName)
+          Variant.filterVariantsByProductName(productName, is3rdPartyMigration)
               .filter(v -> !v.getSubscription().isPaygEligible())
               .map(Variant::getTag)
               .collect(Collectors.toSet()));

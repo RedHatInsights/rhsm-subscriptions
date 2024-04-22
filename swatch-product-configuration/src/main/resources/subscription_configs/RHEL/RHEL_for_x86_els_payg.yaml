@@ -8,6 +8,7 @@ id: rhel-for-x86-els-payg
 
 variants:
   - tag: rhel-for-x86-els-payg
+    isMigrationProduct: true
     engineeringIds:
       - 204
 

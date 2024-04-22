@@ -46,7 +46,11 @@ public class CapacityProductExtractor {
     Set<Variant> matches = new HashSet<>();
 
     for (String engProductId : engProductIds) {
-      Variant.findByEngProductId(engProductId)
+
+      // TODO
+      Boolean is3rdPartyMigration = false;
+
+      Variant.findByEngProductId(engProductId, is3rdPartyMigration)
           .filter(variant -> !ignoredSubscriptionIds.contains(variant.getSubscription().getId()))
           .ifPresent(matches::add);
     }

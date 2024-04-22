@@ -32,9 +32,49 @@ class VariantTest {
   }
 
   @Test
+  void testMigrationProductFlagTrueWithRole() {
+    var variant = Variant.findByRole("Red Hat Enterprise Linux Server", true);
+
+    assertFalse(variant.isPresent());
+  }
+
+  @Test
+  void testMigrationProductFlagFalseWithRole() {
+    var variant = Variant.findByRole("Red Hat Enterprise Linux Server", false);
+
+    var expected = "RHEL for x86";
+    var actual = variant.get().getTag();
+
+    assertEquals(expected, actual);
+  }
+
+  @Test
+  void testMigrationProductFlagWithEngIds() {
+
+    var elsMigratedVariant = Variant.findByTag("rhel-for-x86-els-payg");
+
+    var variant =
+        Variant.findByEngProductId(elsMigratedVariant.get().getEngineeringIds().get(0), false);
+
+    assertFalse(variant.isPresent());
+  }
+
+  @Test
+  void testMigrationProductFlagTrueWithEngIds() {
+
+    var elsMigratedVariant = Variant.findByTag("rhel-for-x86-els-payg");
+
+    var variant =
+        Variant.findByEngProductId(elsMigratedVariant.get().getEngineeringIds().get(0), true);
+
+    assertEquals(elsMigratedVariant, variant);
+  }
+
+  @Test
   void testFindByRole() {
 
-    var variant = Variant.findByRole("Red Hat Enterprise Linux Server");
+    // TODO
+    var variant = Variant.findByRole("Red Hat Enterprise Linux Server", false);
 
     var expected = "RHEL for x86";
     var actual = variant.get().getTag();
@@ -44,7 +84,8 @@ class VariantTest {
 
   @Test
   void testGetParentSubscription() {
-    var variant = Variant.findByRole("Red Hat Enterprise Linux Compute Node").get();
+    // TODO
+    var variant = Variant.findByRole("Red Hat Enterprise Linux Compute Node", false).get();
     var expected = "rhel-for-x86";
     var actual = variant.getSubscription().getId();
 
@@ -54,7 +95,7 @@ class VariantTest {
   @Test
   void testFindByEngineeringId() {
 
-    var actual = Variant.findByEngProductId("69");
+    var actual = Variant.findByEngProductId("69", false);
 
     assertEquals("RHEL for x86", actual.get().getTag());
   }

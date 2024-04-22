@@ -297,9 +297,12 @@ public class EventController {
     // SWATCH-1993. We are only checking for payg at this time because we only support payg in this
     // flow, and we don't have a way to distinguish between payg and non-payg through events.
     String role = Optional.ofNullable(event.getRole()).map(Object::toString).orElse(null);
+
+    // TODO
+    boolean is3rdPartyMigrated = false;
     event.setProductTag(
         SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-            role, event.getProductIds(), null));
+            role, event.getProductIds(), null, is3rdPartyMigrated));
   }
 
   /**

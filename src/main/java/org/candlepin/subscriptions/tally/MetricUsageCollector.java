@@ -430,8 +430,12 @@ public class MetricUsageCollector {
 
     // remain old logic
     String role = Optional.ofNullable(event.getRole()).map(Object::toString).orElse(null);
+
+    // TODO
+    boolean is3rdPartyMigrated = false;
+
     return SubscriptionDefinition.getAllProductTagsWithPaygEligibleByRoleOrEngIds(
-        role, event.getProductIds(), null);
+        role, event.getProductIds(), null, is3rdPartyMigrated);
   }
 
   private Set<String> getBillingAccountIds(String billingAcctId) {

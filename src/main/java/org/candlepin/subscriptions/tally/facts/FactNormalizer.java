@@ -21,6 +21,7 @@
 package org.candlepin.subscriptions.tally.facts;
 
 import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
+import com.redhat.swatch.configuration.registry.Variant;
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.HashSet;
@@ -357,7 +358,9 @@ public class FactNormalizer {
 
       var subscription = SubscriptionDefinition.lookupSubscriptionByRole(role);
       if (subscription.isPresent()) {
-        var variant = subscription.get().findVariantForRole(role);
+        // TODO SWATCH-2360
+        boolean is3rdPartyMigrated = false;
+        var variant = Variant.findByRole(role, is3rdPartyMigrated);
         variant.ifPresent(v -> normalizedFacts.getProducts().add(v.getTag()));
       }
     }
