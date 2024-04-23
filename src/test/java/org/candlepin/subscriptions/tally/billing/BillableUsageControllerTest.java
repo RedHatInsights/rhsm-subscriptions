@@ -137,7 +137,7 @@ class BillableUsageControllerTest {
 
   @Test
   void monthlyWindowNoCurrentRemittance() {
-    BillableUsage usage = billable(CLOCK.startOfCurrentMonth(), 0.0003);
+    BillableUsage usage = billable(CLOCK.startOfCurrentMonth(), 0.0003).withUuid(UUID.randomUUID());
     List<RemittanceSummaryProjection> summaries = new ArrayList<>();
     summaries.add(RemittanceSummaryProjection.builder().totalRemittedPendingValue(0.0).build());
 
@@ -147,7 +147,7 @@ class BillableUsageControllerTest {
     controller.submitBillableUsage(usage);
 
     BillableUsageRemittanceEntity expectedRemittance = remittance(usage, CLOCK.now(), 1.0);
-    BillableUsage expectedUsage = billable(usage.getSnapshotDate(), 1.0);
+    BillableUsage expectedUsage = billable(usage.getSnapshotDate(), 1.0).withUuid(usage.getUuid());
     expectedUsage.setId(usage.getId()); // Id will be regenerated above.
     verify(remittanceRepo).saveAndFlush(expectedRemittance);
     verify(producer).produce(expectedUsage);

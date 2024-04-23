@@ -10,8 +10,6 @@ variants:
   - tag: rhel-for-x86-els-payg
     engineeringIds:
       - 204
-    productNames:
-      - RHEL Server
 
 defaults:
   variant: rhel-for-x86-els-payg
