@@ -21,6 +21,7 @@
 package com.redhat.swatch.billable.usage.kafka;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,7 +33,9 @@ import io.quarkus.kafka.client.serialization.ObjectMapperSerde;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.streams.TestInputTopic;
 import org.apache.kafka.streams.TestOutputTopic;
@@ -99,6 +102,7 @@ class BillableUsageAggregateStreamTopologyTest {
     assertEquals(expectedAggregateKey, keyValue.key);
     assertEquals(36.0, actualAggregate.getTotalValue().doubleValue());
     assertEquals(Set.of(usage.getSnapshotDate()), actualAggregate.getSnapshotDates());
+    assertEquals(usage.getUuid().toString(), actualAggregate.getRemittanceUuids().get(0));
     assertNotNull(actualAggregate.getWindowTimestamp());
   }
 
@@ -131,6 +135,10 @@ class BillableUsageAggregateStreamTopologyTest {
     assertEquals(9.0, actualAggregate.getTotalValue().doubleValue());
     assertEquals(
         Set.of(snapshotDate1, snapshotDate2, snapshotDate3), actualAggregate.getSnapshotDates());
+    assertIterableEquals(
+        List.of(
+            usage1.getUuid().toString(), usage2.getUuid().toString(), usage3.getUuid().toString()),
+        actualAggregate.getRemittanceUuids());
     assertNotNull(actualAggregate.getWindowTimestamp());
   }
 
@@ -167,6 +175,12 @@ class BillableUsageAggregateStreamTopologyTest {
     assertEquals(expectedSecondAggregateKey, secondRecord.key);
     assertEquals(3.0, actualFirstAggregate.getTotalValue().doubleValue());
     assertEquals(8.0, actualSecondAggregate.getTotalValue().doubleValue());
+    assertIterableEquals(
+        List.of(firstSubUsage1.getUuid().toString(), fistSubUsage2.getUuid().toString()),
+        actualFirstAggregate.getRemittanceUuids());
+    assertIterableEquals(
+        List.of(secondSubUsage1.getUuid().toString(), secondSubUsage2.getUuid().toString()),
+        actualSecondAggregate.getRemittanceUuids());
   }
 
   private BillableUsage createBillableUsage(
@@ -181,6 +195,7 @@ class BillableUsageAggregateStreamTopologyTest {
     usage.setSla(BillableUsage.Sla.PREMIUM);
     usage.setBillingProvider(BillableUsage.BillingProvider.AZURE);
     usage.setBillingAccountId(billingAccountId);
+    usage.setUuid(UUID.randomUUID());
     return usage;
   }
 }

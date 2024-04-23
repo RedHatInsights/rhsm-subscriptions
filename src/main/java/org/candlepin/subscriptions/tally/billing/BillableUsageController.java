@@ -247,6 +247,7 @@ public class BillableUsageController {
     // exception before moving forward.
     billableUsageRemittanceRepository.saveAndFlush(newRemittance);
     usage.setStatus(BillableUsage.Status.PENDING);
+    usage.setUuid(newRemittance.getUuid());
   }
 
   private Double getCurrentlyMeasuredTotal(
