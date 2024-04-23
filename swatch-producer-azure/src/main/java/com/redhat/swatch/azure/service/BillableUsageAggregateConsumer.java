@@ -20,7 +20,6 @@
  */
 package com.redhat.swatch.azure.service;
 
-import com.redhat.swatch.azure.exception.AzureDimensionNotConfiguredException;
 import com.redhat.swatch.azure.exception.AzureMarketplaceRequestFailedException;
 import com.redhat.swatch.azure.exception.AzureUnprocessedRecordsException;
 import com.redhat.swatch.azure.exception.AzureUsageContextLookupException;
@@ -171,9 +170,7 @@ public class BillableUsageAggregateConsumer {
 
   private void transformAndSend(
       AzureUsageContext context, BillableUsageAggregate billableUsageAggregate, Metric metric)
-      throws AzureUnprocessedRecordsException,
-          AzureDimensionNotConfiguredException,
-          UsageTimestampOutOfBoundsException {
+      throws AzureUnprocessedRecordsException, UsageTimestampOutOfBoundsException {
     var usageEvent = transformToAzureUsage(context, billableUsageAggregate, metric);
     if (isDryRun.isPresent() && Boolean.TRUE.equals(isDryRun.get())) {
       log.info(
@@ -208,8 +205,7 @@ public class BillableUsageAggregateConsumer {
   }
 
   private UsageEvent transformToAzureUsage(
-      AzureUsageContext context, BillableUsageAggregate billableUsageAggregate, Metric metric)
-      throws AzureDimensionNotConfiguredException {
+      AzureUsageContext context, BillableUsageAggregate billableUsageAggregate, Metric metric) {
 
     var usage = new UsageEvent();
     usage.setDimension(metric.getAzureDimension());
