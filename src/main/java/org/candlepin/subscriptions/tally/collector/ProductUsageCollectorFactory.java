@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.tally.collector;
 
+import com.redhat.swatch.configuration.registry.SubscriptionDefinition;
 import org.springframework.util.StringUtils;
 
 /** A factory that facilitates creating a collector based on the given product. */
@@ -34,7 +35,7 @@ public class ProductUsageCollectorFactory {
       throw new IllegalArgumentException("Specified product was null or empty!");
     }
 
-    if (product.startsWith("RHEL")) {
+    if (SubscriptionDefinition.isVdcType(product)) {
       return new RHELProductUsageCollector();
     }
 
