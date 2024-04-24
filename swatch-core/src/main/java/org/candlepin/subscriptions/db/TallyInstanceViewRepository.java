@@ -20,17 +20,18 @@
  */
 package org.candlepin.subscriptions.db;
 
+import static com.redhat.swatch.configuration.util.MetricIdUtils.getMetricIdsFromConfigForTag;
+
 import com.redhat.swatch.configuration.registry.MetricId;
-import com.redhat.swatch.configuration.util.MetricIdUtils;
 import jakarta.persistence.criteria.JoinType;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey;
+import org.candlepin.subscriptions.db.model.InstanceMonthlyTotalKey_;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.TallyInstanceViewKey_;
@@ -177,6 +178,13 @@ public interface TallyInstanceViewRepository
     };
   }
 
+  static Specification<TallyInstanceView> metricIdIn(List<String> validMetrics) {
+    return (root, query, builder) -> {
+      var key = root.get(TallyInstanceView_.key);
+      return key.get(TallyInstanceViewKey_.metricId).in(validMetrics);
+    };
+  }
+
   static Specification<TallyInstanceView> displayNameContains(String displayNameSubstring) {
     return (root, query, builder) ->
         builder.like(
@@ -184,10 +192,23 @@ public interface TallyInstanceViewRepository
             "%" + displayNameSubstring.toLowerCase() + "%");
   }
 
-  static Specification<TallyInstanceView> monthlyKeyEquals(InstanceMonthlyTotalKey totalKey) {
+  static Specification<TallyInstanceView> monthlyKeyEquals(String month, MetricId metricId) {
     return (root, query, builder) -> {
       var instanceMonthlyTotalRoot = root.join(TallyInstanceView_.monthlyTotals, JoinType.LEFT);
-      return builder.equal(instanceMonthlyTotalRoot.key(), totalKey);
+      return builder.equal(
+          instanceMonthlyTotalRoot.key(), new InstanceMonthlyTotalKey(month, metricId.toString()));
+    };
+  }
+
+  static Specification<TallyInstanceView> monthlyKeyEqualsWithValidMetrics(
+      String month, List<String> validMetrics) {
+    return (root, query, builder) -> {
+      var instanceMonthlyTotalRoot = root.join(TallyInstanceView_.monthlyTotals, JoinType.LEFT);
+      var monthPredicate =
+          builder.equal(instanceMonthlyTotalRoot.key().get(InstanceMonthlyTotalKey_.MONTH), month);
+      var metricIdsPredicate =
+          instanceMonthlyTotalRoot.key().get(InstanceMonthlyTotalKey_.METRIC_ID).in(validMetrics);
+      return builder.and(monthPredicate, metricIdsPredicate);
     };
   }
 
@@ -201,9 +222,11 @@ public interface TallyInstanceViewRepository
   @SuppressWarnings("java:S107")
   default Specification<TallyInstanceView> buildSearchSpecification(
       TallyInstancesDbReportCriteria criteria) {
-    MetricId effectiveMetricId =
-        Optional.ofNullable(criteria.getMetricId())
-            .orElse(getDefaultMetricIdForProduct(criteria.getProductId()));
+
+    List<String> validMetricsByProduct =
+        getMetricIdsFromConfigForTag(criteria.getProductId())
+            .map(MetricId::toUpperCaseFormatted)
+            .toList();
 
     /* The where call allows us to build a Specification object to operate on even if the
      * first specification method we call returns null which is does because we're using the
@@ -234,14 +257,19 @@ public interface TallyInstanceViewRepository
     if (StringUtils.hasText(criteria.getDisplayNameSubstring())) {
       searchCriteria = searchCriteria.and(displayNameContains(criteria.getDisplayNameSubstring()));
     }
-    if (Objects.nonNull(effectiveMetricId)) {
-      searchCriteria = searchCriteria.and(metricIdEquals(effectiveMetricId));
-      if (StringUtils.hasText(criteria.getMonth())) {
+    if (Objects.nonNull(criteria.getMetricId())) {
+      searchCriteria = searchCriteria.and(metricIdEquals(criteria.getMetricId()));
+    } else {
+      searchCriteria = searchCriteria.and(metricIdIn(validMetricsByProduct));
+    }
+    if (StringUtils.hasText(criteria.getMonth())) {
+      if (Objects.nonNull(criteria.getMetricId())) {
+        searchCriteria =
+            searchCriteria.and(monthlyKeyEquals(criteria.getMonth(), criteria.getMetricId()));
+      } else {
         searchCriteria =
             searchCriteria.and(
-                monthlyKeyEquals(
-                    new InstanceMonthlyTotalKey(
-                        criteria.getMonth(), effectiveMetricId.toString())));
+                monthlyKeyEqualsWithValidMetrics(criteria.getMonth(), validMetricsByProduct));
       }
     }
     if (!ObjectUtils.isEmpty(criteria.getHardwareMeasurementTypes())) {
@@ -250,9 +278,5 @@ public interface TallyInstanceViewRepository
     }
 
     return searchCriteria;
-  }
-
-  default MetricId getDefaultMetricIdForProduct(String productId) {
-    return MetricIdUtils.getMetricIdsFromConfigForTag(productId).findFirst().orElse(null);
   }
 }

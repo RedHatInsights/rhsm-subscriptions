@@ -59,10 +59,11 @@ import org.springframework.stereotype.Component;
 @Profile("worker")
 public class InstancesDataExporterService implements DataExporterService<TallyInstanceView> {
 
-  static final String INSTANCES_DATA = "instances";
-  static final String PRODUCT_ID = "product_id";
-  static final String BEGINNING = "beginning";
-  static final int BAD_REQUEST = Response.Status.BAD_REQUEST.getStatusCode();
+  public static final String INSTANCES_DATA = "instances";
+  public static final String PRODUCT_ID = "product_id";
+  public static final String BEGINNING = "beginning";
+  private static final int BAD_REQUEST = Response.Status.BAD_REQUEST.getStatusCode();
+  private static final int MAX_GUESTS_PER_QUERY = 20;
   private static final Map<
           String,
           BiConsumer<TallyInstancesDbReportCriteria.TallyInstancesDbReportCriteriaBuilder, String>>

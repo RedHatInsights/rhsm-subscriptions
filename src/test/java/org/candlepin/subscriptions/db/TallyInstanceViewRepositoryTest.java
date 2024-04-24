@@ -20,6 +20,7 @@
  */
 package org.candlepin.subscriptions.db;
 
+import static com.redhat.swatch.configuration.util.MetricIdUtils.getMetricIdsFromConfigForTag;
 import static org.candlepin.subscriptions.resource.InstancesResource.FIELD_SORT_PARAM_MAPPING;
 import static org.candlepin.subscriptions.resource.InstancesResource.METRICS_SORT_PARAM;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -46,7 +47,6 @@ import org.candlepin.subscriptions.db.model.AccountServiceInventoryId;
 import org.candlepin.subscriptions.db.model.BillingProvider;
 import org.candlepin.subscriptions.db.model.HardwareMeasurementType;
 import org.candlepin.subscriptions.db.model.Host;
-import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.TallyInstanceView;
 import org.candlepin.subscriptions.db.model.Usage;
@@ -73,23 +73,27 @@ import org.springframework.transaction.annotation.Transactional;
 @TestInstance(Lifecycle.PER_CLASS)
 class TallyInstanceViewRepositoryTest {
 
-  private static final String RHEL = "RHEL";
+  // Using this product ID because it has two valid metrics: Sockets and Cores
+  private static final String OPENSHIFT_CONTAINER_PLATFORM = "OpenShift Container Platform";
   private static final String COOL_PROD = "COOL_PROD";
   private static final String DEFAULT_DISPLAY_NAME = "REDHAT_PWNS";
   private static final String SORT_BY_CORES = "cores";
   private static final String SORT_BY_BILLING_PROVIDER = "hostBillingProvider";
+  private static final String BILLING_ACCOUNT_ID_ANY = "_ANY";
+  private static final String DEFAULT_ORG_ID = "org123";
 
   @Autowired private TallyInstanceViewRepository repo;
   @Autowired private HostRepository hostRepo;
   @Autowired private AccountServiceInventoryRepository accountServiceInventoryRepository;
 
+  private List<Host> defaultHosts;
+
   @Transactional
   @BeforeAll
   void setupTestData() {
-
-    Host host8 = createHost("inventory8", "account123");
-    Host host9 = createHost("inventory9", "account123");
-    Host host10 = createHost("inventory10", "account123");
+    Host host8 = createHost("inventory8");
+    Host host9 = createHost("inventory9");
+    Host host10 = createHost("inventory10");
 
     for (MetricId metricId : MetricId.getAll()) {
       host8.addToMonthlyTotal(
@@ -105,44 +109,17 @@ class TallyInstanceViewRepositoryTest {
       host10.setMeasurement(metricId.toString(), 50.0);
     }
 
-    addBucketToHost(host8, RHEL, ServiceLevel._ANY, Usage._ANY, HardwareMeasurementType.PHYSICAL);
-    addBucketToHost(host9, RHEL, ServiceLevel._ANY, Usage._ANY, HardwareMeasurementType.PHYSICAL);
-    addBucketToHost(host10, RHEL, ServiceLevel._ANY, Usage._ANY, HardwareMeasurementType.PHYSICAL);
+    addBucketToHost(host8);
+    addBucketToHost(host9);
+    addBucketToHost(host10);
 
-    persistHosts(host8, host9, host10).stream()
-        .collect(Collectors.toMap(Host::getInventoryId, Function.identity()));
+    defaultHosts = persistHosts(host8, host9, host10);
   }
 
   @Transactional
   @AfterAll
   void cleanup() {
     accountServiceInventoryRepository.deleteAll();
-  }
-
-  public List<Host> persistHosts(Host... hosts) {
-    List<Host> toSave = Arrays.asList(hosts);
-    toSave.stream()
-        .filter(h -> h.getDisplayName() == null)
-        .forEach(x -> x.setDisplayName(DEFAULT_DISPLAY_NAME));
-    List<Host> results = new ArrayList<>();
-    Arrays.stream(hosts)
-        .forEach(
-            host -> {
-              AccountServiceInventory accountServiceInventory =
-                  accountServiceInventoryRepository
-                      .findById(
-                          AccountServiceInventoryId.builder()
-                              .orgId(host.getOrgId())
-                              .serviceType("HBI_HOST")
-                              .build())
-                      .orElse(new AccountServiceInventory(host.getOrgId(), "HBI_HOST"));
-              accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host);
-              accountServiceInventory =
-                  accountServiceInventoryRepository.save(accountServiceInventory);
-              results.add(accountServiceInventory.getServiceInstances().get(host.getInstanceId()));
-            });
-    accountServiceInventoryRepository.flush();
-    return results;
   }
 
   @Transactional
@@ -160,8 +137,8 @@ class TallyInstanceViewRepositoryTest {
     Pageable page = PageRequest.of(0, 2, Sort.by(sortValue));
     Page<TallyInstanceView> results =
         repo.findAllBy(
-            "ORG_account123",
-            "RHEL",
+            DEFAULT_ORG_ID,
+            OPENSHIFT_CONTAINER_PLATFORM,
             ServiceLevel._ANY,
             Usage._ANY,
             "",
@@ -170,7 +147,7 @@ class TallyInstanceViewRepositoryTest {
             "2021-01",
             referenceMetricId,
             BillingProvider._ANY,
-            "_ANY",
+            BILLING_ACCOUNT_ID_ANY,
             null,
             page);
 
@@ -242,7 +219,7 @@ class TallyInstanceViewRepositoryTest {
 
     Page<TallyInstanceView> results =
         repo.findAllBy(
-            "ORG_a1",
+            "a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -260,7 +237,7 @@ class TallyInstanceViewRepositoryTest {
 
     Page<TallyInstanceView> allResults =
         repo.findAllBy(
-            "ORG_a1",
+            "a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -270,14 +247,13 @@ class TallyInstanceViewRepositoryTest {
             null,
             MetricIdUtils.getCores(),
             BillingProvider._ANY,
-            "_ANY",
+            BILLING_ACCOUNT_ID_ANY,
             null,
             page);
     assertEquals(3L, allResults.getTotalElements());
     Map<String, TallyInstanceView> hostToBill =
         allResults.stream()
-            .collect(
-                Collectors.toMap(t -> t.getKey().getInstanceId().toString(), Function.identity()));
+            .collect(Collectors.toMap(t -> t.getKey().getInstanceId(), Function.identity()));
 
     assertTrue(
         hostToBill
@@ -372,7 +348,7 @@ class TallyInstanceViewRepositoryTest {
 
     Page<TallyInstanceView> results =
         repo.findAllBy(
-            "ORG_a1",
+            "a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -382,7 +358,7 @@ class TallyInstanceViewRepositoryTest {
             null,
             MetricIdUtils.getCores(),
             BillingProvider._ANY,
-            "_ANY",
+            BILLING_ACCOUNT_ID_ANY,
             null,
             page);
     assertEquals(4L, results.getTotalElements());
@@ -430,7 +406,7 @@ class TallyInstanceViewRepositoryTest {
 
     Page<TallyInstanceView> results =
         repo.findAllBy(
-            "ORG_a1",
+            "a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -440,7 +416,7 @@ class TallyInstanceViewRepositoryTest {
             null,
             MetricIdUtils.getCores(),
             BillingProvider.RED_HAT,
-            "_ANY",
+            BILLING_ACCOUNT_ID_ANY,
             List.of(HardwareMeasurementType.VIRTUAL),
             page);
     assertEquals(1L, results.getTotalElements());
@@ -449,7 +425,7 @@ class TallyInstanceViewRepositoryTest {
 
     Page<TallyInstanceView> allResults =
         repo.findAllBy(
-            "ORG_a1",
+            "a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -459,7 +435,7 @@ class TallyInstanceViewRepositoryTest {
             null,
             MetricIdUtils.getCores(),
             BillingProvider.RED_HAT,
-            "_ANY",
+            BILLING_ACCOUNT_ID_ANY,
             null,
             page);
     assertEquals(3L, allResults.getTotalElements());
@@ -467,7 +443,7 @@ class TallyInstanceViewRepositoryTest {
         allResults.stream()
             .collect(
                 Collectors.toMap(
-                    instance -> instance.getKey().getInstanceId().toString(), Function.identity()));
+                    instance -> instance.getKey().getInstanceId(), Function.identity()));
     assertTrue(
         hostToBill
             .keySet()
@@ -487,7 +463,7 @@ class TallyInstanceViewRepositoryTest {
 
   @Transactional
   @Test
-  void testGetResultWithEmptyMeasurmentType() {
+  void testGetResultWithEmptyMeasurementType() {
     Host host1 = createHost(UUID.randomUUID().toString(), "a1");
     host1.setBillingProvider(BillingProvider.RED_HAT);
     addBucketToHost(
@@ -499,7 +475,7 @@ class TallyInstanceViewRepositoryTest {
 
     Page<TallyInstanceView> results =
         repo.findAllBy(
-            "ORG_a1",
+            "a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -509,7 +485,7 @@ class TallyInstanceViewRepositoryTest {
             null,
             MetricIdUtils.getCores(),
             BillingProvider.RED_HAT,
-            "_ANY",
+            BILLING_ACCOUNT_ID_ANY,
             null,
             page);
     assertEquals(1L, results.getTotalElements());
@@ -564,7 +540,7 @@ class TallyInstanceViewRepositoryTest {
 
     Page<TallyInstanceView> results =
         repo.findAllBy(
-            "ORG_a1",
+            "a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -574,7 +550,7 @@ class TallyInstanceViewRepositoryTest {
             null,
             MetricIdUtils.getCores(),
             BillingProvider.RED_HAT,
-            "_ANY",
+            BILLING_ACCOUNT_ID_ANY,
             HardwareMeasurementType.getCloudProviderTypes(),
             page);
     assertEquals(3L, results.getTotalElements());
@@ -639,7 +615,7 @@ class TallyInstanceViewRepositoryTest {
 
     Page<TallyInstanceView> coresResults =
         repo.findAllBy(
-            "ORG_a1",
+            "a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -649,7 +625,7 @@ class TallyInstanceViewRepositoryTest {
             null,
             MetricIdUtils.getCores(),
             null,
-            "_ANY",
+            BILLING_ACCOUNT_ID_ANY,
             null,
             page);
     assertEquals(2L, coresResults.getTotalElements());
@@ -659,7 +635,7 @@ class TallyInstanceViewRepositoryTest {
 
     Page<TallyInstanceView> socketsResults =
         repo.findAllBy(
-            "ORG_a1",
+            "a1",
             COOL_PROD,
             ServiceLevel.PREMIUM,
             Usage.PRODUCTION,
@@ -669,7 +645,7 @@ class TallyInstanceViewRepositoryTest {
             null,
             MetricIdUtils.getSockets(),
             null,
-            "_ANY",
+            BILLING_ACCOUNT_ID_ANY,
             null,
             page);
     assertEquals(2L, socketsResults.getTotalElements());
@@ -678,13 +654,76 @@ class TallyInstanceViewRepositoryTest {
     assertThat(socketsResultIds, containsInAnyOrder(host2.getInstanceId(), host3.getInstanceId()));
   }
 
+  @Transactional
+  @Test
+  void testWithoutAnyFilterForMetricId() {
+    Page<TallyInstanceView> results =
+        repo.findAllBy(
+            DEFAULT_ORG_ID,
+            OPENSHIFT_CONTAINER_PLATFORM,
+            ServiceLevel._ANY,
+            Usage._ANY,
+            null,
+            0,
+            0,
+            null,
+            null,
+            BillingProvider._ANY,
+            BILLING_ACCOUNT_ID_ANY,
+            null,
+            PageRequest.of(0, 10));
+    List<String> validMetricsByProduct =
+        getMetricIdsFromConfigForTag(OPENSHIFT_CONTAINER_PLATFORM)
+            .map(MetricId::toUpperCaseFormatted)
+            .toList();
+
+    // to ensure we're using a product with two metrics
+    assertEquals(2, validMetricsByProduct.size());
+    assertEquals(
+        defaultHosts.size() * validMetricsByProduct.size(), (int) results.getTotalElements());
+    for (var host : defaultHosts) {
+      for (var metric : validMetricsByProduct)
+        assertTrue(
+            results.stream().anyMatch(h -> h.getKey().getMetricId().equalsIgnoreCase(metric)),
+            "Metric " + metric + " not found in the host " + host.getInventoryId());
+    }
+  }
+
+  private List<Host> persistHosts(Host... hosts) {
+    List<Host> toSave = Arrays.asList(hosts);
+    toSave.stream()
+        .filter(h -> h.getDisplayName() == null)
+        .forEach(x -> x.setDisplayName(DEFAULT_DISPLAY_NAME));
+    List<Host> results = new ArrayList<>();
+    Arrays.stream(hosts)
+        .forEach(
+            host -> {
+              AccountServiceInventory accountServiceInventory =
+                  accountServiceInventoryRepository
+                      .findById(
+                          AccountServiceInventoryId.builder()
+                              .orgId(host.getOrgId())
+                              .serviceType("HBI_HOST")
+                              .build())
+                      .orElse(new AccountServiceInventory(host.getOrgId(), "HBI_HOST"));
+              accountServiceInventory.getServiceInstances().put(host.getInstanceId(), host);
+              accountServiceInventoryRepository.save(accountServiceInventory);
+              results.add(accountServiceInventory.getServiceInstances().get(host.getInstanceId()));
+            });
+    accountServiceInventoryRepository.flush();
+    return results;
+  }
+
   private Host createBaseHost(String inventoryId, String org) {
-    Host host =
-        new Host(inventoryId, UUID.randomUUID().toString(), "ORG_" + org, "SUBMAN_" + inventoryId);
-    host.setBillingAccountId("_ANY");
+    Host host = new Host(inventoryId, UUID.randomUUID().toString(), org, "SUBMAN_" + inventoryId);
+    host.setBillingAccountId(BILLING_ACCOUNT_ID_ANY);
     host.setBillingProvider(BillingProvider._ANY);
     host.setInstanceId(UUID.randomUUID().toString());
     return host;
+  }
+
+  private Host createHost(String inventoryId) {
+    return createHost(inventoryId, DEFAULT_ORG_ID);
   }
 
   private Host createHost(String inventoryId, String org) {
@@ -694,31 +733,27 @@ class TallyInstanceViewRepositoryTest {
     return host;
   }
 
-  private HostTallyBucket addBucketToHost(
-      Host host, String productId, ServiceLevel sla, Usage usage) {
-    return addBucketToHost(host, productId, sla, usage, HardwareMeasurementType.PHYSICAL);
+  private void addBucketToHost(Host host) {
+    addBucketToHost(
+        host,
+        OPENSHIFT_CONTAINER_PLATFORM,
+        ServiceLevel._ANY,
+        Usage._ANY,
+        HardwareMeasurementType.PHYSICAL,
+        BillingProvider._ANY);
   }
 
-  private HostTallyBucket addBucketToHost(
-      Host host,
-      String productId,
-      ServiceLevel sla,
-      Usage usage,
-      HardwareMeasurementType measurementType) {
-    return addBucketToHost(host, productId, sla, usage, measurementType, BillingProvider._ANY);
-  }
-
-  private HostTallyBucket addBucketToHost(
+  private void addBucketToHost(
       Host host,
       String productId,
       ServiceLevel sla,
       Usage usage,
       HardwareMeasurementType measurementType,
       BillingProvider billingProvider) {
-    return addBucketToHost(host, productId, sla, usage, measurementType, billingProvider, 4, 2);
+    addBucketToHost(host, productId, sla, usage, measurementType, billingProvider, 4, 2);
   }
 
-  private HostTallyBucket addBucketToHost(
+  private void addBucketToHost(
       Host host,
       String productId,
       ServiceLevel sla,
@@ -727,26 +762,12 @@ class TallyInstanceViewRepositoryTest {
       BillingProvider billingProvider,
       int sockets,
       int cores) {
-    return addBucketToHost(
-        host, productId, sla, usage, measurementType, billingProvider, "_ANY", sockets, cores);
-  }
-
-  private HostTallyBucket addBucketToHost(
-      Host host,
-      String productId,
-      ServiceLevel sla,
-      Usage usage,
-      HardwareMeasurementType measurementType,
-      BillingProvider billingProvider,
-      String billingAccountId,
-      int sockets,
-      int cores) {
-    return host.addBucket(
+    host.addBucket(
         productId,
         sla,
         usage,
         billingProvider,
-        billingAccountId,
+        BILLING_ACCOUNT_ID_ANY,
         true,
         sockets,
         cores,
