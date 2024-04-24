@@ -134,8 +134,10 @@ public interface ContractEntityMapper {
               .findFirst()
               .orElse("");
       var azureOfferId = entitlement.getPurchase().getVendorProductCode();
+      var azureCustomerId = entitlement.getPartnerIdentities().getAzureCustomerId();
+      var azureResourceId = entitlement.getPurchase().getAzureResourceId();
       return String.format(
-          "%s;%s;%s", entitlement.getPurchase().getAzureResourceId(), azurePlanId, azureOfferId);
+          "%s;%s;%s;%s", azureResourceId, azurePlanId, azureOfferId, azureCustomerId);
     }
     return null;
   }

@@ -314,7 +314,7 @@ class ContractServiceTest extends BaseUnitTest {
     verify(subscriptionRepository).persist(subscriptionSaveCapture.capture());
     subscriptionSaveCapture.getValue();
     assertEquals(
-        "a69ff71c-aa8b-43d9-dea8-822fab4bbb86;rh-rhel-sub-1yr;azureProductCode",
+        "a69ff71c-aa8b-43d9-dea8-822fab4bbb86;rh-rhel-sub-1yr;azureProductCode;eadf26ee-6fbc-4295-9a9e-25d4fea8951d_2019-05-31",
         subscriptionSaveCapture.getValue().getBillingProviderId());
   }
 
