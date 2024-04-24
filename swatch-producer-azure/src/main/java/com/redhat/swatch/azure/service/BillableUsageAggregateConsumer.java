@@ -52,6 +52,7 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
@@ -127,19 +128,22 @@ public class BillableUsageAggregateConsumer {
             billableUsageAggregate.getWindowTimestamp(),
             azureUsageWindow);
       } else {
-        billableUsageAggregate.getSnapshotDates().stream()
-            .map(
-                snapshotDate ->
-                    billableUsageFromAggregateKey(
-                        billableUsageAggregate.getAggregateKey(), snapshotDate))
-            .forEach(
-                billableUsage -> {
-                  billableUsageDeadLetterTopicProducer.send(billableUsage);
-                  log.warn(
-                      "Skipping billable usage with id={} orgId={} because the subscription was not found. Will retry again after one hour.",
-                      billableUsageAggregate.getAggregateId(),
-                      billableUsageAggregate.getAggregateKey().getOrgId());
-                });
+        if (Objects.nonNull(billableUsageAggregate.getBillableUsageRemittanceUUIDs())) {
+          billableUsageAggregate.getBillableUsageRemittanceUUIDs().stream()
+              .map(
+                  uuid ->
+                      billableUsageFromAggregateKey(billableUsageAggregate.getAggregateKey(), uuid))
+              .forEach(
+                  billableUsage -> {
+                    billableUsageDeadLetterTopicProducer.send(billableUsage);
+                    log.warn(
+                        "Skipping billable usage with id={} orgId={} because the subscription was not found. Will retry again after one hour.",
+                        billableUsageAggregate.getAggregateId(),
+                        billableUsageAggregate.getAggregateKey().getOrgId());
+                  });
+        } else {
+          log.warn("No billable usage remittance UUIDs available to retry for.");
+        }
       }
       return;
     } catch (AzureUsageContextLookupException e) {
@@ -283,8 +287,7 @@ public class BillableUsageAggregateConsumer {
     return metric;
   }
 
-  private BillableUsage billableUsageFromAggregateKey(
-      BillableUsageAggregateKey key, OffsetDateTime snapshotDate) {
+  private BillableUsage billableUsageFromAggregateKey(BillableUsageAggregateKey key, UUID uuid) {
     var billableUsage = new BillableUsage();
     billableUsage.setUsage(UsageEnum.fromValue(key.getUsage()));
     billableUsage.setBillingAccountId(key.getBillingAccountId());
@@ -293,7 +296,7 @@ public class BillableUsageAggregateConsumer {
     billableUsage.setProductId(key.getProductId());
     billableUsage.setMetricId(key.getMetricId());
     billableUsage.setSla(SlaEnum.fromValue(key.getSla()));
-    billableUsage.setSnapshotDate(snapshotDate);
+    billableUsage.setUuid(uuid);
     return billableUsage;
   }
 }

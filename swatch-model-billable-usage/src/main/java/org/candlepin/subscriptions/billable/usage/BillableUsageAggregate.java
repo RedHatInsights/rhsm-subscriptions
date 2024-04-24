@@ -49,6 +49,7 @@ public class BillableUsageAggregate {
   private UUID aggregateId;
   private BillableUsageAggregateKey aggregateKey;
   private Set<OffsetDateTime> snapshotDates = new HashSet<>();
+  private Set<UUID> billableUsageRemittanceUUIDs = new HashSet<>();
   private BillableUsage.Status status;
   private BillableUsage.ErrorCode errorCode;
   private OffsetDateTime billedOn;
@@ -74,6 +75,7 @@ public class BillableUsageAggregate {
     }
     totalValue = totalValue.add(BigDecimal.valueOf(billableUsage.getValue()));
     snapshotDates.add(billableUsage.getSnapshotDate());
+    billableUsageRemittanceUUIDs.add(billableUsage.getUuid());
     log.info(
         "Adding billableUsage: {} to aggregate with aggregateId: {}, totalValue:{}, remittanceUuids:{} "
             + "and windowTimestamp: {}",

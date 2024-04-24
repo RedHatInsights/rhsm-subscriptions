@@ -35,6 +35,7 @@ import com.redhat.swatch.azure.exception.AzureUsageContextLookupException;
 import com.redhat.swatch.azure.exception.DefaultApiException;
 import com.redhat.swatch.azure.exception.SubscriptionCanNotBeDeterminedException;
 import com.redhat.swatch.azure.exception.SubscriptionRecentlyTerminatedException;
+import com.redhat.swatch.azure.openapi.model.BillableUsage;
 import com.redhat.swatch.azure.openapi.model.BillableUsage.BillingProviderEnum;
 import com.redhat.swatch.azure.openapi.model.BillableUsage.SlaEnum;
 import com.redhat.swatch.azure.test.resources.InMemoryMessageBrokerKafkaResource;
@@ -62,6 +63,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregateKey;
 import org.eclipse.microprofile.reactive.messaging.spi.Connector;
@@ -167,8 +169,10 @@ class BillableUsageConsumerTest {
     consumer.process(BASILISK_INSTANCE_HOURS_RECORD);
     assertEquals(1, dlq.received().size());
     var metadata = dlq.received().get(0).getMetadata(OutgoingKafkaRecordMetadata.class);
+    BillableUsage data = (BillableUsage) dlq.received().get(0).getPayload();
     assertTrue(metadata.isPresent());
     assertNotNull(metadata.get().getHeaders().lastHeader(RETRY_AFTER_HEADER));
+    assertNotNull(data.getUuid());
   }
 
   @Test
@@ -317,6 +321,7 @@ class BillableUsageConsumerTest {
     aggregate.setWindowTimestamp(timestamp);
     aggregate.setTotalValue(new BigDecimal(totalValue));
     aggregate.setSnapshotDates(Set.of(timestamp));
+    aggregate.setBillableUsageRemittanceUUIDs(Set.of(UUID.randomUUID()));
     var key =
         new BillableUsageAggregateKey(
             "testOrg",
