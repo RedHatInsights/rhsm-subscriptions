@@ -25,10 +25,8 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -48,8 +46,6 @@ public class BillableUsageAggregate {
   private OffsetDateTime windowTimestamp;
   private UUID aggregateId;
   private BillableUsageAggregateKey aggregateKey;
-  private Set<OffsetDateTime> snapshotDates = new HashSet<>();
-  private Set<UUID> billableUsageRemittanceUUIDs = new HashSet<>();
   private BillableUsage.Status status;
   private BillableUsage.ErrorCode errorCode;
   private OffsetDateTime billedOn;
@@ -74,8 +70,6 @@ public class BillableUsageAggregate {
       remittanceUuids.add(billableUsage.getUuid().toString());
     }
     totalValue = totalValue.add(BigDecimal.valueOf(billableUsage.getValue()));
-    snapshotDates.add(billableUsage.getSnapshotDate());
-    billableUsageRemittanceUUIDs.add(billableUsage.getUuid());
     log.info(
         "Adding billableUsage: {} to aggregate with aggregateId: {}, totalValue:{}, remittanceUuids:{} "
             + "and windowTimestamp: {}",

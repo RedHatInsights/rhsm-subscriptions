@@ -55,7 +55,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Stream;
 import org.candlepin.subscriptions.billable.usage.BillableUsage;
 import org.candlepin.subscriptions.billable.usage.BillableUsageAggregate;
@@ -318,7 +317,6 @@ class BillableUsageAggregateProcessorTest {
     var aggregate = new BillableUsageAggregate();
     aggregate.setWindowTimestamp(timestamp);
     aggregate.setTotalValue(new BigDecimal(totalValue));
-    aggregate.setSnapshotDates(Set.of(timestamp));
     var key =
         new BillableUsageAggregateKey(
             "testOrg",

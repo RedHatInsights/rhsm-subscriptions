@@ -128,8 +128,8 @@ public class BillableUsageAggregateConsumer {
             billableUsageAggregate.getWindowTimestamp(),
             azureUsageWindow);
       } else {
-        if (Objects.nonNull(billableUsageAggregate.getBillableUsageRemittanceUUIDs())) {
-          billableUsageAggregate.getBillableUsageRemittanceUUIDs().stream()
+        if (Objects.nonNull(billableUsageAggregate.getRemittanceUuids())) {
+          billableUsageAggregate.getRemittanceUuids().stream()
               .map(
                   uuid ->
                       billableUsageFromAggregateKey(billableUsageAggregate.getAggregateKey(), uuid))
@@ -287,7 +287,7 @@ public class BillableUsageAggregateConsumer {
     return metric;
   }
 
-  private BillableUsage billableUsageFromAggregateKey(BillableUsageAggregateKey key, UUID uuid) {
+  private BillableUsage billableUsageFromAggregateKey(BillableUsageAggregateKey key, String uuid) {
     var billableUsage = new BillableUsage();
     billableUsage.setUsage(UsageEnum.fromValue(key.getUsage()));
     billableUsage.setBillingAccountId(key.getBillingAccountId());
@@ -296,7 +296,7 @@ public class BillableUsageAggregateConsumer {
     billableUsage.setProductId(key.getProductId());
     billableUsage.setMetricId(key.getMetricId());
     billableUsage.setSla(SlaEnum.fromValue(key.getSla()));
-    billableUsage.setUuid(uuid);
+    billableUsage.setUuid(UUID.fromString(uuid));
     return billableUsage;
   }
 }

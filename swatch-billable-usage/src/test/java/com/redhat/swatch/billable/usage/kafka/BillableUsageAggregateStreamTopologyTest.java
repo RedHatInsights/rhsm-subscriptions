@@ -34,7 +34,6 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.streams.TestInputTopic;
@@ -101,7 +100,6 @@ class BillableUsageAggregateStreamTopologyTest {
     var actualAggregate = keyValue.value;
     assertEquals(expectedAggregateKey, keyValue.key);
     assertEquals(36.0, actualAggregate.getTotalValue().doubleValue());
-    assertEquals(Set.of(usage.getSnapshotDate()), actualAggregate.getSnapshotDates());
     assertEquals(usage.getUuid().toString(), actualAggregate.getRemittanceUuids().get(0));
     assertNotNull(actualAggregate.getWindowTimestamp());
   }
@@ -133,8 +131,6 @@ class BillableUsageAggregateStreamTopologyTest {
     var actualAggregate = keyValue.value;
     assertEquals(expectedAggregateKey, keyValue.key);
     assertEquals(9.0, actualAggregate.getTotalValue().doubleValue());
-    assertEquals(
-        Set.of(snapshotDate1, snapshotDate2, snapshotDate3), actualAggregate.getSnapshotDates());
     assertIterableEquals(
         List.of(
             usage1.getUuid().toString(), usage2.getUuid().toString(), usage3.getUuid().toString()),
