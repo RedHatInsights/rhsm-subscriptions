@@ -106,7 +106,16 @@ public interface ExtendWithExportServiceWireMock {
 
   static WireMockServer startWireMockServer() {
     var wireMockServer =
-        new WireMockServer(wireMockConfig().dynamicPort().notifier(new ConsoleNotifier(true)));
+        new WireMockServer(
+            wireMockConfig()
+                .dynamicPort()
+                .notifier(new ConsoleNotifier(true))
+                // This is mandatory to handle large files, otherwise Wiremock returns 500 Server
+                // Error
+                .jettyHeaderRequestSize(16384)
+                .jettyHeaderResponseSize(80000)
+                .stubRequestLoggingDisabled(true)
+                .maxLoggedResponseSize(1000));
     wireMockServer.start();
     System.out.printf("Running export service on port %d%n", wireMockServer.port());
     return wireMockServer;
