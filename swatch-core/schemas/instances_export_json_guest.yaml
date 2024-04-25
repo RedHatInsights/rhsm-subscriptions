@@ -1,5 +1,5 @@
 $schema: http://json-schema.org/draft-07/schema#
-title: InstanceExportGuest
+title: InstanceExportJsonGuest
 required:
   - display_name
   - hardware_type

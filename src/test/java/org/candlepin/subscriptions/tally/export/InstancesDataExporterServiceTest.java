@@ -45,10 +45,11 @@ import org.candlepin.subscriptions.db.model.HostTallyBucket;
 import org.candlepin.subscriptions.db.model.ServiceLevel;
 import org.candlepin.subscriptions.db.model.Usage;
 import org.candlepin.subscriptions.export.BaseDataExporterServiceTest;
-import org.candlepin.subscriptions.json.InstancesExport;
-import org.candlepin.subscriptions.json.InstancesExportGuest;
-import org.candlepin.subscriptions.json.InstancesExportItem;
-import org.candlepin.subscriptions.json.InstancesExportMetric;
+import org.candlepin.subscriptions.json.InstancesExportJson;
+import org.candlepin.subscriptions.json.InstancesExportJsonGuest;
+import org.candlepin.subscriptions.json.InstancesExportJsonItem;
+import org.candlepin.subscriptions.json.InstancesExportJsonMetric;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -64,6 +65,11 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
   private final List<HostWithGuests> itemsToBeExported = new ArrayList<>();
 
   @Autowired HostRepository repository;
+
+  @AfterEach
+  public void tearDown() {
+    repository.deleteAll();
+  }
 
   @Override
   protected String resourceType() {
@@ -203,7 +209,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
     // buckets
     HostTallyBucket bucket = new HostTallyBucket();
     bucket.setKey(new HostBucketKey());
-    bucket.getKey().setProductId("RHEL for x86");
+    bucket.getKey().setProductId(RHEL_FOR_X86);
     bucket.getKey().setUsage(Usage._ANY);
     bucket.getKey().setSla(ServiceLevel._ANY);
     bucket.getKey().setAsHypervisor(true);
@@ -228,11 +234,11 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
 
   @Override
   protected void verifyRequestWasSentToExportService() {
-    var expected = new InstancesExport();
+    var expected = new InstancesExportJson();
     expected.setData(new ArrayList<>());
     for (HostWithGuests item : itemsToBeExported) {
       Host host = item.host;
-      var instance = new InstancesExportItem();
+      var instance = new InstancesExportJsonItem();
       instance.setId(host.getId().toString());
       instance.setInstanceId(host.getInstanceId());
       instance.setDisplayName(host.getDisplayName());
@@ -251,7 +257,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
       }
 
       instance.setBillingAccountId(host.getBillingAccountId());
-      var variant = Variant.findByTag(PRODUCT_ID);
+      var variant = Variant.findByTag(RHEL_FOR_X86);
       var metrics =
           MetricIdUtils.getMetricIdsFromConfigForVariant(variant.orElse(null)).sorted().toList();
       instance.setMeasurements(new ArrayList<>());
@@ -259,7 +265,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
         instance
             .getMeasurements()
             .add(
-                new InstancesExportMetric()
+                new InstancesExportJsonMetric()
                     .withMetricId(metricId.toString())
                     .withValue(resolveMetricValue(bucket, metricId)));
       }
@@ -273,7 +279,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
             item.guests.stream()
                 .map(
                     g ->
-                        new InstancesExportGuest()
+                        new InstancesExportJsonGuest()
                             .withDisplayName(g.getDisplayName())
                             .withHardwareType(g.getHardwareType().toString())
                             .withLastSeen(g.getLastSeen())
@@ -285,7 +291,7 @@ class InstancesDataExporterServiceTest extends BaseDataExporterServiceTest {
       expected.getData().add(instance);
     }
 
-    verifyRequestWasSentToExportServiceWithUploadData(expected);
+    verifyRequestWasSentToExportServiceWithUploadData(request, toJson(expected));
   }
 
   private static double resolveMetricValue(HostTallyBucket bucket, MetricId metricId) {

@@ -1,5 +1,5 @@
 $schema: http://json-schema.org/draft-07/schema#
-title: SubscriptionExportItem
+title: SubscriptionExportJsonItem
 properties:
   sku:
     type: string
@@ -14,9 +14,9 @@ properties:
   subscription_number:
     type: string
   quantity:
-    type: long
+    type: number
   measurements:
     description: List of subscription measurements
     type: array
     items:
-      $ref: subscriptions_export_measurement.yaml
+      $ref: subscriptions_export_json_measurement.yaml
