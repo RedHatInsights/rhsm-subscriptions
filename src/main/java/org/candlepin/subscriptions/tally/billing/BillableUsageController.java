@@ -76,8 +76,8 @@ public class BillableUsageController {
   public double getTotalRemitted(BillableUsage billableUsage) {
     var filter = BillableUsageRemittanceFilter.fromUsage(billableUsage);
     return billableUsageRemittanceRepository.getRemittanceSummaries(filter).stream()
-        .findFirst()
         .map(RemittanceSummaryProjection::getTotalRemittedPendingValue)
+        .reduce(Double::sum)
         .orElse(0.0);
   }
 
