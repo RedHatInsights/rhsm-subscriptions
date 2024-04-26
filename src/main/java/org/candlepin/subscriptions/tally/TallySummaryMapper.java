@@ -21,7 +21,6 @@
 package org.candlepin.subscriptions.tally;
 
 import java.util.List;
-import java.util.stream.Collectors;
 import org.candlepin.clock.ApplicationClock;
 import org.candlepin.subscriptions.db.TallySnapshotRepository;
 import org.candlepin.subscriptions.db.model.Granularity;
@@ -47,8 +46,7 @@ public class TallySummaryMapper {
   }
 
   private TallySummary createTallySummary(String orgId, List<TallySnapshot> tallySnapshots) {
-    var mappedSnapshots =
-        tallySnapshots.stream().map(this::mapTallySnapshot).collect(Collectors.toList());
+    var mappedSnapshots = tallySnapshots.stream().map(this::mapTallySnapshot).toList();
     return new TallySummary().withOrgId(orgId).withTallySnapshots(mappedSnapshots);
   }
 
@@ -89,7 +87,6 @@ public class TallySummaryMapper {
             entry ->
                 new TallyMeasurement()
                     .withHardwareMeasurementType(entry.getKey().getMeasurementType().toString())
-                    .withUom(entry.getKey().getMetricId())
                     .withMetricId(entry.getKey().getMetricId())
                     .withValue(entry.getValue())
                     .withCurrentTotal(getCurrentlyMeasuredTotal(snapshot, entry.getKey())))
